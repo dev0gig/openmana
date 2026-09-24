@@ -1,0 +1,2 @@
+# 17 — Targeting and cost payment
+Implement targeting and cost-payment UX entirely from Forge-provided selectable/action data. Visually highlight valid targets, current source and required counts. Support nested Forge inputs that arise while casting/activating. Cost payment/mulligan special paths from Anvil must not be accidentally disabled by generic action filtering. Test representative mana, alternate selection and multi-target flows.
