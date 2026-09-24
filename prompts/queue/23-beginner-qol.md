@@ -1,0 +1,2 @@
+# 23 — Beginner QoL
+Add QoL using only authoritative Forge state/static explanations: legal-action highlights, attack/block guidance, target emphasis, phase guidance, contextual terminology help, obvious tapped/summoning-sickness states where available, mandatory vs optional clarity and understandable engine errors. Do not create a parallel rules engine. Preserve meaningful decisions.
