@@ -1,0 +1,2 @@
+# 05 — JVM/WASM differential tests
+Build a regression harness that can run equivalent scripted games against JVM bridge and WASM bridge with fixed seeds. Cover mulligan, land/spell play, priority, mana/cost payment, targeting, stack, combat, block assignment, zone movement and game end; add Commander smoke coverage if supported by the bridge. Compare structured event/snapshot traces rather than localized prose. Any divergence must fail. Keep fixtures small and reproducible.
