@@ -1,0 +1,2 @@
+# 03 — Worker transport and protocol
+Create engine/protocol as the only UI↔engine contract, with schemas and generated/validated TypeScript types. Implement Dedicated Worker host. Engine→UI uses postMessage; UI→engine uses the researched SharedArrayBuffer/Atomics queue. Validate question IDs, queue overflow and protocol versions loudly. Add ready/error/technical-abort messages. Add feature detection for crossOriginIsolated, SharedArrayBuffer and required WASM features. Tests must cover stale answers, withdrawn questions and full snapshots. No Magic rules in TypeScript.
