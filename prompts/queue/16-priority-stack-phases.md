@@ -1,0 +1,2 @@
+# 16 — Priority, stack and phases
+Implement understandable turn/phase/priority presentation without reimplementing rules. Preserve Forge APINA/auto-pass behaviour where Forge itself proves there is no action. Show stack entries and current actor/context clearly. Card activation during priority must use Forge's actionable/card-tap path, not a fabricated question. Add contextual action wording and tests.
