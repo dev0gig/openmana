@@ -28,8 +28,8 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | – (keiner; nach 05 wie in `naechster-schritt.md` vorgesehen gestoppt) |
-| Nächster Prompt | **06 — OpenMana web/PWA skeleton** (PENDING, nicht begonnen) |
+| Aktuell ausgeführt | **06 — OpenMana web/PWA skeleton** |
+| Nächster Prompt | 07 — IndexedDB local data layer (erst nach 06 = COMPLETE) |
 | Zuletzt abgeschlossen | 05 — JVM/WASM differential tests (`0ddfbc3`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-24 (Lauf über `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-24 |
@@ -44,7 +44,7 @@
 | 03 | [Worker transport and protocol](queue/03-worker-transport-protocol.md) | COMPLETE | `1e8febf` |
 | 04 | [Forge resources and card scripts](queue/04-forge-resources-card-scripts.md) | COMPLETE | `fbcba6e` |
 | 05 | [JVM/WASM differential tests](queue/05-engine-differential-tests.md) | COMPLETE | `0ddfbc3` |
-| 06 | [OpenMana web/PWA skeleton](queue/06-web-pwa-skeleton.md) | PENDING | – |
+| 06 | [OpenMana web/PWA skeleton](queue/06-web-pwa-skeleton.md) | IN_PROGRESS | – |
 | 07 | [IndexedDB local data layer](queue/07-indexeddb-storage.md) | PENDING | – |
 | 08 | [Scryfall card data](queue/08-scryfall-data.md) | PENDING | – |
 | 09 | [Arena deck import](queue/09-arena-deck-import.md) | PENDING | – |
@@ -535,3 +535,8 @@
     soll); die Text-Hashes von Prompt 02–04 bleiben als Zusatzprüfung.
 - **Weiter mit:** Prompt 06 (OpenMana web/PWA skeleton). Nicht begonnen:
   `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
+
+### 06 — OpenMana web/PWA skeleton — IN_PROGRESS
+
+- Begonnen am 2026-09-24 von Claude Code (Claude Opus 5.5), Auftrag
+  „Führe prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
