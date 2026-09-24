@@ -28,9 +28,9 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | **02 — Anvil bridge single-thread spike** |
-| Nächster Prompt | 03 — Worker transport and protocol (erst nach 02 = COMPLETE) |
-| Zuletzt abgeschlossen | 01 — Forge WASM engine spike (`b64835a`) |
+| Aktuell ausgeführt | – (keiner; nach 01 + 02 wie beauftragt gestoppt) |
+| Nächster Prompt | **03 — Worker transport and protocol** (PENDING, nicht begonnen) |
+| Zuletzt abgeschlossen | 02 — Anvil bridge single-thread spike (`5a2ed62`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-24 |
 | Letzte Aktualisierung | 2026-09-24 |
 
@@ -40,7 +40,7 @@
 |---|---|---|---|
 | 00 | [Research: ManaBrew / Forge WebAssembly](queue/00-research-manabrew-forge-wasm.md) | COMPLETE | `681ce0a` |
 | 01 | [Forge WASM engine spike](queue/01-engine-spike.md) | COMPLETE | `b64835a` |
-| 02 | [Anvil bridge single-thread spike](queue/02-anvil-bridge-single-thread.md) | IN_PROGRESS | – |
+| 02 | [Anvil bridge single-thread spike](queue/02-anvil-bridge-single-thread.md) | COMPLETE | `5a2ed62` |
 | 03 | [Worker transport and protocol](queue/03-worker-transport-protocol.md) | PENDING | – |
 | 04 | [Forge resources and card scripts](queue/04-forge-resources-card-scripts.md) | PENDING | – |
 | 05 | [JVM/WASM differential tests](queue/05-engine-differential-tests.md) | PENDING | – |
@@ -147,6 +147,79 @@
     Karten (04), vollständiger Differenztest (05), Fold7-Messung, Vercel, TWA,
     `LICENSE`-Datei vor öffentlicher Auslieferung (27).
 
-### 02 — Anvil bridge single-thread spike — IN_PROGRESS
+### 02 — Anvil bridge single-thread spike — COMPLETE
 
-- Begonnen am 2026-09-24 von Claude Code (Claude Opus 5.5), direkt nach 01.
+- **Commits:** `5a2ed62` Implementierung (alle Nachweise liefen auf diesem
+  Stand, `openmana.engineSourcesModified=false`), `4f6084e` Doku (2026-09-24),
+  Agent: Claude Code (Claude Opus 5.5)
+- **Zusammenfassung:** Forges eigener Mensch-Pfad (`PlayerControllerHuman` +
+  Inputs) läuft über eine Bridge nach Anvils Vorbild auf **einem** Thread: auf
+  der JVM, als Wasm in Node 22 und im Dedicated Worker in Chrome 153. Im
+  Browser wartet der Worker mit `Atomics.wait` mitten in Forges Java-Stack auf
+  die nächste Eingabe aus einem SharedArrayBuffer. Vier Testpartien gegen
+  Forges KI (Mulligan, Karten per Antippen außerhalb einer Frage, Kosten
+  automatisch und von Hand, Ziele auf Karten und Spieler, Angriff, Block,
+  blockierende Fragen, Rücknahmen, absichtlich falsche Eingaben, Aufgeben)
+  enden in Node und Chrome **exakt** wie auf der JVM. Option A (Anvil-Weg)
+  bestätigt; keine Research-Annahme widerlegt, kein Blocker. Forge bleibt
+  alleinige Regelautorität, die Bridge rechnet nichts selbst aus.
+- **Wichtige Komponenten:**
+  - `engine/bridge/…/bridge/`: `BridgeGuiGame` (Forges GUI für den Menschen,
+    Input-Pumpe), `StateBuilder`, `Answers`, `Protocol` (`0.2-spike`),
+    `HumanMatch` (Start aus JSON-Decks, Bericht bei unbekannten Karten),
+    `ProtocolTrace`, `EngineHost`
+  - `engine/patches/0004–0006`: Input-Pumpe, keine Komfort-Timer im
+    Synchronmodus, kein Netzwerk-Manager (Netty) in lokalen Partien
+  - `engine/wasm`: `WasmEngineHost` + Befehl `human-match`,
+    `host/input-channel.js` (SharedArrayBuffer, `input.wait`),
+    `spike/replay-driver.js`, `test/node-replay.mjs`,
+    `browser-smoke.mjs --transcript`
+  - Testwerkzeug: `smoke/ScriptedHuman` (regelfrei; Varianten verteidigend
+    und aufgebend), `smoke/ReplayHost`, `jvm/JvmHumanMatchMain` (Aufzeichnung)
+  - `ForgeEngine.LOGGING` (tinylog ohne Aufrufer-Abfrage),
+    `engine/scripts/ListSubscribers.java` (alle EventBus-Abonnenten)
+  - Doku: `docs/implementation/02-anvil-bridge.md` (Protokoll, Zuordnung zu
+    Anvil, Abweichungen, Lücken), `engine/README.md`, `engine/patches/README.md`
+- **Tests (alle bestanden):**
+  - 30 JVM-Tests (TestNG im Maven-Build): `HumanMatchTest` 16 (drei volle
+    Partien + Wiederholungen, u. a. ein Thread, Mulligan, Priorität, Kosten,
+    Ziele, Angriff, Block, Fragearten, Rücknahme/Ablehnung, `state.request`,
+    verborgene Karten ohne Id, Aufzeichnung reproduziert die Partie, Aufgeben,
+    unbekannte Karten), `AnswersTest` 8, `ForgeLoggingTest` 1, aus 01: 5.
+  - `test-engine.sh`: vier Mensch-Szenarien (Seed 3, Seed 11, Seed 5
+    verteidigend, Seed 3 mit Aufgabe in Zug 4; zusammen 164 Eingaben) auf der
+    JVM aufgezeichnet und in Node und Chrome nachgespielt → Forge-Protokoll,
+    Fingerabdruck aller Entscheidungsnachrichten (Fragen samt Nummern,
+    Rücknahmen, Ablehnungen), Forges GUI-Aufrufe, Eingaben, Züge und Ergebnis
+    überall gleich. KI-Partien aus 01 unverändert (`d7611b0e…`, `0d52aafc…`),
+    Negativtest ohne COOP/COEP (74 ms).
+- **Messwerte (odin):** sauberer Build 310,5 s (Maven 50 s, `native-image`
+  108 s bei 5,8 GiB). Modul 69,2 MiB roh / 13,2 MiB Brotli (Bridge ≈ +0,5 MiB).
+  Antwort der Engine je Eingabe in Chrome im Median 4–11 ms, höchstens
+  0,26 s mit KI-Zug. Mensch-Partie in Chrome 1,8–2,4 s (JVM 1,6–2,1 s). Worker
+  502 MiB wie bei der KI-Partie, Engine ≈ +0,9 GiB RSS.
+- **Erkenntnisse/Abweichungen:**
+  - **Behoben, nur im Wasm aufgetreten:** (1) Forges tinylog-Einstellungen
+    lassen tinylog bei jeder Logzeile die aufrufende Klasse suchen; Web Image
+    hat keinen Java-Stack → `NullPointerException` mitten in Forge. Die Engine
+    setzt jetzt auf beiden Laufzeiten eine eigene Konfiguration.
+    (2) Forges Ereignis-Abonnenten (Guava EventBus) waren nur teilweise per
+    Reflection registriert; jetzt alle, und der Test vergleicht Forges
+    GUI-Aufrufe JVM gegen Wasm.
+  - Abweichungen von Anvil (mit Grund in der Doku §6): falsche oder veraltete
+    Eingaben werden laut abgelehnt (`input.rejected`) statt verworfen oder
+    zurechtgebogen; kein Timeout; verborgene Karten ohne Id; neue Frageart
+    `arrange` (Hellsicht ohne die ganze Bibliothek), `order` mit Forges
+    Doppellisten-Grenzen, `player.tap`; Fragen gehören ihrem Input statt
+    von einem Timer ersetzt zu werden.
+  - Bekannte Lücken für spätere Prompts: Kampfschaden auf den Verteidiger
+    beim Trampeln (18/19), „an beliebige Stelle“ beim Anordnen (15), verdeckte
+    Karten des Gegners auf dem Feld (13/17), `player.tap` ohne Rückmeldung
+    (17), Eingabekanal ohne Warteschlange/Versionsprüfung (03), Commander in
+    einer Mensch-Partie ungetestet (05/11/12).
+  - Vorfall während der Entwicklung: liegengebliebene JVM-Testläufe füllten
+    die Inodes von `/tmp` (1 048 575 von 1 048 576), andere Programme auf odin
+    konnten kurz keine Dateien in `/tmp` anlegen. Aufgeräumt; Läufe räumen
+    jetzt selbst auf (`TempRoot`), Tests entpacken unter `target/`.
+- **Weiter mit:** Prompt 03 (Worker-Transport und Protokoll). Nicht begonnen:
+  Der Auftrag vom 2026-09-24 endete ausdrücklich nach 01 + 02.

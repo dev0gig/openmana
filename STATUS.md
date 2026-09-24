@@ -30,10 +30,17 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Browser feature/failure handling for required isolation exists.
 - Detailed measurements/evidence are recorded in `docs/implementation/01-engine-spike.md` and `engine/README.md`.
 
-## Currently In Progress
-**Prompt 02 — Anvil bridge single-thread spike** is currently marked `IN_PROGRESS` in `prompts/STATUS.md` and is being worked on by Claude Code.
+### Anvil Bridge Single-Thread Spike (Prompt 02)
+- Forge's own human path (`PlayerControllerHuman` and its inputs) runs on a single thread through an Anvil-style bridge (`engine/bridge/.../bridge/`), on the JVM and as WebAssembly in Node and Chrome.
+- In the browser the worker blocks with `Atomics.wait` inside Forge's stack until the page writes the next input into a SharedArrayBuffer; engine → UI uses `postMessage`.
+- Proven paths: mulligan, card taps outside questions (priority), cost payment (auto and by tapping sources), targets on cards and players, attacking, blocking, blocking questions, question IDs and withdrawal, loud rejection of stale/invalid input, state requests, conceding.
+- Recorded human-vs-AI games replay identically on JVM, Node and Chrome (Forge game log, decision messages, Forge GUI calls).
+- Spike protocol (`0.2-spike`), Anvil name mapping, deviations and known gaps: `docs/implementation/02-anvil-bridge.md`.
 
-Do not disturb, move, rename or independently restart this task while that work is active. Any agent entering the repository must first reconcile this statement with the latest `prompts/STATUS.md` and Git state.
+## Currently In Progress
+Nothing. Prompts 00–02 are `COMPLETE`. The next prompt is **03 — Worker transport and protocol** (`PENDING`, not started: the assignment of 2026-09-24 explicitly ended after prompts 01 and 02).
+
+Any agent entering the repository must first reconcile this statement with the latest `prompts/STATUS.md` and Git state.
 
 ## Planned Numbered Program
 The existing queue covers the path from bridge/Worker/resource/differential engine work through:
@@ -54,6 +61,7 @@ Exact order/status is authoritative only in `prompts/STATUS.md`.
 
 ## Not Yet Implemented
 At this review point:
+- no versioned UI ↔ engine protocol package (`engine/protocol`) yet — prompt 03,
 - no production OpenMana user interface yet,
 - no deck library/import UI yet,
 - no Scryfall application layer yet,
@@ -72,9 +80,9 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 - Web/touch/desktop share one application; later Android is a wrapper, not a second UI.
 
 ## Workflow Compatibility
-OpenMana predates the generic Dropzone `queue → active → completed` lifecycle and currently has an **active agent working through its own numbered ledger**.
+OpenMana predates the generic Dropzone `queue → active → completed` lifecycle and is worked through **its own numbered ledger**, one prompt at a time.
 
-Therefore the repository is intentionally **not being migrated while Prompt 02 is in progress**.
+Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 02 complete, 03 next, nothing in progress).
 
 Dropzone Master/Standalone must respect:
 - `prompts/STATUS.md` statuses,
