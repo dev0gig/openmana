@@ -28,8 +28,8 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | – (keiner; nach 03 wie in `naechster-schritt.md` vorgesehen gestoppt) |
-| Nächster Prompt | **04 — Forge resources and card scripts** (PENDING, nicht begonnen) |
+| Aktuell ausgeführt | **04 — Forge resources and card scripts** |
+| Nächster Prompt | 05 — JVM/WASM differential tests (erst nach 04 = COMPLETE) |
 | Zuletzt abgeschlossen | 03 — Worker transport and protocol (`1e8febf`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-24 (Lauf über `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-24 |
@@ -42,7 +42,7 @@
 | 01 | [Forge WASM engine spike](queue/01-engine-spike.md) | COMPLETE | `b64835a` |
 | 02 | [Anvil bridge single-thread spike](queue/02-anvil-bridge-single-thread.md) | COMPLETE | `5a2ed62` |
 | 03 | [Worker transport and protocol](queue/03-worker-transport-protocol.md) | COMPLETE | `1e8febf` |
-| 04 | [Forge resources and card scripts](queue/04-forge-resources-card-scripts.md) | PENDING | – |
+| 04 | [Forge resources and card scripts](queue/04-forge-resources-card-scripts.md) | IN_PROGRESS | – |
 | 05 | [JVM/WASM differential tests](queue/05-engine-differential-tests.md) | PENDING | – |
 | 06 | [OpenMana web/PWA skeleton](queue/06-web-pwa-skeleton.md) | PENDING | – |
 | 07 | [IndexedDB local data layer](queue/07-indexeddb-storage.md) | PENDING | – |
@@ -315,3 +315,8 @@
     Ansicht → 16, leere `distribute`-Liste → 18/19).
 - **Weiter mit:** Prompt 04 (Forge resources and card scripts). Nicht begonnen:
   `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
+
+### 04 — Forge resources and card scripts — IN_PROGRESS
+
+- Begonnen am 2026-09-24 von Claude Code (Claude Opus 5.5), Auftrag
+  „Führe prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
