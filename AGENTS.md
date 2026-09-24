@@ -39,6 +39,13 @@ The web app (repository root, `src/`) follows `docs/DESIGN_SYSTEM.md`:
 - Never show invented game data: empty stays empty, unavailable actions stay disabled with a reason, failures are visible.
 - Verify UI work with `npm run check` (typecheck, lint, unit tests, end-to-end test in Chrome with the real engine).
 
+## Local Data Rules
+The player's data lives in IndexedDB through `src/storage` (prompt 07, `docs/implementation/07-indexeddb-storage.md`):
+- Never `localStorage`/`sessionStorage` as a store (enforced by `src/app/local-first.test.ts`); the storage layer never talks to a network.
+- Record shapes and the backup lines are defined only in `src/storage/schema/local-data.schema.json`; after a change run `npm run generate` and commit the generated files (`npm run check`/`build` fail on stale ones).
+- Any change to a record shape or to stores/indexes raises `SchemaVersion` in the schema and adds a migration in `src/storage/migrations.ts` (never edit a released one); record upgrades are pure functions, because older backups are upgraded with them too. User data is migrated, caches may be emptied.
+- Write through `LocalDatabase.write` (one transaction, all or nothing, only IndexedDB requests awaited inside) and check records before writing (`assertRecord`); show damaged stored records as damaged, never drop them silently.
+
 ## Queue and Execution
 OpenMana currently has its own detailed queue ledger at `prompts/STATUS.md`. It remains authoritative while the numbered 00–32 implementation program is running.
 

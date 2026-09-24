@@ -28,9 +28,9 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | **07 — IndexedDB local data layer** |
-| Nächster Prompt | 08 — Scryfall card data (erst nach 07 = COMPLETE) |
-| Zuletzt abgeschlossen | 06 — OpenMana web/PWA skeleton (`cfb2252`) |
+| Aktuell ausgeführt | – (keiner; nach 07 wie in `naechster-schritt.md` vorgesehen gestoppt) |
+| Nächster Prompt | **08 — Scryfall card data** (PENDING, nicht begonnen) |
+| Zuletzt abgeschlossen | 07 — IndexedDB local data layer (`c9ee901`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-25 (Lauf über `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-25 |
 
@@ -45,7 +45,7 @@
 | 04 | [Forge resources and card scripts](queue/04-forge-resources-card-scripts.md) | COMPLETE | `fbcba6e` |
 | 05 | [JVM/WASM differential tests](queue/05-engine-differential-tests.md) | COMPLETE | `0ddfbc3` |
 | 06 | [OpenMana web/PWA skeleton](queue/06-web-pwa-skeleton.md) | COMPLETE | `cfb2252` |
-| 07 | [IndexedDB local data layer](queue/07-indexeddb-storage.md) | IN_PROGRESS | – |
+| 07 | [IndexedDB local data layer](queue/07-indexeddb-storage.md) | COMPLETE | `c9ee901` |
 | 08 | [Scryfall card data](queue/08-scryfall-data.md) | PENDING | – |
 | 09 | [Arena deck import](queue/09-arena-deck-import.md) | PENDING | – |
 | 10 | [Deck library](queue/10-deck-library.md) | PENDING | – |
@@ -642,7 +642,106 @@
 - **Weiter mit:** Prompt 07 (IndexedDB local data layer). Nicht begonnen:
   `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
 
-### 07 — IndexedDB local data layer — IN_PROGRESS
+### 07 — IndexedDB local data layer — COMPLETE
 
-- Begonnen am 2026-09-25 von Claude Code (Claude Opus 5.5), Auftrag
-  „Führe prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
+- **Commits:** `c9ee901` Implementierung (alle Nachweise liefen auf diesem
+  Stand, sauberer Arbeitsbaum, die App meldet keine lokalen Änderungen),
+  danach Doku und dieser Eintrag (2026-09-25). Agent: Claude Code (Claude Opus
+  5.5), Auftrag „Führe prompts/naechster-schritt.md aus“ (genau ein Prompt,
+  danach Stopp). Status-Commit zu Beginn: `1e7b3b2`.
+- **Zusammenfassung:** Versionierte IndexedDB-Datenbank `openmana`
+  (Schema-Version 1) mit Stores für Decks, Einstellungen, Partien + Verlauf,
+  Scryfall-Kartendaten, Zwischenspeicher-Index und eigene Metadaten; nie
+  `localStorage`, kein Konto, keine Cloud. Eintragsformate und
+  Sicherungsformat stehen in **einem JSON Schema**, Typen und Prüfer werden
+  erzeugt (wie beim Protokoll); jeder Eintrag wird vor dem Schreiben geprüft,
+  beschädigte gespeicherte werden angezeigt. **Migrationen** laufen der Reihe
+  nach in einer Transaktion (scheitert eine, bleibt alles unverändert) und
+  bringen auch ältere Sicherungen auf Stand. Jeder Schreibvorgang ist **alles
+  oder nichts** (`durability: "strict"`), Änderungen werden erst nach dem
+  Festschreiben gemeldet, auch an andere Tabs. Fehler (kein IndexedDB, neuere
+  Version, beschädigter Aufbau, gescheiterte Migration, voller Speicher,
+  anderer Tab, gelöschte Websitedaten) erscheinen mit deutscher Meldung und
+  passender Aktion. **Sicherung** als gzip-JSON-Lines (Kopf, Einträge,
+  Endzeile mit Zahlen), Laden prüft alles vorab und importiert
+  Zusammenführen/Ersetzen in einer Transaktion. **Speicherplatz** laut Browser
+  mit Warnung und Vorab-Prüfung; **Prüfung** aller Einträge mit Entfernen nach
+  Bestätigung. Kein Blocker.
+- **Wichtige Komponenten:**
+  - Schema und Erzeugung: `src/storage/schema/local-data.schema.json`,
+    `scripts/generate-storage.ts` (`npm run generate`, `--check` in `check`
+    und `build`), `src/storage/generated/*`
+  - Datenschicht: `schema.ts` (Stores, Aufbau, Rollen, Prüfung),
+    `migrations.ts`, `open.ts`, `database.ts` (`LocalDatabase`,
+    `PendingRequests`), `errors.ts` (`StorageError`), `quota.ts`,
+    `backup.ts`, `integrity.ts`, `decks.ts`, `matches.ts`, `settings.ts`,
+    `overview.ts`, `storage-session.ts` (Zustand, Tabs, Zurücksetzen),
+    `storage-context.tsx` (`StorageProvider`, `useStorageQuery`)
+  - Oberfläche: `local-data-card.tsx` (Einstellungen), `backup-import-dialog.tsx`,
+    `storage-alert.tsx`, `storage-labels.ts`; Decks-, Partien- und
+    Spielen-Seite lesen die Datenbank; shadcn `Dialog`, `AlertDialog`,
+    `RadioGroup`, `Field`, `Label` (Dialog scrollt im Bildschirm)
+  - Abhängigkeiten: `idb` 8.0.3 (Laufzeit), `fake-indexeddb` 6.2.5, `ajv`
+    8.20.0, `json-schema-to-typescript` 16.0.0 (Entwicklung)
+  - Tests/Werkzeug: `src/storage/*.test.ts(x)`, `src/app/local-first.test.ts`,
+    `src/test/storage-fixtures.ts`, Test-Setup mit frischer IndexedDB je Test;
+    E2E-Abschnitte „Local data“ und „storage quota“ in `scripts/e2e/run.ts`
+  - Doku: `docs/implementation/07-indexeddb-storage.md` (Format, Regeln,
+    Nachweise), `AGENTS.md` (Regeln für lokale Daten), `docs/DESIGN_SYSTEM.md`,
+    `README.md`, `STATUS.md`, Bible §5 (Verweis)
+- **Tests (alle bestanden, auf `c9ee901`):**
+  - Erzeugte Dateien = Schema, `tsc -b`, `oxlint` ohne Befund.
+  - **179 Vitest-Tests** (82 bestehende + 97 neue): Schema 12, Migrationen 9
+    (ausgedachte Versionen 1 → 2 → 3, gescheiterte Migration ändert nichts),
+    Öffnen 9 (neuere Version, falscher Aufbau, blockiert, anderer Tab
+    aktualisiert/löscht, Browser schließt), Transaktionen 13 (alles oder
+    nichts, eingespeister `QuotaExceededError`), Sicherung 21 (Format,
+    Rundreise, jede Ablehnung, ältere Schema-Version, Zusammenführen/Ersetzen,
+    Import alles oder nichts, Platzprüfung), Prüfung 3, Speicherplatz 5,
+    Sitzung 10 (inkl. Änderungen zwischen Tabs), Oberfläche 13, local-first 2.
+  - **End-to-End** (Chrome 153, echte Engine `0c82db80023ac0cc`, echte
+    IndexedDB, 0 Fehler, `npm run check` 75,5 s): alle bisherigen Prüfungen
+    (18 axe-Läufe ohne Befund, Engine-Start Vorschau/Handy/Dev-Server, PWA,
+    ohne Isolation) plus: neue Datenbank Version 1, Sicherung laden
+    (Zusammenführen), Daten nach Neuladen auf Decks/Partien/Spielen, echter
+    Download (Kopf Schema 1, Endzeile 2/1/1/2), Import dieser Datei in ein
+    zweites leeres Profil = dieselben Einträge, Textdatei und abgeschnittene
+    Sicherung abgelehnt ohne Änderung, beschädigter Eintrag angezeigt, gefunden
+    und nach Bestätigung entfernt, anderer Tab öffnet Version 2 (Meldung, dann
+    Ablehnung statt „leer“), Websitedaten gelöscht während offen (Meldung,
+    danach leere Datenbank), Speichergrenze per DevTools (Warnung, 400-Deck-
+    Import gesperrt, nichts geschrieben); axe für Dialog (Desktop, Handy) und
+    Prüfbericht ohne Befund.
+  - Engine unverändert: erzeugte Protokolldateien = Schema, `tsc`, 80/80
+    Unit-Tests. Frischer Klon: `npm ci`, Build ohne Engine scheitert laut,
+    `OPENMANA_ENGINE=omit` baut, 179 Tests dreimal grün.
+- **Messwerte (odin, Lastmittel 8–17 durch andere Sitzungen):** Start-JavaScript
+  161 → **192 KB gzip** (App-Code 63 → 94 KB; davon erzeugte Prüfer 8,7 KB,
+  Speichermodule und Dialoge ~11 KB, `idb` 1,3 KB); Beispielsicherung
+  (2 Decks, 1 Einstellung, 1 Partie, 2 Verlaufszeilen) 882 Bytes.
+- **Erkenntnisse/Abweichungen:**
+  - **Chrome 153 meldet eine pauschale Quota** (`StaticStorageQuota`:
+    inkognito 3 GiB, festes Profil Nutzung + 8 GiB), DevTools'
+    Quota-Überschreibung wirkt nur mit abgeschalteter Funktion auf
+    `estimate()` – und **IndexedDB schreibt trotzdem über sie hinaus**. Den
+    echten `QuotaExceededError` decken deshalb Unit-Tests (eingespeist) ab;
+    die App nennt die Angaben „Schätzungen des Browsers“.
+  - **Zeitabhängiger Test behoben:** sonner spielt aktive Toasts jedem neuen
+    Toaster erneut vor; das Test-Setup räumt Toasts jetzt nach jedem Test ab.
+  - axe `button-name` für Radix-Radioknöpfe in Labels → `aria-labelledby`;
+    unbehandelte Ablehnungen (Upgrade-`done`, viele Anfragen nach einem
+    Fehler) werden aufgefangen.
+  - **Bewusste Entscheidungen:** `idb` statt Dexie; eine Schema-Version für
+    alle Einträge (an der Datenbank und im Sicherungskopf statt je Eintrag);
+    JSON Lines + gzip statt einer JSON-Datei; Zwischenspeicher und Metadaten
+    nicht in Sicherungen; Aufbau von Partien (22) und Kartendaten (08) jetzt
+    festgelegt, Anpassung per Migration; noch keine Produkt-Einstellungen
+    (12); kein `persist()` vor 25; schlichte Listen auf Decks/Partien, weil
+    eine geladene Sicherung nicht als „leer“ erscheinen darf; Zurücksetzen nur
+    in Fehlerzuständen mit Bestätigung; Datenschicht im Start-Bundle (+31 KB
+    gzip), Aufteilen nach Messung am Handy (24/25).
+  - **Empfehlung:** Vor der ersten Migration von Nutzerdaten eine
+    Rettungssicherung im Fehlerzustand „ließen sich nicht auf diese Version
+    bringen“ anbieten (Doku §12).
+- **Weiter mit:** Prompt 08 (Scryfall card data). Nicht begonnen:
+  `naechster-schritt.md` führt genau einen Prompt je Lauf aus.

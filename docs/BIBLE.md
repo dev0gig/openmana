@@ -132,6 +132,8 @@ Persist at minimum: deck ID, name, original import text, normalized entries, sid
 
 Provide backup/export and restore/import because browser storage can be deleted. No account/cloud sync is required initially.
 
+The implemented database (stores, schema, migrations) and backup format are described in [implementation/07-indexeddb-storage.md](implementation/07-indexeddb-storage.md).
+
 ## 6. Game UX
 
 Target modern digital-card-game usability with an original OpenMana identity. MTG Arena is a UX reference, not an asset/UI template to copy.

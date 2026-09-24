@@ -1,6 +1,6 @@
 # OpenMana — Current Status
 
-Last repository review: 2026-09-24
+Last repository review: 2026-09-25
 
 Compact implementation map. This file deliberately does **not** replace the active queue ledger in `prompts/STATUS.md`.
 
@@ -66,8 +66,17 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - PWA basics: web app manifest (installable in Chrome, no installability errors), icons from Anvil's unchanged icon with provenance (`assets/app-icon/`). No service worker yet (prompt 25).
 - Evidence: `npm run check` — typecheck, oxlint, 82 Vitest tests (session, surfaces, tokens, PWA, import boundary, engine assets, deployment config), end-to-end test in Chrome 153 with the real engine (every surface at three sizes with axe-core, engine boot via preview and dev server, installability, negative test without isolation); engine unit tests unchanged green. Details: `docs/implementation/06-web-pwa-skeleton.md`.
 
+### Local Data Layer (Prompt 07)
+- IndexedDB database `openmana` (schema version 1) through `src/storage`: stores `decks`, `settings`, `matches` + `matchLog` (user data, backed up), `scryfallCards` + `cacheIndex` (caches, never backed up), `meta` (the database's own history). Never `localStorage`/`sessionStorage` (test-enforced); the storage layer sends nothing.
+- One JSON Schema (`src/storage/schema/local-data.schema.json`) → generated types and Ajv standalone validators (freshness checked by `npm run check`/`build`); every record is checked before it is written, damaged stored records are shown as damaged.
+- Migrations (`src/storage/migrations.ts`): ordered, one version-change transaction (a failure leaves the database unchanged), pure record upgrades shared with older backups; tested with made-up versions 1 → 2 → 3.
+- `LocalDatabase.write`: all or nothing, durability strict, changes announced after commit (also to other tabs via BroadcastChannel); typed `StorageError`s for unsupported/newer version/damaged structure/failed upgrade/closed connection/quota/invalid records/backups.
+- Backups: gzip JSON Lines (`openmana-backup` format 1: header, records, end line with counts); reading checks everything first; import merge (newer copy wins, recorded matches never overwritten) or replace, in one transaction; space pre-check.
+- UI: Settings card "Daten auf diesem Gerät" (counts, storage estimate, persistence, last backup, backup out/in, integrity check and removal, recovery actions); Decks/Matches/Play show what is really stored.
+- Evidence: 179 Vitest tests (97 new, fake-indexeddb), end-to-end in Chrome with real IndexedDB (import, reload, real download, round trip into a second profile, refused files, damaged record, another tab upgrading, site data cleared, quota warning/pre-check via DevTools override). Finding: Chrome reports a static quota, and IndexedDB ignores DevTools' quota override. Details: `docs/implementation/07-indexeddb-storage.md`.
+
 ## Currently In Progress
-Nothing. Prompts 00–06 are `COMPLETE`. The next prompt is **07 — IndexedDB local data layer** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
+Nothing. Prompts 00–07 are `COMPLETE`. The next prompt is **08 — Scryfall card data** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
 
 Any agent entering the repository must first reconcile this statement with the latest `prompts/STATUS.md` and Git state.
 
@@ -90,8 +99,7 @@ Exact order/status is authoritative only in `prompts/STATUS.md`.
 
 ## Not Yet Implemented
 At this review point:
-- no local storage (IndexedDB) yet,
-- no deck library/import UI yet,
+- no deck library/import UI yet (the local database and backups exist; decks only arrive through a backup),
 - no Scryfall application layer yet,
 - no game session and no playable OpenMana battlefield UI yet,
 - no service worker/offline mode, no deployment, no Android artifact yet.
@@ -110,7 +118,7 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 ## Workflow Compatibility
 OpenMana predates the generic Dropzone `queue → active → completed` lifecycle and is worked through **its own numbered ledger**, one prompt at a time.
 
-Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 06 complete, 07 next, nothing in progress).
+Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 07 complete, 08 next, nothing in progress).
 
 Dropzone Master/Standalone must respect:
 - `prompts/STATUS.md` statuses,

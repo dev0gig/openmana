@@ -52,12 +52,18 @@ files work under COEP and nothing leaks to third parties (Bible §15).
 3. **Changes to shadcn components are deliberate and few** – and apply
    everywhere, never per page. Current changes (each commented in place):
    touch sizes (rule 5), German screen-reader strings, the dark-only toaster
-   without `next-themes`.
+   without `next-themes`, a dialog that scrolls inside the screen instead of
+   running off it (`DialogContent`: `max-h` + `overflow-y-auto`, prompt 07).
 4. **Honest states.** No sample data, no simulated engine, no pretend
    features. Empty states use `Empty`; an action that is not possible yet
    stays visible but disabled and says why (`aria-describedby`); failures
    show a destructive `Alert` in place and a toast if they happen elsewhere
-   (Bible §16: nothing fails silently).
+   (Bible §16: nothing fails silently). "Empty" is only shown when the local
+   database says so: while it loads the page shows a `Skeleton`, and if it
+   cannot be read the page shows why, never an empty list.
+   Irreversible actions (deleting, replacing, resetting data) are confirmed
+   in an `AlertDialog` whose destructive button says what happens
+   ("Endgültig entfernen", "Lokale Daten ersetzen").
 5. **Touch first.** On coarse pointers (`pointer-coarse:`) buttons and
    sidebar entries grow to at least 44 px (default `h-11`, `lg` `h-12`,
    icons `size-11`); the phone's tab bar gives each destination a 64 px
@@ -93,6 +99,7 @@ not turn into one endless vertical page (Bible §6).
 | Component | Source | Used for |
 |---|---|---|
 | `Button`, `Badge`, `Card`, `Alert`, `Separator`, `Tooltip`, `Sheet`, `Sidebar` (+ `Input`, `Skeleton` it needs), `Sonner`, `Empty`, `Item`, `Spinner` | shadcn/ui registry (`radix-maia`) | everything on screen |
+| `Dialog`, `AlertDialog`, `RadioGroup`, `Field` (+ `Label` it needs) | shadcn/ui registry (`radix-maia`, prompt 07) | the backup import (dialog with choice cards: `RadioGroup` items inside `FieldLabel`, named by `aria-labelledby`), confirmations of irreversible actions |
 | `BottomNav`, `BottomNavItem` | `src/components/ui/bottom-nav.tsx`, built the shadcn way | phone tab bar |
 | `Brand` | `src/components/brand.tsx` | icon + Cinzel wordmark |
 | `Page`, `PageHeader` | `src/components/page-header.tsx` | every surface: `<title>`, `h1`, description, content column |
