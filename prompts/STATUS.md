@@ -28,8 +28,8 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | – (keiner; nach 04 wie in `naechster-schritt.md` vorgesehen gestoppt) |
-| Nächster Prompt | **05 — JVM/WASM differential tests** (PENDING, nicht begonnen) |
+| Aktuell ausgeführt | **05 — JVM/WASM differential tests** |
+| Nächster Prompt | 06 — OpenMana web/PWA skeleton (erst nach 05 = COMPLETE) |
 | Zuletzt abgeschlossen | 04 — Forge resources and card scripts (`fbcba6e`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-24 (Lauf über `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-24 |
@@ -43,7 +43,7 @@
 | 02 | [Anvil bridge single-thread spike](queue/02-anvil-bridge-single-thread.md) | COMPLETE | `5a2ed62` |
 | 03 | [Worker transport and protocol](queue/03-worker-transport-protocol.md) | COMPLETE | `1e8febf` |
 | 04 | [Forge resources and card scripts](queue/04-forge-resources-card-scripts.md) | COMPLETE | `fbcba6e` |
-| 05 | [JVM/WASM differential tests](queue/05-engine-differential-tests.md) | PENDING | – |
+| 05 | [JVM/WASM differential tests](queue/05-engine-differential-tests.md) | IN_PROGRESS | – |
 | 06 | [OpenMana web/PWA skeleton](queue/06-web-pwa-skeleton.md) | PENDING | – |
 | 07 | [IndexedDB local data layer](queue/07-indexeddb-storage.md) | PENDING | – |
 | 08 | [Scryfall card data](queue/08-scryfall-data.md) | PENDING | – |
@@ -425,3 +425,8 @@
     aus einem Fehler im Vergleichsskript (behoben); die Partien sind gleich.
 - **Weiter mit:** Prompt 05 (JVM/WASM differential tests). Nicht begonnen:
   `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
+
+### 05 — JVM/WASM differential tests — IN_PROGRESS
+
+- Begonnen am 2026-09-24 von Claude Code (Claude Opus 5.5), Auftrag
+  „Führe prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
