@@ -1,0 +1,78 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: dev0gig <115336867+dev0gig@users.noreply.github.com>
+Date: Thu, 24 Sep 2026 06:05:11 +0200
+Subject: [PATCH] AI attack: evaluate forced attackers sequentially in
+ synchronous mode
+
+AiAttackController hands the "must attack" checks for each attacker to a
+fixed thread pool and waits with invokeAll(timeout). Without real threads
+(GraalVM Web Image, -Dforge.synchronous=true) those tasks never run. In
+synchronous mode they now run one after the other on the calling thread.
+With threads available, behaviour is unchanged.
+
+Original-author: JacopoMadaluni (GitHub)
+Origin: witchesofthehill/forge@43847a6c60e266bfd22ee8d32df823c45c24c30c
+(GPL-3.0-or-later). Adapted to Card-Forge/forge@ed0333f for OpenMana on
+2026-09-24.
+---
+ .../java/forge/ai/AiAttackController.java     | 40 +++++++++++++------
+ 1 file changed, 27 insertions(+), 13 deletions(-)
+
+diff --git a/forge-ai/src/main/java/forge/ai/AiAttackController.java b/forge-ai/src/main/java/forge/ai/AiAttackController.java
+index 11e51578..e8c439dc 100644
+--- a/forge-ai/src/main/java/forge/ai/AiAttackController.java
++++ b/forge-ai/src/main/java/forge/ai/AiAttackController.java
+@@ -880,13 +880,6 @@ public class AiAttackController {
+         // nextTurn is now only used by effect from Oracle en-Vec, which can skip check must attack,
+         // because creatures not chosen can't attack.
+         if (!nextTurn) {
+-            ExecutorService executor = Executors.newFixedThreadPool(
+-                Runtime.getRuntime().availableProcessors(), r -> {
+-                    Thread t = Executors.defaultThreadFactory().newThread(r);
+-                    t.setDaemon(true);
+-                    return t;
+-                }
+-            );
+             List<Callable<Integer>> tasks = new ArrayList<>();
+ 
+             for (final Card attacker : this.attackers) {
+@@ -952,12 +945,33 @@ public class AiAttackController {
+                 });
+             }
+ 
+-            try {
+-                executor.invokeAll(tasks, ai.getGame().getAITimeout(), TimeUnit.SECONDS);
+-            } catch (InterruptedException e) {
+-                Thread.currentThread().interrupt();
+-            } finally {
+-                executor.shutdownNow();
++            // OpenMana patch 0003 (2026-09-24, adapted from witchesofthehill/forge@43847a6):
++            // without real threads (GraalVM Web Image, -Dforge.synchronous=true)
++            // the executor would never run these tasks. Run them one after the
++            // other on the calling thread instead.
++            if (ThreadUtil.isSynchronous()) {
++                for (Callable<Integer> task : tasks) {
++                    try {
++                        task.call();
++                    } catch (Exception e) {
++                        e.printStackTrace();
++                    }
++                }
++            } else {
++                ExecutorService executor = Executors.newFixedThreadPool(
++                    Runtime.getRuntime().availableProcessors(), r -> {
++                        Thread t = Executors.defaultThreadFactory().newThread(r);
++                        t.setDaemon(true);
++                        return t;
++                    }
++                );
++                try {
++                    executor.invokeAll(tasks, ai.getGame().getAITimeout(), TimeUnit.SECONDS);
++                } catch (InterruptedException e) {
++                    Thread.currentThread().interrupt();
++                } finally {
++                    executor.shutdownNow();
++                }
+             }
+ 
+             if (attackersLeft.isEmpty()) {

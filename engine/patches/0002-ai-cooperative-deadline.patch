@@ -1,0 +1,50 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: dev0gig <115336867+dev0gig@users.noreply.github.com>
+Date: Thu, 24 Sep 2026 06:05:11 +0200
+Subject: [PATCH] AI: cooperative deadline for the ability evaluation
+
+chooseSpellAbilityToPlayFromList bounds its own cost by running the
+evaluation on a thread and waiting with a timed future.get(). That only
+works where threads are real. Under GraalVM Web Image the evaluation runs
+on the caller (patch 0001), get() finds the future already done and the
+timeout never fires, so one decision would have no ceiling.
+
+Bound it cooperatively as well, in the loop that already checks for an
+interrupt, against a deadline of the same getAITimeout(). The check runs
+between candidate abilities: a single pathologically slow evaluation can
+still overrun it. On a threaded runtime the existing cancel/stop still
+covers that case.
+
+Original-author: khaliostr (GitHub)
+Origin: witchesofthehill/forge@026be2f808cffa77a39e52fb60e90869396164ed
+(GPL-3.0-or-later). Adapted to Card-Forge/forge@ed0333f (where the loop no
+longer has the timeoutReached flag) for OpenMana on 2026-09-24.
+---
+ forge-ai/src/main/java/forge/ai/AiController.java | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/forge-ai/src/main/java/forge/ai/AiController.java b/forge-ai/src/main/java/forge/ai/AiController.java
+index eab9fb89..78522000 100644
+--- a/forge-ai/src/main/java/forge/ai/AiController.java
++++ b/forge-ai/src/main/java/forge/ai/AiController.java
+@@ -1596,11 +1596,19 @@ public class AiController {
+             Sentry.captureMessage(ex.getMessage() + "\nAssertionError [verifyTransitivity]: " + assertex);
+         }
+ 
++        // OpenMana patch 0002 (2026-09-24, adapted from witchesofthehill/forge@026be2f):
++        // the time limit below is a thread plus a timed future.get(). Without
++        // real threads (GraalVM Web Image) the evaluation runs on the caller and
++        // that limit never fires, so a single decision would have no ceiling.
++        // Bound it cooperatively as well: one clock read per candidate ability.
++        final long evalDeadline = System.currentTimeMillis() + game.getAITimeout() * 1000L;
++
+         FutureTask<SpellAbility> future = new FutureTask<>(() -> {
+             //avoid ComputerUtil.aiLifeInDanger in loops as it slows down a lot.. call this outside loops will generally be fast...
+             boolean isLifeInDanger = useLivingEnd && ComputerUtil.aiLifeInDanger(player, true, 0);
+             for (final SpellAbility sa : ComputerUtilAbility.getOriginalAndAltCostAbilities(all, player)) {
+-                if (Thread.currentThread().isInterrupted()) {
++                if (Thread.currentThread().isInterrupted()
++                        || System.currentTimeMillis() > evalDeadline) {
+                     break;
+                 }
+ 

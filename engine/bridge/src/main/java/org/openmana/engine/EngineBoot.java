@@ -1,0 +1,79 @@
+package org.openmana.engine;
+
+import com.google.gson.JsonObject;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Properties;
+
+/**
+ * The boot sequence shared by the JVM smoke runner and the Wasm entry point,
+ * so both runtimes do exactly the same work in the same order:
+ *
+ * <ol>
+ *   <li>unpack the Forge resource bundle below {@code root/forge/},</li>
+ *   <li>configure Forge's runtime ({@code root/home} as {@code user.home}),</li>
+ *   <li>initialise Forge with the requested card loading mode.</li>
+ * </ol>
+ */
+public final class EngineBoot {
+
+    private EngineBoot() {
+    }
+
+    public static JsonObject boot(final InputStream resourceBundle, final Path root,
+                                  final ForgeEngine.CardLoading cardLoading) throws IOException {
+        final long t0 = System.nanoTime();
+        final Path assets = root.resolve("forge");
+        final Path home = root.resolve("home");
+        Files.createDirectories(assets);
+        Files.createDirectories(home);
+        final ResourceBundleReader.Stats stats = ResourceBundleReader.unpack(resourceBundle, assets);
+        writeEmptyUiPreferences(home);
+        final long unpackMillis = (System.nanoTime() - t0) / 1_000_000L;
+
+        ForgeEngine.configureRuntime(assets.toString() + "/", home.toString());
+        final long forgeInitMillis = ForgeEngine.initialize(cardLoading);
+
+        final JsonObject report = new JsonObject();
+        report.addProperty("resourceFiles", stats.files);
+        report.addProperty("resourceBytes", stats.bytes);
+        report.addProperty("unpackMillis", unpackMillis);
+        report.addProperty("forgeInitMillis", forgeInitMillis);
+        report.addProperty("cardLoading", cardLoading.name().toLowerCase());
+        report.add("engine", engineInfo());
+        return report;
+    }
+
+    /**
+     * Forge's desktop UI preferences (card stars, deck favourites, list
+     * columns) are XML files it reads during {@code FModel.initialize}. The
+     * engine has no such UI state, so it provides them empty, identically on
+     * both runtimes. Without them the JVM throws FileNotFoundException, which
+     * Forge ignores, while Web Image's file system throws NoSuchFileException,
+     * which Forge prints as a stack trace: same outcome, noisy log.
+     */
+    private static void writeEmptyUiPreferences(final Path home) throws IOException {
+        final Path prefs = home.resolve(".forge").resolve("preferences");
+        Files.createDirectories(prefs);
+        for (final String name : new String[]{"card.preferences", "deck.preferences", "item_view.preferences"}) {
+            final Path file = prefs.resolve(name);
+            if (!Files.exists(file)) {
+                Files.writeString(file, "<preferences/>\n");
+            }
+        }
+    }
+
+    public static JsonObject engineInfo() {
+        final Properties build = ForgeEngine.buildInfo();
+        final JsonObject info = new JsonObject();
+        info.addProperty("forgeVersion", ForgeEngine.forgeVersion());
+        for (final String key : build.stringPropertyNames()) {
+            info.addProperty(key, build.getProperty(key));
+        }
+        info.addProperty("synchronous", forge.util.ThreadUtil.isSynchronous());
+        return info;
+    }
+}

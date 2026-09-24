@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+        Inherits the Forge parent so compiler release, plugin versions and the
+        enforcer rules are exactly Forge's. The relative path is valid both in
+        the source tree (engine/bridge -> engine/forge) and in the disposable
+        build tree (build/work/bridge -> build/work/forge, patched copy).
+    -->
+    <parent>
+        <groupId>forge</groupId>
+        <artifactId>forge</artifactId>
+        <version>${revision}</version>
+        <relativePath>../forge/pom.xml</relativePath>
+    </parent>
+
+    <groupId>org.openmana</groupId>
+    <artifactId>openmana-engine-bridge</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <name>OpenMana Engine Bridge</name>
+    <description>
+        Headless adapter between OpenMana and Forge. Runs unchanged on the JVM
+        (tests) and inside the GraalVM Web Image module (browser worker).
+        Forge stays the only authority for rules, card behaviour and AI.
+    </description>
+
+    <licenses>
+        <license>
+            <name>GPL-3.0-or-later</name>
+            <url>https://www.gnu.org/licenses/gpl-3.0.html</url>
+        </license>
+    </licenses>
+
+    <dependencies>
+        <dependency>
+            <groupId>forge</groupId>
+            <artifactId>forge-gui</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.13.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>7.10.2</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- The bridge always runs Forge in synchronous mode (patch 0001),
+                         on the JVM as in the browser. The property must be set before
+                         ThreadUtil is initialised, hence here and not in the test. -->
+                    <systemPropertyVariables>
+                        <forge.synchronous>true</forge.synchronous>
+                        <openmana.resourceBundle>${openmana.resourceBundle}</openmana.resourceBundle>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>org.openmana.engine.jvm.JvmSmokeMain</mainClass>
+                        </manifest>
+                    </archive>
+                    <descriptors>
+                        <descriptor>src/assembly/engine-jar.xml</descriptor>
+                    </descriptors>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

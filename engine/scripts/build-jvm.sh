@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Maven build of the patched Forge modules plus the bridge, with the pinned
+# GraalVM JDK. Runs the bridge's JVM tests (a full Forge AI game from the
+# resource bundle) and produces the fat JAR that native-image compiles.
+#
+# Forge's own tests are compiled but not run: the -Dtest pattern selects only
+# OpenMana's tests (research: skip Forge tests deliberately, not via -DskipTests).
+source "$(dirname "$0")/lib.sh"
+
+om_require_node
+om_use_toolchain
+[ -f "$OM_WORK_DIR/pom.xml" ] || om_die "Kein Arbeitsbaum. Zuerst engine/scripts/prepare-forge.sh ausfuehren."
+bundle="$OM_BUILD_DIR/resources/forge-res.bin"
+[ -f "$bundle" ] || om_die "Kein Ressourcen-Bundle. Zuerst engine/scripts/pack-resources.mjs ausfuehren (build.sh macht beides)."
+
+mkdir -p "$OM_REPORT_DIR"
+set +e
+node "$OM_ENGINE_DIR/scripts/measure.mjs" maven "$OM_REPORT_DIR/measure.jsonl" -- \
+mvn -B -ntp -f "$OM_WORK_DIR/pom.xml" -pl bridge -am clean package \
+    -Dtest='org/openmana/**/*Test' -Dsurefire.failIfNoSpecifiedTests=false \
+    -Dopenmana.resourceBundle="$bundle" \
+    2>&1 | tee "$OM_REPORT_DIR/maven.log"
+rc="${PIPESTATUS[0]}"
+set -e
+[ "$rc" -eq 0 ] || om_die "Maven-Build fehlgeschlagen (Exit $rc), siehe $OM_REPORT_DIR/maven.log"
+
+jar="$OM_WORK_DIR/bridge/target/openmana-engine-bridge-0.1.0-SNAPSHOT-jar-with-dependencies.jar"
+[ -f "$jar" ] || om_die "Fat-JAR fehlt: $jar"
+mkdir -p "$OM_BUILD_DIR/jvm"
+cp "$jar" "$OM_BUILD_DIR/jvm/openmana-engine-jvm.jar"
+om_log "JVM-Build fertig: $OM_BUILD_DIR/jvm/openmana-engine-jvm.jar"

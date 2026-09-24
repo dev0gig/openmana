@@ -18,7 +18,10 @@ Start with [docs/BIBLE.md](docs/BIBLE.md).
 
 ## Status
 
-Architecture/definition phase. Anvil remains the working reference implementation until OpenMana reaches feature parity.
+Implementation has started; progress per queue prompt is tracked in [prompts/STATUS.md](prompts/STATUS.md).
+
+- **Engine spike done (prompt 01):** pinned upstream Forge plus a small GPL patch queue runs as WebAssembly (GraalVM Web Image) in a Dedicated Worker and plays a complete Forge-AI game in Chrome; JVM, Node and Chrome produce the identical Forge game log. See [engine/README.md](engine/README.md) and [docs/implementation/01-engine-spike.md](docs/implementation/01-engine-spike.md).
+- No user interface yet. Anvil remains the working reference implementation until OpenMana reaches feature parity.
 
 ## Credits
 

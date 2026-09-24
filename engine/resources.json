@@ -1,0 +1,16 @@
+{
+  "$comment": "Forge data the engine embeds, taken from the pinned Forge commit with original paths (docs/research/FORGE_BUILD.md §2). The whole cardsfolder is required: effects such as MakeCard or CopyPermanent bring cards into play that are in no deck. Prompt 04 reviews this list, adds a per-directory inventory and German language files.",
+  "sourcePrefix": "forge-gui/",
+  "include": [
+    "forge-gui/res/cardsfolder",
+    "forge-gui/res/tokenscripts",
+    "forge-gui/res/editions",
+    "forge-gui/res/blockdata",
+    "forge-gui/res/lists",
+    "forge-gui/res/formats",
+    "forge-gui/res/defaults",
+    "forge-gui/res/effects",
+    "forge-gui/res/ai",
+    "forge-gui/res/languages/en-US.properties"
+  ]
+}

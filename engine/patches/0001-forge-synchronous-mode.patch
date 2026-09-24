@@ -1,0 +1,122 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: dev0gig <115336867+dev0gig@users.noreply.github.com>
+Date: Thu, 24 Sep 2026 06:05:10 +0200
+Subject: [PATCH] Synchronous mode for single-threaded targets (ThreadUtil, AI
+ evaluation)
+
+GraalVM Web Image runs on one JavaScript thread: Thread.start() does
+nothing, work handed to an executor never runs and timed Future.get()
+calls come back empty. With -Dforge.synchronous=true the affected paths
+run on the calling thread:
+
+- ThreadUtil.invokeInGameThread, limit and executeWithTimeout run inline
+- ThreadUtil.isGameThread reports true, isMultiCoreSystem reports false
+  (so CardStorageReader loads sequentially)
+- AiController evaluates the candidate abilities on the calling thread
+
+Without the property, behaviour is unchanged.
+
+Original-author: khaliostr (GitHub)
+Origin: witchesofthehill/forge@51b7d50bc87c62f2e935f17eac2b0d5b551bf549
+(GPL-3.0-or-later), without the LDA null guard that the same fork reverted
+in a4b37e8. Adapted to Card-Forge/forge@ed0333f for OpenMana on 2026-09-24.
+---
+ .../src/main/java/forge/ai/AiController.java  | 13 +++++++
+ .../src/main/java/forge/util/ThreadUtil.java  | 35 +++++++++++++++++--
+ 2 files changed, 46 insertions(+), 2 deletions(-)
+
+diff --git a/forge-ai/src/main/java/forge/ai/AiController.java b/forge-ai/src/main/java/forge/ai/AiController.java
+index 4908a2b8..eab9fb89 100644
+--- a/forge-ai/src/main/java/forge/ai/AiController.java
++++ b/forge-ai/src/main/java/forge/ai/AiController.java
+@@ -1679,6 +1679,19 @@ public class AiController {
+ 
+             return null;
+         });
++        // OpenMana patch 0001 (2026-09-24, adapted from witchesofthehill/forge@51b7d50):
++        // without real threads (GraalVM Web Image) the evaluation runs on the
++        // calling thread. The time limit then comes from the cooperative
++        // deadline inside the loop (patch 0002).
++        if (ThreadUtil.isSynchronous()) {
++            future.run();
++            try {
++                return future.get();
++            } catch (InterruptedException | ExecutionException e) {
++                e.printStackTrace();
++                return null;
++            }
++        }
+         Thread t = new Thread(future, "Game AI Eval");
+         t.setDaemon(true);
+         t.start();
+diff --git a/forge-core/src/main/java/forge/util/ThreadUtil.java b/forge-core/src/main/java/forge/util/ThreadUtil.java
+index e06359ea..baf4d743 100644
+--- a/forge-core/src/main/java/forge/util/ThreadUtil.java
++++ b/forge-core/src/main/java/forge/util/ThreadUtil.java
+@@ -36,11 +36,27 @@ public class ThreadUtil {
+         });
+     }
+ 
++    // OpenMana patch 0001 (2026-09-24, adapted from witchesofthehill/forge@51b7d50):
++    // GraalVM Web Image runs on a single JavaScript thread. Thread.start() does
++    // nothing there, so work handed to an executor never runs and timed
++    // Future.get() calls return without a result. With -Dforge.synchronous=true
++    // the affected paths run on the calling thread instead. Without the
++    // property the behaviour is unchanged.
++    private static final boolean SYNCHRONOUS = Boolean.getBoolean("forge.synchronous");
++
++    public static boolean isSynchronous() {
++        return SYNCHRONOUS;
++    }
++
+     public static boolean isMultiCoreSystem() {
+-        return Runtime.getRuntime().availableProcessors() > 1;
++        return !SYNCHRONOUS && Runtime.getRuntime().availableProcessors() > 1;
+     }
+ 
+     public static void invokeInGameThread(Runnable toRun) {
++        if (SYNCHRONOUS) {
++            toRun.run();
++            return;
++        }
+         getGameThreadPool().execute(toRun);
+     }
+ 
+@@ -49,7 +65,7 @@ public class ThreadUtil {
+     }
+ 
+     public static boolean isGameThread() {
+-        return Thread.currentThread().getName().startsWith("Game");
++        return SYNCHRONOUS || Thread.currentThread().getName().startsWith("Game");
+     }
+ 
+     private static ExecutorService service = Executors.newWorkStealingPool();
+@@ -62,6 +78,13 @@ public class ThreadUtil {
+     public static <T> T limit(Callable<T> task, long millis){
+         Future<T> future = null;
+         T result;
++        if (SYNCHRONOUS) {
++            try {
++                return task.call();
++            } catch (Exception e) {
++                return null;
++            }
++        }
+         try {
+             future = service.submit(task);
+             result = future.get(millis, TimeUnit.MILLISECONDS);
+@@ -74,6 +97,14 @@ public class ThreadUtil {
+         return result;
+     }
+     public static <T> T executeWithTimeout(Callable<T> task, int milliseconds) {
++        if (SYNCHRONOUS) {
++            try {
++                return task.call();
++            } catch (Exception e) {
++                e.printStackTrace();
++                return null;
++            }
++        }
+         ExecutorService executor = Executors.newCachedThreadPool(r -> {
+             Thread thread = new Thread(r);
+             thread.setDaemon(true);

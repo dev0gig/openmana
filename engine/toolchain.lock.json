@@ -1,0 +1,41 @@
+{
+  "$comment": "Pinned build toolchain for the OpenMana Forge engine. engine/scripts/setup-toolchain.sh downloads, verifies and unpacks exactly these archives. Change only in a dedicated toolchain PR (docs/research/FORGE_BUILD.md §3, §6).",
+  "platform": "linux-x64",
+  "graalvm": {
+    "distribution": "Oracle GraalVM (GraalVM Free Terms and Conditions)",
+    "version": "25.4.4.1.1",
+    "javaVersion": "25.0.4.1.1",
+    "archive": "graalvm-jdk-25i4-25.0.4.1.1_linux-x64_bin.tar.gz",
+    "url": "https://gds.oracle.com/download/graal/25i4/archive/graalvm-jdk-25i4-25.0.4.1.1_linux-x64_bin.tar.gz",
+    "size": 384644784,
+    "sha256": "4fcc632cfc68e98f49f9316f8a3588bafe4f5289f120104e2d290a75cf33e28e",
+    "checksumSource": "Computed on the first download (2026-09-24). Oracle publishes no checksum next to this archive URL, so this value is the pin; keep an archived copy of the tarball.",
+    "home": "graalvm-25.4.4.1.1+1.1",
+    "requiredFiles": [
+      "lib/svm/tools/svm-wasm/builder/svm-wasm.jar",
+      "jmods/org.graalvm.webimage.api.jmod"
+    ]
+  },
+  "binaryen": {
+    "version": "123",
+    "archive": "binaryen-version_123-x86_64-linux.tar.gz",
+    "url": "https://github.com/WebAssembly/binaryen/releases/download/version_123/binaryen-version_123-x86_64-linux.tar.gz",
+    "size": 100461598,
+    "sha256": "e959f2170af4c20c552e9de3a0253704d6a9d2766e8fdb88e4d6ac4bae9388fe",
+    "checksumSource": "binaryen-version_123-x86_64-linux.tar.gz.sha256 published on the GitHub release; matches the download.",
+    "home": "binaryen-version_123"
+  },
+  "maven": {
+    "version": "3.9.16",
+    "archive": "apache-maven-3.9.16-bin.tar.gz",
+    "url": "https://archive.apache.org/dist/maven/maven-3/3.9.16/binaries/apache-maven-3.9.16-bin.tar.gz",
+    "size": 9278065,
+    "sha512": "831a8591fe20c8243b1dbe7d71e3244f31d1665b0804b2e825e38cbbe5ce0cafb8338851f90780735568773e0a6cd07bbec107cda0b896b008b861075358b6f6",
+    "checksumSource": "apache-maven-3.9.16-bin.tar.gz.sha512 published by Apache; matches the download.",
+    "home": "apache-maven-3.9.16"
+  },
+  "node": {
+    "minimumVersion": "22.0.0",
+    "note": "Node runs the resource packer, the launcher post-processing and the Wasm smoke tests. The smoke tests verify the required Wasm features (GC, exnref, typed function references) instead of assuming them; Node 22.22.3 was measured to run Web Image output without extra flags."
+  }
+}

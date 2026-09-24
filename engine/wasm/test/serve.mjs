@@ -1,0 +1,82 @@
+#!/usr/bin/env node
+// Static server for the engine spike page, with the headers the engine needs:
+// Cross-Origin-Opener-Policy + Cross-Origin-Embedder-Policy (cross-origin
+// isolation, required for SharedArrayBuffer) and correct MIME types.
+//
+//   node engine/wasm/test/serve.mjs [--port 8765] [--no-isolation]
+//
+// --no-isolation leaves COOP/COEP out, to check that the page then fails
+// loudly instead of hanging. Also importable: startServer({ port, isolation }).
+
+import fs from "node:fs";
+import http from "node:http";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const wasmDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const engineDir = path.resolve(wasmDir, "..");
+
+const ROUTES = [
+  ["/engine/", path.join(engineDir, "build", "dist")],
+  ["/host/", path.join(wasmDir, "host")],
+  ["/", path.join(wasmDir, "spike")],
+];
+
+const TYPES = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".cjs": "text/javascript; charset=utf-8",
+  ".wasm": "application/wasm",
+  ".json": "application/json; charset=utf-8",
+};
+
+function resolve(urlPath) {
+  const clean = decodeURIComponent(urlPath.split("?")[0]);
+  for (const [prefix, dir] of ROUTES) {
+    if (clean.startsWith(prefix)) {
+      const rel = clean.slice(prefix.length) || "index.html";
+      const file = path.resolve(dir, rel);
+      if (!file.startsWith(dir + path.sep)) {
+        return null;
+      }
+      return file;
+    }
+  }
+  return null;
+}
+
+export function startServer({ port = 8765, isolation = true, host = "127.0.0.1" } = {}) {
+  const server = http.createServer((req, res) => {
+    const file = resolve(req.url);
+    const headers = { "Cache-Control": "no-store" };
+    if (isolation) {
+      headers["Cross-Origin-Opener-Policy"] = "same-origin";
+      headers["Cross-Origin-Embedder-Policy"] = "require-corp";
+      headers["Cross-Origin-Resource-Policy"] = "same-origin";
+    }
+    if (!file || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
+      res.writeHead(404, { ...headers, "Content-Type": "text/plain" });
+      res.end("not found");
+      return;
+    }
+    const stat = fs.statSync(file);
+    res.writeHead(200, {
+      ...headers,
+      "Content-Type": TYPES[path.extname(file)] || "application/octet-stream",
+      "Content-Length": stat.size,
+    });
+    fs.createReadStream(file).pipe(res);
+  });
+  return new Promise((resolvePromise) => {
+    server.listen(port, host, () => resolvePromise(server));
+  });
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const args = process.argv.slice(2);
+  const portIndex = args.indexOf("--port");
+  const port = portIndex >= 0 ? Number(args[portIndex + 1]) : 8765;
+  const isolation = !args.includes("--no-isolation");
+  const server = await startServer({ port, isolation });
+  console.log(`engine spike: http://127.0.0.1:${server.address().port}/ (cross-origin isolation ${isolation ? "on" : "OFF"})`);
+}

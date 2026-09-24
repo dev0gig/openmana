@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Engine-Spike</title>
+  <link rel="icon" href="data:,">
+</head>
+<body>
+  <!--
+    Diagnostics page of the engine spike (prompt 01). Not OpenMana's UI: it
+    loads Forge in a Dedicated Worker, lets Forge's AI play one game and prints
+    what happened. URL parameters: seed (default 42), cardLoading (lazy|eager),
+    auto (0 = wait for the button).
+  -->
+  <h1>OpenMana – Forge-Engine-Spike</h1>
+  <p>Forge läuft als WebAssembly in einem Dedicated Worker und spielt eine Partie KI gegen KI.
+    Das ist eine Diagnoseseite, keine Oberfläche.</p>
+  <p><button id="run" type="button" disabled>Partie starten</button></p>
+  <p id="status" role="status">Prüfe den Browser …</p>
+  <pre id="log"></pre>
+  <script src="host/feature-detect.js"></script>
+  <script src="spike.js"></script>
+</body>
+</html>
