@@ -21,6 +21,7 @@ Start with [docs/BIBLE.md](docs/BIBLE.md).
 Implementation has started; progress per queue prompt is tracked in [prompts/STATUS.md](prompts/STATUS.md).
 
 - **Engine spike done (prompt 01):** pinned upstream Forge plus a small GPL patch queue runs as WebAssembly (GraalVM Web Image) in a Dedicated Worker and plays a complete Forge-AI game in Chrome; JVM, Node and Chrome produce the identical Forge game log. See [engine/README.md](engine/README.md) and [docs/implementation/01-engine-spike.md](docs/implementation/01-engine-spike.md).
+- **Bridge spike done (prompt 02):** Forge's own human path (`PlayerControllerHuman` and its inputs) runs on a single thread through an Anvil-style bridge: numbered questions with withdrawal, card taps outside questions, mulligan, cost payment, targets, attacking, blocking, conceding. In the browser the worker waits for the player's input with `Atomics.wait` on a SharedArrayBuffer. Recorded human-vs-AI games replay identically on the JVM, in Node and in Chrome. See [docs/implementation/02-anvil-bridge.md](docs/implementation/02-anvil-bridge.md).
 - No user interface yet. Anvil remains the working reference implementation until OpenMana reaches feature parity.
 
 ## Credits
