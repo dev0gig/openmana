@@ -28,9 +28,9 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | **06 — OpenMana web/PWA skeleton** |
-| Nächster Prompt | 07 — IndexedDB local data layer (erst nach 06 = COMPLETE) |
-| Zuletzt abgeschlossen | 05 — JVM/WASM differential tests (`0ddfbc3`) |
+| Aktuell ausgeführt | – (keiner; nach 06 wie in `naechster-schritt.md` vorgesehen gestoppt) |
+| Nächster Prompt | **07 — IndexedDB local data layer** (PENDING, nicht begonnen) |
+| Zuletzt abgeschlossen | 06 — OpenMana web/PWA skeleton (`cfb2252`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-24 (Lauf über `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-24 |
 
@@ -44,7 +44,7 @@
 | 03 | [Worker transport and protocol](queue/03-worker-transport-protocol.md) | COMPLETE | `1e8febf` |
 | 04 | [Forge resources and card scripts](queue/04-forge-resources-card-scripts.md) | COMPLETE | `fbcba6e` |
 | 05 | [JVM/WASM differential tests](queue/05-engine-differential-tests.md) | COMPLETE | `0ddfbc3` |
-| 06 | [OpenMana web/PWA skeleton](queue/06-web-pwa-skeleton.md) | IN_PROGRESS | – |
+| 06 | [OpenMana web/PWA skeleton](queue/06-web-pwa-skeleton.md) | COMPLETE | `cfb2252` |
 | 07 | [IndexedDB local data layer](queue/07-indexeddb-storage.md) | PENDING | – |
 | 08 | [Scryfall card data](queue/08-scryfall-data.md) | PENDING | – |
 | 09 | [Arena deck import](queue/09-arena-deck-import.md) | PENDING | – |
@@ -536,7 +536,108 @@
 - **Weiter mit:** Prompt 06 (OpenMana web/PWA skeleton). Nicht begonnen:
   `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
 
-### 06 — OpenMana web/PWA skeleton — IN_PROGRESS
+### 06 — OpenMana web/PWA skeleton — COMPLETE
 
-- Begonnen am 2026-09-24 von Claude Code (Claude Opus 5.5), Auftrag
+- **Commits:** `cfb2252` Implementierung (alle Nachweise liefen auf diesem
+  Stand, sauberer Arbeitsbaum, die App meldet `modified: false`), danach Doku
+  und dieser Eintrag (2026-09-24). Agent: Claude Code (Claude Opus 5.5), Auftrag
   „Führe prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
+  Status-Commit zu Beginn: `053103e`.
+- **Zusammenfassung:** Die produktive Web-App liegt im Wurzelverzeichnis:
+  React 19, Vite 8, TypeScript 7 strict, Tailwind 4 mit shadcn/ui (Stil
+  `radix-maia`), React Router 8 – für Vercel geeignet. Sechs Oberflächen
+  (Start, Decks, Spielen, Partien, Einstellungen, Credits), deutsch
+  beschriftet, Seitenleiste ab 768 px, Tab-Leiste am Handy. Ein eigenes
+  OpenMana-Design-System (dunkles Nachtblau und Gold, Cinzel/Inter, Touch-Ziele
+  ab 44 px, WCAG-AA-Kontraste, nur shadcn-Bausteine) ist in
+  `docs/DESIGN_SYSTEM.md` festgelegt. „Spielen“ lädt auf Knopfdruck die echte
+  Forge-Engine über den `EngineClient` und zeigt ihre Startschritte, „Bereit“
+  mit den Angaben der Engine oder den Abbruchgrund; es gibt keine erfundenen
+  Spieldaten. Der Build übernimmt die Engine nur geprüft (Größe + SHA-256 laut
+  Manifest, Protokollversion) inhaltsadressiert unter `/engine/<id>/`.
+  COOP/COEP/CORP auf jeder Antwort (Dev, Vorschau, `vercel.json`),
+  installierbares Web-App-Manifest, vorläufiges App-Icon unverändert aus Anvil
+  mit Herkunftsnachweis. Nichts deployt. Kein Blocker.
+- **Wichtige Komponenten:**
+  - App: `index.html`, `src/main.tsx`, `src/app/` (Router, `AppShell`,
+    `navigation.ts`, Build-Info), `src/routes/` (sechs Oberflächen, 404,
+    Fehlerseite), `src/components/` (`Brand`, `Page`, `FactList`, `TextLink`,
+    `AppSidebar`), `src/components/ui/` (shadcn/ui + `bottom-nav.tsx` in
+    shadcn-Bauweise), `src/index.css` (Tokens)
+  - Engine in der App: `src/engine/engine-session.ts` (`EngineSession`, Client
+    per dynamischem Import), `engine-session-context.tsx` (eine Sitzung für die
+    App, Toast bei Abbruch), `engine-panel.tsx`, `device-support.tsx`,
+    `engine-labels.ts` (deutsche Texte zu Boot-Phasen und Abbruchgründen)
+  - Build: `vite.config.ts`, `vite/engine-assets.ts` (prüfen, ausliefern,
+    `virtual:openmana-engine`; `OPENMANA_ENGINE=omit`, `OPENMANA_ENGINE_DIR`),
+    `vite/build-info.ts`, `vite/isolation-headers.ts`, `vite/aliases.ts`
+    (einzige Wege nach `engine/`), `vite/watch.ts`; `vercel.json`
+  - PWA/Icon: `public/manifest.webmanifest`, `public/icons/`, `favicon.ico`,
+    `apple-touch-icon.png`, `assets/app-icon/` (Original + `PROVENANCE.md`),
+    `scripts/gen-app-icons.py`
+  - Tests/Werkzeug: Vitest (`vitest.config.ts`, `src/**/*.test.*`,
+    `vite/*.test.ts`), `.oxlintrc.json`, `scripts/e2e/run.ts`,
+    `npm run check`
+  - Doku: `docs/DESIGN_SYSTEM.md` (neu, kanonisch für die UI; Bible §13 verweist
+    darauf), `docs/implementation/06-web-pwa-skeleton.md`, `README.md`,
+    `STATUS.md`, `AGENTS.md` (UI-Regeln), `engine/README.md`
+- **Tests (alle bestanden, auf `cfb2252`):**
+  - `tsc -b` (App, Tests, Werkzeuge; die importierten Engine-Quellen mit den
+    strengen App-Einstellungen), `oxlint` ohne Befund.
+  - 82 Vitest-Tests: `EngineSession` 8 (alle Zustände, Abbrüche, späte
+    Nachrichten, gescheitertes Nachladen; Testnachrichten gegen das echte
+    Schema geprüft), Oberflächen und Engine-Anzeige 17, Design-Token-Kontraste
+    20, PWA/Icon 7, Import-Grenze 4, Engine-Artefakte 13, Auslieferung/Header 13.
+  - End-to-End (`scripts/e2e/run.ts`, Chrome 153, echte Engine
+    `0c82db80023ac0cc`): Header auf jeder Antwort von Vorschau und Dev-Server;
+    alle sechs Oberflächen bei 412 × 915 (Touch), 884 × 1104 (Touch),
+    1440 × 900 ohne Konsolenfehler, ohne fehlgeschlagene Anfragen, ohne
+    Überlauf, `crossOriginIsolated`, richtige Navigation je Größe, axe-core
+    0 Befunde (18 Läufe); Engine-Start über Vorschau (Desktop, Handy) und
+    Dev-Server bis „Bereit“ (Forge 2.0.15 `ed0333fecb`, Protokoll 3), vorher
+    kein Engine-Byte geladen; Chrome ohne Installierbarkeitsfehler; ohne
+    COOP/COEP klare Meldung und kein Download.
+  - Bestehend: Engine-Protokoll/Client/Worker-Host 80/80 Unit-Tests, erzeugte
+    Dateien = Schema, Engine-`tsc`. Frischer Klon ohne Engine: `npm ci` 4 s,
+    Build scheitert laut, `OPENMANA_ENGINE=omit` baut, 82 Tests grün.
+    `test-engine.sh` nicht erneut gelaufen: `engine/` ist bis auf die README
+    unverändert, die ausgelieferten Artefakte sind die geprüften von `0ddfbc3`.
+- **Messwerte (odin):** Start-JavaScript 161 KB gzip (App 63 KB, React +
+  Router 98 KB, eigener Chunk), CSS 12 KB; Engine-Client samt Schemaprüfern
+  39 KB gzip erst beim Engine-Start (vorher lagen die Prüfer im Start-Bundle:
+  198 KB). Engine 75,8 MiB (Brotli 12,5 MiB). Engine bis „Bereit“ in der App
+  5,0 s bei Lastmittel 5,9, 5,4–6,9 s beim Nachweis (Lastmittel 8–9);
+  Engine-Diagnoseseite unter gleicher Last 8,7 s gegen App 9,1 s – die App
+  kostet beim Start praktisch nichts. `vite build` 3–5 s, `npm run check` 59 s.
+- **Erkenntnisse/Abweichungen:**
+  - **Behoben, Dev-Server-Absturz:** Vite beobachtete auch Forges Quellen und
+    den Engine-Bauordner und scheiterte mit `ENOSPC` (alle Datei-Beobachter
+    des Systems belegt). Unter `engine/` werden jetzt nur `protocol/` und
+    `client/` beobachtet.
+  - Forges `forgeVersion` ist in diesem Build „GIT“; die App zeigt
+    `forgeVersionCode` (2.0.15).
+  - Forge schreibt beim vollständigen Kartenladen 21 bekannte Upstream-
+    Datenhinweise als Fehler in die Worker-Konsole (Karten ohne Set,
+    „Upcoming set Star Trek (TRK)“); der E2E-Test hält Worker-Ausgaben fest und
+    wertet nur Fehler der Seite.
+  - Die Ajv-Schemaprüfer (383 KB) landeten über den Protokoll-Index im
+    Start-Bundle; jetzt importiert die erste Seite nur `features`/`constants`
+    direkt, der Client kommt per dynamischem Import.
+  - **Bewusste Entscheidungen:** shadcn/ui als Grundlage des Design-Systems
+    (Vorgabe des Projektbesitzers für Web-Oberflächen), nur dunkles Theme,
+    deutsche Oberfläche mit englischen Routen, Tab-Leiste mit vier Zielen
+    (Einstellungen hinter dem Zahnrad), Engine nur auf Knopfdruck (Vorwärmen:
+    11), **kein Service Worker vor Prompt 25** (er müsste COOP/COEP erhalten und
+    die Engine sicher cachen; Chrome installiert auch ohne), Engine im Build
+    aus dem lokalen `engine/build/dist` (Vercel-Artefakt: 31; auf Vercel
+    scheitert der Build bis dahin bewusst laut), Credits ohne Scryfall bis 08
+    und ohne vollständige Lizenztexte bis 27 (GraalVM-Frage als offen benannt),
+    oxlint statt ESLint (typescript-eslint kann TypeScript 7 noch nicht),
+    Schriften gebündelt statt CDN.
+  - Offen für spätere Prompts: Offline/Engine-Cache/Updates (25),
+    KI-Profil/Kartensprache/reduzierte Bewegung (12), echte Vercel-Auslieferung
+    samt Engine und Dateivorrang der Rewrites (31), Fold7-Messung (Frage 5 –
+    mit einer ausgelieferten Version reicht „Engine laden“ auf dem Gerät),
+    Lizenzen und Icon-Prüfung (27), Android-Hülle (28).
+- **Weiter mit:** Prompt 07 (IndexedDB local data layer). Nicht begonnen:
+  `naechster-schritt.md` führt genau einen Prompt je Lauf aus.

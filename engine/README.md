@@ -171,8 +171,11 @@ engine/build/report/transcripts/human-3.json --feeding eager`. In Node:
   Laufzeiten identisch (Synchronmodus, gleiches Ressourcen-Bundle). Deshalb lassen
   sich Partien per Seed vergleichen.
 - **Forge-Updates bleiben in `engine/`:** neuer Submodule-SHA, Patches prüfen,
-  `build.sh` + `test-engine.sh`. Die Oberfläche (ab Prompt 06 in `src/`) sieht
-  Forge nie direkt, nur `engine/protocol` und `engine/client`. Neue Einträge in
+  `build.sh` + `test-engine.sh`. Die Oberfläche (seit Prompt 06 in `src/`) sieht
+  Forge nie direkt, nur `engine/protocol` und `engine/client`. Die Web-App
+  übernimmt die Artefakte aus `build/dist` beim Bauen nur, wenn Größe und
+  SHA-256 zum `engine-manifest.json` passen (`vite/engine-assets.ts`); nach
+  einem neuen Engine-Build den Dev-Server der App neu starten. Neue Einträge in
   `forge-gui/res` verlangen eine Entscheidung in `resources.json`; die
   Kartenprüfung zeigt, ob jede Karte der neuen Forge-Version im Browser lädt.
 - **Kein Netzspiel im Modul:** Netty, jupnp (CDDL) und Jetty bleiben draußen.

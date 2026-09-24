@@ -241,6 +241,8 @@ OpenMana should feel contemporary and premium. It may learn from MTG Arena inter
 
 Do not copy proprietary Arena assets or reproduce its UI pixel-for-pixel.
 
+The implemented design system (shadcn/ui components, OpenMana tokens, typography, touch and accessibility rules) is specified in [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md).
+
 ## 14. Credits, attribution and licenses
 
 Credits are a product requirement.

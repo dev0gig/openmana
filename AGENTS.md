@@ -30,6 +30,15 @@ OpenMana UI must not implement a parallel Magic rules engine or hard-code card/m
 - Imported decks/local user data remain local-first; IndexedDB is the planned durable store.
 - Do not create a second Android UI; later Android packaging wraps the same web application.
 
+## User Interface Rules
+The web app (repository root, `src/`) follows `docs/DESIGN_SYSTEM.md`:
+- Build UI only from shadcn/ui components and the OpenMana design tokens in `src/index.css`; no custom CSS or ad-hoc Tailwind styling in pages. A missing component is added as a shadcn component (registry, or built the shadcn way in `src/components/ui/`).
+- Dark theme only; touch targets of at least 44 px on touch screens; WCAG AA contrast.
+- Everything the player reads is German; code, routes, protocol and developer messages are English.
+- `src/` imports from `engine/` only via `@openmana/engine-protocol[/<file>]` and `@openmana/engine-client` (enforced by `src/app/boundary.test.ts`).
+- Never show invented game data: empty stays empty, unavailable actions stay disabled with a reason, failures are visible.
+- Verify UI work with `npm run check` (typecheck, lint, unit tests, end-to-end test in Chrome with the real engine).
+
 ## Queue and Execution
 OpenMana currently has its own detailed queue ledger at `prompts/STATUS.md`. It remains authoritative while the numbered 00–32 implementation program is running.
 

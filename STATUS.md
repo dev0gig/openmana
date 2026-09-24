@@ -57,8 +57,17 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - `engine/scripts/test-engine.sh` plays every fixture on the JVM and replays it in Node and Chrome; the traces must be equal entry by entry (AI games too); any divergence fails with its place in the game. A negative test proves that tampered traces fail at the tampered place. German and lazy-loading variants give the very same trace.
 - Found and fixed: Commander games could not end (Forge's achievement dialog threw in the headless GUI). Documented: Forge's `getActivateDescription` sets a missing activating player (side effect; follow-up in prompts 14/16) and Forge's time-budgeted "has the player anything to do" check (the tests fail if it runs out). Details: `docs/implementation/05-engine-differential-tests.md`.
 
+### Web/PWA Skeleton (Prompt 06)
+- Production web application at the repository root: React 19, Vite 8, TypeScript 7 strict, Tailwind 4 + shadcn/ui (style `radix-maia`), React Router; npm package `@openmana/app`, independent of `engine/package.json`.
+- Surfaces Start, Decks, Play, Matches, Settings, Credits (German UI, English routes); sidebar from 768 px, bottom tab bar on phones; no invented data (empty states, disabled actions with reasons).
+- OpenMana design system (`docs/DESIGN_SYSTEM.md`): dark-only night blue/gold tokens, Cinzel headings, Inter text, touch targets ≥ 44 px on coarse pointers, WCAG AA contrast checked from the tokens, shadcn-only UI rule.
+- Engine integration: `EngineSession` wraps the `EngineClient` (loaded on demand); "Play" boots the real engine on request and shows its boot phases, `engine.ready` facts or the abort reason. `vite/engine-assets.ts` takes `engine/build/dist` only after checking size and SHA-256 of every runtime file and the protocol version, and serves it content-addressed under `/engine/<id>/`; a build without a checked engine fails (`OPENMANA_ENGINE=omit` builds UI-only on purpose).
+- COOP/COEP/CORP on every response of dev server, preview and `vercel.json` (one source); SPA fallback that never swallows engine or asset files; immutable caching only for hashed/content-addressed paths. Nothing deployed.
+- PWA basics: web app manifest (installable in Chrome, no installability errors), icons from Anvil's unchanged icon with provenance (`assets/app-icon/`). No service worker yet (prompt 25).
+- Evidence: `npm run check` — typecheck, oxlint, 82 Vitest tests (session, surfaces, tokens, PWA, import boundary, engine assets, deployment config), end-to-end test in Chrome 153 with the real engine (every surface at three sizes with axe-core, engine boot via preview and dev server, installability, negative test without isolation); engine unit tests unchanged green. Details: `docs/implementation/06-web-pwa-skeleton.md`.
+
 ## Currently In Progress
-Nothing. Prompts 00–05 are `COMPLETE`. The next prompt is **06 — OpenMana web/PWA skeleton** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
+Nothing. Prompts 00–06 are `COMPLETE`. The next prompt is **07 — IndexedDB local data layer** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
 
 Any agent entering the repository must first reconcile this statement with the latest `prompts/STATUS.md` and Git state.
 
@@ -81,11 +90,11 @@ Exact order/status is authoritative only in `prompts/STATUS.md`.
 
 ## Not Yet Implemented
 At this review point:
-- no production OpenMana user interface yet (the engine client exists; the web app follows with prompt 06),
+- no local storage (IndexedDB) yet,
 - no deck library/import UI yet,
 - no Scryfall application layer yet,
-- no playable OpenMana battlefield UI yet,
-- no PWA/Android production artifact yet.
+- no game session and no playable OpenMana battlefield UI yet,
+- no service worker/offline mode, no deployment, no Android artifact yet.
 
 Anvil remains the working reference implementation until OpenMana reaches the intended parity.
 
@@ -101,7 +110,7 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 ## Workflow Compatibility
 OpenMana predates the generic Dropzone `queue → active → completed` lifecycle and is worked through **its own numbered ledger**, one prompt at a time.
 
-Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 05 complete, 06 next, nothing in progress).
+Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 06 complete, 07 next, nothing in progress).
 
 Dropzone Master/Standalone must respect:
 - `prompts/STATUS.md` statuses,
