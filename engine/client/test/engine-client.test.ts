@@ -7,6 +7,7 @@ import { describe, test } from "node:test";
 import { EngineClient, EngineClientError, EngineInputError, type EngineClientEvent, type EngineClientOptions, type EngineClientTimers } from "../src/index.ts";
 import {
   inputQueueReader,
+  PROTOCOL_VERSION,
   type EngineMessage,
   type GameState,
   type InputQueueReader,
@@ -117,7 +118,7 @@ describe("start and version", () => {
     assert.equal(client.status, "booting");
     const start = worker.commands[0]!;
     assert.equal(start.type, "engine.start");
-    assert.equal(start.type === "engine.start" && start.protocol, 1);
+    assert.equal(start.type === "engine.start" && start.protocol, PROTOCOL_VERSION);
     assert.ok(start.type === "engine.start" && start.queue instanceof SharedArrayBuffer);
     worker.send({ type: "engine.boot", phase: "java-main", t: 700 });
     worker.send(READY);
@@ -134,12 +135,12 @@ describe("start and version", () => {
   test("an engine with another protocol version is refused loudly before anything else is read", () => {
     const { client, worker, aborts } = setup();
     client.start();
-    worker.send({ ...READY, protocol: 2, engine: "a future shape the schema would not accept" });
+    worker.send({ ...READY, protocol: PROTOCOL_VERSION + 1, engine: "a future shape the schema would not accept" });
     assert.equal(client.status, "aborted");
     assert.equal(worker.terminated, true);
     const abort = aborts()[0]!;
     assert.equal(abort.type === "engine.abort" && abort.reason, "protocol-mismatch");
-    assert.match(abort.type === "engine.abort" ? abort.message : "", /engine speaks protocol 2, this app speaks protocol 1/);
+    assert.match(abort.type === "engine.abort" ? abort.message : "", new RegExp(`engine speaks protocol ${PROTOCOL_VERSION + 1}, this app speaks protocol ${PROTOCOL_VERSION}`));
   });
 
   test("a runtime without the needed features never creates a worker", () => {
@@ -188,6 +189,32 @@ describe("start and version", () => {
     assert.equal(client.status, "booting");
     timers.advance(1);
     assert.equal(client.abortInfo?.reason, "ready-timeout");
+  });
+});
+
+describe("engine tests (diagnostics)", () => {
+  test("runCardProbe posts diagnostics.card-probe; diagnostics.cards is kept and finishes the client", () => {
+    const { client, worker, aborts } = setup();
+    client.start();
+    worker.send(READY);
+    client.runCardProbe();
+    assert.equal(client.status, "diagnostics");
+    assert.deepEqual(worker.commands.at(-1), { type: "diagnostics.card-probe" });
+    const cards = engineMessages.find((m) => m.type === "diagnostics.cards")!;
+    worker.send(cards);
+    assert.equal(client.status, "finished");
+    assert.deepEqual(client.cardProbe, (cards as { result: object }).result);
+    assert.deepEqual(aborts(), []);
+    assert.throws(() => client.runCardProbe(), (e: unknown) => e instanceof EngineClientError && e.code === "already-started");
+  });
+
+  test("a card probe result outside diagnostics is a protocol violation", () => {
+    const { client, worker, aborts } = setup();
+    client.start();
+    worker.send(READY);
+    worker.send(engineMessages.find((m) => m.type === "diagnostics.cards"));
+    assert.equal(client.status, "aborted");
+    assert.equal(aborts()[0]?.type === "engine.abort" && aborts()[0]?.reason, "protocol-violation");
   });
 });
 

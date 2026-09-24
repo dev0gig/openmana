@@ -23,8 +23,13 @@ import java.util.jar.JarFile;
  * happened to reach.
  *
  * <pre>
- * java engine/scripts/ListSubscribers.java &lt;fat.jar&gt; [excluded path prefix ...]
+ * java engine/scripts/ListSubscribers.java [--interfaces] &lt;fat.jar&gt; [excluded path prefix ...]
  * </pre>
+ * With {@code --interfaces} it lists Forge's interfaces instead, one
+ * {@code {"type": "...", "interface": true}} per line: they have no
+ * constructors to register, and a registered interface keeps its method
+ * signatures as reflection metadata (IGuiBase would make jupnp's
+ * UpnpServiceConfiguration reachable).
  * Classes are loaded without initialisation. A class that cannot be loaded is
  * reported on stderr and makes the run fail: it could hide a subscriber.
  */
@@ -34,8 +39,10 @@ public final class ListSubscribers {
     }
 
     public static void main(final String[] args) throws Exception {
-        final File jar = new File(args[0]);
-        final List<String> excluded = Arrays.asList(args).subList(1, args.length);
+        final boolean interfaces = args.length > 0 && "--interfaces".equals(args[0]);
+        final int first = interfaces ? 1 : 0;
+        final File jar = new File(args[first]);
+        final List<String> excluded = Arrays.asList(args).subList(first + 1, args.length);
         int scanned = 0;
         int found = 0;
         int unloadable = 0;
@@ -52,15 +59,24 @@ public final class ListSubscribers {
                     continue;
                 }
                 final String className = path.substring(0, path.length() - ".class".length()).replace('/', '.');
+                final Class<?> type;
                 final Method[] methods;
                 try {
-                    methods = Class.forName(className, false, loader).getDeclaredMethods();
+                    type = Class.forName(className, false, loader);
+                    methods = type.getDeclaredMethods();
                 } catch (final Throwable t) {
                     unloadable++;
                     System.err.println("[ListSubscribers] not loadable: " + className + ": " + t);
                     continue;
                 }
                 scanned++;
+                if (interfaces) {
+                    if (type.isInterface()) {
+                        System.out.println("{\"type\":\"" + className + "\",\"interface\":true}");
+                        found++;
+                    }
+                    continue;
+                }
                 for (final Method m : methods) {
                     if (!m.isAnnotationPresent(subscribe)) {
                         continue;
@@ -77,8 +93,8 @@ public final class ListSubscribers {
                 }
             }
         }
-        System.err.println("[ListSubscribers] " + scanned + " Forge classes scanned, " + found + " @Subscribe methods, "
-                + unloadable + " not loadable");
+        System.err.println("[ListSubscribers] " + scanned + " Forge classes scanned, " + found
+                + (interfaces ? " interfaces, " : " @Subscribe methods, ") + unloadable + " not loadable");
         if (unloadable > 0) {
             System.exit(1);
         }

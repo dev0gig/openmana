@@ -46,6 +46,7 @@ import {
   type MatchRequest,
   type MatchSummary,
   type AiMatchResult,
+  type CardProbeResult,
   type Question,
 } from "../../protocol/src/index.ts";
 import { EngineClientError, EngineInputError } from "./errors.ts";
@@ -53,7 +54,8 @@ import type { EngineWorkerPort, EngineWorkerPortFactory, WorkerProblem } from ".
 
 /**
  * booting → ready → starting → playing → ended → finished; a refused start
- * (engine.error) goes back to ready. diagnostics: an AI-only test game.
+ * (engine.error) goes back to ready. diagnostics: an engine test (AI-only
+ * game or card probe), finished afterwards.
  * aborted and disposed are final.
  */
 export type EngineStatus = "idle" | "booting" | "ready" | "starting" | "playing" | "ended" | "finished" | "diagnostics" | "aborted" | "disposed";
@@ -131,6 +133,7 @@ const ALLOWED: Readonly<Record<string, readonly EngineStatus[]>> = {
   "game.end": ["playing"],
   "match.finished": ["ended"],
   "diagnostics.result": ["diagnostics"],
+  "diagnostics.cards": ["diagnostics"],
 };
 
 export class EngineClient {
@@ -148,6 +151,7 @@ export class EngineClient {
   #result: GameEnd | null = null;
   #summary: MatchSummary | null = null;
   #diagnostics: AiMatchResult | null = null;
+  #cardProbe: CardProbeResult | null = null;
   #abort: EngineAbort | null = null;
 
   readonly #open = new Map<number, Question>();
@@ -246,6 +250,13 @@ export class EngineClient {
     this.#post({ type: "diagnostics.ai-match", seed, includeLog });
   }
 
+  /** Engine tests only: Forge's card scripts checked inside the engine (diagnostics.card-probe). */
+  runCardProbe(): void {
+    this.#requireStatus("ready", "runCardProbe");
+    this.#setStatus("diagnostics");
+    this.#post({ type: "diagnostics.card-probe" });
+  }
+
   /** Technical abort by the UI (e.g. "restart engine"): terminates the worker. */
   abort(message = "aborted by the user interface"): void {
     this.#fail({ reason: "terminated", message, stage: "client" });
@@ -296,6 +307,9 @@ export class EngineClient {
   }
   get diagnostics(): AiMatchResult | null {
     return this.#diagnostics;
+  }
+  get cardProbe(): CardProbeResult | null {
+    return this.#cardProbe;
   }
   get abortInfo(): EngineAbort | null {
     return this.#abort;
@@ -590,6 +604,10 @@ export class EngineClient {
         return null;
       case "diagnostics.result":
         this.#diagnostics = message.result;
+        this.#setStatus("finished");
+        return null;
+      case "diagnostics.cards":
+        this.#cardProbe = message.result;
         this.#setStatus("finished");
         return null;
       case "events":

@@ -20,12 +20,12 @@ export function option(args: readonly string[], name: string, fallback: string |
   return i >= 0 && i + 1 < args.length ? args[i + 1]! : fallback;
 }
 
-export function nodeClient(distDir: string, cardLoading: string, extra: Partial<EngineClientOptions> = {}): EngineClient {
+export function nodeClient(distDir: string, cardLoading: string, extra: Partial<EngineClientOptions> = {}, language = "en-US"): EngineClient {
   return new EngineClient({
     createPort: nodeWorkerPort(),
     engineScriptUrl: path.join(distDir, "openmana-engine.js"),
     wasmUrl: path.join(distDir, "openmana-engine.js.wasm"),
-    engineArgs: [`--card-loading=${cardLoading}`],
+    engineArgs: [`--card-loading=${cardLoading}`, `--language=${language}`],
     requireIsolation: false,
     ...extra,
   });

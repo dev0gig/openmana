@@ -57,6 +57,8 @@ const ENUM_LISTS = {
   REJECT_REASONS: "RejectReason",
   GAME_RESULTS: "GameResult",
   MATCH_FORMATS: "MatchFormat",
+  CARD_LOADINGS: "CardLoading",
+  ENGINE_LANGUAGES: "EngineLanguage",
 };
 
 function fail(message) {

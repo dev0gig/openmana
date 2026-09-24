@@ -10,6 +10,7 @@ import org.openmana.engine.ForgeEngine;
 import org.openmana.engine.bridge.HumanMatch;
 import org.openmana.engine.bridge.Protocol;
 import org.openmana.engine.smoke.AiSmokeMatch;
+import org.openmana.engine.smoke.CardProbe;
 
 import java.io.InputStream;
 import java.io.PrintWriter;
@@ -56,10 +57,13 @@ public final class WasmMain {
 
     public static void main(final String[] args) {
         try {
-            ForgeEngine.CardLoading cardLoading = ForgeEngine.CardLoading.LAZY;
+            ForgeEngine.CardLoading cardLoading = ForgeEngine.CardLoading.DEFAULT;
+            ForgeEngine.Language language = ForgeEngine.Language.EN_US;
             for (final String arg : args) {
                 if (arg.startsWith("--card-loading=")) {
                     cardLoading = ForgeEngine.CardLoading.parse(arg.substring("--card-loading=".length()));
+                } else if (arg.startsWith("--language=")) {
+                    language = ForgeEngine.Language.parse(arg.substring("--language=".length()));
                 } else {
                     throw new IllegalArgumentException("unknown engine argument " + arg);
                 }
@@ -71,7 +75,7 @@ public final class WasmMain {
                 if (bundle == null) {
                     throw new IllegalStateException(RESOURCE_BUNDLE + " is not embedded in this engine build");
                 }
-                boot = EngineBoot.boot(bundle, Paths.get(VFS_ROOT), cardLoading);
+                boot = EngineBoot.boot(bundle, Paths.get(VFS_ROOT), cardLoading, language);
             }
 
             registerEngine(request -> JSString.of(handle(request.asString())));
@@ -93,6 +97,10 @@ public final class WasmMain {
                 response = new JsonObject();
                 response.addProperty("ok", true);
                 response.add("result", AiSmokeMatch.run(seed, includeLog));
+            } else if ("card-probe".equals(command)) {
+                response = new JsonObject();
+                response.addProperty("ok", true);
+                response.add("result", CardProbe.run());
             } else if ("human-match".equals(command)) {
                 // Runs the whole game; inputs arrive through the worker's
                 // SharedArrayBuffer channel while this call is on the stack.
@@ -119,7 +127,7 @@ public final class WasmMain {
         ready.addProperty("protocol", Protocol.VERSION);
         ready.add("engine", boot.get("engine"));
         final JsonObject report = new JsonObject();
-        for (final String key : new String[]{"resourceFiles", "resourceBytes", "unpackMillis", "forgeInitMillis", "cardLoading"}) {
+        for (final String key : new String[]{"resourceFiles", "resourceBytes", "unpackMillis", "forgeInitMillis", "cardLoading", "language"}) {
             report.add(key, boot.get(key));
         }
         ready.add("boot", report);

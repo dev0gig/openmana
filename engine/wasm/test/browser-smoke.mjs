@@ -8,6 +8,7 @@
 //        [--expect-log-sha256 <hex>] [--out result.json]
 //   node engine/wasm/test/browser-smoke.mjs --transcript t.json [--feeding lazy|eager]
 //        [--queue-capacity <bytes>] [--card-loading …] [--out result.json]
+//   node engine/wasm/test/browser-smoke.mjs --cards [--card-loading …] [--expect jvm-probe.json] [--out result.json]
 //   node engine/wasm/test/browser-smoke.mjs --negative [--out result.json]
 //   node engine/wasm/test/browser-smoke.mjs --announce-protocol 999 [--out result.json]
 //
@@ -15,6 +16,9 @@
 // --transcript replays a JVM-recorded human-vs-AI game through the client and
 // the SharedArrayBuffer input queue (engine/wasm/spike/replay.ts); passes only
 // if the game ends exactly as on the JVM.
+// --cards runs the card probe (diagnostics.card-probe); with --expect it must
+// equal the JVM probe of the same card loading mode.
+// --language en-US|de-DE (every mode): the language Forge speaks.
 // --negative serves the page WITHOUT cross-origin isolation and passes only if
 // the page reports the missing feature quickly instead of hanging.
 // --announce-protocol: the page claims another protocol version; passes only if
@@ -29,6 +33,7 @@ import os from "node:os";
 import path from "node:path";
 import { chromium } from "playwright-core";
 import { startServer } from "./serve.mjs";
+import { probeDifferences, probeProblems } from "./card-probe-check.ts";
 
 const args = process.argv.slice(2);
 const option = (name, fallback) => {
@@ -41,10 +46,13 @@ const transcriptFile = option("--transcript", null);
 const feeding = option("--feeding", "lazy");
 const queueCapacity = option("--queue-capacity", feeding === "eager" ? "256" : null);
 const seed = Number(option("--seed", "42"));
-const cardLoading = option("--card-loading", "lazy");
+const cardLoading = option("--card-loading", "eager");
+const language = option("--language", "en-US");
+const cards = args.includes("--cards");
+const expectFile = option("--expect", null);
 const expectedSha = option("--expect-log-sha256", null);
 const outFile = option("--out", null);
-const TEST_TIMEOUT_MS = negative || announceProtocol ? 30000 : transcriptFile ? 840000 : 540000;
+const TEST_TIMEOUT_MS = negative || announceProtocol ? 30000 : transcriptFile || cards ? 840000 : 540000;
 
 function rssKb(pid) {
   try {
@@ -83,8 +91,8 @@ async function uaMemory(page) {
   });
 }
 
-const mode = negative ? "negative (no COOP/COEP)" : announceProtocol ? "protocol mismatch" : transcriptFile ? `replay (${feeding})` : "positive";
-const report = { mode, seed, cardLoading, ok: false };
+const mode = negative ? "negative (no COOP/COEP)" : announceProtocol ? "protocol mismatch" : transcriptFile ? `replay (${feeding})` : cards ? "card probe" : "positive";
+const report = { mode, seed, cardLoading, language, ok: false };
 if (transcriptFile) {
   const transcript = JSON.parse(fs.readFileSync(transcriptFile, "utf8"));
   report.transcript = path.basename(transcriptFile);
@@ -99,8 +107,10 @@ const server = await startServer({
 const query = announceProtocol
   ? `announceProtocol=${announceProtocol}`
   : transcriptFile
-    ? `replay=transcripts/replay.json&cardLoading=${cardLoading}&feeding=${feeding}${queueCapacity ? `&queueCapacity=${queueCapacity}` : ""}`
-    : `seed=${seed}&cardLoading=${cardLoading}`;
+    ? `replay=transcripts/replay.json&cardLoading=${cardLoading}&language=${language}&feeding=${feeding}${queueCapacity ? `&queueCapacity=${queueCapacity}` : ""}`
+    : cards
+      ? `cards=1&cardLoading=${cardLoading}&language=${language}`
+      : `seed=${seed}&cardLoading=${cardLoading}&language=${language}`;
 const url = `http://127.0.0.1:${server.address().port}/?${query}`;
 const profileDir = fs.mkdtempSync(path.join(os.tmpdir(), "openmana-chrome-"));
 const executablePath = process.env.OPENMANA_CHROME || chromium.executablePath();
@@ -161,6 +171,24 @@ try {
     else {
       report.matchesJvm = true;
       report.uaMemory = await uaMemory(page);
+    }
+  } else if (cards) {
+    const probe = state.result;
+    if (state.error) failure = state.error;
+    else if (!probe) failure = "the page finished without a card probe result";
+    else {
+      const problems = probeProblems(probe);
+      if (probe.language.selected !== language) problems.push(`the engine speaks ${probe.language.selected}, requested was ${language}`);
+      if (expectFile) {
+        const jvm = JSON.parse(fs.readFileSync(expectFile, "utf8")).result;
+        const differences = probeDifferences(jvm, probe);
+        if (probe.fingerprint !== jvm.fingerprint) differences.unshift(`fingerprint ${probe.fingerprint} != JVM ${jvm.fingerprint}`);
+        problems.push(...differences);
+        report.matchesJvm = differences.length === 0;
+      }
+      report.result = probe;
+      report.uaMemory = await uaMemory(page);
+      if (problems.length > 0) failure = problems.join("\n");
     }
   } else if (negative) {
     const quick = report.wallMs < 10000;

@@ -1,13 +1,17 @@
 package org.openmana.engine;
 
 import forge.gui.GuiBase;
+import forge.localinstance.properties.ForgeConstants;
 import forge.localinstance.properties.ForgePreferences.FPref;
 import forge.model.FModel;
 import forge.util.BuildInfo;
+import forge.util.CardTranslation;
+import forge.util.Localizer;
 import forge.util.ThreadUtil;
 import org.tinylog.Logger;
 import org.tinylog.configuration.Configuration;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
@@ -41,6 +45,18 @@ public final class ForgeEngine {
         /** Read and parse every card script during {@code FModel.initialize}. */
         EAGER;
 
+        /**
+         * The engine's default: eager. Lazy loading still parses every script
+         * once at start (for the name index) and saves only memory, but the
+         * first effect or decision that needs all cards (a random card, the
+         * player naming a card) makes Forge load the rest of the database in
+         * the middle of the game: 17 s in Chrome, 23-42 s in Node on a desktop
+         * CPU, measured in prompt 04
+         * (docs/implementation/04-forge-resources-card-scripts.md). Eager
+         * costs 1.6 s more at start in Chrome and ~90 MiB.
+         */
+        public static final CardLoading DEFAULT = EAGER;
+
         public static CardLoading parse(final String value) {
             for (final CardLoading mode : values()) {
                 if (mode.name().equalsIgnoreCase(value)) {
@@ -48,6 +64,39 @@ public final class ForgeEngine {
                 }
             }
             throw new IllegalArgumentException("unknown card loading mode '" + value + "' (lazy|eager)");
+        }
+    }
+
+    /**
+     * The language Forge speaks: its own messages (prompts, buttons, the game
+     * log) and the card names inside them, from Forge's language files
+     * ({@code res/languages}). Card keys on the wire stay English whatever the
+     * language (Anvil lesson); how the UI shows cards is Scryfall's business.
+     * The engine ships exactly these two (Bible §4: German preferred, English
+     * fallback).
+     */
+    public enum Language {
+        EN_US("en-US"),
+        DE_DE("de-DE");
+
+        private final String tag;
+
+        Language(final String tag) {
+            this.tag = tag;
+        }
+
+        /** Forge's locale id, e.g. {@code de-DE}. */
+        public String tag() {
+            return tag;
+        }
+
+        public static Language parse(final String value) {
+            for (final Language language : values()) {
+                if (language.tag.equalsIgnoreCase(value)) {
+                    return language;
+                }
+            }
+            throw new IllegalArgumentException("unknown language '" + value + "' (en-US|de-DE)");
         }
     }
 
@@ -72,6 +121,7 @@ public final class ForgeEngine {
 
     private static boolean runtimeConfigured;
     private static CardLoading initializedWith;
+    private static Language language;
 
     private ForgeEngine() {
     }
@@ -121,16 +171,20 @@ public final class ForgeEngine {
     }
 
     /** @return milliseconds spent in {@code FModel.initialize} */
-    public static long initialize(final CardLoading cardLoading) {
+    public static long initialize(final CardLoading cardLoading, final Language requestedLanguage) {
         if (!runtimeConfigured) {
             throw new IllegalStateException("configureRuntime must be called before initialize");
         }
         if (initializedWith != null) {
             throw new IllegalStateException("Forge is already initialised (" + initializedWith + ")");
         }
+        requireLanguageFiles(requestedLanguage);
         final long start = System.nanoTime();
         FModel.initialize(null, prefs -> {
-            prefs.setPref(FPref.UI_LANGUAGE, "en-US");
+            // Here and not afterwards: FModel.initialize loads Lang, Localizer and
+            // CardTranslation right after this callback (Anvil lesson: a language
+            // set later silently keeps the English tables).
+            prefs.setPref(FPref.UI_LANGUAGE, requestedLanguage.tag());
             prefs.setPref(FPref.LOAD_CARD_SCRIPTS_LAZILY, cardLoading == CardLoading.LAZY);
             // The card-based deck generator needs res/deckgendecks, which the
             // engine does not ship; decks always come from the player.
@@ -156,12 +210,57 @@ public final class ForgeEngine {
             prefs.setPref(FPref.PLAYER_NAME, "Player");
             return null;
         });
+        final long millis = (System.nanoTime() - start) / 1_000_000L;
+        requireLanguageLoaded(requestedLanguage);
         initializedWith = cardLoading;
-        return (System.nanoTime() - start) / 1_000_000L;
+        language = requestedLanguage;
+        return millis;
+    }
+
+    /**
+     * Forge falls back to English without a word when a language file is
+     * missing (Localizer prints a stack trace, CardTranslation a line on
+     * stderr). The engine refuses to start instead.
+     */
+    private static void requireLanguageFiles(final Language requested) {
+        if (requested == Language.EN_US) {
+            return;
+        }
+        for (final String name : new String[]{requested.tag() + ".properties", "cardnames-" + requested.tag() + ".txt"}) {
+            if (!new File(ForgeConstants.LANG_DIR + name).isFile()) {
+                throw new IllegalStateException("language " + requested.tag() + " requested, but res/languages/" + name
+                        + " is not in the engine's Forge data (engine/resources.json)");
+            }
+        }
+    }
+
+    /**
+     * Checks that Forge really speaks the requested language: its selected
+     * card translation, and one message that every Forge translation has
+     * (lblYes) differs from English. In the browser the messages come from
+     * the resource bundles compiled into the module (build-wasm.sh), a
+     * different path than on the JVM.
+     */
+    private static void requireLanguageLoaded(final Language requested) {
+        if (!requested.tag().equals(CardTranslation.getLanguageSelected())) {
+            throw new IllegalStateException("Forge's card translation is " + CardTranslation.getLanguageSelected()
+                    + ", requested was " + requested.tag());
+        }
+        if (requested != Language.EN_US) {
+            final Localizer localizer = Localizer.getInstance();
+            if (localizer.getMessage("lblYes").equals(localizer.getEnglishMessage("lblYes"))) {
+                throw new IllegalStateException("Forge's messages are still English although " + requested.tag()
+                        + " was requested: the language's message bundle did not load");
+            }
+        }
     }
 
     public static CardLoading cardLoading() {
         return initializedWith;
+    }
+
+    public static Language language() {
+        return language;
     }
 
     public static String forgeVersion() {
@@ -169,18 +268,22 @@ public final class ForgeEngine {
     }
 
     /**
-     * Build facts written by {@code engine/scripts/prepare-forge.sh}: pinned
-     * Forge commit, hash of the patch queue, bridge commit.
+     * Build facts written by {@code engine/scripts/prepare-forge.sh} (pinned
+     * Forge commit, hash of the patch queue, bridge commit) and by
+     * {@code build-jvm.sh} (the Forge data bundle: SHA-256, file count,
+     * languages).
      */
     public static Properties buildInfo() {
         final Properties props = new Properties();
-        try (InputStream in = ForgeEngine.class.getResourceAsStream("/openmana/engine-build.properties")) {
-            if (in == null) {
-                throw new IllegalStateException("openmana/engine-build.properties is missing from the engine build");
+        for (final String name : new String[]{"engine-build.properties", "engine-resources.properties"}) {
+            try (InputStream in = ForgeEngine.class.getResourceAsStream("/openmana/" + name)) {
+                if (in == null) {
+                    throw new IllegalStateException("openmana/" + name + " is missing from the engine build");
+                }
+                props.load(in);
+            } catch (final IOException e) {
+                throw new IllegalStateException("cannot read engine build info " + name, e);
             }
-            props.load(in);
-        } catch (final IOException e) {
-            throw new IllegalStateException("cannot read engine build info", e);
         }
         return props;
     }

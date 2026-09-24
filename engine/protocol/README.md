@@ -1,10 +1,11 @@
-# OpenMana-Protokoll (Version 1)
+# OpenMana-Protokoll (Version 2)
 
 Der **einzige Vertrag** zwischen der OpenMana-Oberfläche und der Engine (Forge
 im Dedicated Worker). Die Oberfläche sieht keine Forge-Klassen und rechnet
 keine Regel aus; Forge entscheidet alles, das Protokoll transportiert und
 prüft nur. Eingeführt mit Prompt 03, Nachweise in
-[`docs/implementation/03-worker-transport-protocol.md`](../../docs/implementation/03-worker-transport-protocol.md).
+[`docs/implementation/03-worker-transport-protocol.md`](../../docs/implementation/03-worker-transport-protocol.md);
+Version 2 mit Prompt 04 (siehe [unten](#änderungen-in-version-2-prompt-04)).
 
 ```
  UI ──ruft──▶ EngineClient (Main Thread) ──WorkerCommand (postMessage, nur wenn der Worker frei ist)──▶ Worker-Host
@@ -25,7 +26,7 @@ prüft nur. Eingeführt mit Prompt 03, Nachweise in
 
 ## Versionen
 
-- `ProtocolVersion` ist eine ganze Zahl (jetzt **1**). UI, Worker-Host und
+- `ProtocolVersion` ist eine ganze Zahl (jetzt **2**). UI, Worker-Host und
   Engine müssen **genau dieselbe** Version sprechen; es gibt keine
   Aushandlung. Eine App liefert UI und Engine immer zusammen aus
   (`engine.lock.json`, Prompt 25/26); eine Abweichung heißt „alter Cache“ oder
@@ -54,12 +55,13 @@ prüft nur. Eingeführt mit Prompt 03, Nachweise in
 | `type` | Zweck |
 |---|---|
 | `engine.boot` | Fortschritt des Starts: `worker-features` (mit `features`), `launcher-load`, `wasm-fetch-compile`, `java-main`; `t` = ms seit Worker-Start |
-| `engine.ready` | Forge ist bereit: `protocol`, `engine` (Forge-Version und -Commit, Patch-Zahl und -Hash, OpenMana-Commit, `engineSourcesModified`, `synchronous`), `boot` (Ressourcen, Zeiten, Kartenladen) |
+| `engine.ready` | Forge ist bereit: `protocol`, `engine` (Forge-Version und -Commit, Patch-Zahl und -Hash, OpenMana-Commit, `engineSourcesModified`, `synchronous`, `resourcesSha256` = SHA-256 der eingebauten Forge-Daten wie im `engine-manifest.json`), `boot` (Ressourcen, Zeiten, `cardLoading`, `language`) |
 | `engine.waiting` | Die Warteschlange ist leer und Forge wartet auf den Spieler. `consumed` = gelesene Eingaben; alles bis dahin ist fertig verarbeitet. Eine wartende Engine ist nicht „hängend“ |
 | `engine.error` | Ein Befehl schlug fehl, der Worker bleibt nutzbar: `deck-rejected` (mit `report.unknownCards`), `invalid-request`, `not-ready`, `already-started` |
 | `engine.abort` | **Technischer Abbruch**, kein Spielergebnis; der Worker ist verloren (siehe unten) |
 | `match.finished` | Forge hat die Partie verlassen; technische Zusammenfassung (Hashes, Zähler) |
 | `diagnostics.result` | Ergebnis einer KI-gegen-KI-Testpartie (nur Tests) |
+| `diagnostics.cards` | Ergebnis der Kartenprüfung (`CardProbeResult`, nur Tests; die Objekte in den Abschnitten sind freie Diagnose, kein UI-Vertrag) |
 | `game.started` | Partie beginnt (`protocol`, Namen, KI-Profil, Format, `cardNames` beider Decks ohne Besitzer) |
 | `state` | **vollständiger** Zustand, nie ein Delta; `seq` steigt streng |
 | `events` | neue Einträge aus Forges Spielprotokoll, **vor** dem Zustand, den sie erklären |
@@ -83,9 +85,17 @@ Wiederholung oder eine fehlende Nummer heißt, dass der Transport kaputt ist:
 `engine.start` (Protokollversion, Adressen von Launcher und Modul, Argumente,
 die Warteschlange, ob Cross-Origin-Isolation Pflicht ist), `match.start`
 (`MatchRequest`: Seed, Format, Mensch mit Deck, KI mit Profil und Deck),
-`diagnostics.ai-match` (nur Tests). Befehle wirken nur, wenn der Worker frei
-ist: Während einer Partie steckt er in Forges Java-Stack und liest nur die
-Warteschlange.
+`diagnostics.ai-match` und `diagnostics.card-probe` (nur Tests). Befehle wirken
+nur, wenn der Worker frei ist: Während einer Partie steckt er in Forges
+Java-Stack und liest nur die Warteschlange.
+
+**Start-Argumente** (`engine.start.args`), jedes andere Argument bricht den
+Start ab (`engine.abort`, `boot-failed`):
+
+| Argument | Standard | Bedeutung |
+|---|---|---|
+| `--card-loading=eager\|lazy` | `eager` | Wie Forge seine Kartenskripte liest (`CardLoading`). `lazy` spart rund 90 MiB, lädt aber die ganze Datenbank mitten in der Partie nach, sobald ein Effekt oder der Spieler alle Karten braucht (im Wasm gemessen: 17 s Stillstand in Chrome, bis 42 s in Node; vollständig laden kostet 1,6 s beim Start) |
+| `--language=en-US\|de-DE` | `en-US` | Sprache von Forges eigenen Texten (Fragen, Knöpfe, Spielverlauf) und der Kartennamen darin (`EngineLanguage`). Kartenschlüssel (`key`) bleiben immer englisch; die Kartenanzeige kommt von Scryfall |
 
 ## Fragen
 
@@ -203,6 +213,16 @@ npm run bundle            # Worker- und Diagnose-Bundle (esbuild)
 
 `engine/scripts/build-host.sh` macht alles zusammen und läuft als erster
 Schritt von `build.sh`.
+
+## Änderungen in Version 2 (Prompt 04)
+
+- Neues Start-Argument `--language=en-US|de-DE`; `engine.ready.boot.language`
+  meldet die Sprache, `CardLoading` und `EngineLanguage` sind eigene
+  Aufzählungen (auch als Konstanten `CARD_LOADINGS`, `ENGINE_LANGUAGES`).
+- `engine.ready.engine.resourcesSha256`: welche Forge-Daten die Engine
+  eingebaut hat (derselbe Wert wie `resources.sha256` im Manifest).
+- Standard des Kartenladens ist jetzt `eager` (vorher `lazy`).
+- Neuer Testbefehl `diagnostics.card-probe` mit Antwort `diagnostics.cards`.
 
 ## Änderungen gegenüber dem Spike-Protokoll `0.2-spike` (Prompt 02)
 

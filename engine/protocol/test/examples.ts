@@ -1,7 +1,8 @@
 // One valid example of every message of the protocol, written by hand after
-// real engine output (prompt 02 recordings). schema.test.ts checks that each
+// real engine output (prompt 02 recordings; diagnostics.cards: the JVM card
+// probe of prompt 04, shortened). schema.test.ts checks that each
 // passes and that no message type of the schema is left without an example.
-import type { EngineInput, EngineMessage, MatchRequest, VisibleCard, WorkerCommand } from "../src/index.ts";
+import { PROTOCOL_VERSION, type EngineInput, type EngineMessage, type MatchRequest, type VisibleCard, type WorkerCommand } from "../src/index.ts";
 
 export const card: VisibleCard = {
   id: 54,
@@ -39,7 +40,7 @@ export const engineMessages: EngineMessage[] = [
   { type: "engine.boot", phase: "java-main", t: 728 },
   {
     type: "engine.ready",
-    protocol: 1,
+    protocol: PROTOCOL_VERSION,
     engine: {
       forgeVersion: "GIT",
       forgeCommit: "ed0333fecb1fea0671b3e50cadc1da4f71db5798",
@@ -49,8 +50,9 @@ export const engineMessages: EngineMessage[] = [
       openmanaCommit: "5a2ed628ef263fff95d0aca0c1c227453fa5074f",
       engineSourcesModified: false,
       synchronous: true,
+      resourcesSha256: "0a4ae34b35b7ce650ac6815b80d59c205a8ae9535743ef134506db3076a72fe9",
     },
-    boot: { resourceFiles: 36922, resourceBytes: 37706881, unpackMillis: 904, forgeInitMillis: 2462, cardLoading: "lazy" },
+    boot: { resourceFiles: 36922, resourceBytes: 37706881, unpackMillis: 904, forgeInitMillis: 2462, cardLoading: "lazy", language: "en-US" },
     t: 3472,
   },
   { type: "engine.waiting", consumed: 12 },
@@ -75,7 +77,32 @@ export const engineMessages: EngineMessage[] = [
       logEntries: 444, logSha256: "d7611b0e534870deb05d5253f4f53cf2489006b28fc4b865bf3a03ab5d5b85b8", forgeErrors: [],
     },
   },
-  { type: "game.started", protocol: 1, human: "Player", ai: "Forge AI", aiProfile: "Default", format: "constructed", cardNames: ["Forest", "Mountain", "Shock"] },
+  {
+    type: "diagnostics.cards",
+    result: {
+      format: "openmana-card-probe/1",
+      cardLoading: "lazy",
+      language: { selected: "de-DE", messages: { lblYes: "Ja" }, cardNames: { "Lightning Bolt": "Blitzschlag" }, timeZone: "UTC" },
+      namedCreation: [{ id: "conjure-by-name", source: "Emerald Collector", effect: "MakeCard", ok: true, created: ["Mox Emerald"], uniqueCardsKnownBefore: 0, uniqueCardsKnownAfter: 2 }],
+      representative: [{ category: "transform", request: "Delver of Secrets", found: true, name: "Delver of Secrets", layout: "Transform", faces: [{ name: "Delver of Secrets" }, { name: "Insectile Aberration" }], game: { doubleFaced: true } }],
+      tokens: { scripts: 854, loaded: 854, abilities: 1335, sha256: "3b1b1051a0b674e954b30d297a1723779cb6eb8d779c74f005342b261d88186b", problems: [] },
+      newestEditions: [{ code: "FRA", name: "Reality Fracture", date: "2026-10-02", distinctCards: 285, loaded: 283, notImplemented: ["Command the Stage", "Loot, the Anomaly"], sha256: "0d45af4db2351e4ca467fbf7df30283d2a559fef651a457261c257ee3d4022ed" }],
+      database: {
+        cards: { unique: 33505, printings: 97130, instantiated: 33505, abilities: 85321, layouts: { None: 32589, Transform: 399 },
+          rulesSha256: "de6596f0db85981dc8b6614e46e4c295c00a5b4d9a263a93c2c2c94d6525c991", gameCardsSha256: "596d9fd3efd4fbbdb26ca9b3f8341b2d0910f1c2da8c931d1f92eed163b57563" },
+        variantCards: { unique: 473, printings: 675, instantiated: 473, abilities: 823,
+          rulesSha256: "c91d6f6b2d61c3048d554a9769539d42983291591a4c8ad778adeccaceb1693c", gameCardsSha256: "6b3da560c2ad36b68650d0e7a585300bdc3ffa0097a1d90180d5576f451ac472" },
+        editions: 682,
+        scriptWarnings: ["SVar 'TrigSwitch' not defined in Card (Desert Were-Worm)"],
+        problems: [],
+      },
+      sections: { database: "b177b35f85b357ed7b66c8526f5d7436a51ce482242457dfa5ce6110cd51ba0b" },
+      failures: [],
+      fingerprint: "464cbd26db3b70667822aa8aa9f4f571f070c72b91fe846022ce5de26483e325",
+      millis: { namedCreation: 16205, database: 12069 },
+    },
+  },
+  { type: "game.started", protocol: PROTOCOL_VERSION, human: "Player", ai: "Forge AI", aiProfile: "Default", format: "constructed", cardNames: ["Forest", "Mountain", "Shock"] },
   {
     type: "state", seq: 7, running: true, turn: 3, phase: "MAIN1", activePlayer: 0, me: 0,
     players: [
@@ -125,7 +152,8 @@ export const engineInputs: EngineInput[] = [
 ];
 
 export const workerCommands: WorkerCommand[] = [
-  { type: "engine.start", protocol: 1, engineScriptUrl: "engine/openmana-engine.js", wasmUrl: "engine/openmana-engine.js.wasm", args: ["--card-loading=lazy"], queue: new SharedArrayBuffer(96), requireIsolation: true },
+  { type: "engine.start", protocol: PROTOCOL_VERSION, engineScriptUrl: "engine/openmana-engine.js", wasmUrl: "engine/openmana-engine.js.wasm", args: ["--card-loading=lazy"], queue: new SharedArrayBuffer(96), requireIsolation: true },
   { type: "match.start", match: matchRequest },
   { type: "diagnostics.ai-match", seed: 42, includeLog: false },
+  { type: "diagnostics.card-probe" },
 ];

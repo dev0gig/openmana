@@ -10,7 +10,8 @@
 #   4. unit tests: protocol, client, worker host (node:test)
 #   5. bundles: build/dist/engine-worker.js (browser worker host, part of the
 #      engine artefacts) and build/harness/spike.js (diagnostics page)
-#   6. if the engine artefacts exist: refresh engine-manifest.json (worker entry)
+#   6. if a complete engine build exists (same Forge data as build/resources):
+#      refresh engine-manifest.json (worker entry)
 source "$(dirname "$0")/lib.sh"
 
 om_require_node_typescript
@@ -31,7 +32,11 @@ node --test --test-reporter=spec --test-reporter-destination=stdout \
     2>&1 | tee "$OM_REPORT_DIR/unit-tests.log"
 [ "${PIPESTATUS[0]}" -eq 0 ] || om_die "Unit-Tests fehlgeschlagen, siehe $OM_REPORT_DIR/unit-tests.log"
 node scripts/bundle-host.mjs
-if [ -f "$OM_DIST_DIR/openmana-engine.js.wasm" ] && [ -f "$OM_REPORT_DIR/forge-source.json" ]; then
+if [ -f "$OM_DIST_DIR/openmana-engine.js.wasm" ] && [ -f "$OM_REPORT_DIR/image-classes.json" ] \
+    && [ -f "$OM_REPORT_DIR/forge-source.json" ] && [ -f "$OM_REPORT_DIR/native-image.log" ] \
+    && cmp -s "$OM_DIST_DIR/forge-res.inventory.json" "$OM_BUILD_DIR/resources/forge-res.inventory.json"; then
     node scripts/write-manifest.mjs "$OM_DIST_DIR" "$OM_REPORT_DIR" "$OM_BUILD_DIR/resources/forge-res.manifest.json"
+elif [ -f "$OM_DIST_DIR/openmana-engine.js.wasm" ]; then
+    om_log "engine-manifest.json nicht aufgefrischt: build/dist stammt aus einem anderen Build (build.sh baut alles neu)"
 fi
 om_log "Host/Protokoll fertig"

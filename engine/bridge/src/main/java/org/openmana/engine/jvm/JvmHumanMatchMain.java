@@ -25,7 +25,7 @@ import java.nio.file.Paths;
  *
  * <pre>
  * java -cp openmana-engine-jvm.jar org.openmana.engine.jvm.JvmHumanMatchMain \
- *      --bundle forge-res.bin --seed 42 --out transcript.json [--card-loading lazy|eager]
+ *      --bundle forge-res.bin --seed 42 --out transcript.json [--card-loading lazy|eager] [--language en-US|de-DE]
  *      [--concede-in-turn N | --defending] [--messages messages.jsonl]
  * </pre>
  * With {@code --messages} every message the bridge emits is written as one
@@ -44,7 +44,8 @@ public final class JvmHumanMatchMain {
         String bundle = null;
         String out = null;
         long seed = 42;
-        ForgeEngine.CardLoading cardLoading = ForgeEngine.CardLoading.LAZY;
+        ForgeEngine.CardLoading cardLoading = ForgeEngine.CardLoading.DEFAULT;
+        ForgeEngine.Language language = ForgeEngine.Language.EN_US;
         int concedeInTurn = 0;
         boolean defending = false;
         String messages = null;
@@ -54,6 +55,7 @@ public final class JvmHumanMatchMain {
                 case "--seed" -> seed = Long.parseLong(args[++i]);
                 case "--out" -> out = args[++i];
                 case "--card-loading" -> cardLoading = ForgeEngine.CardLoading.parse(args[++i]);
+                case "--language" -> language = ForgeEngine.Language.parse(args[++i]);
                 case "--concede-in-turn" -> concedeInTurn = Integer.parseInt(args[++i]);
                 case "--defending" -> defending = true;
                 case "--messages" -> messages = args[++i];
@@ -65,7 +67,7 @@ public final class JvmHumanMatchMain {
         }
         final Path root = TempRoot.create();
         try (InputStream in = Files.newInputStream(Paths.get(bundle))) {
-            EngineBoot.boot(in, root, cardLoading);
+            EngineBoot.boot(in, root, cardLoading, language);
         }
         final JsonObject request = SmokeDecks.humanMatchRequest(seed);
         if (defending && concedeInTurn > 0) {

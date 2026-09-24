@@ -5,6 +5,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import forge.game.phase.PhaseType;
+import org.openmana.engine.EngineBoot;
+import org.openmana.engine.ForgeEngine;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -13,6 +15,7 @@ import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -104,6 +107,30 @@ public class ProtocolContractTest {
             phases.add(p.name());
         }
         assertEquals(phases, enumOf("Phase"), "Forge's PhaseType changed: adapt the bridge or the schema (a new protocol version)");
+    }
+
+    /**
+     * The engine's boot arguments and build facts are the schema's: languages
+     * (also those the Forge data bundle carries, from resources.json via the
+     * build facts), card loading modes, every EngineBuild field.
+     */
+    @Test
+    public void languagesCardLoadingAndBuildFactsMatch() {
+        final Set<String> languages = new TreeSet<>();
+        for (final ForgeEngine.Language language : ForgeEngine.Language.values()) {
+            languages.add(language.tag());
+        }
+        assertEquals(languages, enumOf("EngineLanguage"));
+        assertEquals(new TreeSet<>(Arrays.asList(ForgeEngine.buildInfo().getProperty("resources.languages").split(","))), languages,
+                "the languages in engine/resources.json, ForgeEngine.Language and the schema must agree");
+        final Set<String> modes = new TreeSet<>();
+        for (final ForgeEngine.CardLoading mode : ForgeEngine.CardLoading.values()) {
+            modes.add(mode.name().toLowerCase());
+        }
+        assertEquals(modes, enumOf("CardLoading"));
+        final Set<String> schemaFields = new TreeSet<>();
+        defs.getAsJsonObject("EngineBuild").getAsJsonArray("required").forEach(e -> schemaFields.add(e.getAsString()));
+        assertEquals(new TreeSet<>(EngineBoot.engineInfo().keySet()), schemaFields, "EngineBoot.engineInfo() and the schema's EngineBuild");
     }
 
     @Test

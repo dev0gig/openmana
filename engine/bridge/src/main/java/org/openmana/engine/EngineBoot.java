@@ -15,7 +15,7 @@ import java.util.Properties;
  * <ol>
  *   <li>unpack the Forge resource bundle below {@code root/forge/},</li>
  *   <li>configure Forge's runtime ({@code root/home} as {@code user.home}),</li>
- *   <li>initialise Forge with the requested card loading mode.</li>
+ *   <li>initialise Forge with the requested card loading mode and language.</li>
  * </ol>
  */
 public final class EngineBoot {
@@ -25,17 +25,28 @@ public final class EngineBoot {
 
     public static JsonObject boot(final InputStream resourceBundle, final Path root,
                                   final ForgeEngine.CardLoading cardLoading) throws IOException {
+        return boot(resourceBundle, root, cardLoading, ForgeEngine.Language.EN_US);
+    }
+
+    public static JsonObject boot(final InputStream resourceBundle, final Path root,
+                                  final ForgeEngine.CardLoading cardLoading,
+                                  final ForgeEngine.Language language) throws IOException {
         final long t0 = System.nanoTime();
         final Path assets = root.resolve("forge");
         final Path home = root.resolve("home");
         Files.createDirectories(assets);
         Files.createDirectories(home);
         final ResourceBundleReader.Stats stats = ResourceBundleReader.unpack(resourceBundle, assets);
+        final String expectedFiles = ForgeEngine.buildInfo().getProperty("resources.files");
+        if (expectedFiles == null || Integer.parseInt(expectedFiles.trim()) != stats.files) {
+            throw new IllegalStateException("the Forge data bundle has " + stats.files + " files, this engine was built with "
+                    + expectedFiles + ": bundle and engine come from different builds");
+        }
         writeEmptyUiPreferences(home);
         final long unpackMillis = (System.nanoTime() - t0) / 1_000_000L;
 
         ForgeEngine.configureRuntime(assets.toString() + "/", home.toString());
-        final long forgeInitMillis = ForgeEngine.initialize(cardLoading);
+        final long forgeInitMillis = ForgeEngine.initialize(cardLoading, language);
 
         final JsonObject report = new JsonObject();
         report.addProperty("resourceFiles", stats.files);
@@ -43,6 +54,7 @@ public final class EngineBoot {
         report.addProperty("unpackMillis", unpackMillis);
         report.addProperty("forgeInitMillis", forgeInitMillis);
         report.addProperty("cardLoading", cardLoading.name().toLowerCase());
+        report.addProperty("language", language.tag());
         report.add("engine", engineInfo());
         return report;
     }
@@ -82,6 +94,7 @@ public final class EngineBoot {
         info.addProperty("openmanaCommit", required(build, "openmana.commit"));
         info.addProperty("engineSourcesModified", Boolean.parseBoolean(required(build, "openmana.engineSourcesModified")));
         info.addProperty("synchronous", forge.util.ThreadUtil.isSynchronous());
+        info.addProperty("resourcesSha256", required(build, "resources.sha256"));
         return info;
     }
 

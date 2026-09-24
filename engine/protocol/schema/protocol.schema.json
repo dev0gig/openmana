@@ -11,13 +11,13 @@
   "$defs": {
     "ProtocolVersion": {
       "title": "ProtocolVersion",
-      "description": "Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch).",
-      "const": 1
+      "description": "Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe.",
+      "const": 2
     },
 
     "EngineMessage": {
       "title": "EngineMessage",
-      "description": "Everything the worker posts to the page: lifecycle messages of the worker host (engine.*, match.finished, diagnostics.result) and the game messages of the bridge.",
+      "description": "Everything the worker posts to the page: lifecycle messages of the worker host (engine.*, match.finished, diagnostics.*) and the game messages of the bridge.",
       "type": "object",
       "discriminator": { "propertyName": "type" },
       "oneOf": [
@@ -28,6 +28,7 @@
         { "$ref": "#/$defs/EngineAbort" },
         { "$ref": "#/$defs/MatchFinished" },
         { "$ref": "#/$defs/DiagnosticsResult" },
+        { "$ref": "#/$defs/DiagnosticsCards" },
         { "$ref": "#/$defs/GameStarted" },
         { "$ref": "#/$defs/GameState" },
         { "$ref": "#/$defs/GameEvents" },
@@ -62,7 +63,8 @@
       "oneOf": [
         { "$ref": "#/$defs/EngineStartCommand" },
         { "$ref": "#/$defs/MatchStartCommand" },
-        { "$ref": "#/$defs/DiagnosticsAiMatchCommand" }
+        { "$ref": "#/$defs/DiagnosticsAiMatchCommand" },
+        { "$ref": "#/$defs/DiagnosticsCardProbeCommand" }
       ]
     },
 
@@ -129,7 +131,7 @@
       "description": "Build facts of the engine: pinned Forge, patch queue, OpenMana commit.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["forgeVersion", "forgeCommit", "forgeVersionCode", "patchCount", "patchesSha256", "openmanaCommit", "engineSourcesModified", "synchronous"],
+      "required": ["forgeVersion", "forgeCommit", "forgeVersionCode", "patchCount", "patchesSha256", "openmanaCommit", "engineSourcesModified", "synchronous", "resourcesSha256"],
       "properties": {
         "forgeVersion": { "type": "string" },
         "forgeCommit": { "$ref": "#/$defs/GitCommit" },
@@ -138,21 +140,33 @@
         "patchesSha256": { "$ref": "#/$defs/Sha256" },
         "openmanaCommit": { "$ref": "#/$defs/GitCommit" },
         "engineSourcesModified": { "type": "boolean", "description": "true if engine/ had uncommitted changes when the engine was built." },
-        "synchronous": { "type": "boolean", "description": "Forge runs in synchronous mode (patch 0001); must be true." }
+        "synchronous": { "type": "boolean", "description": "Forge runs in synchronous mode (patch 0001); must be true." },
+        "resourcesSha256": { "$ref": "#/$defs/Sha256", "description": "SHA-256 of the Forge data bundle compiled into this engine (engine-manifest.json, resources.sha256)." }
       }
     },
     "BootReport": {
       "title": "BootReport",
       "type": "object",
       "additionalProperties": false,
-      "required": ["resourceFiles", "resourceBytes", "unpackMillis", "forgeInitMillis", "cardLoading"],
+      "required": ["resourceFiles", "resourceBytes", "unpackMillis", "forgeInitMillis", "cardLoading", "language"],
       "properties": {
         "resourceFiles": { "type": "integer", "minimum": 0 },
         "resourceBytes": { "type": "integer", "minimum": 0 },
         "unpackMillis": { "type": "integer", "minimum": 0 },
         "forgeInitMillis": { "type": "integer", "minimum": 0 },
-        "cardLoading": { "enum": ["lazy", "eager"] }
+        "cardLoading": { "$ref": "#/$defs/CardLoading" },
+        "language": { "$ref": "#/$defs/EngineLanguage" }
       }
+    },
+    "CardLoading": {
+      "title": "CardLoading",
+      "description": "How Forge reads its card scripts (boot argument --card-loading; default eager). eager: every card is read and indexed at start; lazy: only a name index at start, a card's script when it is first needed, and the whole database the first time an effect or decision needs all cards (a random card, the player naming a card), which stalls the game for tens of seconds in the browser.",
+      "enum": ["lazy", "eager"]
+    },
+    "EngineLanguage": {
+      "title": "EngineLanguage",
+      "description": "The language Forge speaks (boot argument --language): its own messages (prompts, buttons, game log) and the card names inside them. Card keys (Card.key) stay English in every language.",
+      "enum": ["en-US", "de-DE"]
     },
 
     "EngineWaiting": {
@@ -261,6 +275,128 @@
       "properties": {
         "type": { "const": "diagnostics.result" },
         "result": { "$ref": "#/$defs/AiMatchResult" }
+      }
+    },
+    "DiagnosticsCards": {
+      "title": "DiagnosticsCards",
+      "description": "Result of diagnostics.card-probe (engine tests only).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "result"],
+      "properties": {
+        "type": { "const": "diagnostics.cards" },
+        "result": { "$ref": "#/$defs/CardProbeResult" }
+      }
+    },
+    "CardProbeResult": {
+      "title": "CardProbeResult",
+      "description": "Forge's card scripts checked inside the engine (bridge CardProbe): effects that create cards by name, representative cards of every layout, every token script, the newest editions and every card of the database turned into game cards. fingerprint covers everything except language and millis and must be equal on the JVM and in the browser for the same engine and card loading mode; sections holds the same per section. failures lists everything that must fail a test. The objects inside the sections are free-form diagnostics (not a UI contract).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "cardLoading", "language", "namedCreation", "representative", "tokens", "newestEditions", "database", "sections", "failures", "fingerprint", "millis"],
+      "properties": {
+        "format": { "const": "openmana-card-probe/1" },
+        "cardLoading": { "$ref": "#/$defs/CardLoading" },
+        "language": {
+          "type": "object",
+          "required": ["selected", "messages", "cardNames", "timeZone"],
+          "properties": {
+            "selected": { "$ref": "#/$defs/EngineLanguage" },
+            "messages": { "type": "object", "additionalProperties": { "type": "string" } },
+            "cardNames": { "type": "object", "additionalProperties": { "type": "string" } },
+            "timeZone": { "type": "string" }
+          }
+        },
+        "namedCreation": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "source", "effect", "ok", "created"],
+            "properties": {
+              "id": { "type": "string" },
+              "source": { "type": "string" },
+              "effect": { "type": "string" },
+              "ok": { "type": "boolean" },
+              "created": { "type": "array", "items": { "type": "string" } },
+              "problem": { "type": "string" },
+              "uniqueCardsKnownBefore": { "type": "integer", "minimum": 0 },
+              "uniqueCardsKnownAfter": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "representative": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["category", "request", "found"],
+            "properties": {
+              "category": { "type": "string" },
+              "request": { "type": "string" },
+              "found": { "type": "boolean" },
+              "name": { "type": "string" },
+              "layout": { "type": "string" },
+              "faces": { "type": "array", "items": { "type": "object" } },
+              "game": { "type": "object" }
+            }
+          }
+        },
+        "tokens": {
+          "type": "object",
+          "required": ["scripts", "loaded", "abilities", "sha256", "problems"],
+          "properties": {
+            "scripts": { "type": "integer", "minimum": 0 },
+            "loaded": { "type": "integer", "minimum": 0 },
+            "abilities": { "type": "integer", "minimum": 0 },
+            "sha256": { "$ref": "#/$defs/Sha256" },
+            "problems": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "newestEditions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["code", "name", "date", "distinctCards", "loaded", "notImplemented", "sha256"],
+            "properties": {
+              "code": { "type": "string" },
+              "name": { "type": "string" },
+              "date": { "type": "string" },
+              "distinctCards": { "type": "integer", "minimum": 0 },
+              "loaded": { "type": "integer", "minimum": 0 },
+              "notImplemented": { "type": "array", "items": { "type": "string" } },
+              "sha256": { "$ref": "#/$defs/Sha256" }
+            }
+          }
+        },
+        "database": {
+          "type": "object",
+          "required": ["cards", "variantCards", "editions", "scriptWarnings", "problems"],
+          "properties": {
+            "cards": { "$ref": "#/$defs/CardProbeDatabasePass" },
+            "variantCards": { "$ref": "#/$defs/CardProbeDatabasePass" },
+            "editions": { "type": "integer", "minimum": 0 },
+            "scriptWarnings": { "type": "array", "items": { "type": "string" }, "description": "What Forge printed about broken card scripts while building the game cards (upstream data problems, equal on every runtime)." },
+            "problems": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "sections": { "type": "object", "additionalProperties": { "$ref": "#/$defs/Sha256" } },
+        "failures": { "type": "array", "items": { "type": "string" } },
+        "fingerprint": { "$ref": "#/$defs/Sha256" },
+        "millis": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } }
+      }
+    },
+    "CardProbeDatabasePass": {
+      "title": "CardProbeDatabasePass",
+      "description": "One card database (regular or variant cards) turned completely into game cards.",
+      "type": "object",
+      "required": ["unique", "printings", "instantiated", "abilities", "rulesSha256", "gameCardsSha256"],
+      "properties": {
+        "unique": { "type": "integer", "minimum": 0 },
+        "printings": { "type": "integer", "minimum": 0 },
+        "instantiated": { "type": "integer", "minimum": 0 },
+        "abilities": { "type": "integer", "minimum": 0 },
+        "layouts": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } },
+        "rulesSha256": { "$ref": "#/$defs/Sha256" },
+        "gameCardsSha256": { "$ref": "#/$defs/Sha256" }
       }
     },
     "AiMatchResult": {
@@ -1096,7 +1232,7 @@
         "protocol": { "$ref": "#/$defs/ProtocolVersion" },
         "engineScriptUrl": { "type": "string", "pattern": "\\S" },
         "wasmUrl": { "type": "string", "pattern": "\\S" },
-        "args": { "type": "array", "items": { "type": "string" } },
+        "args": { "type": "array", "items": { "type": "string" }, "description": "Boot arguments of the engine: --card-loading=eager|lazy (default eager), --language=en-US|de-DE (default en-US). Anything else stops the boot (engine.abort boot-failed)." },
         "queue": { "tsType": "SharedArrayBuffer", "description": "The SharedArrayBuffer of the input queue (see input-queue.ts for its layout)." },
         "requireIsolation": { "type": "boolean", "description": "Require crossOriginIsolated (browsers: yes; Node tests: no)." }
       }
@@ -1121,6 +1257,16 @@
         "type": { "const": "diagnostics.ai-match" },
         "seed": { "type": "integer" },
         "includeLog": { "type": "boolean" }
+      }
+    },
+    "DiagnosticsCardProbeCommand": {
+      "title": "DiagnosticsCardProbeCommand",
+      "description": "Engine tests only: check that Forge's card scripts load and become game cards (answered with diagnostics.cards).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "diagnostics.card-probe" }
       }
     },
     "MatchRequest": {

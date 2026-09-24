@@ -231,23 +231,24 @@ export function attachWorkerHost(env: WorkerHostEnvironment): (data: unknown) =>
     }
   }
 
-  function aiMatch(command: Extract<WorkerCommand, { type: "diagnostics.ai-match" }>): void {
+  /** Engine tests only: one diagnostics call into Java; the worker is spent afterwards (Forge's state is static). */
+  function diagnostics(request: object, post: (result: never) => void): void {
     if (state !== "ready") {
       const early = state === "idle" || state === "booting";
-      env.post({ type: "engine.error", code: early ? "not-ready" : "already-started", message: "the engine cannot run a diagnostics game now" });
+      env.post({ type: "engine.error", code: early ? "not-ready" : "already-started", message: "the engine cannot run diagnostics now" });
       return;
     }
     state = "busy";
     let response: EngineResponse;
     try {
-      response = callEngine({ command: "smoke-match", seed: command.seed, includeLog: command.includeLog });
+      response = callEngine(request);
     } catch (e) {
       failure("diagnostics", { ok: false, error: String(e), ...(e instanceof Error && e.stack ? { stack: e.stack } : {}) });
       return;
     }
     if (response.ok) {
       state = "spent";
-      env.post({ type: "diagnostics.result", result: response.result as never });
+      post(response.result as never);
     } else {
       failure("diagnostics", response);
     }
@@ -286,7 +287,12 @@ export function attachWorkerHost(env: WorkerHostEnvironment): (data: unknown) =>
         startMatch(command);
         return;
       case "diagnostics.ai-match":
-        aiMatch(command);
+        diagnostics({ command: "smoke-match", seed: command.seed, includeLog: command.includeLog }, (result) =>
+          env.post({ type: "diagnostics.result", result }),
+        );
+        return;
+      case "diagnostics.card-probe":
+        diagnostics({ command: "card-probe" }, (result) => env.post({ type: "diagnostics.cards", result }));
         return;
     }
   };

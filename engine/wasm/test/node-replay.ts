@@ -5,7 +5,8 @@
 // the browser. What is compared: engine/wasm/spike/replay.ts.
 //
 //   node engine/wasm/test/node-replay.ts --transcript t.json [--feeding lazy|eager]
-//        [--queue-capacity <bytes>] [--card-loading lazy|eager] [--out result.json] [--dist <dir>]
+//        [--queue-capacity <bytes>] [--card-loading lazy|eager] [--language en-US|de-DE]
+//        [--out result.json] [--dist <dir>]
 //
 // Exit code 0 only if the game ends exactly as on the JVM.
 import fs from "node:fs";
@@ -17,7 +18,8 @@ const args = process.argv.slice(2);
 const distDir = path.resolve(option(args, "--dist", path.join(ENGINE_DIR, "build", "dist")));
 const transcriptFile = option(args, "--transcript", null);
 const feeding = option(args, "--feeding", "lazy") as Feeding;
-const cardLoading = option(args, "--card-loading", "lazy");
+const cardLoading = option(args, "--card-loading", "eager");
+const language = option(args, "--language", "en-US");
 const queueCapacity = Number(option(args, "--queue-capacity", feeding === "eager" ? "256" : "65536"));
 const outFile = option(args, "--out", null);
 const TIMEOUT_MS = 600_000;
@@ -31,7 +33,7 @@ const baselineMiB = vmHwmMiB();
 const origin = performance.now();
 const since = () => Math.round(performance.now() - origin);
 const phases: Record<string, number> = {};
-const client = nodeClient(distDir, cardLoading, { queueCapacity });
+const client = nodeClient(distDir, cardLoading, { queueCapacity }, language);
 client.subscribe((event) => {
   if (event.kind === "message" && (event.message.type === "engine.boot" || event.message.type === "engine.ready")) {
     phases[event.message.type === "engine.boot" ? event.message.phase : "ready"] = since();
@@ -51,6 +53,7 @@ const report = {
   seed: transcript.request.seed,
   recordedInputs: transcript.inputs.length,
   cardLoading,
+  language,
   feeding,
   ok: verdict.ok,
   failures: verdict.failures,

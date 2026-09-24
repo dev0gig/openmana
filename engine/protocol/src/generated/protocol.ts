@@ -5,11 +5,11 @@
  */
 
 /**
- * Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch).
+ * Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe.
  */
-export type ProtocolVersion = 1;
+export type ProtocolVersion = 2;
 /**
- * Everything the worker posts to the page: lifecycle messages of the worker host (engine.*, match.finished, diagnostics.result) and the game messages of the bridge.
+ * Everything the worker posts to the page: lifecycle messages of the worker host (engine.*, match.finished, diagnostics.*) and the game messages of the bridge.
  */
 export type EngineMessage =
   | EngineBoot
@@ -19,6 +19,7 @@ export type EngineMessage =
   | EngineAbort
   | MatchFinished
   | DiagnosticsResult
+  | DiagnosticsCards
   | GameStarted
   | GameState
   | GameEvents
@@ -38,6 +39,18 @@ export type BootPhase = "worker-features" | "launcher-load" | "wasm-fetch-compil
 export type WorkerTime = number;
 export type GitCommit = string;
 export type Sha256 = string;
+/**
+ * SHA-256 of the Forge data bundle compiled into this engine (engine-manifest.json, resources.sha256).
+ */
+export type Sha2561 = string;
+/**
+ * How Forge reads its card scripts (boot argument --card-loading; default eager). eager: every card is read and indexed at start; lazy: only a name index at start, a card's script when it is first needed, and the whole database the first time an effect or decision needs all cards (a random card, the player naming a card), which stalls the game for tens of seconds in the browser.
+ */
+export type CardLoading = "lazy" | "eager";
+/**
+ * The language Forge speaks (boot argument --language): its own messages (prompts, buttons, game log) and the card names inside them. Card keys (Card.key) stay English in every language.
+ */
+export type EngineLanguage = "en-US" | "de-DE";
 /**
  * deck-rejected: Forge cannot build a deck (report names every card it does not know or support; nothing is dropped silently); invalid-request: the match request does not fit the contract; not-ready: match.start before engine.ready; already-started: this worker already ran a game (one game per worker, Forge's state is static).
  */
@@ -138,7 +151,8 @@ export type AnswerInput =
 /**
  * Commands the page posts to the worker. The worker handles them only while it is idle (before and between Forge calls); during a match everything goes through the input queue.
  */
-export type WorkerCommand = EngineStartCommand | MatchStartCommand | DiagnosticsAiMatchCommand;
+export type WorkerCommand =
+  EngineStartCommand | MatchStartCommand | DiagnosticsAiMatchCommand | DiagnosticsCardProbeCommand;
 export type NonEmptyString = string;
 export type QuestionKind =
   "select" | "choose" | "buttons" | "confirm" | "options" | "input" | "order" | "arrange" | "distribute";
@@ -201,13 +215,15 @@ export interface EngineBuild {
    * Forge runs in synchronous mode (patch 0001); must be true.
    */
   synchronous: boolean;
+  resourcesSha256: Sha2561;
 }
 export interface BootReport {
   resourceFiles: number;
   resourceBytes: number;
   unpackMillis: number;
   forgeInitMillis: number;
-  cardLoading: "lazy" | "eager";
+  cardLoading: CardLoading;
+  language: EngineLanguage;
 }
 /**
  * The engine found the input queue empty and now waits for the player. `consumed` inputs have been read so far; every input up to that number is completely processed (a rejection, if any, was posted before this message). While the engine waits it is not stalled.
@@ -311,6 +327,97 @@ export interface AiMatchResult {
   logSha256: Sha256;
   log?: string[];
   forgeErrors: string[];
+}
+/**
+ * Result of diagnostics.card-probe (engine tests only).
+ */
+export interface DiagnosticsCards {
+  type: "diagnostics.cards";
+  result: CardProbeResult;
+}
+/**
+ * Forge's card scripts checked inside the engine (bridge CardProbe): effects that create cards by name, representative cards of every layout, every token script, the newest editions and every card of the database turned into game cards. fingerprint covers everything except language and millis and must be equal on the JVM and in the browser for the same engine and card loading mode; sections holds the same per section. failures lists everything that must fail a test. The objects inside the sections are free-form diagnostics (not a UI contract).
+ */
+export interface CardProbeResult {
+  format: "openmana-card-probe/1";
+  cardLoading: CardLoading;
+  language: {
+    selected: EngineLanguage;
+    messages: {
+      [k: string]: string;
+    };
+    cardNames: {
+      [k: string]: string;
+    };
+    timeZone: string;
+  };
+  namedCreation: {
+    id: string;
+    source: string;
+    effect: string;
+    ok: boolean;
+    created: string[];
+    problem?: string;
+    uniqueCardsKnownBefore?: number;
+    uniqueCardsKnownAfter?: number;
+  }[];
+  representative: {
+    category: string;
+    request: string;
+    found: boolean;
+    name?: string;
+    layout?: string;
+    faces?: {}[];
+    game?: {};
+  }[];
+  tokens: {
+    scripts: number;
+    loaded: number;
+    abilities: number;
+    sha256: Sha256;
+    problems: string[];
+  };
+  newestEditions: {
+    code: string;
+    name: string;
+    date: string;
+    distinctCards: number;
+    loaded: number;
+    notImplemented: string[];
+    sha256: Sha256;
+  }[];
+  database: {
+    cards: CardProbeDatabasePass;
+    variantCards: CardProbeDatabasePass;
+    editions: number;
+    /**
+     * What Forge printed about broken card scripts while building the game cards (upstream data problems, equal on every runtime).
+     */
+    scriptWarnings: string[];
+    problems: string[];
+  };
+  sections: {
+    [k: string]: Sha256;
+  };
+  failures: string[];
+  fingerprint: Sha256;
+  millis: {
+    [k: string]: number;
+  };
+}
+/**
+ * One card database (regular or variant cards) turned completely into game cards.
+ */
+export interface CardProbeDatabasePass {
+  unique: number;
+  printings: number;
+  instantiated: number;
+  abilities: number;
+  layouts?: {
+    [k: string]: number;
+  };
+  rulesSha256: Sha256;
+  gameCardsSha256: Sha256;
 }
 export interface GameStarted {
   type: "game.started";
@@ -842,6 +949,9 @@ export interface EngineStartCommand {
   protocol: ProtocolVersion;
   engineScriptUrl: string;
   wasmUrl: string;
+  /**
+   * Boot arguments of the engine: --card-loading=eager|lazy (default eager), --language=en-US|de-DE (default en-US). Anything else stops the boot (engine.abort boot-failed).
+   */
   args: string[];
   /**
    * The SharedArrayBuffer of the input queue (see input-queue.ts for its layout).
@@ -895,6 +1005,12 @@ export interface DiagnosticsAiMatchCommand {
   type: "diagnostics.ai-match";
   seed: number;
   includeLog: boolean;
+}
+/**
+ * Engine tests only: check that Forge's card scripts load and become game cards (answered with diagnostics.cards).
+ */
+export interface DiagnosticsCardProbeCommand {
+  type: "diagnostics.card-probe";
 }
 
 /**

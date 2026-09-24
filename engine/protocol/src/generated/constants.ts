@@ -7,7 +7,7 @@
 import type * as P from "./protocol.ts";
 
 /** Version of the UI<->engine contract (must equal the bridge's Protocol.VERSION). */
-export const PROTOCOL_VERSION = 1 as const satisfies P.ProtocolVersion;
+export const PROTOCOL_VERSION = 2 as const satisfies P.ProtocolVersion;
 
 /** Every value of BootPhase. */
 export const BOOT_PHASES = ["worker-features","launcher-load","wasm-fetch-compile","java-main"] as const satisfies readonly P.BootPhase[];
@@ -38,3 +38,9 @@ export const GAME_RESULTS = ["win","loss","draw"] as const satisfies readonly P.
 
 /** Every value of MatchFormat. */
 export const MATCH_FORMATS = ["constructed","commander"] as const satisfies readonly P.MatchFormat[];
+
+/** Every value of CardLoading. */
+export const CARD_LOADINGS = ["lazy","eager"] as const satisfies readonly P.CardLoading[];
+
+/** Every value of EngineLanguage. */
+export const ENGINE_LANGUAGES = ["en-US","de-DE"] as const satisfies readonly P.EngineLanguage[];

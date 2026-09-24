@@ -13,6 +13,16 @@ om_use_toolchain
 bundle="$OM_BUILD_DIR/resources/forge-res.bin"
 [ -f "$bundle" ] || om_die "Kein Ressourcen-Bundle. Zuerst engine/scripts/pack-resources.mjs ausfuehren (build.sh macht beides)."
 
+# Which Forge data this engine embeds: the engine reports it at start
+# (EngineBuild.resourcesSha256) and checks the file count of the bundle it
+# unpacks against it. The bundle must come from the pinned Forge commit.
+node -e '
+const [manifestFile, out, pinned] = process.argv.slice(1);
+const m = JSON.parse(require("fs").readFileSync(manifestFile, "utf8"));
+if (m.forgeCommit !== pinned) { console.error(`[openmana-engine] FEHLER: Ressourcen-Bundle stammt von Forge ${m.forgeCommit}, gepinnt ist ${pinned}. build.sh neu ausfuehren.`); process.exit(1); }
+require("fs").writeFileSync(out, `resources.sha256=${m.sha256}\nresources.files=${m.files}\nresources.languages=${m.languages.join(",")}\n`);
+' "$OM_BUILD_DIR/resources/forge-res.manifest.json" "$OM_WORK_DIR/bridge/src/main/resources/openmana/engine-resources.properties" "$(om_forge_pinned_sha)"
+
 mkdir -p "$OM_REPORT_DIR"
 set +e
 node "$OM_ENGINE_DIR/scripts/measure.mjs" maven "$OM_REPORT_DIR/measure.jsonl" -- \

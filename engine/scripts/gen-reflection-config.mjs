@@ -9,7 +9,12 @@
 //
 // Every forge.* class gets all declared constructors registered. Network play
 // (forge.gamemodes.net) is left out on purpose: registering it would make
-// Netty and jupnp (CDDL, see docs/research/LICENSES.md) reachable.
+// Netty and jupnp (CDDL, see docs/research/LICENSES.md) reachable. Interfaces
+// are left out too: they have no constructors, and a registered interface
+// keeps its method signatures as reflection metadata - IGuiBase and
+// IDeviceAdapter declare getUpnpPlatformService() and made jupnp's
+// UpnpServiceConfiguration reachable (found by build-wasm.sh's network gate,
+// prompt 04).
 //
 // Every Guava @Subscribe method of those classes is registered too (listed by
 // ListSubscribers.java): Forge delivers game events through Guava's EventBus,
@@ -36,13 +41,23 @@ const entries = execFileSync("jar", ["--list", "--file", jar], { encoding: "utf8
   .filter((name) => !EXCLUDED_PREFIXES.some((prefix) => name.startsWith(prefix)))
   .filter((name) => !name.endsWith("module-info.class") && !name.endsWith("package-info.class"));
 
-const types = [...new Set(entries.map((name) => name.slice(0, -".class".length).replaceAll("/", ".")))].sort();
+// `java` is the pinned GraalVM (build-wasm.sh activates the toolchain).
+const listSubscribers = path.join(path.dirname(fileURLToPath(import.meta.url)), "ListSubscribers.java");
+const interfaces = new Set(
+  execFileSync("java", [listSubscribers, "--interfaces", jar, ...EXCLUDED_PREFIXES], { encoding: "utf8", maxBuffer: 1 << 24, stdio: ["ignore", "pipe", "inherit"] })
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => JSON.parse(line).type),
+);
+if (!interfaces.has("forge.gui.interfaces.IGuiBase")) {
+  throw new Error("ListSubscribers --interfaces did not report forge.gui.interfaces.IGuiBase; is the JAR complete?");
+}
+const types = [...new Set(entries.map((name) => name.slice(0, -".class".length).replaceAll("/", ".")))]
+  .filter((type) => !interfaces.has(type))
+  .sort();
 if (types.length < 1000) {
   throw new Error(`only ${types.length} Forge classes found in ${jar}; wrong JAR?`);
 }
-
-// `java` is the pinned GraalVM (build-wasm.sh activates the toolchain).
-const listSubscribers = path.join(path.dirname(fileURLToPath(import.meta.url)), "ListSubscribers.java");
 const subscribers = execFileSync("java", [listSubscribers, jar, ...EXCLUDED_PREFIXES], {
   encoding: "utf8",
   maxBuffer: 1 << 24,
@@ -73,6 +88,6 @@ const metadata = {
 fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(path.join(outDir, "reachability-metadata.json"), JSON.stringify(metadata, null, 1) + "\n");
 console.error(
-  `[openmana-engine] Reflection: ${types.length} Forge-Klassen registriert (ohne ${EXCLUDED_PREFIXES.join(", ")}), ` +
+  `[openmana-engine] Reflection: ${types.length} Forge-Klassen registriert (ohne ${EXCLUDED_PREFIXES.join(", ")} und ${interfaces.size} Schnittstellen), ` +
     `davon ${methodsByType.size} mit ${subscribers.length} EventBus-Abonnenten (@Subscribe)`,
 );

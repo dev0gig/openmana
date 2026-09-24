@@ -2,7 +2,7 @@
 // Forge's AI plays itself in the Wasm engine in Node (diagnostics.ai-match),
 // through the EngineClient; the game log must equal the JVM reference.
 //
-//   node engine/wasm/test/node-ai.ts --seed 42 [--card-loading lazy|eager]
+//   node engine/wasm/test/node-ai.ts --seed 42 [--card-loading lazy|eager] [--language en-US|de-DE]
 //        [--expect-log-sha256 <hex>] [--out result.json] [--dist <dir>]
 import fs from "node:fs";
 import path from "node:path";
@@ -11,7 +11,8 @@ import { ENGINE_DIR, nodeClient, option, vmHwmMiB } from "./node-engine.ts";
 const args = process.argv.slice(2);
 const distDir = path.resolve(option(args, "--dist", path.join(ENGINE_DIR, "build", "dist")));
 const seed = Number(option(args, "--seed", "42"));
-const cardLoading = option(args, "--card-loading", "lazy");
+const cardLoading = option(args, "--card-loading", "eager");
+const language = option(args, "--language", "en-US");
 const expected = option(args, "--expect-log-sha256", null);
 const outFile = option(args, "--out", null);
 
@@ -19,7 +20,7 @@ const baselineMiB = vmHwmMiB();
 const origin = performance.now();
 const since = () => Math.round(performance.now() - origin);
 const phases: Record<string, number> = {};
-const client = nodeClient(distDir, cardLoading);
+const client = nodeClient(distDir, cardLoading, {}, language);
 const failures: string[] = [];
 const done = new Promise<void>((resolve) => {
   client.subscribe((event) => {
@@ -52,6 +53,7 @@ const report = {
   runtime: `node ${process.versions.node} (V8 ${process.versions.v8})`,
   seed,
   cardLoading,
+  language,
   ok: failures.length === 0 && result !== null,
   failures,
   matchesJvm: expected ? result?.logSha256 === expected : null,

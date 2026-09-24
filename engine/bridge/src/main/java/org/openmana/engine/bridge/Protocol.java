@@ -21,7 +21,7 @@ public final class Protocol {
      * ProtocolVersion). UI, worker host and engine must speak exactly the same
      * version; change it together with the schema.
      */
-    public static final int VERSION = 1;
+    public static final int VERSION = 2;
 
     // --- engine -> UI ---------------------------------------------------------
     public static final String GAME_STARTED = "game.started";

@@ -4,7 +4,7 @@
 // The real engine runs in node-replay.ts, node-protocol.ts and in Chrome.
 import assert from "node:assert/strict";
 import { beforeEach, describe, test } from "node:test";
-import { createInputQueue, type EngineMessage, type InputQueueWriter, type WorkerCommand } from "../../protocol/src/index.ts";
+import { createInputQueue, PROTOCOL_VERSION, type EngineMessage, type InputQueueWriter, type WorkerCommand } from "../../protocol/src/index.ts";
 import { engineMessages, matchRequest } from "../../protocol/test/examples.ts";
 import { attachWorkerHost } from "../host/worker-host.ts";
 
@@ -46,7 +46,7 @@ function setup(options: { launcher?: "ok" | "throws" | "no-running" | "fatal" | 
   });
   const queue = createInputQueue(256);
   const start = (overrides: Record<string, unknown> = {}) =>
-    onCommand({ type: "engine.start", protocol: 1, engineScriptUrl: "engine/openmana-engine.js", wasmUrl: "engine/x.wasm", args: [], queue: queue.buffer, requireIsolation: false, ...overrides });
+    onCommand({ type: "engine.start", protocol: PROTOCOL_VERSION, engineScriptUrl: "engine/openmana-engine.js", wasmUrl: "engine/x.wasm", args: [], queue: queue.buffer, requireIsolation: false, ...overrides });
   const types = () => posted.map((m) => m.type);
   const last = <T extends EngineMessage["type"]>(type: T) => posted.filter((m) => m.type === type).pop() as Extract<EngineMessage, { type: T }> | undefined;
   return { posted, loaded, onCommand, queue, start, types, last };
@@ -55,7 +55,7 @@ function setup(options: { launcher?: "ok" | "throws" | "no-running" | "fatal" | 
 const summary = engineMessages.find((m) => m.type === "match.finished")!;
 const playTwoInputs: FakeEngine = (request, java) => {
   assert.equal(request["command"], "human-match");
-  java.emit("protocol", JSON.stringify({ type: "game.started", protocol: 1, human: "Player", ai: "Forge AI", aiProfile: "Default", format: "constructed", cardNames: [] }));
+  java.emit("protocol", JSON.stringify({ type: "game.started", protocol: PROTOCOL_VERSION, human: "Player", ai: "Forge AI", aiProfile: "Default", format: "constructed", cardNames: [] }));
   const inputs = [java.awaitInput(), java.awaitInput()].map((t) => JSON.parse(t));
   assert.deepEqual(inputs.map((i) => i.seq), [1, 2]);
   return { ok: true, result: (summary as { summary: object }).summary };
@@ -80,7 +80,7 @@ describe("start", () => {
     await settle();
     assert.deepEqual(s.posted.map((m) => (m.type === "engine.boot" ? m.phase : m.type)), ["worker-features", "launcher-load", "wasm-fetch-compile", "java-main", "engine.ready"]);
     assert.equal(s.last("engine.ready")?.t, 42);
-    assert.equal(s.last("engine.ready")?.protocol, 1);
+    assert.equal(s.last("engine.ready")?.protocol, PROTOCOL_VERSION);
     assert.deepEqual(g.__openmanaEngineConfig?.wasmUrl, "engine/x.wasm");
   });
 
@@ -133,7 +133,7 @@ describe("start", () => {
 
   test("a command that breaks the schema is a protocol violation; engine.start twice too", () => {
     const s = setup();
-    s.onCommand({ type: "engine.start", protocol: 1 });
+    s.onCommand({ type: "engine.start", protocol: PROTOCOL_VERSION });
     assert.equal(s.last("engine.abort")?.reason, "protocol-violation");
     const twice = setup();
     twice.start();
@@ -163,7 +163,7 @@ describe("match", () => {
         });
       },
     });
-    onCommand({ type: "engine.start", protocol: 1, engineScriptUrl: "e.js", wasmUrl: "e.wasm", args: [], queue: createInputQueue(256).buffer, requireIsolation: false });
+    onCommand({ type: "engine.start", protocol: PROTOCOL_VERSION, engineScriptUrl: "e.js", wasmUrl: "e.wasm", args: [], queue: createInputQueue(256).buffer, requireIsolation: false });
     onCommand({ type: "match.start", match: matchRequest });
     assert.equal(posted.filter((m) => m.type === "engine.error").pop()?.type === "engine.error" && (posted.filter((m) => m.type === "engine.error").pop() as { code: string }).code, "not-ready");
     finishBoot();
@@ -214,7 +214,7 @@ describe("match", () => {
   test("a failure after the game started is a technical abort, never an engine.error", async () => {
     const s = setup({
       engine: (_request, java) => {
-        java.emit("protocol", JSON.stringify({ type: "game.started", protocol: 1, human: "P", ai: "A", aiProfile: "Default", format: "constructed", cardNames: [] }));
+        java.emit("protocol", JSON.stringify({ type: "game.started", protocol: PROTOCOL_VERSION, human: "P", ai: "A", aiProfile: "Default", format: "constructed", cardNames: [] }));
         return { ok: false, code: "deck-rejected", error: "late", stack: "trace" };
       },
     });
@@ -265,5 +265,29 @@ describe("match", () => {
     await settle();
     s.onCommand({ type: "diagnostics.ai-match", seed: 42, includeLog: false });
     assert.deepEqual(s.last("diagnostics.result")?.result, result);
+  });
+
+  test("diagnostics.card-probe runs Forge's card probe once and reports diagnostics.cards", async () => {
+    const result = (engineMessages.find((m) => m.type === "diagnostics.cards") as { result: object }).result;
+    const s = setup({ engine: (request) => (assert.equal(request["command"], "card-probe"), { ok: true, result }) });
+    s.onCommand({ type: "diagnostics.card-probe" });
+    assert.equal(s.last("engine.error")?.code, "not-ready");
+    s.start();
+    await settle();
+    s.onCommand({ type: "diagnostics.card-probe" });
+    assert.deepEqual(s.last("diagnostics.cards")?.result, result);
+    // Forge's state is static: a second probe needs a fresh worker.
+    s.onCommand({ type: "diagnostics.card-probe" });
+    assert.equal(s.last("engine.error")?.code, "already-started");
+  });
+
+  test("a failing card probe is a technical abort, not a result", async () => {
+    const s = setup({ engine: () => ({ ok: false, code: "engine-failure", error: "java.lang.NullPointerException", stack: "at CardProbe.run" }) });
+    s.start();
+    await settle();
+    s.onCommand({ type: "diagnostics.card-probe" });
+    assert.equal(s.last("engine.abort")?.reason, "engine-failure");
+    assert.equal(s.last("engine.abort")?.stage, "diagnostics");
+    assert.equal(s.last("diagnostics.cards"), undefined);
   });
 });
