@@ -745,3 +745,44 @@
     bringen“ anbieten (Doku §12).
 - **Weiter mit:** Prompt 08 (Scryfall card data). Nicht begonnen:
   `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
+
+## Hinweise für spätere Prompts
+
+### Vercel und Android (Stand 2026-09-25, für 28 und 31)
+
+Der Projektbesitzer hat Vercel-Deploy und Android-App am 2026-09-25 bewusst
+zurückgestellt, bis die Queue dort ankommt („geradeaus weiter“). Damit
+nichts neu recherchiert werden muss:
+
+- **Vercel-Projekt `openmana`** existiert, verbunden mit GitHub `main` →
+  Production. Jeder Push baut; seit Prompt 06 scheitert der Build absichtlich
+  (keine Engine auf Vercel). So lassen, bis 31 die Engine liefert.
+- **Zugang:** Die automatisch erzeugten Vercel-Adressen verlangen den
+  Vercel-Login (Einstellung „all except custom domains“, wie bei den anderen
+  Projekten des Besitzers); öffentlich ist nur die kurze Adresse. Gewollt ist
+  **`openmana.vercel.app`, öffentlich und ohne jedes Login** – jeder öffnet die
+  Seite und spielt mit eigenen, lokal gespeicherten Decks. Am 2026-09-25 stand
+  sie noch nicht in der Domainliste des Projekts (Aufruf: 404 NOT_FOUND) → in
+  31 prüfen und zuweisen. Öffentlich erst nach Prompt 27 (GPL-Quelltext,
+  GraalVM-Bedingungen); bis dahin genügt eine geschützte Prüfung (so auch 31).
+- **Engine auf Vercel (31), vom Besitzer so gewünscht:** Die Oberfläche baut
+  Vercel selbst; die Engine nicht (GraalVM, ~6 GB RAM, ~6 min, ändert sich nur
+  mit Forge). Die fertige Engine wird je Engine-Stand als **GitHub-Release-Asset**
+  abgelegt; der Vercel-Build lädt die gepinnte Version, prüft SHA-256 und legt
+  sie nach `engine/build/dist`. Das private Repo braucht dafür einen eng
+  begrenzten GitHub-Lesetoken (nur dieses Repo, Inhalte lesen) als
+  Vercel-Umgebungsvariable. Vercels eigener Dateispeicher (Blob) ginge auch,
+  kostet aber je Build ~80 MB Kontingent.
+- **Android (28): nicht per Capacitor/WebView** (kein `SharedArrayBuffer`, die
+  Engine startet dort nicht; Research `OPENMANA_ENGINE_PLAN.md` §8), sondern
+  **TWA** (Trusted Web Activity): eine kleine APK, die `openmana.vercel.app` in
+  Chrome öffnet; Vollbild nur mit `/.well-known/assetlinks.json` (SHA-256 des
+  Signaturzertifikats) auf der öffentlichen Seite. Die TWA braucht die Seite im
+  Netz → **28 muss die Engine-Lieferung aus 31 vorziehen** oder nach 31 laufen.
+- **Weg in Warehouse** wie bei den anderen Apps des Besitzers; Vorlage ist
+  `scripts/android-apk.sh` im THRENFALL-Repo (Release-Signatur mit eigenem
+  Schlüssel, APK und Katalogeintrag für Warehouse, Index neu erzeugen). Dazu
+  im Warehouse-Repo der App-Eintrag, das Paket in den Manifest-`queries`, das
+  Icon und ein neuer Warehouse-Build, und im Toride-Compose der Ordner-Mount
+  samt Neustart in derselben Runde (sonst liefert der Download 404).
+
