@@ -16,6 +16,7 @@ import forge.game.zone.ZoneType;
 import forge.player.GamePlayerUtil;
 import forge.util.MyRandom;
 import org.openmana.engine.EngineDiagnostics;
+import org.openmana.engine.trace.EngineTrace;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -24,6 +25,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Random;
+import java.util.function.Consumer;
 
 /**
  * The engine spike's smoke path: one complete Forge-AI-vs-Forge-AI game with a
@@ -32,7 +34,9 @@ import java.util.Random;
  * <p>Forge plays every decision (its own AI, profile "Default" on both seats).
  * OpenMana only chooses the decks and the seed and reports what Forge's game
  * log says happened. The SHA-256 over the chronological log is what the JVM
- * and the Wasm build are compared by.
+ * and the Wasm build were first compared by; with a trace consumer the game
+ * also produces the engine trace ({@link EngineTrace}), the structured record
+ * the differential tests compare since prompt 05.
  */
 public final class AiSmokeMatch {
 
@@ -42,6 +46,11 @@ public final class AiSmokeMatch {
     }
 
     public static JsonObject run(final long seed, final boolean includeLog) {
+        return run(seed, includeLog, null);
+    }
+
+    /** @param traceOut receives the engine trace entries (diagnostics.trace), or null for no trace */
+    public static JsonObject run(final long seed, final boolean includeLog, final Consumer<JsonObject> traceOut) {
         EngineDiagnostics.clear();
         // Forge draws all game randomness (shuffles, coin flip, AI choices)
         // from MyRandom; upstream offers setRandom for deterministic simulation.
@@ -62,6 +71,10 @@ public final class AiSmokeMatch {
         final Game game = match.createGame();
         // Forge's own simulation mode does the same: no views for a UI.
         game.setNoGUIUser();
+        final EngineTrace trace = traceOut == null ? null : new EngineTrace(traceOut);
+        if (trace != null) {
+            trace.attach(game);
+        }
 
         final long start = System.nanoTime();
         match.startGame(game);
@@ -70,7 +83,12 @@ public final class AiSmokeMatch {
         if (!game.isGameOver()) {
             throw new IllegalStateException("Forge returned from startGame but the game is not over");
         }
-        return describe(seed, game, gameMillis, includeLog);
+        final JsonObject result = describe(seed, game, gameMillis, includeLog);
+        if (trace != null) {
+            trace.checkHealthy();
+            result.add("trace", trace.summary());
+        }
+        return result;
     }
 
     private static RegisteredPlayer aiSeat(final Deck deck, final String name, final int avatar) {

@@ -1,0 +1,12 @@
+{
+  "description": "Green creatures against Forge's AI with only red instants: the AI answers the player's creature spell with Shock (stack depth 2, last in, first out). Seed 3, the player wins.",
+  "match": {
+    "seed": 3,
+    "format": "constructed",
+    "human": { "name": "Player", "deck": "smoke-green" },
+    "ai": { "name": "Forge AI", "profile": "Default", "deck": "smoke-red-instants" }
+  },
+  "player": { "attack": "all", "block": "none" },
+  "wasm": { "node": ["lazy", "eager"], "browser": ["lazy"] },
+  "covers": ["stack-response", "stack-resolve", "spell", "attack", "end-win", "end-life"]
+}

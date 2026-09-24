@@ -70,11 +70,31 @@ export const engineMessages: EngineMessage[] = [
     },
   },
   {
+    // a traced match (engine tests only): the summary counts the trace entries and events
+    type: "match.finished",
+    summary: {
+      winner: "Player", reason: "AllOpponentsLost", turns: 17, result: "win",
+      players: [{ id: 0, name: "Player", life: 31, me: true }, { id: 1, name: "Forge AI", life: -3, me: false }],
+      conceded: false, gameMillis: 5310, inputs: 85, logEntries: 402,
+      logSha256: "c1e990c6986adb44562412bad97d897edf215dd6d9f62c2d0c7c98d4cb9471e2", protocolMessages: 262,
+      protocolSha256: "6108436c356812edcf1372a7ee45b4e2d01ed5faa2d3036ada12f56360e8dabe",
+      forgeCallbacks: { updateZones: 250 }, trace: { entries: 303, events: 2798 }, forgeErrors: [], threadViolations: [],
+    },
+  },
+  {
     type: "diagnostics.result",
     result: {
       seed: 42, gameMillis: 2014, draw: false, winner: "Green AI", winCondition: "AllOpponentsLost", turns: 20,
       players: [{ name: "Red AI", life: 0, library: 30, hand: 2, battlefield: 8, graveyard: 12 }],
       logEntries: 444, logSha256: "d7611b0e534870deb05d5253f4f53cf2489006b28fc4b865bf3a03ab5d5b85b8", forgeErrors: [],
+    },
+  },
+  {
+    type: "diagnostics.result",
+    result: {
+      seed: 7, gameMillis: 2890, draw: false, winner: "Green AI", winCondition: "AllOpponentsLost", turns: 24,
+      players: [{ name: "Red AI", life: -1, library: 26, hand: 1, battlefield: 9, graveyard: 15 }],
+      logEntries: 512, logSha256: "0d52aafc0fd4e6fb0dbf5c8e8a4d2b6e0b8e8f0ef3f6b1a42d8f33de0c1a2b3c", trace: { entries: 290, events: 3100 }, forgeErrors: [],
     },
   },
   {
@@ -100,6 +120,33 @@ export const engineMessages: EngineMessage[] = [
       failures: [],
       fingerprint: "464cbd26db3b70667822aa8aa9f4f571f070c72b91fe846022ce5de26483e325",
       millis: { namedCreation: 16205, database: 12069 },
+    },
+  },
+  {
+    // engine tests only (prompt 05): an entry of the engine trace, shortened from a real JVM game
+    type: "diagnostics.trace", n: 2, at: "input", inputs: 1,
+    events: [
+      { e: "input", input: { type: "answer", seq: 1, question: 1, kind: "buttons", button: 2 } },
+      { e: "answered", id: 1, seq: 1 },
+      { e: "move", card: 53, key: "Bonecrusher Giant", from: "Hand:0", to: "Library:0" },
+      { e: "cast", card: 89, key: "Shock", player: 1, spell: true, trigger: false, stack: 1, targets: ["c10"] },
+      { e: "question", id: 2, kind: "buttons", blocking: false, purpose: "mulliganBottom", buttons: [false, true] },
+    ],
+    snapshot: {
+      turn: 0, phase: null, active: null, priority: null, human: 0,
+      players: [
+        { id: 0, life: 20, lost: false, counters: {}, mana: {}, lands: 0, library: [43, 27, 24], hand: [{ id: 53, key: "Bonecrusher Giant" }], graveyard: [], exile: [], command: [], battlefield: [] },
+        {
+          id: 1, life: 40, lost: false, counters: { Poison: 2 }, mana: { G: 1 }, lands: 1, library: [106], hand: [{ id: 116, key: "Forest" }], graveyard: [], exile: [],
+          command: [{ id: 201, key: "Fynn, the Fangbearer" }],
+          battlefield: [{ id: 80, key: "Grizzly Bears", tapped: true, sick: true, power: 3, toughness: 3, counters: { "+1/+1": 1 } }, { id: 90, key: "Delver of Secrets", state: "Transformed", attachedTo: "c80" }],
+          commanders: [{ card: 201, cast: 1, damage: { "0": 3 } }],
+        },
+      ],
+      stack: [{ card: 49, key: "Shock", player: 0, api: "DealDamage", spell: true, trigger: false, targets: ["p1", "c80", "s12"] }],
+      combat: [{ attacker: 80, defender: "p0", blockers: [] }],
+      gui: { playable: [], highlighted: [], selectable: [] },
+      questions: [{ id: 2, kind: "buttons", blocking: false, purpose: "mulliganBottom", buttons: [false, true] }, { id: 5, kind: "choose", blocking: true, min: 1, max: 1, suggested: [1], items: ["c53", "p1", "hidden", "#4"] }],
     },
   },
   { type: "game.started", protocol: PROTOCOL_VERSION, human: "Player", ai: "Forge AI", aiProfile: "Default", format: "constructed", cardNames: ["Forest", "Mountain", "Shock"] },
@@ -155,5 +202,7 @@ export const workerCommands: WorkerCommand[] = [
   { type: "engine.start", protocol: PROTOCOL_VERSION, engineScriptUrl: "engine/openmana-engine.js", wasmUrl: "engine/openmana-engine.js.wasm", args: ["--card-loading=lazy"], queue: new SharedArrayBuffer(96), requireIsolation: true },
   { type: "match.start", match: matchRequest },
   { type: "diagnostics.ai-match", seed: 42, includeLog: false },
+  { type: "diagnostics.ai-match", seed: 7, includeLog: false, trace: true },
+  { type: "match.start", match: { ...matchRequest, trace: true } },
   { type: "diagnostics.card-probe" },
 ];

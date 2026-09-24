@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 // Validates recorded engine messages (one JSON per line, as written by
 // JvmHumanMatchMain --messages) against the protocol: every message against
-// the schema, every snapshot against the full-snapshot invariants, and the
+// the schema, every snapshot against the full-snapshot invariants, the
 // question lifecycle (each question closed exactly once, nothing open at the
-// end). The JVM bridge must meet the same contract as the Wasm engine, whose
-// messages the EngineClient checks live.
+// end) and, for a traced match, the engine trace (entries numbered without
+// gaps, the last one at the end of the game). The JVM bridge must meet the
+// same contract as the Wasm engine, whose messages the EngineClient checks live.
 //
 //   node engine/wasm/test/validate-messages.ts <messages.jsonl>... [--out report.json]
 //
@@ -40,6 +41,8 @@ for (const file of files) {
   let lastSeq = 0;
   let lastQuestion = 0;
   let ended = false;
+  let traceEntries = 0;
+  let lastTraceAt: string | null = null;
   const lines = fs.readFileSync(file, "utf8").split("\n").filter((l) => l.trim() !== "");
   lines.forEach((line, index) => {
     const where = `line ${index + 1}`;
@@ -52,7 +55,8 @@ for (const file of files) {
     }
     report.messages++;
     report.byType[message.type] = (report.byType[message.type] ?? 0) + 1;
-    if (ended && message.type !== "events" && message.type !== "message") report.problems.push(`${where}: ${message.type} after game.end`);
+    // Forge's end-of-game event may come after game.end: the trace's last checkpoint.
+    if (ended && message.type !== "events" && message.type !== "message" && message.type !== "diagnostics.trace") report.problems.push(`${where}: ${message.type} after game.end`);
     switch (message.type) {
       case "state":
         report.states++;
@@ -76,11 +80,17 @@ for (const file of files) {
         ended = true;
         if (open.size > 0) report.problems.push(`${where}: game.end with open questions ${[...open].join(", ")}`);
         break;
+      case "diagnostics.trace":
+        if (message.n !== traceEntries + 1) report.problems.push(`${where}: trace entry ${message.n} after ${traceEntries}`);
+        traceEntries = message.n;
+        lastTraceAt = message.at;
+        break;
       default:
         break;
     }
   });
   if (!ended) report.problems.push("no game.end");
+  if (traceEntries > 0 && lastTraceAt !== "end") report.problems.push(`the engine trace ends at '${lastTraceAt}', not at the end of the game`);
   reports.push(report);
 }
 

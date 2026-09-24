@@ -5,9 +5,9 @@
  */
 
 /**
- * Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe.
+ * Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace).
  */
-export type ProtocolVersion = 2;
+export type ProtocolVersion = 3;
 /**
  * Everything the worker posts to the page: lifecycle messages of the worker host (engine.*, match.finished, diagnostics.*) and the game messages of the bridge.
  */
@@ -20,6 +20,7 @@ export type EngineMessage =
   | MatchFinished
   | DiagnosticsResult
   | DiagnosticsCards
+  | DiagnosticsTrace
   | GameStarted
   | GameState
   | GameEvents
@@ -67,7 +68,80 @@ export type AbortReason =
   | "terminated";
 export type GameResult = "win" | "loss" | "draw";
 export type PlayerId = number;
-export type MatchFormat = "constructed" | "commander";
+/**
+ * Where an entry was taken: input = Forge waits for the player's next input; phase = a step of a turn begins; end = Forge finished the game. None depends on a clock.
+ */
+export type TraceCheckpoint = "input" | "phase" | "end";
+/**
+ * Forge's game events (bridge TraceEvents: one kind per Forge event class, e.g. cast, resolve, move, attackers, blockers, damage, mana, priority, phase, log) and the bridge's own: started (game.started), question, withdrawn, answered, rejected (input.rejected), message (kind only), end (game.end), input (what the engine read).
+ */
+export type TraceEventKind =
+  | "answered"
+  | "ante"
+  | "attach"
+  | "attackers"
+  | "blockers"
+  | "cast"
+  | "coin"
+  | "combatChanged"
+  | "combatEnded"
+  | "combatUpdate"
+  | "control"
+  | "counters"
+  | "damage"
+  | "dayTime"
+  | "destroyed"
+  | "die"
+  | "door"
+  | "end"
+  | "finished"
+  | "foretold"
+  | "gameStarted"
+  | "input"
+  | "land"
+  | "life"
+  | "log"
+  | "mana"
+  | "manaBurn"
+  | "message"
+  | "mode"
+  | "move"
+  | "mulligan"
+  | "outcome"
+  | "phase"
+  | "phased"
+  | "playerCounters"
+  | "playerDamage"
+  | "playerStats"
+  | "plotted"
+  | "poison"
+  | "priority"
+  | "question"
+  | "radiation"
+  | "randomLog"
+  | "regenerated"
+  | "rejected"
+  | "resolve"
+  | "restarted"
+  | "sacrificed"
+  | "scry"
+  | "shards"
+  | "shuffle"
+  | "snapshotRestored"
+  | "speed"
+  | "sprocket"
+  | "started"
+  | "stats"
+  | "subgameEnd"
+  | "subgameStart"
+  | "surveil"
+  | "tap"
+  | "token"
+  | "turn"
+  | "turnEnded"
+  | "unstack"
+  | "withdrawn"
+  | "zone";
 /**
  * Step of the turn (Magic's turn structure). null before the first turn (mulligan).
  */
@@ -86,13 +160,34 @@ export type Phase =
   | "END_OF_TURN"
   | "CLEANUP";
 /**
- * A card the player may see (VisibleCard) or only knows exists (HiddenCard). Forge decides visibility (mayView).
- */
-export type Card = VisibleCard | HiddenCard;
-/**
  * Forge's card id (unique within a game).
  */
 export type CardId = number;
+/**
+ * c<card id> or p<player id>.
+ */
+export type TraceEntityRef = string;
+/**
+ * c<card id>, p<player id> or s<card id> (a spell on the stack, by its card; s? if it has none).
+ */
+export type TraceTarget = string;
+/**
+ * Strictly increasing within a match, never reused.
+ */
+export type QuestionId = number;
+export type QuestionKind =
+  "select" | "choose" | "buttons" | "confirm" | "options" | "input" | "order" | "arrange" | "distribute";
+export type ButtonsPurpose =
+  "priority" | "mulligan" | "mulliganBottom" | "payment" | "attack" | "attackDeclared" | "block";
+/**
+ * What an item stands for: c<card id>, p<player id>, hidden (a card the player may not see) or #<item number> (only words).
+ */
+export type TraceItemRef = string;
+export type MatchFormat = "constructed" | "commander";
+/**
+ * A card the player may see (VisibleCard) or only knows exists (HiddenCard). Forge decides visibility (mayView).
+ */
+export type Card = VisibleCard | HiddenCard;
 /**
  * Colours as WUBRG letters in this order, at least one.
  */
@@ -112,16 +207,10 @@ export type Question =
   | ArrangeQuestion
   | DistributeQuestion;
 /**
- * Strictly increasing within a match, never reused.
- */
-export type QuestionId = number;
-/**
  * One entry of a question's list, numbered from 1. A card the player may not see is only {nr, hidden: true}.
  */
 export type Item = VisibleItem | HiddenItem;
 export type ItemNr = number;
-export type ButtonsPurpose =
-  "priority" | "mulligan" | "mulliganBottom" | "payment" | "attack" | "attackDeclared" | "block";
 /**
  * Number of an input within the match, from 1, without gaps.
  */
@@ -154,8 +243,6 @@ export type AnswerInput =
 export type WorkerCommand =
   EngineStartCommand | MatchStartCommand | DiagnosticsAiMatchCommand | DiagnosticsCardProbeCommand;
 export type NonEmptyString = string;
-export type QuestionKind =
-  "select" | "choose" | "buttons" | "confirm" | "options" | "input" | "order" | "arrange" | "distribute";
 
 /**
  * Progress while the engine starts (for a loading indicator and start-up timings).
@@ -268,7 +355,7 @@ export interface MatchFinished {
   summary: MatchSummary;
 }
 /**
- * logSha256: hash of Forge's complete game log (equal on JVM and Wasm for the same seed and inputs); protocolSha256: fingerprint of every decision message (all but state and events); forgeCallbacks: Forge's calls into the GUI by method.
+ * logSha256: hash of Forge's complete game log (equal on JVM and Wasm for the same seed and inputs); protocolSha256: fingerprint of every decision message (all but state and events); forgeCallbacks: Forge's calls into the GUI by method; trace: only for a traced match (MatchRequest.trace), how many trace entries and events the engine sent.
  */
 export interface MatchSummary {
   winner: string | null;
@@ -292,6 +379,7 @@ export interface MatchSummary {
   forgeCallbacks: {
     [k: string]: number;
   };
+  trace?: TraceSummary;
   forgeErrors: string[];
   threadViolations: string[];
 }
@@ -300,6 +388,13 @@ export interface EndPlayer {
   name: string | null;
   life: number;
   me: boolean;
+}
+/**
+ * How many trace entries and events the engine sent (the receiver must have them all).
+ */
+export interface TraceSummary {
+  entries: number;
+  events: number;
 }
 /**
  * Result of diagnostics.ai-match (engine tests only).
@@ -326,6 +421,7 @@ export interface AiMatchResult {
   logEntries: number;
   logSha256: Sha256;
   log?: string[];
+  trace?: TraceSummary;
   forgeErrors: string[];
 }
 /**
@@ -419,6 +515,179 @@ export interface CardProbeDatabasePass {
   rulesSha256: Sha256;
   gameCardsSha256: Sha256;
 }
+/**
+ * Engine tests only (differential tests, prompt 05): one entry of the engine trace, sent during a match whose request asked for it (MatchRequest.trace) or during a traced diagnostics.ai-match. A structured, language-independent record of the game for comparing the JVM and the WebAssembly engine: a checkpoint with a complete snapshot plus every event since the previous entry. It contains hidden information (libraries, the AI's hand) and is never shown to a player.
+ */
+export interface DiagnosticsTrace {
+  type: "diagnostics.trace";
+  /**
+   * Entry number: 1, 2, 3 … without gaps.
+   */
+  n: number;
+  at: TraceCheckpoint;
+  /**
+   * Inputs the engine had read at this checkpoint.
+   */
+  inputs: number;
+  events: TraceEvent[];
+  snapshot: TraceSnapshot;
+}
+/**
+ * One event of the engine trace. e is its kind; the other fields are ids, English card keys (key: Forge's oracle name), references (c<card id>, p<player id>, <ZoneType>:<player id>), enum names and numbers - never Forge's display texts. A diagnostics record, compared as a whole; its fields depend on the kind.
+ */
+export interface TraceEvent {
+  e: TraceEventKind;
+  [k: string]: unknown;
+}
+/**
+ * The complete game at a checkpoint, from Forge's model: every zone of every player (the library in order and hidden hands included), the stack with targets, combat. In a human game also human (the human seat), gui (Forge's markers for that seat) and questions (the open ones, without words).
+ */
+export interface TraceSnapshot {
+  turn: number;
+  phase: Phase | null;
+  active: PlayerId | null;
+  priority: PlayerId | null;
+  human?: PlayerId | null;
+  players: TracePlayer[];
+  /**
+   * Top first.
+   */
+  stack: TraceStackItem[];
+  combat: TraceCombatEntry[];
+  gui?: TraceMarkers;
+  questions?: TraceQuestion[];
+}
+export interface TracePlayer {
+  id: PlayerId;
+  life: number;
+  lost: boolean;
+  counters: Counters;
+  /**
+   * Mana in the pool; only colours with an amount.
+   */
+  mana: {
+    W?: number;
+    U?: number;
+    B?: number;
+    R?: number;
+    G?: number;
+    C?: number;
+  };
+  /**
+   * Lands played this turn.
+   */
+  lands: number;
+  /**
+   * Top first, ids only.
+   */
+  library: CardId[];
+  hand: TraceCard[];
+  graveyard: TraceCard[];
+  exile: TraceCard[];
+  command: TraceCard[];
+  battlefield: TracePermanent[];
+  commanders?: {
+    card: CardId;
+    cast: number;
+    /**
+     * Player id -> combat damage this commander dealt to that player.
+     */
+    damage: {
+      [k: string]: number;
+    };
+  }[];
+}
+/**
+ * Counter name (Forge's counter type) -> number.
+ */
+export interface Counters {
+  [k: string]: number;
+}
+/**
+ * A card outside the battlefield: id, English key (Forge's oracle name), the face it shows if not its original one.
+ */
+export interface TraceCard {
+  id: CardId;
+  key: string | null;
+  state?: string;
+  token?: true;
+  faceDown?: true;
+}
+export interface TracePermanent {
+  id: CardId;
+  key: string | null;
+  state?: string;
+  token?: true;
+  faceDown?: true;
+  owner?: PlayerId;
+  tapped?: true;
+  sick?: true;
+  damage?: number;
+  counters?: Counters;
+  power?: number;
+  toughness?: number;
+  loyalty?: number;
+  defense?: number;
+  attachedTo?: TraceEntityRef;
+  phasedOut?: true;
+}
+/**
+ * api: what the effect does (Forge's ApiType, e.g. DealDamage), not its text.
+ */
+export interface TraceStackItem {
+  card: CardId | null;
+  key: string | null;
+  player: PlayerId | null;
+  api: string | null;
+  spell: boolean;
+  trigger: boolean;
+  targets: TraceTarget[];
+}
+export interface TraceCombatEntry {
+  attacker: CardId;
+  defender: TraceEntityRef | null;
+  blockers: CardId[];
+}
+/**
+ * What Forge marked for the human seat's GUI (look-ups in the GUI's own sets): playable (weakly selectable), highlighted, selectable.
+ */
+export interface TraceMarkers {
+  playable: CardId[];
+  highlighted: CardId[];
+  selectable: CardId[];
+}
+/**
+ * A question without its words (text, button labels, card views): kind, limits, flags and what its items refer to.
+ */
+export interface TraceQuestion {
+  id: QuestionId;
+  kind: QuestionKind;
+  blocking: boolean;
+  purpose?: ButtonsPurpose;
+  card?: CardId;
+  cards?: CardId[];
+  min?: number;
+  max?: number;
+  total?: number;
+  others?: number;
+  remainingMin?: number;
+  remainingMax?: number;
+  numeric?: boolean;
+  cancellable?: boolean;
+  toTop?: boolean;
+  toBottom?: boolean;
+  toAnywhere?: boolean;
+  /**
+   * Forge's suggestion unless it is text: a boolean (confirm), a number (options) or item numbers (choose, order).
+   */
+  suggested?: boolean | number | number[];
+  /**
+   * Whether button 1 and 2 are enabled.
+   */
+  buttons?: boolean[];
+  items?: TraceItemRef[];
+  revealed?: TraceItemRef[];
+}
 export interface GameStarted {
   type: "game.started";
   protocol: ProtocolVersion;
@@ -475,12 +744,6 @@ export interface Player {
    */
   library: number;
   commanders: Commander[];
-}
-/**
- * Counter name (Forge's counter type) -> number.
- */
-export interface Counters {
-  [k: string]: number;
 }
 export interface ManaPool {
   W: number;
@@ -974,6 +1237,10 @@ export interface MatchRequest {
    * Fixed seed for reproducible games (tests); absent or null = random.
    */
   seed?: number | null;
+  /**
+   * Engine tests only (differential tests, prompt 05): the engine also sends its trace (diagnostics.trace), which contains hidden information. The UI never sets it.
+   */
+  trace?: boolean;
   format: MatchFormat;
   human: {
     name: NonEmptyString;
@@ -999,12 +1266,13 @@ export interface DeckEntry {
   count: number;
 }
 /**
- * Engine tests only: Forge's AI plays itself with fixed smoke decks.
+ * Engine tests only: Forge's AI plays itself with fixed smoke decks. trace: the engine also sends its trace (diagnostics.trace) during the game.
  */
 export interface DiagnosticsAiMatchCommand {
   type: "diagnostics.ai-match";
   seed: number;
   includeLog: boolean;
+  trace?: boolean;
 }
 /**
  * Engine tests only: check that Forge's card scripts load and become game cards (answered with diagnostics.cards).

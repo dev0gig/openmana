@@ -66,6 +66,9 @@
                         <!-- The protocol schema (engine/protocol): ProtocolContractTest checks the
                              bridge's names and version against it. -->
                         <openmana.protocolSchema>${openmana.protocolSchema}</openmana.protocolSchema>
+                        <!-- The differential test fixtures (engine/fixtures): EngineTraceTest plays
+                             some of their games with the decks from fixtures/decks. -->
+                        <openmana.fixtures>${openmana.fixtures}</openmana.fixtures>
                         <!-- TestNG logs through SLF4J, which starts tinylog before any
                              test runs; it must start with the engine's configuration
                              (ForgeEngine.LOGGING), not Forge's tinylog.properties. -->

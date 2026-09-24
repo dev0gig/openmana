@@ -22,26 +22,48 @@
  *    withdrawn question arrives while the page still believed it open (a
  *    real race: the engine must reject it as stale).
  *
- * Passed only if the Wasm game ends exactly like the JVM game: same Forge
- * game log (hash), same decision messages (fingerprint incl. question ids,
- * closings and rejections), same calls from Forge into the GUI, same number
- * of inputs, turns and result; no Forge errors, no work on other threads, no
- * protocol violation (the client aborts on any), every snapshot
+ * Passed only if the Wasm game ends exactly like the JVM game: the same
+ * engine trace (prompt 05: every checkpoint and event, structured and
+ * language-independent, compared entry by entry as it arrives; the first
+ * difference stops the replay and is reported with its place in the game),
+ * same Forge game log (hash), same decision messages (fingerprint incl.
+ * question ids, closings and rejections), same calls from Forge into the GUI,
+ * same number of inputs, turns and result; no Forge errors, no work on other
+ * threads, no protocol violation (the client aborts on any), every snapshot
  * self-contained, the opponent's hand never visible.
  */
 import type { EngineClient, EngineClientEvent, EngineInputDraft, EngineInputError } from "../../client/src/index.ts";
 import type { EngineInputErrorReason } from "../../client/src/errors.ts";
 import type { AnswerBody, EngineMessage, MatchRequest, MatchSummary, RejectReason } from "../../protocol/src/index.ts";
 import { opponentHand, snapshotProblems } from "./invariants.ts";
+import { describeDivergence, TraceComparison, traceDigest, type TraceEntry } from "./trace.ts";
 
-export const TRANSCRIPT_FORMAT = "openmana-input-transcript/2";
+/** 3: with the engine settings and the engine trace of the JVM game (JvmHumanMatchMain). */
+export const TRANSCRIPT_FORMAT = "openmana-input-transcript/3";
 
 export interface Transcript {
   format: string;
+  /** The differential test fixture this game comes from (engine/fixtures/differential). */
+  name?: string;
+  engine?: { language: string; cardLoading: string };
   request: MatchRequest;
   inputs: Record<string, unknown>[];
   expected: Record<string, unknown>;
   counters: Record<string, number>;
+  /** The JVM game's engine trace, if the request asked for one. */
+  trace?: TraceEntry[];
+}
+
+/** The engine trace of a replay compared with the JVM's. */
+export interface TraceVerdict {
+  /** Entries of the JVM trace. */
+  reference: number;
+  /** Entries the Wasm engine sent (and that were compared). */
+  compared: number;
+  /** SHA-256 over the Wasm engine's trace (engine/wasm/spike/trace.ts traceDigest). */
+  sha256: string | null;
+  /** The first difference, readable; null if the traces are equal. */
+  divergence: string | null;
 }
 
 export type Feeding = "lazy" | "eager";
@@ -58,6 +80,8 @@ export interface ReplayVerdict {
   queue: { capacity: number; bytesWritten: number; wraps: number; fullRefusals: number };
   /** Messages the client received and checked against the schema, and what that cost. */
   validation: { messages: number; totalMs: number; maxMs: number };
+  /** null if the transcript carries no engine trace. */
+  trace: TraceVerdict | null;
 }
 
 /** Which engine reasons fit a refusal of the client. */
@@ -76,7 +100,7 @@ const ENGINE_REASONS: Readonly<Record<EngineInputErrorReason, readonly RejectRea
 /** Reasons the client would have seen coming (lazy mode: then it must have refused itself). */
 const CLIENT_KNOWABLE: ReadonlySet<RejectReason> = new Set(["stale", "not-active", "unknown-card", "unknown-player", "malformed"]);
 
-const SAME_AS_JVM = ["logSha256", "logEntries", "protocolSha256", "protocolMessages", "forgeCallbacks", "inputs", "turns", "result", "winner", "reason", "conceded"];
+const SAME_AS_JVM = ["logSha256", "logEntries", "protocolSha256", "protocolMessages", "forgeCallbacks", "inputs", "turns", "result", "winner", "reason", "conceded", "trace"];
 
 function percentile(sorted: number[], p: number): number | null {
   return sorted.length === 0 ? null : Math.round(sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))]!);
@@ -115,6 +139,13 @@ export function replay(client: EngineClient, transcript: Transcript, feeding: Fe
   const engineVerdict = new Map<number, RejectReason>();
   let summary: MatchSummary | null = null;
   let snapshotIssues = 0;
+  const traced = Array.isArray(transcript.trace);
+  if (traced && transcript.request.trace !== true) {
+    throw new Error("the transcript carries an engine trace, but its request does not ask for one");
+  }
+  const comparison = traced ? new TraceComparison(transcript.trace!) : null;
+  const traceEntries: TraceEntry[] = [];
+  let traceDiverged = false;
 
   const encoder = new TextEncoder();
   const recordBytes = (input: Record<string, unknown>) => 4 + encoder.encode(JSON.stringify(input)).length;
@@ -203,6 +234,13 @@ export function replay(client: EngineClient, transcript: Transcript, feeding: Fe
       if (finished) return;
       finished = true;
       unsubscribe();
+      if (comparison && !traceDiverged && summary) {
+        const d = comparison.finish();
+        if (d) {
+          traceDiverged = true;
+          fail(describeDivergence(d));
+        }
+      }
       if (summary) {
         const expected = transcript.expected;
         for (const key of SAME_AS_JVM) {
@@ -226,7 +264,7 @@ export function replay(client: EngineClient, transcript: Transcript, feeding: Fe
       if (feeding === "eager" && fullRefusals === 0) fail("the eager replay never met a full queue; use a smaller queue");
       const sorted = steps.slice().sort((a, b) => a - b);
       const capacity = client.queueCapacity;
-      resolve({
+      const verdict = (trace: TraceVerdict | null): ReplayVerdict => ({
         ok: failures.length === 0,
         failures,
         feeding,
@@ -236,7 +274,23 @@ export function replay(client: EngineClient, transcript: Transcript, feeding: Fe
         engineStepMs: { count: sorted.length, p50: percentile(sorted, 0.5), p95: percentile(sorted, 0.95), max: percentile(sorted, 1) },
         queue: { capacity, bytesWritten, wraps: capacity > 0 ? Math.floor(bytesWritten / capacity) : 0, fullRefusals },
         validation: { messages: client.stats.messages, totalMs: Math.round(client.stats.validationMs * 10) / 10, maxMs: Math.round(client.stats.maxValidationMs * 100) / 100 },
+        trace,
       });
+      if (!comparison) {
+        resolve(verdict(null));
+        return;
+      }
+      const divergence = comparison.divergence;
+      const traceVerdict = (sha256: string | null): TraceVerdict => ({
+        reference: transcript.trace!.length,
+        compared: comparison.compared,
+        sha256,
+        divergence: divergence ? describeDivergence(divergence) : null,
+      });
+      traceDigest(traceEntries).then(
+        (sha256) => resolve(verdict(traceVerdict(sha256))),
+        () => resolve(verdict(traceVerdict(null))),
+      );
     };
 
     const onMessage = (message: EngineMessage) => {
@@ -292,8 +346,22 @@ export function replay(client: EngineClient, transcript: Transcript, feeding: Fe
           if (feeding === "lazy") judgeProcessed(Number.MAX_SAFE_INTEGER);
           finish();
           return;
+        case "diagnostics.trace": {
+          traceEntries.push(message);
+          const d = comparison?.add(message) ?? null;
+          if (d && !traceDiverged) {
+            // Any difference fails; after it the games have parted, so stop here.
+            traceDiverged = true;
+            fail(describeDivergence(d));
+            client.abort("replay: the engine trace diverged from the JVM game");
+          }
+          return;
+        }
         case "engine.abort":
-          fail(`technical abort (${message.origin}, ${message.reason}, ${message.stage ?? "-"}): ${message.message}${message.detail ? `\n${message.detail}` : ""}`);
+          // Our own abort after a trace divergence is not a second finding.
+          if (!(traceDiverged && message.origin === "client")) {
+            fail(`technical abort (${message.origin}, ${message.reason}, ${message.stage ?? "-"}): ${message.message}${message.detail ? `\n${message.detail}` : ""}`);
+          }
           finish();
           return;
         default:

@@ -1,0 +1,19 @@
+{
+  "name": "OpenMana Commander Krenko",
+  "main": [
+    { "card": "Lightning Bolt", "count": 1 },
+    { "card": "Shock", "count": 1 },
+    { "card": "Magma Jet", "count": 1 },
+    { "card": "Volcanic Hammer", "count": 1 },
+    { "card": "Raging Goblin", "count": 1 },
+    { "card": "Goblin Piker", "count": 1 },
+    { "card": "Goblin Raider", "count": 1 },
+    { "card": "Gray Ogre", "count": 1 },
+    { "card": "Hill Giant", "count": 1 },
+    { "card": "Canyon Minotaur", "count": 1 },
+    { "card": "Mountain", "count": 89 }
+  ],
+  "commander": [
+    { "card": "Krenko, Tin Street Kingpin", "count": 1 }
+  ]
+}

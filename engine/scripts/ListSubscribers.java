@@ -11,7 +11,8 @@ import java.util.jar.JarFile;
 
 /**
  * Lists every method annotated with Guava's {@code @Subscribe} in Forge's
- * classes of the fat JAR, one JSON object per line:
+ * classes of the fat JAR, and in OpenMana's own ({@code org.openmana}, e.g.
+ * the engine trace of the differential tests), one JSON object per line:
  * {@code {"type": "...", "name": "...", "parameterTypes": ["..."]}}.
  *
  * <p>Forge delivers game events through Guava's EventBus (game log, the GUI's
@@ -53,7 +54,8 @@ public final class ListSubscribers {
                     (Class<? extends Annotation>) Class.forName("com.google.common.eventbus.Subscribe", false, loader);
             for (final Enumeration<JarEntry> e = jarFile.entries(); e.hasMoreElements();) {
                 final String path = e.nextElement().getName();
-                if (!path.startsWith("forge/") || !path.endsWith(".class")
+                final boolean ours = !interfaces && path.startsWith("org/openmana/");
+                if ((!path.startsWith("forge/") && !ours) || !path.endsWith(".class")
                         || path.endsWith("module-info.class") || path.endsWith("package-info.class")
                         || excluded.stream().anyMatch(path::startsWith)) {
                     continue;
@@ -93,7 +95,7 @@ public final class ListSubscribers {
                 }
             }
         }
-        System.err.println("[ListSubscribers] " + scanned + " Forge classes scanned, " + found
+        System.err.println("[ListSubscribers] " + scanned + " classes scanned (Forge" + (interfaces ? "" : ", OpenMana") + "), " + found
                 + (interfaces ? " interfaces, " : " @Subscribe methods, ") + unloadable + " not loadable");
         if (unloadable > 0) {
             System.exit(1);

@@ -1,0 +1,16 @@
+{
+  "name": "OpenMana Smoke Red",
+  "main": [
+    { "card": "Mountain", "count": 22 },
+    { "card": "Raging Goblin", "count": 4 },
+    { "card": "Goblin Raider", "count": 4 },
+    { "card": "Goblin Piker", "count": 4 },
+    { "card": "Gray Ogre", "count": 4 },
+    { "card": "Hill Giant", "count": 4 },
+    { "card": "Canyon Minotaur", "count": 4 },
+    { "card": "Fire Elemental", "count": 2 },
+    { "card": "Shock", "count": 4 },
+    { "card": "Lightning Bolt", "count": 4 },
+    { "card": "Volcanic Hammer", "count": 4 }
+  ]
+}

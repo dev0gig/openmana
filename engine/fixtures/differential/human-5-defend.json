@@ -1,0 +1,12 @@
+{
+  "description": "The same decks, seed 5, a player that never attacks and blocks with one creature per combat (Forge's InputBlock picks the attacker).",
+  "match": {
+    "seed": 5,
+    "format": "constructed",
+    "human": { "name": "Player", "deck": "smoke-red-plus" },
+    "ai": { "name": "Forge AI", "profile": "Default", "deck": "smoke-green" }
+  },
+  "player": { "attack": "none", "block": "one" },
+  "wasm": { "node": ["lazy", "eager"], "browser": ["lazy"] },
+  "covers": ["mulligan", "priority-pass", "priority-play", "payment-auto", "payment-manual", "block", "decision-choose", "trigger", "end-loss", "end-life"]
+}

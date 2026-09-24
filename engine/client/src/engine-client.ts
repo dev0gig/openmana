@@ -134,6 +134,8 @@ const ALLOWED: Readonly<Record<string, readonly EngineStatus[]>> = {
   "match.finished": ["ended"],
   "diagnostics.result": ["diagnostics"],
   "diagnostics.cards": ["diagnostics"],
+  // Engine tests only, and only if asked for (MatchRequest.trace, runAiDiagnostics(…, trace)).
+  "diagnostics.trace": ["playing", "ended", "diagnostics"],
 };
 
 export class EngineClient {
@@ -161,6 +163,9 @@ export class EngineClient {
   #players = new Set<number>();
   #consumed = 0;
   #waiting = false;
+  /** Engine tests: the match or AI diagnostics asked for the engine trace, and how many entries arrived. */
+  #traceRequested = false;
+  #traceEntries = 0;
 
   #messages = 0;
   #validationMs = 0;
@@ -240,14 +245,19 @@ export class EngineClient {
       throw new EngineClientError("invalid-request", e instanceof ProtocolViolation ? e.message : String(e), { cause: e });
     }
     this.#setStatus("starting");
+    this.#traceRequested = request.trace === true;
     this.#post({ type: "match.start", match: request });
   }
 
-  /** Engine tests only: Forge's AI plays itself (diagnostics.ai-match). */
-  runAiDiagnostics(seed: number, includeLog = false): void {
+  /**
+   * Engine tests only: Forge's AI plays itself (diagnostics.ai-match); with
+   * trace the engine also sends its trace (diagnostics.trace).
+   */
+  runAiDiagnostics(seed: number, includeLog = false, trace = false): void {
     this.#requireStatus("ready", "runAiDiagnostics");
     this.#setStatus("diagnostics");
-    this.#post({ type: "diagnostics.ai-match", seed, includeLog });
+    this.#traceRequested = trace;
+    this.#post({ type: "diagnostics.ai-match", seed, includeLog, ...(trace ? { trace: true } : {}) });
   }
 
   /** Engine tests only: Forge's card scripts checked inside the engine (diagnostics.card-probe). */
@@ -340,6 +350,10 @@ export class EngineClient {
   }
   get stats(): EngineClientStats {
     return { messages: this.#messages, validationMs: this.#validationMs, maxValidationMs: this.#maxValidationMs };
+  }
+  /** Engine tests: trace entries received so far (diagnostics.trace). */
+  get traceEntries(): number {
+    return this.#traceEntries;
   }
 
   // ── Inputs ──────────────────────────────────────────────────────────────────
@@ -598,13 +612,28 @@ export class EngineClient {
         this.#result = message;
         this.#setStatus("ended");
         return null;
-      case "match.finished":
+      case "match.finished": {
+        const lost = this.#lostTraceEntries(message.summary.trace?.entries);
+        if (lost) return lost;
         this.#summary = message.summary;
         this.#setStatus("finished");
         return null;
-      case "diagnostics.result":
+      }
+      case "diagnostics.result": {
+        const lost = this.#lostTraceEntries(message.result.trace?.entries);
+        if (lost) return lost;
         this.#diagnostics = message.result;
         this.#setStatus("finished");
+        return null;
+      }
+      case "diagnostics.trace":
+        if (!this.#traceRequested) {
+          return "diagnostics.trace, but no trace was requested (engine tests only: it contains hidden information)";
+        }
+        if (message.n !== this.#traceEntries + 1) {
+          return `trace entry ${message.n} after entry ${this.#traceEntries}: entries must arrive numbered without gaps`;
+        }
+        this.#traceEntries = message.n;
         return null;
       case "diagnostics.cards":
         this.#cardProbe = message.result;
@@ -615,6 +644,17 @@ export class EngineClient {
       case "engine.abort":
         return null;
     }
+  }
+
+  /** A trace summary must count exactly the entries that arrived; a summary without one must not follow a trace. */
+  #lostTraceEntries(sent: number | undefined): string | null {
+    if (!this.#traceRequested) {
+      return sent === undefined ? null : "the engine reports a trace that was not requested";
+    }
+    if (sent !== this.#traceEntries) {
+      return `the engine sent ${sent ?? "no"} trace entries, ${this.#traceEntries} arrived`;
+    }
+    return null;
   }
 
   // ── Watchdogs, failures, events ─────────────────────────────────────────────

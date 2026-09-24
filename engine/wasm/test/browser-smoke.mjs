@@ -5,14 +5,16 @@
 // memory are recorded.
 //
 //   node engine/wasm/test/browser-smoke.mjs --seed 42 [--card-loading lazy|eager]
-//        [--expect-log-sha256 <hex>] [--out result.json]
+//        [--expect-log-sha256 <hex>] [--expect-trace <jvm-trace.jsonl>] [--out result.json]
 //   node engine/wasm/test/browser-smoke.mjs --transcript t.json [--feeding lazy|eager]
 //        [--queue-capacity <bytes>] [--card-loading …] [--out result.json]
 //   node engine/wasm/test/browser-smoke.mjs --cards [--card-loading …] [--expect jvm-probe.json] [--out result.json]
 //   node engine/wasm/test/browser-smoke.mjs --negative [--out result.json]
 //   node engine/wasm/test/browser-smoke.mjs --announce-protocol 999 [--out result.json]
 //
-// Default: Forge's AI plays against itself (diagnostics.ai-match).
+// Default: Forge's AI plays against itself (diagnostics.ai-match); with
+// --expect-trace its engine trace must equal the JVM's (JvmSmokeMain --trace)
+// entry by entry.
 // --transcript replays a JVM-recorded human-vs-AI game through the client and
 // the SharedArrayBuffer input queue (engine/wasm/spike/replay.ts); passes only
 // if the game ends exactly as on the JVM.
@@ -51,6 +53,7 @@ const language = option("--language", "en-US");
 const cards = args.includes("--cards");
 const expectFile = option("--expect", null);
 const expectedSha = option("--expect-log-sha256", null);
+const expectTrace = option("--expect-trace", null);
 const outFile = option("--out", null);
 const TEST_TIMEOUT_MS = negative || announceProtocol ? 30000 : transcriptFile || cards ? 840000 : 540000;
 
@@ -102,7 +105,10 @@ if (transcriptFile) {
 const server = await startServer({
   port: 0,
   isolation: !negative,
-  files: transcriptFile ? { "/transcripts/replay.json": path.resolve(transcriptFile) } : {},
+  files: {
+    ...(transcriptFile ? { "/transcripts/replay.json": path.resolve(transcriptFile) } : {}),
+    ...(expectTrace ? { "/traces/expected.jsonl": path.resolve(expectTrace) } : {}),
+  },
 });
 const query = announceProtocol
   ? `announceProtocol=${announceProtocol}`
@@ -110,7 +116,7 @@ const query = announceProtocol
     ? `replay=transcripts/replay.json&cardLoading=${cardLoading}&language=${language}&feeding=${feeding}${queueCapacity ? `&queueCapacity=${queueCapacity}` : ""}`
     : cards
       ? `cards=1&cardLoading=${cardLoading}&language=${language}`
-      : `seed=${seed}&cardLoading=${cardLoading}&language=${language}`;
+      : `seed=${seed}&cardLoading=${cardLoading}&language=${language}${expectTrace ? "&trace=traces/expected.jsonl" : ""}`;
 const url = `http://127.0.0.1:${server.address().port}/?${query}`;
 const profileDir = fs.mkdtempSync(path.join(os.tmpdir(), "openmana-chrome-"));
 const executablePath = process.env.OPENMANA_CHROME || chromium.executablePath();
@@ -139,7 +145,7 @@ try {
   report.wallMs = Date.now() - startedAt;
   const state = await page.evaluate(() => {
     const s = window.__openmanaSpike;
-    return { error: s.error, timings: s.timings, ready: s.ready, features: s.features, result: s.result, verdict: s.verdict, abort: s.abort, userAgent: navigator.userAgent };
+    return { error: s.error, timings: s.timings, ready: s.ready, features: s.features, result: s.result, verdict: s.verdict, abort: s.abort, trace: s.trace, userAgent: navigator.userAgent };
   });
   report.userAgent = state.userAgent;
   report.features = state.features;
@@ -162,6 +168,7 @@ try {
       report.engineStepMs = verdict.engineStepMs;
       report.queue = verdict.queue;
       report.validation = verdict.validation;
+      report.trace = verdict.trace;
       report.counters = verdict.counters;
       report.failures = verdict.failures;
       report.result = verdict.summary;
@@ -201,10 +208,12 @@ try {
   } else {
     const result = state.result;
     report.result = { ...result, log: undefined, logLines: (result.log ?? []).length };
+    report.trace = state.trace ?? null;
     report.uaMemory = await uaMemory(page);
     if (result.forgeErrors.length > 0) failure = `Forge reported errors: ${result.forgeErrors.join(" | ")}`;
     else if (!(result.turns > 1) || (!result.draw && !result.winner)) failure = "game did not finish properly";
     else if (expectedSha && result.logSha256 !== expectedSha) failure = `game log differs from the JVM reference: ${result.logSha256} != ${expectedSha}`;
+    else if (expectTrace && (!state.trace || state.trace.divergence)) failure = `engine trace differs from the JVM reference: ${state.trace?.divergence ?? "no trace verdict"}`;
     else report.matchesJvm = expectedSha ? true : null;
   }
 } catch (e) {

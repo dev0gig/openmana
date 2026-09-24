@@ -287,7 +287,7 @@ export function attachWorkerHost(env: WorkerHostEnvironment): (data: unknown) =>
         startMatch(command);
         return;
       case "diagnostics.ai-match":
-        diagnostics({ command: "smoke-match", seed: command.seed, includeLog: command.includeLog }, (result) =>
+        diagnostics({ command: "smoke-match", seed: command.seed, includeLog: command.includeLog, trace: command.trace === true }, (result) =>
           env.post({ type: "diagnostics.result", result }),
         );
         return;

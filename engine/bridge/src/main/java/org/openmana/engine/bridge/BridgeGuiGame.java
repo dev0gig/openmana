@@ -35,6 +35,7 @@ import forge.util.FSerializableFunction;
 import forge.util.ITriggerEvent;
 import forge.util.Localizer;
 import org.openmana.engine.EngineDiagnostics;
+import org.openmana.engine.trace.EngineTrace;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -109,6 +110,8 @@ final class BridgeGuiGame extends AbstractGuiGame {
     }
 
     private final EngineHost host;
+    /** The engine trace of this game (engine tests), or null. */
+    private final EngineTrace trace;
     private final StateBuilder state = new StateBuilder(this);
     private final Thread engineThread;
 
@@ -130,8 +133,9 @@ final class BridgeGuiGame extends AbstractGuiGame {
     private final Map<String, Integer> forgeCallbacks = new TreeMap<>();
     private JsonObject endMessage;
 
-    BridgeGuiGame(final EngineHost host) {
+    BridgeGuiGame(final EngineHost host, final EngineTrace trace) {
         this.host = host;
+        this.trace = trace;
         this.engineThread = Thread.currentThread();
     }
 
@@ -793,9 +797,17 @@ final class BridgeGuiGame extends AbstractGuiGame {
         return inputsReceived;
     }
 
+    /**
+     * Forge opens the view before the game starts (before the mulligans):
+     * the moment an engine trace starts listening to the game's events.
+     */
     @Override
     public void openView(final TrackableCollection<PlayerView> myPlayers) {
         count("openView");
+        if (trace != null) {
+            trace.attach(getGameView().getGame());
+            trace.setGui(this);
+        }
         sendStateNow();
     }
 

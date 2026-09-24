@@ -17,6 +17,7 @@ import forge.item.PaperCard;
 import forge.player.GamePlayerUtil;
 import forge.util.MyRandom;
 import org.openmana.engine.EngineDiagnostics;
+import org.openmana.engine.trace.EngineTrace;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -40,13 +41,16 @@ import java.util.TreeSet;
  * <pre>
  * { "command": "human-match", "seed": 42 (optional), "format": "constructed" | "commander",
  *   "human": { "name": "…", "deck": DECK },
- *   "ai":    { "name": "…", "profile": "Default", "deck": DECK } }
+ *   "ai":    { "name": "…", "profile": "Default", "deck": DECK },
+ *   "trace": true (optional, engine tests only) }
  * DECK = { "name": "…", "main": [ {"card": "Mountain", "count": 22}, … ],
  *          "sideboard": […], "commander": […] }
  * </pre>
  * Card names are English (Forge's names, front face of double-faced cards).
  * A name Forge does not know stops the start with the complete list of such
- * names; nothing is dropped silently.
+ * names; nothing is dropped silently. With {@code trace} the host also
+ * receives the engine trace ({@link EngineTrace}: diagnostics.trace messages)
+ * that the differential tests compare between JVM and WebAssembly.
  */
 public final class HumanMatch {
 
@@ -86,7 +90,12 @@ public final class HumanMatch {
      */
     public static JsonObject play(final EngineHost playerHost, final JsonObject request) {
         EngineDiagnostics.clear();
-        final ProtocolTrace host = new ProtocolTrace(playerHost);
+        final ProtocolTrace fingerprint = new ProtocolTrace(playerHost);
+        // The engine trace sees the bridge's messages on their way out and
+        // sends its own entries straight to the player's host, so they are
+        // not part of the decision fingerprint.
+        final EngineTrace trace = bool(request, "trace") ? new EngineTrace(playerHost::emit) : null;
+        final EngineHost host = trace == null ? fingerprint : trace.wrap(fingerprint);
         final GameType type = "commander".equalsIgnoreCase(string(request, "format", "constructed"))
                 ? GameType.Commander : GameType.Constructed;
         final JsonObject humanSpec = object(request, "human");
@@ -131,7 +140,7 @@ public final class HumanMatch {
         started.add("cardNames", cardNames(humanDeck, aiDeck));
         host.emit(started);
 
-        final BridgeGuiGame gui = new BridgeGuiGame(host);
+        final BridgeGuiGame gui = new BridgeGuiGame(host, trace);
         final HostedMatch match = new HostedMatch();
         gui.installPump();
         final long start = System.nanoTime();
@@ -141,6 +150,9 @@ public final class HumanMatch {
             gui.removePump();
         }
         final long gameMillis = (System.nanoTime() - start) / 1_000_000L;
+        if (trace != null) {
+            trace.checkHealthy();
+        }
 
         final Game game = match.getGame();
         if (game == null || !game.isGameOver()) {
@@ -162,8 +174,11 @@ public final class HumanMatch {
         }
         result.addProperty("logEntries", log.size());
         result.addProperty("logSha256", ProtocolTrace.sha256(canonical.toString()));
-        result.addProperty("protocolMessages", host.messages());
-        result.addProperty("protocolSha256", host.sha256());
+        result.addProperty("protocolMessages", fingerprint.messages());
+        result.addProperty("protocolSha256", fingerprint.sha256());
+        if (trace != null) {
+            result.add("trace", trace.summary());
+        }
         final JsonObject callbacks = new JsonObject();
         gui.forgeCallbacks().forEach(callbacks::addProperty);
         result.add("forgeCallbacks", callbacks);
@@ -243,6 +258,17 @@ public final class HumanMatch {
         final JsonArray a = new JsonArray();
         names.forEach(a::add);
         return a;
+    }
+
+    private static boolean bool(final JsonObject o, final String field) {
+        final JsonElement e = o.get(field);
+        if (e == null || e.isJsonNull()) {
+            return false;
+        }
+        if (!e.isJsonPrimitive() || !e.getAsJsonPrimitive().isBoolean()) {
+            throw new InvalidRequest("'" + field + "' must be a boolean in the match request");
+        }
+        return e.getAsBoolean();
     }
 
     private static JsonObject object(final JsonObject o, final String field) {

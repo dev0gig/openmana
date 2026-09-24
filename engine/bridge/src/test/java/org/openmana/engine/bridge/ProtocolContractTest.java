@@ -7,6 +7,7 @@ import com.google.gson.JsonParser;
 import forge.game.phase.PhaseType;
 import org.openmana.engine.EngineBoot;
 import org.openmana.engine.ForgeEngine;
+import org.openmana.engine.trace.EngineTrace;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -92,7 +93,8 @@ public class ProtocolContractTest {
     public void everyTypeTheBridgeSendsOrReadsIsInTheSchema() {
         final Set<String> engineTypes = branchConsts("EngineMessage", "type");
         for (final String type : new String[]{Protocol.GAME_STARTED, Protocol.STATE, Protocol.EVENTS, Protocol.MESSAGE,
-                Protocol.QUESTION, Protocol.QUESTION_WITHDRAWN, Protocol.QUESTION_ANSWERED, Protocol.INPUT_REJECTED, Protocol.GAME_END}) {
+                Protocol.QUESTION, Protocol.QUESTION_WITHDRAWN, Protocol.QUESTION_ANSWERED, Protocol.INPUT_REJECTED, Protocol.GAME_END,
+                Protocol.DIAGNOSTICS_TRACE}) {
             assertTrue(engineTypes.contains(type), type + " is missing in EngineMessage");
         }
         assertEquals(branchConsts("EngineInput", "type"),
@@ -131,6 +133,19 @@ public class ProtocolContractTest {
         final Set<String> schemaFields = new TreeSet<>();
         defs.getAsJsonObject("EngineBuild").getAsJsonArray("required").forEach(e -> schemaFields.add(e.getAsString()));
         assertEquals(new TreeSet<>(EngineBoot.engineInfo().keySet()), schemaFields, "EngineBoot.engineInfo() and the schema's EngineBuild");
+    }
+
+    /**
+     * The engine trace (prompt 05): its checkpoint kinds and every event kind
+     * the bridge can record (one per Forge event class, plus the bridge's
+     * own) are the schema's. A Forge update with a new event type does not
+     * compile until TraceEvents traces it; then the schema must learn it too.
+     */
+    @Test
+    public void traceCheckpointsAndEventKindsMatch() {
+        assertEquals(new TreeSet<>(EngineTrace.CHECKPOINTS), enumOf("TraceCheckpoint"));
+        assertEquals(EngineTrace.eventKinds(), enumOf("TraceEventKind"));
+        assertEquals(EngineTrace.MESSAGE_TYPE, Protocol.DIAGNOSTICS_TRACE);
     }
 
     @Test

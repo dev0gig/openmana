@@ -8,9 +8,12 @@ import { EngineClient, EngineClientError, EngineInputError, type EngineClientEve
 import {
   inputQueueReader,
   PROTOCOL_VERSION,
+  type AiMatchResult,
   type EngineMessage,
   type GameState,
   type InputQueueReader,
+  type MatchRequest,
+  type MatchSummary,
   type Question,
   type WorkerCommand,
 } from "../../protocol/src/index.ts";
@@ -215,6 +218,66 @@ describe("engine tests (diagnostics)", () => {
     worker.send(engineMessages.find((m) => m.type === "diagnostics.cards"));
     assert.equal(client.status, "aborted");
     assert.equal(aborts()[0]?.type === "engine.abort" && aborts()[0]?.reason, "protocol-violation");
+  });
+
+  // Prompt 05: the engine trace. It contains hidden information, so it may
+  // only come when a test asked for it, numbered without gaps, and the
+  // engine's own count must match what arrived.
+  const TRACE_ENTRY = engineMessages.find((m) => m.type === "diagnostics.trace")!;
+  const traceEntry = (n: number) => ({ ...TRACE_ENTRY, n });
+  const SUMMARY = (engineMessages.find((m) => m.type === "match.finished") as { summary: MatchSummary }).summary;
+  const finished = (trace?: { entries: number; events: number }) => ({ type: "match.finished", summary: { ...SUMMARY, ...(trace ? { trace } : {}) } });
+  const GAME_END = { type: "game.end", winner: "Forge AI", reason: "Concede", turns: 4, result: "loss", players: [], conceded: true };
+
+  function tracedMatch() {
+    const s = setup();
+    s.client.start();
+    s.worker.send(READY);
+    s.client.startMatch({ ...matchRequest, trace: true });
+    s.worker.send(STARTED);
+    return s;
+  }
+
+  test("a traced match: entries arrive numbered, also after game.end, and the summary counts them", () => {
+    const { client, worker, aborts } = tracedMatch();
+    assert.deepEqual((worker.commands.at(-1) as { match: MatchRequest }).match.trace, true);
+    worker.send(traceEntry(1));
+    worker.send(traceEntry(2));
+    worker.send(GAME_END);
+    worker.send(traceEntry(3)); // Forge's end-of-game checkpoint may follow game.end
+    worker.send(finished({ entries: 3, events: 15 }));
+    assert.deepEqual(aborts(), []);
+    assert.equal(client.status, "finished");
+    assert.equal(client.traceEntries, 3);
+  });
+
+  test("a trace nobody asked for, a gap in the numbering or a wrong count is a protocol violation", () => {
+    const cases: [string, () => ReturnType<typeof setup>, (s: ReturnType<typeof setup>) => void, RegExp][] = [
+      ["untraced match", () => playing(), (s) => s.worker.send(traceEntry(1)), /no trace was requested/],
+      ["gap", tracedMatch, (s) => s.worker.send(traceEntry(2)), /trace entry 2 after entry 0/],
+      ["count", tracedMatch, (s) => { s.worker.send(traceEntry(1)); s.worker.send(GAME_END); s.worker.send(finished({ entries: 2, events: 9 })); }, /sent 2 trace entries, 1 arrived/],
+      ["summary without trace", tracedMatch, (s) => { s.worker.send(traceEntry(1)); s.worker.send(GAME_END); s.worker.send(finished()); }, /sent no trace entries, 1 arrived/],
+      ["trace in an untraced summary", () => playing(), (s) => { s.worker.send(GAME_END); s.worker.send(finished({ entries: 0, events: 0 })); }, /trace that was not requested/],
+    ];
+    for (const [name, start, script, pattern] of cases) {
+      const s = start();
+      script(s);
+      assert.equal(s.client.abortInfo?.reason, "protocol-violation", name);
+      assert.match(s.client.abortInfo?.message ?? "", pattern, name);
+    }
+  });
+
+  test("runAiDiagnostics with trace asks for it and accepts the entries", () => {
+    const { client, worker, aborts } = setup();
+    client.start();
+    worker.send(READY);
+    client.runAiDiagnostics(7, false, true);
+    assert.deepEqual(worker.commands.at(-1), { type: "diagnostics.ai-match", seed: 7, includeLog: false, trace: true });
+    worker.send(traceEntry(1));
+    const result = (engineMessages.filter((m) => m.type === "diagnostics.result")[1] as { result: AiMatchResult }).result;
+    worker.send({ type: "diagnostics.result", result: { ...result, trace: { entries: 1, events: 5 } } });
+    assert.deepEqual(aborts(), []);
+    assert.equal(client.status, "finished");
   });
 });
 

@@ -1,0 +1,12 @@
+{
+  "description": "The same decks and player as human-3, seed 11: an adventure (which ability), discarding two cards (multi-selection), two scrys.",
+  "match": {
+    "seed": 11,
+    "format": "constructed",
+    "human": { "name": "Player", "deck": "smoke-red-plus" },
+    "ai": { "name": "Forge AI", "profile": "Default", "deck": "smoke-green" }
+  },
+  "player": { "attack": "all", "block": "none" },
+  "wasm": { "node": ["lazy", "eager"], "browser": ["lazy", "eager"] },
+  "covers": ["mulligan", "land", "spell", "priority-play", "payment-auto", "payment-manual", "target-card", "target-player", "attack", "decision-options", "decision-arrange", "decision-select", "zone:Library->Hand", "zone:Hand->Graveyard", "zone:Stack->Exile", "end-loss", "end-life"]
+}

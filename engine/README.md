@@ -2,7 +2,7 @@
 
 Hier entsteht die Engine, die Forge ohne Server im Browser laufen lässt. Forge
 bleibt die einzige Autorität für Regeln, Kartenverhalten und KI (Bible §2); die
-Engine packt es nur ein. Stand: **Forge-Daten und Kartenskripte (Prompt 04)** —
+Engine packt es nur ein. Stand: **JVM/Wasm-Differenztests (Prompt 05)** —
 Forge startet im Dedicated Worker, spielt KI gegen KI (Prompt 01) und Mensch
 gegen KI über Forges eigenen Mensch-Pfad (`PlayerControllerHuman`, Prompt 02),
 alles auf einem einzigen Thread. Die Oberfläche spricht mit der Engine
@@ -12,11 +12,15 @@ des Menschen laufen über eine SharedArrayBuffer-Warteschlange (Prompt 03). Die
 eingebauten Forge-Daten sind bewusst gewählt und inventarisiert, jede Karte,
 jedes Token und die neuesten Sets werden auf JVM und im Browser geprüft, und
 Netzspiel-Code (Netty, jupnp, Jetty) kommt nachweislich nicht ins Modul
-(Prompt 04). Messwerte und Befunde:
+(Prompt 04). Dieselben Partien laufen auf der JVM und als WebAssembly und
+werden über die **Engine-Spur** verglichen – strukturiert, sprachunabhängig,
+Eintrag für Eintrag; jede Abweichung scheitert mit ihrer Stelle in der Partie
+(Prompt 05, Testpartien in [`fixtures/`](fixtures/README.md)). Messwerte und Befunde:
 [`01-engine-spike.md`](../docs/implementation/01-engine-spike.md),
 [`02-anvil-bridge.md`](../docs/implementation/02-anvil-bridge.md),
 [`03-worker-transport-protocol.md`](../docs/implementation/03-worker-transport-protocol.md),
-[`04-forge-resources-card-scripts.md`](../docs/implementation/04-forge-resources-card-scripts.md).
+[`04-forge-resources-card-scripts.md`](../docs/implementation/04-forge-resources-card-scripts.md),
+[`05-engine-differential-tests.md`](../docs/implementation/05-engine-differential-tests.md).
 
 ## Aufbau
 
@@ -26,8 +30,10 @@ engine/
 ├── patches/               nummerierte GPL-Patches für den Einzel-Thread-Betrieb (siehe patches/README.md)
 ├── bridge/                Maven-Modul (erbt vom Forge-Parent): headless IGuiBase, Forge-Start,
 │                          Ressourcen-Bundle, KI-Rauchpartie; Paket bridge/ = Forges GUI für den
-│                          Menschen (Fragen, Zustand, Ereignisse); smoke/ = Testspieler und
-│                          Kartenprüfung (CardProbe); JVM-Tests
+│                          Menschen (Fragen, Zustand, Ereignisse); trace/ = Engine-Spur der
+│                          Differenztests; smoke/ = Testspieler und Kartenprüfung (CardProbe); JVM-Tests
+├── fixtures/              Testpartien der Differenztests (JSON): Decks und je Partie Seed, Spieler,
+│                          Engine-Einstellungen und was sie abdecken muss
 ├── protocol/              DER Vertrag UI <-> Engine: JSON-Schema, daraus erzeugte TS-Typen und
 │                          Prüfer, Eingabewarteschlange (SharedArrayBuffer), Feature-Erkennung
 ├── client/                EngineClient für den Main Thread: startet den Worker, prüft jede
@@ -36,7 +42,8 @@ engine/
 │   ├── java/              Wasm-Einstieg (WasmMain, @JS-Anbindung an den Worker)
 │   ├── config/agent/      eingefrorene Reachability-Metadaten (Tracing-Agent, Nicht-Forge-Bibliotheken)
 │   ├── host/              Worker-Host in TypeScript (Browser-Worker + Node-Worker-Thread)
-│   ├── spike/             Diagnoseseite (keine Oberfläche), Wiederholer für Aufzeichnungen, Invarianten
+│   ├── spike/             Diagnoseseite (keine Oberfläche), Wiederholer für Aufzeichnungen, Invarianten,
+│   │                      Vergleich/Prüfsumme/Abdeckung der Engine-Spur (trace.ts)
 │   └── test/              Node- und Chrome-Tests der echten Engine, Worker-Host-Unit-Tests, Server mit COOP/COEP
 ├── scripts/               reproduzierbarer Build und Tests
 ├── package.json           TypeScript-Werkzeuge (tsc, esbuild, Ajv, json-schema-to-typescript, playwright-core)
@@ -69,7 +76,7 @@ Browser-Artefakte) und `report/` (Zeiten, Speicher, Testergebnisse, Berichte von
 git submodule update --init --depth 1 engine/forge   # einmalig
 (cd engine && npm ci)                                 # einmalig (build-host.sh macht es sonst selbst)
 bash engine/scripts/build.sh                          # kompletter, sauberer Build (~6 min)
-bash engine/scripts/test-engine.sh                    # JVM-Referenz, Wasm in Node und Chrome (~10 min)
+bash engine/scripts/test-engine.sh                    # Differenztests: JVM-Referenz, Wasm in Node und Chrome (~20 min)
 ```
 
 `build.sh` führt nacheinander aus: `setup-toolchain.sh` → `build-host.sh`
@@ -95,21 +102,39 @@ Ergebnis in `engine/build/dist/`:
 
 Dazu `build/harness/spike.js`, das Skript der Diagnoseseite (nur Tests).
 
-`test-engine.sh` spielt: KI gegen KI (Seeds 42 und 7, Seed 42 auch auf Deutsch)
-auf der JVM, in Node und in Chrome, das Forge-Spielprotokoll muss überall gleich
-sein; fünf Mensch-gegen-KI-Partien auf der JVM mit dem Testspieler
-`ScriptedHuman` (eine davon auf Deutsch: dieselbe Partie wie auf Englisch),
-dessen Nachrichten gegen das Schema geprüft und dessen Eingaben aufgezeichnet
-werden (`build/report/transcripts/`). Die Kartenprüfung (`CardProbe`: Effekte,
-die Karten per Namen erzeugen, jede Kartenart, jedes Token, die neuesten Sets
-und jede Karte der Datenbank als Spielkarte) läuft auf der JVM faul, vollständig
-und auf Deutsch und muss in Node und Chrome denselben Fingerabdruck ergeben. Die Aufzeichnungen gehen in Node und Chrome über
-den `EngineClient` und die Warteschlange erneut in die Wasm-Engine, einmal
-eine Eingabe je Warten (Client und Engine müssen jede Eingabe gleich beurteilen)
-und einmal so viele wie hineinpassen in eine 256-Byte-Warteschlange; die Partie
-muss genau gleich enden. Dazu die Fehlerpfade des Protokolls gegen die echte
-Engine (`node-protocol.ts`), ein Versionskonflikt in Chrome und der Negativtest
-ohne COOP/COEP.
+`test-engine.sh` ist der **Differenztest JVM gegen WebAssembly** (Prompt 05).
+Verglichen wird die Engine-Spur (`diagnostics.trace`, Klasse
+`trace/EngineTrace`): an jeder Stelle, an der Forge auf eine Eingabe wartet,
+an jedem Schrittbeginn und am Spielende ein vollständiger Schnappschuss aus
+Forges Modell (jede Zone jedes Spielers, Bibliothek in Reihenfolge, Stapel mit
+Zielen, Kampf, Forges Markierungen und offene Fragen ohne Worte), dazwischen
+jedes Forge-Ereignis und jede Entscheidung der Bridge – nur Ids, englische
+Kartenschlüssel, Aufzählungsnamen und Zahlen. Keine Stelle hängt an einer Uhr,
+deshalb muss dieselbe Partie überall dieselbe Spur ergeben; die erste
+Abweichung bricht ab und nennt Zug, Schritt, gelesene Eingaben und das Feld.
+
+- **KI gegen KI** (Seeds 42 und 7; 42 auch faul geladen und auf Deutsch – dieselbe
+  Spur) auf der JVM, in Node und in Chrome: Spur und Forge-Spielprotokoll gleich.
+- **Die Testpartien** aus [`fixtures/differential`](fixtures/README.md): Der
+  Testspieler `ScriptedHuman` spielt jede auf der JVM; Eingaben und Spur werden
+  aufgezeichnet (`build/report/transcripts/`), jede Nachricht gegen das Schema
+  geprüft. `check-traces.ts` prüft, dass jede Partie zeigt, was sie abdecken
+  soll, dass die Varianten (Deutsch, faules Laden) exakt dieselbe Partie sind
+  und dass alle Partien zusammen abdecken, was Prompt 05 verlangt (Mulligan,
+  Länder und Zauber, Priorität, Kosten, Ziele, Stapel, Kampf, Blocker-Zuordnung,
+  Zonen, Spielende, Commander). Node und Chrome spielen die Aufzeichnungen über
+  den `EngineClient` und die Warteschlange nach – eine Eingabe je Warten (Client
+  und Engine müssen jede Eingabe gleich beurteilen) und/oder so viele wie in eine
+  256-Byte-Warteschlange passen – und müssen dieselbe Spur erzeugen.
+- Dazu die Kartenprüfung (`CardProbe`, faul, vollständig, deutsch: derselbe
+  Fingerabdruck auf JVM, Node und Chrome), die Fehlerpfade des Protokolls gegen
+  die echte Engine (`node-protocol.ts`), ein Versionskonflikt in Chrome und der
+  Negativtest ohne COOP/COEP. Läuft Forges Zeitbudget für „hat der Spieler
+  etwas zu tun“ ab, scheitert der Test (die Partie wäre zeitabhängig).
+
+Einzelne Werkzeuge: `node wasm/test/compare-traces.ts <a> <b>` vergleicht zwei
+Spuren (JSON-Zeilen oder Aufzeichnung), `node wasm/test/fixtures.ts list`
+zeigt die Testpartien.
 
 ## Start-Argumente der Engine
 
@@ -118,7 +143,9 @@ Kartendatenbank mitten in der Partie nach, sobald ein Effekt oder der Spieler
 alle Karten braucht, im Wasm gemessen 17 s in Chrome, bis 42 s in Node) und `--language=en-US|de-DE`
 (Standard `en-US`, Sprache von Forges Meldungen und Spielverlauf). Die
 JVM-Werkzeuge (`JvmSmokeMain`, `JvmHumanMatchMain`, `JvmCardProbeMain`) nehmen
-dieselben Werte als `--card-loading`/`--language`.
+dieselben Werte als `--card-loading`/`--language`; `JvmHumanMatchMain
+--scenario` liest sie aus der Testpartie, `JvmSmokeMain --trace <datei>`
+schreibt die Engine-Spur der KI-Partie.
 
 ## Diagnoseseite von Hand öffnen
 

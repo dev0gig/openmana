@@ -1,0 +1,12 @@
+{
+  "description": "Red (burn, creatures, charms, scry) against Forge's AI with Green; the player plays everything Forge offers, attacks with everything, never blocks. Seed 3: the reference game since prompt 02 (Forge log c1e990c6).",
+  "match": {
+    "seed": 3,
+    "format": "constructed",
+    "human": { "name": "Player", "deck": "smoke-red-plus" },
+    "ai": { "name": "Forge AI", "profile": "Default", "deck": "smoke-green" }
+  },
+  "player": { "attack": "all", "block": "none" },
+  "wasm": { "node": ["lazy", "eager"], "browser": ["lazy", "eager"] },
+  "covers": ["mulligan", "land", "spell", "priority-play", "payment-auto", "payment-manual", "target-card", "target-player", "trigger", "stack-resolve", "attack", "decision-arrange", "decision-choose", "decision-select", "input-rejected", "state-request", "zone:Library->Hand", "zone:Hand->Battlefield", "zone:Hand->Stack", "zone:Stack->Graveyard", "zone:Battlefield->Graveyard", "end-loss", "end-life"]
+}

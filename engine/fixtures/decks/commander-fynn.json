@@ -1,0 +1,19 @@
+{
+  "name": "OpenMana Commander Fynn",
+  "main": [
+    { "card": "Llanowar Elves", "count": 1 },
+    { "card": "Grizzly Bears", "count": 1 },
+    { "card": "Runeclaw Bear", "count": 1 },
+    { "card": "Kalonian Tusker", "count": 1 },
+    { "card": "Centaur Courser", "count": 1 },
+    { "card": "Trained Armodon", "count": 1 },
+    { "card": "Giant Spider", "count": 1 },
+    { "card": "Craw Wurm", "count": 1 },
+    { "card": "Giant Growth", "count": 1 },
+    { "card": "Rampant Growth", "count": 1 },
+    { "card": "Forest", "count": 89 }
+  ],
+  "commander": [
+    { "card": "Fynn, the Fangbearer", "count": 1 }
+  ]
+}

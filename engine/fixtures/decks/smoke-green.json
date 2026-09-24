@@ -1,0 +1,16 @@
+{
+  "name": "OpenMana Smoke Green",
+  "main": [
+    { "card": "Forest", "count": 22 },
+    { "card": "Llanowar Elves", "count": 4 },
+    { "card": "Grizzly Bears", "count": 4 },
+    { "card": "Runeclaw Bear", "count": 4 },
+    { "card": "Kalonian Tusker", "count": 4 },
+    { "card": "Centaur Courser", "count": 4 },
+    { "card": "Trained Armodon", "count": 4 },
+    { "card": "Giant Spider", "count": 4 },
+    { "card": "Craw Wurm", "count": 2 },
+    { "card": "Giant Growth", "count": 4 },
+    { "card": "Rampant Growth", "count": 4 }
+  ]
+}

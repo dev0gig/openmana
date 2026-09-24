@@ -7,7 +7,7 @@
 import type * as P from "./protocol.ts";
 
 /** Version of the UI<->engine contract (must equal the bridge's Protocol.VERSION). */
-export const PROTOCOL_VERSION = 2 as const satisfies P.ProtocolVersion;
+export const PROTOCOL_VERSION = 3 as const satisfies P.ProtocolVersion;
 
 /** Every value of BootPhase. */
 export const BOOT_PHASES = ["worker-features","launcher-load","wasm-fetch-compile","java-main"] as const satisfies readonly P.BootPhase[];
@@ -44,3 +44,9 @@ export const CARD_LOADINGS = ["lazy","eager"] as const satisfies readonly P.Card
 
 /** Every value of EngineLanguage. */
 export const ENGINE_LANGUAGES = ["en-US","de-DE"] as const satisfies readonly P.EngineLanguage[];
+
+/** Every value of TraceCheckpoint. */
+export const TRACE_CHECKPOINTS = ["input","phase","end"] as const satisfies readonly P.TraceCheckpoint[];
+
+/** Every value of TraceEventKind. */
+export const TRACE_EVENT_KINDS = ["answered","ante","attach","attackers","blockers","cast","coin","combatChanged","combatEnded","combatUpdate","control","counters","damage","dayTime","destroyed","die","door","end","finished","foretold","gameStarted","input","land","life","log","mana","manaBurn","message","mode","move","mulligan","outcome","phase","phased","playerCounters","playerDamage","playerStats","plotted","poison","priority","question","radiation","randomLog","regenerated","rejected","resolve","restarted","sacrificed","scry","shards","shuffle","snapshotRestored","speed","sprocket","started","stats","subgameEnd","subgameStart","surveil","tap","token","turn","turnEnded","unstack","withdrawn","zone"] as const satisfies readonly P.TraceEventKind[];

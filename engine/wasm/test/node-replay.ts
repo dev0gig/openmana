@@ -2,12 +2,14 @@
 // A JVM-recorded human-vs-AI game, replayed in the Wasm engine in Node through
 // the real EngineClient and SharedArrayBuffer input queue; Forge blocks in
 // Atomics.wait while it waits for the next input. Same worker host code as in
-// the browser. What is compared: engine/wasm/spike/replay.ts.
+// the browser. What is compared: engine/wasm/spike/replay.ts (above all the
+// engine trace, entry by entry).
 //
 //   node engine/wasm/test/node-replay.ts --transcript t.json [--feeding lazy|eager]
 //        [--queue-capacity <bytes>] [--card-loading lazy|eager] [--language en-US|de-DE]
 //        [--out result.json] [--dist <dir>]
 //
+// Card loading and language default to the transcript's engine settings.
 // Exit code 0 only if the game ends exactly as on the JVM.
 import fs from "node:fs";
 import path from "node:path";
@@ -18,8 +20,6 @@ const args = process.argv.slice(2);
 const distDir = path.resolve(option(args, "--dist", path.join(ENGINE_DIR, "build", "dist")));
 const transcriptFile = option(args, "--transcript", null);
 const feeding = option(args, "--feeding", "lazy") as Feeding;
-const cardLoading = option(args, "--card-loading", "eager");
-const language = option(args, "--language", "en-US");
 const queueCapacity = Number(option(args, "--queue-capacity", feeding === "eager" ? "256" : "65536"));
 const outFile = option(args, "--out", null);
 const TIMEOUT_MS = 600_000;
@@ -29,6 +29,8 @@ if (!transcriptFile || (feeding !== "lazy" && feeding !== "eager")) {
 }
 
 const transcript = JSON.parse(fs.readFileSync(transcriptFile, "utf8")) as Transcript;
+const cardLoading = option(args, "--card-loading", transcript.engine?.cardLoading ?? "eager");
+const language = option(args, "--language", transcript.engine?.language ?? "en-US");
 const baselineMiB = vmHwmMiB();
 const origin = performance.now();
 const since = () => Math.round(performance.now() - origin);
@@ -50,6 +52,7 @@ phases["finished"] = since();
 const report = {
   runtime: `node ${process.versions.node} (V8 ${process.versions.v8})`,
   transcript: path.basename(transcriptFile),
+  fixture: transcript.name ?? null,
   seed: transcript.request.seed,
   recordedInputs: transcript.inputs.length,
   cardLoading,
@@ -64,6 +67,7 @@ const report = {
   engineStepMs: verdict.engineStepMs,
   queue: verdict.queue,
   validation: verdict.validation,
+  trace: verdict.trace,
   counters: verdict.counters,
   result: verdict.summary,
   abort: client.abortInfo,

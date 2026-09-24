@@ -32,6 +32,7 @@ const TYPES = {
   ".cjs": "text/javascript; charset=utf-8",
   ".wasm": "application/wasm",
   ".json": "application/json; charset=utf-8",
+  ".jsonl": "application/x-ndjson; charset=utf-8",
   ".map": "application/json; charset=utf-8",
 };
 

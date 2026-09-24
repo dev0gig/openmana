@@ -1,0 +1,6 @@
+{
+  "description": "human-3 with lazy card loading: Forge loads card scripts on demand, the game must be the same. The engine trace must equal human-3's (JVM only; the Wasm AI games cover lazy loading in the browser).",
+  "sameGameAs": "human-3",
+  "engine": { "cardLoading": "lazy" },
+  "wasm": { "node": [], "browser": [] }
+}

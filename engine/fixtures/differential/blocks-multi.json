@@ -1,0 +1,12 @@
+{
+  "description": "Green creatures against Forge's AI with Red: the player attacks in every second own combat and assigns blockers to attackers (tap an attacker, then a creature Forge offers to block it). Seed 7: two attackers blocked in one combat, combat damage distributed.",
+  "match": {
+    "seed": 7,
+    "format": "constructed",
+    "human": { "name": "Player", "deck": "smoke-green" },
+    "ai": { "name": "Forge AI", "profile": "Default", "deck": "smoke-red" }
+  },
+  "player": { "attack": "alternate", "block": "assign" },
+  "wasm": { "node": ["lazy", "eager"], "browser": ["lazy"] },
+  "covers": ["mulligan", "land", "spell", "priority-play", "payment-auto", "payment-manual", "attack", "block", "block-multi", "decision-distribute", "zone:Stack->Battlefield", "end-loss", "end-life"]
+}

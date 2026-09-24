@@ -221,9 +221,19 @@ public final class HeadlessGuiBase implements IGuiBase {
         EngineDiagnostics.recordForgeError(title, text);
     }
 
+    /**
+     * Forge's only caller is its achievement system: when a game ends, the
+     * human's achievements are updated (FControlGameEventHandler →
+     * AchievementCollection.updateAll) and a newly earned one is shown as an
+     * image dialog. Achievements belong to Forge's own UIs; the engine drops
+     * the dialog. Throwing here (as for the other UI paths) broke the end of
+     * a game: Guava's event bus swallowed the exception before Forge called
+     * finishGame (found by the Commander fixture of the differential tests,
+     * prompt 05).
+     */
     @Override
     public void showImageDialog(final ISkinImage image, final String message, final String title) {
-        throw notInHeadlessEngine("showImageDialog");
+        // intentionally empty
     }
 
     @Override

@@ -1,0 +1,6 @@
+{
+  "description": "human-3 with Forge speaking German: Forge's texts change, the game must not. The engine trace must equal human-3's.",
+  "sameGameAs": "human-3",
+  "engine": { "language": "de-DE" },
+  "wasm": { "node": ["lazy"], "browser": [] }
+}

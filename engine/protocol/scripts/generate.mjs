@@ -59,6 +59,8 @@ const ENUM_LISTS = {
   MATCH_FORMATS: "MatchFormat",
   CARD_LOADINGS: "CardLoading",
   ENGINE_LANGUAGES: "EngineLanguage",
+  TRACE_CHECKPOINTS: "TraceCheckpoint",
+  TRACE_EVENT_KINDS: "TraceEventKind",
 };
 
 function fail(message) {

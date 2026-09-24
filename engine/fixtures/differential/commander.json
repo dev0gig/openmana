@@ -1,0 +1,12 @@
+{
+  "description": "Commander, two legal 100-card decks (commander plus singletons and basic lands): Krenko, Tin Street Kingpin for the player against Fynn, the Fangbearer for Forge's AI. Seed 5: Krenko is cast from the command zone, dies, returns there and is cast again with commander tax; both commanders deal combat damage; the player wins at 40 life.",
+  "match": {
+    "seed": 5,
+    "format": "commander",
+    "human": { "name": "Player", "deck": "commander-krenko" },
+    "ai": { "name": "Forge AI", "profile": "Default", "deck": "commander-fynn" }
+  },
+  "player": { "attack": "all", "block": "none" },
+  "wasm": { "node": ["lazy", "eager"], "browser": ["lazy"] },
+  "covers": ["commander-cast", "commander-tax", "commander-return", "commander-damage", "trigger", "attack", "target-player", "zone:Command->Stack", "zone:Graveyard->Command", "end-win", "end-life"]
+}

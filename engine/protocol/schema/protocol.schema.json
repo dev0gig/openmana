@@ -11,8 +11,8 @@
   "$defs": {
     "ProtocolVersion": {
       "title": "ProtocolVersion",
-      "description": "Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe.",
-      "const": 2
+      "description": "Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace).",
+      "const": 3
     },
 
     "EngineMessage": {
@@ -29,6 +29,7 @@
         { "$ref": "#/$defs/MatchFinished" },
         { "$ref": "#/$defs/DiagnosticsResult" },
         { "$ref": "#/$defs/DiagnosticsCards" },
+        { "$ref": "#/$defs/DiagnosticsTrace" },
         { "$ref": "#/$defs/GameStarted" },
         { "$ref": "#/$defs/GameState" },
         { "$ref": "#/$defs/GameEvents" },
@@ -243,7 +244,7 @@
     },
     "MatchSummary": {
       "title": "MatchSummary",
-      "description": "logSha256: hash of Forge's complete game log (equal on JVM and Wasm for the same seed and inputs); protocolSha256: fingerprint of every decision message (all but state and events); forgeCallbacks: Forge's calls into the GUI by method.",
+      "description": "logSha256: hash of Forge's complete game log (equal on JVM and Wasm for the same seed and inputs); protocolSha256: fingerprint of every decision message (all but state and events); forgeCallbacks: Forge's calls into the GUI by method; trace: only for a traced match (MatchRequest.trace), how many trace entries and events the engine sent.",
       "type": "object",
       "additionalProperties": false,
       "required": ["winner", "reason", "turns", "result", "players", "conceded", "gameMillis", "inputs", "logEntries", "logSha256", "protocolMessages", "protocolSha256", "forgeCallbacks", "forgeErrors", "threadViolations"],
@@ -261,6 +262,7 @@
         "protocolMessages": { "type": "integer", "minimum": 0 },
         "protocolSha256": { "$ref": "#/$defs/Sha256" },
         "forgeCallbacks": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 }, "description": "Forge's calls into the GUI, counted by method." },
+        "trace": { "$ref": "#/$defs/TraceSummary" },
         "forgeErrors": { "type": "array", "items": { "type": "string" } },
         "threadViolations": { "type": "array", "items": { "type": "string" } }
       }
@@ -286,6 +288,240 @@
       "properties": {
         "type": { "const": "diagnostics.cards" },
         "result": { "$ref": "#/$defs/CardProbeResult" }
+      }
+    },
+    "DiagnosticsTrace": {
+      "title": "DiagnosticsTrace",
+      "description": "Engine tests only (differential tests, prompt 05): one entry of the engine trace, sent during a match whose request asked for it (MatchRequest.trace) or during a traced diagnostics.ai-match. A structured, language-independent record of the game for comparing the JVM and the WebAssembly engine: a checkpoint with a complete snapshot plus every event since the previous entry. It contains hidden information (libraries, the AI's hand) and is never shown to a player.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "n", "at", "inputs", "events", "snapshot"],
+      "properties": {
+        "type": { "const": "diagnostics.trace" },
+        "n": { "type": "integer", "minimum": 1, "description": "Entry number: 1, 2, 3 … without gaps." },
+        "at": { "$ref": "#/$defs/TraceCheckpoint" },
+        "inputs": { "type": "integer", "minimum": 0, "description": "Inputs the engine had read at this checkpoint." },
+        "events": { "type": "array", "items": { "$ref": "#/$defs/TraceEvent" } },
+        "snapshot": { "$ref": "#/$defs/TraceSnapshot" }
+      }
+    },
+    "TraceCheckpoint": {
+      "title": "TraceCheckpoint",
+      "description": "Where an entry was taken: input = Forge waits for the player's next input; phase = a step of a turn begins; end = Forge finished the game. None depends on a clock.",
+      "enum": ["input", "phase", "end"]
+    },
+    "TraceEventKind": {
+      "title": "TraceEventKind",
+      "description": "Forge's game events (bridge TraceEvents: one kind per Forge event class, e.g. cast, resolve, move, attackers, blockers, damage, mana, priority, phase, log) and the bridge's own: started (game.started), question, withdrawn, answered, rejected (input.rejected), message (kind only), end (game.end), input (what the engine read).",
+      "enum": ["answered", "ante", "attach", "attackers", "blockers", "cast", "coin", "combatChanged", "combatEnded", "combatUpdate", "control", "counters", "damage", "dayTime", "destroyed", "die", "door", "end", "finished", "foretold", "gameStarted", "input", "land", "life", "log", "mana", "manaBurn", "message", "mode", "move", "mulligan", "outcome", "phase", "phased", "playerCounters", "playerDamage", "playerStats", "plotted", "poison", "priority", "question", "radiation", "randomLog", "regenerated", "rejected", "resolve", "restarted", "sacrificed", "scry", "shards", "shuffle", "snapshotRestored", "speed", "sprocket", "started", "stats", "subgameEnd", "subgameStart", "surveil", "tap", "token", "turn", "turnEnded", "unstack", "withdrawn", "zone"]
+    },
+    "TraceEvent": {
+      "title": "TraceEvent",
+      "description": "One event of the engine trace. e is its kind; the other fields are ids, English card keys (key: Forge's oracle name), references (c<card id>, p<player id>, <ZoneType>:<player id>), enum names and numbers - never Forge's display texts. A diagnostics record, compared as a whole; its fields depend on the kind.",
+      "type": "object",
+      "required": ["e"],
+      "properties": {
+        "e": { "$ref": "#/$defs/TraceEventKind" }
+      },
+      "additionalProperties": true
+    },
+    "TraceSnapshot": {
+      "title": "TraceSnapshot",
+      "description": "The complete game at a checkpoint, from Forge's model: every zone of every player (the library in order and hidden hands included), the stack with targets, combat. In a human game also human (the human seat), gui (Forge's markers for that seat) and questions (the open ones, without words).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["turn", "phase", "active", "priority", "players", "stack", "combat"],
+      "properties": {
+        "turn": { "type": "integer", "minimum": 0 },
+        "phase": { "anyOf": [{ "$ref": "#/$defs/Phase" }, { "type": "null" }] },
+        "active": { "anyOf": [{ "$ref": "#/$defs/PlayerId" }, { "type": "null" }] },
+        "priority": { "anyOf": [{ "$ref": "#/$defs/PlayerId" }, { "type": "null" }] },
+        "human": { "anyOf": [{ "$ref": "#/$defs/PlayerId" }, { "type": "null" }] },
+        "players": { "type": "array", "items": { "$ref": "#/$defs/TracePlayer" } },
+        "stack": { "type": "array", "items": { "$ref": "#/$defs/TraceStackItem" }, "description": "Top first." },
+        "combat": { "type": "array", "items": { "$ref": "#/$defs/TraceCombatEntry" } },
+        "gui": { "$ref": "#/$defs/TraceMarkers" },
+        "questions": { "type": "array", "items": { "$ref": "#/$defs/TraceQuestion" } }
+      }
+    },
+    "TracePlayer": {
+      "title": "TracePlayer",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "life", "lost", "counters", "mana", "lands", "library", "hand", "graveyard", "exile", "command", "battlefield"],
+      "properties": {
+        "id": { "$ref": "#/$defs/PlayerId" },
+        "life": { "type": "integer" },
+        "lost": { "type": "boolean" },
+        "counters": { "$ref": "#/$defs/Counters" },
+        "mana": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Mana in the pool; only colours with an amount.",
+          "properties": {
+            "W": { "type": "integer" }, "U": { "type": "integer" }, "B": { "type": "integer" },
+            "R": { "type": "integer" }, "G": { "type": "integer" }, "C": { "type": "integer" }
+          }
+        },
+        "lands": { "type": "integer", "minimum": 0, "description": "Lands played this turn." },
+        "library": { "type": "array", "items": { "$ref": "#/$defs/CardId" }, "description": "Top first, ids only." },
+        "hand": { "type": "array", "items": { "$ref": "#/$defs/TraceCard" } },
+        "graveyard": { "type": "array", "items": { "$ref": "#/$defs/TraceCard" } },
+        "exile": { "type": "array", "items": { "$ref": "#/$defs/TraceCard" } },
+        "command": { "type": "array", "items": { "$ref": "#/$defs/TraceCard" } },
+        "battlefield": { "type": "array", "items": { "$ref": "#/$defs/TracePermanent" } },
+        "commanders": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["card", "cast", "damage"],
+            "properties": {
+              "card": { "$ref": "#/$defs/CardId" },
+              "cast": { "type": "integer", "minimum": 0 },
+              "damage": { "type": "object", "additionalProperties": { "type": "integer" }, "description": "Player id -> combat damage this commander dealt to that player." }
+            }
+          }
+        }
+      }
+    },
+    "TraceCard": {
+      "title": "TraceCard",
+      "description": "A card outside the battlefield: id, English key (Forge's oracle name), the face it shows if not its original one.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "key"],
+      "properties": {
+        "id": { "$ref": "#/$defs/CardId" },
+        "key": { "type": ["string", "null"] },
+        "state": { "type": "string" },
+        "token": { "const": true },
+        "faceDown": { "const": true }
+      }
+    },
+    "TracePermanent": {
+      "title": "TracePermanent",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "key"],
+      "properties": {
+        "id": { "$ref": "#/$defs/CardId" },
+        "key": { "type": ["string", "null"] },
+        "state": { "type": "string" },
+        "token": { "const": true },
+        "faceDown": { "const": true },
+        "owner": { "$ref": "#/$defs/PlayerId" },
+        "tapped": { "const": true },
+        "sick": { "const": true },
+        "damage": { "type": "integer" },
+        "counters": { "$ref": "#/$defs/Counters" },
+        "power": { "type": "integer" },
+        "toughness": { "type": "integer" },
+        "loyalty": { "type": "integer" },
+        "defense": { "type": "integer" },
+        "attachedTo": { "$ref": "#/$defs/TraceEntityRef" },
+        "phasedOut": { "const": true }
+      }
+    },
+    "TraceStackItem": {
+      "title": "TraceStackItem",
+      "description": "api: what the effect does (Forge's ApiType, e.g. DealDamage), not its text.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["card", "key", "player", "api", "spell", "trigger", "targets"],
+      "properties": {
+        "card": { "anyOf": [{ "$ref": "#/$defs/CardId" }, { "type": "null" }] },
+        "key": { "type": ["string", "null"] },
+        "player": { "anyOf": [{ "$ref": "#/$defs/PlayerId" }, { "type": "null" }] },
+        "api": { "type": ["string", "null"] },
+        "spell": { "type": "boolean" },
+        "trigger": { "type": "boolean" },
+        "targets": { "type": "array", "items": { "$ref": "#/$defs/TraceTarget" } }
+      }
+    },
+    "TraceCombatEntry": {
+      "title": "TraceCombatEntry",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attacker", "defender", "blockers"],
+      "properties": {
+        "attacker": { "$ref": "#/$defs/CardId" },
+        "defender": { "anyOf": [{ "$ref": "#/$defs/TraceEntityRef" }, { "type": "null" }] },
+        "blockers": { "type": "array", "items": { "$ref": "#/$defs/CardId" } }
+      }
+    },
+    "TraceMarkers": {
+      "title": "TraceMarkers",
+      "description": "What Forge marked for the human seat's GUI (look-ups in the GUI's own sets): playable (weakly selectable), highlighted, selectable.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["playable", "highlighted", "selectable"],
+      "properties": {
+        "playable": { "type": "array", "items": { "$ref": "#/$defs/CardId" } },
+        "highlighted": { "type": "array", "items": { "$ref": "#/$defs/CardId" } },
+        "selectable": { "type": "array", "items": { "$ref": "#/$defs/CardId" } }
+      }
+    },
+    "TraceQuestion": {
+      "title": "TraceQuestion",
+      "description": "A question without its words (text, button labels, card views): kind, limits, flags and what its items refer to.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "blocking"],
+      "properties": {
+        "id": { "$ref": "#/$defs/QuestionId" },
+        "kind": { "$ref": "#/$defs/QuestionKind" },
+        "blocking": { "type": "boolean" },
+        "purpose": { "$ref": "#/$defs/ButtonsPurpose" },
+        "card": { "$ref": "#/$defs/CardId" },
+        "cards": { "type": "array", "items": { "$ref": "#/$defs/CardId" } },
+        "min": { "type": "integer" },
+        "max": { "type": "integer" },
+        "total": { "type": "integer" },
+        "others": { "type": "integer" },
+        "remainingMin": { "type": "integer" },
+        "remainingMax": { "type": "integer" },
+        "numeric": { "type": "boolean" },
+        "cancellable": { "type": "boolean" },
+        "toTop": { "type": "boolean" },
+        "toBottom": { "type": "boolean" },
+        "toAnywhere": { "type": "boolean" },
+        "suggested": {
+          "description": "Forge's suggestion unless it is text: a boolean (confirm), a number (options) or item numbers (choose, order).",
+          "anyOf": [{ "type": "boolean" }, { "type": "integer" }, { "type": "array", "items": { "type": "integer" } }]
+        },
+        "buttons": { "type": "array", "items": { "type": "boolean" }, "description": "Whether button 1 and 2 are enabled." },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/TraceItemRef" } },
+        "revealed": { "type": "array", "items": { "$ref": "#/$defs/TraceItemRef" } }
+      }
+    },
+    "TraceItemRef": {
+      "title": "TraceItemRef",
+      "description": "What an item stands for: c<card id>, p<player id>, hidden (a card the player may not see) or #<item number> (only words).",
+      "type": "string",
+      "pattern": "^(c-?[0-9]+|p-?[0-9]+|hidden|#[0-9]+)$"
+    },
+    "TraceEntityRef": {
+      "title": "TraceEntityRef",
+      "description": "c<card id> or p<player id>.",
+      "type": "string",
+      "pattern": "^[cp]-?[0-9]+$"
+    },
+    "TraceTarget": {
+      "title": "TraceTarget",
+      "description": "c<card id>, p<player id> or s<card id> (a spell on the stack, by its card; s? if it has none).",
+      "type": "string",
+      "pattern": "^([cp]-?[0-9]+|s(-?[0-9]+|\\?))$"
+    },
+    "TraceSummary": {
+      "title": "TraceSummary",
+      "description": "How many trace entries and events the engine sent (the receiver must have them all).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entries", "events"],
+      "properties": {
+        "entries": { "type": "integer", "minimum": 0 },
+        "events": { "type": "integer", "minimum": 0 }
       }
     },
     "CardProbeResult": {
@@ -430,6 +666,7 @@
         "logEntries": { "type": "integer", "minimum": 0 },
         "logSha256": { "$ref": "#/$defs/Sha256" },
         "log": { "type": "array", "items": { "type": "string" } },
+        "trace": { "$ref": "#/$defs/TraceSummary" },
         "forgeErrors": { "type": "array", "items": { "type": "string" } }
       }
     },
@@ -1249,14 +1486,15 @@
     },
     "DiagnosticsAiMatchCommand": {
       "title": "DiagnosticsAiMatchCommand",
-      "description": "Engine tests only: Forge's AI plays itself with fixed smoke decks.",
+      "description": "Engine tests only: Forge's AI plays itself with fixed smoke decks. trace: the engine also sends its trace (diagnostics.trace) during the game.",
       "type": "object",
       "additionalProperties": false,
       "required": ["type", "seed", "includeLog"],
       "properties": {
         "type": { "const": "diagnostics.ai-match" },
         "seed": { "type": "integer" },
-        "includeLog": { "type": "boolean" }
+        "includeLog": { "type": "boolean" },
+        "trace": { "type": "boolean" }
       }
     },
     "DiagnosticsCardProbeCommand": {
@@ -1277,6 +1515,7 @@
       "required": ["format", "human", "ai"],
       "properties": {
         "seed": { "type": ["integer", "null"], "description": "Fixed seed for reproducible games (tests); absent or null = random." },
+        "trace": { "type": "boolean", "description": "Engine tests only (differential tests, prompt 05): the engine also sends its trace (diagnostics.trace), which contains hidden information. The UI never sets it." },
         "format": { "$ref": "#/$defs/MatchFormat" },
         "human": {
           "type": "object",

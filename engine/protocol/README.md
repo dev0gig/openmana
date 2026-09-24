@@ -1,11 +1,12 @@
-# OpenMana-Protokoll (Version 2)
+# OpenMana-Protokoll (Version 3)
 
 Der **einzige Vertrag** zwischen der OpenMana-Oberfläche und der Engine (Forge
 im Dedicated Worker). Die Oberfläche sieht keine Forge-Klassen und rechnet
 keine Regel aus; Forge entscheidet alles, das Protokoll transportiert und
 prüft nur. Eingeführt mit Prompt 03, Nachweise in
 [`docs/implementation/03-worker-transport-protocol.md`](../../docs/implementation/03-worker-transport-protocol.md);
-Version 2 mit Prompt 04 (siehe [unten](#änderungen-in-version-2-prompt-04)).
+Version 2 mit Prompt 04 (siehe [unten](#änderungen-in-version-2-prompt-04)),
+Version 3 mit Prompt 05 (siehe [unten](#änderungen-in-version-3-prompt-05)).
 
 ```
  UI ──ruft──▶ EngineClient (Main Thread) ──WorkerCommand (postMessage, nur wenn der Worker frei ist)──▶ Worker-Host
@@ -26,7 +27,7 @@ Version 2 mit Prompt 04 (siehe [unten](#änderungen-in-version-2-prompt-04)).
 
 ## Versionen
 
-- `ProtocolVersion` ist eine ganze Zahl (jetzt **2**). UI, Worker-Host und
+- `ProtocolVersion` ist eine ganze Zahl (jetzt **3**). UI, Worker-Host und
   Engine müssen **genau dieselbe** Version sprechen; es gibt keine
   Aushandlung. Eine App liefert UI und Engine immer zusammen aus
   (`engine.lock.json`, Prompt 25/26); eine Abweichung heißt „alter Cache“ oder
@@ -62,6 +63,7 @@ Version 2 mit Prompt 04 (siehe [unten](#änderungen-in-version-2-prompt-04)).
 | `match.finished` | Forge hat die Partie verlassen; technische Zusammenfassung (Hashes, Zähler) |
 | `diagnostics.result` | Ergebnis einer KI-gegen-KI-Testpartie (nur Tests) |
 | `diagnostics.cards` | Ergebnis der Kartenprüfung (`CardProbeResult`, nur Tests; die Objekte in den Abschnitten sind freie Diagnose, kein UI-Vertrag) |
+| `diagnostics.trace` | Ein Eintrag der **Engine-Spur** (nur Tests, nur wenn angefordert, siehe [unten](#die-engine-spur-nur-tests)) |
 | `game.started` | Partie beginnt (`protocol`, Namen, KI-Profil, Format, `cardNames` beider Decks ohne Besitzer) |
 | `state` | **vollständiger** Zustand, nie ein Delta; `seq` steigt streng |
 | `events` | neue Einträge aus Forges Spielprotokoll, **vor** dem Zustand, den sie erklären |
@@ -84,8 +86,9 @@ Wiederholung oder eine fehlende Nummer heißt, dass der Transport kaputt ist:
 
 `engine.start` (Protokollversion, Adressen von Launcher und Modul, Argumente,
 die Warteschlange, ob Cross-Origin-Isolation Pflicht ist), `match.start`
-(`MatchRequest`: Seed, Format, Mensch mit Deck, KI mit Profil und Deck),
-`diagnostics.ai-match` und `diagnostics.card-probe` (nur Tests). Befehle wirken
+(`MatchRequest`: Seed, Format, Mensch mit Deck, KI mit Profil und Deck; nur in
+Tests `trace`), `diagnostics.ai-match` (nur Tests, optional `trace`) und
+`diagnostics.card-probe` (nur Tests). Befehle wirken
 nur, wenn der Worker frei ist: Während einer Partie steckt er in Forges
 Java-Stack und liest nur die Warteschlange.
 
@@ -207,12 +210,53 @@ cd engine
 npm run generate          # nach einer Schema-Änderung (dann Version hochzählen!)
 npm run check:generated   # erzeugte Dateien = Schema?
 npm run typecheck         # tsc, strict
-npm run test:unit         # Protokoll, Client, Worker-Host (node:test)
+npm run test:unit         # Protokoll, Client, Worker-Host, Spur-Werkzeug (node:test)
 npm run bundle            # Worker- und Diagnose-Bundle (esbuild)
 ```
 
 `engine/scripts/build-host.sh` macht alles zusammen und läuft als erster
 Schritt von `build.sh`.
+
+## Die Engine-Spur (nur Tests)
+
+Für die Differenztests JVM gegen WebAssembly (Prompt 05) schickt die Engine auf
+Wunsch eine **strukturierte, sprachunabhängige Aufzeichnung der Partie**:
+`MatchRequest.trace: true` bzw. `diagnostics.ai-match` mit `trace: true`. Die
+Oberfläche setzt das nie: Die Spur enthält verdeckte Information (Bibliotheken,
+die Hand der KI).
+
+- Jede Nachricht `diagnostics.trace` ist ein nummerierter Checkpoint (`n` = 1,
+  2, 3 … ohne Lücke) mit `at` = `input` (Forge wartet auf die nächste Eingabe),
+  `phase` (ein Schritt beginnt) oder `end` (Forge hat die Partie beendet),
+  `inputs` (bis dahin gelesene Eingaben), `events` (alles seit dem vorigen
+  Eintrag) und `snapshot` (die ganze Partie aus Forges Modell: jede Zone jedes
+  Spielers samt Bibliotheksreihenfolge, Stapel mit Zielen und `api`, Kampf,
+  im Menschenspiel Forges Markierungen und die offenen Fragen ohne Worte).
+- Ereignisse (`TraceEvent`, `e` = `TraceEventKind`): je Forge-Ereignisklasse
+  eine Art (`cast`, `resolve`, `move`, `attackers`, `blockers`, `damage`,
+  `mana`, `priority`, `phase`, `log` …) und die der Bridge (`started`,
+  `question`, `withdrawn`, `answered`, `rejected`, `message`, `end`, `input`).
+  Nur Ids, englische Kartenschlüssel, Aufzählungsnamen, Zahlen und Verweise
+  (`c<Karten-Id>`, `p<Spieler-Id>`, `<Zone>:<Spieler-Id>`), nie Forges Texte.
+- Kein Checkpoint hängt an einer Uhr: Dieselbe Partie ergibt auf JVM, Node und
+  Chrome dieselbe Spur, auf Deutsch dieselbe wie auf Englisch.
+- Der Client nimmt `diagnostics.trace` nur an, wenn die Partie bzw. die
+  KI-Testpartie sie angefordert hat, nur lückenlos nummeriert, und prüft am
+  Ende, dass `MatchSummary.trace.entries` bzw. `AiMatchResult.trace.entries`
+  genau die angekommenen Einträge zählt. Alles andere ist ein
+  `protocol-violation`.
+
+Vergleich, Prüfsumme und Abdeckung: [`engine/wasm/spike/trace.ts`](../wasm/spike/trace.ts);
+die Testpartien: [`engine/fixtures`](../fixtures/README.md).
+
+## Änderungen in Version 3 (Prompt 05)
+
+- `MatchRequest.trace` und `DiagnosticsAiMatchCommand.trace` (optional, nur
+  Tests), neue Nachricht `diagnostics.trace` (`DiagnosticsTrace` mit
+  `TraceCheckpoint`, `TraceEvent`/`TraceEventKind`, `TraceSnapshot` …),
+  `MatchSummary.trace` und `AiMatchResult.trace` (`TraceSummary`: Einträge und
+  Ereignisse). Neue Konstanten `TRACE_CHECKPOINTS`, `TRACE_EVENT_KINDS`.
+- Eine Partie ohne `trace` verläuft und klingt genau wie in Version 2.
 
 ## Änderungen in Version 2 (Prompt 04)
 

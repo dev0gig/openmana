@@ -94,9 +94,11 @@ public final class WasmMain {
             if ("smoke-match".equals(command)) {
                 final long seed = request.get("seed").getAsLong();
                 final boolean includeLog = request.has("includeLog") && request.get("includeLog").getAsBoolean();
+                // Engine tests: the trace entries go to the page as they are made (diagnostics.trace).
+                final boolean trace = request.has("trace") && request.get("trace").getAsBoolean();
                 response = new JsonObject();
                 response.addProperty("ok", true);
-                response.add("result", AiSmokeMatch.run(seed, includeLog));
+                response.add("result", AiSmokeMatch.run(seed, includeLog, trace ? entry -> emit("protocol", entry.toString()) : null));
             } else if ("card-probe".equals(command)) {
                 response = new JsonObject();
                 response.addProperty("ok", true);

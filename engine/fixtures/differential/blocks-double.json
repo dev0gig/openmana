@@ -1,0 +1,12 @@
+{
+  "description": "The same decks and player as blocks-multi, seed 12: in turn 12 one attacker is blocked by two creatures; the player concedes in turn 13 to keep the fixture short.",
+  "match": {
+    "seed": 12,
+    "format": "constructed",
+    "human": { "name": "Player", "deck": "smoke-green" },
+    "ai": { "name": "Forge AI", "profile": "Default", "deck": "smoke-red" }
+  },
+  "player": { "attack": "alternate", "block": "assign", "concedeInTurn": 13 },
+  "wasm": { "node": ["lazy", "eager"], "browser": ["lazy"] },
+  "covers": ["block", "block-double", "attack", "decision-distribute", "end-concede", "end-loss"]
+}

@@ -6,6 +6,7 @@
  * engine/scripts/bundle-host.mjs into build/harness/spike.js.
  *
  *   ?seed=42&cardLoading=eager|lazy          Forge's AI plays itself (diagnostics.ai-match)
+ *   &trace=<JVM trace URL>                   … and its engine trace must equal the JVM's (prompt 05)
  *   ?replay=<transcript URL>&feeding=lazy|eager&queueCapacity=256
  *                                            a JVM-recorded human-vs-AI game (replay.ts)
  *   ?cards=1&cardLoading=eager|lazy          Forge's card scripts are checked (diagnostics.card-probe)
@@ -18,7 +19,8 @@
  */
 import { browserWorkerPort, EngineClient, type EngineClientEvent } from "../../client/src/index.ts";
 import { describeMissingFeatures, detectEngineFeatures, type EngineMessage } from "../../protocol/src/index.ts";
-import { replay, type Feeding, type ReplayVerdict, type Transcript } from "./replay.ts";
+import { replay, type Feeding, type ReplayVerdict, type TraceVerdict, type Transcript } from "./replay.ts";
+import { describeDivergence, parseTraceLines, TraceComparison, traceDigest, type TraceEntry } from "./trace.ts";
 
 interface SpikeState {
   mode: "ai" | "replay" | "cards" | "mismatch";
@@ -30,6 +32,8 @@ interface SpikeState {
   result: unknown;
   verdict: (ReplayVerdict & { engineStepMs: ReplayVerdict["engineStepMs"] }) | null;
   abort: unknown;
+  /** AI game with an expected engine trace: how it compared (replays carry it in verdict.trace). */
+  trace: TraceVerdict | null;
 }
 
 const params = new URLSearchParams(location.search);
@@ -40,6 +44,11 @@ const replayUrl = params.get("replay");
 const feeding = (params.get("feeding") ?? "lazy") as Feeding;
 const queueCapacity = params.get("queueCapacity") ? Number(params.get("queueCapacity")) : undefined;
 const announceProtocol = params.get("announceProtocol") ? Number(params.get("announceProtocol")) : undefined;
+const traceUrl = params.get("trace");
+let traceComparison: TraceComparison | null = null;
+let traceReference = 0;
+let traceDiverged = false;
+const traceEntries: TraceEntry[] = [];
 
 const statusEl = document.getElementById("status")!;
 const logEl = document.getElementById("log")!;
@@ -56,6 +65,7 @@ const state: SpikeState = {
   result: null,
   verdict: null,
   abort: null,
+  trace: null,
 };
 (window as unknown as { __openmanaSpike: SpikeState }).__openmanaSpike = state;
 
@@ -116,7 +126,7 @@ client.subscribe((event: EngineClientEvent) => {
       log(`bereit: Protokoll ${m.protocol}, Forge ${m.engine.forgeCommit.slice(0, 10)}, ${m.engine.patchCount} Patches, Start ${Math.round(m.t)} ms`);
       if (state.mode === "ai") {
         statusEl.textContent = `Forge bereit, KI-Partie läuft (Seed ${seed}) …`;
-        client.runAiDiagnostics(seed, true);
+        client.runAiDiagnostics(seed, true, traceComparison !== null);
       } else if (state.mode === "cards") {
         statusEl.textContent = "Forge bereit, Kartenprüfung läuft (alle Karten) …";
         client.runCardProbe();
@@ -131,12 +141,37 @@ client.subscribe((event: EngineClientEvent) => {
     case "events":
       for (const e of m.entries) log(`  ${e.text ?? ""}`);
       break;
-    case "diagnostics.result":
+    case "diagnostics.trace": {
+      traceEntries.push(m);
+      const d = traceComparison?.add(m) ?? null;
+      if (d && !traceDiverged) {
+        traceDiverged = true;
+        fail(describeDivergence(d));
+        client.abort("the engine trace diverged from the JVM game");
+      }
+      break;
+    }
+    case "diagnostics.result": {
       state.timings["gameAnswered"] = elapsed();
       state.result = m.result;
       log(`Spielverlauf (Forge GameLog):\n  ${(m.result.log ?? []).join("\n  ")}`);
-      succeed(`Partie beendet: ${m.result.draw ? "Unentschieden" : `${m.result.winner} gewinnt`} nach ${m.result.turns} Zügen.`);
+      const missing = traceComparison ? traceComparison.finish() : null;
+      const comparison = traceComparison;
+      const done = () => {
+        if (missing) fail(describeDivergence(missing));
+        else succeed(`Partie beendet: ${m.result.draw ? "Unentschieden" : `${m.result.winner} gewinnt`} nach ${m.result.turns} Zügen.`);
+      };
+      if (!comparison) {
+        done();
+        break;
+      }
+      // The page is done only once the trace verdict is there.
+      void traceDigest(traceEntries).then((sha256) => {
+        state.trace = { reference: traceReference, compared: comparison.compared, sha256, divergence: missing ? describeDivergence(missing) : null };
+        done();
+      });
       break;
+    }
     case "diagnostics.cards": {
       state.timings["cardsAnswered"] = elapsed();
       state.result = m.result;
@@ -180,6 +215,16 @@ async function main(): Promise<void> {
       fail(verdict.failures.join("\n"));
     }
     return;
+  }
+  if (state.mode === "ai" && traceUrl) {
+    const response = await fetch(traceUrl);
+    if (!response.ok) {
+      fail(`JVM-Spur nicht ladbar: ${response.status}`);
+      return;
+    }
+    const reference = parseTraceLines(await response.text());
+    traceReference = reference.length;
+    traceComparison = new TraceComparison(reference);
   }
   statusEl.textContent = "Engine startet …";
   client.start();

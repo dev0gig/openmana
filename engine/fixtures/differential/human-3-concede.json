@@ -1,0 +1,12 @@
+{
+  "description": "Seed 3 again, the player concedes at its first input in turn 3, whatever question is open: the game ends at once as a loss.",
+  "match": {
+    "seed": 3,
+    "format": "constructed",
+    "human": { "name": "Player", "deck": "smoke-red-plus" },
+    "ai": { "name": "Forge AI", "profile": "Default", "deck": "smoke-green" }
+  },
+  "player": { "attack": "all", "block": "none", "concedeInTurn": 3 },
+  "wasm": { "node": ["lazy", "eager"], "browser": ["lazy"] },
+  "covers": ["mulligan", "end-concede", "end-loss"]
+}

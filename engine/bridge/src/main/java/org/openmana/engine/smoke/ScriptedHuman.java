@@ -43,13 +43,25 @@ import java.util.TreeMap;
  * input from that turn on, whatever question is open. {@link #defending()}
  * gives a player that never attacks and, when Forge asks for blockers, taps
  * one of its creatures Forge marks with an action (Forge's InputBlock has
- * already picked the attacker), then confirms.
+ * already picked the attacker), then confirms. {@link #withPolicy} combines
+ * the attack and block policies freely (the differential test fixtures,
+ * engine/fixtures/differential): {@link Block#ASSIGN} assigns blockers like a
+ * player does in Forge's InputBlock - tap an attacker (Forge makes it the
+ * current one), then tap a creature Forge offers to block it - one blocker
+ * for each attacker, then a second one for the first attacker while Forge
+ * offers more; {@link Attack#ALTERNATE} attacks in every second own combat,
+ * so creatures stay back to block in between. Commanders are cast from the
+ * command zone like cards from the hand: when Forge marks them playable.
  */
 public final class ScriptedHuman implements EngineHost {
 
     private static final int MAX_INPUTS = 20_000;
-    /** Transcript format; 2 = protocol 1 (inputs carry seq, answers their kind). */
-    public static final String TRANSCRIPT_FORMAT = "openmana-input-transcript/2";
+    /**
+     * Transcript format; 2 = protocol 1 (inputs carry seq, answers their kind),
+     * 3 = with the engine settings and, if the match was traced, the engine
+     * trace of the JVM game (prompt 05).
+     */
+    public static final String TRANSCRIPT_FORMAT = "openmana-input-transcript/3";
     private static final Set<String> BLOCKING_KINDS = Set.of(
             Protocol.KIND_CHOOSE, Protocol.KIND_CONFIRM, Protocol.KIND_OPTIONS,
             Protocol.KIND_INPUT, Protocol.KIND_ORDER, Protocol.KIND_ARRANGE, Protocol.KIND_DISTRIBUTE);
@@ -76,8 +88,16 @@ public final class ScriptedHuman implements EngineHost {
     private int blockingExtraStep;
     /** A state.request was sent; the next state message answers it. */
     private boolean stateRequested;
-    /** Never attacks, blocks with one creature per combat (see class comment). */
-    private boolean defending;
+    /** When the player attacks (see class comment). */
+    public enum Attack { ALL, NONE, ALTERNATE }
+
+    /** How the player blocks (see class comment). */
+    public enum Block { NONE, ONE, ASSIGN }
+
+    private Attack attack = Attack.ALL;
+    private Block block = Block.NONE;
+    /** ALTERNATE: whether the player attacks in a turn, decided at its first attack question of that turn. */
+    private final Map<Integer, Boolean> attacksInTurn = new TreeMap<>();
     /** Turn from which on the player concedes; 0 = never. */
     private int concedeInTurn;
     private int concededInTurn;
@@ -87,9 +107,36 @@ public final class ScriptedHuman implements EngineHost {
 
     /** A scripted player that never attacks and blocks where Forge lets it. */
     public static ScriptedHuman defending() {
+        return withPolicy(Attack.NONE, Block.ONE, 0);
+    }
+
+    /** A scripted player with the given attack and block policy that concedes in the given turn (0 = never). */
+    public static ScriptedHuman withPolicy(final Attack attack, final Block block, final int concedeInTurn) {
         final ScriptedHuman human = new ScriptedHuman();
-        human.defending = true;
+        human.attack = attack;
+        human.block = block;
+        human.concedeInTurn = concedeInTurn;
         return human;
+    }
+
+    /**
+     * The policy of a differential test fixture:
+     * {@code {"attack": "all"|"none"|"alternate", "block": "none"|"one"|"assign", "concedeInTurn": 0}},
+     * every field optional (defaults: all, none, 0). Anything else is refused.
+     */
+    public static ScriptedHuman fromPolicy(final JsonObject policy) {
+        for (final String field : policy.keySet()) {
+            if (!Set.of("attack", "block", "concedeInTurn").contains(field)) {
+                throw new IllegalArgumentException("unknown player policy field '" + field + "'");
+            }
+        }
+        final Attack attack = policy.has("attack") ? Attack.valueOf(policy.get("attack").getAsString().toUpperCase(java.util.Locale.ROOT)) : Attack.ALL;
+        final Block block = policy.has("block") ? Block.valueOf(policy.get("block").getAsString().toUpperCase(java.util.Locale.ROOT)) : Block.NONE;
+        final int concede = policy.has("concedeInTurn") ? policy.get("concedeInTurn").getAsInt() : 0;
+        if (concede < 0) {
+            throw new IllegalArgumentException("concedeInTurn must not be negative");
+        }
+        return withPolicy(attack, block, concede);
     }
 
     /** A scripted player that concedes at its first input in or after the given turn. */
@@ -605,11 +652,14 @@ public final class ScriptedHuman implements EngineHost {
             count("pass");
             return press(q, 1);
         }
-        if (defending && Protocol.PURPOSE_ATTACK.equals(purpose)) {
+        if (Protocol.PURPOSE_ATTACK.equals(purpose) && !attacksThisTurn()) {
             count("attack:skipped");
             return press(q, enabled1 ? 1 : 2);
         }
-        if (defending && Protocol.PURPOSE_BLOCK.equals(purpose)) {
+        if (block == Block.ASSIGN && Protocol.PURPOSE_BLOCK.equals(purpose)) {
+            return assignBlockers(q);
+        }
+        if (block == Block.ONE && Protocol.PURPOSE_BLOCK.equals(purpose)) {
             // One blocker per combat: as long as none of this player's creatures blocks yet.
             final JsonObject blocker = myBlockers() > 0 ? null : firstCard(true, "battlefield",
                     c -> c.has("action") && !c.has("blocking"), "block:" + turn());
@@ -632,6 +682,83 @@ public final class ScriptedHuman implements EngineHost {
         // Blocking and everything else: the first enabled button (no blocks).
         count("buttons:" + (purpose == null ? "other" : purpose));
         return press(q, enabled1 ? 1 : 2);
+    }
+
+    /** ALL: always; NONE: never; ALTERNATE: in the first, third, fifth … turn Forge asks this player for attackers. */
+    private boolean attacksThisTurn() {
+        return switch (attack) {
+            case ALL -> true;
+            case NONE -> false;
+            case ALTERNATE -> attacksInTurn.computeIfAbsent(turn(), t -> attacksInTurn.size() % 2 == 0);
+        };
+    }
+
+    /**
+     * Blocker assignment through Forge's InputBlock (class comment): first one
+     * blocker for every attacker in combat order, then a second one for the
+     * first attacker. An attacker is made current by tapping it (Forge
+     * highlights it); a blocker is only ever a creature Forge offers an action
+     * for, so Forge alone decides what may block what.
+     */
+    private JsonObject assignBlockers(final JsonObject q) {
+        final List<Integer> attackers = new ArrayList<>();
+        final Map<Integer, Integer> blockers = new TreeMap<>();
+        if (state != null) {
+            for (final JsonElement e : state.getAsJsonArray("combat")) {
+                final JsonObject entry = e.getAsJsonObject();
+                attackers.add(entry.get("attacker").getAsInt());
+                blockers.put(entry.get("attacker").getAsInt(), entry.getAsJsonArray("blockers").size());
+            }
+        }
+        final Integer current = highlightedOpponentCard();
+        for (int round = 1; round <= 2; round++) {
+            for (int i = 0; i < attackers.size(); i++) {
+                if (round == 2 && i > 0) {
+                    break;
+                }
+                final int attacker = attackers.get(i);
+                final String key = "assign" + round + ":" + turn() + ":" + attacker;
+                if (blockers.getOrDefault(attacker, 0) >= round || tried.contains(key + ":done")) {
+                    continue;
+                }
+                if (current == null || current != attacker) {
+                    if (tried.add(key + ":select")) {
+                        count("tap:block-attacker");
+                        return cardTap(attacker);
+                    }
+                    tried.add(key + ":done");
+                    continue;
+                }
+                final JsonObject blocker = firstCard(true, "battlefield", c -> c.has("action") && !c.has("blocking"), key);
+                if (blocker != null) {
+                    count("tap:blocker");
+                    return cardTap(blocker);
+                }
+                tried.add(key + ":done");
+            }
+        }
+        count("buttons:block");
+        return press(q, enabled(q, 1) ? 1 : 2);
+    }
+
+    /** The opponent's card Forge highlights: during blocking, the attacker being blocked. */
+    private Integer highlightedOpponentCard() {
+        if (state == null) {
+            return null;
+        }
+        for (final JsonElement p : state.getAsJsonArray("players")) {
+            final JsonObject player = p.getAsJsonObject();
+            if (player.get("me").getAsBoolean()) {
+                continue;
+            }
+            for (final JsonElement c : player.getAsJsonObject("zones").getAsJsonArray("battlefield")) {
+                final JsonObject card = c.getAsJsonObject();
+                if (card.has("highlighted") && card.has("id")) {
+                    return card.get("id").getAsInt();
+                }
+            }
+        }
+        return null;
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -675,9 +802,13 @@ public final class ScriptedHuman implements EngineHost {
     }
 
     private static JsonObject cardTap(final JsonObject card) {
+        return cardTap(card.get("id").getAsInt());
+    }
+
+    private static JsonObject cardTap(final int card) {
         final JsonObject o = new JsonObject();
         o.addProperty("type", Protocol.CARD_TAP);
-        o.addProperty("card", card.get("id").getAsInt());
+        o.addProperty("card", card);
         return o;
     }
 
@@ -688,10 +819,14 @@ public final class ScriptedHuman implements EngineHost {
         return o;
     }
 
-    /** First card Forge marks as playable (hand, then battlefield), once per key. */
+    /** First card Forge marks as playable (hand, battlefield, then command zone: a commander), once per key. */
     private JsonObject firstPlayable(final String key) {
         final JsonObject inHand = firstCard(true, "hand", c -> c.has("playable"), key);
-        return inHand != null ? inHand : firstCard(true, "battlefield", c -> c.has("playable"), key);
+        if (inHand != null) {
+            return inHand;
+        }
+        final JsonObject onBattlefield = firstCard(true, "battlefield", c -> c.has("playable"), key);
+        return onBattlefield != null ? onBattlefield : firstCard(true, "command", c -> c.has("playable"), key);
     }
 
     private interface CardFilter {

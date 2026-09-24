@@ -21,7 +21,7 @@ public final class Protocol {
      * ProtocolVersion). UI, worker host and engine must speak exactly the same
      * version; change it together with the schema.
      */
-    public static final int VERSION = 2;
+    public static final int VERSION = 3;
 
     // --- engine -> UI ---------------------------------------------------------
     public static final String GAME_STARTED = "game.started";
@@ -34,6 +34,11 @@ public final class Protocol {
     public static final String QUESTION_ANSWERED = "question.answered";
     public static final String INPUT_REJECTED = "input.rejected";
     public static final String GAME_END = "game.end";
+    /**
+     * Engine tests only: one entry of the engine trace (org.openmana.engine.trace.EngineTrace),
+     * sent when the match request asks for it ("trace": true). Never shown to a player.
+     */
+    public static final String DIAGNOSTICS_TRACE = "diagnostics.trace";
 
     // --- UI -> engine ---------------------------------------------------------
     public static final String ANSWER = "answer";

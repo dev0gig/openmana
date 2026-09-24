@@ -1,0 +1,19 @@
+{
+  "name": "OpenMana Smoke Red+",
+  "main": [
+    { "card": "Mountain", "count": 22 },
+    { "card": "Raging Goblin", "count": 4 },
+    { "card": "Goblin Raider", "count": 2 },
+    { "card": "Goblin Piker", "count": 4 },
+    { "card": "Goblin Arsonist", "count": 4 },
+    { "card": "Bonecrusher Giant", "count": 2 },
+    { "card": "Hill Giant", "count": 2 },
+    { "card": "Canyon Minotaur", "count": 2 },
+    { "card": "Shock", "count": 4 },
+    { "card": "Lightning Bolt", "count": 4 },
+    { "card": "Magma Jet", "count": 4 },
+    { "card": "Abrade", "count": 2 },
+    { "card": "Faithless Looting", "count": 2 },
+    { "card": "Fiery Confluence", "count": 2 }
+  ]
+}
