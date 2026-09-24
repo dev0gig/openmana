@@ -28,8 +28,8 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | – (01 abgeschlossen) |
-| Nächster Prompt | **02 — Anvil bridge single-thread spike** |
+| Aktuell ausgeführt | **02 — Anvil bridge single-thread spike** |
+| Nächster Prompt | 03 — Worker transport and protocol (erst nach 02 = COMPLETE) |
 | Zuletzt abgeschlossen | 01 — Forge WASM engine spike (`b64835a`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-24 |
 | Letzte Aktualisierung | 2026-09-24 |
@@ -40,7 +40,7 @@
 |---|---|---|---|
 | 00 | [Research: ManaBrew / Forge WebAssembly](queue/00-research-manabrew-forge-wasm.md) | COMPLETE | `681ce0a` |
 | 01 | [Forge WASM engine spike](queue/01-engine-spike.md) | COMPLETE | `b64835a` |
-| 02 | [Anvil bridge single-thread spike](queue/02-anvil-bridge-single-thread.md) | PENDING | – |
+| 02 | [Anvil bridge single-thread spike](queue/02-anvil-bridge-single-thread.md) | IN_PROGRESS | – |
 | 03 | [Worker transport and protocol](queue/03-worker-transport-protocol.md) | PENDING | – |
 | 04 | [Forge resources and card scripts](queue/04-forge-resources-card-scripts.md) | PENDING | – |
 | 05 | [JVM/WASM differential tests](queue/05-engine-differential-tests.md) | PENDING | – |
@@ -146,3 +146,7 @@
   - Offen für spätere Prompts: Lazy-Loading-Korrektheit für namentlich erzeugte
     Karten (04), vollständiger Differenztest (05), Fold7-Messung, Vercel, TWA,
     `LICENSE`-Datei vor öffentlicher Auslieferung (27).
+
+### 02 — Anvil bridge single-thread spike — IN_PROGRESS
+
+- Begonnen am 2026-09-24 von Claude Code (Claude Opus 5.5), direkt nach 01.
