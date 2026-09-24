@@ -1,0 +1,2 @@
+# 18 — Combat: attackers
+Implement beginner-friendly attacker declaration. Forge alone determines eligible attackers and legal choices. Clearly highlight creatures that can attack, selected attackers, defending target where relevant, and why a creature is unavailable when structured engine state supports it. Add clear summoning-sickness presentation when it can be derived from authoritative state. No client legality rules.
