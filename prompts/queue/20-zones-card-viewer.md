@@ -1,0 +1,2 @@
+# 20 — Zones and full card viewer
+Implement graveyard, exile, command zone and other required visible zones plus a full-card viewer. Multi-card piles can be browsed. Viewer action button, when Forge offers one, remains reachable. Store stable IDs/source references rather than stale card objects and resolve against current snapshots. Handle DFC presentation and Scryfall DE→EN display fallback.
