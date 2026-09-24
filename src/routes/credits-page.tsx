@@ -45,6 +45,7 @@ const LIBRARIES: readonly { name: string; license: string }[] = [
   { name: "cn", license: "MIT" },
   { name: "Lucide", license: "ISC" },
   { name: "Sonner", license: "MIT" },
+  { name: "idb", license: "ISC" },
   { name: "Schrift Inter", license: "OFL-1.1" },
   { name: "Schrift Cinzel", license: "OFL-1.1" },
 ]

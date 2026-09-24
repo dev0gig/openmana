@@ -1,0 +1,417 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openmana.invalid/schemas/local-data/v1",
+  "title": "OpenMana local data",
+  "description": "Everything OpenMana keeps in the browser's IndexedDB (one record type per object store) and the backup file format. The only source of the record types and validators in src/storage/generated (scripts/generate-storage.ts). Every record is plain JSON, so it survives a backup unchanged.",
+  "$defs": {
+    "SchemaVersion": {
+      "title": "SchemaVersion",
+      "description": "Version of the record schemas below = version of the IndexedDB database. Every change to a record shape or to the stores raises it and adds a migration (src/storage/migrations.ts) that upgrades the database and older backups alike.",
+      "const": 1
+    },
+    "BackupFormatVersion": {
+      "title": "BackupFormatVersion",
+      "description": "Version of the backup container (header, record and end lines). Independent of the record schemas, which the header names by SchemaVersion.",
+      "const": 1
+    },
+    "Timestamp": {
+      "title": "Timestamp",
+      "description": "A point in time in UTC as Date.prototype.toISOString() writes it; sorts correctly as text.",
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+    },
+    "Uuid": {
+      "title": "Uuid",
+      "description": "A UUID in lower case (crypto.randomUUID(), Scryfall ids).",
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "NonEmptyString": {
+      "title": "NonEmptyString",
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "GitCommit": {
+      "title": "GitCommit",
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "AppVersion": {
+      "title": "AppVersion",
+      "description": "The OpenMana build that wrote something: its version and Git commit (null if the build did not know it).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "commit"],
+      "properties": {
+        "version": { "$ref": "#/$defs/NonEmptyString" },
+        "commit": { "anyOf": [{ "$ref": "#/$defs/GitCommit" }, { "type": "null" }] }
+      }
+    },
+
+    "DeckFormat": {
+      "title": "DeckFormat",
+      "description": "How Forge plays the deck (the protocol's MatchFormat). Not a legality claim: Forge decides.",
+      "enum": ["constructed", "commander"]
+    },
+    "DeckCard": {
+      "title": "DeckCard",
+      "description": "One normalized deck entry. name: the English card name Forge knows (front face of a double-faced card). set/collectorNumber: the printing the import named, if any. oracleId/scryfallId: Scryfall identities once resolved (display only, never rules).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["count", "name"],
+      "properties": {
+        "count": { "type": "integer", "minimum": 1 },
+        "name": { "$ref": "#/$defs/NonEmptyString" },
+        "set": { "$ref": "#/$defs/NonEmptyString" },
+        "collectorNumber": { "$ref": "#/$defs/NonEmptyString" },
+        "oracleId": { "$ref": "#/$defs/Uuid" },
+        "scryfallId": { "$ref": "#/$defs/Uuid" }
+      }
+    },
+    "DeckSourceKind": {
+      "title": "DeckSourceKind",
+      "enum": ["arena"]
+    },
+    "DeckSource": {
+      "title": "DeckSource",
+      "description": "Where the deck came from: the original import text, unchanged.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "text", "importedAt"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/DeckSourceKind" },
+        "text": { "type": "string" },
+        "importedAt": { "$ref": "#/$defs/Timestamp" }
+      }
+    },
+    "DeckRecord": {
+      "title": "DeckRecord",
+      "description": "Store decks (key: id). A deck of the local library.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "format", "main", "sideboard", "commander", "source", "createdAt", "updatedAt"],
+      "properties": {
+        "id": { "$ref": "#/$defs/Uuid" },
+        "name": { "$ref": "#/$defs/NonEmptyString" },
+        "format": { "$ref": "#/$defs/DeckFormat" },
+        "main": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/DeckCard" } },
+        "sideboard": { "type": "array", "items": { "$ref": "#/$defs/DeckCard" } },
+        "commander": { "type": "array", "items": { "$ref": "#/$defs/DeckCard" } },
+        "source": { "$ref": "#/$defs/DeckSource" },
+        "createdAt": { "$ref": "#/$defs/Timestamp" },
+        "updatedAt": { "$ref": "#/$defs/Timestamp" }
+      }
+    },
+
+    "SettingKey": {
+      "title": "SettingKey",
+      "description": "Dotted lower camel case, e.g. ai.profile.",
+      "type": "string",
+      "pattern": "^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*$"
+    },
+    "SettingRecord": {
+      "title": "SettingRecord",
+      "description": "Store settings (key: key). One preference. The value is checked by the setting's definition in src/storage/settings.ts; keys this app version does not know are kept as they are.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "value", "updatedAt"],
+      "properties": {
+        "key": { "$ref": "#/$defs/SettingKey" },
+        "value": { "tsType": "unknown" },
+        "updatedAt": { "$ref": "#/$defs/Timestamp" }
+      }
+    },
+
+    "MatchStatus": {
+      "title": "MatchStatus",
+      "description": "running: recording (or interrupted, if the app closed meanwhile); finished: Forge ended the game; aborted: the engine stopped technically.",
+      "enum": ["running", "finished", "aborted"]
+    },
+    "GameResult": {
+      "title": "GameResult",
+      "description": "From the player's point of view (the protocol's GameResult).",
+      "enum": ["win", "loss", "draw"]
+    },
+    "MatchDeckEntry": {
+      "title": "MatchDeckEntry",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["card", "count"],
+      "properties": {
+        "card": { "$ref": "#/$defs/NonEmptyString" },
+        "count": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "MatchDeck": {
+      "title": "MatchDeck",
+      "description": "A deck exactly as it was handed to Forge (the protocol's Deck), kept with the match: the library deck may change or disappear later.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "main", "sideboard", "commander"],
+      "properties": {
+        "name": { "$ref": "#/$defs/NonEmptyString" },
+        "main": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/MatchDeckEntry" } },
+        "sideboard": { "type": "array", "items": { "$ref": "#/$defs/MatchDeckEntry" } },
+        "commander": { "type": "array", "items": { "$ref": "#/$defs/MatchDeckEntry" } }
+      }
+    },
+    "MatchSide": {
+      "title": "MatchSide",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "deckId", "deck"],
+      "properties": {
+        "name": { "$ref": "#/$defs/NonEmptyString" },
+        "deckId": { "anyOf": [{ "$ref": "#/$defs/Uuid" }, { "type": "null" }], "description": "The library deck it came from, if any." },
+        "deck": { "$ref": "#/$defs/MatchDeck" }
+      }
+    },
+    "MatchAiSide": {
+      "title": "MatchAiSide",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "profile", "deckId", "deck"],
+      "properties": {
+        "name": { "$ref": "#/$defs/NonEmptyString" },
+        "profile": { "$ref": "#/$defs/NonEmptyString", "description": "Forge AI profile (res/ai/*.ai)." },
+        "deckId": { "anyOf": [{ "$ref": "#/$defs/Uuid" }, { "type": "null" }] },
+        "deck": { "$ref": "#/$defs/MatchDeck" }
+      }
+    },
+    "MatchEngine": {
+      "title": "MatchEngine",
+      "description": "The engine that played the match: its content address (/engine/<id>/), protocol and Forge build.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "protocol", "forgeVersion", "forgeCommit", "buildCommit", "sourcesModified"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[0-9a-f]{16}$" },
+        "protocol": { "type": "integer", "minimum": 1 },
+        "forgeVersion": { "$ref": "#/$defs/NonEmptyString" },
+        "forgeCommit": { "$ref": "#/$defs/GitCommit" },
+        "buildCommit": { "$ref": "#/$defs/GitCommit" },
+        "sourcesModified": { "type": "boolean" }
+      }
+    },
+    "MatchEnd": {
+      "title": "MatchEnd",
+      "description": "Forge's game.end, as far as the match library shows it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["result", "reason", "turns", "conceded"],
+      "properties": {
+        "result": { "anyOf": [{ "$ref": "#/$defs/GameResult" }, { "type": "null" }] },
+        "reason": { "type": ["string", "null"], "description": "Forge's win condition, e.g. AllOpponentsLost." },
+        "turns": { "type": ["integer", "null"], "minimum": 0 },
+        "conceded": { "type": "boolean" }
+      }
+    },
+    "MatchRecord": {
+      "title": "MatchRecord",
+      "description": "Store matches (key: id, index startedAt). The header of a recorded match; its protocol transcript is in matchLog. Recording starts with prompt 22, which may refine this shape through a migration.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "format", "startedAt", "endedAt", "seed", "app", "engine", "human", "ai", "end"],
+      "properties": {
+        "id": { "$ref": "#/$defs/Uuid" },
+        "status": { "$ref": "#/$defs/MatchStatus" },
+        "format": { "$ref": "#/$defs/DeckFormat" },
+        "startedAt": { "$ref": "#/$defs/Timestamp" },
+        "endedAt": { "anyOf": [{ "$ref": "#/$defs/Timestamp" }, { "type": "null" }] },
+        "seed": { "type": ["integer", "null"], "description": "The random seed handed to Forge, if one was fixed." },
+        "app": { "$ref": "#/$defs/AppVersion" },
+        "engine": { "$ref": "#/$defs/MatchEngine" },
+        "human": { "$ref": "#/$defs/MatchSide" },
+        "ai": { "$ref": "#/$defs/MatchAiSide" },
+        "end": { "anyOf": [{ "$ref": "#/$defs/MatchEnd" }, { "type": "null" }] }
+      }
+    },
+    "MatchLogEntry": {
+      "title": "MatchLogEntry",
+      "description": "Store matchLog (key: [matchId, seq]). One protocol message of a recorded match, in order: what the engine sent (questions, states, events, game end) and what the player sent (answers, taps). The message is kept as the protocol version of its match defined it and is not checked against today's protocol.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["matchId", "seq", "at", "from", "message"],
+      "properties": {
+        "matchId": { "$ref": "#/$defs/Uuid" },
+        "seq": { "type": "integer", "minimum": 0 },
+        "at": { "type": "number", "minimum": 0, "description": "Milliseconds since the match started." },
+        "from": { "enum": ["engine", "player"] },
+        "message": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["type"],
+          "properties": { "type": { "$ref": "#/$defs/NonEmptyString" } }
+        }
+      }
+    },
+
+    "CardRecord": {
+      "title": "CardRecord",
+      "description": "Store scryfallCards (key: id; indexes oracleId, nameKeys (multi-entry), print [set, collectorNumber]). Card metadata from Scryfall for display and import lookups, never for rules. Derived data: never backed up, may be dropped and downloaded again. The payload (data) is shaped by prompt 08.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "oracleId", "lang", "name", "printedName", "nameKeys", "set", "collectorNumber", "data"],
+      "properties": {
+        "id": { "$ref": "#/$defs/Uuid", "description": "Scryfall's id of this printing." },
+        "oracleId": { "anyOf": [{ "$ref": "#/$defs/Uuid" }, { "type": "null" }] },
+        "lang": { "type": "string", "pattern": "^[a-z]{2,3}$" },
+        "name": { "$ref": "#/$defs/NonEmptyString", "description": "The English (Oracle) name." },
+        "printedName": { "anyOf": [{ "$ref": "#/$defs/NonEmptyString" }, { "type": "null" }], "description": "The printed name in lang, if not English." },
+        "nameKeys": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/NonEmptyString" }, "description": "Normalized names this printing is found by." },
+        "set": { "$ref": "#/$defs/NonEmptyString" },
+        "collectorNumber": { "$ref": "#/$defs/NonEmptyString" },
+        "data": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "CacheStatus": {
+      "title": "CacheStatus",
+      "description": "partial: being stored (or interrupted); complete: usable.",
+      "enum": ["partial", "complete"]
+    },
+    "CacheEntryRecord": {
+      "title": "CacheEntryRecord",
+      "description": "Store cacheIndex (key: key; indexes kind, lastUsedAt). Bookkeeping of one cached resource (a Scryfall bulk dataset, a card image in Cache Storage …): where from, which version, complete or not, size, last use. Derived data: never backed up.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "kind", "status", "source", "version", "storedAt", "lastUsedAt", "bytes", "records"],
+      "properties": {
+        "key": { "$ref": "#/$defs/NonEmptyString" },
+        "kind": { "$ref": "#/$defs/NonEmptyString" },
+        "status": { "$ref": "#/$defs/CacheStatus" },
+        "source": { "type": ["string", "null"] },
+        "version": { "type": ["string", "null"] },
+        "storedAt": { "$ref": "#/$defs/Timestamp" },
+        "lastUsedAt": { "$ref": "#/$defs/Timestamp" },
+        "bytes": { "type": ["integer", "null"], "minimum": 0 },
+        "records": { "type": ["integer", "null"], "minimum": 0 }
+      }
+    },
+
+    "MigrationEntry": {
+      "title": "MigrationEntry",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "appliedAt", "app"],
+      "properties": {
+        "version": { "type": "integer", "minimum": 1 },
+        "appliedAt": { "$ref": "#/$defs/Timestamp" },
+        "app": { "$ref": "#/$defs/AppVersion" }
+      }
+    },
+    "DatabaseMeta": {
+      "title": "DatabaseMeta",
+      "description": "Store meta, key database: the database's own history, written by every upgrade. createdAt/createdBy are null if the record had to be written anew.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "schemaVersion", "createdAt", "createdBy", "migrations"],
+      "properties": {
+        "key": { "const": "database" },
+        "schemaVersion": { "type": "integer", "minimum": 1 },
+        "createdAt": { "anyOf": [{ "$ref": "#/$defs/Timestamp" }, { "type": "null" }] },
+        "createdBy": { "anyOf": [{ "$ref": "#/$defs/AppVersion" }, { "type": "null" }] },
+        "migrations": { "type": "array", "items": { "$ref": "#/$defs/MigrationEntry" } }
+      }
+    },
+    "ImportMode": {
+      "title": "ImportMode",
+      "description": "merge: add what is new, the newer of two copies wins, nothing is deleted; replace: the stores of the backup are emptied first.",
+      "enum": ["merge", "replace"]
+    },
+    "BackupExportInfo": {
+      "title": "BackupExportInfo",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["at", "records", "bytes"],
+      "properties": {
+        "at": { "$ref": "#/$defs/Timestamp" },
+        "records": { "type": "integer", "minimum": 0 },
+        "bytes": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "BackupImportInfo": {
+      "title": "BackupImportInfo",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["at", "mode", "records", "backupCreatedAt", "backupApp"],
+      "properties": {
+        "at": { "$ref": "#/$defs/Timestamp" },
+        "mode": { "$ref": "#/$defs/ImportMode" },
+        "records": { "type": "integer", "minimum": 0 },
+        "backupCreatedAt": { "$ref": "#/$defs/Timestamp" },
+        "backupApp": { "$ref": "#/$defs/AppVersion" }
+      }
+    },
+    "BackupMeta": {
+      "title": "BackupMeta",
+      "description": "Store meta, key backup: when this browser last made or loaded a backup (the app reminds of backups with it).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "lastExport", "lastImport"],
+      "properties": {
+        "key": { "const": "backup" },
+        "lastExport": { "anyOf": [{ "$ref": "#/$defs/BackupExportInfo" }, { "type": "null" }] },
+        "lastImport": { "anyOf": [{ "$ref": "#/$defs/BackupImportInfo" }, { "type": "null" }] }
+      }
+    },
+    "MetaRecord": {
+      "title": "MetaRecord",
+      "description": "Store meta (key: key). Metadata of this database; stays in this browser and is not part of backups.",
+      "type": "object",
+      "required": ["key"],
+      "properties": { "key": { "type": "string" } },
+      "discriminator": { "propertyName": "key" },
+      "oneOf": [{ "$ref": "#/$defs/DatabaseMeta" }, { "$ref": "#/$defs/BackupMeta" }]
+    },
+
+    "BackupStore": {
+      "title": "BackupStore",
+      "description": "The stores a backup holds: the user's own data. Caches (scryfallCards, cacheIndex) and meta are never part of a backup.",
+      "enum": ["decks", "settings", "matches", "matchLog"]
+    },
+    "BackupHeader": {
+      "title": "BackupHeader",
+      "description": "First line of a backup file. stores: the stores this backup holds, in file order; replacing restores exactly these.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "format", "formatVersion", "schemaVersion", "createdAt", "app", "stores"],
+      "properties": {
+        "type": { "const": "header" },
+        "format": { "const": "openmana-backup" },
+        "formatVersion": { "type": "integer", "minimum": 1 },
+        "schemaVersion": { "type": "integer", "minimum": 1 },
+        "createdAt": { "$ref": "#/$defs/Timestamp" },
+        "app": { "$ref": "#/$defs/AppVersion" },
+        "stores": { "type": "array", "items": { "$ref": "#/$defs/BackupStore" } }
+      }
+    },
+    "BackupRecordLine": {
+      "title": "BackupRecordLine",
+      "description": "One record of a store, as the header's schemaVersion defined it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "store", "record"],
+      "properties": {
+        "type": { "const": "record" },
+        "store": { "$ref": "#/$defs/BackupStore" },
+        "record": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "BackupEnd": {
+      "title": "BackupEnd",
+      "description": "Last line of a backup file: how many records each store has. A file without it, or with other counts, is incomplete.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "counts", "records"],
+      "properties": {
+        "type": { "const": "end" },
+        "counts": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/BackupStore" },
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "records": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

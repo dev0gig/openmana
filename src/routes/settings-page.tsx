@@ -1,7 +1,7 @@
 /*
- * Settings: for now what this build and this device are. Preferences (AI
- * profile, card language, accessibility) come with their own step and are
- * not faked here.
+ * Settings: what this build and this device are, and the data kept on it
+ * (backups, check). Preferences (AI profile, card language, accessibility)
+ * come with their own step and are not faked here.
  */
 import { Info } from "lucide-react"
 import { Link } from "react-router"
@@ -13,6 +13,7 @@ import { buildInfo } from "@/app/build-info"
 import { FeatureChecklist, useDeviceFeatures } from "@/engine/device-support"
 import { engineAssets } from "@/engine/engine-assets"
 import { formatMegabytes, shortCommit } from "@/engine/engine-labels"
+import { LocalDataCard } from "@/storage/local-data-card"
 
 const dateFormat = new Intl.DateTimeFormat("de-DE", { dateStyle: "medium", timeStyle: "short" })
 
@@ -45,7 +46,7 @@ function engineFacts(): Fact[] {
 export function SettingsPage() {
   const features = useDeviceFeatures()
   return (
-    <Page title="Einstellungen" description="Über diese Version und dieses Gerät.">
+    <Page title="Einstellungen" description="Über diese Version, dieses Gerät und die Daten darauf.">
       <div className="grid items-start gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -69,6 +70,7 @@ export function SettingsPage() {
           </CardContent>
         </Card>
       </div>
+      <LocalDataCard />
       <Card>
         <CardHeader>
           <CardTitle>Spiel und Anzeige</CardTitle>

@@ -79,7 +79,7 @@ describe("no invented data", () => {
   it("play: a game cannot start without a deck", async () => {
     renderAt("/play")
     expect(await screen.findByRole("button", { name: /Partie starten/ })).toBeDisabled()
-    expect(screen.getByText("Noch kein Deck auf diesem Gerät.")).toBeInTheDocument()
+    expect(await screen.findByText("Noch kein Deck auf diesem Gerät.")).toBeInTheDocument()
   })
 
   it("credits: separates software, reference and AI assistance", async () => {

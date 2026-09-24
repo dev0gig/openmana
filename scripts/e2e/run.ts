@@ -23,14 +23,22 @@
  *     installability errors.
  *  5. Without COOP/COEP the app says the browser cannot run the engine and
  *     never downloads it.
+ *  6. Local data in Chrome's real IndexedDB: a fresh database, loading a
+ *     backup (merge), data surviving a reload, saving a backup (download)
+ *     and loading it into a second, empty browser profile (same records),
+ *     refused files, damaged records found and removed, another tab
+ *     upgrading the database, site data cleared while open; and quota
+ *     awareness with DevTools' quota override (localDataQuota).
  */
 import { createRequire } from "node:module"
+import { randomUUID } from "node:crypto"
 import fs from "node:fs"
 import http from "node:http"
 import os from "node:os"
 import type { AddressInfo } from "node:net"
 import path from "node:path"
-import { chromium, type Browser, type BrowserContext, type Page } from "playwright-core"
+import { gunzipSync, gzipSync } from "node:zlib"
+import { chromium, type Browser, type BrowserContext, type Locator, type Page } from "playwright-core"
 import { build, createServer, preview } from "vite"
 import { ISOLATION_HEADERS } from "../../vite/isolation-headers.ts"
 
@@ -362,6 +370,342 @@ async function withoutIsolation(browser: Browser): Promise<void> {
   }
 }
 
+// ── 6. Local data (IndexedDB) ──────────────────────────────────────────────
+
+interface SampleBackup {
+  readonly bytes: Buffer
+  readonly deckNames: readonly string[]
+}
+
+/**
+ * A backup in the documented format (docs/implementation/07-indexeddb-storage.md):
+ * gzip-compressed JSON Lines with header, records and end line. Sample data only.
+ */
+function sampleBackup(decks: number, prefix = "Muster-Deck"): SampleBackup {
+  const now = new Date().toISOString()
+  const deckRecords = Array.from({ length: decks }, (_, i) => ({
+    id: randomUUID(),
+    name: `${prefix} ${i + 1}`,
+    format: "constructed",
+    main: [
+      { count: 20, name: "Mountain" },
+      { count: 4, name: "Lightning Strike", set: "M19", collectorNumber: "152" },
+    ],
+    sideboard: [{ count: 2, name: "Shock" }],
+    commander: [],
+    source: { kind: "arena", text: "Deck\n20 Mountain\n4 Lightning Strike (M19) 152\n\nSideboard\n2 Shock", importedAt: now },
+    createdAt: now,
+    updatedAt: now,
+  }))
+  const forgeDeck = { name: `${prefix} 1`, main: [{ card: "Mountain", count: 20 }], sideboard: [], commander: [] }
+  const matchId = randomUUID()
+  const match = {
+    id: matchId,
+    status: "finished",
+    format: "constructed",
+    startedAt: now,
+    endedAt: now,
+    seed: 42,
+    app: { version: "0.1.0", commit: null },
+    engine: { id: "0c82db80023ac0cc", protocol: 3, forgeVersion: "2.0.15", forgeCommit: "e".repeat(40), buildCommit: "b".repeat(40), sourcesModified: false },
+    human: { name: "Spieler", deckId: deckRecords[0]?.id ?? null, deck: forgeDeck },
+    ai: { name: "Forge-KI", profile: "Default", deckId: null, deck: { ...forgeDeck, name: "KI-Deck" } },
+    end: { result: "win", reason: "AllOpponentsLost", turns: 9, conceded: false },
+  }
+  const log = [0, 1].map((seq) => ({ matchId, seq, at: seq * 250, from: seq === 0 ? "engine" : "player", message: { type: seq === 0 ? "game.state" : "answer" } }))
+  const settings = [{ key: "e2e.sample", value: { checked: true }, updatedAt: now }]
+  const lines = [
+    { type: "header", format: "openmana-backup", formatVersion: 1, schemaVersion: 1, createdAt: now, app: { version: "0.1.0", commit: null }, stores: ["decks", "settings", "matches", "matchLog"] },
+    ...deckRecords.map((record) => ({ type: "record", store: "decks", record })),
+    ...settings.map((record) => ({ type: "record", store: "settings", record })),
+    { type: "record", store: "matches", record: match },
+    ...log.map((record) => ({ type: "record", store: "matchLog", record })),
+    { type: "end", counts: { decks: decks, settings: 1, matches: 1, matchLog: 2 }, records: decks + 4 },
+  ]
+  return { bytes: gzipSync(`${lines.map((line) => JSON.stringify(line)).join("\n")}\n`), deckNames: deckRecords.map((d) => d.name) }
+}
+
+/** Every record of the app's database, read past the app (the browser's own IndexedDB). */
+function dumpDatabase(page: Page): Promise<Record<string, unknown[]>> {
+  return page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("openmana")
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+    const out: Record<string, unknown[]> = {}
+    for (const name of Array.from(db.objectStoreNames)) {
+      out[name] = await new Promise<unknown[]>((resolve, reject) => {
+        const request = db.transaction(name).objectStore(name).getAll()
+        request.onsuccess = () => resolve(request.result as unknown[])
+        request.onerror = () => reject(request.error)
+      })
+    }
+    db.close()
+    return out
+  })
+}
+
+async function cardFacts(card: Locator): Promise<Record<string, string>> {
+  return card
+    .locator("dl > div")
+    .evaluateAll((rows) => Object.fromEntries(rows.map((row) => [row.querySelector("dt")?.textContent ?? "", row.querySelector("dd")?.textContent ?? ""])))
+}
+
+async function openLocalData(page: Page, base: string): Promise<Locator> {
+  await page.goto(new URL("/settings", base).href, { waitUntil: "networkidle" })
+  const card = page.getByRole("region", { name: "Daten auf diesem Gerät" })
+  await card.getByText("Bereit", { exact: true }).waitFor()
+  await card.locator("dl").waitFor()
+  return card
+}
+
+async function chooseBackup(card: Locator, name: string, bytes: Buffer): Promise<void> {
+  await card.locator('input[type="file"]').setInputFiles({ name, mimeType: "application/gzip", buffer: bytes })
+}
+
+async function localData(browser: Browser, base: string): Promise<void> {
+  log("Local data (IndexedDB)")
+  const origin = new URL(base).origin
+  const results: Record<string, unknown> = {}
+  const context = await newContext(browser, VIEWPORTS[2]!)
+  const page = await context.newPage()
+  const pageLog = watch(page)
+  const cdp = await context.newCDPSession(page)
+  try {
+    // A fresh browser profile: an empty database of schema version 1.
+    let card = await openLocalData(page, base)
+    const fresh = await cardFacts(card)
+    check(fresh["Decks"] === "0" && fresh["Partien"] === "0", `local data: fresh database not empty ${JSON.stringify(fresh)}`)
+    check((fresh["Datenbank"] ?? "").startsWith("Version 1, angelegt am "), `local data: database fact ${fresh["Datenbank"]}`)
+    check(fresh["Belegt"] !== "unbekannt" && fresh["Noch frei"] !== "unbekannt", `local data: space unknown ${JSON.stringify(fresh)}`)
+    const databases = await page.evaluate(async () => ({ databases: await indexedDB.databases(), localStorage: localStorage.length }))
+    check(databases.databases.some((db) => db.name === "openmana" && db.version === 1), `local data: IndexedDB databases ${JSON.stringify(databases.databases)}`)
+    check(databases.localStorage === 0, `local data: localStorage holds ${databases.localStorage} entries`)
+    results["fresh"] = { facts: fresh, databases }
+
+    // Load a backup: the dialog says what is in it and what changes; merge.
+    const sample = sampleBackup(2)
+    await chooseBackup(card, "openmana-sicherung-e2e.jsonl.gz", sample.bytes)
+    const dialog = page.getByRole("dialog", { name: "Sicherung laden" })
+    await dialog.getByText("2 neu").first().waitFor()
+    results["importDialogAxe"] = await accessibility(page, "local data: import dialog")
+    await page.screenshot({ path: path.join(reportDir, "screens", "desktop-settings-import-dialog.png") })
+    await dialog.getByRole("button", { name: "Zusammenführen", exact: true }).click()
+    await page.getByText("Sicherung geladen").waitFor()
+    await dialog.waitFor({ state: "detached" })
+    await card.locator("dd", { hasText: /^2$/ }).first().waitFor()
+    const loaded = await cardFacts(card)
+    check(loaded["Decks"] === "2" && loaded["Partien"] === "1" && loaded["Einstellungen"] === "1", `local data: after import ${JSON.stringify(loaded)}`)
+
+    // The data survives a reload and the pages list it.
+    await page.reload({ waitUntil: "networkidle" })
+    await page.goto(new URL("/decks", base).href, { waitUntil: "networkidle" })
+    const list = page.getByRole("list", { name: "Gespeicherte Decks" })
+    await list.waitFor()
+    const titles = await list.locator("[data-slot=item-title]").allTextContents()
+    check(JSON.stringify(titles) === JSON.stringify(sample.deckNames), `local data: decks page lists ${JSON.stringify(titles)}`)
+    await screenshots(page, "desktop-decks-with-data")
+    await page.goto(new URL("/matches", base).href, { waitUntil: "networkidle" })
+    await page.getByRole("list", { name: "Gespeicherte Partien" }).getByText(`${sample.deckNames[0]} gegen Forge-KI`).waitFor()
+    await page.goto(new URL("/play", base).href, { waitUntil: "networkidle" })
+    await page.getByText("2 Decks auf diesem Gerät – die Deckwahl folgt.").waitFor()
+    results["decksAfterReload"] = titles
+
+    // Save a backup: a real download in the documented format.
+    card = await openLocalData(page, base)
+    const [download] = await Promise.all([page.waitForEvent("download"), card.getByRole("button", { name: "Sicherung speichern" }).click()])
+    const saved = path.join(reportDir, "backup.jsonl.gz")
+    await download.saveAs(saved)
+    check(/^openmana-sicherung-\d{4}-\d{2}-\d{2}-\d{4}\.jsonl\.gz$/.test(download.suggestedFilename()), `local data: download name ${download.suggestedFilename()}`)
+    const exported = gunzipSync(fs.readFileSync(saved)).toString("utf8").trimEnd().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>)
+    const end = exported.at(-1) as { type?: string; counts?: Record<string, number> } | undefined
+    check(exported[0]?.["type"] === "header" && exported[0]?.["schemaVersion"] === 1, `local data: exported header ${JSON.stringify(exported[0])}`)
+    check(end?.type === "end" && JSON.stringify(end.counts) === JSON.stringify({ decks: 2, settings: 1, matches: 1, matchLog: 2 }), `local data: exported end ${JSON.stringify(end)}`)
+    await page.getByText("Sicherung erstellt").waitFor()
+    await card.getByText("Letzte Sicherung").waitFor()
+    check((await cardFacts(card))["Letzte Sicherung"] !== "noch keine", "local data: last backup not noted")
+    const before = await dumpDatabase(page)
+    results["export"] = { file: download.suggestedFilename(), bytes: fs.statSync(saved).size, lines: exported.length }
+
+    // Load it into a second, empty browser profile: the very same records.
+    const second = await newContext(browser, VIEWPORTS[0]!)
+    const phone = await second.newPage()
+    const phoneLog = watch(phone)
+    const phoneCard = await openLocalData(phone, base)
+    await chooseBackup(phoneCard, download.suggestedFilename(), fs.readFileSync(saved))
+    const phoneDialog = phone.getByRole("dialog", { name: "Sicherung laden" })
+    await phoneDialog.getByText("2 neu").first().waitFor()
+    const overflow = await phone.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+    check(overflow <= 0, `local data: import dialog overflows the phone by ${overflow}px`)
+    results["phoneImportDialogAxe"] = await accessibility(phone, "local data: import dialog (phone)")
+    await phone.screenshot({ path: path.join(reportDir, "screens", "phone-settings-import-dialog.png") })
+    await phoneDialog.getByRole("button", { name: "Zusammenführen", exact: true }).click()
+    await phone.getByText("Sicherung geladen").waitFor()
+    const after = await dumpDatabase(phone)
+    for (const store of ["decks", "settings", "matches", "matchLog"]) {
+      const sort = (records: unknown[] | undefined) => JSON.stringify([...(records ?? [])].map((r) => JSON.stringify(r)).sort())
+      check(sort(before[store]) === sort(after[store]), `local data: ${store} differs after the round trip`)
+    }
+    for (const error of phoneLog.errors) check(false, `local data (second profile): ${error}`)
+    await second.close()
+
+    // Files that are no (complete) backup are refused and change nothing.
+    card = await openLocalData(page, base)
+    await card.locator('input[type="file"]').setInputFiles({ name: "deck.txt", mimeType: "text/plain", buffer: Buffer.from("Deck\n4 Mountain\n") })
+    await card.getByText("Diese Datei ist keine gültige OpenMana-Sicherung").waitFor()
+    const whole = fs.readFileSync(saved)
+    await chooseBackup(card, "abgeschnitten.jsonl.gz", whole.subarray(0, whole.length - 16))
+    await card.getByText(/the file is damaged or incomplete \(it cannot be decompressed or decoded\)/).waitFor()
+    check((await page.getByRole("dialog").count()) === 0, "local data: a refused file opened the import dialog")
+    check(JSON.stringify(await dumpDatabase(page)) === JSON.stringify({ ...before, meta: (await dumpDatabase(page))["meta"] }), "local data: a refused file changed the data")
+
+    // A damaged record is shown as damaged, found by the check and removed on confirmation.
+    await page.evaluate(async () => {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open("openmana")
+        request.onsuccess = () => resolve(request.result)
+        request.onerror = () => reject(request.error)
+      })
+      await new Promise<void>((resolve, reject) => {
+        const transaction = db.transaction("decks", "readwrite")
+        transaction.objectStore("decks").put({ id: "e2e-damaged", name: "" })
+        transaction.oncomplete = () => resolve()
+        transaction.onerror = () => reject(transaction.error)
+      })
+      db.close()
+    })
+    await page.goto(new URL("/decks", base).href, { waitUntil: "networkidle" })
+    await page.getByRole("list", { name: "Gespeicherte Decks" }).getByText("beschädigt", { exact: true }).waitFor()
+    card = await openLocalData(page, base)
+    await card.getByRole("button", { name: "Daten prüfen" }).click()
+    await card.getByText(/^1 Eintrag ist beschädigt/).waitFor()
+    results["integrityAxe"] = await accessibility(page, "local data: integrity report")
+    await screenshots(page, "desktop-settings-integrity")
+    await card.getByRole("button", { name: "Beschädigte Einträge entfernen" }).click()
+    await page.getByRole("alertdialog").getByRole("button", { name: "Endgültig entfernen" }).click()
+    await card.getByText(/^Alles in Ordnung/).waitFor()
+    check(((await dumpDatabase(page))["decks"] ?? []).length === 2, "local data: removal deleted more than the damaged record")
+
+    // What Chrome reports by default (a static figure, see localDataQuota).
+    results["defaultEstimate"] = await page.evaluate(async () => navigator.storage.estimate())
+
+    // Another tab opens a newer database version: this tab lets go and says so; a reload refuses the newer data.
+    const other = await context.newPage()
+    await other.goto(new URL("/manifest.webmanifest", base).href)
+    await other.evaluate(
+      () =>
+        new Promise<void>((resolve, reject) => {
+          const request = indexedDB.open("openmana", 2)
+          request.onsuccess = () => {
+            request.result.close()
+            resolve()
+          }
+          request.onerror = () => reject(request.error)
+        }),
+    )
+    await card.getByText("OpenMana wurde in einem anderen Tab aktualisiert").waitFor()
+    await page.getByText("Bitte lade die Seite neu.").waitFor()
+    await card.getByRole("button", { name: "Neu laden" }).click()
+    await card.getByText("Die lokalen Daten stammen von einer neueren OpenMana-Version").waitFor()
+    await page.goto(new URL("/decks", base).href, { waitUntil: "networkidle" })
+    await page.getByText("Die lokalen Daten stammen von einer neueren OpenMana-Version").waitFor()
+    check((await page.getByText("Noch keine Decks").count()) === 0, "local data: an unreadable database is shown as empty")
+    await screenshots(page, "desktop-decks-version-too-new")
+    await other.evaluate(
+      () =>
+        new Promise<void>((resolve, reject) => {
+          const request = indexedDB.deleteDatabase("openmana")
+          request.onsuccess = () => resolve()
+          request.onerror = () => reject(request.error)
+        }),
+    )
+    await other.close()
+
+    // Site data cleared while the app is open: the browser closes the connection, the app says so.
+    card = await openLocalData(page, base)
+    await cdp.send("Storage.clearDataForOrigin", { origin, storageTypes: "indexeddb" })
+    await card.getByText("Der Browser hat die lokale Datenbank geschlossen").waitFor()
+    await card.getByRole("button", { name: "Neu laden" }).click()
+    await card.getByText("Bereit", { exact: true }).waitFor()
+    check((await cardFacts(card))["Decks"] === "0", "local data: data left after clearing site data")
+
+    for (const error of pageLog.errors) check(false, `local data: ${error}`)
+    results["requests"] = pageLog.requests.filter((p) => !p.startsWith("/assets/") && !p.startsWith("/engine/")).length
+  } finally {
+    await context.close()
+  }
+  report["localData"] = results
+}
+
+/**
+ * Quota awareness against Chrome's StorageManager. By default Chrome reports
+ * a static quota (usage + a fixed amount, against fingerprinting) and ignores
+ * DevTools' quota override in navigator.storage.estimate(); with that feature
+ * off, the override (DevTools' "simulate custom storage quota") is what the
+ * page sees. The app must warn about little space and refuse an import that
+ * does not fit - before writing anything.
+ *
+ * Measured with Chrome 153: IndexedDB still commits beyond the overridden
+ * quota, so the browser's own QuotaExceededError cannot be provoked this way;
+ * the report records it, and unit tests inject that error instead.
+ */
+async function localDataQuota(executablePath: string, base: string): Promise<void> {
+  log("Local data: storage quota (DevTools override)")
+  const origin = new URL(base).origin
+  const browser = await chromium.launch({
+    executablePath,
+    headless: true,
+    args: ["--no-sandbox", "--disable-gpu", "--disable-features=StaticStorageQuota,IncognitoStaticStorageQuota"],
+  })
+  const context = await newContext(browser, VIEWPORTS[2]!)
+  const page = await context.newPage()
+  const pageLog = watch(page)
+  const cdp = await context.newCDPSession(page)
+  try {
+    let card = await openLocalData(page, base)
+    const usage = await page.evaluate(async () => (await navigator.storage.estimate()).usage ?? 0)
+    await cdp.send("Storage.overrideQuotaForOrigin", { origin, quotaSize: usage + 32 * 1024 })
+    card = await openLocalData(page, base)
+    await card.getByText("Wenig Speicher frei").waitFor()
+    const facts = await cardFacts(card)
+    check(/^\d+(,\d)? KB$/.test(facts["Noch frei"] ?? ""), `quota: free space shown as ${facts["Noch frei"]}`)
+    const big = sampleBackup(400, "Großes Deck")
+    await chooseBackup(card, "gross.jsonl.gz", big.bytes)
+    const dialog = page.getByRole("dialog", { name: "Sicherung laden" })
+    await dialog.getByText("Dafür ist nicht genug Speicher frei").waitFor()
+    check(await dialog.getByRole("button", { name: "Zusammenführen", exact: true }).isDisabled(), "quota: an import that does not fit can still be started")
+    await screenshots(page, "desktop-settings-import-no-space")
+    await dialog.getByRole("button", { name: "Abbrechen" }).click()
+    const decks = await dumpDatabase(page)
+    check((decks["decks"] ?? []).length === 0, "quota: something was written although the import was refused")
+    // Does IndexedDB itself enforce the overridden quota? (Recorded, not required.)
+    const enforced = await page.evaluate(async () => {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open("openmana-quota-probe", 1)
+        request.onupgradeneeded = () => request.result.createObjectStore("probe")
+        request.onsuccess = () => resolve(request.result)
+        request.onerror = () => reject(request.error)
+      })
+      const outcome = await new Promise<string>((resolve) => {
+        const transaction = db.transaction("probe", "readwrite")
+        transaction.objectStore("probe").put(crypto.getRandomValues(new Uint8Array(65_536)).join(","), 1)
+        transaction.oncomplete = () => resolve("committed")
+        transaction.onabort = () => resolve(`aborted: ${transaction.error?.name ?? "?"}`)
+      })
+      db.close()
+      indexedDB.deleteDatabase("openmana-quota-probe")
+      return outcome
+    })
+    report["localDataQuota"] = { overrideQuota: usage + 32 * 1024, facts, probeWriteBeyondQuota: enforced }
+    await cdp.send("Storage.overrideQuotaForOrigin", { origin })
+    for (const error of pageLog.errors) check(false, `quota: ${error}`)
+  } finally {
+    await context.close()
+    await browser.close()
+  }
+}
+
 // ── Run ──────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -385,6 +729,8 @@ async function main(): Promise<void> {
     await devServerChecks(browser, id)
     await surfaces(browser, base, id)
     report["engine"] = [await engine(browser, base, id, VIEWPORTS[2]!), await engine(browser, base, id, VIEWPORTS[0]!)]
+    await localData(browser, base)
+    await localDataQuota(executablePath, base)
     await pwa(base, executablePath)
     await withoutIsolation(browser)
   } finally {

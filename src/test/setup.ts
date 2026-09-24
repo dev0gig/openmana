@@ -3,12 +3,29 @@
  * shadcn components and the router's scroll restoration call are missing;
  * the stand-ins below answer like a wide screen that never scrolls. They only
  * make rendering possible, they do not change behaviour under test.
+ *
+ * IndexedDB: jsdom has none. fake-indexeddb is a complete implementation of
+ * the IndexedDB API in memory (the usual way to test IndexedDB code in
+ * Node); every test gets a new, empty one. The real browser database is
+ * exercised by the end-to-end test in Chrome.
  */
+import "fake-indexeddb/auto"
 import "@testing-library/jest-dom/vitest"
 import { cleanup } from "@testing-library/react"
-import { afterEach } from "vitest"
+import { IDBFactory } from "fake-indexeddb"
+import { toast } from "sonner"
+import { afterEach, beforeEach } from "vitest"
 
-afterEach(() => cleanup())
+beforeEach(() => {
+  globalThis.indexedDB = new IDBFactory()
+})
+
+afterEach(() => {
+  // sonner keeps active toasts in a module-wide store and replays them to the
+  // next Toaster: without this, a toast of one test shows up in the next.
+  toast.dismiss()
+  cleanup()
+})
 
 if (typeof window !== "undefined") {
   window.matchMedia ??= (query: string): MediaQueryList =>

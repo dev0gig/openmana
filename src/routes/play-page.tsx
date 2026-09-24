@@ -1,7 +1,8 @@
 /*
  * Play: prepare a game against Forge's AI. The engine can be loaded for real
- * (EnginePanel); a game needs a deck, which the deck import will provide, so
- * starting stays disabled until then. No sample decks, no simulated table.
+ * (EnginePanel); a game needs a deck from the local library and the game
+ * session (prompt 11), so starting stays disabled until then and says why.
+ * No sample decks, no simulated table.
  */
 import { Bot, Layers, Swords } from "lucide-react"
 import { Link } from "react-router"
@@ -10,8 +11,20 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@/components/ui/item"
 import { EnginePanel } from "@/engine/engine-panel"
+import { countDecks } from "@/storage/decks"
+import { useStorageQuery } from "@/storage/storage-context"
 
 export function PlayPage() {
+  const decks = useStorageQuery(["decks"], countDecks)
+  const deckText =
+    decks.status === "loading"
+      ? "Lese die Decks auf diesem Gerät …"
+      : decks.status === "error"
+        ? "Die Decks auf diesem Gerät lassen sich gerade nicht lesen."
+        : decks.data === 0
+          ? "Noch kein Deck auf diesem Gerät."
+          : `${decks.data === 1 ? "1 Deck" : `${decks.data} Decks`} auf diesem Gerät – die Deckwahl folgt.`
+  const startNote = decks.status === "ready" && decks.data > 0 ? "Das Starten einer Partie folgt in Kürze." : "Dafür fehlt noch ein Deck."
   return (
     <Page title="Spielen" description="Du gegen die Forge-KI. Forge entscheidet alle Regeln, OpenMana zeigt sie dir.">
       <div className="grid items-start gap-4 lg:grid-cols-2">
@@ -28,7 +41,7 @@ export function PlayPage() {
                 </ItemMedia>
                 <ItemContent>
                   <ItemTitle>Dein Deck</ItemTitle>
-                  <ItemDescription>Noch kein Deck auf diesem Gerät.</ItemDescription>
+                  <ItemDescription>{deckText}</ItemDescription>
                 </ItemContent>
                 <ItemActions>
                   <Button asChild variant="outline">
@@ -53,7 +66,7 @@ export function PlayPage() {
               Partie starten
             </Button>
             <span id="play-start-note" className="text-sm text-muted-foreground">
-              Dafür fehlt noch ein Deck.
+              {startNote}
             </span>
           </CardFooter>
         </Card>
