@@ -28,9 +28,9 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | **05 — JVM/WASM differential tests** |
-| Nächster Prompt | 06 — OpenMana web/PWA skeleton (erst nach 05 = COMPLETE) |
-| Zuletzt abgeschlossen | 04 — Forge resources and card scripts (`fbcba6e`) |
+| Aktuell ausgeführt | – (keiner; nach 05 wie in `naechster-schritt.md` vorgesehen gestoppt) |
+| Nächster Prompt | **06 — OpenMana web/PWA skeleton** (PENDING, nicht begonnen) |
+| Zuletzt abgeschlossen | 05 — JVM/WASM differential tests (`0ddfbc3`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-24 (Lauf über `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-24 |
 
@@ -43,7 +43,7 @@
 | 02 | [Anvil bridge single-thread spike](queue/02-anvil-bridge-single-thread.md) | COMPLETE | `5a2ed62` |
 | 03 | [Worker transport and protocol](queue/03-worker-transport-protocol.md) | COMPLETE | `1e8febf` |
 | 04 | [Forge resources and card scripts](queue/04-forge-resources-card-scripts.md) | COMPLETE | `fbcba6e` |
-| 05 | [JVM/WASM differential tests](queue/05-engine-differential-tests.md) | IN_PROGRESS | – |
+| 05 | [JVM/WASM differential tests](queue/05-engine-differential-tests.md) | COMPLETE | `0ddfbc3` |
 | 06 | [OpenMana web/PWA skeleton](queue/06-web-pwa-skeleton.md) | PENDING | – |
 | 07 | [IndexedDB local data layer](queue/07-indexeddb-storage.md) | PENDING | – |
 | 08 | [Scryfall card data](queue/08-scryfall-data.md) | PENDING | – |
@@ -426,7 +426,112 @@
 - **Weiter mit:** Prompt 05 (JVM/WASM differential tests). Nicht begonnen:
   `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
 
-### 05 — JVM/WASM differential tests — IN_PROGRESS
+### 05 — JVM/WASM differential tests — COMPLETE
 
-- Begonnen am 2026-09-24 von Claude Code (Claude Opus 5.5), Auftrag
+- **Commits:** `0ddfbc3` Implementierung (alle Nachweise liefen auf diesem
+  Stand, sauberer Build, `openmana.engineSourcesModified=false`), danach Doku
+  und dieser Eintrag (2026-09-24). Agent: Claude Code (Claude Opus 5.5), Auftrag
   „Führe prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
+  Status-Commit zu Beginn: `7264f1a`.
+- **Zusammenfassung:** Ein Regressionsgerüst spielt dieselben skriptgesteuerten
+  Partien mit festen Seeds auf der JVM-Bridge und der Wasm-Bridge (Node,
+  Chrome) und vergleicht sie über eine **strukturierte, sprachunabhängige
+  Engine-Spur** statt über Forges Texte: vor jeder Eingabe, zu jedem
+  Schrittbeginn und am Spielende ein vollständiger Schnappschuss aus Forges
+  Modell, dazwischen jedes Forge-Ereignis und jede Entscheidung der Bridge – nur
+  Ids, englische Kartenschlüssel, Aufzählungen und Zahlen, keine Uhr. **Jede
+  Abweichung scheitert** und nennt Eintrag, Zug, Schritt, gelesene Eingaben und
+  Feld; ein Negativtest mit verfälschten Spuren beweist es. Zehn kleine
+  Testpartien als Daten decken zusammen ab, was der Prompt verlangt, inklusive
+  Blocker-Zuordnung und einer regelkonformen **Commander**-Partie (dafür einen
+  Bridge-Fehler behoben). Alle Partien sind auf JVM, Node und Chrome
+  spurgleich; Deutsch = Englisch, faul = vollständig. Research-Frage 3
+  (verhaltensgleiche Übersetzung) damit für die getesteten Pfade beantwortet.
+  Kein Blocker.
+- **Wichtige Komponenten:**
+  - Spur: `engine/bridge/…/trace/` (`EngineTrace` – Checkpoints, Wrapper um den
+    Host, EventBus-Abonnent; `TraceEvents` – eine Art je Forge-Ereignisklasse,
+    implementiert Forges Visitor-Schnittstelle vollständig, ein neues
+    Forge-Ereignis kompiliert nicht ohne Entscheidung; `TraceSnapshot` – aus
+    Forges Modell inkl. verdeckter Information; `TraceRefs`)
+  - Protokoll **3**: `diagnostics.trace` (genaues Schema für den Schnappschuss),
+    `MatchRequest.trace`, `DiagnosticsAiMatchCommand.trace`,
+    `MatchSummary.trace`/`AiMatchResult.trace`; Client nimmt die Spur nur an,
+    wenn angefordert, lückenlos, mit passender Zählung
+  - Testpartien: `engine/fixtures/` (6 Decks, 10 Partien, `README.md`);
+    `ScriptedHuman` mit Richtlinien (Angriff `all/none/alternate`, Block
+    `none/one/assign`, Aufgabe), Kommandant aus der Kommandozone;
+    `JvmHumanMatchMain --scenario`, `JvmSmokeMain --trace`
+  - Werkzeuge: `engine/wasm/spike/trace.ts` (Vergleich, Bericht, SHA-256,
+    Abdeckung, `REQUIRED_COVERAGE`), `wasm/test/fixtures.ts`,
+    `check-traces.ts`, `compare-traces.ts`, `node-divergence.ts`; Wiederholungen
+    (`replay.ts`, `node-ai.ts`, `page.ts`, `browser-smoke.mjs`) vergleichen
+    jeden Eintrag beim Eintreffen und brechen bei der ersten Abweichung ab
+  - Build: `ListSubscribers.java` + `gen-reflection-config.mjs` registrieren
+    OpenMana-EventBus-Abonnenten für das Wasm-Modul (ohne wäre die Spur dort
+    still leer; der Build bricht ab, wenn der Spur-Abonnent fehlt)
+  - Behoben: `HeadlessGuiBase.showImageDialog` verwirft Forges Erfolgs-Dialog
+  - Doku: `docs/implementation/05-engine-differential-tests.md`,
+    `engine/fixtures/README.md`, `engine/README.md`, `engine/protocol/README.md`
+- **Tests (alle bestanden):**
+  - 80 Unit-Tests (+15): `trace.test.ts` 12 (Vergleich, Berichte, Prüfsumme,
+    Abdeckung, Testpartien gültig und zusammen vollständig), Client +3 (Spur nur
+    auf Wunsch, Lücke, Zählung), Schema-Beispiele für Protokoll 3.
+  - 51 JVM-Tests (+6): `EngineTraceTest` 5 (Spur ändert das Spiel nicht,
+    dieselben Eingaben = dieselbe Spur, vollständig und ohne Textfelder,
+    Blocker-Zuordnung auf zwei Angreifer, Commander-Partie endet regulär mit
+    Steuer, Rückkehr und Kommandantenschaden), `ProtocolContractTest` +1.
+  - `test-engine.sh`: siehe unten (**0 Fehler**): KI-Partien Seed 42
+    faul/vollständig/deutsch dieselbe Spur `51689620…` (257 Einträge), Seed 7
+    `9e087efc…`, je JVM = Node = Chrome; 10 Testpartien auf der JVM mit
+    geprüfter Abdeckung, Varianten `human-3-de`/`human-3-lazy` = `human-3`
+    (`fa95aed2…`); 8 Partien in Node faul und mit 256-Byte-Warteschlange und in
+    Chrome faul (`human-3`, `human-11` auch eng) spurgleich; Negativtest: drei
+    Verfälschungen scheitern an genau der verfälschten Stelle; Referenz-
+    Protokolle seit Prompt 02 bitgleich (`c1e990c6…`, `7c3f673f…`,
+    `e8213ffe…`, `6737df12…`); Kartenprüfung, Protokoll-Fehlerpfade,
+    Versionskonflikt, ohne COOP/COEP wie in 04.
+- **Messwerte (odin):** sauberer Build 377,9 s (Maven mit 51 Tests 77,7 s,
+  `native-image` 122,2 s bei 5,97 GiB). Modul unverändert 75,3 MiB /
+  12,47 MiB Brotli (+6 Klassen); Worker-Bundle 394 KiB / 27,6 KiB Brotli (vorher
+  333 / 24 KiB: genaue Prüfer der Spur). `test-engine.sh` 14,9 min, 64 Läufe,
+  0 Fehler. Spur je Partie 56–303 Einträge (~2 KB je Eintrag). Kosten der Spur
+  (nur in Tests): Partie auf der JVM +4 %, im Wasm (Node) +12 %, Schemaprüfung
+  im Client 46 statt 25 ms je Partie, Spitzenspeicher gleich.
+- **Erkenntnisse/Abweichungen:**
+  - **Behoben – Commander-Partien konnten nicht enden:** Forge zeigt am
+    Spielende einen neu erreichten Erfolg per `showImageDialog`;
+    `HeadlessGuiBase` warf dort, Guavas EventBus verschluckte die Ausnahme,
+    `finishGame` kam nie (von der Bridge laut gemeldet).
+  - **Behoben – die erste Spur veränderte das Spiel:** Forges
+    `getActivateDescription` (Priorität) setzt über `getAllPossibleAbilities`/
+    `canPlay` den aktivierenden Spieler – eine Nebenwirkung. Die Spur fragt es
+    nicht mehr ab; `EngineTraceTest` sichert „mit Spur = ohne Spur“.
+    **Offen (Prompt 14/16):** `StateBuilder` fragt `action` für jede sichtbare
+    Karte ab, auch für Karten der KI; deterministisch und in allen Tests
+    gleich, aber die Anzeigeschicht verändert so Forges Objekte. Vorschlag:
+    während der Priorität nur für Karten, die Forge als spielbar markiert.
+  - **Uhren in Forge:** APINA (`AvailableActions`) hat ein Zeitbudget von 50 ms
+    je Karte; läuft es ab, bekommt der Spieler eine Priorität mehr. Nie
+    abgelaufen; `test-engine.sh` scheitert, sobald Forge es meldet. Die
+    KI-Zeitgrenze (Patch 0002, 5 s) meldet nichts; ein Treffer zeigte sich als
+    Spur-Abweichung.
+  - Deutsch und Englisch, faul und vollständig: dieselbe Spur (Menschen- und
+    KI-Partie) – Forges Spiel hängt nicht an Sprache oder Kartenladen.
+  - Stapeltiefe 2 kommt in den Testpartien von der KI (Antwort auf einen
+    Zauber); der Testspieler bekommt nach eigenem Zauber wegen APINA meist keine
+    Priorität mehr. Doppelblocks brauchen freie Kreaturen (15 Seeds, einer
+    passte; mit „nie angreifen“ dauerten zwei von drei Partien 94 bzw. 102
+    Züge) → `blocks-double` gibt in Zug 13 auf.
+  - Forge fragt nicht, ob der gestorbene Kommandant in die Kommandozone soll;
+    Forge prüft Commander-Decks beim Start nicht (nur in seiner Lobby) → für
+    Prompt 09/11: die Engine nimmt jedes Deck an. Forge loggt in
+    Commander-Partien `findByView … not found` (harmlos, überall gleich).
+  - Bewusste Entscheidungen: Aufzeichnen/Nachspielen mit der JVM als Referenz;
+    Spur mit verdeckter Information nur auf Wunsch (Protokoll 3, gestreamt, damit
+    auch abbrechende Wasm-Partien ihre Spur bis zur Abweichung liefern);
+    Testpartien mit `covers` statt eingecheckter Prüfsummen (ein Forge-Update
+    ändert die KI und jede Prüfsumme, nicht aber, was eine Partie abdecken
+    soll); die Text-Hashes von Prompt 02–04 bleiben als Zusatzprüfung.
+- **Weiter mit:** Prompt 06 (OpenMana web/PWA skeleton). Nicht begonnen:
+  `naechster-schritt.md` führt genau einen Prompt je Lauf aus.

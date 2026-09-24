@@ -51,8 +51,14 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Network play excluded: Netty's own native-image configuration is excluded, and the Wasm build aborts if a Netty/jupnp/Jetty/servlet type becomes reachable or a class of them is in the module.
 - Forge's texts in German (`--language=de-DE`), protocol version 2; eager card loading is the default (lazy loading stalls a game for 17–42 s in the Wasm engine when an effect or decision needs all cards).
 
+### JVM/WASM Differential Tests (Prompt 05)
+- Engine trace (`diagnostics.trace`, protocol version 3, engine tests only): at every point Forge waits for input, at every step and at the end of the game a complete snapshot from Forge's model (every zone incl. library order and hidden hands, stack with targets, combat, the human seat's markers and open questions), plus every Forge game event and every bridge decision — ids, English card keys, enum names and numbers only, no clock-dependent checkpoints, no prose. The client accepts it only when requested.
+- Test fixtures as data (`engine/fixtures`): ten scripted games with fixed seeds (incl. blocker assignment, a double block, a stack response, a legal 100-card Commander game); each names what it must cover, together they cover mulligan, land/spell play, priority, cost payment, targeting, stack, combat, block assignment, zone movement, game end and Commander.
+- `engine/scripts/test-engine.sh` plays every fixture on the JVM and replays it in Node and Chrome; the traces must be equal entry by entry (AI games too); any divergence fails with its place in the game. A negative test proves that tampered traces fail at the tampered place. German and lazy-loading variants give the very same trace.
+- Found and fixed: Commander games could not end (Forge's achievement dialog threw in the headless GUI). Documented: Forge's `getActivateDescription` sets a missing activating player (side effect; follow-up in prompts 14/16) and Forge's time-budgeted "has the player anything to do" check (the tests fail if it runs out). Details: `docs/implementation/05-engine-differential-tests.md`.
+
 ## Currently In Progress
-Nothing. Prompts 00–04 are `COMPLETE`. The next prompt is **05 — JVM/WASM differential tests** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
+Nothing. Prompts 00–05 are `COMPLETE`. The next prompt is **06 — OpenMana web/PWA skeleton** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
 
 Any agent entering the repository must first reconcile this statement with the latest `prompts/STATUS.md` and Git state.
 
@@ -95,7 +101,7 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 ## Workflow Compatibility
 OpenMana predates the generic Dropzone `queue → active → completed` lifecycle and is worked through **its own numbered ledger**, one prompt at a time.
 
-Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 04 complete, 05 next, nothing in progress).
+Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 05 complete, 06 next, nothing in progress).
 
 Dropzone Master/Standalone must respect:
 - `prompts/STATUS.md` statuses,
