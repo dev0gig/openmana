@@ -148,6 +148,16 @@ Forge tells OpenMana what is valid; OpenMana communicates it clearly:
 - impossible actions are not presented as plausible
 - dangerous irreversible actions receive appropriate confirmation
 
+### Match persistence / resume
+
+A running match does not initially need to survive a tab close, browser reload, browser restart or Android tab discard. This limitation must be communicated honestly until recovery is proven reliable.
+
+**Post-MVP requirement:** OpenMana should eventually persist recoverable running matches in IndexedDB and offer a clear **Continue game** flow after reopening the application.
+
+Match recovery must restore the complete authoritative Forge game state reliably. A partial approximation is not acceptable if it can lose or alter stack contents, pending triggers, continuous effects, choices, priority, combat state, or other rules-relevant state. Do not implement card-specific recovery logic in the UI.
+
+This feature should be implemented only after the core game-session/Forge bridge is stable and the exact serialization/restoration strategy has been validated with representative complex game states. Until then, reload or browser/tab termination may end the current match.
+
 ### Reduce meaningless interaction
 
 Preserve Anvil's successful principle: priorities/decisions with no meaningful choice may be skipped only when Forge itself can safely determine that. Never auto-answer a meaningful choice merely for speed.
