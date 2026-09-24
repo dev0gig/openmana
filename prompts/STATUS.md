@@ -28,9 +28,9 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | **01 — Forge WASM engine spike** |
-| Nächster Prompt | 02 — Anvil bridge single-thread spike (erst nach 01 = COMPLETE) |
-| Zuletzt abgeschlossen | 00 — Research: ManaBrew / Forge WebAssembly |
+| Aktuell ausgeführt | – (01 abgeschlossen) |
+| Nächster Prompt | **02 — Anvil bridge single-thread spike** |
+| Zuletzt abgeschlossen | 01 — Forge WASM engine spike (`b64835a`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-24 |
 | Letzte Aktualisierung | 2026-09-24 |
 
@@ -39,7 +39,7 @@
 | # | Prompt | Status | Commit |
 |---|---|---|---|
 | 00 | [Research: ManaBrew / Forge WebAssembly](queue/00-research-manabrew-forge-wasm.md) | COMPLETE | `681ce0a` |
-| 01 | [Forge WASM engine spike](queue/01-engine-spike.md) | IN_PROGRESS | – |
+| 01 | [Forge WASM engine spike](queue/01-engine-spike.md) | COMPLETE | `b64835a` |
 | 02 | [Anvil bridge single-thread spike](queue/02-anvil-bridge-single-thread.md) | PENDING | – |
 | 03 | [Worker transport and protocol](queue/03-worker-transport-protocol.md) | PENDING | – |
 | 04 | [Forge resources and card scripts](queue/04-forge-resources-card-scripts.md) | PENDING | – |
@@ -92,6 +92,57 @@
   von der Bible (ebd. §10), u. a. Patch-Queue statt reinem upstream-Pin und
   TWA/WebAPK statt Capacitor.
 
-### 01 — Forge WASM engine spike — IN_PROGRESS
+### 01 — Forge WASM engine spike — COMPLETE
 
-- Begonnen am 2026-09-24 von Claude Code.
+- **Commit:** `b64835a` (2026-09-24), Agent: Claude Code (Claude Opus 5.5)
+- **Zusammenfassung:** Forge upstream `Card-Forge/forge@ed0333f` (Submodule) plus
+  drei GPL-Patches läuft als WebAssembly (Oracle GraalVM 25.4.4.1.1 Web Image) in
+  einem **Dedicated Worker in Chrome 153** und spielt eine komplette Partie
+  Forge-KI gegen Forge-KI. JVM, Node und Chrome erzeugen **dasselbe Forge-GameLog**
+  (SHA-256, drei Szenarien). Ohne COOP/COEP erscheint nach ~70 ms eine klare
+  Meldung statt eines Hängers. Keine Annahme der Research widerlegt, kein Blocker.
+- **Wichtige Komponenten:**
+  - `engine/forge` (Submodule, `shallow`), `engine/toolchain.lock.json`
+    (GraalVM/Binaryen/Maven mit Prüfsummen), `engine/resources.json`
+  - `engine/patches/0001–0003` (Synchronmodus `ThreadUtil`/KI, kooperative
+    KI-Zeitgrenze, Angriffs-KI nacheinander) + `patches/README.md`
+  - `engine/bridge` (Maven-Modul auf dem Forge-Parent): `HeadlessGuiBase`,
+    `ForgeEngine`, `EngineBoot`, `ResourceBundleReader`, `AiSmokeMatch`,
+    `SmokeDecks`, `JvmSmokeMain`, eigener Assembly-Deskriptor
+  - `engine/wasm`: `WasmMain` (`@JS`), Worker-Host (Browser + Node),
+    `feature-detect.js`, Diagnoseseite `spike/`, Tests `test/`
+  - `engine/scripts`: `build.sh` (setup-toolchain → prepare-forge →
+    pack-resources → build-jvm → build-wasm), `test-engine.sh`,
+    `record-agent-config.sh` u. a.
+  - Doku: `engine/README.md`, `docs/implementation/01-engine-spike.md`
+- **Tests (alle bestanden):**
+  - 5 JVM-Tests (TestNG, im Maven-Build): Boot/Pin/Synchronmodus, KI-Partie
+    endet und ist per Seed wiederholbar, anderer Seed = andere Partie,
+    Ressourcen-Bundle weist kaputte/gefährliche Pfade ab.
+  - `test-engine.sh`: Seed 42 lazy, Seed 42 eager, Seed 7 lazy jeweils auf JVM,
+    Wasm/Node 22 und Wasm/Chrome 153 → Hashes `d7611b0e…` bzw. `0d52aafc…`
+    überall gleich, keine Forge- oder tinylog-Fehler; Negativtest ohne COOP/COEP.
+  - Laut-scheitern-Prüfungen: falsches Archiv (Größe/SHA-256), fehlende
+    Toolchain, unbekanntes Launcher-Layout, Launcher ohne Host-Konfiguration,
+    `-H:+FatalUnsupportedNodes` ohne Befund.
+- **Messwerte (odin, i7-8700T):** sauberer Build 301 s, davon `native-image`
+  1:45 min bei 5,2–5,9 GiB Spitze; mit 2 CPUs/8 GB ohne Swap simuliert 3:18 min
+  bei 5,07 GiB (→ Research-Frage 4: privater Runner reicht). Modul 68,7 MiB roh,
+  19,4 MiB gzip, 13,1 MiB Brotli. Chrome: spielbereit nach ~3,4–3,5 s (lazy) bzw.
+  4,9 s (eager), Engine ≈ +0,93 GiB RSS, 502 MiB Wasm-/JS-Heap im Worker.
+  Partie im Wasm 1,5–2× so lang wie auf der JVM.
+- **Erkenntnisse/Abweichungen:**
+  - Patches laufen auf einer frischen Kopie des Pins (`engine/build/work`),
+    nicht im Submodule; der Maven-Reactor wird dort erzeugt.
+  - Web Image: `os.name="Browser"`, kein `user.home`, fehlende Dateien werfen
+    `NoSuchFileException` statt `FileNotFoundException` → Forges drei
+    UI-Präferenzdateien werden leer angelegt (beide Laufzeiten).
+  - Netty erzwingt per eigener Konfiguration Build-Zeit-Init → Logging/Netty
+    auf Laufzeit-Init gesetzt (wie ManaBrew).
+  - **Behoben:** Forges tinylog-Ausgaben gingen im Fat-JAR verloren
+    (Service-Dateien überschrieben) → Deskriptor führt sie zusammen, Test wacht.
+  - Spike-Transport nur `postMessage`; SharedArrayBuffer-Warteschlange kommt
+    mit Prompt 03. Netty/jupnp liegen noch auf dem Klassenpfad (Prompt 04).
+  - Offen für spätere Prompts: Lazy-Loading-Korrektheit für namentlich erzeugte
+    Karten (04), vollständiger Differenztest (05), Fold7-Messung, Vercel, TWA,
+    `LICENSE`-Datei vor öffentlicher Auslieferung (27).
