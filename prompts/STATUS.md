@@ -28,8 +28,8 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | – (keiner; nach 07 wie in `naechster-schritt.md` vorgesehen gestoppt) |
-| Nächster Prompt | **08 — Scryfall card data** (PENDING, nicht begonnen) |
+| Aktuell ausgeführt | **08 — Scryfall card data** |
+| Nächster Prompt | 09 — Arena deck import (erst nach 08 = COMPLETE) |
 | Zuletzt abgeschlossen | 07 — IndexedDB local data layer (`c9ee901`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-25 (Lauf über `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-25 |
@@ -46,7 +46,7 @@
 | 05 | [JVM/WASM differential tests](queue/05-engine-differential-tests.md) | COMPLETE | `0ddfbc3` |
 | 06 | [OpenMana web/PWA skeleton](queue/06-web-pwa-skeleton.md) | COMPLETE | `cfb2252` |
 | 07 | [IndexedDB local data layer](queue/07-indexeddb-storage.md) | COMPLETE | `c9ee901` |
-| 08 | [Scryfall card data](queue/08-scryfall-data.md) | PENDING | – |
+| 08 | [Scryfall card data](queue/08-scryfall-data.md) | IN_PROGRESS | – |
 | 09 | [Arena deck import](queue/09-arena-deck-import.md) | PENDING | – |
 | 10 | [Deck library](queue/10-deck-library.md) | PENDING | – |
 | 11 | [Game session foundation](queue/11-game-session.md) | PENDING | – |
@@ -745,6 +745,11 @@
     bringen“ anbieten (Doku §12).
 - **Weiter mit:** Prompt 08 (Scryfall card data). Nicht begonnen:
   `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
+
+### 08 — Scryfall card data — IN_PROGRESS
+
+- Begonnen am 2026-09-25 von Claude Code (Claude Opus 5.5), Auftrag
+  „Führe prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
 
 ## Hinweise für spätere Prompts
 
