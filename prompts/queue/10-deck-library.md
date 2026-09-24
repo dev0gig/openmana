@@ -1,0 +1,2 @@
+# 10 — Deck library
+Build the local deck-library UX over IndexedDB: list/search/sort, deck details, rename, duplicate, delete with confirmation, re-import/update, export, format/card counts and German/English fallback status. Keep primary actions reachable on phone. Allow selecting a human deck and an AI deck, including random AI deck selection where valid. Preserve original Arena import text plus normalized data.
