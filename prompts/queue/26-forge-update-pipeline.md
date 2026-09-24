@@ -1,0 +1,2 @@
+# 26 — Isolated Forge update pipeline
+Implement the researched engine update workflow: pinned upstream Forge SHA, patch queue, reproducible toolchain, clean rebuild, manifest/lock, JVM tests, JVM↔WASM differential tests and browser smoke tests. Forge-update PRs are constrained to engine/** unless protocol adaptation is explicitly required; src/UI changes are forbidden by default. Document a simple maintainer procedure for pulling a new Forge release/set and validating it.
