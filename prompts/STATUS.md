@@ -28,10 +28,10 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | – (keiner; nach 01 + 02 wie beauftragt gestoppt) |
-| Nächster Prompt | **03 — Worker transport and protocol** (PENDING, nicht begonnen) |
+| Aktuell ausgeführt | **03 — Worker transport and protocol** |
+| Nächster Prompt | 04 — Forge resources and card scripts (erst nach 03 = COMPLETE) |
 | Zuletzt abgeschlossen | 02 — Anvil bridge single-thread spike (`5a2ed62`) |
-| Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-24 |
+| Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-24 (Lauf über `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-24 |
 
 ## Übersicht
@@ -41,7 +41,7 @@
 | 00 | [Research: ManaBrew / Forge WebAssembly](queue/00-research-manabrew-forge-wasm.md) | COMPLETE | `681ce0a` |
 | 01 | [Forge WASM engine spike](queue/01-engine-spike.md) | COMPLETE | `b64835a` |
 | 02 | [Anvil bridge single-thread spike](queue/02-anvil-bridge-single-thread.md) | COMPLETE | `5a2ed62` |
-| 03 | [Worker transport and protocol](queue/03-worker-transport-protocol.md) | PENDING | – |
+| 03 | [Worker transport and protocol](queue/03-worker-transport-protocol.md) | IN_PROGRESS | – |
 | 04 | [Forge resources and card scripts](queue/04-forge-resources-card-scripts.md) | PENDING | – |
 | 05 | [JVM/WASM differential tests](queue/05-engine-differential-tests.md) | PENDING | – |
 | 06 | [OpenMana web/PWA skeleton](queue/06-web-pwa-skeleton.md) | PENDING | – |
@@ -223,3 +223,8 @@
     jetzt selbst auf (`TempRoot`), Tests entpacken unter `target/`.
 - **Weiter mit:** Prompt 03 (Worker-Transport und Protokoll). Nicht begonnen:
   Der Auftrag vom 2026-09-24 endete ausdrücklich nach 01 + 02.
+
+### 03 — Worker transport and protocol — IN_PROGRESS
+
+- Begonnen am 2026-09-24 von Claude Code (Claude Opus 5.5), Auftrag
+  „Führe prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
