@@ -1,0 +1,6 @@
+# Web app (root): dependencies, production build, test reports.
+# The engine keeps its own ignores in engine/.gitignore.
+/node_modules/
+/dist/
+/reports/
+*.local

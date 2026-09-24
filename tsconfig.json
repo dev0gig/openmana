@@ -1,0 +1,15 @@
+{
+  // Type check only (tsc -b): Vite bundles the app, Node runs the tooling.
+  // The app may import the engine only through the aliases below
+  // (engine/protocol and engine/client); src/app/boundary.test.ts enforces it.
+  "files": [],
+  "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.test.json" }, { "path": "./tsconfig.node.json" }],
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"],
+      "@openmana/engine-client": ["./engine/client/src/index.ts"],
+      "@openmana/engine-protocol": ["./engine/protocol/src/index.ts"],
+      "@openmana/engine-protocol/*": ["./engine/protocol/src/*"]
+    }
+  }
+}

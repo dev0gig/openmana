@@ -1,0 +1,35 @@
+{
+  // Tests of src/ (Vitest): the app's settings plus Node's types, because some
+  // tests read repository files (manifest, tokens, imports).
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
+    "target": "es2023",
+    "lib": ["es2023", "dom", "dom.iterable"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": ["vite/client", "node"],
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "@openmana/engine-client": ["./engine/client/src/index.ts"],
+      "@openmana/engine-protocol": ["./engine/protocol/src/index.ts"],
+      "@openmana/engine-protocol/*": ["./engine/protocol/src/*"]
+    }
+  },
+  "include": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/test", "src/virtual-modules.d.ts"]
+}
