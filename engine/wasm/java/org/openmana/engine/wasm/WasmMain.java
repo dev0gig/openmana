@@ -8,6 +8,7 @@ import org.graalvm.webimage.api.JSString;
 import org.openmana.engine.EngineBoot;
 import org.openmana.engine.ForgeEngine;
 import org.openmana.engine.bridge.HumanMatch;
+import org.openmana.engine.bridge.Protocol;
 import org.openmana.engine.smoke.AiSmokeMatch;
 
 import java.io.InputStream;
@@ -27,7 +28,13 @@ import java.util.function.Function;
  * {@code registerEngine(handler)} before the module starts.
  *
  * <p>Every failure is reported to the host as a {@code fatal} message or an
- * {@code ok: false} response. Nothing is swallowed.
+ * {@code ok: false} response with a {@code code}: {@code deck-rejected} and
+ * {@code invalid-request} mean Forge never started the game (the host
+ * reports engine.error, the worker stays usable), {@code engine-failure}
+ * means the engine cannot go on (engine.abort). Nothing is swallowed.
+ *
+ * <p>The ready message carries the protocol version first; the host refuses
+ * an engine that speaks another one.
  *
  * <p>Compiled separately with {@code javac -parameters}: Web Image binds the
  * {@code @JS} snippet arguments by parameter name.
@@ -68,9 +75,9 @@ public final class WasmMain {
             }
 
             registerEngine(request -> JSString.of(handle(request.asString())));
-            emit("ready", boot.toString());
+            emit("ready", ready(boot).toString());
         } catch (final Throwable t) {
-            emit("fatal", failure(t).toString());
+            emit("fatal", failure(t, "engine-failure").toString());
         }
     }
 
@@ -96,12 +103,27 @@ public final class WasmMain {
                 throw new IllegalArgumentException("unknown engine command '" + command + "'");
             }
         } catch (final HumanMatch.DeckProblem problem) {
-            response = failure(problem);
+            response = failure(problem, "deck-rejected");
             response.add("report", problem.report());
+        } catch (final HumanMatch.InvalidRequest problem) {
+            response = failure(problem, "invalid-request");
         } catch (final Throwable t) {
-            response = failure(t);
+            response = failure(t, "engine-failure");
         }
         return new GsonBuilder().serializeNulls().create().toJson(response);
+    }
+
+    /** The engine.ready payload (protocol EngineReady without type and t, which the host adds). */
+    private static JsonObject ready(final JsonObject boot) {
+        final JsonObject ready = new JsonObject();
+        ready.addProperty("protocol", Protocol.VERSION);
+        ready.add("engine", boot.get("engine"));
+        final JsonObject report = new JsonObject();
+        for (final String key : new String[]{"resourceFiles", "resourceBytes", "unpackMillis", "forgeInitMillis", "cardLoading"}) {
+            report.add(key, boot.get(key));
+        }
+        ready.add("boot", report);
+        return ready;
     }
 
     private static String phase(final String name) {
@@ -110,12 +132,15 @@ public final class WasmMain {
         return phase.toString();
     }
 
-    private static JsonObject failure(final Throwable t) {
+    private static JsonObject failure(final Throwable t, final String code) {
         final StringWriter stack = new StringWriter();
         t.printStackTrace(new PrintWriter(stack));
         final JsonObject failure = new JsonObject();
         failure.addProperty("ok", false);
-        failure.addProperty("error", t.toString());
+        failure.addProperty("code", code);
+        // Our own request/deck problems are meant to be read; everything else keeps its class name.
+        final boolean readable = t instanceof HumanMatch.DeckProblem || t instanceof HumanMatch.InvalidRequest;
+        failure.addProperty("error", readable ? t.getMessage() : t.toString());
         failure.addProperty("stack", stack.toString());
         return failure;
     }

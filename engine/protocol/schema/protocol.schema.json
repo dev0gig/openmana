@@ -1,0 +1,1208 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openmana.invalid/schemas/engine-protocol/v1",
+  "title": "OpenManaProtocol",
+  "description": "The only contract between the OpenMana UI and the engine (Forge bridge in a Dedicated Worker). Three directions: EngineMessage (worker -> page, postMessage), EngineInput (page -> engine, SharedArrayBuffer input queue) and WorkerCommand (page -> worker, postMessage while the worker is idle). The UI sees no Forge classes; Forge alone decides rules, legal actions and AI. Any change to this file is a new protocol version: bump ProtocolVersion and Protocol.VERSION in the bridge together, then run `npm run generate` in engine/.",
+  "anyOf": [
+    { "$ref": "#/$defs/EngineMessage" },
+    { "$ref": "#/$defs/EngineInput" },
+    { "$ref": "#/$defs/WorkerCommand" }
+  ],
+  "$defs": {
+    "ProtocolVersion": {
+      "title": "ProtocolVersion",
+      "description": "Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch).",
+      "const": 1
+    },
+
+    "EngineMessage": {
+      "title": "EngineMessage",
+      "description": "Everything the worker posts to the page: lifecycle messages of the worker host (engine.*, match.finished, diagnostics.result) and the game messages of the bridge.",
+      "type": "object",
+      "discriminator": { "propertyName": "type" },
+      "oneOf": [
+        { "$ref": "#/$defs/EngineBoot" },
+        { "$ref": "#/$defs/EngineReady" },
+        { "$ref": "#/$defs/EngineWaiting" },
+        { "$ref": "#/$defs/EngineError" },
+        { "$ref": "#/$defs/EngineAbort" },
+        { "$ref": "#/$defs/MatchFinished" },
+        { "$ref": "#/$defs/DiagnosticsResult" },
+        { "$ref": "#/$defs/GameStarted" },
+        { "$ref": "#/$defs/GameState" },
+        { "$ref": "#/$defs/GameEvents" },
+        { "$ref": "#/$defs/GameMessage" },
+        { "$ref": "#/$defs/Question" },
+        { "$ref": "#/$defs/QuestionWithdrawn" },
+        { "$ref": "#/$defs/QuestionAnswered" },
+        { "$ref": "#/$defs/InputRejected" },
+        { "$ref": "#/$defs/GameEnd" }
+      ]
+    },
+
+    "EngineInput": {
+      "title": "EngineInput",
+      "description": "What the player does, written into the SharedArrayBuffer input queue. Forge reads one input whenever it waits for the player. `seq` numbers the inputs of a match from 1 without gaps; the bridge refuses to continue if the sequence breaks (technical abort).",
+      "type": "object",
+      "discriminator": { "propertyName": "type" },
+      "oneOf": [
+        { "$ref": "#/$defs/AnswerInput" },
+        { "$ref": "#/$defs/CardTapInput" },
+        { "$ref": "#/$defs/PlayerTapInput" },
+        { "$ref": "#/$defs/StateRequestInput" },
+        { "$ref": "#/$defs/ConcedeInput" }
+      ]
+    },
+
+    "WorkerCommand": {
+      "title": "WorkerCommand",
+      "description": "Commands the page posts to the worker. The worker handles them only while it is idle (before and between Forge calls); during a match everything goes through the input queue.",
+      "type": "object",
+      "discriminator": { "propertyName": "type" },
+      "oneOf": [
+        { "$ref": "#/$defs/EngineStartCommand" },
+        { "$ref": "#/$defs/MatchStartCommand" },
+        { "$ref": "#/$defs/DiagnosticsAiMatchCommand" }
+      ]
+    },
+
+    "EngineBoot": {
+      "title": "EngineBoot",
+      "description": "Progress while the engine starts (for a loading indicator and start-up timings).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "phase", "t"],
+      "properties": {
+        "type": { "const": "engine.boot" },
+        "phase": { "$ref": "#/$defs/BootPhase" },
+        "t": { "$ref": "#/$defs/WorkerTime" },
+        "features": { "$ref": "#/$defs/FeatureReport" }
+      }
+    },
+    "BootPhase": {
+      "title": "BootPhase",
+      "description": "worker-features: the worker checked the browser; launcher-load: the engine launcher script is loading; wasm-fetch-compile: the ~70 MB module is fetched and compiled; java-main: Forge unpacks its data and initialises.",
+      "enum": ["worker-features", "launcher-load", "wasm-fetch-compile", "java-main"]
+    },
+    "WorkerTime": {
+      "title": "WorkerTime",
+      "description": "Milliseconds since the worker started (worker clock).",
+      "type": "number",
+      "minimum": 0
+    },
+    "FeatureReport": {
+      "title": "FeatureReport",
+      "description": "What the runtime supports. The engine needs WebAssembly GC, exception handling with exnref and typed function references (GraalVM Web Image), a Dedicated Worker, SharedArrayBuffer with Atomics.wait and, in browsers, cross-origin isolation (COOP/COEP).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["webAssembly", "wasmGc", "wasmExnref", "wasmTypedFunctionReferences", "crossOriginIsolated", "sharedArrayBuffer", "atomicsWait", "worker", "missing", "supported"],
+      "properties": {
+        "webAssembly": { "type": "boolean" },
+        "wasmGc": { "type": "boolean" },
+        "wasmExnref": { "type": "boolean" },
+        "wasmTypedFunctionReferences": { "type": "boolean" },
+        "crossOriginIsolated": { "type": ["boolean", "null"], "description": "null where the runtime has no such notion (Node)." },
+        "sharedArrayBuffer": { "type": "boolean" },
+        "atomicsWait": { "type": "boolean" },
+        "worker": { "type": "boolean" },
+        "missing": { "type": "array", "items": { "type": "string" }, "description": "Human-readable names of the missing features (German)." },
+        "supported": { "type": "boolean" }
+      }
+    },
+
+    "EngineReady": {
+      "title": "EngineReady",
+      "description": "Forge is initialised and waits for match.start. Carries the protocol version (checked before anything else) and which engine build this is.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "protocol", "engine", "boot", "t"],
+      "properties": {
+        "type": { "const": "engine.ready" },
+        "protocol": { "$ref": "#/$defs/ProtocolVersion" },
+        "engine": { "$ref": "#/$defs/EngineBuild" },
+        "boot": { "$ref": "#/$defs/BootReport" },
+        "t": { "$ref": "#/$defs/WorkerTime" }
+      }
+    },
+    "EngineBuild": {
+      "title": "EngineBuild",
+      "description": "Build facts of the engine: pinned Forge, patch queue, OpenMana commit.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["forgeVersion", "forgeCommit", "forgeVersionCode", "patchCount", "patchesSha256", "openmanaCommit", "engineSourcesModified", "synchronous"],
+      "properties": {
+        "forgeVersion": { "type": "string" },
+        "forgeCommit": { "$ref": "#/$defs/GitCommit" },
+        "forgeVersionCode": { "type": "string" },
+        "patchCount": { "type": "integer", "minimum": 0 },
+        "patchesSha256": { "$ref": "#/$defs/Sha256" },
+        "openmanaCommit": { "$ref": "#/$defs/GitCommit" },
+        "engineSourcesModified": { "type": "boolean", "description": "true if engine/ had uncommitted changes when the engine was built." },
+        "synchronous": { "type": "boolean", "description": "Forge runs in synchronous mode (patch 0001); must be true." }
+      }
+    },
+    "BootReport": {
+      "title": "BootReport",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resourceFiles", "resourceBytes", "unpackMillis", "forgeInitMillis", "cardLoading"],
+      "properties": {
+        "resourceFiles": { "type": "integer", "minimum": 0 },
+        "resourceBytes": { "type": "integer", "minimum": 0 },
+        "unpackMillis": { "type": "integer", "minimum": 0 },
+        "forgeInitMillis": { "type": "integer", "minimum": 0 },
+        "cardLoading": { "enum": ["lazy", "eager"] }
+      }
+    },
+
+    "EngineWaiting": {
+      "title": "EngineWaiting",
+      "description": "The engine found the input queue empty and now waits for the player. `consumed` inputs have been read so far; every input up to that number is completely processed (a rejection, if any, was posted before this message). While the engine waits it is not stalled.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "consumed"],
+      "properties": {
+        "type": { "const": "engine.waiting" },
+        "consumed": { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "EngineError": {
+      "title": "EngineError",
+      "description": "A command failed, the engine stays usable. After deck-rejected or invalid-request the same worker accepts a new match.start.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "code", "message"],
+      "properties": {
+        "type": { "const": "engine.error" },
+        "code": { "$ref": "#/$defs/EngineErrorCode" },
+        "message": { "type": "string" },
+        "report": { "$ref": "#/$defs/DeckReport" }
+      }
+    },
+    "EngineErrorCode": {
+      "title": "EngineErrorCode",
+      "description": "deck-rejected: Forge cannot build a deck (report names every card it does not know or support; nothing is dropped silently); invalid-request: the match request does not fit the contract; not-ready: match.start before engine.ready; already-started: this worker already ran a game (one game per worker, Forge's state is static).",
+      "enum": ["deck-rejected", "invalid-request", "not-ready", "already-started"]
+    },
+    "DeckReport": {
+      "title": "DeckReport",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "deck": { "type": "string" },
+        "unknownCards": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+
+    "EngineAbort": {
+      "title": "EngineAbort",
+      "description": "Technical abort: the engine cannot continue and the worker is terminated. This is not a game result; a running game ends without one. origin tells whether the worker reported it or the client detected it (worker error, watchdog, contract violation, abort by the UI).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "reason", "origin", "message"],
+      "properties": {
+        "type": { "const": "engine.abort" },
+        "reason": { "$ref": "#/$defs/AbortReason" },
+        "origin": { "enum": ["engine", "client"] },
+        "message": { "type": "string" },
+        "stage": { "type": "string" },
+        "detail": { "type": "string" },
+        "missing": { "type": "array", "items": { "type": "string" }, "description": "unsupported-browser: the missing features (German names)." }
+      }
+    },
+    "AbortReason": {
+      "title": "AbortReason",
+      "enum": ["unsupported-browser", "protocol-mismatch", "transport-error", "boot-failed", "engine-failure", "worker-error", "protocol-violation", "ready-timeout", "terminated"]
+    },
+
+    "MatchFinished": {
+      "title": "MatchFinished",
+      "description": "Forge returned from the match (after game.end). Technical summary for diagnostics and tests; the UI shows game.end.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "summary"],
+      "properties": {
+        "type": { "const": "match.finished" },
+        "summary": { "$ref": "#/$defs/MatchSummary" }
+      }
+    },
+    "MatchSummary": {
+      "title": "MatchSummary",
+      "description": "logSha256: hash of Forge's complete game log (equal on JVM and Wasm for the same seed and inputs); protocolSha256: fingerprint of every decision message (all but state and events); forgeCallbacks: Forge's calls into the GUI by method.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["winner", "reason", "turns", "result", "players", "conceded", "gameMillis", "inputs", "logEntries", "logSha256", "protocolMessages", "protocolSha256", "forgeCallbacks", "forgeErrors", "threadViolations"],
+      "properties": {
+        "winner": { "type": ["string", "null"] },
+        "reason": { "type": ["string", "null"] },
+        "turns": { "type": ["integer", "null"], "minimum": 0 },
+        "result": { "anyOf": [{ "$ref": "#/$defs/GameResult" }, { "type": "null" }] },
+        "players": { "type": "array", "items": { "$ref": "#/$defs/EndPlayer" } },
+        "conceded": { "type": "boolean" },
+        "gameMillis": { "type": "integer", "minimum": 0 },
+        "inputs": { "type": "integer", "minimum": 0, "description": "Inputs Forge read during the match." },
+        "logEntries": { "type": "integer", "minimum": 0 },
+        "logSha256": { "$ref": "#/$defs/Sha256" },
+        "protocolMessages": { "type": "integer", "minimum": 0 },
+        "protocolSha256": { "$ref": "#/$defs/Sha256" },
+        "forgeCallbacks": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 }, "description": "Forge's calls into the GUI, counted by method." },
+        "forgeErrors": { "type": "array", "items": { "type": "string" } },
+        "threadViolations": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+
+    "DiagnosticsResult": {
+      "title": "DiagnosticsResult",
+      "description": "Result of diagnostics.ai-match (engine tests only).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "result"],
+      "properties": {
+        "type": { "const": "diagnostics.result" },
+        "result": { "$ref": "#/$defs/AiMatchResult" }
+      }
+    },
+    "AiMatchResult": {
+      "title": "AiMatchResult",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seed", "gameMillis", "draw", "winner", "winCondition", "turns", "players", "logEntries", "logSha256", "forgeErrors"],
+      "properties": {
+        "seed": { "type": "integer" },
+        "gameMillis": { "type": "integer", "minimum": 0 },
+        "draw": { "type": "boolean" },
+        "winner": { "type": ["string", "null"] },
+        "winCondition": { "type": "string" },
+        "turns": { "type": "integer", "minimum": 0 },
+        "players": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "life", "library", "hand", "battlefield", "graveyard"],
+            "properties": {
+              "name": { "type": "string" },
+              "life": { "type": "integer" },
+              "library": { "type": "integer", "minimum": 0 },
+              "hand": { "type": "integer", "minimum": 0 },
+              "battlefield": { "type": "integer", "minimum": 0 },
+              "graveyard": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "logEntries": { "type": "integer", "minimum": 0 },
+        "logSha256": { "$ref": "#/$defs/Sha256" },
+        "log": { "type": "array", "items": { "type": "string" } },
+        "forgeErrors": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+
+    "GameStarted": {
+      "title": "GameStarted",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "protocol", "human", "ai", "aiProfile", "format", "cardNames"],
+      "properties": {
+        "type": { "const": "game.started" },
+        "protocol": { "$ref": "#/$defs/ProtocolVersion" },
+        "human": { "type": "string" },
+        "ai": { "type": "string" },
+        "aiProfile": { "type": "string" },
+        "format": { "$ref": "#/$defs/MatchFormat" },
+        "cardNames": { "type": "array", "items": { "type": "string" }, "description": "The card names of BOTH decks in one sorted list without owner (image prefetch without revealing the AI's deck)." }
+      }
+    },
+
+    "GameState": {
+      "title": "GameState",
+      "description": "The complete game as the player may see it: always a full snapshot, never a delta. The UI replaces its previous state with it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "seq", "running", "turn", "phase", "activePlayer", "me", "players", "stack", "combat"],
+      "properties": {
+        "type": { "const": "state" },
+        "seq": { "type": "integer", "minimum": 1, "description": "Strictly increasing within a match." },
+        "running": { "type": "boolean" },
+        "turn": { "type": "integer", "minimum": 0 },
+        "phase": { "anyOf": [{ "$ref": "#/$defs/Phase" }, { "type": "null" }] },
+        "activePlayer": { "anyOf": [{ "$ref": "#/$defs/PlayerId" }, { "type": "null" }] },
+        "me": { "anyOf": [{ "$ref": "#/$defs/PlayerId" }, { "type": "null" }] },
+        "players": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/Player" } },
+        "stack": { "type": "array", "items": { "$ref": "#/$defs/StackItem" } },
+        "combat": { "type": "array", "items": { "$ref": "#/$defs/CombatEntry" } }
+      }
+    },
+    "Phase": {
+      "title": "Phase",
+      "description": "Step of the turn (Magic's turn structure). null before the first turn (mulligan).",
+      "enum": ["UNTAP", "UPKEEP", "DRAW", "MAIN1", "COMBAT_BEGIN", "COMBAT_DECLARE_ATTACKERS", "COMBAT_DECLARE_BLOCKERS", "COMBAT_FIRST_STRIKE_DAMAGE", "COMBAT_DAMAGE", "COMBAT_END", "MAIN2", "END_OF_TURN", "CLEANUP"]
+    },
+    "Player": {
+      "title": "Player",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "ai", "me", "life", "hasPriority", "canAct", "lost", "maxHandSize", "landsPlayed", "landsAllowed", "counters", "mana", "zones", "library", "commanders"],
+      "properties": {
+        "id": { "$ref": "#/$defs/PlayerId" },
+        "name": { "type": ["string", "null"] },
+        "ai": { "type": "boolean" },
+        "me": { "type": "boolean" },
+        "life": { "type": "integer" },
+        "hasPriority": { "type": "boolean" },
+        "canAct": { "type": "boolean", "description": "Forge: the player has anything to do at all right now." },
+        "lost": { "type": "boolean" },
+        "maxHandSize": { "type": "integer" },
+        "landsPlayed": { "type": "integer", "minimum": 0 },
+        "landsAllowed": { "type": "integer", "minimum": 0 },
+        "counters": { "$ref": "#/$defs/Counters" },
+        "mana": { "$ref": "#/$defs/ManaPool" },
+        "zones": { "$ref": "#/$defs/Zones" },
+        "library": { "type": "integer", "minimum": 0, "description": "Only the size; the library never leaves the engine." },
+        "commanders": { "type": "array", "items": { "$ref": "#/$defs/Commander" } }
+      }
+    },
+    "Counters": {
+      "title": "Counters",
+      "description": "Counter name (Forge's counter type) -> number.",
+      "type": "object",
+      "additionalProperties": { "type": "integer" }
+    },
+    "ManaPool": {
+      "title": "ManaPool",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["W", "U", "B", "R", "G", "C"],
+      "properties": {
+        "W": { "type": "integer", "minimum": 0 },
+        "U": { "type": "integer", "minimum": 0 },
+        "B": { "type": "integer", "minimum": 0 },
+        "R": { "type": "integer", "minimum": 0 },
+        "G": { "type": "integer", "minimum": 0 },
+        "C": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "Zones": {
+      "title": "Zones",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["battlefield", "hand", "graveyard", "exile", "command"],
+      "properties": {
+        "battlefield": { "type": "array", "items": { "$ref": "#/$defs/Card" } },
+        "hand": { "type": "array", "items": { "$ref": "#/$defs/Card" } },
+        "graveyard": { "type": "array", "items": { "$ref": "#/$defs/Card" } },
+        "exile": { "type": "array", "items": { "$ref": "#/$defs/Card" } },
+        "command": { "type": "array", "items": { "$ref": "#/$defs/Card" } }
+      }
+    },
+    "Commander": {
+      "title": "Commander",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["card", "cast", "tax", "damage"],
+      "properties": {
+        "card": { "$ref": "#/$defs/Card" },
+        "cast": { "type": "integer", "minimum": 0 },
+        "tax": { "type": "integer", "minimum": 0 },
+        "damage": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["player", "amount"],
+            "properties": {
+              "player": { "$ref": "#/$defs/PlayerId" },
+              "amount": { "type": "integer", "minimum": 1 }
+            }
+          }
+        }
+      }
+    },
+    "Card": {
+      "title": "Card",
+      "description": "A card the player may see (VisibleCard) or only knows exists (HiddenCard). Forge decides visibility (mayView).",
+      "anyOf": [{ "$ref": "#/$defs/VisibleCard" }, { "$ref": "#/$defs/HiddenCard" }]
+    },
+    "HiddenCard": {
+      "title": "HiddenCard",
+      "description": "Only that there is a card: no id (ids follow the deck list and would reveal the card), no name.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hidden"],
+      "properties": {
+        "hidden": { "const": true }
+      }
+    },
+    "VisibleCard": {
+      "title": "VisibleCard",
+      "description": "A card as Forge shows it to the player. key is the English oracle name (stable identity for Scryfall); name, typeLine and text are Forge's display texts. colors/printedColors only if the current colours differ from the printed ones. playable, action, ways and highlighted are Forge's own markers; the UI never computes them.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "tapped", "sick", "faceDown", "damage", "owner", "controller"],
+      "properties": {
+        "id": { "$ref": "#/$defs/CardId" },
+        "key": { "type": ["string", "null"] },
+        "name": { "type": ["string", "null"] },
+        "typeLine": { "type": ["string", "null"] },
+        "cost": { "type": "string" },
+        "set": { "type": ["string", "null"] },
+        "power": { "type": "integer" },
+        "toughness": { "type": "integer" },
+        "loyalty": { "type": ["string", "null"] },
+        "text": { "type": ["string", "null"], "description": "Rules text; only on the battlefield, in the command zone, in the player's own hand and in card views of questions." },
+        "colors": { "$ref": "#/$defs/ColorLetters" },
+        "printedColors": { "type": "string", "pattern": "^W?U?B?R?G?$", "description": "Printed colours (empty = colourless), only together with colors." },
+        "tapped": { "type": "boolean" },
+        "sick": { "type": "boolean" },
+        "faceDown": { "type": "boolean" },
+        "damage": { "type": "integer" },
+        "owner": { "anyOf": [{ "$ref": "#/$defs/PlayerId" }, { "type": "null" }] },
+        "controller": { "anyOf": [{ "$ref": "#/$defs/PlayerId" }, { "type": "null" }] },
+        "attacking": { "const": true },
+        "blocking": { "const": true },
+        "token": { "const": true },
+        "phasedOut": { "const": true },
+        "playable": { "const": true, "description": "Forge: something can be done with this card now." },
+        "action": { "type": "string", "description": "Forge: what tapping the card would do now, in Forge's words." },
+        "ways": { "type": "array", "minItems": 2, "items": { "type": "string" }, "description": "Forge: all ways to use this playable card (e.g. cast or an alternative cost)." },
+        "highlighted": { "const": true, "description": "Forge's highlight (e.g. cards chosen for the bottom during the London mulligan)." },
+        "counters": { "$ref": "#/$defs/Counters" },
+        "attachedTo": { "$ref": "#/$defs/CardId" },
+        "attached": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/CardId" } }
+      }
+    },
+    "ColorLetters": {
+      "title": "ColorLetters",
+      "description": "Colours as WUBRG letters in this order, at least one.",
+      "type": "string",
+      "pattern": "^(?=[WUBRG])W?U?B?R?G?$"
+    },
+    "StackItem": {
+      "title": "StackItem",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "text", "source", "player", "trigger", "targets"],
+      "properties": {
+        "id": { "type": "integer" },
+        "text": { "type": ["string", "null"] },
+        "source": { "anyOf": [{ "$ref": "#/$defs/CardId" }, { "type": "null" }] },
+        "player": { "anyOf": [{ "$ref": "#/$defs/PlayerId" }, { "type": "null" }] },
+        "trigger": { "type": "boolean" },
+        "targets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "id"],
+            "properties": {
+              "kind": { "enum": ["card", "player"] },
+              "id": { "type": "integer" }
+            }
+          }
+        }
+      }
+    },
+    "CombatEntry": {
+      "title": "CombatEntry",
+      "description": "An attacker, whom it attacks and its blockers (while blockers are declared: Forge's planned blockers). Player and card ids are separate ranges, hence defenderKind.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attacker", "defender", "defenderKind", "blockers"],
+      "properties": {
+        "attacker": { "$ref": "#/$defs/CardId" },
+        "defender": { "type": ["integer", "null"] },
+        "defenderKind": { "enum": ["player", "card", null] },
+        "blockers": { "type": "array", "items": { "$ref": "#/$defs/CardId" } }
+      }
+    },
+
+    "GameEvents": {
+      "title": "GameEvents",
+      "description": "New entries of Forge's game log (verbosity MEDIUM), sent BEFORE the state they explain.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "entries"],
+      "properties": {
+        "type": { "const": "events" },
+        "entries": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/GameEvent" } }
+      }
+    },
+    "GameEvent": {
+      "title": "GameEvent",
+      "description": "One log entry. card: the source card, only if the player may see it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "text"],
+      "properties": {
+        "kind": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$", "description": "Forge's log entry type (e.g. LAND, STACK_ADD, DAMAGE)." },
+        "text": { "type": ["string", "null"] },
+        "card": { "$ref": "#/$defs/CardId" },
+        "actor": { "enum": ["me", "opponent"], "description": "Who did it, from structured data; absent if unknown." }
+      }
+    },
+
+    "GameMessage": {
+      "title": "GameMessage",
+      "description": "Text Forge shows the player. prompt: the instruction line of the current decision; notice: a message dialog; error: an error dialog; incorrect-action: Forge refused an action (flash, empty text). cardView: the full card, because while a spell is being paid for it is in no zone.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "kind", "text"],
+      "properties": {
+        "type": { "const": "message" },
+        "kind": { "$ref": "#/$defs/MessageKind" },
+        "text": { "type": "string" },
+        "title": { "type": "string" },
+        "card": { "$ref": "#/$defs/CardId" },
+        "cardView": { "$ref": "#/$defs/VisibleCard" }
+      }
+    },
+    "MessageKind": {
+      "title": "MessageKind",
+      "enum": ["prompt", "notice", "error", "incorrect-action"]
+    },
+
+    "Question": {
+      "title": "Question",
+      "description": "A decision Forge asks for. Every question is closed by exactly one question.withdrawn or question.answered. blocking: while it is open, only it can be answered (taps and other answers are rejected as not-active); state.request and concede still work.",
+      "type": "object",
+      "required": ["type", "kind"],
+      "properties": {
+        "type": { "const": "question" },
+        "kind": { "$ref": "#/$defs/QuestionKind" }
+      },
+      "discriminator": { "propertyName": "kind" },
+      "oneOf": [
+        { "$ref": "#/$defs/SelectQuestion" },
+        { "$ref": "#/$defs/ChooseQuestion" },
+        { "$ref": "#/$defs/ButtonsQuestion" },
+        { "$ref": "#/$defs/ConfirmQuestion" },
+        { "$ref": "#/$defs/OptionsQuestion" },
+        { "$ref": "#/$defs/InputQuestion" },
+        { "$ref": "#/$defs/OrderQuestion" },
+        { "$ref": "#/$defs/ArrangeQuestion" },
+        { "$ref": "#/$defs/DistributeQuestion" }
+      ]
+    },
+    "QuestionKind": {
+      "title": "QuestionKind",
+      "enum": ["select", "choose", "buttons", "confirm", "options", "input", "order", "arrange", "distribute"]
+    },
+    "QuestionId": {
+      "title": "QuestionId",
+      "description": "Strictly increasing within a match, never reused.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "SelectQuestion": {
+      "title": "SelectQuestion",
+      "description": "Forge names cards that may be selected now (targets, cards to discard ...). Answering taps the chosen items like clicks; the question stays open until Forge changes or clears the selection. No card = the target is a player (player.tap).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "kind", "id", "blocking", "text", "min", "max", "cards", "items"],
+      "properties": {
+        "type": { "const": "question" },
+        "kind": { "const": "select" },
+        "id": { "$ref": "#/$defs/QuestionId" },
+        "blocking": { "const": false },
+        "text": { "type": "string" },
+        "min": { "type": "integer", "minimum": 0 },
+        "max": { "type": "integer", "minimum": 0 },
+        "cards": { "type": "array", "items": { "$ref": "#/$defs/CardId" } },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/Item" } },
+        "card": { "$ref": "#/$defs/CardId" },
+        "cardView": { "$ref": "#/$defs/VisibleCard" }
+      }
+    },
+    "ChooseQuestion": {
+      "title": "ChooseQuestion",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "kind", "id", "blocking", "text", "min", "max", "items"],
+      "properties": {
+        "type": { "const": "question" },
+        "kind": { "const": "choose" },
+        "id": { "$ref": "#/$defs/QuestionId" },
+        "blocking": { "const": true },
+        "text": { "type": "string" },
+        "min": { "type": "integer", "minimum": 0 },
+        "max": { "type": "integer", "minimum": 0 },
+        "items": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/Item" } },
+        "suggested": { "type": "array", "items": { "$ref": "#/$defs/ItemNr" } }
+      }
+    },
+    "ButtonsQuestion": {
+      "title": "ButtonsQuestion",
+      "description": "Forge's two prompt buttons (OK/Cancel, Keep/Mulligan ...). purpose says what they are for, from Forge's own labels and running input.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "kind", "id", "blocking", "text", "buttons"],
+      "properties": {
+        "type": { "const": "question" },
+        "kind": { "const": "buttons" },
+        "id": { "$ref": "#/$defs/QuestionId" },
+        "blocking": { "const": false },
+        "text": { "type": "string" },
+        "purpose": { "$ref": "#/$defs/ButtonsPurpose" },
+        "buttons": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "$ref": "#/$defs/Button" } },
+        "card": { "$ref": "#/$defs/CardId" },
+        "cardView": { "$ref": "#/$defs/VisibleCard" }
+      }
+    },
+    "ButtonsPurpose": {
+      "title": "ButtonsPurpose",
+      "enum": ["priority", "mulligan", "mulliganBottom", "payment", "attack", "attackDeclared", "block"]
+    },
+    "Button": {
+      "title": "Button",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nr", "label", "enabled"],
+      "properties": {
+        "nr": { "enum": [1, 2] },
+        "label": { "type": ["string", "null"] },
+        "enabled": { "type": "boolean" }
+      }
+    },
+    "ConfirmQuestion": {
+      "title": "ConfirmQuestion",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "kind", "id", "blocking", "text", "suggested"],
+      "properties": {
+        "type": { "const": "question" },
+        "kind": { "const": "confirm" },
+        "id": { "$ref": "#/$defs/QuestionId" },
+        "blocking": { "const": true },
+        "text": { "type": "string" },
+        "suggested": { "type": "boolean" },
+        "yesLabel": { "type": ["string", "null"] },
+        "noLabel": { "type": ["string", "null"] },
+        "card": { "$ref": "#/$defs/CardId" },
+        "cardView": { "$ref": "#/$defs/VisibleCard" }
+      }
+    },
+    "OptionsQuestion": {
+      "title": "OptionsQuestion",
+      "description": "One option out of a list. With revealed it is a list to look at with a single OK. option 0 cancels, only if cancellable.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "kind", "id", "blocking", "text", "items"],
+      "properties": {
+        "type": { "const": "question" },
+        "kind": { "const": "options" },
+        "id": { "$ref": "#/$defs/QuestionId" },
+        "blocking": { "const": true },
+        "text": { "type": "string" },
+        "items": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/Item" } },
+        "suggested": { "$ref": "#/$defs/ItemNr" },
+        "cancellable": { "type": "boolean" },
+        "revealed": { "type": "array", "items": { "$ref": "#/$defs/Item" } },
+        "card": { "$ref": "#/$defs/CardId" },
+        "cardView": { "$ref": "#/$defs/VisibleCard" }
+      }
+    },
+    "InputQuestion": {
+      "title": "InputQuestion",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "kind", "id", "blocking", "text", "numeric", "suggested"],
+      "properties": {
+        "type": { "const": "question" },
+        "kind": { "const": "input" },
+        "id": { "$ref": "#/$defs/QuestionId" },
+        "blocking": { "const": true },
+        "text": { "type": "string" },
+        "numeric": { "type": "boolean" },
+        "suggested": { "type": ["string", "null"] },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/Item" } }
+      }
+    },
+    "OrderQuestion": {
+      "title": "OrderQuestion",
+      "description": "Forge's dual list: the answer lists the chosen items in order, the rest remains. How many must remain: remainingMin..remainingMax (negative maximum = any number; both 0 = order all).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "kind", "id", "blocking", "text", "top", "remainingMin", "remainingMax", "items"],
+      "properties": {
+        "type": { "const": "question" },
+        "kind": { "const": "order" },
+        "id": { "$ref": "#/$defs/QuestionId" },
+        "blocking": { "const": true },
+        "text": { "type": "string" },
+        "top": { "type": ["string", "null"] },
+        "remainingMin": { "type": "integer" },
+        "remainingMax": { "type": "integer" },
+        "suggested": { "type": "array", "items": { "$ref": "#/$defs/ItemNr" } },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/Item" } },
+        "card": { "$ref": "#/$defs/CardId" },
+        "cardView": { "$ref": "#/$defs/VisibleCard" }
+      }
+    },
+    "ArrangeQuestion": {
+      "title": "ArrangeQuestion",
+      "description": "Move cards of a hidden pile to its top or bottom (scry and similar). Only the movable cards are sent; others is the number of the rest.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "kind", "id", "blocking", "text", "toTop", "toBottom", "toAnywhere", "others", "items"],
+      "properties": {
+        "type": { "const": "question" },
+        "kind": { "const": "arrange" },
+        "id": { "$ref": "#/$defs/QuestionId" },
+        "blocking": { "const": true },
+        "text": { "type": "string" },
+        "toTop": { "type": "boolean" },
+        "toBottom": { "type": "boolean" },
+        "toAnywhere": { "type": "boolean", "description": "Forge would allow any position; not offered yet (prompt 15)." },
+        "others": { "type": "integer", "minimum": 0 },
+        "items": { "type": "array", "items": { "$ref": "#/$defs/Item" } }
+      }
+    },
+    "DistributeQuestion": {
+      "title": "DistributeQuestion",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "kind", "id", "blocking", "text", "total", "min", "items"],
+      "properties": {
+        "type": { "const": "question" },
+        "kind": { "const": "distribute" },
+        "id": { "$ref": "#/$defs/QuestionId" },
+        "blocking": { "const": true },
+        "text": { "type": "string" },
+        "total": { "type": "integer", "minimum": 0 },
+        "min": { "type": "integer", "minimum": 0 },
+        "items": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/Item" } },
+        "card": { "$ref": "#/$defs/CardId" },
+        "cardView": { "$ref": "#/$defs/VisibleCard" }
+      }
+    },
+    "Item": {
+      "title": "Item",
+      "description": "One entry of a question's list, numbered from 1. A card the player may not see is only {nr, hidden: true}.",
+      "anyOf": [{ "$ref": "#/$defs/VisibleItem" }, { "$ref": "#/$defs/HiddenItem" }]
+    },
+    "VisibleItem": {
+      "title": "VisibleItem",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nr", "text"],
+      "properties": {
+        "nr": { "$ref": "#/$defs/ItemNr" },
+        "text": { "type": ["string", "null"] },
+        "card": { "type": "integer" },
+        "cardView": { "$ref": "#/$defs/VisibleCard" },
+        "player": { "$ref": "#/$defs/PlayerId" }
+      }
+    },
+    "HiddenItem": {
+      "title": "HiddenItem",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nr", "hidden"],
+      "properties": {
+        "nr": { "$ref": "#/$defs/ItemNr" },
+        "hidden": { "const": true }
+      }
+    },
+    "ItemNr": {
+      "title": "ItemNr",
+      "type": "integer",
+      "minimum": 1
+    },
+
+    "QuestionWithdrawn": {
+      "title": "QuestionWithdrawn",
+      "description": "Forge no longer asks this question (it changed the buttons or selection, the input ended, the game is over). Normal, not an error; an answer to it is rejected as stale.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {
+        "type": { "const": "question.withdrawn" },
+        "id": { "$ref": "#/$defs/QuestionId" }
+      }
+    },
+    "QuestionAnswered": {
+      "title": "QuestionAnswered",
+      "description": "The answer with this seq was accepted and closed the question. (Answers to a select question never close it; Forge withdraws it when the selection is complete.)",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "seq"],
+      "properties": {
+        "type": { "const": "question.answered" },
+        "id": { "$ref": "#/$defs/QuestionId" },
+        "seq": { "$ref": "#/$defs/Seq" }
+      }
+    },
+    "InputRejected": {
+      "title": "InputRejected",
+      "description": "An input was NOT carried out. Nothing disappears silently: the UI must show it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "seq", "reason", "detail", "input"],
+      "properties": {
+        "type": { "const": "input.rejected" },
+        "seq": { "$ref": "#/$defs/Seq" },
+        "reason": { "$ref": "#/$defs/RejectReason" },
+        "detail": { "type": "string" },
+        "input": { "type": "object", "description": "The rejected input as received." }
+      }
+    },
+    "RejectReason": {
+      "title": "RejectReason",
+      "description": "stale: the question is not open (withdrawn, answered or unknown); not-active: a blocking question must be answered first; invalid: the answer does not fit its question (kind, range, count, sum, disabled button); malformed: unknown input type; unknown-card: no card with this id is visible to the player; unknown-player: no such player; no-effect: Forge did not accept the tap in the current step.",
+      "enum": ["stale", "not-active", "invalid", "malformed", "unknown-card", "unknown-player", "no-effect"]
+    },
+
+    "GameEnd": {
+      "title": "GameEnd",
+      "description": "The game is over. result is from the player's point of view. All questions are closed before this message.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "winner", "reason", "turns", "result", "players", "conceded"],
+      "properties": {
+        "type": { "const": "game.end" },
+        "winner": { "type": ["string", "null"] },
+        "reason": { "type": ["string", "null"], "description": "Forge's win condition (e.g. AllOpponentsLost, Concede)." },
+        "turns": { "type": ["integer", "null"], "minimum": 0 },
+        "result": { "anyOf": [{ "$ref": "#/$defs/GameResult" }, { "type": "null" }] },
+        "players": { "type": "array", "items": { "$ref": "#/$defs/EndPlayer" } },
+        "conceded": { "type": "boolean" }
+      }
+    },
+    "GameResult": {
+      "title": "GameResult",
+      "enum": ["win", "loss", "draw"]
+    },
+    "EndPlayer": {
+      "title": "EndPlayer",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "life", "me"],
+      "properties": {
+        "id": { "$ref": "#/$defs/PlayerId" },
+        "name": { "type": ["string", "null"] },
+        "life": { "type": "integer" },
+        "me": { "type": "boolean" }
+      }
+    },
+
+    "Seq": {
+      "title": "Seq",
+      "description": "Number of an input within the match, from 1, without gaps.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "AnswerInput": {
+      "title": "AnswerInput",
+      "description": "Answer to an open question. kind must be the question's kind.",
+      "type": "object",
+      "required": ["type", "kind"],
+      "properties": {
+        "type": { "const": "answer" },
+        "kind": { "$ref": "#/$defs/QuestionKind" }
+      },
+      "discriminator": { "propertyName": "kind" },
+      "oneOf": [
+        { "$ref": "#/$defs/SelectAnswer" },
+        { "$ref": "#/$defs/ChooseAnswer" },
+        { "$ref": "#/$defs/ButtonsAnswer" },
+        { "$ref": "#/$defs/ConfirmAnswer" },
+        { "$ref": "#/$defs/OptionsAnswer" },
+        { "$ref": "#/$defs/InputAnswer" },
+        { "$ref": "#/$defs/OrderAnswer" },
+        { "$ref": "#/$defs/ArrangeAnswer" },
+        { "$ref": "#/$defs/DistributeAnswer" }
+      ]
+    },
+    "SelectAnswer": {
+      "title": "SelectAnswer",
+      "description": "Item numbers to tap, 1..max of them.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "seq", "question", "kind", "choices"],
+      "properties": {
+        "type": { "const": "answer" },
+        "seq": { "$ref": "#/$defs/Seq" },
+        "question": { "$ref": "#/$defs/QuestionId" },
+        "kind": { "const": "select" },
+        "choices": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/ItemNr" } }
+      }
+    },
+    "ChooseAnswer": {
+      "title": "ChooseAnswer",
+      "description": "Distinct item numbers, min..max of them.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "seq", "question", "kind", "choices"],
+      "properties": {
+        "type": { "const": "answer" },
+        "seq": { "$ref": "#/$defs/Seq" },
+        "question": { "$ref": "#/$defs/QuestionId" },
+        "kind": { "const": "choose" },
+        "choices": { "type": "array", "items": { "$ref": "#/$defs/ItemNr" } }
+      }
+    },
+    "ButtonsAnswer": {
+      "title": "ButtonsAnswer",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "seq", "question", "kind", "button"],
+      "properties": {
+        "type": { "const": "answer" },
+        "seq": { "$ref": "#/$defs/Seq" },
+        "question": { "$ref": "#/$defs/QuestionId" },
+        "kind": { "const": "buttons" },
+        "button": { "enum": [1, 2] }
+      }
+    },
+    "ConfirmAnswer": {
+      "title": "ConfirmAnswer",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "seq", "question", "kind", "yes"],
+      "properties": {
+        "type": { "const": "answer" },
+        "seq": { "$ref": "#/$defs/Seq" },
+        "question": { "$ref": "#/$defs/QuestionId" },
+        "kind": { "const": "confirm" },
+        "yes": { "type": "boolean" }
+      }
+    },
+    "OptionsAnswer": {
+      "title": "OptionsAnswer",
+      "description": "Item number, or 0 to cancel a cancellable question.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "seq", "question", "kind", "option"],
+      "properties": {
+        "type": { "const": "answer" },
+        "seq": { "$ref": "#/$defs/Seq" },
+        "question": { "$ref": "#/$defs/QuestionId" },
+        "kind": { "const": "options" },
+        "option": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "InputAnswer": {
+      "title": "InputAnswer",
+      "description": "Text; a whole number if the question is numeric.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "seq", "question", "kind", "value"],
+      "properties": {
+        "type": { "const": "answer" },
+        "seq": { "$ref": "#/$defs/Seq" },
+        "question": { "$ref": "#/$defs/QuestionId" },
+        "kind": { "const": "input" },
+        "value": { "type": "string" }
+      }
+    },
+    "OrderAnswer": {
+      "title": "OrderAnswer",
+      "description": "Chosen item numbers in order; the rest remains (see OrderQuestion).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "seq", "question", "kind", "order"],
+      "properties": {
+        "type": { "const": "answer" },
+        "seq": { "$ref": "#/$defs/Seq" },
+        "question": { "$ref": "#/$defs/QuestionId" },
+        "kind": { "const": "order" },
+        "order": { "type": "array", "items": { "$ref": "#/$defs/ItemNr" } }
+      }
+    },
+    "ArrangeAnswer": {
+      "title": "ArrangeAnswer",
+      "description": "Every item exactly once, either to the top or to the bottom, each list in order.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "seq", "question", "kind", "top", "bottom"],
+      "properties": {
+        "type": { "const": "answer" },
+        "seq": { "$ref": "#/$defs/Seq" },
+        "question": { "$ref": "#/$defs/QuestionId" },
+        "kind": { "const": "arrange" },
+        "top": { "type": "array", "items": { "$ref": "#/$defs/ItemNr" } },
+        "bottom": { "type": "array", "items": { "$ref": "#/$defs/ItemNr" } }
+      }
+    },
+    "DistributeAnswer": {
+      "title": "DistributeAnswer",
+      "description": "One amount per item (parallel to items), each at least min, summing to total.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "seq", "question", "kind", "amounts"],
+      "properties": {
+        "type": { "const": "answer" },
+        "seq": { "$ref": "#/$defs/Seq" },
+        "question": { "$ref": "#/$defs/QuestionId" },
+        "kind": { "const": "distribute" },
+        "amounts": { "type": "array", "items": { "type": "integer", "minimum": 0 } }
+      }
+    },
+    "CardTapInput": {
+      "title": "CardTapInput",
+      "description": "Tap a card without being asked: this is how cards are played at priority, paid with, declared as attackers or blockers. Forge decides what the tap means.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "seq", "card"],
+      "properties": {
+        "type": { "const": "card.tap" },
+        "seq": { "$ref": "#/$defs/Seq" },
+        "card": { "type": "integer" }
+      }
+    },
+    "PlayerTapInput": {
+      "title": "PlayerTapInput",
+      "description": "Tap a player (e.g. a player as target).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "seq", "player"],
+      "properties": {
+        "type": { "const": "player.tap" },
+        "seq": { "$ref": "#/$defs/Seq" },
+        "player": { "type": "integer" }
+      }
+    },
+    "StateRequestInput": {
+      "title": "StateRequestInput",
+      "description": "Ask for a fresh full state; served at once, even while a blocking question waits.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "seq"],
+      "properties": {
+        "type": { "const": "state.request" },
+        "seq": { "$ref": "#/$defs/Seq" }
+      }
+    },
+    "ConcedeInput": {
+      "title": "ConcedeInput",
+      "description": "Concede the game. Is the decision itself: no second confirmation from the engine (the UI confirms before sending).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "seq"],
+      "properties": {
+        "type": { "const": "concede" },
+        "seq": { "$ref": "#/$defs/Seq" }
+      }
+    },
+
+    "EngineStartCommand": {
+      "title": "EngineStartCommand",
+      "description": "Start the engine in this (fresh) worker. The worker checks the protocol version first, then the runtime features, then the input queue, and only then loads the ~70 MB engine.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "protocol", "engineScriptUrl", "wasmUrl", "args", "queue", "requireIsolation"],
+      "properties": {
+        "type": { "const": "engine.start" },
+        "protocol": { "$ref": "#/$defs/ProtocolVersion" },
+        "engineScriptUrl": { "type": "string", "pattern": "\\S" },
+        "wasmUrl": { "type": "string", "pattern": "\\S" },
+        "args": { "type": "array", "items": { "type": "string" } },
+        "queue": { "tsType": "SharedArrayBuffer", "description": "The SharedArrayBuffer of the input queue (see input-queue.ts for its layout)." },
+        "requireIsolation": { "type": "boolean", "description": "Require crossOriginIsolated (browsers: yes; Node tests: no)." }
+      }
+    },
+    "MatchStartCommand": {
+      "title": "MatchStartCommand",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "match"],
+      "properties": {
+        "type": { "const": "match.start" },
+        "match": { "$ref": "#/$defs/MatchRequest" }
+      }
+    },
+    "DiagnosticsAiMatchCommand": {
+      "title": "DiagnosticsAiMatchCommand",
+      "description": "Engine tests only: Forge's AI plays itself with fixed smoke decks.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "seed", "includeLog"],
+      "properties": {
+        "type": { "const": "diagnostics.ai-match" },
+        "seed": { "type": "integer" },
+        "includeLog": { "type": "boolean" }
+      }
+    },
+    "MatchRequest": {
+      "title": "MatchRequest",
+      "description": "A game human (through this protocol) against Forge's AI. Decks come from the UI (IndexedDB later), card names in English (front face of double-faced cards). ai.profile: a Forge AI profile (res/ai/*.ai), e.g. Default.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "human", "ai"],
+      "properties": {
+        "seed": { "type": ["integer", "null"], "description": "Fixed seed for reproducible games (tests); absent or null = random." },
+        "format": { "$ref": "#/$defs/MatchFormat" },
+        "human": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "deck"],
+          "properties": {
+            "name": { "$ref": "#/$defs/NonEmptyString" },
+            "deck": { "$ref": "#/$defs/Deck" }
+          }
+        },
+        "ai": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "profile", "deck"],
+          "properties": {
+            "name": { "$ref": "#/$defs/NonEmptyString" },
+            "profile": { "$ref": "#/$defs/NonEmptyString" },
+            "deck": { "$ref": "#/$defs/Deck" }
+          }
+        }
+      }
+    },
+    "MatchFormat": {
+      "title": "MatchFormat",
+      "enum": ["constructed", "commander"]
+    },
+    "Deck": {
+      "title": "Deck",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "main"],
+      "properties": {
+        "name": { "$ref": "#/$defs/NonEmptyString" },
+        "main": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/DeckEntry" } },
+        "sideboard": { "type": "array", "items": { "$ref": "#/$defs/DeckEntry" } },
+        "commander": { "type": "array", "items": { "$ref": "#/$defs/DeckEntry" } }
+      }
+    },
+    "DeckEntry": {
+      "title": "DeckEntry",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["card", "count"],
+      "properties": {
+        "card": { "$ref": "#/$defs/NonEmptyString" },
+        "count": { "type": "integer", "minimum": 1 }
+      }
+    },
+
+    "CardId": {
+      "title": "CardId",
+      "description": "Forge's card id (unique within a game).",
+      "type": "integer"
+    },
+    "PlayerId": {
+      "title": "PlayerId",
+      "type": "integer"
+    },
+    "NonEmptyString": {
+      "title": "NonEmptyString",
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "GitCommit": {
+      "title": "GitCommit",
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "Sha256": {
+      "title": "Sha256",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

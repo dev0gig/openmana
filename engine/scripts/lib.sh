@@ -35,6 +35,14 @@ om_require_node() {
     [ "$major" -ge 22 ] || om_die "Node $(node --version) ist zu alt, gebraucht wird >= 22."
 }
 
+# The engine's TypeScript (protocol, client, worker host, tests) runs directly
+# in Node through type stripping, which Node 22 has since 22.18.
+om_require_node_typescript() {
+    om_require_node
+    node -e 'process.exit(process.features.typescript ? 0 : 1)' 2>/dev/null \
+        || om_die "Node $(node --version) fuehrt kein TypeScript aus; gebraucht wird Node >= 22.18."
+}
+
 # om_lock <js-expression over `lock`>, e.g. om_lock 'lock.graalvm.version'
 om_lock() {
     node -e 'const lock = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); const v = (0, eval)("(lock) => " + process.argv[2])(lock); if (v === undefined || v === null) { console.error("missing lock value: " + process.argv[2]); process.exit(1); } process.stdout.write(String(v));' "$OM_LOCK_FILE" "$1"

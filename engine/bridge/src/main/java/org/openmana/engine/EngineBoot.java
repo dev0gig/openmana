@@ -66,14 +66,30 @@ public final class EngineBoot {
         }
     }
 
+    /**
+     * What this engine is (protocol EngineBuild): Forge version and pinned
+     * commit, the patch queue and the OpenMana commit, from the build facts
+     * prepare-forge.sh writes.
+     */
     public static JsonObject engineInfo() {
         final Properties build = ForgeEngine.buildInfo();
         final JsonObject info = new JsonObject();
         info.addProperty("forgeVersion", ForgeEngine.forgeVersion());
-        for (final String key : build.stringPropertyNames()) {
-            info.addProperty(key, build.getProperty(key));
-        }
+        info.addProperty("forgeCommit", required(build, "forge.commit"));
+        info.addProperty("forgeVersionCode", required(build, "forge.versionCode"));
+        info.addProperty("patchCount", Integer.parseInt(required(build, "patches.count")));
+        info.addProperty("patchesSha256", required(build, "patches.sha256"));
+        info.addProperty("openmanaCommit", required(build, "openmana.commit"));
+        info.addProperty("engineSourcesModified", Boolean.parseBoolean(required(build, "openmana.engineSourcesModified")));
         info.addProperty("synchronous", forge.util.ThreadUtil.isSynchronous());
         return info;
+    }
+
+    private static String required(final Properties build, final String key) {
+        final String value = build.getProperty(key);
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException("engine build fact '" + key + "' is missing (openmana/engine-build.properties)");
+        }
+        return value.trim();
     }
 }

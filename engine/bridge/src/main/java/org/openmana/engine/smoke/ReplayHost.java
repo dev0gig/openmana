@@ -11,7 +11,7 @@ import java.util.List;
  * Plays back recorded inputs, one per {@link #awaitInput()}, and ignores what
  * the engine says. On the JVM it proves that a transcript describes the
  * player's decisions completely; the Wasm tests do the same through the
- * browser's SharedArrayBuffer channel (engine/wasm/spike/replay-driver.js).
+ * EngineClient and the SharedArrayBuffer input queue (engine/wasm/spike/replay.ts).
  * Running out of inputs means the game went differently: that fails loudly.
  */
 public final class ReplayHost implements EngineHost {

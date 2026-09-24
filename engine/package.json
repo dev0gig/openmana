@@ -1,0 +1,25 @@
+{
+  "name": "@openmana/engine",
+  "private": true,
+  "description": "OpenMana engine: the UI<->engine protocol (schema, generated types, validation, input queue), the engine client for the page, the Dedicated Worker host and the engine test tooling. Forge itself is built by engine/scripts/build.sh.",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "generate": "node protocol/scripts/generate.mjs",
+    "check:generated": "node protocol/scripts/generate.mjs --check",
+    "typecheck": "tsc -p tsconfig.json",
+    "test:unit": "node --test --test-reporter=spec \"protocol/test/**/*.test.ts\" \"client/test/**/*.test.ts\" \"wasm/test/**/*.test.ts\"",
+    "bundle": "node scripts/bundle-host.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.4",
+    "ajv": "8.20.0",
+    "esbuild": "0.28.2",
+    "json-schema-to-typescript": "16.0.0",
+    "playwright-core": "1.63.0",
+    "typescript": "7.0.2"
+  }
+}

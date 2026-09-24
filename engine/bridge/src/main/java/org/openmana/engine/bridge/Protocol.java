@@ -1,8 +1,9 @@
 package org.openmana.engine.bridge;
 
 /**
- * Names used on the wire between engine and UI (spike version of the
- * protocol; prompt 03 turns it into a versioned JSON schema).
+ * Names used on the wire between engine and UI. The contract itself is the
+ * JSON schema engine/protocol/schema/protocol.schema.json; ProtocolContractTest
+ * checks that these constants and the schema agree.
  *
  * <p>Semantics follow Anvil's PROTOKOLL.md (dev0gig/anvil, version 1): full
  * snapshots, numbered questions, withdrawal, card taps outside questions,
@@ -15,17 +16,22 @@ public final class Protocol {
     private Protocol() {
     }
 
-    /** Protocol version of this bridge; the UI must reject what it does not know. */
-    public static final String VERSION = "0.2-spike";
+    /**
+     * Version of the UI<->engine contract (engine/protocol/schema/protocol.schema.json,
+     * ProtocolVersion). UI, worker host and engine must speak exactly the same
+     * version; change it together with the schema.
+     */
+    public static final int VERSION = 1;
 
     // --- engine -> UI ---------------------------------------------------------
     public static final String GAME_STARTED = "game.started";
     public static final String STATE = "state";
     public static final String EVENTS = "events";
     public static final String MESSAGE = "message";
-    public static final String ERROR = "error";
     public static final String QUESTION = "question";
     public static final String QUESTION_WITHDRAWN = "question.withdrawn";
+    /** The answer with this seq was accepted and closed the question. */
+    public static final String QUESTION_ANSWERED = "question.answered";
     public static final String INPUT_REJECTED = "input.rejected";
     public static final String GAME_END = "game.end";
 
@@ -47,6 +53,16 @@ public final class Protocol {
     /** Move some cards of a hidden pile to its top or bottom (scry, surveil-like effects). */
     public static final String KIND_ARRANGE = "arrange";
     public static final String KIND_DISTRIBUTE = "distribute";
+
+    // --- kinds of a message (what Forge shows the player) ------------------------
+    /** The instruction line of the current decision. */
+    public static final String MESSAGE_PROMPT = "prompt";
+    /** A message dialog. */
+    public static final String MESSAGE_NOTICE = "notice";
+    /** An error dialog. */
+    public static final String MESSAGE_ERROR = "error";
+    /** Forge refused an action (a flash in Forge's own GUI). */
+    public static final String MESSAGE_INCORRECT_ACTION = "incorrect-action";
 
     // --- purposes of a buttons question (Anvil: anlass) --------------------------
     public static final String PURPOSE_PRIORITY = "priority";

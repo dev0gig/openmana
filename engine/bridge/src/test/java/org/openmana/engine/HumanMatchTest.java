@@ -3,6 +3,7 @@ package org.openmana.engine;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import org.openmana.engine.bridge.EngineHost;
 import org.openmana.engine.bridge.HumanMatch;
 import org.openmana.engine.bridge.Protocol;
 import org.openmana.engine.smoke.ReplayHost;
@@ -23,6 +24,7 @@ import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.expectThrows;
+import static org.testng.Assert.fail;
 
 /**
  * Prompt 02: Forge's human path (PlayerControllerHuman and its inputs) on a
@@ -265,6 +267,105 @@ public class HumanMatchTest {
         assertTrue(end.get("conceded").getAsBoolean(), end.toString());
         assertEquals(end.get("turns").getAsInt(), quitter.concededInTurn(), "the game ended in the turn of the concession");
         assertEquals(result.getAsJsonArray("forgeErrors").size(), 0, result.getAsJsonArray("forgeErrors").toString());
+    }
+
+    /**
+     * Protocol 1 lifecycle, checked by the scripted player on every message:
+     * every question is closed exactly once (question.answered or
+     * question.withdrawn), its blocking flag fits its kind, ids are never
+     * reused, rejections carry the seq of the rejected input, answered
+     * questions name the input that answered them, and nothing is open when
+     * the game ends.
+     */
+    @Test
+    public void everyQuestionIsClosedExactlyOnceAndRejectionsCarryTheirSeq() {
+        for (final ScriptedHuman human : List.of(humanA, humanB, humanC)) {
+            final Map<String, Integer> violations = new TreeMap<>();
+            human.counters().forEach((k, v) -> {
+                if (k.startsWith("protocol:")) {
+                    violations.put(k, v);
+                }
+            });
+            assertEquals(violations, Map.of(), "protocol violations");
+            assertTrue(count(human, "emit:question.answered") >= 10, "accepted answers close their question: " + human.counters());
+            assertTrue(count(human, "emit:question.withdrawn") >= 10, human.counters().toString());
+            assertEquals(count(human, "emit:question"), count(human, "emit:question.answered") + count(human, "emit:question.withdrawn"),
+                    "questions asked = questions answered + withdrawn");
+        }
+        for (final JsonObject input : humanA.inputs()) {
+            assertEquals(input.keySet().iterator().next(), "type");
+        }
+        for (int i = 0; i < humanA.inputs().size(); i++) {
+            assertEquals(humanA.inputs().get(i).get("seq").getAsInt(), i + 1, "inputs are numbered 1, 2, 3 … without gaps");
+        }
+    }
+
+    /** A lost, repeated or reordered input must not let the game go on on a false basis. */
+    @Test
+    public void aBrokenInputSequenceStopsTheGameLoudly() {
+        final JsonObject transcript = humanB.transcript(SmokeDecks.humanMatchRequest(SEED_B), resultB);
+        final JsonArray skipped = transcript.getAsJsonArray("inputs").deepCopy();
+        skipped.get(4).getAsJsonObject().addProperty("seq", 7);
+        final IllegalStateException gap = expectThrows(IllegalStateException.class,
+                () -> HumanMatch.play(new ReplayHost(skipped), transcript.getAsJsonObject("request")));
+        assertTrue(gap.getMessage().contains("input sequence broken: expected seq 5"), gap.getMessage());
+
+        final JsonArray unnumbered = transcript.getAsJsonArray("inputs").deepCopy();
+        unnumbered.get(0).getAsJsonObject().remove("seq");
+        final IllegalStateException missing = expectThrows(IllegalStateException.class,
+                () -> HumanMatch.play(new ReplayHost(unnumbered), transcript.getAsJsonObject("request")));
+        assertTrue(missing.getMessage().contains("expected seq 1"), missing.getMessage());
+    }
+
+    /**
+     * An answer names the kind of its question; another kind is refused as
+     * invalid, the question stays open and the game goes on as before.
+     */
+    @Test
+    public void anAnswerOfTheWrongKindIsInvalidAndChangesNothing() {
+        final ScriptedHuman player = new ScriptedHuman();
+        final EngineHost wrongOnce = new EngineHost() {
+            private JsonObject lastPriority;
+            private boolean done;
+            private int seq;
+
+            @Override
+            public void emit(final JsonObject message) {
+                if (Protocol.QUESTION.equals(message.get("type").getAsString()) && message.has("purpose")
+                        && Protocol.PURPOSE_PRIORITY.equals(message.get("purpose").getAsString())) {
+                    lastPriority = message;
+                }
+                player.emit(message);
+            }
+
+            @Override
+            public JsonObject awaitInput() {
+                seq++;
+                if (!done && lastPriority != null) {
+                    done = true;
+                    final JsonObject wrong = new JsonObject();
+                    wrong.addProperty("type", Protocol.ANSWER);
+                    wrong.addProperty("seq", seq);
+                    wrong.addProperty("question", lastPriority.get("id").getAsLong());
+                    wrong.addProperty("kind", Protocol.KIND_CONFIRM);
+                    wrong.addProperty("yes", true);
+                    return wrong;
+                }
+                final JsonObject input = player.awaitInput();
+                input.addProperty("seq", seq);
+                return input;
+            }
+        };
+        final JsonObject result = HumanMatch.play(wrongOnce, SmokeDecks.humanMatchRequest(SEED_A));
+        final JsonObject rejection = player.rejections().stream()
+                .filter(r -> r.get("detail").getAsString().contains("is a buttons question, the answer is for confirm"))
+                .findFirst().orElse(null);
+        if (rejection == null) {
+            fail("the wrong kind was not rejected: " + player.rejections());
+        }
+        assertEquals(rejection.get("reason").getAsString(), Protocol.REJECT_INVALID);
+        assertEquals(result.get("logSha256").getAsString(), resultA.get("logSha256").getAsString(),
+                "the refused answer changed nothing in Forge's game");
     }
 
     @Test

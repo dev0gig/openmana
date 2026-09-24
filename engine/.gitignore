@@ -1,6 +1,6 @@
-# Disposable engine build tree (work tree, resources, JVM/Wasm artefacts, reports)
+# Disposable engine build tree (work tree, resources, JVM/Wasm artefacts, bundles, reports)
 /build/
 # Maven output if the bridge is opened in an IDE
 /bridge/target/
-# Node dependencies of the Wasm host tests
-/wasm/node_modules/
+# Node dependencies of the protocol, client, worker host and engine tests
+/node_modules/

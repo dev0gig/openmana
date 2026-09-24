@@ -1,0 +1,131 @@
+// One valid example of every message of the protocol, written by hand after
+// real engine output (prompt 02 recordings). schema.test.ts checks that each
+// passes and that no message type of the schema is left without an example.
+import type { EngineInput, EngineMessage, MatchRequest, VisibleCard, WorkerCommand } from "../src/index.ts";
+
+export const card: VisibleCard = {
+  id: 54,
+  key: "Bonecrusher Giant",
+  name: "Bonecrusher Giant",
+  typeLine: "Creature - Giant",
+  cost: "{2}{R}",
+  set: "ELD",
+  power: 4,
+  toughness: 3,
+  text: "Whenever Bonecrusher Giant becomes the target of a spell, Bonecrusher Giant deals 2 damage to that spell's controller.",
+  tapped: false,
+  sick: true,
+  faceDown: false,
+  damage: 0,
+  owner: 0,
+  controller: 0,
+  playable: true,
+  action: "cast spell",
+  ways: ["Bonecrusher Giant - Creature 4 / 3", "Stomp - Damage can't be prevented this turn."],
+  counters: { P1P1: 1 },
+};
+
+export const matchRequest: MatchRequest = {
+  seed: 3,
+  format: "constructed",
+  human: { name: "Player", deck: { name: "Red", main: [{ card: "Mountain", count: 20 }, { card: "Shock", count: 4 }] } },
+  ai: { name: "Forge AI", profile: "Default", deck: { name: "Green", main: [{ card: "Forest", count: 22 }] } },
+};
+
+export const engineMessages: EngineMessage[] = [
+  { type: "engine.boot", phase: "worker-features", t: 3.2, features: {
+    webAssembly: true, wasmGc: true, wasmExnref: true, wasmTypedFunctionReferences: true, crossOriginIsolated: true,
+    sharedArrayBuffer: true, atomicsWait: true, worker: true, missing: [], supported: true } },
+  { type: "engine.boot", phase: "java-main", t: 728 },
+  {
+    type: "engine.ready",
+    protocol: 1,
+    engine: {
+      forgeVersion: "GIT",
+      forgeCommit: "ed0333fecb1fea0671b3e50cadc1da4f71db5798",
+      forgeVersionCode: "2.0.15",
+      patchCount: 6,
+      patchesSha256: "d434f05792db3addec2bcc386318a7cdb5e0e3f4f1394d5490a73d28d3238ad7",
+      openmanaCommit: "5a2ed628ef263fff95d0aca0c1c227453fa5074f",
+      engineSourcesModified: false,
+      synchronous: true,
+    },
+    boot: { resourceFiles: 36922, resourceBytes: 37706881, unpackMillis: 904, forgeInitMillis: 2462, cardLoading: "lazy" },
+    t: 3472,
+  },
+  { type: "engine.waiting", consumed: 12 },
+  { type: "engine.error", code: "deck-rejected", message: "Forge does not know 1 card(s) of deck 'Red'", report: { deck: "Red", unknownCards: ["Definitely Not A Magic Card"] } },
+  { type: "engine.abort", reason: "unsupported-browser", origin: "client", message: "Dieser Browser kann die Forge-Engine nicht ausführen.", missing: ["SharedArrayBuffer"] },
+  {
+    type: "match.finished",
+    summary: {
+      winner: "Forge AI", reason: "AllOpponentsLost", turns: 15, result: "loss",
+      players: [{ id: 0, name: "Player", life: -3, me: true }, { id: 1, name: "Forge AI", life: 14, me: false }],
+      conceded: false, gameMillis: 1619, inputs: 44, logEntries: 324,
+      logSha256: "c1e990c6986adb44562412bad97d897edf215dd6d9f62c2d0c7c98d4cb9471e2", protocolMessages: 147,
+      protocolSha256: "6108436c356812edcf1372a7ee45b4e2d01ed5faa2d3036ada12f56360e8dabe",
+      forgeCallbacks: { updateZones: 167, updateCards: 108 }, forgeErrors: [], threadViolations: [],
+    },
+  },
+  {
+    type: "diagnostics.result",
+    result: {
+      seed: 42, gameMillis: 2014, draw: false, winner: "Green AI", winCondition: "AllOpponentsLost", turns: 20,
+      players: [{ name: "Red AI", life: 0, library: 30, hand: 2, battlefield: 8, graveyard: 12 }],
+      logEntries: 444, logSha256: "d7611b0e534870deb05d5253f4f53cf2489006b28fc4b865bf3a03ab5d5b85b8", forgeErrors: [],
+    },
+  },
+  { type: "game.started", protocol: 1, human: "Player", ai: "Forge AI", aiProfile: "Default", format: "constructed", cardNames: ["Forest", "Mountain", "Shock"] },
+  {
+    type: "state", seq: 7, running: true, turn: 3, phase: "MAIN1", activePlayer: 0, me: 0,
+    players: [
+      { id: 0, name: "Player", ai: false, me: true, life: 20, hasPriority: true, canAct: true, lost: false, maxHandSize: 7,
+        landsPlayed: 1, landsAllowed: 1, counters: {}, mana: { W: 0, U: 0, B: 0, R: 1, G: 0, C: 0 },
+        zones: { battlefield: [], hand: [card], graveyard: [], exile: [], command: [] }, library: 50, commanders: [] },
+      { id: 1, name: "Forge AI", ai: true, me: false, life: 18, hasPriority: false, canAct: false, lost: false, maxHandSize: 7,
+        landsPlayed: 0, landsAllowed: 1, counters: { POISON: 1 }, mana: { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 },
+        zones: { battlefield: [], hand: [{ hidden: true }, { hidden: true }], graveyard: [], exile: [], command: [] }, library: 49,
+        commanders: [{ card, cast: 1, tax: 2, damage: [{ player: 0, amount: 5 }] }] },
+    ],
+    stack: [{ id: 16, text: "Shock deals 2 damage to any target.", source: 48, player: 0, trigger: false, targets: [{ kind: "player", id: 1 }] }],
+    combat: [{ attacker: 19, defender: 1, defenderKind: "player", blockers: [] }],
+  },
+  { type: "events", entries: [{ kind: "LAND", text: "Player played Mountain (35)", card: 35, actor: "me" }, { kind: "TURN", text: "Turn 2 (Forge AI)" }] },
+  { type: "message", kind: "prompt", text: "Priority: Player Turn: 1 (Player)", card: 54, cardView: card },
+  { type: "message", kind: "incorrect-action", text: "" },
+  { type: "question", kind: "select", id: 8, blocking: false, text: "Select targets", min: 1, max: 1, cards: [58], items: [{ nr: 1, text: "Goblin Arsonist (58)", card: 58, cardView: { ...card, id: 58 } }] },
+  { type: "question", kind: "choose", id: 36, blocking: true, text: "Choose a mode", min: 1, max: 1, items: [{ nr: 1, text: "Mode 1" }, { nr: 2, hidden: true }], suggested: [1] },
+  { type: "question", kind: "buttons", id: 3, blocking: false, text: "", purpose: "priority", buttons: [{ nr: 1, label: "OK", enabled: true }, { nr: 2, label: "End Turn", enabled: true }] },
+  { type: "question", kind: "confirm", id: 4, blocking: true, text: "Pay {2}?", suggested: true, yesLabel: "Yes", noLabel: null },
+  { type: "question", kind: "options", id: 14, blocking: true, text: "Choose ability to play", items: [{ nr: 1, text: "Cast" }], cancellable: true, card: 54, cardView: card },
+  { type: "question", kind: "input", id: 5, blocking: true, text: "Choose a number", numeric: true, suggested: "0" },
+  { type: "question", kind: "order", id: 6, blocking: true, text: "Order triggers", top: null, remainingMin: 0, remainingMax: 0, items: [{ nr: 1, text: "A" }, { nr: 2, text: "B" }] },
+  { type: "question", kind: "arrange", id: 32, blocking: true, text: "Move cards to top or bottom of library", toTop: true, toBottom: true, toAnywhere: false, others: 50, items: [{ nr: 1, text: "Mountain", card: 35 }] },
+  { type: "question", kind: "distribute", id: 9, blocking: true, text: "3 combat damage", total: 3, min: 0, items: [{ nr: 1, text: "Blocker", card: 77 }], card: 75 },
+  { type: "question.withdrawn", id: 3 },
+  { type: "question.answered", id: 4, seq: 12 },
+  { type: "input.rejected", seq: 13, reason: "stale", detail: "question 9999999 is not open", input: { type: "answer", seq: 13, question: 9999999, kind: "buttons", button: 1 } },
+  { type: "game.end", winner: "Forge AI", reason: "Concede", turns: 4, result: "loss", players: [{ id: 0, name: "Player", life: 20, me: true }], conceded: true },
+];
+
+export const engineInputs: EngineInput[] = [
+  { type: "answer", seq: 1, question: 8, kind: "select", choices: [1] },
+  { type: "answer", seq: 2, question: 36, kind: "choose", choices: [] },
+  { type: "answer", seq: 3, question: 3, kind: "buttons", button: 2 },
+  { type: "answer", seq: 4, question: 4, kind: "confirm", yes: false },
+  { type: "answer", seq: 5, question: 14, kind: "options", option: 0 },
+  { type: "answer", seq: 6, question: 5, kind: "input", value: "3" },
+  { type: "answer", seq: 7, question: 6, kind: "order", order: [2, 1] },
+  { type: "answer", seq: 8, question: 32, kind: "arrange", top: [], bottom: [1] },
+  { type: "answer", seq: 9, question: 9, kind: "distribute", amounts: [3] },
+  { type: "card.tap", seq: 10, card: 35 },
+  { type: "player.tap", seq: 11, player: 1 },
+  { type: "state.request", seq: 12 },
+  { type: "concede", seq: 13 },
+];
+
+export const workerCommands: WorkerCommand[] = [
+  { type: "engine.start", protocol: 1, engineScriptUrl: "engine/openmana-engine.js", wasmUrl: "engine/openmana-engine.js.wasm", args: ["--card-loading=lazy"], queue: new SharedArrayBuffer(96), requireIsolation: true },
+  { type: "match.start", match: matchRequest },
+  { type: "diagnostics.ai-match", seed: 42, includeLog: false },
+];

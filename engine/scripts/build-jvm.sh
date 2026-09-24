@@ -19,6 +19,7 @@ node "$OM_ENGINE_DIR/scripts/measure.mjs" maven "$OM_REPORT_DIR/measure.jsonl" -
 mvn -B -ntp -f "$OM_WORK_DIR/pom.xml" -pl bridge -am clean package \
     -Dtest='org/openmana/**/*Test' -Dsurefire.failIfNoSpecifiedTests=false \
     -Dopenmana.resourceBundle="$bundle" \
+    -Dopenmana.protocolSchema="$OM_ENGINE_DIR/protocol/schema/protocol.schema.json" \
     2>&1 | tee "$OM_REPORT_DIR/maven.log"
 rc="${PIPESTATUS[0]}"
 set -e

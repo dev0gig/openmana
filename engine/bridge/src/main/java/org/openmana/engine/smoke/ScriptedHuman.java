@@ -31,8 +31,13 @@ import java.util.TreeMap;
  * bridge refuses them loudly, and asks for the state twice (at a priority and
  * during a blocking question), which the bridge must serve at once.
  *
- * <p>Every input it hands to the engine is recorded; the Wasm tests replay
- * that transcript through the SharedArrayBuffer channel.
+ * <p>Every input it hands to the engine is recorded (numbered with {@code seq}
+ * like the page's EngineClient does); the Wasm tests replay that transcript
+ * through the SharedArrayBuffer input queue. It also checks the protocol's
+ * question lifecycle as it goes: every question is closed exactly once
+ * (question.answered or question.withdrawn), the blocking flag matches the
+ * kind, rejections carry the seq of the rejected input, nothing is open when
+ * the game ends. Violations are counted under "protocol:"; tests expect none.
  *
  * <p>{@link #concedingInTurn(int)} gives a player that concedes at its first
  * input from that turn on, whatever question is open. {@link #defending()}
@@ -43,6 +48,8 @@ import java.util.TreeMap;
 public final class ScriptedHuman implements EngineHost {
 
     private static final int MAX_INPUTS = 20_000;
+    /** Transcript format; 2 = protocol 1 (inputs carry seq, answers their kind). */
+    public static final String TRANSCRIPT_FORMAT = "openmana-input-transcript/2";
     private static final Set<String> BLOCKING_KINDS = Set.of(
             Protocol.KIND_CHOOSE, Protocol.KIND_CONFIRM, Protocol.KIND_OPTIONS,
             Protocol.KIND_INPUT, Protocol.KIND_ORDER, Protocol.KIND_ARRANGE, Protocol.KIND_DISTRIBUTE);
@@ -50,6 +57,9 @@ public final class ScriptedHuman implements EngineHost {
     private final List<JsonObject> inputs = new ArrayList<>();
     private final Map<Long, JsonObject> open = new LinkedHashMap<>();
     private final Set<Long> withdrawn = new HashSet<>();
+    /** Every question the engine asked that is not closed yet (protocol lifecycle, independent of the policy). */
+    private final Set<Long> unclosed = new HashSet<>();
+    private final Set<Long> closed = new HashSet<>();
     private final List<JsonObject> rejections = new ArrayList<>();
     private final Map<String, Integer> counters = new TreeMap<>();
     private final Set<String> tried = new HashSet<>();
@@ -138,10 +148,18 @@ public final class ScriptedHuman implements EngineHost {
                 }
             }
             case Protocol.QUESTION -> {
-                open.put(message.get("id").getAsLong(), message);
-                count("question:" + message.get("kind").getAsString());
+                final long id = message.get("id").getAsLong();
+                open.put(id, message);
+                final String kind = message.get("kind").getAsString();
+                count("question:" + kind);
                 if (message.has("purpose")) {
                     count("purpose:" + message.get("purpose").getAsString());
+                }
+                if (!message.has("blocking") || message.get("blocking").getAsBoolean() != BLOCKING_KINDS.contains(kind)) {
+                    count("protocol:blocking-flag-wrong");
+                }
+                if (!unclosed.add(id) || closed.contains(id)) {
+                    count("protocol:question-id-reused");
                 }
             }
             case Protocol.QUESTION_WITHDRAWN -> {
@@ -149,11 +167,28 @@ public final class ScriptedHuman implements EngineHost {
                 open.remove(id);
                 withdrawn.add(id);
                 lastWithdrawn = id;
+                closeQuestion(id);
+            }
+            case Protocol.QUESTION_ANSWERED -> {
+                final long id = message.get("id").getAsLong();
+                open.remove(id);
+                pendingAnswers.remove(id);
+                closeQuestion(id);
+                final long seq = message.get("seq").getAsLong();
+                if (seq < 1 || seq > inputs.size()) {
+                    count("protocol:answered-by-unknown-input");
+                } else if (inputs.get((int) seq - 1).get("question") == null
+                        || inputs.get((int) seq - 1).get("question").getAsLong() != id) {
+                    count("protocol:answered-by-other-input");
+                }
             }
             case Protocol.INPUT_REJECTED -> {
                 rejections.add(message);
                 count("rejected:" + message.get("reason").getAsString());
                 final JsonObject input = message.getAsJsonObject("input");
+                if (!message.has("seq") || !input.has("seq") || message.get("seq").getAsLong() != input.get("seq").getAsLong()) {
+                    count("protocol:rejected-without-its-seq");
+                }
                 // An answer to a blocking question that was refused keeps it open.
                 if (input.has("question") && pendingAnswers.containsKey(input.get("question").getAsLong())) {
                     final long id = input.get("question").getAsLong();
@@ -170,9 +205,33 @@ public final class ScriptedHuman implements EngineHost {
                     }
                 }
             }
-            case Protocol.GAME_END -> end = message;
+            case Protocol.GAME_END -> {
+                end = message;
+                if (!unclosed.isEmpty()) {
+                    count("protocol:open-at-game-end");
+                }
+            }
             default -> { }
         }
+    }
+
+    private void closeQuestion(final long id) {
+        if (!unclosed.remove(id) || !closed.add(id)) {
+            count("protocol:closed-twice-or-unknown");
+        }
+    }
+
+    /** Numbers the input (seq from 1, second property, like the EngineClient writes it). */
+    private static JsonObject withSeq(final JsonObject input, final int seq) {
+        final JsonObject ordered = new JsonObject();
+        ordered.add("type", input.get("type"));
+        ordered.addProperty("seq", seq);
+        for (final Map.Entry<String, JsonElement> e : input.entrySet()) {
+            if (!"type".equals(e.getKey()) && !"seq".equals(e.getKey())) {
+                ordered.add(e.getKey(), e.getValue());
+            }
+        }
+        return ordered;
     }
 
     /** Questions answered by this player whose answer might still be refused. */
@@ -188,9 +247,9 @@ public final class ScriptedHuman implements EngineHost {
             stateRequested = false;
             count("state-request:unanswered");
         }
-        final JsonObject input = decide();
+        final JsonObject input = withSeq(decide(), inputs.size() + 1);
         inputs.add(input);
-        return input;
+        return input.deepCopy();
     }
 
     // ── Results for tests ─────────────────────────────────────────────────────────
@@ -232,7 +291,7 @@ public final class ScriptedHuman implements EngineHost {
 
     public JsonObject transcript(final JsonObject request, final JsonObject result) {
         final JsonObject t = new JsonObject();
-        t.addProperty("format", "openmana-input-transcript/1");
+        t.addProperty("format", TRANSCRIPT_FORMAT);
         t.add("request", request);
         final JsonArray a = new JsonArray();
         inputs.forEach(a::add);
@@ -291,12 +350,12 @@ public final class ScriptedHuman implements EngineHost {
             case 0 -> {
                 faultStep++;
                 count("fault:unknown-question");
-                return answer(9_999_999L, "button", 1);
+                return answer(9_999_999L, Protocol.KIND_BUTTONS, "button", 1);
             }
             case 1 -> {
                 faultStep++;
                 count("fault:invalid-button");
-                return answer(priority.get("id").getAsLong(), "button", 3);
+                return answer(priority.get("id").getAsLong(), Protocol.KIND_BUTTONS, "button", 3);
             }
             case 2 -> {
                 faultStep++;
@@ -312,7 +371,7 @@ public final class ScriptedHuman implements EngineHost {
                 }
                 faultStep++;
                 count("fault:withdrawn-question");
-                return answer(lastWithdrawn, "button", 1);
+                return answer(lastWithdrawn, Protocol.KIND_BUTTONS, "button", 1);
             }
             case 4 -> {
                 faultStep++;
@@ -382,7 +441,7 @@ public final class ScriptedHuman implements EngineHost {
         }
         brief.addProperty("items", q.has("items") ? q.getAsJsonArray("items").size() : 0);
         blockingAnswered.add(brief);
-        final JsonObject a = answer(id, null, 0);
+        final JsonObject a = answer(id, kind, null, 0);
         switch (kind) {
             case Protocol.KIND_CHOOSE -> {
                 final JsonArray choices = new JsonArray();
@@ -465,7 +524,7 @@ public final class ScriptedHuman implements EngineHost {
             for (int nr = 1; nr <= cards.size(); nr++) {
                 if (chosen.add(nr)) {
                     count("answer:select");
-                    final JsonObject a = answer(id, null, 0);
+                    final JsonObject a = answer(id, Protocol.KIND_SELECT, null, 0);
                     final JsonArray choices = new JsonArray();
                     choices.add(nr);
                     a.add("choices", choices);
@@ -601,13 +660,14 @@ public final class ScriptedHuman implements EngineHost {
         final long id = q.get("id").getAsLong();
         open.remove(id);
         count("press:" + button);
-        return answer(id, "button", button);
+        return answer(id, Protocol.KIND_BUTTONS, "button", button);
     }
 
-    private static JsonObject answer(final long question, final String field, final int value) {
+    private static JsonObject answer(final long question, final String kind, final String field, final int value) {
         final JsonObject a = new JsonObject();
         a.addProperty("type", Protocol.ANSWER);
         a.addProperty("question", question);
+        a.addProperty("kind", kind);
         if (field != null) {
             a.addProperty(field, value);
         }

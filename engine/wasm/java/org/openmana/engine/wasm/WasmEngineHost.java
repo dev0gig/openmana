@@ -19,7 +19,8 @@ import org.openmana.engine.bridge.EngineHost;
  *       the whole point: the single Wasm thread waits inside Forge's input
  *       just like the game thread does on the JVM.</li>
  * </ul>
- * The JavaScript side is engine/wasm/host/worker-core.js.
+ * The JavaScript side is engine/wasm/host/worker-host.ts; the queue layout is
+ * engine/protocol/src/input-queue.ts.
  */
 final class WasmEngineHost implements EngineHost {
 
@@ -36,7 +37,11 @@ final class WasmEngineHost implements EngineHost {
         emitProtocol(message.toString());
     }
 
-    /** Anything that is not a JSON object reaches the bridge as a malformed input and is rejected there. */
+    /**
+     * The client only writes JSON objects (JSON.stringify of a validated
+     * input). Anything else means the input queue is broken: the game must not
+     * go on, the engine call ends with an exception (technical abort).
+     */
     @Override
     public JsonObject awaitInput() {
         final String text = awaitInputJson();
@@ -48,9 +53,7 @@ final class WasmEngineHost implements EngineHost {
         } catch (final JsonSyntaxException e) {
             // reported below
         }
-        final JsonObject malformed = new JsonObject();
-        malformed.addProperty("type", "malformed");
-        malformed.addProperty("raw", text);
-        return malformed;
+        final String shown = text == null ? "null" : text.length() > 200 ? text.substring(0, 200) + "..." : text;
+        throw new IllegalStateException("the input queue delivered something that is not a JSON object: " + shown);
     }
 }

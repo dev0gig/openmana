@@ -63,6 +63,9 @@
                     <systemPropertyVariables>
                         <forge.synchronous>true</forge.synchronous>
                         <openmana.resourceBundle>${openmana.resourceBundle}</openmana.resourceBundle>
+                        <!-- The protocol schema (engine/protocol): ProtocolContractTest checks the
+                             bridge's names and version against it. -->
+                        <openmana.protocolSchema>${openmana.protocolSchema}</openmana.protocolSchema>
                         <!-- TestNG logs through SLF4J, which starts tinylog before any
                              test runs; it must start with the engine's configuration
                              (ForgeEngine.LOGGING), not Forge's tinylog.properties. -->

@@ -50,6 +50,15 @@ import java.util.TreeSet;
  */
 public final class HumanMatch {
 
+    /** A request that does not fit the contract (a field is missing or has the wrong form). */
+    public static final class InvalidRequest extends IllegalArgumentException {
+        private static final long serialVersionUID = 1L;
+
+        InvalidRequest(final String message) {
+            super(message);
+        }
+    }
+
     /** A deck that cannot be built as requested. */
     public static final class DeckProblem extends IllegalArgumentException {
         private static final long serialVersionUID = 1L;
@@ -142,6 +151,8 @@ public final class HumanMatch {
             throw new IllegalStateException("the game ended without Forge calling finishGame");
         }
         final JsonObject result = end.deepCopy();
+        // The summary (match.finished) repeats the end, without its message type.
+        result.remove("type");
         result.addProperty("gameMillis", gameMillis);
         result.addProperty("inputs", gui.inputsReceived());
         final List<GameLogEntry> log = game.getGameLog().getAllEntries();
@@ -237,13 +248,19 @@ public final class HumanMatch {
     private static JsonObject object(final JsonObject o, final String field) {
         final JsonElement e = o.get(field);
         if (e == null || !e.isJsonObject()) {
-            throw new IllegalArgumentException("'" + field + "' is missing in the match request");
+            throw new InvalidRequest("'" + field + "' is missing in the match request");
         }
         return e.getAsJsonObject();
     }
 
     private static String string(final JsonObject o, final String field, final String fallback) {
         final JsonElement e = o.get(field);
-        return e == null || e.isJsonNull() ? fallback : e.getAsString();
+        if (e == null || e.isJsonNull()) {
+            return fallback;
+        }
+        if (!e.isJsonPrimitive() || !e.getAsJsonPrimitive().isString()) {
+            throw new InvalidRequest("'" + field + "' must be a string in the match request");
+        }
+        return e.getAsString();
     }
 }

@@ -34,6 +34,17 @@ final class Answers {
     private Answers() {
     }
 
+    /** Every answer names the kind of its question; another kind is invalid. */
+    static void kind(final JsonObject answer, final String expected) throws InvalidAnswer {
+        final JsonElement e = answer.get("kind");
+        if (e == null || !e.isJsonPrimitive() || !e.getAsJsonPrimitive().isString()) {
+            throw new InvalidAnswer("kind is missing");
+        }
+        if (!expected.equals(e.getAsString())) {
+            throw new InvalidAnswer("the question is a " + expected + " question, the answer is for " + e.getAsString());
+        }
+    }
+
     /** buttons: {@code button} is 1 or 2 and that button is enabled. */
     static int button(final JsonObject answer, final boolean enabled1, final boolean enabled2) throws InvalidAnswer {
         final int button = integer(answer, "button");

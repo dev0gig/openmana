@@ -54,15 +54,18 @@ final class StateBuilder {
         this.gui = gui;
     }
 
+    /**
+     * The complete state, or null while Forge has no game view yet (there is
+     * nothing to show, and the contract has no partial snapshot).
+     */
     JsonObject build() {
         final GameView game = gui.getGameView();
+        if (game == null) {
+            return null;
+        }
         final JsonObject o = new JsonObject();
         o.addProperty("type", Protocol.STATE);
         o.addProperty("seq", ++sequence);
-        if (game == null) {
-            o.addProperty("running", false);
-            return o;
-        }
         o.addProperty("running", !game.isGameOver());
         o.addProperty("turn", game.getTurn());
         o.addProperty("phase", game.getPhase() == null ? null : game.getPhase().name());

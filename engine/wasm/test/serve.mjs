@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Static server for the engine spike page, with the headers the engine needs:
+// Static server for the engine's diagnostics page, with the headers the engine needs:
 // Cross-Origin-Opener-Policy + Cross-Origin-Embedder-Policy (cross-origin
 // isolation, required for SharedArrayBuffer) and correct MIME types.
 //
@@ -17,9 +17,12 @@ import { fileURLToPath } from "node:url";
 const wasmDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const engineDir = path.resolve(wasmDir, "..");
 
+// /engine/  the engine artefacts as the app will serve them (worker, launcher, module)
+// /harness/ the bundled diagnostics page script (engine/scripts/bundle-host.mjs)
+// /         the diagnostics page itself
 const ROUTES = [
   ["/engine/", path.join(engineDir, "build", "dist")],
-  ["/host/", path.join(wasmDir, "host")],
+  ["/harness/", path.join(engineDir, "build", "harness")],
   ["/", path.join(wasmDir, "spike")],
 ];
 
@@ -29,6 +32,7 @@ const TYPES = {
   ".cjs": "text/javascript; charset=utf-8",
   ".wasm": "application/wasm",
   ".json": "application/json; charset=utf-8",
+  ".map": "application/json; charset=utf-8",
 };
 
 function resolve(urlPath, files) {
@@ -82,5 +86,5 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const port = portIndex >= 0 ? Number(args[portIndex + 1]) : 8765;
   const isolation = !args.includes("--no-isolation");
   const server = await startServer({ port, isolation });
-  console.log(`engine spike: http://127.0.0.1:${server.address().port}/ (cross-origin isolation ${isolation ? "on" : "OFF"})`);
+  console.log(`engine diagnostics: http://127.0.0.1:${server.address().port}/ (cross-origin isolation ${isolation ? "on" : "OFF"})`);
 }

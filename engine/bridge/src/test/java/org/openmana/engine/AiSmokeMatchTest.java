@@ -32,8 +32,10 @@ public class AiSmokeMatchTest {
         assertTrue(boot.get("resourceFiles").getAsInt() > 30_000, "full cardsfolder expected: " + boot);
         final JsonObject engine = boot.getAsJsonObject("engine");
         assertTrue(engine.get("synchronous").getAsBoolean(), "Forge must run in synchronous mode");
-        assertEquals(engine.get("forge.commit").getAsString().length(), 40, "pinned Forge commit");
-        assertTrue(engine.get("patches.count").getAsInt() >= 3, "patch queue");
+        assertEquals(engine.get("forgeCommit").getAsString().length(), 40, "pinned Forge commit");
+        assertTrue(engine.get("patchCount").getAsInt() >= 3, "patch queue");
+        assertEquals(engine.get("patchesSha256").getAsString().length(), 64, "hash of the patch queue");
+        assertEquals(engine.get("openmanaCommit").getAsString().length(), 40, "OpenMana commit of the build");
     }
 
     @Test

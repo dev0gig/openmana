@@ -114,13 +114,13 @@ public final class SmokeDecks {
     }
 
     /**
-     * The human-vs-AI smoke match: the human plays Red (burn needs targets,
+     * The human-vs-AI smoke match as a protocol MatchRequest (what the page
+     * sends with match.start): the human plays Red (burn needs targets,
      * creatures need mana, see {@link #redPlusList()}), Forge's AI plays
      * Green with profile "Default".
      */
     public static JsonObject humanMatchRequest(final long seed) {
         final JsonObject request = new JsonObject();
-        request.addProperty("command", "human-match");
         request.addProperty("seed", seed);
         request.addProperty("format", "constructed");
         final JsonObject human = new JsonObject();

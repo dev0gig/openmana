@@ -179,13 +179,16 @@ final class BridgeGuiGame extends AbstractGuiGame {
             final OpenQuestion q = buttonsQuestion;
             final int button;
             try {
+                Answers.kind(input, q.kind);
                 button = Answers.button(input, q.enabled1, q.enabled2);
             } catch (final Answers.InvalidAnswer e) {
                 reject(input, Protocol.REJECT_INVALID, e.getMessage());
                 return;
             }
+            // Closed before Forge reacts: Forge may set the next buttons at once.
             close(q);
             buttonsQuestion = null;
+            answered(q, input);
             if (button == 1) {
                 controller.selectButtonOk();
             } else {
@@ -197,10 +200,12 @@ final class BridgeGuiGame extends AbstractGuiGame {
             // Answering a selection taps the listed cards, exactly like clicks
             // in Forge's own GUI (Forge toggles, counts and finishes). The
             // question stays open: Forge keeps the same selectable cards until
-            // it names new ones (setSelectables) or clears them.
+            // it names new ones (setSelectables) or clears them, and then the
+            // question is withdrawn.
             final OpenQuestion q = selectQuestion;
             final List<Integer> choices;
             try {
+                Answers.kind(input, q.kind);
                 choices = Answers.choices(input, q.cards.size(), 1, q.max);
             } catch (final Answers.InvalidAnswer e) {
                 reject(input, Protocol.REJECT_INVALID, e.getMessage());
@@ -267,6 +272,7 @@ final class BridgeGuiGame extends AbstractGuiGame {
         }
         final long id = ++lastQuestionId;
         question.addProperty("id", id);
+        question.addProperty("blocking", true);
         final OpenQuestion q = new OpenQuestion(id, question.get("kind").getAsString(), null);
         open.put(id, q);
         final long previousBlocking = blockingQuestion;
@@ -281,7 +287,11 @@ final class BridgeGuiGame extends AbstractGuiGame {
                     final long answered = questionId(input);
                     if (answered == id) {
                         try {
-                            return parser.parse(input);
+                            Answers.kind(input, q.kind);
+                            final T result = parser.parse(input);
+                            open.remove(id);
+                            answered(q, input);
+                            return result;
                         } catch (final Answers.InvalidAnswer e) {
                             reject(input, Protocol.REJECT_INVALID, e.getMessage());
                         }
@@ -295,6 +305,8 @@ final class BridgeGuiGame extends AbstractGuiGame {
                 } else if (Protocol.STATE_REQUEST.equals(type)) {
                     sendStateNow();
                 } else if (Protocol.CONCEDE.equals(type)) {
+                    // The question ends with the game, unanswered.
+                    withdraw(q);
                     concedeNow();
                     return afterGameEnd;
                 } else {
@@ -302,7 +314,10 @@ final class BridgeGuiGame extends AbstractGuiGame {
                 }
             }
         } finally {
-            open.remove(id);
+            if (open.containsKey(id)) {
+                // Left without an answer (an exception on the way out): never leave it open silently.
+                withdraw(q);
+            }
             blockingQuestion = previousBlocking;
         }
     }
@@ -413,10 +428,7 @@ final class BridgeGuiGame extends AbstractGuiGame {
     @Override
     public boolean confirm(final CardView c, final String question, final boolean defaultIsYes, final List<String> options) {
         final JsonObject q = question(Protocol.KIND_CONFIRM, question);
-        if (c != null) {
-            q.addProperty("card", c.getId());
-            q.add("cardView", state.card(c, true));
-        }
+        attachCard(q, c);
         if (options != null && options.size() >= 2) {
             q.addProperty("yesLabel", options.get(0));
             q.addProperty("noLabel", options.get(1));
@@ -449,10 +461,7 @@ final class BridgeGuiGame extends AbstractGuiGame {
             return abilities.get(0);
         }
         final JsonObject q = question(Protocol.KIND_OPTIONS, Localizer.getInstance().getMessage("lblChooseAbilityToPlay"));
-        if (hostCard != null) {
-            q.addProperty("card", hostCard.getId());
-            q.add("cardView", state.card(hostCard, true));
-        }
+        attachCard(q, hostCard);
         q.addProperty("cancellable", true);
         q.add("items", items(abilities, null));
         final int option = ask(q, a -> Answers.option(a, abilities.size(), true), 0);
@@ -464,7 +473,9 @@ final class BridgeGuiGame extends AbstractGuiGame {
                                 final List<String> options, final int defaultOption) {
         final JsonObject q = question(Protocol.KIND_OPTIONS, join(title, message));
         q.add("items", items(options, null));
-        q.addProperty("suggested", defaultOption + 1);
+        if (defaultOption >= 0 && defaultOption < options.size()) {
+            q.addProperty("suggested", defaultOption + 1);
+        }
         final int option = ask(q, a -> Answers.option(a, options.size(), false), defaultOption + 1);
         return option - 1;
     }
@@ -509,9 +520,7 @@ final class BridgeGuiGame extends AbstractGuiGame {
         if (!initial.isEmpty()) {
             q.add("suggested", initial);
         }
-        if (referenceCard != null) {
-            q.addProperty("card", referenceCard.getId());
-        }
+        attachCard(q, referenceCard);
         q.add("items", items(all, null));
         final List<Integer> order = ask(q, a -> Answers.order(a, all.size(), remainingObjectsMin, remainingObjectsMax), null);
         if (order == null) {
@@ -570,9 +579,7 @@ final class BridgeGuiGame extends AbstractGuiGame {
                                                      final int damage, final GameEntityView defender,
                                                      final boolean overrideOrder, final boolean maySkip) {
         final JsonObject q = question(Protocol.KIND_DISTRIBUTE, Localizer.getInstance().getMessage("lblNCombatDamage", String.valueOf(damage)));
-        if (attacker != null) {
-            q.addProperty("card", attacker.getId());
-        }
+        attachCard(q, attacker);
         q.addProperty("total", damage);
         q.addProperty("min", 0);
         q.add("items", items(blockers, null));
@@ -590,9 +597,7 @@ final class BridgeGuiGame extends AbstractGuiGame {
         final List<Object> targets = new ArrayList<>(target.keySet());
         final int min = atLeastOne ? 1 : 0;
         final JsonObject q = question(Protocol.KIND_DISTRIBUTE, amountLabel);
-        if (effectSource != null) {
-            q.addProperty("card", effectSource.getId());
-        }
+        attachCard(q, effectSource);
         q.addProperty("total", amount);
         q.addProperty("min", min);
         q.add("items", items(targets, null));
@@ -720,33 +725,28 @@ final class BridgeGuiGame extends AbstractGuiGame {
     public void showPromptMessage(final PlayerView playerView, final String message, final CardView card) {
         lastMessage = message == null ? "" : message.replace("\n", " ").trim();
         lastMessageCard = card;
-        final JsonObject o = new JsonObject();
-        o.addProperty("type", Protocol.MESSAGE);
-        o.addProperty("text", lastMessage);
-        if (card != null) {
-            // The card is often in no zone (paying for a spell: it left the
-            // hand but is not on the stack yet), so the full view goes along.
-            o.addProperty("card", card.getId());
-            o.add("cardView", state.card(card, true));
-        }
+        final JsonObject o = messageOf(Protocol.MESSAGE_PROMPT, lastMessage);
+        // The card is often in no zone (paying for a spell: it left the hand
+        // but is not on the stack yet), so the full view goes along.
+        attachCard(o, card);
         host.emit(o);
     }
 
     @Override
     public void message(final String message, final String title) {
-        final JsonObject o = new JsonObject();
-        o.addProperty("type", Protocol.MESSAGE);
-        o.addProperty("title", title);
-        o.addProperty("text", message);
+        final JsonObject o = messageOf(Protocol.MESSAGE_NOTICE, message);
+        if (title != null) {
+            o.addProperty("title", title);
+        }
         host.emit(o);
     }
 
     @Override
     public void showErrorDialog(final String message, final String title) {
-        final JsonObject o = new JsonObject();
-        o.addProperty("type", Protocol.ERROR);
-        o.addProperty("title", title);
-        o.addProperty("text", message);
+        final JsonObject o = messageOf(Protocol.MESSAGE_ERROR, message);
+        if (title != null) {
+            o.addProperty("title", title);
+        }
         host.emit(o);
     }
 
@@ -761,16 +761,15 @@ final class BridgeGuiGame extends AbstractGuiGame {
         o.addProperty("type", Protocol.GAME_END);
         final GameView game = getGameView();
         final PlayerView me = getCurrentPlayer();
+        final GameOutcome outcome = game == null ? null : game.getOutcome();
+        // Every field is always present (null if Forge does not say): the contract has no optional end.
+        final LobbyPlayer winner = outcome == null ? null : outcome.getWinningLobbyPlayer();
+        o.addProperty("winner", winner == null ? null : winner.getName());
+        o.addProperty("reason", outcome == null ? null : String.valueOf(outcome.getWinCondition()));
+        o.addProperty("turns", outcome == null ? null : outcome.getLastTurnNumber());
+        o.addProperty("result", outcome == null ? null : winner == null ? "draw" : me == null ? null : me.isLobbyPlayer(winner) ? "win" : "loss");
+        final JsonArray players = new JsonArray();
         if (game != null) {
-            final GameOutcome outcome = game.getOutcome();
-            if (outcome != null) {
-                final LobbyPlayer winner = outcome.getWinningLobbyPlayer();
-                o.addProperty("winner", winner == null ? null : winner.getName());
-                o.addProperty("reason", String.valueOf(outcome.getWinCondition()));
-                o.addProperty("turns", outcome.getLastTurnNumber());
-                o.addProperty("result", winner == null ? "draw" : me == null ? null : me.isLobbyPlayer(winner) ? "win" : "loss");
-            }
-            final JsonArray players = new JsonArray();
             for (final PlayerView p : game.getPlayers()) {
                 final JsonObject e = new JsonObject();
                 e.addProperty("id", p.getId());
@@ -779,8 +778,8 @@ final class BridgeGuiGame extends AbstractGuiGame {
                 e.addProperty("me", p.equals(me));
                 players.add(e);
             }
-            o.add("players", players);
         }
+        o.add("players", players);
         o.addProperty("conceded", conceded);
         endMessage = o;
         host.emit(o);
@@ -863,11 +862,7 @@ final class BridgeGuiGame extends AbstractGuiGame {
 
     @Override
     public void flashIncorrectAction() {
-        final JsonObject o = new JsonObject();
-        o.addProperty("type", Protocol.MESSAGE);
-        o.addProperty("text", "incorrect-action");
-        o.addProperty("incorrectAction", true);
-        host.emit(o);
+        host.emit(messageOf(Protocol.MESSAGE_INCORRECT_ACTION, ""));
     }
 
     // Display details Forge's own GUIs care about and the protocol does not.
@@ -957,7 +952,10 @@ final class BridgeGuiGame extends AbstractGuiGame {
             return;
         }
         sendEvents();
-        host.emit(state.build());
+        final JsonObject snapshot = state.build();
+        if (snapshot != null) {
+            host.emit(snapshot);
+        }
         dirty = false;
         lastStateNanos = System.nanoTime();
     }
@@ -987,7 +985,7 @@ final class BridgeGuiGame extends AbstractGuiGame {
             final JsonObject o = new JsonObject();
             o.addProperty("kind", e.type().name());
             o.addProperty("text", e.message());
-            if (e.sourceCard() != null) {
+            if (e.sourceCard() != null && mayViewSafely(e.sourceCard())) {
                 o.addProperty("card", e.sourceCard().getId());
             }
             final String actor = actor(e, me, game);
@@ -1044,6 +1042,7 @@ final class BridgeGuiGame extends AbstractGuiGame {
     private OpenQuestion register(final JsonObject q, final String kind) {
         final long id = ++lastQuestionId;
         q.addProperty("id", id);
+        q.addProperty("blocking", false);
         final Input owner = Protocol.KIND_BUTTONS.equals(kind) ? currentInput() : null;
         final OpenQuestion oq = new OpenQuestion(id, kind, owner);
         open.put(id, oq);
@@ -1061,6 +1060,15 @@ final class BridgeGuiGame extends AbstractGuiGame {
             o.addProperty("id", q.id);
             host.emit(o);
         }
+    }
+
+    /** The answer with this seq was accepted and closed the question (select questions never close this way). */
+    private void answered(final OpenQuestion q, final JsonObject input) {
+        final JsonObject o = new JsonObject();
+        o.addProperty("type", Protocol.QUESTION_ANSWERED);
+        o.addProperty("id", q.id);
+        o.addProperty("seq", input.get("seq").getAsLong());
+        host.emit(o);
     }
 
     private void withdrawAll() {
@@ -1117,12 +1125,27 @@ final class BridgeGuiGame extends AbstractGuiGame {
 
     /** Attaches the card Forge sent with the current prompt: which ability is asking (Anvil lesson). */
     private void attachSourceCard(final JsonObject q) {
-        final CardView card = lastMessageCard;
-        if (card == null || q.has("card")) {
+        attachCard(q, lastMessageCard);
+    }
+
+    /**
+     * The card a message or question is about: id and full view, but only if
+     * the player may see it. A hidden card never leaves the engine with its id.
+     */
+    private void attachCard(final JsonObject o, final CardView card) {
+        if (card == null || o.has("card") || !mayViewSafely(card)) {
             return;
         }
-        q.addProperty("card", card.getId());
-        q.add("cardView", state.card(card, true));
+        o.addProperty("card", card.getId());
+        o.add("cardView", state.card(card, true));
+    }
+
+    private static JsonObject messageOf(final String kind, final String text) {
+        final JsonObject o = new JsonObject();
+        o.addProperty("type", Protocol.MESSAGE);
+        o.addProperty("kind", kind);
+        o.addProperty("text", text == null ? "" : text);
+        return o;
     }
 
     private <T> JsonArray items(final List<T> list, final FSerializableFunction<T, String> display) {
@@ -1279,10 +1302,20 @@ final class BridgeGuiGame extends AbstractGuiGame {
 
     // ══ Input handling ══════════════════════════════════════════════════════════
 
+    /**
+     * The next input. Inputs are numbered 1, 2, 3 … without gaps ({@code seq});
+     * anything else means the transport lost, repeated or reordered an input,
+     * and the game must not go on on a false basis: technical abort.
+     */
     private JsonObject nextInput() {
         final JsonObject input = host.awaitInput();
         if (input == null) {
             throw new IllegalStateException("the host returned no input");
+        }
+        final long expected = inputsReceived + 1L;
+        final JsonElement seq = input.get("seq");
+        if (seq == null || !seq.isJsonPrimitive() || !seq.getAsJsonPrimitive().isNumber() || seq.getAsDouble() != expected) {
+            throw new IllegalStateException("input sequence broken: expected seq " + expected + ", got " + input);
         }
         inputsReceived++;
         return input;
@@ -1306,6 +1339,7 @@ final class BridgeGuiGame extends AbstractGuiGame {
     private void reject(final JsonObject input, final String reason, final String detail) {
         final JsonObject o = new JsonObject();
         o.addProperty("type", Protocol.INPUT_REJECTED);
+        o.addProperty("seq", input.get("seq").getAsLong());
         o.addProperty("reason", reason);
         o.addProperty("detail", detail);
         o.add("input", input);
