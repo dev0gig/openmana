@@ -28,9 +28,9 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | **04 — Forge resources and card scripts** |
-| Nächster Prompt | 05 — JVM/WASM differential tests (erst nach 04 = COMPLETE) |
-| Zuletzt abgeschlossen | 03 — Worker transport and protocol (`1e8febf`) |
+| Aktuell ausgeführt | – (keiner; nach 04 wie in `naechster-schritt.md` vorgesehen gestoppt) |
+| Nächster Prompt | **05 — JVM/WASM differential tests** (PENDING, nicht begonnen) |
+| Zuletzt abgeschlossen | 04 — Forge resources and card scripts (`fbcba6e`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-24 (Lauf über `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-24 |
 
@@ -42,7 +42,7 @@
 | 01 | [Forge WASM engine spike](queue/01-engine-spike.md) | COMPLETE | `b64835a` |
 | 02 | [Anvil bridge single-thread spike](queue/02-anvil-bridge-single-thread.md) | COMPLETE | `5a2ed62` |
 | 03 | [Worker transport and protocol](queue/03-worker-transport-protocol.md) | COMPLETE | `1e8febf` |
-| 04 | [Forge resources and card scripts](queue/04-forge-resources-card-scripts.md) | IN_PROGRESS | – |
+| 04 | [Forge resources and card scripts](queue/04-forge-resources-card-scripts.md) | COMPLETE | `fbcba6e` |
 | 05 | [JVM/WASM differential tests](queue/05-engine-differential-tests.md) | PENDING | – |
 | 06 | [OpenMana web/PWA skeleton](queue/06-web-pwa-skeleton.md) | PENDING | – |
 | 07 | [IndexedDB local data layer](queue/07-indexeddb-storage.md) | PENDING | – |
@@ -316,7 +316,112 @@
 - **Weiter mit:** Prompt 04 (Forge resources and card scripts). Nicht begonnen:
   `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
 
-### 04 — Forge resources and card scripts — IN_PROGRESS
+### 04 — Forge resources and card scripts — COMPLETE
 
-- Begonnen am 2026-09-24 von Claude Code (Claude Opus 5.5), Auftrag
+- **Commits:** `fbcba6e` Implementierung (alle Nachweise liefen auf diesem
+  Stand, sauberer Build, `openmana.engineSourcesModified=false`), danach Doku
+  und dieser Eintrag (2026-09-24). Agent: Claude Code (Claude Opus 5.5), Auftrag
   „Führe prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
+  Status-Commit zu Beginn: `9999fdf`.
+- **Zusammenfassung:** Die Engine bettet einen bewusst gewählten, vollständig
+  inventarisierten Satz Forge-Daten aus demselben Pin ein, mit Originalpfaden
+  (`res/…`): `engine/resources.json` entscheidet über **jeden** Eintrag von
+  `forge-gui/res` (eingebunden oder mit Grund ausgelassen; ein neuer Eintrag in
+  einem Forge-Update stoppt den Build). Engine-Manifest Format 2 mit Forge-SHA,
+  Patch-Hash, Toolchain (mit Prüfsummen), Ressourcen-Inventar (jede Datei mit
+  Größe und SHA-256), Inhalt des Moduls, Größen und SHA-256 aller Artefakte.
+  Eine Kartenprüfung in der Engine (`CardProbe`) macht aus jeder Karte (33 505),
+  jeder Variante (473) und jedem Token (854) eine Spielkarte, prüft jede
+  Kartenart, jede Karte der drei neuesten Sets und fünf Effekte, die Karten per
+  Namen bzw. zufällig aus allen Karten erzeugen: auf JVM, Node und Chrome
+  derselbe Fingerabdruck, faul und vollständig geladen, englisch und deutsch.
+  Netzspiel (Netty, jupnp, Jetty, Servlet) ist aus dem Modul und bleibt draußen
+  (Build-Sperre + Klassenprüfung). Forges Texte gibt es auch auf Deutsch
+  (`--language=de-DE`); Karten lädt die Engine standardmäßig vollständig. Kein
+  Blocker.
+- **Wichtige Komponenten:**
+  - Daten: `engine/resources.json` (include/leftOut mit Gründen, Sprachen),
+    `scripts/pack-resources.mjs` (prüft gegen den Pin, Inventar,
+    Ressourcen-Manifest je Ordner), `scripts/write-manifest.mjs` (Format 2),
+    `build-jvm.sh` → `openmana/engine-resources.properties` (SHA, Dateizahl,
+    Sprachen; die Engine meldet `resourcesSha256` und prüft die Dateizahl)
+  - Netzspiel: `scripts/build-wasm.sh` (Nettys eigene native-image-Konfiguration
+    ausgeschlossen, `-H:AbortOnTypeReachable` für `io.netty.*`, `org.jupnp.*`,
+    `org.eclipse.jetty.*`, `javax.servlet.*`, SBOM mit Klassen),
+    `scripts/image-classes.mjs` (Klassen im fertigen Modul),
+    `gen-reflection-config.mjs` + `ListSubscribers.java --interfaces`
+    (Schnittstellen nicht mehr registriert), `record-agent-config.sh` (neu
+    aufgenommen; nur Fremdbibliotheken, laut bei ungedeckten Forge-Zugriffen)
+  - Kartenprüfung: `bridge/…/smoke/CardProbe.java`, `jvm/JvmCardProbeMain.java`,
+    Engine-Befehl `card-probe`, `wasm/test/node-cards.ts`,
+    `check-card-probes.ts`, `card-probe-check.ts`, `browser-smoke.mjs --cards`,
+    Diagnoseseite `?cards=1`
+  - Sprache/Kartenladen: `ForgeEngine.Language` (`en-US`, `de-DE`; Start bricht
+    ab, wenn Forge still auf Englisch zurückfiele), `ForgeEngine.CardLoading.DEFAULT
+    = EAGER`, Start-Argumente `--language`, `--card-loading`
+  - Protokoll **2**: `BootReport.language`, `EngineBuild.resourcesSha256`,
+    `CardLoading`, `EngineLanguage`, `diagnostics.card-probe` → `diagnostics.cards`
+  - Doku: `docs/implementation/04-forge-resources-card-scripts.md`,
+    `engine/README.md`, `engine/protocol/README.md`
+- **Tests (alle bestanden):**
+  - 65 Unit-Tests (+4: Kartenprüfung im Worker-Host und im Client, Fehlerpfad,
+    Lebenszyklus; Tests nutzen `PROTOCOL_VERSION` statt fester Zahl).
+  - 45 JVM-Tests (+7): `CardProbeTest` 6 (keine Befunde, fünf Effekte mit den
+    erwarteten Karten, jede Kartenart mit Gesichtern, jedes Token, neueste Sets,
+    ganze Datenbank), `ProtocolContractTest` +1 (Sprachen = Schema = Bündel,
+    Lade-Modi, `EngineBuild`-Felder).
+  - `test-engine.sh` (45 Läufe, 0 Fehler, 13,6 min): KI-Partien Seed 42/7
+    unverändert seit Prompt 01 (`d7611b0e…`, `0d52aafc…`) auf JVM, Node,
+    Chrome; KI-Partie Seed 42 **deutsch** (`5fc5fd3c…`) = dieselbe Partie wie
+    englisch, auf allen drei Laufzeiten bitgleich; Mensch-Partien 3/11/5-defend/
+    3-concede mit bitgleichem Forge-Protokoll wie seit Prompt 02, alle 1 320
+    Nachrichten schemakonform, Wiederholungen in Node (faul + 256-Byte-
+    Warteschlange) und Chrome = JVM; Mensch-Partie 3 **deutsch** = dieselbe
+    Partie wie englisch, in Node gleich; Kartenprüfung faul (`1e7a32d0…`),
+    vollständig (`bb7d62a0…`) und deutsch (= englisch) in Node und Chrome = JVM;
+    Fehlerpfade des Protokolls, Versionskonflikt (Chrome 102 ms), ohne COOP/COEP
+    klare Meldung nach 86 ms.
+- **Messwerte (odin):** sauberer Build 392,9 s (Maven mit 45 Tests 66,7 s,
+  `native-image` 140,9 s bei 5,4 GiB). Forge-Daten 36 905 Dateien, 42,3 MiB,
+  Brotli 4,69 MB (vorher 5,45 MB). Modul 75,4 MiB roh, **12,45 MiB Brotli**
+  (vorher 13,2 MiB). Chrome bereit (Median): faul 3,46 s (wie Prompt 03),
+  vollständig 5,06 s; Worker 521 / 612 MiB. Nachladen aller Karten im faulen
+  Modus: Chrome 17,3 s, Node 23–42 s, JVM 6,7–15,8 s. Im Modul 6 888 Klassen,
+  0 aus Netzwerk-Bibliotheken; erreichbare Typen 11 105 (vorher 11 520).
+- **Erkenntnisse/Abweichungen:**
+  - **Bewusste Abweichung vom Prompt:** `effects/` und `defaults/` sind **nicht**
+    eingebettet. Die Research hatte sie als Vorgaben eingeordnet; es sind
+    Animationen und Layouts von Forges eigenen Oberflächen, die die Engine nie
+    liest (JFR-Messung, Quelltextsuche); `effects/` allein waren ~12 % des
+    Downloads. Außerdem ausgelassen (mit Grund in `resources.json`): andere
+    Sprachen, Bildersuche, Deckgenerator, andere Spielmodi, Limited-Daten,
+    Oberflächen-Dateien, Lizenztexte (→ Prompt 27).
+  - **Research-Frage 2 beantwortet:** Forge upstream lädt Karten im faulen Modus
+    korrekt nach (`ensureAllCardsLoaded` in den betroffenen Effekten und in
+    `PlayerControllerHuman.chooseSingleCardFace`), ManaBrews Korrekturen sind
+    unnötig. Aber faul spart kaum Startzeit (Forge parst trotzdem jedes Skript)
+    und friert beim ersten Bedarf aller Karten (zufällige Karte, Spieler benennt
+    eine Karte) die Partie für 17–42 s ein → **Standard jetzt `eager`**.
+  - **Deutsch als reine Anzeigeschicht:** Die Sprache ändert nachweislich nur
+    Forges Wörter, nie die Partie. Vorgabe des Projektbesitzers (2026-09-24): für
+    das System alles englisch, für den Nutzer alles deutsch; Kartenbilder und
+    -texte kommen von Scryfall (08). Ob die App Forges deutsche Sätze anzeigt,
+    entscheidet Prompt 12 (Empfehlung: ja, als Anzeigeschicht). Upstream-Lücke:
+    Forest heißt in Forges deutscher Kartendatei „Forest“.
+  - **Netzspiel:** Netty kam nur über Nettys eigene GraalVM-Konfiguration ins
+    Modul (187 Klassen); jupnp wurde über registrierte Forge-Schnittstellen
+    (`IGuiBase.getUpnpPlatformService`) als Typ erreichbar — die neue Sperre fand
+    es. Aus Forges Netzspiel-Paket bleiben 5 Klassen ohne Netzwerkcode
+    (Hosting-Prüfung aus Patch 0006, Signatur-Typen). Sentry (Forges
+    Absturzmelder) bleibt, ist aber nie eingeschaltet.
+  - **SBOM:** GraalVMs SBOM listet den ganzen Klassenpfad (auch jupnp) und kann
+    im Fat-JAR kaum zuordnen; als Lizenzinventar erst mit Prompt 27 (einzelne
+    JARs oder eigene Zuordnung).
+  - Protokoll 2 (Vertragsänderung), Tests versionsneutral.
+  - Befunde für später: zwei kaputte upstream-Kartenskripte (Desert Were-Worm,
+    Nascent Metamorph); Forge ordnet Vorschaukarten nach Datum zu
+    (Zeitabhängigkeit, wichtig für Prompt 22).
+  - Während des Laufs: Ein Fehlalarm „deutsche Partie anders als englisch“ kam
+    aus einem Fehler im Vergleichsskript (behoben); die Partien sind gleich.
+- **Weiter mit:** Prompt 05 (JVM/WASM differential tests). Nicht begonnen:
+  `naechster-schritt.md` führt genau einen Prompt je Lauf aus.

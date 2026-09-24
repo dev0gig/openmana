@@ -44,8 +44,15 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Worker host in TypeScript (browser Dedicated Worker bundle `engine-worker.js`; the same source runs in Node tests).
 - Evidence: the recorded human-vs-AI games replay through the client identically on JVM, Node and Chrome (lazy and with a 256-byte queue); client and engine judge every input alike; failure paths tested against the real engine. Details: `docs/implementation/03-worker-transport-protocol.md`.
 
+### Forge Resources and Card Scripts (Prompt 04)
+- `engine/resources.json` decides every entry of Forge's `res/`: embedded are the card and token scripts, editions, formats, lists, block data, AI profiles and the English and German language files; Forge's UI assets (`effects/`, `defaults/` …) and other game modes are left out with a reason. A Forge update with a new entry stops the build until someone decides.
+- Engine manifest (`engine-manifest.json`, format 2) with Forge SHA, patch hash, toolchain (with checksums), resource inventory (every file with size and SHA-256 in `forge-res.inventory.json`), what is in the module, sizes and SHA-256 of all artefacts.
+- Card probe (`CardProbe`, `diagnostics.card-probe`): effects that create cards by name, every card layout, every token script, the three newest sets and every card of the database as game cards; equal fingerprints on JVM, Node and Chrome, lazy and eager, English and German.
+- Network play excluded: Netty's own native-image configuration is excluded, and the Wasm build aborts if a Netty/jupnp/Jetty/servlet type becomes reachable or a class of them is in the module.
+- Forge's texts in German (`--language=de-DE`), protocol version 2; eager card loading is the default (lazy loading stalls a game for 17–42 s in the Wasm engine when an effect or decision needs all cards).
+
 ## Currently In Progress
-Nothing. Prompts 00–03 are `COMPLETE`. The next prompt is **04 — Forge resources and card scripts** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
+Nothing. Prompts 00–04 are `COMPLETE`. The next prompt is **05 — JVM/WASM differential tests** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
 
 Any agent entering the repository must first reconcile this statement with the latest `prompts/STATUS.md` and Git state.
 
@@ -88,7 +95,7 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 ## Workflow Compatibility
 OpenMana predates the generic Dropzone `queue → active → completed` lifecycle and is worked through **its own numbered ledger**, one prompt at a time.
 
-Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 03 complete, 04 next, nothing in progress).
+Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 04 complete, 05 next, nothing in progress).
 
 Dropzone Master/Standalone must respect:
 - `prompts/STATUS.md` statuses,
