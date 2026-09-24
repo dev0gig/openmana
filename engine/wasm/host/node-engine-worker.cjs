@@ -9,6 +9,7 @@ const { parentPort } = require("node:worker_threads");
 const path = require("node:path");
 
 require("./feature-detect.js");
+require("./input-channel.js");
 require("./worker-core.js");
 
 const onEngineMessage = globalThis.OpenManaWorkerCore.attach({

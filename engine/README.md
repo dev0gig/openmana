@@ -2,9 +2,12 @@
 
 Hier entsteht die Engine, die Forge ohne Server im Browser laufen lässt. Forge
 bleibt die einzige Autorität für Regeln, Kartenverhalten und KI (Bible §2); die
-Engine packt es nur ein. Stand: **Engine-Spike (Prompt 01)** — Forge startet im
-Dedicated Worker und spielt eine Partie KI gegen KI. Messwerte und Befunde:
-[`docs/implementation/01-engine-spike.md`](../docs/implementation/01-engine-spike.md).
+Engine packt es nur ein. Stand: **Bridge-Spike (Prompt 02)** — Forge startet im
+Dedicated Worker, spielt KI gegen KI (Prompt 01) und Mensch gegen KI über Forges
+eigenen Mensch-Pfad (`PlayerControllerHuman`), alles auf einem einzigen Thread;
+die Eingaben des Menschen kommen über einen SharedArrayBuffer. Messwerte und
+Befunde: [`docs/implementation/01-engine-spike.md`](../docs/implementation/01-engine-spike.md),
+[`docs/implementation/02-anvil-bridge.md`](../docs/implementation/02-anvil-bridge.md).
 
 ## Aufbau
 
@@ -13,13 +16,14 @@ engine/
 ├── forge/                 Submodule: Card-Forge/forge upstream, voller SHA (der Pin ist der Gitlink)
 ├── patches/               nummerierte GPL-Patches für den Einzel-Thread-Betrieb (siehe patches/README.md)
 ├── bridge/                Maven-Modul (erbt vom Forge-Parent): headless IGuiBase, Forge-Start,
-│                          Ressourcen-Bundle, KI-Rauchpartie, JVM-Tests
+│                          Ressourcen-Bundle, KI-Rauchpartie; Paket bridge/ = Forges GUI für den
+│                          Menschen (Fragen, Zustand, Ereignisse); smoke/ = Testspieler; JVM-Tests
 ├── wasm/
 │   ├── java/              Wasm-Einstieg (WasmMain, @JS-Anbindung an den Worker)
 │   ├── config/agent/      eingefrorene Reachability-Metadaten (Tracing-Agent, Nicht-Forge-Bibliotheken)
-│   ├── host/              Worker-Host (Browser + Node) und Feature-Erkennung
-│   ├── spike/             Diagnoseseite des Spikes (keine Oberfläche)
-│   └── test/              Smoke-Tests in Node und Chrome, Server mit COOP/COEP
+│   ├── host/              Worker-Host (Browser + Node), Eingabekanal (SharedArrayBuffer), Feature-Erkennung
+│   ├── spike/             Diagnoseseite der Spikes (keine Oberfläche) + Wiederholer für Aufzeichnungen
+│   └── test/              Smoke- und Wiederholungstests in Node und Chrome, Server mit COOP/COEP
 ├── scripts/               reproduzierbarer Build und Tests
 ├── resources.json         welche Forge-Daten eingebettet werden
 └── toolchain.lock.json    gepinnte Toolchain (URL, Größe, Prüfsumme)
@@ -47,7 +51,7 @@ Browser-Artefakte) und `report/` (Zeiten, Speicher, Testergebnisse).
 git submodule update --init --depth 1 engine/forge   # einmalig
 (cd engine/wasm && npm ci)                            # einmalig, nur für die Tests
 bash engine/scripts/build.sh                          # kompletter, sauberer Build (~5 min)
-bash engine/scripts/test-engine.sh                    # JVM-Referenz, Wasm in Node und Chrome
+bash engine/scripts/test-engine.sh                    # JVM-Referenz, Wasm in Node und Chrome (~10 min)
 ```
 
 `build.sh` führt nacheinander aus: `setup-toolchain.sh` → `prepare-forge.sh`
@@ -63,12 +67,23 @@ Ergebnis in `engine/build/dist/`:
 | `openmana-engine.js.wasm` | das Modul, Forge-Daten eingebettet |
 | `engine-manifest.json` | Forge-Commit, Patch-Hash, Ressourcen-Inventar, Toolchain, Größen und SHA-256 |
 
+`test-engine.sh` spielt: KI gegen KI (Seeds 42 und 7) auf der JVM, in Node und in
+Chrome, das Forge-Spielprotokoll muss überall gleich sein; Mensch gegen KI
+(Seeds 3 und 11) auf der JVM mit dem Testspieler `ScriptedHuman`, dessen
+Eingaben als Aufzeichnung (`build/report/transcripts/`) in Node und Chrome über
+den SharedArrayBuffer-Kanal erneut in die Wasm-Engine gehen; die Partie muss
+genau gleich enden. Dazu der Negativtest ohne COOP/COEP.
+
 ## Spike-Seite von Hand öffnen
 
 ```bash
 node engine/wasm/test/serve.mjs            # http://127.0.0.1:8765/?seed=42&cardLoading=lazy
 node engine/wasm/test/serve.mjs --no-isolation   # zeigt die Fehlermeldung ohne COOP/COEP
 ```
+
+Eine aufgezeichnete Mensch-gegen-KI-Partie lässt sich im Browser nachspielen,
+wenn die Aufzeichnung unter der Seite liegt, z. B. über den Test:
+`node engine/wasm/test/browser-smoke.mjs --transcript engine/build/report/transcripts/human-3.json`.
 
 ## Grundsätze
 

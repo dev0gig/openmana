@@ -1,0 +1,89 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: dev0gig <115336867+dev0gig@users.noreply.github.com>
+Date: Thu, 24 Sep 2026 06:59:05 +0200
+Subject: [PATCH 4/6] Synchronous mode: input pump instead of waiting for a GUI
+ thread
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A human decision in Forge is an InputSyncronizedBase: the game thread
+shows it and parks on a CountDownLatch until the GUI thread answers
+(selectButtonOk, selectCard, ...) and that answer calls stop(). GraalVM
+Web Image has exactly one Java thread, so nobody could ever release the
+latch.
+
+With -Dforge.synchronous=true, awaitLatchRelease() now runs an input
+pump on the game thread instead: each call obtains one user input
+(blocking until one arrives) and delivers it to the controller, until
+stop() or the end of the game releases the latch. Inputs that open further
+inputs while being handled (targets, costs) nest on the same stack, just
+as nested showAndWait() calls do on the game thread today.
+
+The pump is installed by the embedding application
+(setSynchronousInputPump). In synchronous mode without a pump the input
+fails loudly instead of hanging. Without the property nothing changes.
+
+Written for OpenMana on 2026-09-24 (research: OPENMANA_ENGINE_PLAN.md
+§3.3, "Patch 4").
+---
+ .../match/input/InputSyncronizedBase.java     | 32 +++++++++++++++++++
+ 1 file changed, 32 insertions(+)
+
+diff --git a/forge-gui/src/main/java/forge/gamemodes/match/input/InputSyncronizedBase.java b/forge-gui/src/main/java/forge/gamemodes/match/input/InputSyncronizedBase.java
+index 014cb5db..bfb9afb6 100644
+--- a/forge-gui/src/main/java/forge/gamemodes/match/input/InputSyncronizedBase.java
++++ b/forge-gui/src/main/java/forge/gamemodes/match/input/InputSyncronizedBase.java
+@@ -1,6 +1,7 @@
+ package forge.gamemodes.match.input;
+ 
+ import forge.util.IHasForgeLog;
++import forge.util.ThreadUtil;
+ import forge.gui.FThreads;
+ import forge.gui.error.BugReporter;
+ import forge.player.PlayerControllerHuman;
+@@ -12,6 +13,25 @@ public abstract class InputSyncronizedBase extends InputBase implements InputSyn
+     private static final long serialVersionUID = 8756177361251703052L;
+     private final CountDownLatch cdlDone;
+ 
++    // OpenMana patch 0004 (2026-09-24): input pump for synchronous mode.
++    // Normally the game thread parks on cdlDone until the GUI thread answers
++    // (selectButtonOk, selectCard, ...) and that answer calls stop(). With
++    // -Dforge.synchronous=true (GraalVM Web Image) there is no second thread:
++    // the game thread itself fetches the next user input through this pump and
++    // hands it to Forge until stop() releases the latch. Inputs that open
++    // further inputs (targets, costs) nest on the same stack.
++    private static volatile Runnable synchronousInputPump;
++
++    /**
++     * Installs the pump used by {@link #awaitLatchRelease()} in synchronous
++     * mode. One call of the pump must obtain one user input (blocking until
++     * there is one) and deliver it to the game controller on the calling
++     * thread. {@code null} removes it.
++     */
++    public static void setSynchronousInputPump(final Runnable pump) {
++        synchronousInputPump = pump;
++    }
++
+     public InputSyncronizedBase(final PlayerControllerHuman controller) {
+         super(controller);
+         cdlDone = new CountDownLatch(1);
+@@ -21,6 +41,18 @@ public abstract class InputSyncronizedBase extends InputBase implements InputSyn
+     public void awaitLatchRelease() {
+         FThreads.assertExecutedByEdt(false);
+         netLog.trace("awaitLatchRelease() starting on {}, thread = {}", this.getClass().getSimpleName(), Thread.currentThread().getName());
++        if (ThreadUtil.isSynchronous()) {
++            final Runnable pump = synchronousInputPump;
++            if (pump == null) {
++                throw new IllegalStateException("Synchronous mode: " + getClass().getSimpleName()
++                        + " waits for user input, but no input pump is installed");
++            }
++            while (cdlDone.getCount() > 0) {
++                pump.run();
++            }
++            netLog.trace("awaitLatchRelease() UNBLOCKED on {} (synchronous)", this.getClass().getSimpleName());
++            return;
++        }
+         try {
+             cdlDone.await();
+         } catch (final InterruptedException e) {

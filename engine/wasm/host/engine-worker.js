@@ -3,7 +3,7 @@
  * Forge runs synchronously inside this worker; the page never blocks.
  * Protocol: see worker-core.js.
  */
-importScripts("feature-detect.js", "worker-core.js");
+importScripts("feature-detect.js", "input-channel.js", "worker-core.js");
 
 const onEngineMessage = globalThis.OpenManaWorkerCore.attach({
   post: (message) => postMessage(message),

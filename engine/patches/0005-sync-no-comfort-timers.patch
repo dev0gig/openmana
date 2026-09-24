@@ -1,0 +1,95 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: dev0gig <115336867+dev0gig@users.noreply.github.com>
+Date: Thu, 24 Sep 2026 06:59:44 +0200
+Subject: [PATCH 5/6] Synchronous mode: no comfort timers
+
+Three places schedule GUI work for later on a timer thread:
+AbstractGuiGame.awaitNextInput (the "waiting for opponent" prompt after
+250 ms), AbstractGuiGame.showWaitingTimer (a ticking wait display) and
+ThreadUtil.delay (e.g. InputLockUI's "waiting" text after 500 ms).
+
+Without real threads (GraalVM Web Image) these tasks can never run. On
+the JVM they would call the GUI from a second thread, so a single-threaded
+embedding would behave differently on the two runtimes. With
+-Dforge.synchronous=true they are therefore skipped: delay() returns a
+future that never runs. All of them only update prompts; game flow and
+rules are untouched. The embedding UI shows whose turn it is from the
+game state instead.
+
+Without the property nothing changes.
+
+Written for OpenMana on 2026-09-24.
+---
+ .../src/main/java/forge/util/ThreadUtil.java   | 18 ++++++++++++++++++
+ .../forge/gamemodes/match/AbstractGuiGame.java | 12 +++++++++++-
+ 2 files changed, 29 insertions(+), 1 deletion(-)
+
+diff --git a/forge-core/src/main/java/forge/util/ThreadUtil.java b/forge-core/src/main/java/forge/util/ThreadUtil.java
+index baf4d743..ff81c948 100644
+--- a/forge-core/src/main/java/forge/util/ThreadUtil.java
++++ b/forge-core/src/main/java/forge/util/ThreadUtil.java
+@@ -61,9 +61,27 @@ public class ThreadUtil {
+     }
+ 
+     public static ScheduledFuture<?> delay(int milliseconds, Runnable inputUpdater) {
++        // OpenMana patch 0005 (2026-09-24): without real threads a delayed task can
++        // never run (GraalVM Web Image). In synchronous mode it is therefore not
++        // scheduled at all, on the JVM too, so both runtimes behave alike. The
++        // callers only use it for UI comfort (e.g. InputLockUI's "waiting" text).
++        if (SYNCHRONOUS) {
++            return NEVER_RUNS;
++        }
+         return getScheduledPool().schedule(inputUpdater, milliseconds, TimeUnit.MILLISECONDS);
+     }
+ 
++    /** What {@link #delay} returns in synchronous mode: a task that is never run. */
++    private static final ScheduledFuture<Object> NEVER_RUNS = new ScheduledFuture<Object>() {
++        @Override public long getDelay(TimeUnit unit) { return Long.MAX_VALUE; }
++        @Override public int compareTo(Delayed other) { return 1; }
++        @Override public boolean cancel(boolean mayInterruptIfRunning) { return false; }
++        @Override public boolean isCancelled() { return false; }
++        @Override public boolean isDone() { return false; }
++        @Override public Object get() { throw new CancellationException("never runs in synchronous mode"); }
++        @Override public Object get(long timeout, TimeUnit unit) { throw new CancellationException("never runs in synchronous mode"); }
++    };
++
+     public static boolean isGameThread() {
+         return SYNCHRONOUS || Thread.currentThread().getName().startsWith("Game");
+     }
+diff --git a/forge-gui/src/main/java/forge/gamemodes/match/AbstractGuiGame.java b/forge-gui/src/main/java/forge/gamemodes/match/AbstractGuiGame.java
+index e14c212e..ba7b5e47 100644
+--- a/forge-gui/src/main/java/forge/gamemodes/match/AbstractGuiGame.java
++++ b/forge-gui/src/main/java/forge/gamemodes/match/AbstractGuiGame.java
+@@ -30,6 +30,7 @@ import forge.trackable.TrackableCollection;
+ import forge.trackable.TrackableTypes;
+ import forge.util.FSerializableFunction;
+ import forge.util.Localizer;
++import forge.util.ThreadUtil;
+ 
+ import org.apache.commons.lang3.StringUtils;
+ 
+@@ -532,6 +533,14 @@ public abstract class AbstractGuiGame implements IGuiGame, IMayViewCards {
+ 
+     @Override
+     public final void awaitNextInput() {
++        // OpenMana patch 0005 (2026-09-24): the "waiting for opponent" prompt is
++        // shown by a java.util.Timer 250 ms later. Without real threads
++        // (-Dforge.synchronous=true, GraalVM Web Image) that timer never runs, and
++        // on the JVM it would call the GUI from a second thread. The embedding
++        // UI shows whose turn it is from the game state instead.
++        if (ThreadUtil.isSynchronous()) {
++            return;
++        }
+         checkAwaitNextInputTimer();
+         //delay updating prompt to await next input briefly so buttons don't flicker disabled then enabled
+         awaitNextInputTask = new TimerTask() {
+@@ -609,7 +618,8 @@ public abstract class AbstractGuiGame implements IGuiGame, IMayViewCards {
+     @Override
+     public void showWaitingTimer(final PlayerView forPlayer, final String waitingForPlayerName) {
+         cancelWaitingTimer();
+-        if (waitingForPlayerName == null) {
++        // OpenMana patch 0005: a ticking display needs a timer thread (see awaitNextInput).
++        if (waitingForPlayerName == null || ThreadUtil.isSynchronous()) {
+             return;
+         }
+         this.waitingStartTime = System.currentTimeMillis();

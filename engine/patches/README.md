@@ -11,14 +11,22 @@ selbst bleibt unverändert.
 | 0001 | `0001-forge-synchronous-mode.patch` | Schalter `-Dforge.synchronous=true`: `ThreadUtil.invokeInGameThread`, `limit`, `executeWithTimeout` laufen im aufrufenden Thread, `isGameThread()` = true, `isMultiCoreSystem()` = false; `AiController` bewertet Fähigkeiten ohne eigenen Thread | `witchesofthehill/forge@51b7d50` (khaliostr), ohne den dort zurückgenommenen LDA-Guard |
 | 0002 | `0002-ai-cooperative-deadline.patch` | Kooperative Zeitgrenze in `AiController.chooseSpellAbilityToPlayFromList` (ohne Thread greift das bisherige Timeout nie) | `witchesofthehill/forge@026be2f` (khaliostr) |
 | 0003 | `0003-ai-attack-sequential.patch` | `AiAttackController` prüft Pflichtangriffe im Synchronmodus nacheinander statt im Thread-Pool | `witchesofthehill/forge@43847a6` (JacopoMadaluni) |
+| 0004 | `0004-sync-input-pump.patch` | **Input-Pumpe** (Research: „Patch 4“): Im Synchronmodus wartet `InputSyncronizedBase.awaitLatchRelease()` nicht mehr auf einen GUI-Thread, sondern ruft eine von der Einbettung gesetzte Pumpe (`setSynchronousInputPump`), bis `stop()` den Latch löst. Ohne Pumpe scheitert die Eingabe laut statt zu hängen | OpenMana, Prompt 02 |
+| 0005 | `0005-sync-no-comfort-timers.patch` | Im Synchronmodus keine Komfort-Timer: `AbstractGuiGame.awaitNextInput` („Warte auf Gegner“ nach 250 ms), `showWaitingTimer` und `ThreadUtil.delay` (z. B. `InputLockUI`) laufen nicht. Sie zeigen nur Hinweise an; Spielablauf und Regeln bleiben unberührt | OpenMana, Prompt 02 |
+| 0006 | `0006-local-games-without-server-manager.patch` | Neu `FServerManager.getInstanceIfCreated()`; `HostedMatch.startGame` und `InputPassPriority.showAndWait` fragen nur einen **vorhandenen** Netzwerk-Manager. Vorher baute jede lokale Partie Netty-Event-Loops (zwei Thread-Gruppen) und Netzwerk-Einstellungen auf, die sie nie nutzte | OpenMana, Prompt 02 |
 
-Alle drei stammen aus ManaBrews Forge-Fork (GPL-3.0-or-later wie Forge selbst,
+0001–0003 stammen aus ManaBrews Forge-Fork (GPL-3.0-or-later wie Forge selbst,
 siehe `docs/research/LICENSES.md`) und sind auf `Card-Forge/forge@ed0333f`
-angepasst. Jede geänderte Stelle trägt im Quelltext den Vermerk
+angepasst. 0004–0006 sind für OpenMana neu geschrieben (Begründung in der
+jeweiligen Patch-Beschreibung, Nachweise in
+[`docs/implementation/02-anvil-bridge.md`](../../docs/implementation/02-anvil-bridge.md)).
+Jede geänderte Stelle trägt im Quelltext den Vermerk
 `OpenMana patch NNNN (2026-09-24, …)` (GPLv3 §5a: Änderungshinweis mit Datum).
 
 **Ohne** `-Dforge.synchronous=true` verhält sich Forge mit diesen Patches wie
-upstream — mit einer Ausnahme: Die kooperative Zeitgrenze aus 0002 gilt immer.
+upstream — mit zwei Ausnahmen: Die kooperative Zeitgrenze aus 0002 gilt immer,
+und nach 0006 legt eine lokale Partie keinen Netzwerk-Manager mehr an (ein
+Netzwerkspiel erzeugt ihn wie bisher selbst).
 Die OpenMana-Bridge setzt den Schalter auf der JVM genauso wie im Browser, damit
 beide Laufzeiten dieselben Pfade nehmen (Voraussetzung für den JVM/Wasm-Vergleich).
 
@@ -50,8 +58,12 @@ und `engine/scripts/test-engine.sh` laufen lassen.
 
 ## Später zu prüfen
 
-- Weitere Stellen, die im Human-gegen-KI-Pfad einen Thread starten
-  (`FThreads.invokeInBackgroundThread`, Timer in `AbstractGuiGame`,
-  `ThreadUtil.delay`), zeigt erst Prompt 02 (Input-Pumpe, Patch 4 laut Research).
+- Prompt 02 hat den Mensch-gegen-KI-Pfad mit zwei vollen Partien durchlaufen
+  (Mulligan, Priorität, Kosten, Ziele, Angriff, Entscheidungen): Außer den
+  Stellen aus 0004–0006 startet Forge dort keinen Thread (Test
+  `HumanMatchTest.everythingRunsOnOneThread`). Mechaniken, die diese Partien
+  nicht berühren (etwa Commander-Wahl, Planechase, Sideboarding zwischen
+  Partien), können weitere Stellen zeigen; Prompt 05 (Differenztests) und die
+  Regressionstests (29) decken sie auf.
 - Ein Synchronmodus upstream bei Card-Forge würde diese Queue ersetzen
   (Research: FORGE_BUILD.md §4).

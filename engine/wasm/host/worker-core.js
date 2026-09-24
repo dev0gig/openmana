@@ -3,20 +3,30 @@
  * Dedicated Worker (engine-worker.js) and the Node worker used in tests
  * (node-engine-worker.cjs).
  *
- * This is the minimal spike transport (prompt 01). The real, versioned
- * UI<->engine protocol with SharedArrayBuffer input queue follows in prompt 03.
+ * This is the spike transport (prompts 01 and 02). The real, versioned
+ * UI<->engine protocol follows in prompt 03.
  *
  * Messages to the worker:
- *   { type: "start", engineUrl, wasmUrl, args, requireIsolation }
+ *   { type: "start", engineUrl, wasmUrl, args, requireIsolation, inputBuffer }
+ *        inputBuffer: SharedArrayBuffer of input-channel.js; needed for games
+ *        with a human player, optional for AI-only requests
  *   { type: "request", id, request }            request is passed to the engine
  * Messages from the worker (t = worker clock in ms):
  *   { type: "boot",  payload: { phase, … }, t }  progress of the start
  *   { type: "ready", payload: boot report, t }   Forge is initialised
  *   { type: "fatal", payload: { stage, error, stack }, t }
+ *   { type: "protocol", payload: message, t }    bridge message during a game (question, state …)
+ *   { type: "input.wait", n, t }                 the engine blocks for input number n (from 1):
+ *                                                answer with one write() into inputBuffer
  *   { type: "response", id, response, t, ms }
  *
+ * A "human-match" request runs the whole game inside the engine call. The
+ * worker does not return to its event loop until the game is over; inputs
+ * arrive only through inputBuffer.
+ *
  * Plain script: loaded with importScripts() or require(). Needs
- * feature-detect.js first. Exposes globalThis.OpenManaWorkerCore.
+ * feature-detect.js and input-channel.js first. Exposes
+ * globalThis.OpenManaWorkerCore.
  */
 (function () {
   "use strict";
@@ -38,6 +48,8 @@
     let engine = null;
     let started = false;
     let failed = false;
+    let input = null;
+    let inputWaits = 0;
 
     const fatal = (stage, error) => {
       failed = true;
@@ -61,6 +73,16 @@
       registerEngine(handler) {
         engine = handler;
       },
+      // Forge waits for the player: block this thread until the page has
+      // written the next input. Returns the input's JSON text.
+      awaitInput() {
+        if (!input) {
+          throw new Error("the engine waits for player input, but the worker was started without inputBuffer");
+        }
+        inputWaits += 1;
+        env.post({ type: "input.wait", n: inputWaits, t: env.now() });
+        return input.read();
+      },
     };
 
     function start(message) {
@@ -74,6 +96,14 @@
       if (!features.supported) {
         fatal("features", new Error(globalThis.OpenManaFeatures.describeMissing(features)));
         return;
+      }
+      if (message.inputBuffer !== undefined) {
+        try {
+          input = globalThis.OpenManaInputChannel.reader(message.inputBuffer);
+        } catch (e) {
+          fatal("input-channel", e);
+          return;
+        }
       }
 
       globalThis.__openmanaEngineConfig = { wasmUrl: message.wasmUrl, args: message.args || [] };

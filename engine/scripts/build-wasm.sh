@@ -48,6 +48,10 @@ parallelism="${OPENMANA_NATIVE_IMAGE_PARALLELISM:-}"
 extra=()
 [ -n "$parallelism" ] && extra+=("--parallelism=$parallelism")
 [ -n "${OPENMANA_NATIVE_IMAGE_XMX:-}" ] && extra+=("-J-Xmx$OPENMANA_NATIVE_IMAGE_XMX")
+# Diagnosis only: function names in the Wasm module, so a Java exception in the
+# browser shows readable frames instead of wasm-function[N]. Larger module; not
+# for release builds.
+[ "${OPENMANA_WASM_DEBUG_NAMES:-0}" = "1" ] && extra+=("-H:+DebugNames")
 
 om_log "native-image --tool:svm-wasm (dauert einige Minuten)"
 set +e

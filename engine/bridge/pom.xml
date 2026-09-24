@@ -63,6 +63,10 @@
                     <systemPropertyVariables>
                         <forge.synchronous>true</forge.synchronous>
                         <openmana.resourceBundle>${openmana.resourceBundle}</openmana.resourceBundle>
+                        <!-- TestNG logs through SLF4J, which starts tinylog before any
+                             test runs; it must start with the engine's configuration
+                             (ForgeEngine.LOGGING), not Forge's tinylog.properties. -->
+                        <tinylog.configuration>tinylog-engine-test.properties</tinylog.configuration>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>

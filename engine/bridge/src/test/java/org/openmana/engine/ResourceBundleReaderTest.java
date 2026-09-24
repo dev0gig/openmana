@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertThrows;
@@ -36,7 +37,7 @@ public class ResourceBundleReaderTest {
 
     @Test
     public void unpacksEveryEntryWithItsPath() throws IOException {
-        final Path root = Files.createTempDirectory("omrb-");
+        final Path root = Files.createDirectories(Paths.get("target", "omrb-test-" + System.nanoTime()));
         final ResourceBundleReader.Stats stats = ResourceBundleReader.unpack(new ByteArrayInputStream(bundle(new String[][]{
                 {"res/cardsfolder/s/shock.txt", "Name:Shock\n"},
                 {"res/languages/en-US.properties", "lblOK=OK\n"},
@@ -48,7 +49,7 @@ public class ResourceBundleReaderTest {
 
     @Test
     public void rejectsPathsLeavingTheTarget() throws IOException {
-        final Path root = Files.createTempDirectory("omrb-");
+        final Path root = Files.createDirectories(Paths.get("target", "omrb-test-" + System.nanoTime()));
         assertThrows(IOException.class, () -> ResourceBundleReader.unpack(new ByteArrayInputStream(
                 bundle(new String[][]{{"../evil.txt", "x"}}, false)), root));
         assertThrows(IOException.class, () -> ResourceBundleReader.unpack(new ByteArrayInputStream(
@@ -57,7 +58,7 @@ public class ResourceBundleReaderTest {
 
     @Test
     public void rejectsTruncatedOrOverlongBundles() throws IOException {
-        final Path root = Files.createTempDirectory("omrb-");
+        final Path root = Files.createDirectories(Paths.get("target", "omrb-test-" + System.nanoTime()));
         final byte[] good = bundle(new String[][]{{"res/a.txt", "abc"}}, false);
         final byte[] truncated = java.util.Arrays.copyOf(good, good.length - 1);
         assertThrows(IOException.class, () -> ResourceBundleReader.unpack(new ByteArrayInputStream(truncated), root));

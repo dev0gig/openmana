@@ -6,7 +6,8 @@
 //   node engine/wasm/test/serve.mjs [--port 8765] [--no-isolation]
 //
 // --no-isolation leaves COOP/COEP out, to check that the page then fails
-// loudly instead of hanging. Also importable: startServer({ port, isolation }).
+// loudly instead of hanging. Also importable: startServer({ port, isolation,
+// files }), where files maps extra URL paths to files (e.g. a transcript).
 
 import fs from "node:fs";
 import http from "node:http";
@@ -30,8 +31,11 @@ const TYPES = {
   ".json": "application/json; charset=utf-8",
 };
 
-function resolve(urlPath) {
+function resolve(urlPath, files) {
   const clean = decodeURIComponent(urlPath.split("?")[0]);
+  if (Object.prototype.hasOwnProperty.call(files, clean)) {
+    return files[clean];
+  }
   for (const [prefix, dir] of ROUTES) {
     if (clean.startsWith(prefix)) {
       const rel = clean.slice(prefix.length) || "index.html";
@@ -45,9 +49,9 @@ function resolve(urlPath) {
   return null;
 }
 
-export function startServer({ port = 8765, isolation = true, host = "127.0.0.1" } = {}) {
+export function startServer({ port = 8765, isolation = true, host = "127.0.0.1", files = {} } = {}) {
   const server = http.createServer((req, res) => {
-    const file = resolve(req.url);
+    const file = resolve(req.url, files);
     const headers = { "Cache-Control": "no-store" };
     if (isolation) {
       headers["Cross-Origin-Opener-Policy"] = "same-origin";

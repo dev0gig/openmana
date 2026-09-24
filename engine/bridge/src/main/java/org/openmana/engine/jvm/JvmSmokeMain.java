@@ -51,7 +51,7 @@ public final class JvmSmokeMain {
             throw new IllegalArgumentException("--bundle <forge-res.bin> is required");
         }
         if (root == null) {
-            root = Files.createTempDirectory("openmana-engine-");
+            root = TempRoot.create();
         }
 
         final JsonObject out = new JsonObject();

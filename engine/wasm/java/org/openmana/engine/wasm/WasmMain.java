@@ -7,6 +7,7 @@ import org.graalvm.webimage.api.JS;
 import org.graalvm.webimage.api.JSString;
 import org.openmana.engine.EngineBoot;
 import org.openmana.engine.ForgeEngine;
+import org.openmana.engine.bridge.HumanMatch;
 import org.openmana.engine.smoke.AiSmokeMatch;
 
 import java.io.InputStream;
@@ -85,9 +86,18 @@ public final class WasmMain {
                 response = new JsonObject();
                 response.addProperty("ok", true);
                 response.add("result", AiSmokeMatch.run(seed, includeLog));
+            } else if ("human-match".equals(command)) {
+                // Runs the whole game; inputs arrive through the worker's
+                // SharedArrayBuffer channel while this call is on the stack.
+                response = new JsonObject();
+                response.addProperty("ok", true);
+                response.add("result", HumanMatch.play(new WasmEngineHost(), request));
             } else {
                 throw new IllegalArgumentException("unknown engine command '" + command + "'");
             }
+        } catch (final HumanMatch.DeckProblem problem) {
+            response = failure(problem);
+            response.add("report", problem.report());
         } catch (final Throwable t) {
             response = failure(t);
         }

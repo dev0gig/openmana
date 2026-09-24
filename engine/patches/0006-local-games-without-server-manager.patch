@@ -1,0 +1,82 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: dev0gig <115336867+dev0gig@users.noreply.github.com>
+Date: Thu, 24 Sep 2026 06:59:55 +0200
+Subject: [PATCH 6/6] Local games do not create the network server manager
+
+HostedMatch.startGame and InputPassPriority.showAndWait only ask whether
+this process hosts a network game (isHosting, armAfkTimeout). Both called
+FServerManager.getInstance(), which creates the manager on first use,
+including two Netty NioEventLoopGroups (bossGroup, workerGroup) and the
+network preferences. Every local game against the AI therefore built a
+network server stack it never used.
+
+New FServerManager.getInstanceIfCreated() returns the manager only if it
+already exists. Both call sites use it: no manager means nothing is being
+hosted, which is exactly what isHosting() == false / AfkTimeout.NOOP
+already express. Hosting a network game is unaffected because that path
+creates the manager through getInstance() before any of these checks.
+
+This matters for single-threaded runtimes (GraalVM Web Image), which
+cannot provide Netty's event loops, and it keeps network-play code out of
+the local path.
+
+Written for OpenMana on 2026-09-24.
+---
+ .../java/forge/gamemodes/match/HostedMatch.java     |  4 +++-
+ .../gamemodes/match/input/InputPassPriority.java    |  3 ++-
+ .../forge/gamemodes/net/server/FServerManager.java  | 13 +++++++++++++
+ 3 files changed, 18 insertions(+), 2 deletions(-)
+
+diff --git a/forge-gui/src/main/java/forge/gamemodes/match/HostedMatch.java b/forge-gui/src/main/java/forge/gamemodes/match/HostedMatch.java
+index fafd9546..02332302 100644
+--- a/forge-gui/src/main/java/forge/gamemodes/match/HostedMatch.java
++++ b/forge-gui/src/main/java/forge/gamemodes/match/HostedMatch.java
+@@ -180,7 +180,9 @@ public class HostedMatch {
+         // (It still subscribes to the Match bus for UiEvent sounds like blocker assignment.)
+ 
+         // This logs game actions to NetworkLogConfig for debugging network games
+-        if (FServerManager.getInstance().isHosting()) {
++        // OpenMana patch 0006: only ask an existing server manager; a local game must not create one.
++        final FServerManager serverManager = FServerManager.getInstanceIfCreated();
++        if (serverManager != null && serverManager.isHosting()) {
+             game.subscribeToEvents(new NetworkGameEventListener());
+         }
+ 
+diff --git a/forge-gui/src/main/java/forge/gamemodes/match/input/InputPassPriority.java b/forge-gui/src/main/java/forge/gamemodes/match/input/InputPassPriority.java
+index 1408fde8..d90afcbf 100644
+--- a/forge-gui/src/main/java/forge/gamemodes/match/input/InputPassPriority.java
++++ b/forge-gui/src/main/java/forge/gamemodes/match/input/InputPassPriority.java
+@@ -72,7 +72,8 @@ public class InputPassPriority extends InputSyncronizedBase {
+ 
+     @Override
+     public void showAndWait() {
+-        final FServerManager server = FServerManager.getInstance();
++        // OpenMana patch 0006: only an existing server manager can host a game with AFK timeouts.
++        final FServerManager server = FServerManager.getInstanceIfCreated();
+         final AfkTimeout timeout = server != null
+                 ? server.armAfkTimeout(getController(), this)
+                 : AfkTimeout.NOOP;
+diff --git a/forge-gui/src/main/java/forge/gamemodes/net/server/FServerManager.java b/forge-gui/src/main/java/forge/gamemodes/net/server/FServerManager.java
+index 3b67b1b7..800f53e8 100644
+--- a/forge-gui/src/main/java/forge/gamemodes/net/server/FServerManager.java
++++ b/forge-gui/src/main/java/forge/gamemodes/net/server/FServerManager.java
+@@ -216,6 +216,19 @@ public final class FServerManager implements IHasForgeLog {
+         return instance;
+     }
+ 
++    /**
++     * The server manager if one was ever created, otherwise {@code null}.
++     * Never creates one.
++     *
++     * OpenMana patch 0006 (2026-09-24): code that only asks whether this
++     * process hosts a network game uses this, so a purely local game never
++     * constructs the manager and its Netty event loop groups (which a
++     * single-threaded runtime such as GraalVM Web Image cannot provide).
++     */
++    public static FServerManager getInstanceIfCreated() {
++        return instance;
++    }
++
+     /**
+      * Get the network byte tracker for monitoring actual bandwidth usage.
+      *

@@ -5,15 +5,9 @@ import org.openmana.engine.smoke.AiSmokeMatch;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotEquals;
 import static org.testng.Assert.assertTrue;
-import static org.testng.Assert.fail;
 
 /**
  * JVM side of the engine spike: boots Forge from the same resource bundle the
@@ -21,7 +15,8 @@ import static org.testng.Assert.fail;
  *
  * <p>The bundle path comes from {@code -Dopenmana.resourceBundle}
  * (engine/scripts/build-jvm.sh sets it). Without it the test fails; it never
- * skips, because a skipped engine test looks like a passing one.
+ * skips, because a skipped engine test looks like a passing one
+ * ({@link EngineTestSupport}).
  */
 public class AiSmokeMatchTest {
 
@@ -29,14 +24,7 @@ public class AiSmokeMatchTest {
 
     @BeforeClass
     public void bootForge() throws Exception {
-        final String bundle = System.getProperty("openmana.resourceBundle");
-        if (bundle == null || bundle.isEmpty() || bundle.startsWith("${")) {
-            fail("-Dopenmana.resourceBundle is not set; run engine/scripts/build-jvm.sh");
-        }
-        final Path root = Files.createTempDirectory("openmana-engine-test-");
-        try (InputStream in = Files.newInputStream(Paths.get(bundle))) {
-            boot = EngineBoot.boot(in, root, ForgeEngine.CardLoading.LAZY);
-        }
+        boot = EngineTestSupport.boot();
     }
 
     @Test

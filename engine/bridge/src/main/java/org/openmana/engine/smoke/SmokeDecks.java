@@ -1,5 +1,7 @@
 package org.openmana.engine.smoke;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import forge.deck.Deck;
 import forge.deck.DeckSection;
 
@@ -36,6 +38,33 @@ public final class SmokeDecks {
         return cards;
     }
 
+    /**
+     * The human's deck in the human-vs-AI match: red cards whose decisions
+     * Forge asks in every form the bridge must carry - scry (Magma Jet:
+     * arrange), discarding two (Faithless Looting: multi-selection), charm
+     * modes (Fiery Confluence: choose, three times; Abrade), an adventure
+     * (Bonecrusher Giant: which ability), an optional trigger with a target
+     * (Goblin Arsonist), targets on creatures and players (Shock, Bolt).
+     */
+    public static Map<String, Integer> redPlusList() {
+        final Map<String, Integer> cards = new LinkedHashMap<>();
+        cards.put("Mountain", 22);
+        cards.put("Raging Goblin", 4);
+        cards.put("Goblin Raider", 2);
+        cards.put("Goblin Piker", 4);
+        cards.put("Goblin Arsonist", 4);
+        cards.put("Bonecrusher Giant", 2);
+        cards.put("Hill Giant", 2);
+        cards.put("Canyon Minotaur", 2);
+        cards.put("Shock", 4);
+        cards.put("Lightning Bolt", 4);
+        cards.put("Magma Jet", 4);
+        cards.put("Abrade", 2);
+        cards.put("Faithless Looting", 2);
+        cards.put("Fiery Confluence", 2);
+        return cards;
+    }
+
     public static Map<String, Integer> greenList() {
         final Map<String, Integer> cards = new LinkedHashMap<>();
         cards.put("Forest", 22);
@@ -67,5 +96,42 @@ public final class SmokeDecks {
             throw new IllegalStateException("deck '" + name + "' resolved " + actual + " of " + expected + " cards");
         }
         return deck;
+    }
+
+    /** The deck as the bridge's JSON deck format ({@code HumanMatch}). */
+    public static JsonObject json(final String name, final Map<String, Integer> list) {
+        final JsonObject deck = new JsonObject();
+        deck.addProperty("name", name);
+        final JsonArray main = new JsonArray();
+        for (final Map.Entry<String, Integer> entry : list.entrySet()) {
+            final JsonObject e = new JsonObject();
+            e.addProperty("card", entry.getKey());
+            e.addProperty("count", entry.getValue());
+            main.add(e);
+        }
+        deck.add("main", main);
+        return deck;
+    }
+
+    /**
+     * The human-vs-AI smoke match: the human plays Red (burn needs targets,
+     * creatures need mana, see {@link #redPlusList()}), Forge's AI plays
+     * Green with profile "Default".
+     */
+    public static JsonObject humanMatchRequest(final long seed) {
+        final JsonObject request = new JsonObject();
+        request.addProperty("command", "human-match");
+        request.addProperty("seed", seed);
+        request.addProperty("format", "constructed");
+        final JsonObject human = new JsonObject();
+        human.addProperty("name", "Player");
+        human.add("deck", json("OpenMana Smoke Red+", redPlusList()));
+        request.add("human", human);
+        final JsonObject ai = new JsonObject();
+        ai.addProperty("name", "Forge AI");
+        ai.addProperty("profile", AiSmokeMatch.AI_PROFILE);
+        ai.add("deck", json("OpenMana Smoke Green", greenList()));
+        request.add("ai", ai);
+        return request;
     }
 }
