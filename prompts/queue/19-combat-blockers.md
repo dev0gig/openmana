@@ -1,0 +1,2 @@
+# 19 — Combat: blockers
+Implement blocker declaration/assignment with strong visual guidance. Forge determines legal blockers/assignments; OpenMana shows which cards may block and current assignments. Support multiple blockers/order decisions as Forge requests. Make combat state understandable on touch and desktop and avoid accidental confirmation. Regression-test representative blocking flows.
