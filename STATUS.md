@@ -37,8 +37,15 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Recorded human-vs-AI games replay identically on JVM, Node and Chrome (Forge game log, decision messages, Forge GUI calls).
 - Spike protocol (`0.2-spike`), Anvil name mapping, deviations and known gaps: `docs/implementation/02-anvil-bridge.md`.
 
+### Worker Transport and Protocol (Prompt 03)
+- `engine/protocol` is the single UI ↔ engine contract: JSON Schema (protocol version 1) → generated TypeScript types, constants and precompiled validators (Ajv standalone); a check fails the build if they are stale; `ProtocolContractTest` keeps the Java bridge in line with the schema.
+- Transport: engine → UI `postMessage`; UI → engine a SharedArrayBuffer ring buffer (length-prefixed UTF-8 JSON, wrap-around, loud `queue-full`, layout/magic check); the worker blocks in `Atomics.wait` only when the queue is empty and says so (`engine.waiting`).
+- `engine/client`: `EngineClient` for the main thread — feature detection before any download, protocol version checks, schema + sequencing validation of every engine message (violation = technical abort), question bookkeeping (`question.answered`/`question.withdrawn`, blocking questions, stale/unknown answers refused locally), `seq`-numbered inputs, ready timeout and stall watchdog, `engine.ready` / `engine.error` / `engine.abort`.
+- Worker host in TypeScript (browser Dedicated Worker bundle `engine-worker.js`; the same source runs in Node tests).
+- Evidence: the recorded human-vs-AI games replay through the client identically on JVM, Node and Chrome (lazy and with a 256-byte queue); client and engine judge every input alike; failure paths tested against the real engine. Details: `docs/implementation/03-worker-transport-protocol.md`.
+
 ## Currently In Progress
-Nothing. Prompts 00–02 are `COMPLETE`. The next prompt is **03 — Worker transport and protocol** (`PENDING`, not started: the assignment of 2026-09-24 explicitly ended after prompts 01 and 02).
+Nothing. Prompts 00–03 are `COMPLETE`. The next prompt is **04 — Forge resources and card scripts** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
 
 Any agent entering the repository must first reconcile this statement with the latest `prompts/STATUS.md` and Git state.
 
@@ -61,8 +68,7 @@ Exact order/status is authoritative only in `prompts/STATUS.md`.
 
 ## Not Yet Implemented
 At this review point:
-- no versioned UI ↔ engine protocol package (`engine/protocol`) yet — prompt 03,
-- no production OpenMana user interface yet,
+- no production OpenMana user interface yet (the engine client exists; the web app follows with prompt 06),
 - no deck library/import UI yet,
 - no Scryfall application layer yet,
 - no playable OpenMana battlefield UI yet,
@@ -82,7 +88,7 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 ## Workflow Compatibility
 OpenMana predates the generic Dropzone `queue → active → completed` lifecycle and is worked through **its own numbered ledger**, one prompt at a time.
 
-Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 02 complete, 03 next, nothing in progress).
+Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 03 complete, 04 next, nothing in progress).
 
 Dropzone Master/Standalone must respect:
 - `prompts/STATUS.md` statuses,

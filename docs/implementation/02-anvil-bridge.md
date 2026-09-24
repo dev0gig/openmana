@@ -102,6 +102,11 @@ Forge (Spiel-Thread = der einzige Thread im Worker)
 
 ## 3. Protokoll des Spikes (Version `0.2-spike`)
 
+> **Abgelöst** durch Protokoll 1 (Prompt 03): Vertrag ist jetzt das Schema in
+> [`engine/protocol`](../../engine/protocol/README.md), dort steht auch, was
+> sich gegenüber `0.2-spike` geändert hat. Dieser Abschnitt beschreibt den
+> Stand von Prompt 02.
+
 JSON-Objekte mit Feld `type`. Englische Namen; §3.6 ordnet sie Anvils
 deutschen Namen zu. Prompt 03 macht daraus das versionierte Schema in
 `engine/protocol` — bis dahin ist `Protocol.java` die Quelle.

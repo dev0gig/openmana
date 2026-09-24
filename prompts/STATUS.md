@@ -28,9 +28,9 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | **03 — Worker transport and protocol** |
-| Nächster Prompt | 04 — Forge resources and card scripts (erst nach 03 = COMPLETE) |
-| Zuletzt abgeschlossen | 02 — Anvil bridge single-thread spike (`5a2ed62`) |
+| Aktuell ausgeführt | – (keiner; nach 03 wie in `naechster-schritt.md` vorgesehen gestoppt) |
+| Nächster Prompt | **04 — Forge resources and card scripts** (PENDING, nicht begonnen) |
+| Zuletzt abgeschlossen | 03 — Worker transport and protocol (`1e8febf`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-24 (Lauf über `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-24 |
 
@@ -41,7 +41,7 @@
 | 00 | [Research: ManaBrew / Forge WebAssembly](queue/00-research-manabrew-forge-wasm.md) | COMPLETE | `681ce0a` |
 | 01 | [Forge WASM engine spike](queue/01-engine-spike.md) | COMPLETE | `b64835a` |
 | 02 | [Anvil bridge single-thread spike](queue/02-anvil-bridge-single-thread.md) | COMPLETE | `5a2ed62` |
-| 03 | [Worker transport and protocol](queue/03-worker-transport-protocol.md) | IN_PROGRESS | – |
+| 03 | [Worker transport and protocol](queue/03-worker-transport-protocol.md) | COMPLETE | `1e8febf` |
 | 04 | [Forge resources and card scripts](queue/04-forge-resources-card-scripts.md) | PENDING | – |
 | 05 | [JVM/WASM differential tests](queue/05-engine-differential-tests.md) | PENDING | – |
 | 06 | [OpenMana web/PWA skeleton](queue/06-web-pwa-skeleton.md) | PENDING | – |
@@ -224,7 +224,94 @@
 - **Weiter mit:** Prompt 03 (Worker-Transport und Protokoll). Nicht begonnen:
   Der Auftrag vom 2026-09-24 endete ausdrücklich nach 01 + 02.
 
-### 03 — Worker transport and protocol — IN_PROGRESS
+### 03 — Worker transport and protocol — COMPLETE
 
-- Begonnen am 2026-09-24 von Claude Code (Claude Opus 5.5), Auftrag
+- **Commits:** `1e8febf` Implementierung (alle Nachweise liefen auf diesem
+  Stand, sauberer Build, `openmana.engineSourcesModified=false`), danach Doku und
+  dieser Eintrag (2026-09-24). Agent: Claude Code (Claude Opus 5.5), Auftrag
   „Führe prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
+  Status-Commit zu Beginn: `8fc690d`.
+- **Zusammenfassung:** `engine/protocol` ist der einzige Vertrag zwischen UI und
+  Engine: JSON-Schema (Protokollversion **1**), daraus erzeugte TypeScript-Typen,
+  Konstanten und vorkompilierte Prüfer (Ajv standalone); der Build bricht ab,
+  wenn die erzeugten Dateien nicht zum Schema passen. Engine → UI per
+  `postMessage`, UI → Engine über einen SharedArrayBuffer-Ringpuffer
+  (Längenpräfix, Umbruch am Ende, laut bei Überlauf, Magic/Layout-Prüfung).
+  Neuer `EngineClient` (Main Thread): Feature-Erkennung vor jedem Download,
+  Versionsprüfung, Schema- und Reihenfolgeprüfung jeder Engine-Nachricht
+  (Verstoß = technischer Abbruch), Buchführung über Fragen (veraltete und
+  unbekannte Antworten werden gar nicht erst gesendet), nummerierte Eingaben,
+  Ready-Timeout und Stall-Watchdog, `engine.ready`/`engine.error`/`engine.abort`.
+  Worker-Host in TypeScript (Browser-Bundle `engine-worker.js`, Node führt
+  dieselben Quellen aus). Forges Spiel ist unberührt: die vier Testpartien aus 02
+  ergeben auf der JVM bitgleich dasselbe Forge-Protokoll. Kein Blocker.
+- **Wichtige Komponenten:**
+  - `engine/protocol/`: `schema/protocol.schema.json`, `scripts/generate.mjs`
+    (`--check`), `src/generated/*`, `src/validate.ts`, `src/input-queue.ts`,
+    `src/features.ts`, `README.md` (der Vertrag in Worten)
+  - `engine/client/src/`: `EngineClient`, Fehlerklassen, Browser- und Node-Port
+  - `engine/wasm/host/`: `worker-host.ts`, `engine-worker.ts`, `node-engine-worker.ts`
+    (ersetzt `worker-core.js`, `input-channel.js`, `feature-detect.js` u. a.)
+  - Bridge (Protokoll 1): `seq` an jeder Eingabe (Lücke = Abbruch), `kind` in
+    Antworten, `question.answered` (jede Frage genau einmal geschlossen),
+    `blocking` an jeder Frage, `message.kind`, Karten-Ids nur bei `mayView`,
+    `engine.ready` mit Protokoll-/Forge-/Build-Version, Fehlercodes in `WasmMain`
+  - Tests/Werkzeug: `ProtocolContractTest` (Java ↔ Schema, jede Forge-Phase),
+    `ScriptedHuman` mit Lebenszyklus-Prüfung, `JvmHumanMatchMain --messages`,
+    `wasm/spike/replay.ts` (lazy/eager über den Client), `invariants.ts`,
+    `wasm/test/{node-replay,node-ai,node-protocol,validate-messages}.ts`,
+    `worker-host.test.ts`; Diagnoseseite `spike/page.ts`
+  - Build: `engine/scripts/build-host.sh` (neu, erster Schritt von `build.sh`),
+    `bundle-host.mjs`, `test-engine.sh`, `write-manifest.mjs` (Worker +
+    Protokollversion); npm-Paket jetzt `engine/package.json` (TypeScript 7.0.2,
+    esbuild, Ajv, json-schema-to-typescript, fest gepinnt)
+  - Doku: `docs/implementation/03-worker-transport-protocol.md`,
+    `engine/protocol/README.md`, `engine/README.md`
+- **Tests (alle bestanden):**
+  - 61 Unit-Tests (`node:test`, in jedem Build): Schema 13 (inkl. echter
+    Zustände, vollständige Schnappschüsse, Version Schema = TS = Java, Frische der
+    erzeugten Dateien), Warteschlange 10 + 1 mit zwei echten Threads (5 000
+    Eingaben), Features 5, Client 18 (u. a. **veraltete Antworten**,
+    **zurückgezogene/beantwortete Fragen**, blockierende Frage, Antippen gegen den
+    letzten **vollständigen Zustand**, `queue-full`, Watchdog), Regelwächter 1,
+    Worker-Host 13 (alle Fehlerpfade mit simulierter Java-Seite).
+  - 38 JVM-Tests (Maven): neu `ProtocolContractTest` 5, `HumanMatchTest` 19
+    (+3: Lebenszyklus, kaputte `seq` bricht laut ab, falsche Antwortart ist
+    `invalid` und ändert Forges Spiel nicht).
+  - `test-engine.sh` (31 Läufe, 0 Fehler): die vier Mensch-Partien auf der JVM
+    mit bitgleichem Forge-Protokoll wie in 02 (`c1e990c6…`, `7c3f673f…`,
+    `e8213ffe…`, `6737df12…`), ihre 986 Nachrichten schemakonform und in sich
+    vollständig; in Node und Chrome über Client + Warteschlange nachgespielt,
+    lazy (Client und Engine urteilen bei allen 164 Eingaben gleich) und eager mit
+    256-Byte-Warteschlange (3–11 Umbrüche, 2–11× voll) → jedes Mal exakt wie die
+    JVM; KI-Partien aus 01 unverändert (`d7611b0e…`, `0d52aafc…`); Fehlerpfade
+    gegen die echte Engine: Versionskonflikt (65 ms, vor dem Laden), abgelehntes
+    Deck → derselbe Worker spielt danach, Abbruch mitten in der Partie, kaputte
+    Nummerierung → Abbruch mit Grund; Chrome: Versionskonflikt 100 ms,
+    ohne COOP/COEP klare Meldung nach 86 ms.
+- **Messwerte (odin):** sauberer Build 386,2 s (`build-host` 3,8 s, Maven 77,5 s,
+  `native-image` 144,5 s bei 5,9 GiB). Modul unverändert 69,2 MiB / 13,2 MiB
+  Brotli; Worker-Bundle 290 KiB minifiziert / 28 KiB gzip. Schema-Prüfung im
+  Client im Mittel 0,05–0,13 ms je Nachricht (Chrome), 12–21 ms je ganze Partie.
+  Engine-Antwort je Eingabe in Chrome im Median 7–13 ms, höchstens 268 ms.
+  Start und Speicher wie in 02.
+- **Erkenntnisse/Abweichungen:**
+  - Versionsregel: genaue Gleichheit (UI und Engine kommen in einem Release);
+    geprüft an drei Stellen, zuerst im Worker **vor** dem Engine-Download.
+  - Der Client prüft formale Protokollfakten (Ids, Art, blockierend, sichtbare
+    Karten), **nicht** den Inhalt von Antworten (Anzahl/Summe/aktiver Knopf) — das
+    bleibt bei der Bridge (keine doppelte Logik); Entscheidung für Prompt 15 offen.
+  - Research-Plan „UI importiert Protokoll und Worker-Host“: die UI importiert
+    `engine/protocol` und `engine/client`; den Worker lädt sie nur als Datei.
+  - **Falle:** Mit `engine/package.json` (`"type": "module"`) würde Node den
+    GraalVM-Launcher als ES-Modul laden; der Node-Worker lädt ihn jetzt wie
+    `importScripts` (`vm.runInThisContext` + globales `require`).
+  - Ajv-Standalone (JSON Schema 2020-12) lässt sich nicht tree-shaken; das
+    Worker-Bundle trägt alle Prüfer (28 KiB gzip) — bewusst so gelassen.
+  - Befund für die in der Bible neu geplante Wiederaufnahme laufender Partien
+    (`1223201`): Seed + nummerierte Eingaben reproduzieren jede Testpartie
+    bitgenau — Kandidat für eine vollständige Wiederherstellung, nicht umgesetzt.
+  - Bekannte Lücken mit Ziel-Prompt in der Doku §9 (u. a. Stapelkarten ohne
+    Ansicht → 16, leere `distribute`-Liste → 18/19).
+- **Weiter mit:** Prompt 04 (Forge resources and card scripts). Nicht begonnen:
+  `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
