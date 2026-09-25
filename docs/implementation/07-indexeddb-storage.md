@@ -6,7 +6,7 @@
 > [`docs/BIBLE.md`](../BIBLE.md) §5, §15, §16, §17, [`docs/ANVIL_LESSONS.md`](../ANVIL_LESSONS.md),
 > die Web-App aus Prompt 06 und ihr Design-System [`docs/DESIGN_SYSTEM.md`](../DESIGN_SYSTEM.md).
 > Code: `src/storage/` (Datenschicht und ihre Oberfläche), `scripts/generate-storage.ts`
-> (Typen und Prüfer aus dem Schema), `scripts/e2e/run.ts` (End-to-End-Test). Messungen auf odin
+> (Typen und Prüfer aus dem Schema; seit Prompt 08 `scripts/generate-schemas.ts`), `scripts/e2e/run.ts` (End-to-End-Test). Messungen auf odin
 > (Intel i7-8700T, 12 Threads, Debian 13), Node 22.22.3, Chrome for Testing 153 headless.
 
 ## Ergebnis

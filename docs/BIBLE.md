@@ -109,6 +109,8 @@ Forge remains responsible for card behaviour. Scryfall never decides legality or
 
 Prefer bulk ingestion/caching over a live request for every card interaction. Follow current Scryfall API, bulk-data, image-use and attribution requirements.
 
+The implemented card catalog (built from Scryfall's bulk data and matched against Forge's card database, installed into IndexedDB), the display rules and how Scryfall's rules are kept are described in [implementation/08-scryfall-data.md](implementation/08-scryfall-data.md) and [cards/README.md](../cards/README.md).
+
 ## 5. Decks
 
 ### Arena import

@@ -75,8 +75,17 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - UI: Settings card "Daten auf diesem Gerät" (counts, storage estimate, persistence, last backup, backup out/in, integrity check and removal, recovery actions); Decks/Matches/Play show what is really stored.
 - Evidence: 179 Vitest tests (97 new, fake-indexeddb), end-to-end in Chrome with real IndexedDB (import, reload, real download, round trip into a second profile, refused files, damaged record, another tab upgrading, site data cleared, quota warning/pre-check via DevTools override). Finding: Chrome reports a static quota, and IndexedDB ignores DevTools' quota override. Details: `docs/implementation/07-indexeddb-storage.md`.
 
+### Scryfall Card Data (Prompt 08)
+- Card catalog built at build time (`npm run cards:build`, `cards/`) from Scryfall's `all_cards` bulk data and the pinned Forge card database: one record per Oracle identity (English faces, printed German text, default printings - German picture where Scryfall has a real one, else English - aliases, name keys, the Forge names), sets with Arena and Forge codes, Forge cards without Scryfall data with their reason. Every Scryfall object is checked against `src/cards/scryfall/scryfall.schema.json`, every picture URL against the rule the app builds them by, every output line against the local data schema; deterministic output; a new unexplained Forge card or a stale exception stops the build.
+- Result (Scryfall 2026-09-24, Forge `ed0333fecb`): 36 156 cards, 30 849 with German text, 24 929 with a German picture; 33 740 of 33 978 Forge scripts matched (name, face, alias, Forge edition entries), 238 Forge-only (230 rebalanced Arena `A-` cards, 8 listed in `cards/forge-unmatched.json`); 10.4 MiB gzip.
+- `vite/card-assets.ts` takes the catalog only after checking size, SHA-256, schema version and the engine's Forge commit, and serves it under `/cards/<id>/` (immutable on Vercel); `OPENMANA_CARDS=omit` builds without on purpose.
+- Local database schema version 2 (migration 2: `scryfallCards` keyed by Oracle id, new `scryfallPrints`, `scryfallSets`, `forgeOnlyCards`; user data untouched). The catalog is installed from Settings once per version (space check, SHA-256 of what arrives - gzip or already unpacked by the host -, every line checked, batches, stoppable, Web Locks between tabs); an older version stays usable until updated.
+- `src/cards/`: name keys, lookups (German/English names, faces, aliases, Forge names, engine keys incl. tokens, sets by Scryfall/Arena/Forge code), display rules (German per field with English marked, picture per side, requested printing, alias printing), Scryfall API client for particular printings (Accept header, 2/s and 10/s lanes, 30 s pause after 429) with a 30-day cache incl. negative answers.
+- UI: Settings card "Kartendaten" (Scryfall date, counts, device state, install/update with progress, errors), "Karte nachschlagen" (search, details, turning double-faced cards, clear missing-data notes), `CardPicture` (CORS mode under COEP, no referrer, never cropped, text in place of a missing/failed picture), Credits for Scryfall and Wizards of the Coast.
+- Evidence: unit/component tests on a small real catalog (46 Scryfall objects, real Forge scripts), the real catalog build, and end to end in Chrome: install into real IndexedDB in ~4-5 s (66 MB), real Scryfall pictures under COEP (and proof that a picture without CORS mode is blocked), German, double-faced, English-only, Forge-only, offline pictures, phone layout, axe-core, stop/resume, damaged download refused. Details: `docs/implementation/08-scryfall-data.md`.
+
 ## Currently In Progress
-Nothing. Prompts 00–07 are `COMPLETE`. The next prompt is **08 — Scryfall card data** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
+Nothing. Prompts 00–08 are `COMPLETE`. The next prompt is **09 — Arena deck import** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
 
 Any agent entering the repository must first reconcile this statement with the latest `prompts/STATUS.md` and Git state.
 
@@ -99,8 +108,7 @@ Exact order/status is authoritative only in `prompts/STATUS.md`.
 
 ## Not Yet Implemented
 At this review point:
-- no deck library/import UI yet (the local database and backups exist; decks only arrive through a backup),
-- no Scryfall application layer yet,
+- no deck library/import UI yet (the local database, backups and the card catalog exist; decks only arrive through a backup),
 - no game session and no playable OpenMana battlefield UI yet,
 - no service worker/offline mode, no deployment, no Android artifact yet.
 
@@ -118,7 +126,7 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 ## Workflow Compatibility
 OpenMana predates the generic Dropzone `queue → active → completed` lifecycle and is worked through **its own numbered ledger**, one prompt at a time.
 
-Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 07 complete, 08 next, nothing in progress).
+Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 08 complete, 09 next, nothing in progress).
 
 Dropzone Master/Standalone must respect:
 - `prompts/STATUS.md` statuses,

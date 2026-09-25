@@ -28,9 +28,9 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | **08 — Scryfall card data** |
-| Nächster Prompt | 09 — Arena deck import (erst nach 08 = COMPLETE) |
-| Zuletzt abgeschlossen | 07 — IndexedDB local data layer (`c9ee901`) |
+| Aktuell ausgeführt | – (keiner; nach 08 wie in `naechster-schritt.md` vorgesehen gestoppt) |
+| Nächster Prompt | **09 — Arena deck import** (PENDING, nicht begonnen) |
+| Zuletzt abgeschlossen | 08 — Scryfall card data (`45f57d7`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-25 (Lauf über `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-25 |
 
@@ -46,7 +46,7 @@
 | 05 | [JVM/WASM differential tests](queue/05-engine-differential-tests.md) | COMPLETE | `0ddfbc3` |
 | 06 | [OpenMana web/PWA skeleton](queue/06-web-pwa-skeleton.md) | COMPLETE | `cfb2252` |
 | 07 | [IndexedDB local data layer](queue/07-indexeddb-storage.md) | COMPLETE | `c9ee901` |
-| 08 | [Scryfall card data](queue/08-scryfall-data.md) | IN_PROGRESS | – |
+| 08 | [Scryfall card data](queue/08-scryfall-data.md) | COMPLETE | `45f57d7` |
 | 09 | [Arena deck import](queue/09-arena-deck-import.md) | PENDING | – |
 | 10 | [Deck library](queue/10-deck-library.md) | PENDING | – |
 | 11 | [Game session foundation](queue/11-game-session.md) | PENDING | – |
@@ -746,10 +746,106 @@
 - **Weiter mit:** Prompt 08 (Scryfall card data). Nicht begonnen:
   `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
 
-### 08 — Scryfall card data — IN_PROGRESS
+### 08 — Scryfall card data — COMPLETE
 
-- Begonnen am 2026-09-25 von Claude Code (Claude Opus 5.5), Auftrag
-  „Führe prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
+- **Commits:** `45f57d7` Implementierung (alle Nachweise liefen auf diesem
+  Stand, sauberer Arbeitsbaum, die App meldet keine lokalen Änderungen),
+  danach Doku und dieser Eintrag (2026-09-25). Agent: Claude Code (Claude Opus
+  5.5), Auftrag „Führe prompts/naechster-schritt.md aus“ (genau ein Prompt,
+  danach Stopp). Status-Commit zu Beginn: `544f840`.
+- **Zusammenfassung:** Ein **Kartenkatalog** aus Scryfalls Massendaten
+  (`all_cards`, jeder Druck in jeder Sprache) und Forges Kartendatenbank,
+  zur Bauzeit erzeugt (`npm run cards:build`, `cards/`), wie die Engine
+  geprüft ausgeliefert (`/cards/<id>/`, Größe + SHA-256 + gleicher
+  Forge-Commit wie die Engine) und im Browser **einmal je Version** in
+  IndexedDB eingerichtet. Je Karte (Oracle-Identität): englische Seiten,
+  gedruckter deutscher Text (nur wirklich übersetzte Felder), Standarddrucke
+  (deutsches Bild, wo Scryfall ein echtes hat, sonst englisch), Aliasse,
+  Namensschlüssel und die **Forge-Namen** – 33 740 von 33 978 Forge-Skripten
+  zugeordnet, 238 ohne Scryfall-Daten begründet (230 „A-…“, 8 gelistet), eine
+  neue unerklärte Lücke stoppt den Bau. Danach: Namenssuche deutsch/englisch,
+  Engine-Schlüssel (Seiten, Spielsteine), Anzeige deutsch mit
+  gekennzeichnetem englischem Rückfall, doppelseitige Karten, bestimmte Drucke
+  per API (Scryfalls Ratenlimits, 30 Tage gemerkt) – nie eine API-Anfrage je
+  angezeigter Karte. Bilder direkt von Scryfall im **CORS-Modus** (wegen COEP,
+  im E2E belegt), nie beschnitten. Einstellungen „Kartendaten“, „Karte
+  nachschlagen“, Credits. Datenbank Schema-Version 2. Kein Blocker.
+- **Wichtige Komponenten:**
+  - Katalog-Bau: `cards/scripts/build-catalog.ts` (Eingaben holen und
+    zwischenspeichern, prüfen, schreiben), `catalog.ts` (`CatalogBuilder`:
+    Druckwahl, deutscher Text, Aliasse, Namensschlüssel, Forge-Abgleich über
+    Name/Seite/Alias/Set-Datei), `forge-cards.ts` (Forge-Skripte inkl.
+    `CopyFaceFrom`, Set-Dateien), `scryfall-bulk.ts`,
+    `cards/forge-unmatched.json`, `cards/README.md`, `cards/fixtures/`
+  - Scryfall-Grenze: `src/cards/scryfall/scryfall.schema.json` (→ erzeugte
+    Prüfer), `scryfall-print.ts`, `images.ts` (URL-Regel), `names.ts`
+    (Namensschlüssel) – von Bau und App gemeinsam genutzt
+  - App: `catalog-install.ts` (erst beim Einrichten geladen), `catalog-state.ts`,
+    `card-lookup.ts`, `card-display.ts`, `scryfall-client.ts`, `prints.ts`,
+    `card-catalog-context.tsx`, `card-data-card.tsx`, `card-lookup-dialog.tsx`,
+    `card-details.tsx`, `errors.ts`, `card-labels.ts`
+  - UI-Bausteine: `CardPicture` (shadcn-Bauweise), `AspectRatio`, `Progress`
+    (Registry); Credits-Karte „Kartendaten und Kartenbilder“
+  - Build: `vite/card-assets.ts` (`virtual:openmana-cards`,
+    `OPENMANA_CARDS=omit`, `OPENMANA_CARDS_DIR`), `vercel.json` (`/cards/`
+    immutable, kein SPA-Rückfall), `vite/watch.ts`
+  - Datenbank: Migration 2 (`scryfallCards` nach Oracle-Id, neu
+    `scryfallPrints`, `scryfallSets`, `forgeOnlyCards`, `cacheIndex` geleert),
+    Katalog-Dateiformat im Schema; `scripts/generate-schemas.ts` (vorher
+    `generate-storage.ts`, jetzt drei Ziele)
+  - Doku: `docs/implementation/08-scryfall-data.md`, `cards/README.md`,
+    `AGENTS.md` (Regeln für Kartendaten), `docs/DESIGN_SYSTEM.md`, Bible §4,
+    `README.md`, `STATUS.md`
+- **Tests (alle bestanden, auf `45f57d7`):**
+  - Erzeugte Dateien = Schemas (lokale Daten, Katalogzeilen, Scryfall),
+    `tsc -b`, `oxlint` ohne Befund.
+  - **298 Vitest-Tests** (179 bestehende + 119 neue) auf einem kleinen
+    **echten** Katalog (46 Scryfall-Kartenobjekte, echte Forge-Skripte):
+    Katalog-Bau 19, Forge-Leser 6, Namen 16, Bild-URLs 3, Einrichten 17,
+    Nachschlagen 12, Anzeige 11, API-Client 6, Drucke 6, Oberfläche 10,
+    Vite-Plugin 11, Migration 1 → 2 +1, Deployment +1.
+  - **End-to-End** (`npm run check` 1:48 min, Chrome 153, echte Engine
+    `0c82db80023ac0cc`, echter Katalog `cacfe9aca953cd50`, 0 Fehler): alle
+    bisherigen Prüfungen plus Kartendaten – nichts ungefragt geladen;
+    Einrichten in echte IndexedDB 4,8 s (Vorschau, vom Browser entpackt) bzw.
+    4,9 s inkl. Abbruch (wie Vercel, `application/gzip`), 36 156 Karten,
+    66 MB; beschädigter Download abgelehnt; echte Scryfall-Bilder unter COEP
+    (deutsch, Rückseite, nur englisch), Forge-only, unbekannt, Handy, Bilder
+    offline mit Textersatz, **COEP-Nachweis** (ohne CORS-Modus blockiert),
+    „Daten prüfen“ mit Katalog 1,8 s, axe 0 Befunde.
+  - Katalog-Bau auf dem Commit 41,5 s; bytegleich auch unter anderer Sprache.
+    Engine unverändert: Protokoll-Dateien = Schema, `tsc`, 80/80. Frischer
+    Klon: `npm ci`, Build ohne Engine/Katalog scheitert laut, `omit` baut,
+    298 Tests grün.
+- **Messwerte (odin):** Katalog 10 948 463 Bytes gzip (45,6 MB entpackt,
+  37 448 Zeilen): 36 156 Karten, 30 849 mit deutschem Text, 24 929 mit
+  deutschem Bild, 1 052 Sets; Bau ~42 s (einmalig ~390 MB Download).
+  Start-JavaScript 192 → 206,7 KB gzip (+14,7 KB), Einrichten-Code samt
+  Katalog-Prüfern 8,2 KB gzip nachgeladen.
+- **Erkenntnisse/Abweichungen:**
+  - **Architektur:** Katalog zur Bauzeit statt Laufzeit-Download – deutsche
+    Texte gibt es nur in `all_cards` (393 MB gzip), im Browser nicht machbar;
+    die API je Anzeige verbietet Scryfall. Der Katalog liegt nicht im Git und
+    ist kein veröffentlichter Datensatz.
+  - **Scryfall-Daten:** Bulk-Dateien jetzt `jsonl.gz`; 19 % der deutschen
+    Drucke haben nur Platzhalterbilder (zählen nie als deutsch); manche
+    deutschen Drucke tragen englische „gedruckte“ Texte (zählt nur, was sich
+    unterscheidet); Scryfall führt die Arena-„A-“-Karten nicht mehr;
+    Universes-Beyond-Namen sind `printed_name` (Aliasse).
+  - **Ratenlimits 2026:** Search/Named/Random/Collection nur 2 je Sekunde,
+    `/cards/manifest` 10 je Minute; 429 sperrt 30 s – im Client erzwungen und
+    getestet.
+  - **Vites Vorschau** liefert `.gz` mit `Content-Encoding: gzip` (Browser
+    entpackt); die App prüft beide Formen. Vercel: `application/gzip`.
+  - **Katalog an Forges Stand gebunden** (gleicher Commit wie die Engine,
+    Build prüft) → Forge-Update = Katalog neu bauen (26).
+  - Ajv-Prüfer nicht tree-shakebar → Katalogzeilen-Prüfer als eigenes Modul,
+    erst beim Einrichten geladen.
+  - Offen mit Ziel: Import (09), automatisches Einrichten beim Import/Spiel
+    (09/11), Spielkarten anzeigen (13/14/20), Manasymbole (14), Sprache als
+    Einstellung (12), Offline/Update (25), Vercel-Lieferung des Katalogs (31).
+- **Weiter mit:** Prompt 09 (Arena deck import). Nicht begonnen:
+  `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
 
 ## Hinweise für spätere Prompts
 
@@ -770,6 +866,13 @@ nichts neu recherchiert werden muss:
   sie noch nicht in der Domainliste des Projekts (Aufruf: 404 NOT_FOUND) → in
   31 prüfen und zuweisen. Öffentlich erst nach Prompt 27 (GPL-Quelltext,
   GraalVM-Bedingungen); bis dahin genügt eine geschützte Prüfung (so auch 31).
+- **Kartenkatalog auf Vercel (31, seit Prompt 08):** Der Build braucht neben
+  der Engine auch den Kartenkatalog (`cards/build/dist`, ~10,4 MB,
+  `npm run cards:build`); ohne scheitert er ebenso laut. Der Katalog hängt am
+  Forge-Commit der Engine (der Build prüft das) und lässt sich deshalb mit
+  derselben Engine-Lieferung als GitHub-Release-Asset ablegen; alternativ im
+  Vercel-Build selbst erzeugen (lädt ~390 MB von Scryfalls Datenserver, ohne
+  Ratenlimit, ~45 s, braucht aber Forges Kartenliste aus `engine/forge`).
 - **Engine auf Vercel (31), vom Besitzer so gewünscht:** Die Oberfläche baut
   Vercel selbst; die Engine nicht (GraalVM, ~6 GB RAM, ~6 min, ändert sich nur
   mit Forge). Die fertige Engine wird je Engine-Stand als **GitHub-Release-Asset**

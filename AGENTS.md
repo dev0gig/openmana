@@ -46,6 +46,14 @@ The player's data lives in IndexedDB through `src/storage` (prompt 07, `docs/imp
 - Any change to a record shape or to stores/indexes raises `SchemaVersion` in the schema and adds a migration in `src/storage/migrations.ts` (never edit a released one); record upgrades are pure functions, because older backups are upgraded with them too. User data is migrated, caches may be emptied.
 - Write through `LocalDatabase.write` (one transaction, all or nothing, only IndexedDB requests awaited inside) and check records before writing (`assertRecord`); show damaged stored records as damaged, never drop them silently.
 
+## Card Data Rules
+Card names, texts and pictures come from the card catalog (prompt 08, `cards/README.md`, `docs/implementation/08-scryfall-data.md`):
+- Scryfall data is for display, search and import lookups only - never for rules, legality or card behaviour (Forge decides). In a game, Forge's live text is authoritative.
+- Built at build time from Scryfall's bulk data and Forge's card database (`npm run cards:build`), checked and served like the engine (`vite/card-assets.ts`), installed into IndexedDB once per version. The app never asks Scryfall's API per card shown; the API is only for particular printings (`src/cards/prints.ts` through `src/cards/scryfall-client.ts`, which alone enforces Scryfall's rate limits, the Accept header and the 30-second pause after HTTP 429).
+- Look cards up through `src/cards/card-lookup.ts` (names via `src/cards/names.ts` keys; engine keys via `resolveEngineKey`), and derive what to show with `src/cards/card-display.ts` (German where it exists, English marked). Never parse localized names or texts to find a card.
+- Card pictures only through `CardPicture` (`src/components/ui/card-picture.tsx`): CORS mode under COEP, no referrer, never cropped, blurred or overlaid (Scryfall's terms); a missing or failing picture shows the card's text, never an empty box.
+- A Forge update rebuilds the catalog; a Forge card without Scryfall match is decided in `cards/forge-unmatched.json`, never silently dropped.
+
 ## Queue and Execution
 OpenMana currently has its own detailed queue ledger at `prompts/STATUS.md`. It remains authoritative while the numbered 00–32 implementation program is running.
 
