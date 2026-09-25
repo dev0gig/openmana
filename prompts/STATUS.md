@@ -28,8 +28,8 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | – (keiner; nach 10 wie in `naechster-schritt.md` vorgesehen gestoppt) |
-| Nächster Prompt | **11 — Game session foundation** (PENDING, nicht begonnen) |
+| Aktuell ausgeführt | **11 — Game session foundation** |
+| Nächster Prompt | 12 — AI profiles and settings (erst nach 11 = COMPLETE) |
 | Zuletzt abgeschlossen | 10 — Deck library (`7aab76f`, Nachweise auf `58aaa58`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-25 (Lauf über `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-25 |
@@ -49,7 +49,7 @@
 | 08 | [Scryfall card data](queue/08-scryfall-data.md) | COMPLETE | `45f57d7` |
 | 09 | [Arena deck import](queue/09-arena-deck-import.md) | COMPLETE | `c7bb533` |
 | 10 | [Deck library](queue/10-deck-library.md) | COMPLETE | `7aab76f` |
-| 11 | [Game session foundation](queue/11-game-session.md) | PENDING | – |
+| 11 | [Game session foundation](queue/11-game-session.md) | IN_PROGRESS | – |
 | 12 | [AI profiles and settings](queue/12-ai-profiles-settings.md) | PENDING | – |
 | 13 | [Battlefield foundation](queue/13-battlefield-foundation.md) | PENDING | – |
 | 14 | [Cards, hand and safe interaction](queue/14-card-hand-interactions.md) | PENDING | – |
@@ -1064,6 +1064,11 @@
     jetzt auf sein Abzeichen.
 - **Weiter mit:** Prompt 11 (Game session foundation). Nicht begonnen:
   `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
+
+### 11 — Game session foundation — IN_PROGRESS
+
+- Begonnen am 2026-09-25 von Claude Code (Claude Opus 5.5), Auftrag
+  „Führe prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
 
 ## Hinweise für spätere Prompts
 
