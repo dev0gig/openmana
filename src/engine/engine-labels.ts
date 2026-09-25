@@ -3,7 +3,7 @@
  * (system EN); the player reads German (user DE). Technical details (the
  * abort message) are shown verbatim below the German headline.
  */
-import type { AbortReason, BootPhase, EngineAbort } from "@openmana/engine-protocol"
+import type { AbortReason, BootPhase, EngineAbort, EngineLanguage } from "@openmana/engine-protocol"
 
 export const BOOT_PHASE_LABELS: Readonly<Record<BootPhase, string>> = {
   "worker-features": "Browser prüfen",
@@ -26,6 +26,12 @@ const ABORT_TITLES: Readonly<Record<AbortReason, string>> = {
 
 export function abortTitle(abort: EngineAbort): string {
   return ABORT_TITLES[abort.reason]
+}
+
+/** The language Forge's own texts are in (engine.ready boot.language). */
+export const ENGINE_LANGUAGE_LABELS: Readonly<Record<EngineLanguage, string>> = {
+  "de-DE": "Deutsch",
+  "en-US": "Englisch",
 }
 
 const bytesFormat = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1, minimumFractionDigits: 1 })

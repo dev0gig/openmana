@@ -60,6 +60,18 @@
  *     after a reload), axe-core; on a phone with touch the action bars above
  *     the tab bar and 44 px targets. The decks as they end up are the ones
  *     handed to the engine (8).
+ * 10. Game session, on these decks in the browser with the real engine:
+ *     opening "Spielen" prewarms the engine without a click; a Commander game
+ *     and a Constructed game against a random deck start and show Forge's
+ *     state and first decision (German); the game keeps running while the
+ *     player moves around the app; conceding asks first and ends in
+ *     "Verloren"; the spent engine goes and a fresh one is prewarmed; never
+ *     two engines at once; reloading asks first and ends the game. In a fresh
+ *     profile: an engine download that fails (the prewarm and the start show
+ *     why, a retry plays), a deck with a card Forge does not know (Forge's
+ *     report; the same engine plays the next game). On a phone: no overflow,
+ *     touch sizes, the result's action bar above the tab bar. axe-core on
+ *     every state.
  */
 import { createRequire } from "node:module"
 import { randomUUID } from "node:crypto"
@@ -103,6 +115,8 @@ const ROUTES = [
   // A deck that is not there: the details page says so (loaded on demand, like the import).
   { path: "/decks/00000000-0000-4000-8000-000000000000", title: "Deck nicht gefunden · OpenMana", heading: "Deck nicht gefunden" },
   { path: "/play", title: "Spielen · OpenMana", heading: "Spielen" },
+  // The game page without a game (a reload ends one): it says so.
+  { path: "/play/game", title: "Partie · OpenMana", heading: "Partie" },
   { path: "/matches", title: "Partien · OpenMana", heading: "Partien" },
   { path: "/settings", title: "Einstellungen · OpenMana", heading: "Einstellungen" },
   { path: "/credits", title: "Credits · OpenMana", heading: "Credits" },
@@ -1301,6 +1315,9 @@ async function deckImport(browser: Browser, base: string, id: string): Promise<v
     // 9. The library, on these decks; the engine then plays the decks as they end up.
     report["deckLibrary"] = await deckLibrary(browser, context, page, pageLog, base, api)
     decks = ((await dumpDatabase(page))["decks"] ?? []) as SavedDeck[]
+
+    // 10. Games against Forge's AI with these decks, in the browser.
+    report["gameSession"] = await gameSession(browser, page, pageLog, base, id, decks)
   } finally {
     await context.close()
   }
@@ -1359,6 +1376,9 @@ async function layoutHeight(locator: Locator): Promise<number> {
 async function deckMenu(page: Page, item: string): Promise<void> {
   await page.getByRole("button", { name: "Mehr" }).click()
   await page.getByRole("menuitem", { name: item }).click()
+  // The menu fades out while what it opened appears (Radix keeps it in the DOM, half transparent):
+  // checks that follow (axe's contrast above all) must see the page without it.
+  await page.waitForFunction(() => document.querySelector('[role="menu"]') === null)
 }
 
 async function libraryDecks(page: Page): Promise<Map<string, LibraryDeck>> {
@@ -1572,15 +1592,18 @@ async function deckLibrary(browser: Browser, context: BrowserContext, page: Page
   await expectTitles(page, ["E2E Deutsch (Kopie)", "E2E Izzet Tempo", "E2E Brawl", "E2E Deutsch"], "sorted by change")
   check(new URL(page.url()).search === "?sort=updated", `deck library: sort not in the address ${page.url()}`)
 
-  // 8. Choosing the decks for a game.
+  // 8. Choosing the decks for a game (the page prewarms the engine: decks are there).
   await page.goto(new URL("/play", base).href, { waitUntil: "networkidle" })
   await page.getByText("Noch kein Deck gewählt.").waitFor()
   await page.getByRole("button", { name: "Dein Deck wählen" }).click()
   await page.getByRole("dialog", { name: "Dein Deck wählen" }).getByRole("button", { name: "E2E Izzet Tempo" }).click()
   await page.getByText("E2E Izzet Tempo – Constructed · 60 Karten · Sideboard 3").waitFor()
   await page.getByText("Zufällig aus 2 Constructed-Decks, jede Partie neu.").waitFor()
-  await page.getByText("Beide Decks stehen fest – das Starten einer Partie folgt in Kürze.").waitFor()
-  check(await page.getByRole("button", { name: /Partie starten/ }).isDisabled(), "deck library: a game can be started before prompt 11")
+  const startGame = page.getByRole("button", { name: "Partie starten" }).first()
+  check(await startGame.isEnabled(), "deck library: both decks are set, but a game cannot start")
+  check(ENGINE_NOTES.includes(await startNote(page)), `deck library: start note "${await startNote(page)}"`)
+  // Leave the page only with the prewarmed engine ready (a reload would cut its download short).
+  await enginePanel(page).getByText("Bereit", { exact: true }).waitFor({ timeout: 180_000 })
   await page.getByRole("button", { name: "Deck der KI wählen" }).click()
   const aiDialog = page.getByRole("dialog", { name: "Deck der KI wählen" })
   check(await aiDialog.getByRole("button", { name: "E2E Brawl" }).isDisabled(), "deck library: a Commander deck can be chosen against a Constructed deck")
@@ -1597,8 +1620,10 @@ async function deckLibrary(browser: Browser, context: BrowserContext, page: Page
   await page.getByText("Das Deck der KI hat ein anderes Format als deins – wähle ein passendes.").waitFor()
   await page.getByRole("button", { name: "Deck der KI wählen" }).click()
   check(await aiDialog.getByRole("button", { name: "Zufällig" }).isDisabled(), "deck library: random offered without a second Commander deck")
-  await aiDialog.getByRole("button", { name: "E2E Brawl" }).click()
-  await page.getByText("Beide Decks stehen fest – das Starten einer Partie folgt in Kürze.").waitFor()
+    await aiDialog.getByRole("button", { name: "E2E Brawl" }).click()
+  await page.getByText(/^E2E Brawl – Commander/).first().waitFor()
+  await page.waitForFunction(() => document.getElementById("play-start-note")?.textContent?.startsWith("Forge"))
+  check(await startGame.isEnabled(), "deck library: a mirror match cannot start")
   results["playAxe"] = await accessibility(page, "deck library: play")
   await screenshots(page, "desktop-play-decks")
   const settings = ((await dumpDatabase(page))["settings"] ?? []) as { key: string; value: unknown }[]
@@ -1657,6 +1682,8 @@ async function deckLibrary(browser: Browser, context: BrowserContext, page: Page
     check(startBox !== null && tabBox !== null && Math.abs(startBox.y + startBox.height - tabBox.y) <= 1, `deck library (phone): start bar ${JSON.stringify(startBox)} tab bar ${JSON.stringify(tabBox)}`)
     results["phonePlayAxe"] = await accessibility(phonePage, "deck library (phone): play")
     await phonePage.screenshot({ path: path.join(reportDir, "screens", "phone-play-decks.png") })
+    // The phone prewarms the engine too; leave only once it is ready (see 8).
+    await enginePanel(phonePage).getByText("Bereit", { exact: true }).waitFor({ timeout: 180_000 })
     await phonePage.goto(new URL("/decks", base).href, { waitUntil: "networkidle" })
     await expectTitles(phonePage, ["E2E Brawl", "E2E Deutsch", "E2E Deutsch (Kopie)", "E2E Izzet Tempo"], "phone")
     const listOverflow = await phonePage.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
@@ -1672,6 +1699,335 @@ async function deckLibrary(browser: Browser, context: BrowserContext, page: Page
   // No errors of the app; a 404 for a German version that does not exist is Scryfall's answer "none".
   for (const error of pageLog.errors.slice(errorsBefore).filter((e) => !/api\.scryfall\.com\/cards\/[^/\s]+\/[^/\s]+\/de/.test(e) || !/404/.test(e))) check(false, `deck library: ${error}`)
   results["scryfallApi"] = api.slice(apiBefore)
+  return results
+}
+
+// ── 10. Game session (the real engine in the browser) ─────────────────────
+
+/** The start button's note when a game can start (engine ready, booting or about to boot). */
+const ENGINE_NOTES = ["Forge ist bereit.", "Forge lädt noch – die Partie beginnt, sobald Forge bereit ist.", "Forge startet dafür (einige Sekunden)."]
+
+function enginePanel(page: Page): Locator {
+  return page.getByRole("region", { name: "Forge-Engine" })
+}
+
+async function startNote(page: Page): Promise<string> {
+  return (await page.locator("#play-start-note").first().textContent()) ?? ""
+}
+
+/** Engine workers alive at the same time in a page, from now on: never more than one (one engine, about 1 GB). */
+function countWorkers(page: Page): { readonly max: () => number; readonly alive: () => number; readonly created: () => number } {
+  const alive = new Set<unknown>()
+  let max = 0
+  let created = 0
+  page.on("worker", (worker) => {
+    alive.add(worker)
+    created++
+    max = Math.max(max, alive.size)
+    worker.on("close", () => alive.delete(worker))
+  })
+  return { max: () => max, alive: () => alive.size, created: () => created }
+}
+
+/** Picks a deck in one of the two choice dialogs (an option's name is the deck's, plus "gewählt" if it is the current one). */
+async function chooseDeck(page: Page, which: "Dein Deck wählen" | "Deck der KI wählen", deck: string): Promise<void> {
+  await page.getByRole("button", { name: which }).click()
+  const name = new RegExp(`^${deck.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}( gewählt)?$`)
+  await page.getByRole("dialog", { name: which }).getByRole("button", { name }).click()
+  await overlaysGone(page)
+}
+
+/** Label → value of the running game's players, the player first (the page puts them so). */
+async function playerFacts(game: Locator): Promise<{ readonly who: string; readonly facts: Record<string, string> }[]> {
+  const items = game.getByRole("list", { name: "Spieler" }).getByRole("listitem")
+  const out = []
+  for (let i = 0; i < (await items.count()); i++) {
+    const item = items.nth(i)
+    const who = ((await item.locator('[data-slot="item-title"]').textContent()) ?? "").trim()
+    const facts = await item.locator("dl > div").evaluateAll((rows) => Object.fromEntries(rows.map((row) => [row.querySelector("dt")?.textContent ?? "", row.querySelector("dd")?.textContent ?? ""])))
+    out.push({ who, facts })
+  }
+  return out
+}
+
+/**
+ * Forge's first decision of a game, as the coin toss decides: the player won it
+ * (play or draw, before the opening hands) or the AI did (the mulligan).
+ */
+const FIRST_DECISIONS: Readonly<Record<string, { readonly answers: string; readonly hand: number }>> = {
+  "SpielenZiehen": { answers: "SpielenZiehen", hand: 0 },
+  "BehaltenMulligan": { answers: "BehaltenMulligan", hand: 7 },
+}
+
+/**
+ * Checks the running game's first decision and both players against what
+ * Forge must show before anyone has played: the decision with Forge's own
+ * German words and answers, the life total, no card anywhere but hand,
+ * library and (Commander) the command zone, hand + library = the deck.
+ */
+async function checkFirstDecision(game: Locator, label: string, expect: { readonly life: string; readonly cards: number; readonly command: number }): Promise<Record<string, unknown>> {
+  const decision = game.getByRole("alert")
+  const text = (await decision.textContent()) ?? ""
+  const answers = (await game.getByLabel("Antworten, die Forge anbietet").textContent()) ?? ""
+  const first = FIRST_DECISIONS[answers]
+  check(first !== undefined, `${label}: the first decision offers "${answers}" (${text})`)
+  check(text.startsWith("Forge wartet auf deine Entscheidung") && /\?/.test(text), `${label}: the first decision "${text}"`)
+  const players = await playerFacts(game)
+  check(players.length === 2 && players[0]!.who.startsWith("Du") && players[1]!.who.startsWith("Forge-KI"), `${label}: players ${JSON.stringify(players)}`)
+  for (const { who, facts } of players) {
+    const hand = Number(facts["Hand"])
+    const library = Number(facts["Bibliothek"])
+    check(
+      facts["Lebenspunkte"] === expect.life &&
+        (first === undefined || hand === first.hand) &&
+        hand + library === expect.cards &&
+        facts["Spielfeld"] === "0" &&
+        facts["Friedhof"] === "0" &&
+        facts["Exil"] === "0" &&
+        (facts["Kommandozone"] ?? "0") === String(expect.command),
+      `${label}: ${who} ${JSON.stringify(facts)}`,
+    )
+  }
+  return { decision: text, answers, players }
+}
+
+/** Starts a game from the play page and waits for Forge's first decision; returns the milliseconds from the click. */
+async function startAndWait(page: Page): Promise<number> {
+  const started = Date.now()
+  await page.getByRole("button", { name: "Partie starten" }).first().click()
+  await page.waitForURL(/\/play\/game$/)
+  await page.getByRole("region", { name: "Partie läuft" }).getByText("Forge wartet auf deine Entscheidung").waitFor({ timeout: 180_000 })
+  return Date.now() - started
+}
+
+/** Concedes after confirming; returns the result region. */
+async function concedeGame(page: Page, axeLabel?: string): Promise<{ readonly result: Locator; readonly axe: number | null }> {
+  await page.getByRole("region", { name: "Partie läuft" }).getByRole("button", { name: "Aufgeben" }).click()
+  const dialog = page.getByRole("alertdialog", { name: "Partie aufgeben?" })
+  await dialog.waitFor()
+  const axe = axeLabel ? await accessibility(page, axeLabel) : null
+  await dialog.getByRole("button", { name: "Aufgeben" }).click()
+  await page.getByRole("heading", { level: 2, name: "Verloren" }).waitFor({ timeout: 60_000 })
+  await overlaysGone(page)
+  return { result: page.getByRole("region", { name: "Verloren" }), axe }
+}
+
+async function loadDecks(page: Page, base: string, decks: readonly unknown[]): Promise<void> {
+  const card = await openLocalData(page, base)
+  await chooseBackup(card, "decks.jsonl.gz", decksBackup(decks))
+  await page.getByRole("dialog", { name: "Sicherung laden" }).getByRole("button", { name: "Zusammenführen", exact: true }).click()
+  await page.getByText("Sicherung geladen").waitFor()
+}
+
+function engineWorkerRequests(pageLog: PageLog, id: string): number {
+  return pageLog.requests.filter((p) => p === `/engine/${id}/engine-worker.js`).length
+}
+
+async function gameSession(browser: Browser, page: Page, pageLog: PageLog, base: string, id: string, decks: readonly SavedDeck[]): Promise<Record<string, unknown>> {
+  log("Game session (prewarm, start, running game, concede, result, reload, refusal, failed boot, phone)")
+  const results: Record<string, unknown> = {}
+  const errorsBefore = pageLog.errors.length
+  const workers = countWorkers(page)
+
+  // 1. Opening "Spielen" with decks prewarms the engine - no click (the choice from 9 is the Commander mirror).
+  const opened = Date.now()
+  await page.goto(new URL("/play", base).href, { waitUntil: "domcontentloaded" })
+  await enginePanel(page).getByText("Bereit", { exact: true }).waitFor({ timeout: 180_000 })
+  results["prewarmMs"] = Date.now() - opened
+  check((await startNote(page)) === "Forge ist bereit.", `game: start note with a ready engine "${await startNote(page)}"`)
+  const readyFacts = await enginePanel(page).locator("dl > div").evaluateAll((rows) => Object.fromEntries(rows.map((row) => [row.querySelector("dt")?.textContent ?? "", row.querySelector("dd")?.textContent ?? ""])))
+  check(readyFacts["Sprache von Forge"] === "Deutsch" && readyFacts["Karten"] === "vollständig geladen", `game: engine facts ${JSON.stringify(readyFacts)}`)
+
+  // 2. A Commander game (the mirror match chosen in 9: 59 cards and the commander): Forge's state and its first decision, in German.
+  results["startCommanderMs"] = await startAndWait(page)
+  let game = page.getByRole("region", { name: "Partie läuft" })
+  results["commander"] = await checkFirstDecision(game, "game (Commander)", { life: "40", cards: 59, command: 1 })
+  results["playingAxe"] = await accessibility(page, "game: running")
+  await screenshots(page, "desktop-game-playing")
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+  check(overflow <= 0, `game: overflow ${overflow}px`)
+
+  // 3. Around the app and back: the game keeps running in the session.
+  await page.locator('[data-slot="sidebar"] a', { hasText: "Decks" }).click()
+  await page.getByRole("heading", { level: 1, name: "Decks" }).waitFor()
+  await page.locator('[data-slot="sidebar"] a', { hasText: "Spielen" }).click()
+  await page.getByText("Eine Partie läuft", { exact: true }).waitFor()
+  check(((await enginePanel(page).locator('[data-slot="badge"]').first().textContent()) ?? "") === "Spielt", "game: the engine panel does not say it plays")
+  await page.getByRole("button", { name: "Zur laufenden Partie" }).first().click()
+  game = page.getByRole("region", { name: "Partie läuft" })
+  await game.getByText("Forge wartet auf deine Entscheidung").waitFor()
+
+  // 4. Conceding needs a confirmation; the result in one word; the spent engine goes, a fresh one is prewarmed.
+  const conceded = await concedeGame(page, "game: confirm conceding")
+  results["concedeAxe"] = conceded.axe
+  const resultText = (await conceded.result.textContent()) ?? ""
+  check(resultText.includes("Du hast aufgegeben.") && resultText.includes("Du (E2E Brawl)40 Lebenspunkte"), `game: result "${resultText}"`)
+  results["resultAxe"] = await accessibility(page, "game: result")
+  await screenshots(page, "desktop-game-result")
+  const deadline = Date.now() + 180_000
+  while (workers.created() < 2 && Date.now() < deadline) await page.waitForTimeout(100)
+  check(workers.created() === 2, `game: the next engine was not prewarmed after the result (${workers.created()} workers)`)
+
+  // 5. A Constructed game against a random deck, drawn for this game.
+  await conceded.result.getByRole("link", { name: "Zur Deckwahl" }).click()
+  await page.getByRole("heading", { level: 1, name: "Spielen" }).waitFor()
+  await chooseDeck(page, "Dein Deck wählen", "E2E Izzet Tempo")
+  await chooseDeck(page, "Deck der KI wählen", "Zufällig")
+  await page.getByText("Zufällig aus 2 Constructed-Decks, jede Partie neu.").waitFor()
+  await enginePanel(page).getByText("Bereit", { exact: true }).waitFor({ timeout: 180_000 })
+  results["startConstructedMs"] = await startAndWait(page)
+  game = page.getByRole("region", { name: "Partie läuft" })
+  results["constructed"] = await checkFirstDecision(game, "game (Constructed)", { life: "20", cards: 60, command: 0 })
+  const aiDeck = ((await game.getByRole("list", { name: "Spieler" }).getByRole("listitem").nth(1).locator('[data-slot="item-description"]').textContent()) ?? "").trim()
+  results["drawnAiDeck"] = aiDeck
+  check(["E2E Deutsch (zufällig gezogen)", "E2E Deutsch (Kopie) (zufällig gezogen)"].includes(aiDeck), `game: the AI's random deck "${aiDeck}"`)
+
+  // 6. Reloading ends the game: the browser asks first, afterwards the page says there is none.
+  let dialogType: string | null = null
+  page.once("dialog", (dialog) => {
+    dialogType = dialog.type()
+    void dialog.accept()
+  })
+  await page.reload({ waitUntil: "domcontentloaded" })
+  await page.getByText("Gerade läuft keine Partie").waitFor()
+  results["reloadDialog"] = dialogType
+  check(dialogType === "beforeunload", `game: reloading during a game did not ask first (${dialogType})`)
+  check(workers.max() <= 1, `game: ${workers.max()} engines at the same time`)
+  results["workers"] = { created: workers.created(), maxAtOnce: workers.max() }
+  for (const error of pageLog.errors.slice(errorsBefore)) check(false, `game: ${error}`)
+
+  // 7.-8. Failures in a fresh profile: a boot that fails, and a deck Forge refuses.
+  results["failures"] = await gameFailures(browser, base, id, decks)
+  // 9. A phone with touch.
+  results["phone"] = await gamePhone(browser, base, decks)
+  return results
+}
+
+/** A failed engine boot never looks frozen and can be retried; a deck Forge refuses is reported, and the same engine plays the next game. */
+async function gameFailures(browser: Browser, base: string, id: string, decks: readonly SavedDeck[]): Promise<Record<string, unknown>> {
+  const results: Record<string, unknown> = {}
+  const context = await newContext(browser, VIEWPORTS[2]!)
+  const page = await context.newPage()
+  const pageLog = watch(page)
+  const workers = countWorkers(page)
+  const now = new Date().toISOString()
+  const unknown = {
+    id: randomUUID(),
+    name: "E2E Unbekannt",
+    format: "constructed",
+    main: [
+      { count: 56, name: "Mountain" },
+      { count: 4, name: "No Such Card Of E2E" },
+    ],
+    sideboard: [],
+    commander: [],
+    source: { kind: "arena", text: "Deck\n56 Mountain\n4 No Such Card Of E2E", importedAt: now },
+    createdAt: now,
+    updatedAt: now,
+  }
+  const wasm = `/engine/${id}/openmana-engine.js.wasm`
+  try {
+    await loadDecks(page, base, [...decks, unknown])
+    // 7. The engine module cannot be downloaded (a server error).
+    await context.route(`**${wasm}`, (route) => route.fulfill({ status: 500, contentType: "text/plain", body: "E2E: engine download refused" }))
+    await page.goto(new URL("/play", base).href, { waitUntil: "domcontentloaded" })
+    await chooseDeck(page, "Dein Deck wählen", "E2E Izzet Tempo")
+    // Not "random": that could draw the deck Forge refuses (8).
+    await chooseDeck(page, "Deck der KI wählen", "E2E Deutsch")
+    await enginePanel(page).getByText("Abgebrochen", { exact: true }).waitFor({ timeout: 180_000 })
+    const panelText = (await enginePanel(page).textContent()) ?? ""
+    results["prewarmFailed"] = panelText
+    check(panelText.includes("Die Engine konnte nicht starten"), `game failures: engine panel "${panelText}"`)
+    check((await startNote(page)) === "Forge wird dafür neu gestartet (einige Sekunden).", `game failures: start note "${await startNote(page)}"`)
+    await page.getByRole("button", { name: "Partie starten" }).first().click()
+    await page.waitForURL(/\/play\/game$/)
+    const failed = page.getByRole("region", { name: "Die Partie konnte nicht starten" })
+    await failed.waitFor({ timeout: 180_000 })
+    const failedText = (await failed.textContent()) ?? ""
+    results["startFailed"] = failedText
+    check(failedText.includes("Die Engine konnte nicht starten"), `game failures: failed start "${failedText}"`)
+    results["failedAxe"] = await accessibility(page, "game failures: failed start")
+    await screenshots(page, "desktop-game-failed-start")
+    // Once the module is there again, a new game starts.
+    await context.unroute(`**${wasm}`)
+    const retried = Date.now()
+    await failed.getByRole("button", { name: "Neue Partie" }).click()
+    await page.getByRole("region", { name: "Partie läuft" }).getByText("Forge wartet auf deine Entscheidung").waitFor({ timeout: 180_000 })
+    results["retryStartMs"] = Date.now() - retried
+    const { result } = await concedeGame(page)
+    await result.getByRole("link", { name: "Zur Deckwahl" }).click()
+
+    // 8. A deck with a card Forge does not know: Forge's report, and the same engine for the next game.
+    await page.getByRole("heading", { level: 1, name: "Spielen" }).waitFor()
+    await chooseDeck(page, "Dein Deck wählen", "E2E Unbekannt")
+    await chooseDeck(page, "Deck der KI wählen", "E2E Izzet Tempo")
+    await enginePanel(page).getByText("Bereit", { exact: true }).waitFor({ timeout: 180_000 })
+    const workerScripts = engineWorkerRequests(pageLog, id)
+    await page.getByRole("button", { name: "Partie starten" }).first().click()
+    const refused = page.getByRole("region", { name: "Die Partie hat nicht begonnen" })
+    await refused.waitFor({ timeout: 60_000 })
+    const refusedText = (await refused.textContent()) ?? ""
+    results["refused"] = refusedText
+    check(refusedText.includes("Forge kennt eine Karte aus „E2E Unbekannt“ nicht: No Such Card Of E2E."), `game failures: refusal "${refusedText}"`)
+    check((await refused.getByRole("link", { name: "Deck ansehen" }).getAttribute("href")) === `/decks/${unknown.id}`, "game failures: the refused deck is not linked")
+    results["refusedAxe"] = await accessibility(page, "game failures: refused")
+    await screenshots(page, "desktop-game-refused")
+    await refused.getByRole("link", { name: "Zur Deckwahl" }).click()
+    await page.getByRole("heading", { level: 1, name: "Spielen" }).waitFor()
+    check((await startNote(page)) === "Forge ist bereit.", `game failures: after the refusal "${await startNote(page)}"`)
+    await chooseDeck(page, "Dein Deck wählen", "E2E Deutsch")
+    await startAndWait(page)
+    check(engineWorkerRequests(pageLog, id) === workerScripts, "game failures: the refused game's engine was not used for the next game")
+    await concedeGame(page)
+    results["workers"] = { created: workers.created(), maxAtOnce: workers.max() }
+    check(workers.max() <= 1, `game failures: ${workers.max()} engines at the same time`)
+    // The server error of 7 was the test's; anything else is a failure.
+    for (const error of pageLog.errors.filter((e) => !(e.includes(wasm) && /\[http 500\]|Failed to load resource/.test(e)))) check(false, `game failures: ${error}`)
+    results["engineLog"] = pageLog.engineLog.filter((line) => !line.includes("was not assigned to any set")).slice(0, 20)
+  } finally {
+    await context.close()
+  }
+  return results
+}
+
+/** The game on a phone with touch: no overflow, touch sizes, the result's action bar above the tab bar. */
+async function gamePhone(browser: Browser, base: string, decks: readonly SavedDeck[]): Promise<Record<string, unknown>> {
+  const results: Record<string, unknown> = {}
+  const context = await newContext(browser, VIEWPORTS[0]!)
+  const page = await context.newPage()
+  const pageLog = watch(page)
+  try {
+    await loadDecks(page, base, decks)
+    await page.goto(new URL("/play", base).href, { waitUntil: "domcontentloaded" })
+    await chooseDeck(page, "Dein Deck wählen", "E2E Izzet Tempo")
+    await enginePanel(page).getByText("Bereit", { exact: true }).waitFor({ timeout: 180_000 })
+    results["startMs"] = await startAndWait(page)
+    const game = page.getByRole("region", { name: "Partie läuft" })
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+    check(overflow <= 0, `game (phone): overflow ${overflow}px`)
+    const concedeHeight = await layoutHeight(game.getByRole("button", { name: "Aufgeben" }))
+    check(concedeHeight >= 44, `game (phone): "Aufgeben" ${concedeHeight}px high`)
+    results["playingAxe"] = await accessibility(page, "game (phone): running")
+    // Only the first screen here: Playwright's full-page screenshot resets the touch
+    // emulation (pointer: coarse is false afterwards), which would shrink what is measured next.
+    await page.screenshot({ path: path.join(reportDir, "screens", "phone-game-playing.png") })
+    const { result } = await concedeGame(page)
+    const bar = page.getByRole("region", { name: "Neue Partie" })
+    const tabBar = page.getByRole("navigation", { name: "Hauptnavigation" })
+    const [barBox, tabBox] = [await bar.boundingBox(), await tabBar.boundingBox()]
+    check(barBox !== null && tabBox !== null && Math.abs(barBox.y + barBox.height - tabBox.y) <= 1, `game (phone): action bar ${JSON.stringify(barBox)} tab bar ${JSON.stringify(tabBox)}`)
+    const againHeight = await layoutHeight(bar.getByRole("button", { name: "Neue Partie" }))
+    check(againHeight >= 44, `game (phone): "Neue Partie" ${againHeight}px high`)
+    check((await result.getByRole("button", { name: "Neue Partie" }).count()) === 0, "game (phone): the next game's button twice")
+    const resultOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+    check(resultOverflow <= 0, `game (phone): result overflows by ${resultOverflow}px`)
+    results["resultAxe"] = await accessibility(page, "game (phone): result")
+    await screenshots(page, "phone-game-result")
+    results["sizes"] = { concede: concedeHeight, again: againHeight, bar: barBox, tabBar: tabBox }
+    for (const error of pageLog.errors) check(false, `game (phone): ${error}`)
+  } finally {
+    await context.close()
+  }
   return results
 }
 

@@ -1,10 +1,12 @@
 /*
  * The Forge engine as the player sees it: not loaded, loading (the engine's
- * own boot phases), ready (what the engine reports about itself) or aborted
- * (why). Every state is real; the panel never pretends the engine is there.
+ * own boot phases), ready (what the engine reports about itself), playing a
+ * game, or aborted (why). Every state is real; the panel never pretends the
+ * engine is there.
  */
-import { Check, Circle, Cpu, OctagonAlert, Power, RotateCcw } from "lucide-react"
+import { Check, Circle, Cpu, OctagonAlert, Power, RotateCcw, Swords } from "lucide-react"
 import type { ReactNode } from "react"
+import { Link } from "react-router"
 import { FactList } from "@/components/fact-list"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -13,12 +15,13 @@ import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader,
 import { Spinner } from "@/components/ui/spinner"
 import { useNow } from "@/hooks/use-now"
 import { engineAssets } from "./engine-assets"
-import { abortTitle, BOOT_PHASE_LABELS, formatMegabytes, formatSeconds, shortCommit } from "./engine-labels"
-import type { BootStep, EngineSessionSnapshot } from "./engine-session"
+import { abortTitle, BOOT_PHASE_LABELS, ENGINE_LANGUAGE_LABELS, formatMegabytes, formatSeconds, shortCommit } from "./engine-labels"
+import type { BootStep, EngineSnapshot } from "./engine-session"
 import { useEngineSession } from "./engine-session-context"
 
 export function EnginePanel() {
-  const { snapshot, start, stop } = useEngineSession()
+  const { snapshot: session, start, stop } = useEngineSession()
+  const snapshot = session.engine
   const now = useNow(snapshot.status === "booting")
   return (
     <Card role="region" aria-labelledby="engine-panel-title">
@@ -40,7 +43,7 @@ export function EnginePanel() {
   )
 }
 
-function StatusBadge({ snapshot }: { snapshot: EngineSessionSnapshot }) {
+function StatusBadge({ snapshot }: { snapshot: EngineSnapshot }) {
   switch (snapshot.status) {
     case "unavailable":
       return <Badge variant="destructive">Nicht enthalten</Badge>
@@ -57,12 +60,14 @@ function StatusBadge({ snapshot }: { snapshot: EngineSessionSnapshot }) {
       )
     case "ready":
       return <Badge>Bereit</Badge>
+    case "busy":
+      return <Badge>Spielt</Badge>
     case "aborted":
       return <Badge variant="destructive">Abgebrochen</Badge>
   }
 }
 
-function PanelBody({ snapshot, now }: { snapshot: EngineSessionSnapshot; now: number }): ReactNode {
+function PanelBody({ snapshot, now }: { snapshot: EngineSnapshot; now: number }): ReactNode {
   switch (snapshot.status) {
     case "unavailable":
       return (
@@ -89,7 +94,14 @@ function PanelBody({ snapshot, now }: { snapshot: EngineSessionSnapshot; now: nu
         </Alert>
       )
     case "idle":
-      return <EngineFacts />
+      return (
+        <>
+          <EngineFacts />
+          <p className="text-sm text-muted-foreground">
+            Steht ein Deck bereit, lädt „Spielen“ die Engine von selbst vor – dann startet die Partie ohne Wartezeit.
+          </p>
+        </>
+      )
     case "booting":
       return (
         <>
@@ -97,10 +109,12 @@ function PanelBody({ snapshot, now }: { snapshot: EngineSessionSnapshot; now: nu
           <p className="text-sm text-muted-foreground tabular-nums">Seit {formatSeconds(Math.max(0, now - snapshot.startedAt))}</p>
         </>
       )
-    case "ready": {
+    case "ready":
+    case "busy": {
       const { engine, boot } = snapshot.ready
       return (
         <>
+          {snapshot.status === "busy" ? <p className="text-sm">Forge spielt gerade deine Partie. Eine Engine spielt eine Partie; die nächste bekommt eine frische.</p> : null}
           <BootSteps steps={snapshot.steps} now={snapshot.readyAt} />
           <FactList
             facts={[
@@ -113,6 +127,7 @@ function PanelBody({ snapshot, now }: { snapshot: EngineSessionSnapshot; now: nu
               { label: "Protokoll", value: `Version ${snapshot.ready.protocol}` },
               { label: "Forge-Daten", value: `${boot.resourceFiles.toLocaleString("de-DE")} Dateien` },
               { label: "Karten", value: boot.cardLoading === "eager" ? "vollständig geladen" : "werden bei Bedarf geladen" },
+              { label: "Sprache von Forge", value: ENGINE_LANGUAGE_LABELS[boot.language] },
             ]}
           />
         </>
@@ -155,7 +170,8 @@ function EngineFacts() {
   )
 }
 
-function BootSteps({ steps, now }: { steps: readonly BootStep[]; now: number }) {
+/** The engine's boot phases with their times (also shown while a game waits for the engine). */
+export function BootSteps({ steps, now }: { steps: readonly BootStep[]; now: number }) {
   return (
     <ol className="flex flex-col gap-2 text-sm" aria-label="Startschritte der Engine">
       {steps.map((step) => (
@@ -179,7 +195,7 @@ function BootSteps({ steps, now }: { steps: readonly BootStep[]; now: number }) 
   )
 }
 
-function PanelActions({ snapshot, start, stop }: { snapshot: EngineSessionSnapshot; start: () => void; stop: () => void }) {
+function PanelActions({ snapshot, start, stop }: { snapshot: EngineSnapshot; start: () => void; stop: () => void }) {
   switch (snapshot.status) {
     case "idle":
       return (
@@ -206,6 +222,18 @@ function PanelActions({ snapshot, start, stop }: { snapshot: EngineSessionSnapsh
             Engine beenden
           </Button>
           <span className="text-sm text-muted-foreground">Gibt den Arbeitsspeicher wieder frei.</span>
+        </CardFooter>
+      )
+    case "busy":
+      // No "stop" here: that would end the game. The game page has its own ways out (concede, end after a stall).
+      return (
+        <CardFooter>
+          <Button asChild size="lg">
+            <Link to="/play/game">
+              <Swords data-icon="inline-start" aria-hidden />
+              Zur Partie
+            </Link>
+          </Button>
         </CardFooter>
       )
     case "aborted":

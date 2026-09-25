@@ -13,10 +13,14 @@ export function PageHeader({ title, description, actions }: { title: string; des
   )
 }
 
-/** The content column of a surface (the app shell provides header and navigation). */
+/**
+ * The content column of a surface (the app shell provides header and
+ * navigation). It fills the height between them, so a phone's ActionBar can
+ * sit at its end even on a short page.
+ */
 export function Page({ title, description, actions, children }: { title: string; description?: ReactNode; actions?: ReactNode; children: ReactNode }) {
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
       <title>{`${title} · OpenMana`}</title>
       <PageHeader title={title} description={description} actions={actions} />
       {children}

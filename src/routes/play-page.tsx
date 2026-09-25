@@ -2,13 +2,17 @@
  * Play: prepare a game against Forge's AI. The player chooses their deck and
  * the AI's - one of their decks, or a random one drawn for every game
  * (src/decks/deck-selection.ts); both choices are kept in the local
- * database, so the next game starts without choosing again. Starting the
- * game itself is the game session (prompt 11): until then the button stays
- * disabled and says why. The engine can already be loaded for real
- * (EnginePanel). No sample decks, no simulated table.
+ * database, so the next game starts without choosing again.
+ *
+ * Opening the page with a deck to play prewarms the engine (about 4-5 s of
+ * boot, research §4), so "Partie starten" usually finds it ready; the engine
+ * panel shows it booting. The start itself (src/game/game-start.ts) hands
+ * the game to the engine session and goes to the game page, whatever the
+ * engine is doing - it waits for a booting engine and restarts a failed one.
+ * No sample decks, no simulated table.
  */
 import { Bot, Layers, Swords, TriangleAlert, Upload } from "lucide-react"
-import { useMemo } from "react"
+import { useEffect, useMemo } from "react"
 import { Link } from "react-router"
 import { toast } from "sonner"
 import { Page } from "@/components/page-header"
@@ -22,8 +26,12 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { DeckPickerDialog, type PickedDeck } from "@/decks/deck-picker-dialog"
 import { AI_DECK, HUMAN_DECK, randomPool, readSelection, resolveSelection, type PlaySelection, type StoredSelection } from "@/decks/deck-selection"
 import { LIBRARY_STORES, readDeckCards, viewDeck, type DeckCardIndex, type DeckView } from "@/decks/deck-view"
-import { describeDeck, SELECTION_BLOCKERS } from "@/decks/library-labels"
+import { describeDeck } from "@/decks/library-labels"
 import { EnginePanel } from "@/engine/engine-panel"
+import { useEngineSession } from "@/engine/engine-session-context"
+import { aiProfileLabel } from "@/game/game-labels"
+import { useGameStart, type StartState } from "@/game/game-start"
+import { DEFAULT_AI_PROFILE } from "@/game/match-setup"
 import { useIsMobile } from "@/hooks/use-mobile"
 import type { LocalDatabase } from "@/storage/database"
 import { toStorageError } from "@/storage/errors"
@@ -88,15 +96,15 @@ function aiText(selection: PlaySelection, views: ReadonlyMap<string, DeckView>):
   }
 }
 
-function StartButton({ note, className }: { note: string; className?: string }) {
+function StartButton({ state, start, className }: { state: StartState; start: () => void; className?: string }) {
   return (
     <>
-      <Button size="lg" disabled aria-describedby="play-start-note" {...(className !== undefined ? { className } : {})}>
+      <Button size="lg" disabled={!state.enabled} aria-describedby="play-start-note" onClick={start} {...(className !== undefined ? { className } : {})}>
         <Swords data-icon="inline-start" aria-hidden />
-        Partie starten
+        {state.action === "resume" ? "Zur laufenden Partie" : "Partie starten"}
       </Button>
       <span id="play-start-note" className="text-sm text-muted-foreground">
-        {note}
+        {state.note}
       </span>
     </>
   )
@@ -107,12 +115,20 @@ export function PlayPage() {
   const { snapshot } = useStorage()
   const database = snapshot.status === "ready" ? snapshot.database : null
   const phone = useIsMobile()
+  const { prewarm } = useEngineSession()
   const views = useMemo(
     () => (data.status === "ready" ? new Map(data.data.stored.decks.records.map((deck) => [deck.id, viewDeck(deck, data.data.index)])) : new Map<string, DeckView>()),
     [data],
   )
   const selection = data.status === "ready" ? resolveSelection(data.data.stored.human, data.data.stored.ai, data.data.stored.decks) : null
   const noDecks = data.status === "ready" && data.data.stored.decks.records.length === 0
+  const { state: startState, start } = useGameStart({ data: data.status, noDecks, selection })
+
+  // A deck to play is here: warm the engine up now, so the game does not wait for it (only from idle).
+  const hasDecks = data.status === "ready" && !noDecks
+  useEffect(() => {
+    if (hasDecks) prewarm()
+  }, [hasDecks, prewarm])
 
   const choose = async (write: (db: LocalDatabase) => Promise<void>) => {
     if (database === null) return
@@ -127,17 +143,6 @@ export function PlayPage() {
     if (picked.kind === "deck") void choose((db) => writeSetting(db, HUMAN_DECK, picked.deckId))
   }
   const pickAi = (picked: PickedDeck) => void choose((db) => writeSetting(db, AI_DECK, picked))
-
-  const note =
-    data.status === "loading"
-      ? "Lese die Decks auf diesem Gerät …"
-      : data.status === "error"
-        ? "Die Decks auf diesem Gerät lassen sich gerade nicht lesen."
-        : noDecks
-          ? "Dafür fehlt noch ein Deck."
-          : selection !== null && selection.blocker !== null
-            ? SELECTION_BLOCKERS[selection.blocker]
-            : "Beide Decks stehen fest – das Starten einer Partie folgt in Kürze."
 
   const allViews = [...views.values()]
   const humanDeck = selection?.human.status === "ok" ? selection.human.deck : null
@@ -175,6 +180,13 @@ export function PlayPage() {
                     <TriangleAlert aria-hidden />
                     <AlertTitle>Eine gespeicherte Deckwahl war ungültig</AlertTitle>
                     <AlertDescription>Sie gilt nicht mehr; wähle die Decks bitte neu.</AlertDescription>
+                  </Alert>
+                ) : null}
+                {startState.action === "resume" ? (
+                  <Alert>
+                    <Swords aria-hidden />
+                    <AlertTitle>Eine Partie läuft</AlertTitle>
+                    <AlertDescription>Eine neue kannst du starten, wenn sie vorbei ist. „Zur laufenden Partie“ bringt dich zurück.</AlertDescription>
                   </Alert>
                 ) : null}
                 <ItemGroup aria-label="Decks der Partie">
@@ -238,7 +250,7 @@ export function PlayPage() {
                     </ItemMedia>
                     <ItemContent>
                       <ItemTitle>Gegner: Forge-KI</ItemTitle>
-                      <ItemDescription>Die Wahl des KI-Profils folgt.</ItemDescription>
+                      <ItemDescription>Profil {aiProfileLabel(DEFAULT_AI_PROFILE)}. Die Wahl des KI-Profils folgt.</ItemDescription>
                     </ItemContent>
                   </Item>
                 </ItemGroup>
@@ -247,7 +259,7 @@ export function PlayPage() {
           </CardContent>
           {phone ? null : (
             <CardFooter className="flex flex-wrap items-center gap-3">
-              <StartButton note={note} />
+              <StartButton state={startState} start={start} />
             </CardFooter>
           )}
         </Card>
@@ -255,7 +267,7 @@ export function PlayPage() {
       </div>
       {phone ? (
         <ActionBar aria-label="Partie starten">
-          <StartButton note={note} className="w-full" />
+          <StartButton state={startState} start={start} className="w-full" />
         </ActionBar>
       ) : null}
     </Page>

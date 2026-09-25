@@ -23,6 +23,9 @@ import { AI_DECK, HUMAN_DECK } from "./deck-selection"
 import { resolveDeckList } from "./deck-resolve"
 import { parseArenaDeckList } from "./arena-list"
 
+/** The start button's note once both decks are set, in jsdom (no WebAssembly GC, no cross-origin isolation). */
+const ENGINE_NOTE = "Dieser Browser kann die Forge-Engine nicht ausführen."
+
 const IZZET_ID = "10000000-0000-4000-8000-000000000001"
 const BRAWL_ID = "10000000-0000-4000-8000-000000000002"
 const MONO_ID = "10000000-0000-4000-8000-000000000003"
@@ -316,7 +319,8 @@ describe("what can be done with a deck", () => {
     await waitFor(() => expect(router.state.location.pathname).toBe("/play"))
     expect(await screen.findByText("Izzet Delver – Constructed · 38 Karten · Sideboard 3")).toBeInTheDocument()
     expect(screen.getByText("Mono-Grün – Constructed · 28 Karten")).toBeInTheDocument()
-    expect(screen.getByText("Beide Decks stehen fest – das Starten einer Partie folgt in Kürze.")).toBeInTheDocument()
+    // Both decks are set: only the engine is left, which jsdom cannot run (the start itself: src/game/game-page.test.tsx).
+    expect(screen.getByRole("button", { name: /Partie starten/ })).toHaveAccessibleDescription(ENGINE_NOTE)
     const db = await openTestDatabase()
     expect((await readSetting(db, HUMAN_DECK)).value).toBe(IZZET_ID)
     expect((await readSetting(db, AI_DECK)).value).toEqual({ kind: "deck", deckId: MONO_ID })
@@ -391,7 +395,8 @@ describe("choosing the decks for a game", () => {
     await user.click(within(dialog).getByRole("button", { name: "Izzet Delver" }))
     expect(await screen.findByText("Izzet Delver – Constructed · 38 Karten · Sideboard 3")).toBeInTheDocument()
     expect(screen.getByText("Zufällig – dein einziges anderes Constructed-Deck.")).toBeInTheDocument()
-    expect(screen.getByText("Beide Decks stehen fest – das Starten einer Partie folgt in Kürze.")).toBeInTheDocument()
+    // Both decks are set: only the engine is left, which jsdom cannot run (the start itself: src/game/game-page.test.tsx).
+    expect(screen.getByRole("button", { name: /Partie starten/ })).toHaveAccessibleDescription(ENGINE_NOTE)
     expect(screen.getByRole("button", { name: /Partie starten/ })).toBeDisabled()
 
     // The AI's choice: decks of another format are disabled and say why.
@@ -413,7 +418,7 @@ describe("choosing the decks for a game", () => {
     expect(within(dialog).getByText("Nicht möglich: Es gibt kein zweites Commander-Deck.")).toBeInTheDocument()
     // The player's own deck for the AI: a mirror match.
     await user.click(within(dialog).getByRole("button", { name: "Valki Brawl" }))
-    expect(await screen.findByText("Beide Decks stehen fest – das Starten einer Partie folgt in Kürze.")).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole("button", { name: /Partie starten/ })).toHaveAccessibleDescription(ENGINE_NOTE))
   })
 
   it("a chosen deck that was deleted is said so, not replaced", async () => {

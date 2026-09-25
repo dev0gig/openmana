@@ -1,13 +1,11 @@
-import type { EngineClientListener } from "@openmana/engine-client"
-import { checkEngineMessage, type EngineMessage, type FeatureReport } from "@openmana/engine-protocol"
+import { PROTOCOL_VERSION, type FeatureReport } from "@openmana/engine-protocol"
 import { act, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { createMemoryRouter, RouterProvider } from "react-router"
 import { describe, expect, it } from "vitest"
 import { EnginePanel } from "@/engine/engine-panel"
-import { EngineSession, type SessionClient } from "@/engine/engine-session"
 import { EngineSessionProvider } from "@/engine/engine-session-context"
-import { ENGINE_ASSETS } from "@/test/virtual-engine"
+import { READY, settle, SUPPORTED, testEngine } from "@/test/game-fixtures"
 import { DESTINATIONS, MAIN_DESTINATIONS } from "./navigation"
 import { routes } from "./router"
 
@@ -91,95 +89,45 @@ describe("no invented data", () => {
   })
 })
 
-// ── The engine panel, driven by a session with a fake client ────────────────
-
-class FakeClient implements SessionClient {
-  readonly listeners = new Set<EngineClientListener>()
-  start(): void {}
-  subscribe(listener: EngineClientListener): () => boolean {
-    this.listeners.add(listener)
-    return () => this.listeners.delete(listener)
-  }
-  dispose(): void {}
-  emit(message: EngineMessage): void {
-    const checked = checkEngineMessage(message)
-    act(() => {
-      for (const listener of Array.from(this.listeners)) listener({ kind: "message", message: checked })
-    })
-  }
-}
-
-const SUPPORTED: FeatureReport = {
-  webAssembly: true,
-  wasmGc: true,
-  wasmExnref: true,
-  wasmTypedFunctionReferences: true,
-  crossOriginIsolated: true,
-  sharedArrayBuffer: true,
-  atomicsWait: true,
-  worker: true,
-  missing: [],
-  supported: true,
-}
+// ── The engine panel, driven by the real client over a scripted worker ─────
 
 function renderPanel(features: FeatureReport = SUPPORTED) {
-  const clients: FakeClient[] = []
-  const session = new EngineSession({
-    assets: ENGINE_ASSETS,
-    detectFeatures: () => features,
-    loadClient: async () => () => {
-      const client = new FakeClient()
-      clients.push(client)
-      return client
-    },
-    baseUrl: "https://openmana.test/",
-  })
+  const engine = testEngine({ features })
   render(
-    <EngineSessionProvider session={session}>
+    <EngineSessionProvider session={engine.session}>
       <EnginePanel />
     </EngineSessionProvider>,
   )
-  return { session, clients }
+  return engine
 }
 
 describe("engine panel", () => {
   it("loads the engine on request and shows what the engine reports", async () => {
-    const { clients } = renderPanel()
+    const engine = renderPanel()
     expect(screen.getByText("Nicht geladen")).toBeInTheDocument()
+    expect(screen.getByText(/lädt „Spielen“ die Engine von selbst vor/)).toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Engine laden" }))
     expect(screen.getByText("Lädt")).toBeInTheDocument()
     expect(screen.getByRole("list", { name: "Startschritte der Engine" })).toBeInTheDocument()
-    const client = clients[0]!
-    client.emit({ type: "engine.boot", phase: "wasm-fetch-compile", t: 5 })
+    await settle()
+    const worker = engine.worker()
+    act(() => worker.send({ type: "engine.boot", phase: "wasm-fetch-compile", t: 5 }))
     expect(screen.getByText("Engine herunterladen und übersetzen").closest("li")).toHaveAttribute("data-state", "active")
-    client.emit({
-      type: "engine.ready",
-      protocol: 3,
-      engine: {
-        forgeVersion: "2.0.07-SNAPSHOT",
-        forgeCommit: "ed0333fecb1fea0671b3e50cadc1da4f71db5798",
-        forgeVersionCode: "2.0.07",
-        patchCount: 6,
-        patchesSha256: "d434f05792db3addec2bcc386318a7cdb5e0e3f4f1394d5490a73d28d3238ad7",
-        openmanaCommit: "0ddfbc3000000000000000000000000000000000",
-        engineSourcesModified: false,
-        synchronous: true,
-        resourcesSha256: "7e8aebee24e13111188a163cd5f7162ded2411728a85c6abc9ac2f5d5a0e6053",
-      },
-      boot: { resourceFiles: 36905, resourceBytes: 44327452, unpackMillis: 900, forgeInitMillis: 2000, cardLoading: "eager", language: "en-US" },
-      t: 4000,
-    })
+    act(() => worker.send(READY))
     expect(screen.getByText("Bereit")).toBeInTheDocument()
-    expect(screen.getByText("2.0.07 (ed0333fecb)")).toBeInTheDocument()
-    expect(screen.getByText("Version 3")).toBeInTheDocument()
+    expect(screen.getByText("2.0.15 (ed0333fecb)")).toBeInTheDocument()
+    expect(screen.getByText(`Version ${PROTOCOL_VERSION}`)).toBeInTheDocument()
+    expect(screen.getByText("Deutsch")).toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Engine beenden" }))
     expect(screen.getByText("Nicht geladen")).toBeInTheDocument()
+    expect(worker.terminated).toBe(true)
   })
 
   it("explains an abort and offers another try", async () => {
-    const { clients } = renderPanel()
+    const engine = renderPanel()
     await userEvent.click(screen.getByRole("button", { name: "Engine laden" }))
-    clients[0]!.emit({ type: "engine.abort", reason: "boot-failed", origin: "engine", message: "java.lang.OutOfMemoryError", stage: "java-main" })
+    await settle()
+    act(() => engine.worker().send({ type: "engine.abort", reason: "boot-failed", origin: "engine", message: "java.lang.OutOfMemoryError", stage: "java-main" }))
     expect(screen.getByText("Abgebrochen")).toBeInTheDocument()
     expect(screen.getByText("Die Engine konnte nicht starten")).toBeInTheDocument()
     expect(screen.getByText("java.lang.OutOfMemoryError")).toBeInTheDocument()

@@ -3,7 +3,8 @@
  * errors render inside the shell, so navigation stays usable. Pages that are
  * not needed at the start load on demand (route-based code splitting), so
  * they do not weigh on it: the deck import with its parser and report, a
- * deck's details and importing a deck's list again.
+ * deck's details, importing a deck's list again, and the game (/play/game,
+ * under "Spielen" in the navigation).
  */
 import { createBrowserRouter, type RouteObject } from "react-router"
 import { CreditsPage } from "@/routes/credits-page"
@@ -45,6 +46,11 @@ export const routes: RouteObject[] = [
             lazy: async () => ({ Component: (await import("@/decks/deck-update-page")).DeckUpdatePage }),
           },
           { path: "play", element: <PlayPage /> },
+          {
+            path: "play/game",
+            HydrateFallback: PageLoading,
+            lazy: async () => ({ Component: (await import("@/game/game-page")).GamePage }),
+          },
           { path: "matches", element: <MatchesPage /> },
           { path: "settings", element: <SettingsPage /> },
           { path: "credits", element: <CreditsPage /> },

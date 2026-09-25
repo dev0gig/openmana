@@ -6,13 +6,14 @@
  * cards and end it when the player concedes. This checks the import's
  * "names Forge knows" against Forge itself, not against the card catalog.
  *
- * The game session proper (how the app hands a deck to Forge) is prompt 11;
- * the mapping here is the protocol's Deck, field for field.
+ * The deck goes to Forge exactly as the app hands it over in a game
+ * (src/game/engine-deck.ts, prompt 11).
  */
 import path from "node:path"
 import { EngineClient } from "../../engine/client/src/index.ts"
 import { nodeWorkerPort } from "../../engine/client/src/node-worker-port.ts"
-import type { Deck, EngineMessage, MatchRequest } from "../../engine/protocol/src/index.ts"
+import type { EngineMessage, MatchRequest } from "../../engine/protocol/src/index.ts"
+import { engineDeck } from "../../src/game/engine-deck.ts"
 
 /** What of a stored deck the engine needs (a DeckRecord as the browser's IndexedDB holds it). */
 export interface StoredDeck {
@@ -34,13 +35,6 @@ export interface EngineDeckResult {
   readonly totalMs: number
 }
 
-function engineDeck(deck: StoredDeck): Deck {
-  const entries = (cards: StoredDeck["main"]) => cards.map((card) => ({ card: card.name, count: card.count }))
-  const [first, ...rest] = entries(deck.main)
-  if (!first) throw new Error(`deck ${deck.name} has no main deck`)
-  return { name: deck.name, main: [first, ...rest], sideboard: entries(deck.sideboard), commander: entries(deck.commander) }
-}
-
 /** Starts one game with `deck` for both seats, concedes at the first decision, and reports what happened. */
 export async function playDeck(distDir: string, deck: StoredDeck, timeoutMs = 240_000): Promise<EngineDeckResult> {
   const started = performance.now()
@@ -52,7 +46,8 @@ export async function playDeck(distDir: string, deck: StoredDeck, timeoutMs = 24
     createPort: nodeWorkerPort(),
     engineScriptUrl: path.join(distDir, "openmana-engine.js"),
     wasmUrl: path.join(distDir, "openmana-engine.js.wasm"),
-    engineArgs: ["--card-loading=eager", "--language=en-US"],
+    // As the app boots the engine (ENGINE_ARGS in src/engine/engine-session.ts).
+    engineArgs: ["--card-loading=eager", "--language=de-DE"],
     requireIsolation: false,
   })
   const request: MatchRequest = {

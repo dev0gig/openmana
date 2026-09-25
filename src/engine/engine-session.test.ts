@@ -1,122 +1,59 @@
-import type { EngineClientEvent, EngineClientListener } from "@openmana/engine-client"
+/*
+ * EngineSession: the engine's life (boot, ready, abort, stop, prewarm) and
+ * the game's (queued, starting, refused, playing, over, aborted). The engine
+ * is the real EngineClient over a scripted worker (src/test/game-fixtures.ts),
+ * so every message these tests send passes the real schema and order checks.
+ */
 import { checkEngineMessage, type EngineMessage, type FeatureReport } from "@openmana/engine-protocol"
 import { describe, expect, it, vi } from "vitest"
-import type { EngineAssets } from "./engine-assets-types"
-import { EngineSession, type EngineUrls, type SessionClient } from "./engine-session"
+import {
+  gameState,
+  MULLIGAN_PROMPT,
+  READY,
+  settle,
+  SUPPORTED,
+  TEST_ASSETS,
+  testEngine,
+  testSetup,
+  type TestEngine,
+} from "@/test/game-fixtures"
+import { ENGINE_ARGS, EngineSession, matchInProgress, NOTICE_LIMIT, type MatchSnapshot } from "./engine-session"
 
-// A stand-in for the engine client. Every message it emits is checked against
-// the real protocol schema, so these tests cannot drift from the protocol.
-class FakeClient implements SessionClient {
-  readonly listeners = new Set<EngineClientListener>()
-  started = 0
-  disposed = 0
-  start(): void {
-    this.started++
-  }
-  subscribe(listener: EngineClientListener): () => boolean {
-    this.listeners.add(listener)
-    return () => this.listeners.delete(listener)
-  }
-  dispose(): void {
-    this.disposed++
-  }
-  emit(message: EngineMessage): void {
-    const event: EngineClientEvent = { kind: "message", message: checkEngineMessage(message) }
-    for (const listener of Array.from(this.listeners)) listener(event)
-  }
+/** A booted, ready engine. */
+async function ready(): Promise<TestEngine> {
+  const engine = testEngine()
+  engine.session.start()
+  await settle()
+  engine.worker().boot()
+  expect(engine.session.getSnapshot().engine.status).toBe("ready")
+  return engine
 }
 
-const ASSETS: EngineAssets = {
-  available: true,
-  id: "0123456789abcdef",
-  workerUrl: "/engine/0123456789abcdef/engine-worker.js",
-  launcherUrl: "/engine/0123456789abcdef/openmana-engine.js",
-  wasmUrl: "/engine/0123456789abcdef/openmana-engine.js.wasm",
-  manifestUrl: "/engine/0123456789abcdef/engine-manifest.json",
-  build: {
-    builtAt: "2026-09-24T00:00:00.000Z",
-    forgeRepository: "https://github.com/Card-Forge/forge",
-    forgeCommit: "ed0333fecb1fea0671b3e50cadc1da4f71db5798",
-    patchCount: 6,
-    protocolVersion: 3,
-    graalvm: "25.4.4.1.1",
-    downloadBytes: 100,
-    downloadBrotliBytes: 50,
-    wasmBytes: 80,
-  },
+/** A game running up to Forge's mulligan question. */
+async function playing(): Promise<TestEngine> {
+  const engine = await ready()
+  expect(engine.session.startMatch(testSetup())).toBe(true)
+  engine.worker().startGame()
+  expect(engine.session.getSnapshot().match?.status).toBe("playing")
+  return engine
 }
 
-const SUPPORTED: FeatureReport = {
-  webAssembly: true,
-  wasmGc: true,
-  wasmExnref: true,
-  wasmTypedFunctionReferences: true,
-  crossOriginIsolated: true,
-  sharedArrayBuffer: true,
-  atomicsWait: true,
-  worker: true,
-  missing: [],
-  supported: true,
+function match<S extends MatchSnapshot["status"]>(engine: TestEngine, status: S): Extract<MatchSnapshot, { status: S }> {
+  const current = engine.session.getSnapshot().match
+  expect(current?.status).toBe(status)
+  return current as Extract<MatchSnapshot, { status: S }>
 }
 
-const READY: EngineMessage = {
-  type: "engine.ready",
-  protocol: 3,
-  engine: {
-    forgeVersion: "2.0.07-SNAPSHOT",
-    forgeCommit: "ed0333fecb1fea0671b3e50cadc1da4f71db5798",
-    forgeVersionCode: "2.0.07",
-    patchCount: 6,
-    patchesSha256: "d434f05792db3addec2bcc386318a7cdb5e0e3f4f1394d5490a73d28d3238ad7",
-    openmanaCommit: "0ddfbc3000000000000000000000000000000000",
-    engineSourcesModified: false,
-    synchronous: true,
-    resourcesSha256: "7e8aebee24e13111188a163cd5f7162ded2411728a85c6abc9ac2f5d5a0e6053",
-  },
-  boot: { resourceFiles: 36905, resourceBytes: 44327452, unpackMillis: 900, forgeInitMillis: 2000, cardLoading: "eager", language: "en-US" },
-  t: 4000,
-}
-
-function setup(options: { assets?: EngineAssets; features?: FeatureReport; load?: () => Promise<(urls: EngineUrls) => SessionClient> } = {}) {
-  let clock = 1000
-  const clients: FakeClient[] = []
-  const urls: EngineUrls[] = []
-  const load =
-    options.load ??
-    (async () => (u: EngineUrls) => {
-      urls.push(u)
-      const client = new FakeClient()
-      clients.push(client)
-      return client
-    })
-  const loadClient = vi.fn(load)
-  const session = new EngineSession({
-    assets: options.assets ?? ASSETS,
-    detectFeatures: () => options.features ?? SUPPORTED,
-    loadClient,
-    now: () => clock,
-    baseUrl: "https://openmana.test/play",
-  })
-  return {
-    session,
-    clients,
-    urls,
-    loadClient,
-    tick(ms: number) {
-      clock += ms
-    },
-  }
-}
-
-/** Lets the (already resolved) client import settle. */
-const settle = () => new Promise<void>((resolve) => setTimeout(resolve, 0))
-
-describe("EngineSession", () => {
+describe("EngineSession: the engine", () => {
   it("reports a build without engine and never starts one", () => {
-    const { session, loadClient } = setup({ assets: { available: false, reason: "omitted", detail: "built with OPENMANA_ENGINE=omit" } })
-    expect(session.getSnapshot()).toEqual({ status: "unavailable", reason: "omitted", detail: "built with OPENMANA_ENGINE=omit" })
+    const loadClient = vi.fn()
+    const session = new EngineSession({ assets: { available: false, reason: "omitted", detail: "built with OPENMANA_ENGINE=omit" }, loadClient })
+    expect(session.getSnapshot()).toEqual({ engine: { status: "unavailable", reason: "omitted", detail: "built with OPENMANA_ENGINE=omit" }, match: null })
     session.start()
-    expect(session.getSnapshot().status).toBe("unavailable")
+    session.prewarm()
+    expect(session.startMatch(testSetup())).toBe(false)
+    expect(session.getSnapshot().engine.status).toBe("unavailable")
+    expect(session.getSnapshot().match).toBeNull()
     expect(loadClient).not.toHaveBeenCalled()
   })
 
@@ -128,105 +65,110 @@ describe("EngineSession", () => {
       missing: ["Cross-Origin-Isolation (COOP/COEP-Header)", "SharedArrayBuffer"],
       supported: false,
     }
-    const { session, loadClient } = setup({ features })
-    const snapshot = session.getSnapshot()
+    const engine = testEngine({ features })
+    const snapshot = engine.session.getSnapshot().engine
     expect(snapshot.status).toBe("unsupported")
     expect(snapshot.status === "unsupported" && snapshot.message).toBe(
       "Dieser Browser kann die Forge-Engine nicht ausführen. Es fehlt: Cross-Origin-Isolation (COOP/COEP-Header), SharedArrayBuffer.",
     )
-    session.start()
-    expect(loadClient).not.toHaveBeenCalled()
+    engine.session.start()
+    engine.session.prewarm()
+    expect(engine.session.startMatch(testSetup())).toBe(false)
+    expect(engine.workers).toHaveLength(0)
   })
 
-  it("boots through the engine's own phases to ready", async () => {
-    const { session, clients, urls, tick } = setup()
-    expect(session.getSnapshot().status).toBe("idle")
+  it("boots through the engine's own phases to ready, with eager card loading and German Forge texts", async () => {
+    const engine = testEngine()
+    const { session } = engine
+    expect(session.getSnapshot().engine.status).toBe("idle")
     const seen: string[] = []
-    session.subscribe(() => seen.push(session.getSnapshot().status))
+    session.subscribe(() => seen.push(session.getSnapshot().engine.status))
 
     session.start()
-    const booting = session.getSnapshot()
-    expect(booting.status).toBe("booting")
+    const booting = session.getSnapshot().engine
     expect(booting.status === "booting" && booting.steps.map((s) => s.state)).toEqual(["pending", "pending", "pending", "pending"])
 
     await settle()
-    expect(clients).toHaveLength(1)
-    const client = clients[0]!
-    expect(client.started).toBe(1)
-    expect(urls[0]!.workerUrl.href).toBe("https://openmana.test/engine/0123456789abcdef/engine-worker.js")
-    expect(urls[0]!.engineScriptUrl).toBe("https://openmana.test/engine/0123456789abcdef/openmana-engine.js")
-    expect(urls[0]!.wasmUrl).toBe("https://openmana.test/engine/0123456789abcdef/openmana-engine.js.wasm")
+    const worker = engine.worker()
+    const launch = engine.launches[0]!
+    expect(launch.workerUrl.href).toBe("https://openmana.test/engine/0123456789abcdef/engine-worker.js")
+    expect(launch.engineScriptUrl).toBe("https://openmana.test/engine/0123456789abcdef/openmana-engine.js")
+    expect(launch.wasmUrl).toBe("https://openmana.test/engine/0123456789abcdef/openmana-engine.js.wasm")
+    expect(ENGINE_ARGS).toEqual(["--card-loading=eager", "--language=de-DE"])
+    // The client starts the worker with exactly these arguments.
+    const start = worker.commands[0]!
+    expect(start.type === "engine.start" && start.args).toEqual(["--card-loading=eager", "--language=de-DE"])
 
-    tick(10)
-    client.emit({ type: "engine.boot", phase: "worker-features", t: 10, features: SUPPORTED })
-    tick(20)
-    client.emit({ type: "engine.boot", phase: "launcher-load", t: 30 })
-    tick(1500)
-    client.emit({ type: "engine.boot", phase: "wasm-fetch-compile", t: 1530 })
-    let snapshot = session.getSnapshot()
+    engine.tick(10)
+    worker.send({ type: "engine.boot", phase: "worker-features", t: 10, features: SUPPORTED })
+    engine.tick(20)
+    worker.send({ type: "engine.boot", phase: "launcher-load", t: 30 })
+    engine.tick(1500)
+    worker.send({ type: "engine.boot", phase: "wasm-fetch-compile", t: 1530 })
+    let snapshot = session.getSnapshot().engine
     expect(snapshot.status === "booting" && snapshot.steps.map((s) => s.state)).toEqual(["done", "done", "active", "pending"])
     expect(snapshot.status === "booting" && snapshot.steps[0]).toEqual({ phase: "worker-features", state: "done", startedAt: 1010, endedAt: 1030 })
 
-    tick(900)
-    client.emit({ type: "engine.boot", phase: "java-main", t: 2430 })
-    tick(2000)
-    client.emit(READY)
-    snapshot = session.getSnapshot()
+    engine.tick(900)
+    worker.send({ type: "engine.boot", phase: "java-main", t: 2430 })
+    engine.tick(2000)
+    worker.send(READY)
+    snapshot = session.getSnapshot().engine
     expect(snapshot.status).toBe("ready")
     if (snapshot.status !== "ready") return
     expect(snapshot.steps.every((s) => s.state === "done")).toBe(true)
     expect(snapshot.readyAt - snapshot.startedAt).toBe(4430)
-    expect(snapshot.ready.engine.forgeCommit).toBe("ed0333fecb1fea0671b3e50cadc1da4f71db5798")
+    expect(snapshot.ready.boot.language).toBe("de-DE")
     expect(seen[0]).toBe("booting")
     expect(seen.at(-1)).toBe("ready")
   })
 
-  it("shows an abort with its reason and can start again with a fresh client", async () => {
-    const { session, clients } = setup()
-    session.start()
+  it("shows an abort with its reason and can start again with a fresh worker", async () => {
+    const engine = testEngine()
+    engine.session.start()
     await settle()
-    clients[0]!.emit({ type: "engine.boot", phase: "worker-features", t: 1 })
-    clients[0]!.emit({ type: "engine.abort", reason: "ready-timeout", origin: "client", message: "the engine was not ready after 180 s", stage: "boot" })
-    const aborted = session.getSnapshot()
-    expect(aborted.status).toBe("aborted")
-    expect(aborted.status === "aborted" && aborted.abort.reason).toBe("ready-timeout")
-    expect(clients[0]!.disposed).toBe(1)
-    expect(clients[0]!.listeners.size).toBe(0)
+    const first = engine.worker()
+    first.send({ type: "engine.boot", phase: "worker-features", t: 1 })
+    first.send({ type: "engine.abort", reason: "boot-failed", origin: "engine", message: "java.lang.OutOfMemoryError", stage: "java-main" })
+    const aborted = engine.session.getSnapshot().engine
+    expect(aborted.status === "aborted" && aborted.abort.reason).toBe("boot-failed")
+    expect(first.terminated).toBe(true)
 
-    session.start()
+    engine.session.start()
     await settle()
-    expect(clients).toHaveLength(2)
-    expect(session.getSnapshot().status).toBe("booting")
+    expect(engine.workers).toHaveLength(2)
+    expect(engine.session.getSnapshot().engine.status).toBe("booting")
   })
 
-  it("stops a running engine and ignores what its old client still says", async () => {
-    const { session, clients } = setup()
-    session.start()
-    await settle()
-    const client = clients[0]!
-    client.emit(READY)
-    expect(session.getSnapshot().status).toBe("ready")
-    session.stop()
-    expect(session.getSnapshot().status).toBe("idle")
-    expect(client.disposed).toBe(1)
-    client.emit({ type: "engine.abort", reason: "terminated", origin: "client", message: "late" })
-    expect(session.getSnapshot().status).toBe("idle")
+  it("stops a running engine and ignores what its old worker still says", async () => {
+    const engine = await ready()
+    const worker = engine.worker()
+    engine.session.stop()
+    expect(engine.session.getSnapshot().engine.status).toBe("idle")
+    expect(worker.terminated).toBe(true)
+    worker.send({ type: "engine.boot", phase: "java-main", t: 5 })
+    expect(engine.session.getSnapshot().engine.status).toBe("idle")
   })
 
   it("drops a client that arrives after the player cancelled", async () => {
-    const { session, clients } = setup()
-    session.start()
-    session.stop()
+    const engine = testEngine()
+    engine.session.start()
+    engine.session.stop()
     await settle()
-    expect(clients).toHaveLength(0)
-    expect(session.getSnapshot().status).toBe("idle")
+    expect(engine.workers).toHaveLength(0)
+    expect(engine.session.getSnapshot().engine.status).toBe("idle")
   })
 
   it("reports a failed client download as an abort instead of hanging", async () => {
-    const { session } = setup({ load: () => Promise.reject(new Error("Failed to fetch dynamically imported module")) })
+    const session = new EngineSession({
+      assets: TEST_ASSETS,
+      detectFeatures: () => SUPPORTED,
+      loadClient: () => Promise.reject(new Error("Failed to fetch dynamically imported module")),
+      baseUrl: "https://openmana.test/play",
+    })
     session.start()
     await settle()
-    const snapshot = session.getSnapshot()
+    const snapshot = session.getSnapshot().engine
     expect(snapshot.status).toBe("aborted")
     if (snapshot.status !== "aborted") return
     expect(snapshot.abort).toMatchObject({ reason: "boot-failed", origin: "client", stage: "client-load" })
@@ -235,12 +177,295 @@ describe("EngineSession", () => {
   })
 
   it("ignores start while booting or ready", async () => {
-    const { session, clients, loadClient } = setup()
-    session.start()
-    session.start()
+    const engine = testEngine()
+    engine.session.start()
+    engine.session.start()
     await settle()
-    clients[0]!.emit(READY)
-    session.start()
-    expect(loadClient).toHaveBeenCalledTimes(1)
+    engine.worker().boot()
+    engine.session.start()
+    await settle()
+    expect(engine.workers).toHaveLength(1)
+  })
+
+  it("prewarms only an idle engine: never a second one, never a failed one by itself", async () => {
+    const engine = testEngine()
+    engine.session.prewarm()
+    expect(engine.session.getSnapshot().engine.status).toBe("booting")
+    engine.session.prewarm()
+    await settle()
+    expect(engine.workers).toHaveLength(1)
+    engine.worker().boot()
+    engine.session.prewarm()
+    await settle()
+    expect(engine.workers).toHaveLength(1)
+    engine.worker().crash("the worker died")
+    expect(engine.session.getSnapshot().engine.status).toBe("aborted")
+    engine.session.prewarm()
+    await settle()
+    expect(engine.workers).toHaveLength(1)
+    expect(engine.session.getSnapshot().engine.status).toBe("aborted")
+  })
+})
+
+describe("EngineSession: a game", () => {
+  it("hands the game to a ready engine and runs it to its result; the spent worker is released", async () => {
+    const engine = await ready()
+    const { session } = engine
+    const setup = testSetup()
+    engine.tick(100)
+    expect(session.startMatch(setup)).toBe(true)
+    const worker = engine.worker()
+    expect(worker.matchStarts().map((command) => command.match)).toEqual([setup.request])
+    expect(session.getSnapshot().engine.status).toBe("busy")
+    expect(match(engine, "starting")).toMatchObject({ setup, requestedAt: 1100, stalledMs: null })
+    expect(matchInProgress(session.getSnapshot().match)).toBe(true)
+
+    engine.tick(50)
+    worker.startGame()
+    const running = match(engine, "playing")
+    expect(running.startedAt).toBe(1150)
+    expect(running.game).toMatchObject({ human: "Spieler", ai: "Forge-KI", aiProfile: "Default", format: "constructed" })
+    expect(running.state?.seq).toBe(3)
+    expect(running.state?.players.map((p) => [p.me, p.life, p.zones.hand.length, p.library])).toEqual([
+      [true, 20, 7, 53],
+      [false, 20, 7, 53],
+    ])
+    expect(running.questions.map((q) => [q.id, q.kind, q.kind === "buttons" ? q.purpose : null])).toEqual([[1, "buttons", "mulligan"]])
+    expect(running.prompt).toBe(MULLIGAN_PROMPT)
+    expect(running.waiting).toBe(true)
+    expect(running.conceding).toBe(false)
+
+    expect(session.concede()).toEqual({ ok: true })
+    expect(worker.inputs()).toEqual([{ type: "concede", seq: 1 }])
+    expect(match(engine, "playing").conceding).toBe(true)
+    expect(match(engine, "playing").waiting).toBe(false)
+    // A second tap on "Aufgeben" sends nothing more.
+    expect(session.concede()).toEqual({ ok: true })
+    expect(worker.inputs()).toEqual([])
+
+    engine.tick(1000)
+    worker.concedeAccepted()
+    const over = match(engine, "over")
+    expect(over.end).toMatchObject({ result: "loss", conceded: true, reason: "AllOpponentsLost", turns: 0 })
+    expect(over.endedAt - over.startedAt).toBe(1000)
+    expect(over.state?.running).toBe(false)
+    expect(over.summary?.inputs).toBe(1)
+    // One game per worker: it is terminated, the engine is idle for the next game.
+    expect(worker.terminated).toBe(true)
+    expect(session.getSnapshot().engine.status).toBe("idle")
+    expect(matchInProgress(session.getSnapshot().match)).toBe(false)
+  })
+
+  it("waits for a booting engine and starts the game as soon as it is ready", async () => {
+    const engine = testEngine()
+    engine.session.prewarm()
+    await settle()
+    expect(engine.session.startMatch(testSetup())).toBe(true)
+    expect(match(engine, "queued").setup).toEqual(testSetup())
+    expect(engine.worker().matchStarts()).toHaveLength(0)
+    engine.worker().boot()
+    expect(engine.worker().matchStarts()).toHaveLength(1)
+    expect(match(engine, "starting").setup).toEqual(testSetup())
+    expect(engine.workers).toHaveLength(1)
+  })
+
+  it("boots an engine for a game when none is running, and a fresh one after an abort", async () => {
+    const engine = testEngine()
+    expect(engine.session.startMatch(testSetup())).toBe(true)
+    expect(engine.session.getSnapshot().engine.status).toBe("booting")
+    await settle()
+    engine.worker().crash("the worker died")
+    const failed = match(engine, "aborted")
+    expect(failed.game).toBeNull()
+    expect(failed.abort).toMatchObject({ reason: "worker-error", origin: "client" })
+
+    expect(engine.session.startMatch(testSetup())).toBe(true)
+    await settle()
+    expect(engine.workers).toHaveLength(2)
+    engine.worker().boot()
+    expect(match(engine, "starting")).toBeTruthy()
+  })
+
+  it("ends a game that waits for an engine that never gets ready (the client's ready timeout), instead of waiting forever", async () => {
+    const engine = testEngine()
+    engine.session.startMatch(testSetup())
+    await settle()
+    engine.worker().send({ type: "engine.boot", phase: "worker-features", t: 3, features: SUPPORTED })
+    engine.timers.advance(179_000)
+    expect(match(engine, "queued")).toBeTruthy()
+    engine.timers.advance(1_000)
+    expect(match(engine, "aborted").abort).toMatchObject({ reason: "ready-timeout", origin: "client" })
+    expect(engine.worker().terminated).toBe(true)
+    expect(engine.session.getSnapshot().engine.status).toBe("aborted")
+  })
+
+  it("shows why Forge did not start a game, and the same worker takes the next one", async () => {
+    const engine = await ready()
+    engine.session.startMatch(testSetup())
+    const worker = engine.worker()
+    worker.send({
+      type: "engine.error",
+      code: "deck-rejected",
+      message: "Forge does not know 1 card(s) of deck 'Rot': [\"No Such Card\"]",
+      report: { deck: "Rot", unknownCards: ["No Such Card"] },
+    })
+    const refused = match(engine, "refused")
+    expect(refused.error).toMatchObject({ code: "deck-rejected", report: { deck: "Rot", unknownCards: ["No Such Card"] } })
+    expect(engine.session.getSnapshot().engine.status).toBe("ready")
+    expect(matchInProgress(engine.session.getSnapshot().match)).toBe(false)
+
+    expect(engine.session.startMatch(testSetup({ drawn: true }))).toBe(true)
+    expect(engine.workers).toHaveLength(1)
+    expect(worker.matchStarts()).toHaveLength(2)
+    worker.startGame()
+    expect(match(engine, "playing").setup.ai.drawn).toBe(true)
+  })
+
+  it("boots a fresh worker after a refusal that leaves the worker unable to play", async () => {
+    const engine = await ready()
+    engine.session.startMatch(testSetup())
+    const worker = engine.worker()
+    worker.send({ type: "engine.error", code: "already-started", message: "this worker already ran a game; use a fresh worker" })
+    expect(match(engine, "refused").error.code).toBe("already-started")
+    expect(worker.terminated).toBe(true)
+    expect(engine.session.getSnapshot().engine.status).toBe("idle")
+    engine.session.startMatch(testSetup())
+    await settle()
+    expect(engine.workers).toHaveLength(2)
+  })
+
+  it("refuses a request the protocol does not allow before sending it", async () => {
+    const engine = await ready()
+    const setup = testSetup()
+    const broken = { ...setup, request: { ...setup.request, human: { ...setup.request.human, name: "" } } }
+    expect(engine.session.startMatch(broken)).toBe(true)
+    const refused = match(engine, "refused")
+    expect(refused.error.code).toBe("invalid-request")
+    expect(() => checkEngineMessage(refused.error)).not.toThrow()
+    expect(engine.worker().matchStarts()).toHaveLength(0)
+    expect(engine.session.getSnapshot().engine.status).toBe("ready")
+  })
+
+  it("never starts a second game while one is on its way or running", async () => {
+    const engine = await playing()
+    expect(engine.session.startMatch(testSetup())).toBe(false)
+    expect(engine.worker().matchStarts()).toHaveLength(1)
+    expect(match(engine, "playing")).toBeTruthy()
+  })
+
+  it("ends a running game without a result when the engine fails, keeping the last state", async () => {
+    const engine = await playing()
+    engine.worker().send({ type: "engine.abort", reason: "engine-failure", origin: "engine", message: "java.lang.IllegalStateException: boom", stage: "match" })
+    const aborted = match(engine, "aborted")
+    expect(aborted.abort).toMatchObject({ reason: "engine-failure", origin: "engine" })
+    expect(aborted.game?.human).toBe("Spieler")
+    expect(aborted.state?.seq).toBe(3)
+    expect(engine.session.getSnapshot().engine.status).toBe("aborted")
+    expect(engine.worker().terminated).toBe(true)
+  })
+
+  it("treats a message that breaks the protocol as a technical abort, never as a game event", async () => {
+    const engine = await playing()
+    // A state older than the one before: the client refuses it.
+    engine.worker().send(gameState(2))
+    expect(match(engine, "aborted").abort).toMatchObject({ reason: "protocol-violation", origin: "client" })
+  })
+
+  it("reports a silent engine and lets the player end the game without a result", async () => {
+    const engine = await playing()
+    engine.session.concede()
+    engine.timers.advance(30_000)
+    expect(match(engine, "playing").stalledMs).toBe(30_000)
+    // The engine speaks again: the warning goes away.
+    engine.worker().send({ type: "message", kind: "prompt", text: "" })
+    expect(match(engine, "playing").stalledMs).toBeNull()
+    engine.timers.advance(30_000)
+    expect(match(engine, "playing").stalledMs).toBe(30_000)
+
+    engine.session.abortMatch()
+    const aborted = match(engine, "aborted")
+    expect(aborted.abort).toMatchObject({ reason: "terminated", origin: "client" })
+    expect(engine.worker().terminated).toBe(true)
+  })
+
+  it("stopping the engine cancels a waiting game and ends a running one", async () => {
+    const waiting = testEngine()
+    waiting.session.startMatch(testSetup())
+    waiting.session.stop()
+    expect(waiting.session.getSnapshot()).toMatchObject({ engine: { status: "idle" }, match: null })
+
+    const engine = await playing()
+    engine.session.stop()
+    expect(match(engine, "aborted").abort).toMatchObject({ reason: "terminated", origin: "client" })
+    expect(engine.session.getSnapshot().engine.status).toBe("idle")
+    expect(engine.worker().terminated).toBe(true)
+  })
+
+  it("cancels a game waiting for the engine; the engine keeps booting", async () => {
+    const engine = testEngine()
+    engine.session.startMatch(testSetup())
+    engine.session.cancelMatch()
+    expect(engine.session.getSnapshot()).toMatchObject({ engine: { status: "booting" }, match: null })
+    await settle()
+    engine.worker().boot()
+    expect(engine.worker().matchStarts()).toHaveLength(0)
+    expect(engine.session.getSnapshot().engine.status).toBe("ready")
+  })
+
+  it("starts the next game on a fresh worker even before the last one sent its summary", async () => {
+    const engine = await playing()
+    engine.session.concede()
+    const first = engine.worker()
+    first.send({ type: "question.withdrawn", id: 1 })
+    first.send(gameState(4, { running: false }))
+    first.send({ type: "game.end", winner: "Forge-KI", reason: "AllOpponentsLost", turns: 0, result: "loss", players: [], conceded: true } satisfies EngineMessage)
+    expect(match(engine, "over").summary).toBeNull()
+    expect(engine.session.getSnapshot().engine.status).toBe("busy")
+
+    expect(engine.session.startMatch(testSetup())).toBe(true)
+    expect(first.terminated).toBe(true)
+    await settle()
+    expect(engine.workers).toHaveLength(2)
+    engine.worker().boot()
+    expect(engine.worker().matchStarts()).toHaveLength(1)
+  })
+
+  it("releases a finished game's engine that does not report its summary", async () => {
+    const engine = await playing()
+    engine.session.concede()
+    const worker = engine.worker()
+    worker.send({ type: "question.withdrawn", id: 1 })
+    worker.send({ type: "game.end", winner: "Forge-KI", reason: "AllOpponentsLost", turns: 0, result: "loss", players: [], conceded: true } satisfies EngineMessage)
+    engine.timers.advance(30_000)
+    expect(match(engine, "over").summary).toBeNull()
+    expect(worker.terminated).toBe(true)
+    expect(engine.session.getSnapshot().engine.status).toBe("idle")
+  })
+
+  it("keeps Forge's notices and refused inputs for the player to see", async () => {
+    const engine = await playing()
+    const worker = engine.worker()
+    worker.send({ type: "message", kind: "notice", text: "Forge-KI zeigt Riesenwuchs.", title: "Hinweis" })
+    worker.send({ type: "message", kind: "error", text: "Etwas ging schief." })
+    expect(match(engine, "playing").notices.map((n) => (n.type === "message" ? n.kind : n.type))).toEqual(["notice", "error"])
+
+    engine.session.concede()
+    worker.send({ type: "input.rejected", seq: 1, reason: "invalid", detail: "concede is not possible now", input: { type: "concede", seq: 1 } })
+    const running = match(engine, "playing")
+    expect(running.conceding).toBe(false)
+    expect(running.notices.at(-1)).toMatchObject({ type: "input.rejected", reason: "invalid" })
+
+    for (let i = 0; i < NOTICE_LIMIT + 5; i++) worker.send({ type: "message", kind: "notice", text: `Hinweis ${i}` })
+    const notices = match(engine, "playing").notices
+    expect(notices).toHaveLength(NOTICE_LIMIT)
+    expect(notices.at(-1)).toMatchObject({ text: `Hinweis ${NOTICE_LIMIT + 4}` })
+  })
+
+  it("concedes only a running game", async () => {
+    const engine = await ready()
+    expect(engine.session.concede()).toEqual({ ok: false, reason: "Es läuft keine Partie." })
+    engine.session.startMatch(testSetup())
+    expect(engine.session.concede()).toMatchObject({ ok: false })
+    expect(engine.worker().inputs()).toEqual([])
   })
 })
