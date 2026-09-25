@@ -141,7 +141,7 @@ The existing queue covers the path from bridge/Worker/resource/differential engi
 - responsive polish/PWA lifecycle,
 - Forge update pipeline,
 - credits/licenses,
-- Android/Warehouse,
+- Android via the global ORYX app (no own APK),
 - regression/parity/production/readiness audits.
 
 Exact order/status is authoritative only in `prompts/STATUS.md`.

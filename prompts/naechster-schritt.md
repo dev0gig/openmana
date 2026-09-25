@@ -67,7 +67,7 @@ Ein Prompt darf nur `COMPLETE` werden, wenn:
 2. relevante Tests erfolgreich waren,
 3. verlangte Dokumentation vorhanden ist,
 4. keine bekannten kritischen Fehler des Prompts offen sind,
-5. der Stand committed und gepusht werden kann.
+5. der Stand committed werden kann (nicht pushen, siehe `AGENTS.md`).
 
 Dokumentiere:
 - Promptnummer und Titel
@@ -95,7 +95,9 @@ Keine Architektur eigenmächtig umgehen. Keinen späteren Queue-Prompt beginnen.
 
 ## 8. Abschluss
 
-Committe und pushe den fertigen Stand einschließlich `prompts/STATUS.md`.
+Committe den fertigen Stand einschließlich `prompts/STATUS.md`. **Nicht pushen**:
+jeder Push auf `main` löst ein Vercel-Deployment aus und verbraucht dev0gigs
+Kontingent. Gepusht wird nur auf seinen ausdrücklichen Wunsch.
 
 Danach STOPPEN. Nicht automatisch mit dem nächsten Queue-Prompt fortfahren.
 
