@@ -81,7 +81,8 @@ describe("settings: card data", () => {
     await user.click(within(card).getByRole("button", { name: "Kartendaten einrichten" }))
     expect(await within(card).findByText("Die Kartendaten ließen sich nicht herunterladen")).toBeInTheDocument()
     expect(within(card).getByText(/HTTP 503/)).toBeInTheDocument()
-    expect(within(card).getByText("Unvollständig")).toBeInTheDocument()
+    // The status comes from its own read of the database, which may answer after the error is shown.
+    expect(await within(card).findByText("Unvollständig")).toBeInTheDocument()
     vi.stubGlobal("fetch", serveFile(file.assets.url, file.gzip).fetch)
     await user.click(within(card).getByRole("button", { name: "Erneut einrichten" }))
     await within(card).findByText("Bereit")
