@@ -101,8 +101,14 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - UI: shadcn `DropdownMenu`, `Select`, `ToggleGroup` (registry, touch sizes), `ActionBar` (built the shadcn way); `--destructive` raised to L 0.74 so the destructive confirm buttons reach 4.5:1 (the end-to-end test found 4.43:1).
 - Evidence: 418 Vitest tests (66 new), end to end in Chrome with the real catalog, Scryfall's real API and the real engine (new section 9: list, details, pictures of named printings, rename, export with real downloads and the round trip, duplicate, import again without a Scryfall request, delete, deck choice, phone with touch). Details: `docs/implementation/10-deck-library.md`.
 
+### Game Session (Prompt 11)
+- Saved decks play a real human-vs-Forge-AI game in the browser. `EngineSession` (`src/engine/engine-session.ts`) holds the engine (worker) and the game in one state: prewarm (the play page, as soon as decks exist; only from idle), queued (waits for a booting engine), starting, refused (`engine.error`, Forge's report; the worker stays usable), playing (Forge's full state, open questions, its prompt line, waiting/computing, notices), over (`game.end` + `match.finished`; the spent worker is released, one game per worker), aborted (`engine.abort`, no result); the client's stall watchdog is shown with a way to end the game.
+- `src/game/`: `engine-deck.ts` (DeckRecord → the protocol's Deck, shared with the E2E test), `match-setup.ts` (random AI deck drawn per game, app-drawn 48-bit seed, names, default profile), `game-start.ts` (the start button: enabled whatever the engine does, its note says what happens next), `game-labels.ts`, `game-page.tsx` (`/play/game`, loaded on demand).
+- The engine boots with `--card-loading=eager --language=de-DE` (Forge's texts are what the player reads in a game). Conceding and ending a game without a result are confirmed; leaving the page during a game asks first (a reload ends it, said on the page).
+- Evidence: Vitest with the real `EngineClient` over a scripted worker (session and pages), end to end in Chrome with the real engine (prewarm without a click, Commander and Constructed games, moving around the app during a game, concede, result, a fresh engine, never two at once, reload, a failed engine download and its retry, a deck Forge refuses and the same engine playing next, phone). No legality check yet: Forge only reports English prose (documented). Details: `docs/implementation/11-game-session.md`.
+
 ## Currently In Progress
-Nothing. Prompts 00–10 are `COMPLETE`. The next prompt is **11 — Game session foundation** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
+Nothing. Prompts 00–11 are `COMPLETE`. The next prompt is **12 — AI profiles and settings** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
 
 Any agent entering the repository must first reconcile this statement with the latest `prompts/STATUS.md` and Git state.
 
@@ -125,7 +131,7 @@ Exact order/status is authoritative only in `prompts/STATUS.md`.
 
 ## Not Yet Implemented
 At this review point:
-- no game session and no playable OpenMana battlefield UI yet (the decks for a game can be chosen; starting it is prompt 11),
+- no playable OpenMana battlefield UI yet: a game starts and runs, but cards and decisions are operated from prompt 13 on (until then it can be followed and conceded),
 - no service worker/offline mode, no deployment, no Android artifact yet.
 
 Anvil remains the working reference implementation until OpenMana reaches the intended parity.
@@ -142,7 +148,7 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 ## Workflow Compatibility
 OpenMana predates the generic Dropzone `queue → active → completed` lifecycle and is worked through **its own numbered ledger**, one prompt at a time.
 
-Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 10 complete, 11 next, nothing in progress).
+Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 11 complete, 12 next, nothing in progress).
 
 Dropzone Master/Standalone must respect:
 - `prompts/STATUS.md` statuses,

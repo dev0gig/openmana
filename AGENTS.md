@@ -67,6 +67,14 @@ The library and the deck choice for a game are `src/decks/` (prompt 10, `docs/im
 - The deck choice is two settings, `play.humanDeck` and `play.aiDeck` (`deck-selection.ts`). Both decks share the player's format (Forge plays one `MatchRequest.format`); a random AI deck is drawn when a game starts (`drawAiDeck`) from the valid decks of that format other than the player's own. A choice that stopped fitting is shown, never silently replaced.
 - A phone page's primary action lives in an `ActionBar` above the tab bar; the export keeps the imported list available unchanged.
 
+## Game Session Rules
+A game against Forge's AI runs through the app's one `EngineSession` (`src/engine/engine-session.ts`; prompt 11, `docs/implementation/11-game-session.md`):
+- One engine at a time and one game per engine: a finished game's worker is released and the next game boots a fresh one. Never start a second engine, never reuse a spent one.
+- Start a game only with `startMatch` and a setup from `src/game/match-setup.ts` (the protocol's Deck through `engineDeck`, the player's deck's format, a random AI deck drawn for every game, a seed the app draws). The UI never builds a `MatchRequest` by hand and never sets `trace`.
+- Every state has a way on and says why: refused (Forge's `engine.error` with its report; the worker stays usable), aborted (`engine.abort`), silent (the client's watchdog). `prewarm` works only from idle: a failed engine is never retried silently, and no fallback hides an engine failure.
+- Who is who comes from Forge's structured state (`me`, `activePlayer`, `result`), never from names; Forge's own texts (German, `ENGINE_ARGS`) are shown as Forge sends them.
+- Conceding and ending a game without a result are confirmed first; while a game is on its way or running, leaving the page asks first (a reload ends the game).
+
 ## Queue and Execution
 OpenMana currently has its own detailed queue ledger at `prompts/STATUS.md`. It remains authoritative while the numbered 00–32 implementation program is running.
 

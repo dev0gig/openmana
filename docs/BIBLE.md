@@ -158,6 +158,8 @@ Forge tells OpenMana what is valid; OpenMana communicates it clearly:
 - impossible actions are not presented as plausible
 - dangerous irreversible actions receive appropriate confirmation
 
+The implemented game session - starting a game with the chosen decks, its states from loading to the result, prewarming the engine, conceding, failures and what a reload does - is described in [implementation/11-game-session.md](implementation/11-game-session.md).
+
 ### Match persistence / resume
 
 A running match does not initially need to survive a tab close, browser reload, browser restart or Android tab discard. This limitation must be communicated honestly until recovery is proven reliable.

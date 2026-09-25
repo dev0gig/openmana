@@ -64,23 +64,30 @@ files work under COEP and nothing leaks to third parties (Bible §15).
    (Bible §16: nothing fails silently). "Empty" is only shown when the local
    database says so: while it loads the page shows a `Skeleton`, and if it
    cannot be read the page shows why, never an empty list.
-   Irreversible actions (deleting, replacing, resetting data) are confirmed
-   in an `AlertDialog` whose destructive button says what happens
-   ("Endgültig entfernen", "Lokale Daten ersetzen").
+   Irreversible actions (deleting, replacing, resetting data, conceding a
+   game, ending one without a result) are confirmed in an `AlertDialog` whose
+   destructive button says what happens ("Endgültig entfernen", "Lokale Daten
+   ersetzen", "Aufgeben") and whose cancel button keeps things as they are
+   ("Weiterspielen").
 5. **Touch first.** On coarse pointers (`pointer-coarse:`) buttons, sidebar
    entries, menu entries, select triggers and options and toggles grow to at
    least 44 px (default `h-11`, `lg` `h-12`, icons `size-11`, menu entries
    `min-h-11`); the phone's tab bar gives each destination a 64 px high,
    full-width target. Mouse layouts stay compact. A page's primary action
    stays on screen on phones: an `ActionBar` right above the tab bar (Anvil
-   lesson, Bible §16), the page header from `md`.
+   lesson, Bible §16), the page header from `md`. An irreversible action
+   (conceding) never goes into the `ActionBar`: a bar that is always under the
+   thumb invites a tap by mistake.
 6. **Accessible by default** (Bible §17). Text on every surface reaches WCAG
    2.2 AA 4.5:1 (checked from the tokens by `src/app/design-tokens.test.ts`;
    most pairs are above 7:1), and so does destructive text on its own 20 %
    tint (the confirm buttons of dialogs, destructive badges – checked since
    prompt 10, which raised `--destructive` from L 0.71 to 0.74 for it). Focus is a gold ring. Links in running text are
    always underlined (`TextLink`), not told apart by colour alone. Every page
-   has one `h1`, regions have names, icons are `aria-hidden` next to text.
+   has one `h1`, regions have names, icons are `aria-hidden` next to text –
+   and so is a `Spinner` next to text (its own label "Lädt" would otherwise
+   become part of a button's name). A page whose state changes on its own
+   (the game) announces the change in a polite live region.
    The end-to-end test runs axe-core on every surface at three sizes and
    fails on serious or critical findings.
 7. **German for the player, English for the system.** Every visible and
@@ -99,8 +106,11 @@ files work under COEP and nothing leaks to third parties (Bible §15).
 
 Content sits in one column, `max-w-5xl`, with cards in a one- or two-column
 grid. Bars are sticky: the page scrolls, the navigation stays reachable. The
-game table (prompt 13 onwards) will have its own full-screen layout and must
-not turn into one endless vertical page (Bible §6).
+game page (`/play/game`, prompt 11) sits in this frame for now; the game table
+(prompt 13 onwards) will have its own full-screen layout there and must not
+turn into one endless vertical page (Bible §6). A game's result is one large
+word in the heading font – gold for a win, the destructive colour for a loss
+(Anvil: "verloren oder gewonnen in großen Buchstaben").
 
 ## 5. Inventory
 
@@ -111,7 +121,7 @@ not turn into one endless vertical page (Bible §6).
 | `AspectRatio`, `Progress` | shadcn/ui registry (`radix-maia`, prompt 08) | card proportions; installing the card catalog |
 | `Textarea` | shadcn/ui registry (`radix-maia`, prompt 09) | pasting a deck list (grows with its content up to `max-h-96`, then scrolls) |
 | `DropdownMenu`, `Select`, `ToggleGroup` (+ `Toggle` it needs) | shadcn/ui registry (`radix-maia`, prompt 10) | a deck's actions (menu „Mehr“, not modal so a dialog opened from it gets the focus), sorting and the format filter of the deck library |
-| `ActionBar` | `src/components/ui/action-bar.tsx`, built the shadcn way (prompt 10) | a page's primary action on phones: sticky right above the tab bar (`bottom-16`), at the end of the content column; pages render it only below `md` (`useIsMobile`) and put the same actions into the header above |
+| `ActionBar` | `src/components/ui/action-bar.tsx`, built the shadcn way (prompt 10) | a page's primary action on phones: sticky right above the tab bar (`bottom-16`), at the end of the content column – on a short page too (since prompt 11 the `Page` column fills the screen and the bar is pushed to its end, `mt-auto`); pages render it only below `md` (`useIsMobile`) and put the same actions into the header above |
 | `CardPicture` | `src/components/ui/card-picture.tsx`, built the shadcn way (prompt 08) | every picture of a Magic card: `AspectRatio` 63 × 88, `Skeleton` while loading, the card's text in place of a missing or failed picture (`data-state` loading/loaded/failed/missing); loads Scryfall's pictures in CORS mode without referrer and never crops them (`object-contain`: Scryfall forbids cutting off artist or copyright) |
 | `BottomNav`, `BottomNavItem` | `src/components/ui/bottom-nav.tsx`, built the shadcn way | phone tab bar |
 | `Brand` | `src/components/brand.tsx` | icon + Cinzel wordmark |

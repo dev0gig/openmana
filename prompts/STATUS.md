@@ -28,9 +28,9 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | **11 — Game session foundation** |
-| Nächster Prompt | 12 — AI profiles and settings (erst nach 11 = COMPLETE) |
-| Zuletzt abgeschlossen | 10 — Deck library (`7aab76f`, Nachweise auf `58aaa58`) |
+| Aktuell ausgeführt | – (keiner; nach 11 wie in `naechster-schritt.md` vorgesehen gestoppt) |
+| Nächster Prompt | **12 — AI profiles and settings** (PENDING, nicht begonnen) |
+| Zuletzt abgeschlossen | 11 — Game session foundation (`679fbfb`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-25 (Lauf über `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-25 |
 
@@ -49,7 +49,7 @@
 | 08 | [Scryfall card data](queue/08-scryfall-data.md) | COMPLETE | `45f57d7` |
 | 09 | [Arena deck import](queue/09-arena-deck-import.md) | COMPLETE | `c7bb533` |
 | 10 | [Deck library](queue/10-deck-library.md) | COMPLETE | `7aab76f` |
-| 11 | [Game session foundation](queue/11-game-session.md) | IN_PROGRESS | – |
+| 11 | [Game session foundation](queue/11-game-session.md) | COMPLETE | `679fbfb` |
 | 12 | [AI profiles and settings](queue/12-ai-profiles-settings.md) | PENDING | – |
 | 13 | [Battlefield foundation](queue/13-battlefield-foundation.md) | PENDING | – |
 | 14 | [Cards, hand and safe interaction](queue/14-card-hand-interactions.md) | PENDING | – |
@@ -1065,28 +1065,155 @@
 - **Weiter mit:** Prompt 11 (Game session foundation). Nicht begonnen:
   `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
 
-### 11 — Game session foundation — IN_PROGRESS
+### 11 — Game session foundation — COMPLETE
 
-- Begonnen am 2026-09-25 von Claude Code (Claude Opus 5.5), Auftrag
-  „Führe prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
+- **Commits:** `679fbfb` Implementierung (alle Nachweise liefen auf diesem
+  Stand, sauberer Arbeitsbaum), danach Doku und dieser Eintrag (2026-09-25).
+  Agent: Claude Code (Claude Opus 5.5), Auftrag „Führe
+  prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
+  Status-Commit zu Beginn: `db6c6de`.
+- **Zusammenfassung:** Die gespeicherten Decks spielen eine **echte Partie
+  gegen die Forge-KI** im Browser. Öffnet der Spieler „Spielen“ und hat er
+  Decks, **wärmt die Engine von selbst vor** (nur aus `idle`, nie ein stilles
+  Wiederholen nach einem Fehler). „Partie starten“ zieht bei „zufällig“ das
+  Deck der KI neu, übergibt beide Decks als **Daten** (Protokoll-`Deck` mit
+  Forges Namen; keine Datei, kein Server), einen von der App gezogenen Seed
+  (48 Bit) und Forges Standardprofil, und führt zur Seite **„Partie“**
+  (`/play/game`, nachgeladen). Der Knopf geht bei jedem Engine-Zustand
+  (wartet auf eine ladende, startet eine gescheiterte neu) und sagt, was als
+  Nächstes passiert. **Ausdrückliche Zustände** mit je einem Weg weiter:
+  wird vorbereitet (Startschritte), Forge baut auf, läuft (Forges Zug,
+  Schritt, Lebenspunkte, Zonengrößen, die Entscheidung in Forges eigenen
+  deutschen Worten, Meldungen), Ergebnis („Gewonnen“/„Verloren“/
+  „Unentschieden“ groß, aus Forges `result`), abgelehnt (`engine.error` mit
+  Forges Bericht; derselbe Worker nimmt die nächste Partie), abgebrochen bzw.
+  konnte nicht starten (`engine.abort`), Engine stumm (Wächter, „Partie
+  beenden“). **Eine Engine je Partie**, nie zwei zugleich; die nächste wird
+  nach dem Ergebnis vorgewärmt. Aufgeben und Beenden bestätigt; Neuladen
+  fragt vorher und beendet die Partie (so gesagt). Einzige Eingabe ist das
+  Aufgeben – Spieltisch und Entscheidungen folgen ab 13. Keine
+  Attrappen. Engine unverändert (`--card-loading=eager --language=de-DE`
+  jetzt ausdrücklich). Kein Blocker.
+- **Wichtige Komponenten:**
+  - Sitzung: `src/engine/engine-session.ts` (Engine **und** Partie in einem
+    Zustand: `idle/booting/ready/busy/aborted` + `queued/starting/refused/
+    playing/over/aborted`; `prewarm`, `startMatch`, `cancelMatch`, `concede`,
+    `abortMatch`, `ENGINE_ARGS`), `engine-session-context.tsx` (stabile
+    Aktionen, Warnung vor dem Verlassen, ein Abbruch-Toast ersetzt den
+    vorigen), `engine-panel.tsx` („Spielt“, Sprache von Forge, geteilte
+    `BootSteps`)
+  - Partie: `src/game/engine-deck.ts` (DeckRecord → Protokoll-Deck, auch vom
+    E2E in Node benutzt), `match-setup.ts` (Zufallsdeck je Partie, Seed,
+    Namen „Spieler“/„Forge-KI“, Profil `Default`), `game-start.ts`
+    (Start-Knopf), `game-labels.ts`, `game-page.tsx`
+  - `src/routes/play-page.tsx` (vorwärmen, echter Start, „Zur laufenden
+    Partie“), Route `play/game`; Layout: `Page` füllt die Höhe,
+    `ActionBar` sitzt auch auf kurzen Seiten über der Tab-Leiste
+  - Tests: `src/test/game-fixtures.ts` (echter `EngineClient` über einem
+    geskripteten Worker), E2E-Abschnitt 10 in `scripts/e2e/run.ts`,
+    `/play/game` in den Oberflächen
+  - Doku: `docs/implementation/11-game-session.md`, `AGENTS.md`
+    (Regeln der Spielsitzung), `docs/DESIGN_SYSTEM.md`, Bible §6 (Verweis),
+    `README.md`, `STATUS.md`
+- **Tests (alle bestanden, auf `679fbfb`):**
+  - Erzeugte Dateien = Schemas, `tsc -b`, `oxlint` ohne Befund.
+  - **468 Vitest-Tests** (418 bestehende + 50 neue): Sitzung 26 (8 → 26: jetzt
+    über den **echten** `EngineClient` mit geskriptetem Worker – Vorwärmen,
+    Start auf bereiter/bootender/keiner Engine, genaue Anfrage, Zustand,
+    Fragen, Anweisung, Warten, Aufgeben genau einmal, Ergebnis, Worker
+    freigegeben, Ablehnung + derselbe Worker, ungültige Anfrage, keine zweite
+    Partie, Abbruch mit letztem Stand, Protokollverstoß, Bereit-Zeitlimit,
+    Wächter + „Partie beenden“, Beenden, Abbrechen, Meldungen), Seiten 13
+    (vorwärmen und starten mit genauer `match.start`-Anfrage, Gründe am
+    Start-Knopf, ohne Partie, laufende Partie mit Aufgeben-Bestätigung und
+    Ergebnis, Ablehnung mit Deck-Link, Abbrüche mit Toast, stumme Engine,
+    Handy), Partie-Plan 9, Start-Knopf 4, Texte 6; angepasst: Engine-Kasten 3,
+    Deckwahl 3.
+  - **End-to-End** (`npm run check` 365 s, Chrome 153, echte Engine
+    `0c82db80023ac0cc`, echter Katalog, echte Scryfall-API, **0 Fehler**, axe
+    ohne Befund): alle bisherigen Prüfungen plus `/play/game` in drei Größen
+    und Abschnitt 10 – Vorwärmen ohne Klick („Bereit“ nach 5,4 s),
+    Commander-Spiegelpartie (Münzwurf: „Spielen“/„Ziehen“, 40 Leben, Hand 0,
+    Bibliothek 59, Kommandozone 1) und Constructed gegen ein zufällig
+    gezogenes Deck (Mulligan, 20 Leben, Hand 7, Bibliothek 53), je 0,85 s vom
+    Klick bis zur ersten Entscheidung; durch die App und zurück zur selben
+    Partie; Aufgeben mit Bestätigung → „Verloren“; nächste Engine vorgewärmt;
+    Neuladen fragt (`beforeunload`) und beendet die Partie; nie mehr als ein
+    Worker. Frisches Profil: Wasm-Download scheitert (HTTP 500) → Abbruch im
+    Engine-Kasten, „Die Partie konnte nicht starten“ mit Grund, danach „Neue
+    Partie“ in 5,8 s; Deck mit unbekannter Karte → Forges Bericht, nächste
+    Partie auf demselben Worker. Handy: kein Überlauf, 48-px-Knöpfe, „Neue
+    Partie“ direkt über der Tab-Leiste. Abschnitt 8 spielt alle 4 Decks in der
+    Engine (Node) jetzt mit der Deck-Übergabe der App, 0 Befunde.
+  - Engine unverändert: erzeugte Protokolldateien = Schema, `tsc`, **80/80**.
+    Frischer Klon von `679fbfb`: `npm ci`, Build ohne Engine scheitert laut,
+    mit `OPENMANA_ENGINE=omit OPENMANA_CARDS=omit` baut er, 468 Tests grün.
+- **Messwerte (odin):** Vorwärmen bis „Bereit“ 5,4 s (Desktop, Lastmittel
+  1,3–1,9); Start mit vorgewärmter Engine bis zur ersten Entscheidung
+  0,84–0,87 s (Desktop, Handy); kalter Start samt Engine 5,8 s; in Node Engine
+  bereit nach 6,8–6,9 s, Partie danach in 61–79 ms. Start-JavaScript (Vite,
+  gzip, beide Stände gleich gebaut) 222,1 → **229,1 KB** (+7,0 KB);
+  Partie-Seite 4,7 KB gzip nachgeladen. Nie mehr als eine Engine (~1 GB).
+- **Erkenntnisse/Abweichungen:**
+  - **Münzwurf vor dem Mulligan:** Gewinnt der Spieler den Münzwurf, fragt
+    Forge zuerst „Spielen oder Ziehen?“ (Knöpfe ohne `purpose`, vor den
+    Starthänden: Hand 0); sonst kommt der Mulligan. Die Anweisungszeile kommt
+    als eigene `prompt`-Nachricht nach der Frage (Frage-Text leer) → die
+    Sitzung hält sie. Für 15/16: die Münzwurf-Frage hat keinen eigenen Zweck.
+  - **Keine Legalitätsprüfung vor dem Start** (von 09/10 für 11
+    vorgeschlagen): Forges `getDeckConformanceProblem` liefert nur englische
+    Satzbruchstücke (upstream: „Needs localization“) – deutsch zeigen hieße
+    Prosa parsen, englisch bräche die Sprachregel. Forge spielt jedes Deck, das
+    es bauen kann; Arenas Brawl-Decks spielt es als Commander (40 Leben), das
+    Protokoll kennt kein Brawl. Offen, Kandidat für 23 bzw. upstream.
+  - **Seed von der App** statt `null`: Forge nimmt dann `java.util.Random`
+    statt `SecureRandom`; dafür ist er für die Aufzeichnung (22) bekannt.
+  - **Forges Sprache Deutsch** ab jetzt (Spieler liest Forges Sätze; 04/05:
+    ändert nur Wörter). Eine Einstellung wäre Sache von 12.
+  - Behoben/gefunden: Wartezustand nach dem Aufgeben (Sitzungstest),
+    Lade-Kreisel im Knopfnamen (Seitentest), gestapelte gleiche Fehler-Toasts
+    (axe-Kontrast), Aktionsleiste schwebte auf kurzen Seiten, zeitabhängiger
+    axe-Schritt aus 10 (Menü blendet aus). Testfalle: Playwrights
+    Ganzseiten-Screenshot setzt die Touch-Emulation zurück (`pointer: coarse`
+    danach falsch) → Maße vor Ganzseiten-Screenshots.
+  - Bewusst: Anvils „Aufgeben und neue Partie“ nicht übernommen (30);
+    keine Aufzeichnung (22); Hinweise am Start-Knopf in
+    Einrichtungsreihenfolge (erst Decks, dann Engine).
+- **Weiter mit:** Prompt 12 (AI profiles and settings). Nicht begonnen:
+  `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
 
 ## Hinweise für spätere Prompts
 
-### Decks für die Partie (Stand 2026-09-25, für 11)
+### Spielsitzung (Stand 2026-09-25, für 12 ff.)
 
-- Die Wahl steht in den Einstellungen `play.humanDeck` und `play.aiDeck`
-  (`src/decks/deck-selection.ts`: `readSelection` + `resolveSelection` sagen,
-  ob beide Decks stehen und warum nicht). Bei `ai.status === "random"` zieht
-  `drawAiDeck(pool)` das Deck der KI **beim Start** (neu je Partie; der Pool
-  enthält nie das Deck des Spielers). Das Format der Partie ist das des
-  Spieler-Decks.
-- An Forge geht ein `DeckRecord` als Protokoll-`Deck`: `name`, `main`,
-  `sideboard`, `commander` mit `{card: entry.name, count}`. Der Gefährte steht
-  schon im Sideboard – `DeckRecord.companion` nicht zusätzlich übergeben.
-- Für die Partie aufgezeichnet wird eine Kopie des Decks (`MatchDeck`), weil
-  sich das Bibliotheks-Deck danach ändern oder verschwinden kann.
-- Offen aus 05/09: Forge prüft Decks beim Start nicht (Vorschlag: Forges
-  `DeckFormat.getDeckConformanceProblem` über die Engine abfragen und zeigen).
+Seit Prompt 11 läuft eine Partie über die eine `EngineSession`
+(`src/engine/engine-session.ts`, Doku `docs/implementation/11-game-session.md`):
+
+- **12:** Das KI-Profil steht in `src/game/match-setup.ts`
+  (`DEFAULT_AI_PROFILE = "Default"`, `matchSetup(…, { profile })`); die
+  Start-Argumente der Engine in `ENGINE_ARGS` (`--card-loading=eager
+  --language=de-DE`). Die Spielen-Seite zeigt „Profil Standard (Forges
+  Vorgabe)“ – die Wahl gehört dorthin bzw. in die Einstellungen.
+- **13–16:** Der Partie-Zustand (`MatchSnapshot` `playing`) hat schon den
+  letzten vollständigen `state`, die offenen `questions`, Forges
+  Anweisungszeile `prompt`, `waiting` und Forges Meldungen (`notices`). Die
+  Sitzung sendet bisher nur `concede`; Antworten und Antippen
+  (`EngineClient.answer`, `tapCard`, `tapPlayer`) brauchen neue
+  Sitzungsmethoden. Die Partie-Seite `/play/game` (nachgeladen) ist der Ort des
+  Spieltischs. **Achtung:** Gewinnt der Spieler den Münzwurf, ist die erste
+  Frage „Spielen oder Ziehen?“ (Knöpfe **ohne** `purpose`, vor den Starthänden),
+  sonst der Mulligan; Forges Anweisung kommt als eigene `prompt`-Nachricht
+  **nach** der Frage (deren Text ist leer).
+- **21:** `events` (Forges Spielprotokoll, deutsch, mit `actor`) kommen an, die
+  Sitzung verwirft sie noch.
+- **22:** `MatchSetup` hält alles für die Aufzeichnung: die genaue
+  `match.start`-Anfrage (Kopie beider Decks), den **von der App gezogenen Seed**
+  (48 Bit), Profil, Deck-Ids und ob das KI-Deck gezogen wurde.
+- **Offen:** Forge prüft Decks beim Start nicht, und
+  `DeckFormat.getDeckConformanceProblem` liefert nur englische
+  Satzbruchstücke – eine Legalitätsanzeige braucht strukturierte oder
+  übersetzte Befunde (upstream). Arenas Brawl-Decks spielt Forge als Commander
+  (das Protokoll kennt kein Brawl).
 
 ### Vercel und Android (Stand 2026-09-25, für 28 und 31)
 
