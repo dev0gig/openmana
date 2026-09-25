@@ -11,7 +11,7 @@ import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } f
 import { useDeviceFeatures } from "@/engine/device-support"
 
 const STEPS = [
-  { icon: Upload, title: "Deck importieren", description: "Eine Arena-Deckliste einfügen – sie bleibt auf diesem Gerät.", ready: false },
+  { icon: Upload, title: "Deck importieren", description: "Eine Arena-Deckliste einfügen – sie bleibt auf diesem Gerät.", ready: true },
   { icon: Bot, title: "Gegner wählen", description: "Die Forge-KI, mit einem Profil nach Wahl.", ready: false },
   { icon: Swords, title: "Spielen", description: "Forge entscheidet jede Regel; OpenMana zeigt dir, was möglich ist.", ready: true },
 ] as const

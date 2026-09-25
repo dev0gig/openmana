@@ -1,15 +1,16 @@
 /*
- * Decks: the local deck library as the database holds it. Import (prompt 09)
- * and the library's own actions (prompt 10) follow; until then the page
- * shows exactly what is stored - nothing, or what a loaded backup brought -
- * and a damaged record as damaged, never hidden.
+ * Decks: the local deck library as the database holds it, and the way to
+ * import an Arena deck (/decks/import, prompt 09). The library's own actions
+ * (details, rename, delete …) follow with prompt 10; until then the page
+ * shows exactly what is stored and a damaged record as damaged, never hidden.
  */
 import { Layers, Upload } from "lucide-react"
+import { Link } from "react-router"
 import { Page } from "@/components/page-header"
 import { TextLink } from "@/components/text-link"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@/components/ui/item"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -21,15 +22,12 @@ import { DECK_FORMAT_LABELS, formatDateTime } from "@/storage/storage-labels"
 
 function ImportButton() {
   return (
-    <>
-      <Button size="lg" disabled aria-describedby="decks-import-note">
+    <Button asChild size="lg">
+      <Link to="/decks/import">
         <Upload data-icon="inline-start" aria-hidden />
         Arena-Deck importieren
-      </Button>
-      <p id="decks-import-note" className="text-sm text-muted-foreground">
-        Der Import folgt in Kürze.
-      </p>
-    </>
+      </Link>
+    </Button>
   )
 }
 
@@ -71,6 +69,9 @@ export function DecksPage() {
           <CardHeader>
             <CardTitle>{decks.data.records.length === 1 ? "1 Deck" : `${decks.data.records.length} Decks`}</CardTitle>
             <CardDescription>Details, Bearbeiten und Löschen folgen mit der Deck-Bibliothek.</CardDescription>
+            <CardAction>
+              <ImportButton />
+            </CardAction>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <ItemGroup aria-label="Gespeicherte Decks" role="list">
@@ -99,9 +100,6 @@ export function DecksPage() {
                 </Item>
               ))}
             </ItemGroup>
-            <div className="flex flex-col items-start gap-2">
-              <ImportButton />
-            </div>
           </CardContent>
         </Card>
       )}

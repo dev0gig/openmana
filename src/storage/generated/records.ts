@@ -142,7 +142,7 @@ export interface AppVersion {
   commit: GitCommit | null;
 }
 /**
- * One normalized deck entry. name: the English card name Forge knows (front face of a double-faced card). set/collectorNumber: the printing the import named, if any. oracleId/scryfallId: Scryfall identities once resolved (display only, never rules).
+ * One normalized deck entry. name: the English card name Forge knows (front face of a double-faced card). set/collectorNumber: the printing the import named, if any - set is Scryfall's set code (lower case; the import maps MTG Arena's codes such as DAR to it). oracleId/scryfallId: Scryfall identities once resolved (display only, never rules); none for cards only Forge knows.
  */
 export interface DeckCard {
   count: number;

@@ -215,7 +215,7 @@ describe("pages list what is stored", () => {
     expect(within(list).getByText(/^Commander · 24 Karten · Commander 1 · Sideboard 2/)).toBeInTheDocument()
     expect(within(list).getByText("beschädigt")).toBeInTheDocument()
     expect(screen.getByText("1 Deck")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /Arena-Deck importieren/ })).toBeDisabled()
+    expect(screen.getByRole("link", { name: /Arena-Deck importieren/ })).toHaveAttribute("href", "/decks/import")
   })
 
   it("matches: newest first with result and turns", async () => {

@@ -65,10 +65,10 @@ describe("surfaces", () => {
 })
 
 describe("no invented data", () => {
-  it("decks: empty library, import not offered yet", async () => {
+  it("decks: empty library, the way to import a deck", async () => {
     renderAt("/decks")
     expect(await screen.findByText("Noch keine Decks")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /Arena-Deck importieren/ })).toBeDisabled()
+    expect(screen.getByRole("link", { name: /Arena-Deck importieren/ })).toHaveAttribute("href", "/decks/import")
   })
 
   it("matches: no recorded games", async () => {

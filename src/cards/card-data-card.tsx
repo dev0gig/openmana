@@ -64,7 +64,8 @@ function catalogFacts(state: CardCatalogState): Fact[] {
   ]
 }
 
-function InstallProgressView({ state }: { state: CardCatalogState }) {
+/** Progress of a running install (also shown where the deck import waits for the catalog). */
+export function InstallProgressView({ state }: { state: CardCatalogState }) {
   const progress = state.progress
   const percent = progress === null || progress.total === 0 ? 0 : Math.round((progress.done / progress.total) * 100)
   const text =
@@ -84,7 +85,7 @@ function InstallProgressView({ state }: { state: CardCatalogState }) {
   )
 }
 
-function InstallButton({ state }: { state: CardCatalogState }) {
+export function InstallButton({ state }: { state: CardCatalogState }) {
   const label = state.status === "outdated" ? "Kartendaten aktualisieren" : state.error !== null || state.status === "partial" ? "Erneut einrichten" : "Kartendaten einrichten"
   return (
     <Button size="lg" onClick={() => void state.install()}>

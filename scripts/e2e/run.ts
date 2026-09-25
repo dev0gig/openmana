@@ -38,6 +38,17 @@
  *     double-faced card, English only, no Scryfall data, pictures offline);
  *     an image without CORS mode is blocked (why card-picture.tsx sets it);
  *     phone layout; axe-core.
+ *  8. Deck import: from the decks page, the card data set up on the import
+ *     page, then real Arena lists - English (every kind of card, Arena's set
+ *     codes, a companion, resolved without asking Scryfall), German (German
+ *     names, an ambiguous old translation chosen by the player, a printing
+ *     that decides through Scryfall's real API, a French name identified by
+ *     its printing, a card Forge does not know left out), a Commander list
+ *     opened as a text file - checked, saved, found again after a reload and
+ *     read back from IndexedDB; phone layout and axe-core. Then every saved
+ *     deck is handed to the real Forge engine (WebAssembly in Node): Forge
+ *     accepts every name, the game starts with exactly these cards and ends
+ *     when the player concedes.
  */
 import { createRequire } from "node:module"
 import { randomUUID } from "node:crypto"
@@ -51,6 +62,7 @@ import { chromium, type Browser, type BrowserContext, type Locator, type Page } 
 import { build, createServer, preview } from "vite"
 import { SCHEMA_VERSION } from "../../src/storage/generated/constants.ts"
 import { ISOLATION_HEADERS } from "../../vite/isolation-headers.ts"
+import { playDeck, type StoredDeck } from "./engine-decks.ts"
 
 const root = path.resolve(import.meta.dirname, "../..")
 const dist = path.join(root, "dist")
@@ -76,6 +88,7 @@ const VIEWPORTS: readonly Viewport[] = [
 const ROUTES = [
   { path: "/", title: "OpenMana", heading: "OpenMana" },
   { path: "/decks", title: "Decks · OpenMana", heading: "Decks" },
+  { path: "/decks/import", title: "Arena-Deck importieren · OpenMana", heading: "Arena-Deck importieren" },
   { path: "/play", title: "Spielen · OpenMana", heading: "Spielen" },
   { path: "/matches", title: "Partien · OpenMana", heading: "Partien" },
   { path: "/settings", title: "Einstellungen · OpenMana", heading: "Einstellungen" },
@@ -1036,6 +1049,257 @@ async function cardData(browser: Browser, base: string): Promise<void> {
   report["cardData"] = results
 }
 
+// ── 8. Deck import (Arena lists, real catalog, real Scryfall, real Forge) ──
+
+/** An English Arena export: every kind of card, Arena's own set code (DAR = Scryfall's DOM), a companion also in the sideboard. */
+const ENGLISH_LIST = [
+  "About",
+  "Name E2E Izzet",
+  "",
+  "Companion",
+  "1 Lurrus of the Dream-Den (IKO) 226",
+  "",
+  "Deck",
+  "4 Delver of Secrets (MID) 47",
+  "4 Lightning Bolt (M11) 149",
+  "2 Fire // Ice (MH2) 290",
+  "3 Bonecrusher Giant (ELD) 115",
+  "1 Valki, God of Lies (KHM) 114",
+  "1 Hansk, Slayer Zealot (SLX) 22",
+  "1 A-Luminarch Aspirant (ZNR) 24",
+  "1 Rampant Growth (M10) 201",
+  "20 Island (DAR) 254",
+  "23 Mountain",
+  "",
+  "Sideboard",
+  "1 Lurrus of the Dream-Den (IKO) 226",
+  "2 Shock (M21) 159",
+  "",
+].join("\n")
+
+/**
+ * A German list: "Zwang" is the old German name of Duress and of Coercion
+ * (the player chooses), "Wucherndes Wachstum" that of Rampant Growth and
+ * Overgrowth (the printing decides, asked of Scryfall), "Foudre" is French
+ * (the printing identifies it), Gale is an Alchemy card the pinned Forge
+ * does not have (left out).
+ */
+const GERMAN_LIST = [
+  "Deck",
+  "4 Blitzschlag (M11) 149",
+  "2 Foudre (M11) 149",
+  "2 Zwang",
+  "2 Wucherndes Wachstum (M10) 201",
+  "4 Geheimnisstöberer (MID) 47",
+  "1 Gale, Primeval Conduit (HBG) 6g",
+  "46 Wald",
+  "",
+  "Sideboard",
+  "2 Schock",
+  "",
+].join("\n")
+
+/** A Brawl export (commander), opened as a text file with Windows line ends. */
+const COMMANDER_LIST = ["About", "Name E2E Brawl", "", "Commander", "1 Valki, Gott der Lügen (KHM) 114", "", "Deck", "1 Blitzschlag", "1 Fire // Ice", "57 Gebirge", ""].join("\r\n")
+
+/** A deck as the browser's IndexedDB holds it (the fields this test reads). */
+interface SavedCard {
+  readonly count: number
+  readonly name: string
+  readonly set?: string
+  readonly collectorNumber?: string
+  readonly oracleId?: string
+}
+interface SavedDeck extends StoredDeck {
+  readonly source: { readonly text: string }
+  readonly main: readonly SavedCard[]
+}
+
+const checkTimes: Record<string, number> = {}
+
+/** Pastes and checks a list; records how long the check took until the report was final. */
+async function checkList(page: Page, text: string, label: string): Promise<Locator> {
+  await page.getByLabel("Liste im Arena-Format").fill(text)
+  const started = Date.now()
+  await page.getByRole("button", { name: "Liste prüfen" }).click()
+  const summary = page.getByRole("region", { name: "Prüfbericht" })
+  await summary.waitFor({ timeout: 60_000 })
+  // Final once no update runs any more.
+  await page.getByText(/^(Prüfe die Liste|Aktualisiere den Prüfbericht|Frage Scryfall)/).waitFor({ state: "detached", timeout: 60_000 })
+  checkTimes[label] = Date.now() - started
+  return summary
+}
+
+async function rowText(section: Locator, name: string): Promise<string> {
+  return (await section.locator('[data-slot="item"]', { hasText: name }).first().textContent()) ?? ""
+}
+
+async function saveImported(page: Page, name: string | null): Promise<void> {
+  if (name !== null) await page.getByLabel("Name des Decks").fill(name)
+  await page.getByRole("button", { name: "Deck speichern" }).click()
+  await page.getByRole("heading", { level: 1, name: "Decks" }).waitFor()
+}
+
+async function deckImport(browser: Browser, base: string, id: string): Promise<void> {
+  log("Deck import (Arena lists, real catalog, real Scryfall, real Forge)")
+  const results: Record<string, unknown> = {}
+  const context = await newContext(browser, VIEWPORTS[2]!)
+  const page = await context.newPage()
+  const pageLog = watch(page)
+  const api: { url: string; status: number; method: string }[] = []
+  page.on("response", (response) => {
+    if (new URL(response.url()).host === "api.scryfall.com") api.push({ url: response.url(), status: response.status(), method: response.request().method() })
+  })
+  let decks: SavedDeck[] = []
+  try {
+    // From the decks page; the card data are set up right on the import page.
+    await page.goto(new URL("/decks", base).href, { waitUntil: "networkidle" })
+    await page.getByRole("link", { name: "Arena-Deck importieren" }).first().click()
+    await page.getByRole("heading", { level: 1, name: "Arena-Deck importieren" }).waitFor()
+    const needed = page.getByRole("region", { name: "Kartendaten nötig" })
+    await needed.waitFor()
+    await page.getByLabel("Liste im Arena-Format").fill("4 Lightning Bolt")
+    check(await page.getByRole("button", { name: "Liste prüfen" }).isDisabled(), "deck import: checking possible without card data")
+    const installStarted = Date.now()
+    await needed.getByRole("button", { name: "Kartendaten einrichten" }).click()
+    await needed.waitFor({ state: "detached", timeout: 300_000 })
+    results["catalogInstallMs"] = Date.now() - installStarted
+
+    // 1. English: every line resolves through the catalog alone - Scryfall's API is not asked.
+    let summary = await checkList(page, ENGLISH_LIST, "english (catalog only)")
+    await summary.getByText("Alle Zeilen geklärt").waitFor()
+    check((await page.getByLabel("Name des Decks").inputValue()) === "E2E Izzet", "deck import: the list's name was not taken")
+    const englishFacts = await cardFacts(summary)
+    check(englishFacts["Hauptdeck"] === "60 Karten" && englishFacts["Sideboard"] === "3 Karten", `deck import (English): counts ${JSON.stringify(englishFacts)}`)
+    await summary.getByText("Gefährte „Lurrus aus der Traumhöhle“: Er liegt im Sideboard, wo Forge ihn zu Spielbeginn sucht.").waitFor()
+    let main = page.getByRole("region", { name: "Hauptdeck" })
+    const englishRows = {
+      delver: await rowText(main, "Geheimnisstöberer"),
+      bolt: await rowText(main, "Blitzschlag"),
+      hansk: await rowText(main, "Hansk"),
+      island: await rowText(main, "Insel"),
+      rebalanced: await rowText(main, "A-Luminarch Aspirant"),
+      growth: await rowText(main, "Wucherndes Wachstum"),
+    }
+    check(englishRows.delver.includes("Forge: Delver of Secrets") && englishRows.delver.includes("MID 47"), `deck import: Delver row ${englishRows.delver}`)
+    check(englishRows.hansk.includes("Forge: Daryl, Hunter of Walkers"), `deck import: Hansk row ${englishRows.hansk}`)
+    check(englishRows.island.includes("DOM 254"), `deck import: Arena's DAR not mapped to DOM: ${englishRows.island}`)
+    check(englishRows.rebalanced.includes("ZNR 24"), `deck import: rebalanced row ${englishRows.rebalanced}`)
+    check(englishRows.growth.includes("Forge: Rampant Growth"), `deck import: Rampant Growth row ${englishRows.growth}`)
+    results["englishRows"] = englishRows
+    check(api.length === 0, `deck import (English): Scryfall's API asked ${api.length} times`)
+    results["englishAxe"] = await accessibility(page, "deck import: report (English)")
+    await screenshots(page, "desktop-deck-import-report-english")
+    await saveImported(page, null)
+    await page.getByText("Deck „E2E Izzet“ gespeichert").waitFor()
+
+    // 2. German: open lines, a choice, a printing asked of Scryfall, a line left out.
+    await page.goto(new URL("/decks/import", base).href, { waitUntil: "networkidle" })
+    summary = await checkList(page, GERMAN_LIST, "german (2 printings asked of Scryfall)")
+    await summary.getByText("2 Zeilen sind noch zu klären").waitFor()
+    check(await page.getByRole("button", { name: "Deck speichern" }).isDisabled(), "deck import: saving possible with open lines")
+    const open = page.getByRole("region", { name: "Zu klären" })
+    const openItems = await open.locator('[data-slot="item"]').allTextContents()
+    check(
+      openItems.length === 2 && openItems[0]!.includes("Zeile 4") && openItems[0]!.includes("Mehrdeutig") && openItems[1]!.includes("Zeile 7") && openItems[1]!.includes("Forge kennt diese Karte nicht"),
+      `deck import: open lines ${JSON.stringify(openItems)}`,
+    )
+    main = page.getByRole("region", { name: "Hauptdeck" })
+    const germanRows = { bolt: await rowText(main, "Blitzschlag"), growth: await rowText(main, "Wucherndes Wachstum") }
+    check(germanRows.bolt.startsWith("6 ×"), `deck import: Blitzschlag and Foudre not added up: ${germanRows.bolt}`)
+    check(germanRows.bolt.includes("Über Set und Sammlernummer erkannt"), `deck import: Foudre not identified by its printing: ${germanRows.bolt}`)
+    check(germanRows.growth.includes("Forge: Rampant Growth") && germanRows.growth.includes("Set und Sammlernummer haben entschieden"), `deck import: Wucherndes Wachstum ${germanRows.growth}`)
+    results["germanRows"] = germanRows
+    results["germanOpenAxe"] = await accessibility(page, "deck import: report with open lines")
+    await screenshots(page, "desktop-deck-import-report-german-open")
+
+    // Phone: the report fits and passes axe.
+    await page.setViewportSize({ width: VIEWPORTS[0]!.width, height: VIEWPORTS[0]!.height })
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+    check(overflow <= 0, `deck import: the report overflows the phone by ${overflow}px`)
+    results["phoneAxe"] = await accessibility(page, "deck import: report (phone)")
+    await screenshots(page, "phone-deck-import-report-german-open")
+    await page.setViewportSize({ width: VIEWPORTS[2]!.width, height: VIEWPORTS[2]!.height })
+
+    // "Zwang": the player chooses Duress.
+    await open.getByRole("button", { name: "Karte wählen: Zeile 4" }).click()
+    const dialog = page.getByRole("dialog", { name: "Welche Karte ist gemeint?" })
+    await dialog.waitFor()
+    const candidates = await dialog.getByRole("group", { name: "Karten zur Auswahl" }).getByRole("button").allTextContents()
+    check(
+      candidates.length === 2 && candidates.some((c) => c.includes("Forge: Duress")) && candidates.some((c) => c.includes("Forge: Coercion")),
+      `deck import: candidates ${JSON.stringify(candidates)}`,
+    )
+    results["dialogAxe"] = await accessibility(page, "deck import: choosing a card")
+    await page.screenshot({ path: path.join(reportDir, "screens", "desktop-deck-import-choose.png") })
+    await dialog.getByRole("button").filter({ hasText: "Forge: Duress" }).click()
+    await summary.getByText("Eine Zeile ist noch zu klären").waitFor()
+    // Gale: the player leaves the line out.
+    await open.getByRole("button", { name: "Zeile 7 weglassen" }).click()
+    await summary.getByText("Alle Zeilen geklärt").waitFor()
+    await page.getByText("Das Deck braucht einen Namen.").waitFor()
+    check(await page.getByRole("button", { name: "Deck speichern" }).isDisabled(), "deck import: saving possible without a name")
+    await saveImported(page, "E2E Deutsch")
+
+    // 3. A Commander list opened as a text file: checked at once.
+    await page.goto(new URL("/decks/import", base).href, { waitUntil: "networkidle" })
+    await page.getByText("Füge zuerst eine Liste ein.").waitFor()
+    await page.locator('input[type="file"]').setInputFiles({ name: "brawl.txt", mimeType: "text/plain", buffer: Buffer.from(`﻿${COMMANDER_LIST}`, "utf8") })
+    summary = page.getByRole("region", { name: "Prüfbericht" })
+    await summary.getByText("Alle Zeilen geklärt").waitFor({ timeout: 60_000 })
+    check((await rowText(page.getByRole("region", { name: "Kommandeur" }), "Valki")).includes("Forge: Valki, God of Lies"), "deck import: commander row")
+    await page.getByText(/Forge spielt das Deck als Commander-Partie/).waitFor()
+    await saveImported(page, null)
+
+    // Found again after a reload, and in IndexedDB as saved.
+    await page.reload({ waitUntil: "networkidle" })
+    const listed = await page.getByRole("list", { name: "Gespeicherte Decks" }).locator('[data-slot="item-title"]').allTextContents()
+    await screenshots(page, "desktop-decks-after-import")
+    results["checkMs"] = checkTimes
+    check(["E2E Brawl", "E2E Deutsch", "E2E Izzet"].every((name) => listed.includes(name)), `deck import: decks listed ${JSON.stringify(listed)}`)
+    decks = ((await dumpDatabase(page))["decks"] ?? []) as SavedDeck[]
+    const byName = new Map(decks.map((deck) => [deck.name, deck]))
+    const izzet = byName.get("E2E Izzet")
+    const german = byName.get("E2E Deutsch")
+    const brawl = byName.get("E2E Brawl")
+    check(izzet?.source.text === ENGLISH_LIST, "deck import: the English list was not kept unchanged")
+    check(izzet?.main.some((c) => c.name === "Island" && c.set === "dom" && c.collectorNumber === "254") === true, "deck import: Island (DAR) 254 not stored as dom 254")
+    check(izzet?.main.some((c) => c.name === "A-Luminarch Aspirant" && c.oracleId === undefined) === true, "deck import: rebalanced card")
+    check(JSON.stringify(izzet?.sideboard.map((c) => [c.count, c.name])) === JSON.stringify([[1, "Lurrus of the Dream-Den"], [2, "Shock"]]), `deck import: English sideboard ${JSON.stringify(izzet?.sideboard)}`)
+    check(
+      JSON.stringify(german?.main.map((c) => [c.count, c.name])) === JSON.stringify([[6, "Lightning Bolt"], [2, "Duress"], [2, "Rampant Growth"], [4, "Delver of Secrets"], [46, "Forest"]]),
+      `deck import: German main ${JSON.stringify(german?.main)}`,
+    )
+    check(german?.source.text === GERMAN_LIST, "deck import: the German list (with the left-out line) was not kept")
+    check(brawl?.format === "commander" && JSON.stringify(brawl.commander.map((c) => c.name)) === JSON.stringify(["Valki, God of Lies"]), `deck import: Brawl ${JSON.stringify(brawl?.commander)}`)
+    results["stored"] = decks.map((deck) => ({ name: deck.name, format: deck.format, main: deck.main.length, sideboard: deck.sideboard.length, commander: deck.commander.length }))
+
+    // Scryfall's API: only for the German list's two printings (and their German versions), each answered.
+    results["scryfallApi"] = api
+    const collections = api.filter((r) => r.url.endsWith("/cards/collection")).length
+    check(collections === 1, `deck import: /cards/collection asked ${collections} times`)
+    check(api.every((r) => r.status === 200 || (r.status === 404 && /\/cards\/[^/]+\/[^/]+\/de$/.test(r.url))), `deck import: Scryfall answered ${JSON.stringify(api)}`)
+    // A 404 for a German version that does not exist is Scryfall's answer "none", not an error of the app.
+    for (const error of pageLog.errors.filter((e) => !/api\.scryfall\.com\/cards\/[^/\s]+\/[^/\s]+\/de/.test(e) || !/404/.test(e))) check(false, `deck import: ${error}`)
+    check([...pageLog.hosts].every((host) => [new URL(base).host, "cards.scryfall.io", "api.scryfall.com"].includes(host)), `deck import: requests to ${[...pageLog.hosts].join(", ")}`)
+  } finally {
+    await context.close()
+  }
+
+  // 4. Every saved deck in the real Forge engine (the module the build serves).
+  const engineDir = path.join(dist, "engine", id)
+  const played = []
+  for (const deck of decks) {
+    log(`  engine: ${deck.name} (${deck.format})`)
+    const result = await playDeck(engineDir, deck)
+    played.push(result)
+    for (const problem of result.problems) check(false, `deck import: Forge and "${deck.name}": ${problem}`)
+  }
+  check(played.length === 3, `deck import: ${played.length} decks played in the engine`)
+  results["engine"] = played
+  report["deckImport"] = results
+}
+
 // ── Run ──────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -1062,6 +1326,7 @@ async function main(): Promise<void> {
     await localData(browser, base)
     await localDataQuota(executablePath, base)
     await cardData(browser, base)
+    await deckImport(browser, base, id)
     await pwa(base, executablePath)
     await withoutIsolation(browser)
   } finally {

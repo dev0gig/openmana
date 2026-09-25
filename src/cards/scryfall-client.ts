@@ -63,7 +63,8 @@ export class ScryfallClient {
   #pausedUntil = 0
 
   constructor(options: ScryfallClientOptions = {}) {
-    this.#fetch = options.fetch ?? globalThis.fetch.bind(globalThis)
+    // Looked up at each request, not bound once: the app shares one client for its whole life (scryfall-access.ts).
+    this.#fetch = options.fetch ?? ((input, init) => globalThis.fetch(input, init))
     this.#now = options.now ?? (() => Date.now())
     this.#sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)))
   }
