@@ -1808,10 +1808,10 @@ async function tableFacts(page: Page): Promise<{ readonly me: SideFacts; readonl
     }
     const side = (bar: Element | null, field: Element | null, hand: Element | null) => {
       const count = (label: string) => (bar?.querySelector(`[title="${label}"]`) ? number(bar.querySelector(`[title="${label}"]`)) : 0)
-      const figures = [...(field?.querySelectorAll('figure[data-slot="game-card"]') ?? [])]
-      const permanents = figures
-        .filter((figure) => !(figure.querySelector("figcaption")?.getAttribute("title") ?? "").endsWith("Kommandozone"))
-        .reduce((sum, figure) => sum + (Number(/(\d+) Karten/.exec(figure.querySelector("figcaption")?.getAttribute("title") ?? "")?.[1] ?? 1) || 1), 0)
+      // A card is a figure (hidden) or a button (a card the player may see, prompt 14); its caption carries its facts.
+      const figures = [...(field?.querySelectorAll('[data-slot="game-card"]') ?? [])]
+      const caption = (figure: Element) => figure.querySelector('[data-slot="game-card-caption"]')?.getAttribute("title") ?? ""
+      const permanents = figures.filter((figure) => !caption(figure).endsWith("Kommandozone")).reduce((sum, figure) => sum + (Number(/(\d+) Karten/.exec(caption(figure))?.[1] ?? 1) || 1), 0)
       return {
         life: number(bar?.querySelector('[title="Lebenspunkte"]')?.querySelector(".tabular-nums")),
         hand: count("Hand"),
@@ -1820,7 +1820,7 @@ async function tableFacts(page: Page): Promise<{ readonly me: SideFacts; readonl
         exile: count("Exil"),
         command: count("Kommandozone"),
         permanents,
-        handFaces: hand?.querySelectorAll('figure[data-slot="game-card"]').length ?? 0,
+        handFaces: hand?.querySelectorAll('[data-slot="game-card"]').length ?? 0,
         handBacks: hand?.querySelectorAll('[data-slot="game-card-back"]').length ?? 0,
       }
     }
@@ -2005,6 +2005,54 @@ function engineWorkerRequests(pageLog: PageLog, id: string): number {
   return pageLog.requests.filter((p) => p === `/engine/${id}/engine-worker.js`).length
 }
 
+/**
+ * Looking at a card in the real game sends nothing (prompt 14): the player's
+ * commander or first hand card opens its card view - Forge's name and place,
+ * the large picture, and in the first decision (play/draw or the mulligan)
+ * nothing Forge offers for it -; closing it leaves Forge waiting as before,
+ * without a notice. The view is checked with axe, its buttons for touch size.
+ */
+async function lookInRealGame(page: Page, label: string, touch = false): Promise<Record<string, unknown>> {
+  const decisionBefore = (await page.getByRole("region", { name: "Entscheidung" }).textContent()) ?? ""
+  const cards = page.locator('section[aria-label="Dein Spielfeld"] button[data-slot="game-card"], section[aria-label="Deine Hand"] button[data-slot="game-card"]')
+  if ((await cards.count()) === 0) {
+    // The player won the coin toss: Forge asks "play or draw" before the opening hands - no card of the player yet (a Commander game has its commander).
+    check(decisionBefore.includes("SpielenZiehen"), `${label}: no card of the player to look at, and not before the opening hands ("${decisionBefore}")`)
+    return { skipped: "no card before the opening hands (play or draw)" }
+  }
+  const card = cards.first()
+  const name = (await card.getAttribute("aria-label")) ?? ""
+  check((await card.getAttribute("aria-haspopup")) === "dialog", `${label}: the card "${name}" does not open its view`)
+  if (touch) await card.tap()
+  else await card.click()
+  const view = page.getByRole("dialog")
+  await view.waitFor()
+  await animationsDone(view)
+  const title = (await view.getByRole("heading").first().textContent()) ?? ""
+  const offer = (await view.getByRole("region", { name: "Was Forge anbietet" }).textContent()) ?? ""
+  const buttons = await view.getByRole("button").allTextContents()
+  const picture = await view.locator('[data-slot="card-picture"]').getAttribute("data-state")
+  check(name.startsWith(title) && title.length > 0, `${label}: the card view's title "${title}" for "${name}"`)
+  check(offer === "Mit dieser Karte bietet Forge gerade nichts an." && buttons.join("|") === "Schließen", `${label}: in the first decision Forge offers nothing for the card ("${offer}", buttons ${buttons.join("|")})`)
+  check(picture === "loaded" || picture === "missing", `${label}: the card view's picture ${picture}`)
+  const focused = await page.evaluate(() => document.activeElement?.getAttribute("role"))
+  check(focused === "dialog", `${label}: the card view does not hold the focus itself (${focused})`)
+  const axe = await accessibility(page, `${label}: card view`)
+  await page.screenshot({ path: path.join(reportDir, "screens", `${label.replace(/[^a-z]+/gi, "-").toLowerCase()}card-view.png`) })
+  const close = view.getByRole("button", { name: "Schließen" })
+  const closeHeight = await layoutHeight(close)
+  if (touch) check(closeHeight >= 44, `${label}: the card view's "Schließen" ${closeHeight}px high`)
+  if (touch) await close.tap()
+  else await close.click()
+  await page.waitForFunction(() => document.querySelector('[role="dialog"]') === null)
+  // Nothing was sent: Forge still waits for the same decision, and no notice came.
+  await page.getByRole("region", { name: "Spielstand" }).getByText("Du bist dran", { exact: true }).waitFor()
+  const decisionAfter = (await page.getByRole("region", { name: "Entscheidung" }).textContent()) ?? ""
+  check(decisionAfter === decisionBefore, `${label}: the decision changed after looking at a card`)
+  check((await page.locator("[data-sonner-toast]").count()) === 0, `${label}: a notice appeared after looking at a card`)
+  return { card: name, title, offer, picture, axe, closeHeight }
+}
+
 async function gameSession(browser: Browser, page: Page, pageLog: PageLog, base: string, id: string, decks: readonly SavedDeck[]): Promise<Record<string, unknown>> {
   log("Game session (prewarm, start, running game, concede, result, reload, refusal, failed boot, phone)")
   const results: Record<string, unknown> = {}
@@ -2027,15 +2075,18 @@ async function gameSession(browser: Browser, page: Page, pageLog: PageLog, base:
   const table: Record<string, unknown> = { desktop: await checkTableFits(page, "game table (desktop)") }
   results["table"] = table
   results["tablePictures"] = await tablePictures(page, "game table (desktop)")
-  const commanders = await page.locator('section[aria-label="Dein Spielfeld"] figure').evaluateAll((figures) =>
+  const commanders = await page.locator('section[aria-label="Dein Spielfeld"] [data-slot="game-card"]').evaluateAll((figures) =>
     figures
-      .filter((figure) => (figure.querySelector("figcaption")?.getAttribute("title") ?? "").endsWith("Kommandozone"))
+      .filter((figure) => (figure.querySelector('[data-slot="game-card-caption"]')?.getAttribute("title") ?? "").endsWith("Kommandozone"))
       .map((figure) => ({ state: figure.querySelector('[data-slot="card-picture"]')?.getAttribute("data-state"), alt: figure.querySelector("img")?.getAttribute("alt") ?? null })),
   )
   results["commanderInCommandZone"] = commanders
   check(commanders.length === 1 && commanders[0]?.state === "loaded" && commanders[0].alt !== null, `game table: the commander in the command zone ${JSON.stringify(commanders)}`)
   results["playingAxe"] = await accessibility(page, "game: running")
   await page.screenshot({ path: path.join(reportDir, "screens", "desktop-game-table.png") })
+  const look = await lookInRealGame(page, "game (desktop)")
+  results["look"] = look
+  check(!("skipped" in look), "game (desktop): the commander in the command zone could not be looked at")
 
   // The table follows the window without touching the game: a portrait window, a landscape one, back.
   await page.setViewportSize({ width: 884, height: 1104 })
@@ -2218,6 +2269,8 @@ async function gamePhone(browser: Browser, base: string, decks: readonly SavedDe
     // Only the first screen here: Playwright's full-page screenshot resets the touch
     // emulation (pointer: coarse is false afterwards), which would shrink what is measured next.
     await page.screenshot({ path: path.join(reportDir, "screens", "phone-game-table.png") })
+    // A hand card looked at by a tap: the view comes from below, sends nothing (prompt 14).
+    results["look"] = await lookInRealGame(page, "game (phone)", true)
     // Turned sideways and back: the table follows, the game goes on untouched.
     await page.setViewportSize({ width: VIEWPORTS[0]!.height, height: VIEWPORTS[0]!.width })
     results["tableLandscape"] = await checkTableFits(page, "game table (phone, landscape)")
@@ -2490,6 +2543,195 @@ const TABLE_VIEWPORTS: readonly Viewport[] = [
   VIEWPORTS[2]!,
 ]
 
+/** Forge's marks in the recorded scenes (prompt 14): the playable land, the attacker blockers go to, Krenko who can still attack. */
+const SCENE_MARKS: Partial<Record<(typeof TABLE_SCENES)[number], { readonly usable: number; readonly selected: number }>> = {
+  opening: { usable: 0, selected: 0 },
+  "main-phase": { usable: 1, selected: 0 },
+  defend: { usable: 0, selected: 1 },
+  "commander-late": { usable: 1, selected: 0 },
+}
+
+/**
+ * The cards as touch and click targets (prompt 14): every card the player
+ * may see is a button of its row; the smallest keeps WCAG 2.2's minimum
+ * target size (2.5.8: 24 × 24 px). Cards are sized by their rows, so they
+ * stay below the 44 px of buttons on small phones - a mis-tap only opens the
+ * card view, and the steps that tap at once take a tap back.
+ */
+async function cardTargets(page: Page, label: string): Promise<{ readonly count: number; readonly smallest: { readonly width: number; readonly height: number } | null }> {
+  const boxes = await page.evaluate(() =>
+    [...document.querySelectorAll('button[data-slot="game-card"]')].map((card) => {
+      const box = card.getBoundingClientRect()
+      return { width: Math.round(box.width), height: Math.round(box.height) }
+    }),
+  )
+  if (boxes.length === 0) return { count: 0, smallest: null }
+  const smallest = { width: Math.min(...boxes.map((box) => box.width)), height: Math.min(...boxes.map((box) => box.height)) }
+  check(smallest.width >= 24 && smallest.height >= 24, `${label}: a card target of ${smallest.width}×${smallest.height}px`)
+  return { count: boxes.length, smallest }
+}
+
+/** The cards the harness's table tapped so far (window.__openmanaTaps). */
+function harnessTaps(page: Page): Promise<number[]> {
+  return page.evaluate(() => (window as unknown as { __openmanaTaps?: number[] }).__openmanaTaps ?? [])
+}
+
+async function openScene(page: Page, base: string, scene: string, query = ""): Promise<void> {
+  await page.goto(new URL(`/scripts/e2e/table-harness.html?scene=${scene}${query}`, base).href, { waitUntil: "domcontentloaded" })
+  await page.locator('[data-harness="table"]').waitFor({ timeout: 300_000 })
+}
+
+/** A touch at the middle of an element, held (a long press) or moved sideways (a swipe), through Chrome's own touch input. */
+async function touch(page: Page, element: Locator, gesture: { readonly holdMs?: number; readonly moveX?: number }): Promise<void> {
+  const box = await element.boundingBox()
+  if (box === null) throw new Error("the element has no box")
+  const cdp = await page.context().newCDPSession(page)
+  const x = box.x + box.width / 2
+  const y = box.y + box.height / 2
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] })
+  if (gesture.moveX !== undefined) {
+    for (let step = 1; step <= 10; step++) {
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + (gesture.moveX * step) / 10, y }] })
+      await page.waitForTimeout(16)
+    }
+  }
+  if (gesture.holdMs !== undefined) await page.waitForTimeout(gesture.holdMs)
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] })
+  await cdp.detach()
+}
+
+async function closeCardView(page: Page): Promise<void> {
+  await page.keyboard.press("Escape")
+  await page.waitForFunction(() => document.querySelector('[role="dialog"]') === null)
+}
+
+/**
+ * Operating the cards in real Chrome (prompt 14), on recorded scenes in the
+ * real table, with the harness recording what would be tapped:
+ *  - priority (main-phase): the playable land opens its card view (no tap),
+ *    on the side the screen's orientation gives it; a press on the view's
+ *    button right after it appeared (a double tap's second touch) taps
+ *    nothing, a later one taps the land; a double click on a card opens its
+ *    view and keeps it open, tapping nothing;
+ *  - blocking (defend): a click taps the blocker at once - a double click
+ *    once -, a right click or a long press looks instead;
+ *  - a full row on a phone (commander-late): a swipe scrolls it and neither
+ *    looks nor taps;
+ *  - the keyboard (desktop): arrow keys, End and Home within the hand, Enter
+ *    looks, Escape returns to the card.
+ */
+async function tableInteractions(page: Page, base: string, viewport: Viewport): Promise<Record<string, unknown>> {
+  const label = `game table (${viewport.name})`
+  const results: Record<string, unknown> = {}
+  const landscape = viewport.width > viewport.height
+
+  // Priority: look first, the view's button taps - armed.
+  await openScene(page, base, "main-phase")
+  const land = page.locator('button[data-card="25"]')
+  if (viewport.touch) await land.tap()
+  else await land.click()
+  const view = page.getByRole("dialog", { name: "Gebirge" })
+  await view.waitFor()
+  const side = await page.locator('[data-slot="sheet-content"]').getAttribute("data-side")
+  check(side === (landscape ? "right" : "bottom"), `${label}: the card view comes from "${side}"`)
+  check((await harnessTaps(page)).length === 0, `${label}: looking at the land tapped it`)
+  await animationsDone(view)
+  results["viewAxe"] = await accessibility(page, `${label}: card view`)
+  await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-card-view.png`) })
+  const tapHeight = await layoutHeight(view.getByRole("button", { name: "Spiele ein Land" }))
+  if (viewport.touch) check(tapHeight >= 44, `${label}: the card view's tap button ${tapHeight}px high`)
+  await closeCardView(page)
+  // A double tap's second touch lands on the button that just appeared: it must not tap.
+  await page.evaluate(async () => {
+    document.querySelector<HTMLButtonElement>('button[data-card="25"]')!.click()
+    await new Promise((resolve) => requestAnimationFrame(resolve))
+    ;[...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find((button) => button.textContent === "Spiele ein Land")!.click()
+  })
+  check((await harnessTaps(page)).length === 0, `${label}: the view's button tapped right after it appeared`)
+  await page.waitForTimeout(600)
+  await view.getByRole("button", { name: "Spiele ein Land" }).click()
+  await page.waitForFunction(() => document.querySelector('[role="dialog"]') === null)
+  const armedTaps = await harnessTaps(page)
+  check(armedTaps.join() === "25", `${label}: the armed button tapped ${JSON.stringify(armedTaps)}`)
+  if (!viewport.touch) {
+    await land.dblclick()
+    await view.waitFor()
+    await page.waitForTimeout(300)
+    check(await view.isVisible(), `${label}: a double click on a card closed its view again`)
+    check((await harnessTaps(page)).join() === "25", `${label}: a double click on a card tapped it`)
+    await closeCardView(page)
+  }
+  results["priority"] = { side, tapHeight, taps: armedTaps }
+
+  // Blocking: a tap acts at once (a double one once); a right click or long press looks.
+  await openScene(page, base, "defend")
+  const blocker = page.locator('button[data-card="58"]')
+  if (viewport.touch) await blocker.tap()
+  else await blocker.click()
+  await page.waitForTimeout(100)
+  check((await harnessTaps(page)).join() === "58" && (await page.getByRole("dialog").count()) === 0, `${label}: a tap on the blocker ${JSON.stringify(await harnessTaps(page))}`)
+  await page.waitForTimeout(600)
+  if (!viewport.touch) {
+    await blocker.dblclick()
+    await page.waitForTimeout(100)
+    check((await harnessTaps(page)).join() === "58,58", `${label}: a double click on the blocker ${JSON.stringify(await harnessTaps(page))}`)
+    await blocker.click({ button: "right" })
+  } else {
+    await touch(page, blocker, { holdMs: 900 })
+  }
+  await page.getByRole("dialog").waitFor()
+  const blockTaps = await harnessTaps(page)
+  check(blockTaps.length === (viewport.touch ? 1 : 2), `${label}: looking at the blocker (${viewport.touch ? "long press" : "right click"}) tapped it ${JSON.stringify(blockTaps)}`)
+  await closeCardView(page)
+  results["block"] = { taps: blockTaps }
+
+  // A swipe along a full row (a phone with fourteen attackers): the row scrolls, nothing is looked at or tapped.
+  if (viewport.touch && viewport.width < 768) {
+    await openScene(page, base, "commander-late")
+    const row = page.getByRole("toolbar", { name: /^Kreaturen von dir|^Bleibende Karten von dir/ })
+    const before = await row.evaluate((element) => element.scrollLeft)
+    await touch(page, row.locator('button[data-slot="game-card"]').nth(1), { moveX: -160 })
+    await page.waitForTimeout(400)
+    const after = await row.evaluate((element) => element.scrollLeft)
+    check(after > before, `${label}: the swipe did not scroll the row (${before} → ${after})`)
+    check((await page.getByRole("dialog").count()) === 0 && (await harnessTaps(page)).length === 0, `${label}: the swipe looked or tapped`)
+    results["swipe"] = { before, after }
+  }
+
+  // The keyboard: one stop per row, the arrow keys inside it, Enter looks, Escape returns.
+  if (!viewport.touch) {
+    await openScene(page, base, "opening")
+    const hand = page.getByRole("toolbar", { name: "Deine Hand: 7 Karten" })
+    const cards = hand.getByRole("button")
+    await cards.first().focus()
+    const focusedCard = () => page.evaluate(() => document.activeElement?.getAttribute("data-card") ?? null)
+    const ids = await cards.evaluateAll((buttons) => buttons.map((button) => button.getAttribute("data-card")))
+    // Radix moves the focus a tick after the key: wait for the card expected, then read where it is.
+    const press = async (key: string, expected: string | null | undefined) => {
+      await page.keyboard.press(key)
+      await page.waitForFunction((id) => document.activeElement?.getAttribute("data-card") === id, expected ?? null, { timeout: 2000 }).catch(() => undefined)
+      return focusedCard()
+    }
+    const second = await press("ArrowRight", ids[1])
+    const last = await press("End", ids[6])
+    const first = await press("Home", ids[0])
+    check(second === ids[1] && last === ids[6] && first === ids[0], `${label}: arrow keys in the hand ${JSON.stringify({ second, last, first, ids })}`)
+    await page.keyboard.press("Enter")
+    await page.getByRole("dialog").waitFor()
+    const inView = await page.evaluate(() => document.activeElement?.getAttribute("role"))
+    await closeCardView(page)
+    await page.waitForFunction((id) => document.activeElement?.getAttribute("data-card") === id, ids[0] ?? null, { timeout: 2000 }).catch(() => undefined)
+    const back = await focusedCard()
+    check(inView === "dialog" && back === ids[0], `${label}: Enter looks (${inView}), Escape returns (${back})`)
+    await page.keyboard.press("Tab")
+    const next = await page.evaluate(() => document.activeElement?.closest('[data-slot="game-card-row"]')?.getAttribute("aria-label") ?? document.activeElement?.tagName ?? null)
+    check(next !== "Deine Hand: 7 Karten", `${label}: Tab stayed in the hand (${next})`)
+    check((await harnessTaps(page)).length === 0, `${label}: the keyboard tapped a card`)
+    results["keyboard"] = { second, last, first, inView, back, afterTab: next }
+  }
+  return results
+}
+
 /**
  * The live games of 10 can only reach Forge's first decision (answering
  * Forge comes with prompts 14-19), so their battlefields are empty. The
@@ -2528,7 +2770,7 @@ async function tableHarness(browser: Browser): Promise<Record<string, unknown>> 
           const rows = await page.evaluate(() =>
             [...document.querySelectorAll('[data-slot="game-board-area"] ul')].map((row) => {
               const box = row.getBoundingClientRect()
-              const cards = [...row.querySelectorAll('figure[data-slot="game-card"]')].map((figure) => figure.getBoundingClientRect())
+              const cards = [...row.querySelectorAll('[data-slot="game-card"]')].map((figure) => figure.getBoundingClientRect())
               return {
                 label: row.getAttribute("aria-label"),
                 height: Math.round(box.height),
@@ -2542,10 +2784,18 @@ async function tableHarness(browser: Browser): Promise<Record<string, unknown>> 
           if (scene === "commander-late" && viewport.width < 768) check(rows.some((row) => row.scrolls), `${label}: no row scrolls sideways with 14 attackers on a phone`)
           const menu = viewport.touch ? await layoutHeight(page.getByRole("button", { name: "Menü" })) : null
           if (menu !== null) check(menu >= 44, `${label}: the menu button ${menu}px high`)
+          const cards = await cardTargets(page, label)
+          const marks = await page.evaluate(() => ({
+            usable: document.querySelectorAll('button[data-mark="usable"]').length,
+            selected: document.querySelectorAll('button[data-mark="selected"]').length,
+          }))
+          const expected = SCENE_MARKS[scene]
+          if (expected) check(marks.usable === expected.usable && marks.selected === expected.selected, `${label}: marks ${JSON.stringify(marks)}, expected ${JSON.stringify(expected)}`)
           const axe = await accessibility(page, label)
           await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-${scene}.png`) })
-          scenes[scene] = { areas: layout["areas"], pictures, rows, menu, axe }
+          scenes[scene] = { areas: layout["areas"], pictures, rows, menu, cards, marks, axe }
         }
+        scenes["interaction"] = await tableInteractions(page, base, viewport)
         for (const error of pageLog.errors) check(false, `game table (${viewport.name}): ${error}`)
       } finally {
         await context.close()

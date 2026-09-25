@@ -11,7 +11,7 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { createMemoryRouter, Outlet, RouterProvider } from "react-router"
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { DESTINATIONS } from "@/app/navigation"
 import { PreferencesProvider } from "@/app/preferences"
 import { CardCatalogProvider } from "@/cards/card-catalog-context"
@@ -28,6 +28,7 @@ import { writeSetting } from "@/storage/settings"
 import { StorageProvider } from "@/storage/storage-context"
 import { MULLIGAN_PROMPT, settle, SUPPORTED, testEngine, type TestEngine } from "@/test/game-fixtures"
 import { deck, openTestDatabase } from "@/test/storage-fixtures"
+import { ARMING_MS } from "./card-sheet"
 import { GamePage } from "./game-page"
 
 const RED = deck({ id: "10000000-0000-4000-8000-00000000000a", name: "Rot", main: [{ count: 24, name: "Mountain" }, { count: 36, name: "Shock" }], sideboard: [] })
@@ -237,6 +238,36 @@ async function runningGame(): Promise<TestEngine> {
   return engine
 }
 
+describe("the game page: cards (prompt 14)", () => {
+  it("looking at a card sends nothing; its view's button - armed a moment after it appears - sends Forge's card.tap; the table then shows Forge computing", { timeout: 20_000 }, async () => {
+    let clock = 50_000
+    vi.spyOn(performance, "now").mockImplementation(() => clock)
+    const user = userEvent.setup()
+    await store([RED, GREEN])
+    const engine = await runningGame()
+    engine.worker().priority()
+    renderAt("/play/game", engine)
+    const hand = await screen.findByRole("toolbar", { name: "Deine Hand: 7 Karten" })
+    const mountain = within(hand).getByRole("button", { name: "Mountain, spielbar" })
+    expect(mountain).toHaveAttribute("data-mark", "usable")
+    await user.click(mountain)
+    const view = await screen.findByRole("dialog", { name: "Mountain" })
+    const tap = within(view).getByRole("button", { name: "Spiele ein Land" })
+    await user.click(tap)
+    // Too soon after the view appeared (a double click's second press): nothing is sent.
+    expect(engine.worker().inputs()).toEqual([])
+    clock += ARMING_MS
+    await user.click(tap)
+    expect(engine.worker().inputs()).toEqual([{ type: "card.tap", seq: 1, card: 1 }])
+    expect(screen.queryByRole("dialog", { name: "Mountain" })).not.toBeInTheDocument()
+    expect(await within(screen.getByRole("region", { name: "Spielstand" })).findByText("Forge rechnet")).toBeInTheDocument()
+    // Forge ignores it: the notice shows, nothing disappears silently.
+    act(() => engine.worker().send({ type: "input.rejected", seq: 1, reason: "no-effect", detail: "Forge did not accept this card in the current step", input: { type: "card.tap", seq: 1, card: 1 } }))
+    expect(await screen.findByText("Forge hat eine Eingabe nicht ausgeführt: Forge hat das in diesem Schritt nicht angenommen.")).toBeInTheDocument()
+    vi.restoreAllMocks()
+  })
+})
+
 describe("the game page", () => {
   it("without a game: says so, and that a reload ends a running game", async () => {
     const user = userEvent.setup()
@@ -263,7 +294,7 @@ describe("the game page", () => {
     expect(within(opponent).getByRole("list", { name: "Hand der Forge-KI: 7 Karten" })).toBeInTheDocument()
     expect(within(screen.getByRole("region", { name: "Du" })).getByTitle("Lebenspunkte")).toHaveTextContent("20")
     // Forge's cards by Forge's names (no card data on this device).
-    const hand = screen.getByRole("list", { name: "Deine Hand: 7 Karten" })
+    const hand = screen.getByRole("toolbar", { name: "Deine Hand: 7 Karten" })
     expect(within(hand).getAllByText("Mountain")).toHaveLength(4)
     expect(within(hand).getAllByText("Shock")).toHaveLength(3)
     const decision = screen.getByRole("region", { name: "Entscheidung" })
@@ -282,6 +313,10 @@ describe("the game page", () => {
     expect(within(menu).getByText("Die Partie läuft weiter, wenn du eine andere Seite öffnest. Neu laden oder Schließen beendet sie.")).toBeInTheDocument()
     expect(within(menu).getByText("Grün (zufällig gezogen)")).toBeInTheDocument()
     expect(within(menu).getByText("In dieser Partie hat Forge noch nichts gemeldet.")).toBeInTheDocument()
+    // No card data on this device: the menu says why the table shows Forge's words, and sets them up right there (prompt 14).
+    expect(within(menu).getByText("Ohne Kartendaten: keine Kartenbilder")).toBeInTheDocument()
+    expect(within(menu).getByText(/Der Tisch zeigt die Karten mit Forges Worten\. Mit den Kartendaten erscheinen ihre Bilder/)).toBeInTheDocument()
+    expect(within(menu).getByRole("button", { name: "Kartendaten einrichten" })).toBeEnabled()
     expect(within(within(menu).getByRole("navigation", { name: "OpenMana" })).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual(DESTINATIONS.map((d) => d.path))
 
     // Conceding needs a second, explicit step; "Weiterspielen" sends nothing.

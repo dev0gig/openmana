@@ -72,13 +72,15 @@ describe("PreferencesProvider", () => {
     expect(screen.getByText("Profil: zufällig")).toBeInTheDocument()
     expect(screen.getByText("Karten: en")).toBeInTheDocument()
     expect(screen.getByText("Bewegung: reduce")).toBeInTheDocument()
-    expect(document.documentElement.hasAttribute(REDUCED_MOTION_ATTRIBUTE)).toBe(true)
-    expect(engine.session.bootOptions).toEqual({ cardLanguage: "en-US" })
+    // Applied by effects right after the values show - waited for, not assumed:
+    // under load the check ran before React's passive effects (5 of 24 loaded runs, 2026-09-26).
+    await waitFor(() => expect(document.documentElement.hasAttribute(REDUCED_MOTION_ATTRIBUTE)).toBe(true))
+    await waitFor(() => expect(engine.session.bootOptions).toEqual({ cardLanguage: "en-US" }))
 
     // A change is read again and applied at once.
     await userEvent.click(screen.getByRole("button", { name: "Deutsch" }))
     expect(await screen.findByText("Karten: de")).toBeInTheDocument()
-    expect(engine.session.bootOptions).toEqual({ cardLanguage: "de-DE" })
+    await waitFor(() => expect(engine.session.bootOptions).toEqual({ cardLanguage: "de-DE" }))
   })
 
   it("replaces an engine prewarmed before the preferences were read, if they differ", async () => {

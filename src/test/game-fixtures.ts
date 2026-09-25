@@ -277,6 +277,24 @@ export class FakeEngineWorker {
     this.send({ type: "engine.waiting", consumed: 0 })
   }
 
+  /**
+   * Forge after the player kept their hand (a test's stand-in for answering,
+   * which comes with prompt 15): the player's first main phase, the first
+   * Mountain in hand playable with Forge's words, the priority buttons,
+   * Forge waiting. As the real engine marks it (recorded scene "main-phase").
+   */
+  priority(): void {
+    this.send({ type: "question.withdrawn", id: 1 })
+    const state = gameState(4, { turn: 1, phase: "MAIN1", activePlayer: 0 })
+    const me = state.players[0]!
+    const [first, ...rest] = me.zones.hand
+    const playable = { ...(first as VisibleCard), playable: true as const, action: "Spiele ein Land" }
+    this.send({ ...state, players: [{ ...me, hasPriority: true, zones: { ...me.zones, hand: [playable, ...rest] } }, state.players[1]!] })
+    this.send({ type: "question", kind: "buttons", id: 2, blocking: false, text: "", purpose: "priority", buttons: [{ nr: 1, label: "OK", enabled: true }, { nr: 2, label: "Zug beenden", enabled: true }] })
+    this.send({ type: "message", kind: "prompt", text: "Priorität: Spieler Zug: 1 (Spieler) Phase: Erste Hauptphase (Vor-Kampf) Stapel: Leer" })
+    this.send({ type: "engine.waiting", consumed: 0 })
+  }
+
   /** What the real engine sends after the player's concession (input 1). */
   concedeAccepted(): void {
     this.send({ type: "message", kind: "prompt", text: "" })

@@ -91,6 +91,19 @@ describe("design tokens", () => {
     expect(ratio(token("destructive"), over("destructive", 0.2, surface))).toBeGreaterThanOrEqual(4.5)
   })
 
+  // Forge's marks on the game table's cards (prompt 14): frames around the picture - usable (--primary, dashed),
+  // chosen (--foreground, solid) - on the table's surfaces and in the card view. Non-text contrast, WCAG 1.4.11: 3:1.
+  it.each([
+    ["primary", "background"],
+    ["primary", "card"],
+    ["primary", "popover"],
+    ["foreground", "background"],
+    ["foreground", "card"],
+    ["foreground", "popover"],
+  ])("the card mark %s on %s reaches 3:1", (mark, surface) => {
+    expect(contrast(mark, surface)).toBeGreaterThanOrEqual(3)
+  })
+
   it("the manifest's theme colour is the background token", () => {
     expect(hex(srgb(tokens.get("background")!))).toBe("#0d121b")
   })

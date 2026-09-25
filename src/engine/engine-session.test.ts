@@ -547,3 +547,45 @@ describe("EngineSession: a game", () => {
     expect(engine.worker().inputs()).toEqual([])
   })
 })
+
+describe("EngineSession: tapping a card (prompt 14)", () => {
+  it("sends Forge's card.tap while Forge waits; Forge then no longer waits", async () => {
+    const engine = await playing()
+    expect(match(engine, "playing").waiting).toBe(true)
+    expect(engine.session.tapCard(1)).toEqual({ ok: true })
+    expect(engine.worker().inputs()).toEqual([{ type: "card.tap", seq: 1, card: 1 }])
+    expect(match(engine, "playing").waiting).toBe(false)
+  })
+
+  it("never while Forge computes: a tap would be read later, in whatever step comes then", async () => {
+    const engine = await playing()
+    engine.session.tapCard(1)
+    engine.worker().inputs()
+    expect(engine.session.tapCard(2)).toEqual({ ok: false, reason: "Forge rechnet gerade – antippen geht, sobald Forge wieder auf dich wartet." })
+    expect(engine.worker().inputs()).toEqual([])
+  })
+
+  it("says why the client refused a tap (a card no longer visible), in German, and sends nothing", async () => {
+    const engine = await playing()
+    expect(engine.session.tapCard(999)).toEqual({ ok: false, reason: "Diese Karte ist gerade nicht mehr zu sehen." })
+    expect(engine.worker().inputs()).toEqual([])
+    expect(match(engine, "playing").waiting).toBe(true)
+  })
+
+  it("not while a concession is on its way, not without a running game", async () => {
+    const engine = await ready()
+    expect(engine.session.tapCard(1)).toEqual({ ok: false, reason: "Es läuft keine Partie." })
+    engine.session.startMatch(testSetup())
+    engine.worker().startGame()
+    engine.session.concede()
+    expect(engine.session.tapCard(1)).toEqual({ ok: false, reason: "Die Aufgabe ist unterwegs." })
+    expect(engine.worker().inputs()).toEqual([{ type: "concede", seq: 1 }])
+  })
+
+  it("a tap Forge ignores comes back as its notice (input.rejected), never silently", async () => {
+    const engine = await playing()
+    engine.session.tapCard(1)
+    engine.worker().send({ type: "input.rejected", seq: 1, reason: "no-effect", detail: "Forge did not accept this card in the current step", input: { type: "card.tap", seq: 1, card: 1 } })
+    expect(match(engine, "playing").notices.at(-1)).toMatchObject({ type: "input.rejected", reason: "no-effect" })
+  })
+})

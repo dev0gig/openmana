@@ -29,6 +29,9 @@ export interface TablePicture {
   readonly src: string
   /** Scryfall's small and large version: the browser takes what the card's size on screen needs. */
   readonly srcSet: string
+  /** The card view's picture (prompt 14): Scryfall's large version, and the one between for smaller screens. */
+  readonly large: string
+  readonly largeSrcSet: string
   /** The picture's language (de, en or another): an English picture in a German game is marked. */
   readonly lang: string
 }
@@ -89,6 +92,8 @@ export function pictureOf(resolution: Resolution, language: TextLanguage): Table
   return {
     src: picture.urls.grid,
     srcSet: `${picture.urls.thumb} ${IMAGE_SIZES.thumb.width}w, ${picture.urls.grid} ${IMAGE_SIZES.grid.width}w`,
+    large: picture.urls.display,
+    largeSrcSet: `${picture.urls.grid} ${IMAGE_SIZES.grid.width}w, ${picture.urls.display} ${IMAGE_SIZES.display.width}w`,
     lang: picture.lang,
   }
 }

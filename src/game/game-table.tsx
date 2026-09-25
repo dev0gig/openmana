@@ -15,27 +15,39 @@
  * them. Card pictures come from the card catalog (table-cards.ts); without
  * one the table shows Forge's words for the card.
  *
- * Answering Forge's questions and operating cards are the next prompts
- * (14-19): the decision region shows what Forge asks and offers, and says
- * that it cannot be answered here yet.
+ * Cards (prompt 14): every card the player may see is a control. Looking at
+ * it is always safe - its primary activation or a long press / right click
+ * opens the card view (card-sheet.tsx), which sends nothing. A tap (Forge's
+ * card.tap) comes only from the page (onTapCard) and only where Forge offers
+ * one (card-use.ts): as the card view's button, or at once in the steps whose
+ * taps Forge lets the player take back (paying, attacking, blocking, the
+ * London mulligan, a selection). Forge's markers show as a frame around the
+ * picture (usable, chosen), never on it.
+ *
+ * Answering Forge's questions follows (prompts 15-19): the decision region
+ * shows what Forge asks and offers, and says that it cannot be answered here
+ * yet.
  */
 import { Ban, Crown, Hand as HandIcon, Heart, Library, Shield, Skull, Swords, type LucideIcon } from "lucide-react"
 import { cn } from "cn"
-import { useMemo, useRef, type ReactNode } from "react"
+import { createContext, use, useMemo, useRef, useState, type ReactNode } from "react"
 import type { Card, GameState, Question, VisibleCard } from "@openmana/engine-protocol"
 import { Badge } from "@/components/ui/badge"
 import { CardPicture } from "@/components/ui/card-picture"
 import { GameBoard, GameBoardArea } from "@/components/ui/game-board"
-import { GameCard, GameCardBack, GameCardCaption, GameCardGroup } from "@/components/ui/game-card"
+import { GameCard, GameCardBack, GameCardButton, GameCardCaption, GameCardGroup, GameCardRow, GameCardRowButton, GameCardRowItem } from "@/components/ui/game-card"
 import { Item, ItemContent, ItemTitle } from "@/components/ui/item"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
+import { useCardPress } from "@/hooks/use-card-press"
 import { useElementHeight } from "@/hooks/use-element-height"
+import { ARMING_MS, CardSheet, type CardLook } from "./card-sheet"
+import { cardUse, directTaps, type CardPlace, type CardUse, type TableMoment } from "./card-use"
 import { aiProfileLabel, phaseLabel, questionChoices, questionLabel } from "./game-labels"
 import type { TableCardLookup } from "./table-cards"
-import { attackLine, blockLine, captionFacts, cardFacts, cardName, counterLabel, MANA_LABELS, seatName, spokenFacts, stackTargets } from "./table-labels"
-import { isVisible, tableView, type BoardEntry, type CombatView, type TableSide, type TableView } from "./table-model"
+import { attackLine, blockLine, captionFacts, cardButtonLabel, cardFacts, cardName, counterLabel, MANA_LABELS, seatName, stackTargets } from "./table-labels"
+import { isVisible, tableView, type BoardEntry, type CombatView, type Seat, type TableSide, type TableView } from "./table-model"
 
 /** Below this height a battlefield shows its cards in one row instead of two (px, measured). */
 const TWO_ROWS_MIN_HEIGHT = 176
@@ -59,71 +71,121 @@ export interface GameTableProps {
   readonly alerts?: ReactNode
   /** The concession is on its way. */
   readonly conceding?: boolean
+  /**
+   * Taps a card for the player (Forge's card.tap - the page sends it). Absent:
+   * the table is only looked at (a replay): cards can be looked at, never tapped.
+   */
+  readonly onTapCard?: (id: number) => void
 }
 
-export function GameTable({ state, questions, prompt, waiting, aiProfile, profileDrawn = false, pictures, menu, alerts, conceding = false }: GameTableProps) {
+/** What a card of the table needs to be operated: the moment's questions and Forge's state of waiting, and the two ways to use it. */
+interface CardControls {
+  readonly moment: TableMoment
+  /** Taps can be sent (the page gave onTapCard). */
+  readonly live: boolean
+  readonly look: (id: number) => void
+  readonly primary: (card: VisibleCard, use: CardUse) => void
+}
+
+const CardControlsContext = createContext<CardControls | null>(null)
+
+export function GameTable({ state, questions, prompt, waiting, aiProfile, profileDrawn = false, pictures, menu, alerts, conceding = false, onTapCard }: GameTableProps) {
   const view = useMemo(() => tableView(state, questions), [state, questions])
   const profile = profileDrawn ? `${aiProfileLabel(aiProfile)} (zufällig)` : aiProfileLabel(aiProfile)
+  const moment = useMemo<TableMoment>(() => ({ questions, waiting, conceding }), [questions, waiting, conceding])
+  const [look, setLook] = useState<CardLook | null>(null)
+  // The last card tapped at once and when: the second tap of a double tap counts once.
+  const lastTap = useRef<{ readonly id: number; readonly at: number } | null>(null)
+  const controls = useMemo<CardControls>(() => {
+    const open = (id: number) => setLook((previous) => ({ id, open: true, serial: (previous?.serial ?? 0) + 1 }))
+    return {
+      moment,
+      live: onTapCard !== undefined,
+      look: open,
+      primary: (card, use) => {
+        const now = performance.now()
+        const last = lastTap.current
+        if (last !== null && last.id === card.id && now - last.at < ARMING_MS) return
+        if (onTapCard === undefined || use.primary !== "tap") {
+          open(card.id)
+          return
+        }
+        lastTap.current = { id: card.id, at: now }
+        onTapCard(card.id)
+      },
+    }
+  }, [moment, onTapCard])
   return (
-    <GameBoard>
-      <title>Partie · OpenMana</title>
-      <GameBoardArea area="header" aria-label="Spielstand" className="flex items-center gap-2 px-2 py-1">
-        {menu}
-        <div className="flex min-w-0 flex-1 flex-col">
-          <h1 className="sr-only">Partie</h1>
-          <p className="truncate text-sm font-medium" title={turnLine(view.turn, state.phase)}>
-            {turnLine(view.turn, state.phase)}
-          </p>
-          <p className="truncate text-xs text-muted-foreground">{activeLine(view.activeSeat)}</p>
-        </div>
-        {conceding ? (
-          <Badge variant="secondary">
-            <Spinner data-icon="inline-start" aria-hidden />
-            Gibt auf …
-          </Badge>
-        ) : waiting ? (
-          <Badge>Du bist dran</Badge>
-        ) : (
-          <Badge variant="secondary">
-            <Spinner data-icon="inline-start" aria-hidden />
-            Forge rechnet
-          </Badge>
-        )}
-      </GameBoardArea>
+    <CardControlsContext value={controls}>
+      <GameBoard>
+        <title>Partie · OpenMana</title>
+        <GameBoardArea area="header" aria-label="Spielstand" className="flex items-center gap-2 px-2 py-1">
+          {menu}
+          <div className="flex min-w-0 flex-1 flex-col">
+            <h1 className="sr-only">Partie</h1>
+            <p className="truncate text-sm font-medium" title={turnLine(view.turn, state.phase)}>
+              {turnLine(view.turn, state.phase)}
+            </p>
+            <p className="truncate text-xs text-muted-foreground">{activeLine(view.activeSeat)}</p>
+          </div>
+          {conceding ? (
+            <Badge variant="secondary">
+              <Spinner data-icon="inline-start" aria-hidden />
+              Gibt auf …
+            </Badge>
+          ) : waiting ? (
+            <Badge>Du bist dran</Badge>
+          ) : (
+            <Badge variant="secondary">
+              <Spinner data-icon="inline-start" aria-hidden />
+              Forge rechnet
+            </Badge>
+          )}
+        </GameBoardArea>
 
-      <GameBoardArea area="opponent" aria-label="Forge-KI" className="flex flex-col">
-        {view.opponents.map((side) => (
-          <PlayerBar key={side.player.id} side={side} profile={profile} pictures={pictures} />
-        ))}
-      </GameBoardArea>
+        <GameBoardArea area="opponent" aria-label="Forge-KI" className="flex flex-col">
+          {view.opponents.map((side) => (
+            <PlayerBar key={side.player.id} side={side} profile={profile} pictures={pictures} />
+          ))}
+        </GameBoardArea>
 
-      <GameBoardArea area="opponent-field" aria-label="Spielfeld der Forge-KI" className="flex flex-col">
-        {view.opponents.map((side) => (
-          <Field key={side.player.id} side={side} pictures={pictures} nearRow="bottom" owner="der Forge-KI" />
-        ))}
-      </GameBoardArea>
+        <GameBoardArea area="opponent-field" aria-label="Spielfeld der Forge-KI" className="flex flex-col">
+          {view.opponents.map((side) => (
+            <Field key={side.player.id} side={side} pictures={pictures} nearRow="bottom" owner="der Forge-KI" />
+          ))}
+        </GameBoardArea>
 
-      <GameBoardArea area="center" aria-label="Stapel und Kampf" tabIndex={0}>
-        <StackAndCombat view={view} />
-      </GameBoardArea>
+        <GameBoardArea area="center" aria-label="Stapel und Kampf" tabIndex={0}>
+          <StackAndCombat view={view} />
+        </GameBoardArea>
 
-      <GameBoardArea area="field" aria-label="Dein Spielfeld" className="flex flex-col">
-        {view.me ? <Field side={view.me} pictures={pictures} nearRow="top" owner="dir" /> : <FieldEmpty text="Forge nennt keinen Platz für dich." />}
-      </GameBoardArea>
+        <GameBoardArea area="field" aria-label="Dein Spielfeld" className="flex flex-col">
+          {view.me ? <Field side={view.me} pictures={pictures} nearRow="top" owner="dir" /> : <FieldEmpty text="Forge nennt keinen Platz für dich." />}
+        </GameBoardArea>
 
-      <GameBoardArea area="me" aria-label="Du">
-        {view.me ? <PlayerBar side={view.me} profile={null} pictures={pictures} /> : null}
-      </GameBoardArea>
+        <GameBoardArea area="me" aria-label="Du">
+          {view.me ? <PlayerBar side={view.me} profile={null} pictures={pictures} /> : null}
+        </GameBoardArea>
 
-      <GameBoardArea area="decision" aria-label="Entscheidung" tabIndex={0} className="flex flex-col gap-2 px-3 py-2">
-        {alerts}
-        <Decision questions={questions} prompt={prompt} waiting={waiting} />
-      </GameBoardArea>
+        <GameBoardArea area="decision" aria-label="Entscheidung" tabIndex={0} className="flex flex-col gap-2 px-3 py-2">
+          {alerts}
+          <Decision questions={questions} prompt={prompt} waiting={waiting} />
+        </GameBoardArea>
 
-      <GameBoardArea area="hand" aria-label="Deine Hand">
-        <Hand cards={view.me?.hand ?? []} pictures={pictures} />
-      </GameBoardArea>
-    </GameBoard>
+        <GameBoardArea area="hand" aria-label="Deine Hand">
+          <Hand cards={view.me?.hand ?? []} pictures={pictures} />
+        </GameBoardArea>
+        <CardSheet
+          look={look}
+          onOpenChange={(open) => setLook((previous) => (previous === null ? null : { ...previous, open }))}
+          state={state}
+          view={view}
+          moment={moment}
+          pictures={pictures}
+          {...(onTapCard !== undefined ? { onTap: onTapCard } : {})}
+        />
+      </GameBoard>
+    </CardControlsContext>
   )
 }
 
@@ -223,28 +285,33 @@ function CommanderFacts({ commander, playerId, me, named }: { commander: TableSi
 
 /**
  * The opponent's hand: backs for what Forge hides, the card for what it
- * reveals. Where the bar is narrow (a phone, the side column) only revealed
- * cards take a row - the backs would only repeat the hand's size shown
- * beside them.
+ * reveals (a card to look at). Where the bar is narrow (a phone, the side
+ * column) only revealed cards take a row - the backs would only repeat the
+ * hand's size shown beside them.
  */
 function OpponentHand({ cards, pictures }: { cards: readonly Card[]; pictures: TableCardLookup }) {
   if (cards.length === 0) return null
   const revealed = cards.some(isVisible)
-  return (
-    <ul aria-label={`Hand der Forge-KI: ${cards.length === 1 ? "1 Karte" : `${cards.length} Karten`}`} className={cn("h-7 items-center", revealed ? "flex" : "hidden @md:flex")}>
-      {cards.map((card, index) => (
-        <li key={isVisible(card) ? card.id : `hidden:${index}`} className={cn("-ml-2.5 h-full first:ml-0", isVisible(card) ? null : "hidden @md:block")}>
-          {isVisible(card) ? (
-            <GameCard>
-              <Picture card={card} pictures={pictures} />
-            </GameCard>
-          ) : (
-            <GameCardBack>
-              <span className="sr-only">verdeckte Karte</span>
-            </GameCardBack>
-          )}
-        </li>
-      ))}
+  const label = `Hand der Forge-KI: ${cards.length === 1 ? "1 Karte" : `${cards.length} Karten`}`
+  // Revealed cards take their own place (no overlap) and a height a finger can hit (WCAG 2.5.8: 24 px).
+  const items = cards.map((card, index) => (
+    <GameCardRowItem key={isVisible(card) ? card.id : `hidden:${index}`} className={cn(revealed ? null : "-ml-2.5 first:ml-0", isVisible(card) ? null : "hidden @md:block")}>
+      {isVisible(card) ? (
+        <TableCard card={card} place={{ zone: "hand", mine: false }} pictures={pictures} />
+      ) : (
+        <GameCardBack>
+          <span className="sr-only">verdeckte Karte</span>
+        </GameCardBack>
+      )}
+    </GameCardRowItem>
+  ))
+  return revealed ? (
+    <GameCardRow controls aria-label={label} className="h-10 flex-none items-center justify-start gap-1 overflow-visible p-0">
+      {items}
+    </GameCardRow>
+  ) : (
+    <ul aria-label={label} className="hidden h-7 items-center @md:flex">
+      {items}
     </ul>
   )
 }
@@ -266,6 +333,7 @@ function Picture({ card, pictures }: { card: VisibleCard; pictures: TableCardLoo
       src={picture === "none" ? null : picture.src}
       {...(picture === "none" ? {} : { srcSet: picture.srcSet, sizes: "auto" })}
       alt={name}
+      draggable={false}
       fallback={
         <>
           <span className="line-clamp-3 text-xs leading-tight font-medium">{name}</span>
@@ -277,36 +345,69 @@ function Picture({ card, pictures }: { card: VisibleCard; pictures: TableCardLoo
 }
 
 /**
- * A card on the battlefield with its facts in the caption strip (never on the
- * picture): the pile's size and combat as signs, the rest in words, what is
- * only signs or the turned picture also in words for screen readers.
+ * A card the player may see, as a control (prompt 14): its primary
+ * activation looks at it - or taps it at once where the step allows (see
+ * card-use.ts) -, a long press or right click always looks at it. Forge's
+ * mark is its frame; its name says the mark and, where it taps at once, what
+ * the tap does. Always inside a GameCardRow with controls.
  */
-function FieldCard({ card, count, pictures, note }: { card: VisibleCard; count: number; pictures: TableCardLookup; note?: string }) {
+function TableCard({ card, place, pictures, count = 1, note, caption }: { card: VisibleCard; place: CardPlace; pictures: TableCardLookup; count?: number; note?: string; caption?: ReactNode }) {
+  const controls = use(CardControlsContext)
+  if (controls === null) throw new Error("TableCard outside GameTable")
+  const found = cardUse(card, place, controls.moment)
+  // Only looked at (no page to send taps): the primary activation looks too.
+  const usage: CardUse = controls.live ? found : { ...found, primary: "look" }
+  const press = useCardPress({ onPrimary: () => controls.primary(card, usage), onLook: () => controls.look(card.id) })
+  const label = cardButtonLabel(card, usage, { count, ...(note ? { note } : {}) })
+  return (
+    <GameCardRowButton>
+      <GameCardButton
+        tapped={card.tapped}
+        mark={usage.mark}
+        data-card={card.id}
+        aria-label={label}
+        title={label}
+        {...(usage.primary === "look" ? { "aria-haspopup": "dialog" as const } : {})}
+        {...(caption !== undefined ? { caption } : {})}
+        {...press}
+      >
+        <Picture card={card} pictures={pictures} />
+      </GameCardButton>
+    </GameCardRowButton>
+  )
+}
+
+/**
+ * A card on the battlefield with its facts in the caption strip (never on the
+ * picture): the pile's size and combat as signs, the rest in words; the whole
+ * of it in the card's name for screen readers.
+ */
+function FieldCard({ card, count, pictures, seat, note }: { card: VisibleCard; count: number; pictures: TableCardLookup; seat: Seat; note?: string }) {
   const title = [cardName(card), ...cardFacts(card, count), ...(note ? [note] : [])].join(" · ")
   return (
-    <GameCard
-      tapped={card.tapped}
-      data-card={card.id}
+    <TableCard
+      card={card}
+      place={{ zone: "battlefield", mine: seat === "me" }}
+      pictures={pictures}
+      count={count}
+      {...(note ? { note } : {})}
       caption={
         <GameCardCaption title={title}>
           {count > 1 ? <span className="font-medium text-foreground">{count}×</span> : null}
           {card.attacking === true ? <Swords aria-hidden /> : null}
           {card.blocking === true ? <Shield aria-hidden /> : null}
           <span className="truncate">{captionFacts(card).join(" · ")}</span>
-          <span className="sr-only">{[...spokenFacts(card), ...(note ? [note] : [])].join(", ")}</span>
         </GameCardCaption>
       }
-    >
-      <Picture card={card} pictures={pictures} />
-    </GameCard>
+    />
   )
 }
 
 /** One place of a battlefield row: a card or pile, with its attachments; or a hidden card. */
-function Entry({ entry, pictures }: { entry: BoardEntry; pictures: TableCardLookup }) {
+function Entry({ entry, pictures, seat }: { entry: BoardEntry; pictures: TableCardLookup; seat: Seat }) {
   if (entry.kind === "hidden") {
     return (
-      <li className="h-full">
+      <GameCardRowItem>
         <GameCard
           caption={
             <GameCardCaption title="verdeckt">
@@ -318,36 +419,26 @@ function Entry({ entry, pictures }: { entry: BoardEntry; pictures: TableCardLook
             <span className="sr-only">verdeckte Karte</span>
           </GameCardBack>
         </GameCard>
-      </li>
+      </GameCardRowItem>
     )
   }
-  const card = <FieldCard card={entry.card} count={entry.ids.length} pictures={pictures} />
-  if (entry.attachments.length === 0) return <li className="h-full">{card}</li>
+  const card = <FieldCard card={entry.card} count={entry.ids.length} pictures={pictures} seat={seat} />
+  if (entry.attachments.length === 0) return <GameCardRowItem>{card}</GameCardRowItem>
   return (
-    <li className="h-full">
+    <GameCardRowItem>
       <GameCardGroup role="group" aria-label={`${cardName(entry.card)} mit ${entry.attachments.map(cardName).join(", ")}`}>
         {card}
         {entry.attachments.map((attachment) => (
-          <FieldCard key={attachment.id} card={attachment} count={1} pictures={pictures} note={`an ${cardName(entry.card)}`} />
+          <FieldCard key={attachment.id} card={attachment} count={1} pictures={pictures} seat={seat} note={`an ${cardName(entry.card)}`} />
         ))}
       </GameCardGroup>
-    </li>
+    </GameCardRowItem>
   )
 }
 
-/**
- * A row of cards: as wide as the cards need, centred while it fits, scrolling
- * sideways when not. A row that scrolls must be reachable by keyboard (WCAG
- * 2.1.1, axe's scrollable-region-focusable): the row itself takes the focus
- * as long as its cards are not focusable (they become so with prompt 14).
- */
-function CardRow({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
-  return (
-    // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-    <ul aria-label={label} tabIndex={0} className={cn("relative flex min-h-0 flex-1 items-stretch justify-center-safe gap-1.5 overflow-x-auto overflow-y-hidden px-2 py-1", className)}>
-      {children}
-    </ul>
-  )
+/** Whether a row shows a card the player may see (then it is a toolbar of cards; see GameCardRow). */
+function hasCards(entries: readonly BoardEntry[], command: readonly Card[] = []): boolean {
+  return entries.some((entry) => entry.kind === "card") || command.some(isVisible)
 }
 
 function FieldEmpty({ text }: { text: string }) {
@@ -368,18 +459,20 @@ function Field({ side, pictures, nearRow, owner }: { side: TableSide; pictures: 
   const command = side.command
   const empty = creatures.length === 0 && others.length === 0 && command.length === 0
   const commandItems = command.map((card, index) => (
-    <li key={isVisible(card) ? `command:${card.id}` : `command:hidden:${index}`} className="h-full">
+    <GameCardRowItem key={isVisible(card) ? `command:${card.id}` : `command:hidden:${index}`}>
       {isVisible(card) ? (
-        <GameCard
+        <TableCard
+          card={card}
+          place={{ zone: "command", mine: side.seat === "me" }}
+          pictures={pictures}
+          note="Kommandozone"
           caption={
             <GameCardCaption title={`${cardName(card)} · Kommandozone`}>
               <Crown aria-hidden />
               <span className="truncate">Kommandozone</span>
             </GameCardCaption>
           }
-        >
-          <Picture card={card} pictures={pictures} />
-        </GameCard>
+        />
       ) : (
         <GameCard
           caption={
@@ -394,30 +487,34 @@ function Field({ side, pictures, nearRow, owner }: { side: TableSide; pictures: 
           </GameCardBack>
         </GameCard>
       )}
-    </li>
+    </GameCardRowItem>
   ))
-  const entries = (list: readonly BoardEntry[]) => list.map((entry) => <Entry key={entry.key} entry={entry} pictures={pictures} />)
+  const entries = (list: readonly BoardEntry[]) => list.map((entry) => <Entry key={entry.key} entry={entry} pictures={pictures} seat={side.seat} />)
   let rows: ReactNode
   if (empty) rows = <FieldEmpty text={`Auf dem Spielfeld von ${owner === "dir" ? "dir" : "der Forge-KI"} liegt nichts.`} />
   else if (!twoRows) {
     rows = (
-      <CardRow label={`Bleibende Karten von ${owner}`}>
+      <GameCardRow aria-label={`Bleibende Karten von ${owner}`} controls={hasCards([...creatures, ...others], command)}>
         {commandItems}
         {entries(creatures)}
         {entries(others)}
-      </CardRow>
+      </GameCardRow>
     )
   } else {
     const near = (
-      <CardRow key="near" label={`Kreaturen von ${owner}`}>
-        {creatures.length > 0 ? entries(creatures) : <li className="m-auto text-xs text-muted-foreground">Keine Kreaturen</li>}
-      </CardRow>
+      <GameCardRow key="near" aria-label={`Kreaturen von ${owner}`} controls={hasCards(creatures)}>
+        {creatures.length > 0 ? entries(creatures) : <GameCardRowItem className="m-auto h-auto text-xs text-muted-foreground">Keine Kreaturen</GameCardRowItem>}
+      </GameCardRow>
     )
     const outer = (
-      <CardRow key="outer" label={`Länder und weitere bleibende Karten von ${owner}`}>
+      <GameCardRow key="outer" aria-label={`Länder und weitere bleibende Karten von ${owner}`} controls={hasCards(others, command)}>
         {commandItems}
-        {others.length > 0 ? entries(others) : command.length === 0 ? <li className="m-auto text-xs text-muted-foreground">Keine weiteren Karten</li> : null}
-      </CardRow>
+        {others.length > 0 ? (
+          entries(others)
+        ) : command.length === 0 ? (
+          <GameCardRowItem className="m-auto h-auto text-xs text-muted-foreground">Keine weiteren Karten</GameCardRowItem>
+        ) : null}
+      </GameCardRow>
     )
     rows = nearRow === "top" ? [near, <Separator key="line" />, outer] : [outer, <Separator key="line" />, near]
   }
@@ -504,7 +601,11 @@ function combatLines(combat: readonly CombatView[]): { readonly key: string; rea
   return lines
 }
 
-/** What Forge waits for: its prompt line, the question and the answers it offers - shown, not yet answerable here. */
+/**
+ * What Forge waits for: its prompt line, the question and the answers it
+ * offers - shown, not yet answerable here (prompt 15). Where the step taps
+ * cards at once (card-use.ts), it says so, and how to look at a card then.
+ */
 function Decision({ questions, prompt, waiting }: { questions: readonly Question[]; prompt: string | null; waiting: boolean }) {
   if (questions.length === 0) {
     return waiting ? (
@@ -542,7 +643,12 @@ function Decision({ questions, prompt, waiting }: { questions: readonly Question
           )
         })}
       </ul>
-      <p className="text-xs text-muted-foreground">Hier kannst du noch nicht antworten – nur die Partie verfolgen und im Menü aufgeben.</p>
+      {waiting && directTaps(questions) ? (
+        <p className="text-xs">Karten antippen wirkt hier sofort, ein zweiter Tipp nimmt es zurück. Lange drücken oder Rechtsklick zeigt eine Karte groß.</p>
+      ) : null}
+      <p className="text-xs text-muted-foreground">
+        Auf Forges Fragen kannst du hier noch nicht antworten. Karten ansehen geht immer, antippen dort, wo Forge es anbietet; aufgeben im Menü.
+      </p>
     </div>
   )
 }
@@ -551,20 +657,18 @@ function Decision({ questions, prompt, waiting }: { questions: readonly Question
 function Hand({ cards, pictures }: { cards: readonly Card[]; pictures: TableCardLookup }) {
   if (cards.length === 0) return <FieldEmpty text="Deine Hand ist leer." />
   return (
-    <CardRow label={`Deine Hand: ${cards.length === 1 ? "1 Karte" : `${cards.length} Karten`}`} className="h-full py-0">
+    <GameCardRow aria-label={`Deine Hand: ${cards.length === 1 ? "1 Karte" : `${cards.length} Karten`}`} controls={cards.some(isVisible)} className="h-full">
       {cards.map((card, index) => (
-        <li key={isVisible(card) ? card.id : `hidden:${index}`} className="h-full">
+        <GameCardRowItem key={isVisible(card) ? card.id : `hidden:${index}`}>
           {isVisible(card) ? (
-            <GameCard data-card={card.id}>
-              <Picture card={card} pictures={pictures} />
-            </GameCard>
+            <TableCard card={card} place={{ zone: "hand", mine: true }} pictures={pictures} />
           ) : (
             <GameCardBack>
               <span className="sr-only">verdeckte Karte</span>
             </GameCardBack>
           )}
-        </li>
+        </GameCardRowItem>
       ))}
-    </CardRow>
+    </GameCardRow>
   )
 }

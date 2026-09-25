@@ -206,7 +206,7 @@ export function matchInProgress(match: MatchSnapshot | null): boolean {
 }
 
 /** The part of EngineClient the session uses (tests pass a fake). */
-export type SessionClient = Pick<EngineClient, "start" | "subscribe" | "dispose" | "startMatch" | "concede" | "abort" | "engineWaiting">
+export type SessionClient = Pick<EngineClient, "start" | "subscribe" | "dispose" | "startMatch" | "concede" | "tapCard" | "abort" | "engineWaiting">
 
 /** Where the engine is (the worker script, GraalVM's launcher, the module) and how it boots. */
 export interface EngineLaunch {
@@ -238,8 +238,35 @@ export interface EngineSessionOptions {
   readonly bootOptions?: EngineBootOptions
 }
 
-/** What concede() did: sent, or why not (German, for the player). */
-export type ConcedeResult = { readonly ok: true } | { readonly ok: false; readonly reason: string }
+/** What an input of the player did: sent, or why not (German, for the player). */
+export type InputResult = { readonly ok: true } | { readonly ok: false; readonly reason: string }
+
+/** What concede() did. */
+export type ConcedeResult = InputResult
+
+/**
+ * Why the client refused an input without sending it (EngineInputError's
+ * reason, engine/client/src/errors.ts), for the player. Read by name: the
+ * client is loaded on demand, its classes are not imported here.
+ */
+const INPUT_REFUSALS: Readonly<Record<string, string>> = {
+  "no-match": "Es läuft keine Partie.",
+  "not-active": "Forge wartet zuerst auf deine Antwort auf seine Frage.",
+  "unknown-card": "Diese Karte ist gerade nicht mehr zu sehen.",
+  "unknown-player": "Diesen Spieler gibt es nicht.",
+  stale: "Die Frage ist schon beantwortet oder zurückgezogen.",
+  "unknown-question": "Diese Frage hat Forge nie gestellt.",
+  "wrong-kind": "Die Antwort passt nicht zu Forges Frage.",
+  malformed: "Die Eingabe passt nicht zum Protokoll.",
+  "queue-full": "Forge hat die letzten Eingaben noch nicht gelesen – gleich noch einmal versuchen.",
+  "too-large": "Die Eingabe ist zu groß.",
+}
+
+function refusal(error: unknown): string {
+  const reason = error instanceof Error && "reason" in error && typeof error.reason === "string" ? error.reason : null
+  const known = reason === null ? undefined : INPUT_REFUSALS[reason]
+  return known ?? (error instanceof Error ? error.message : String(error))
+}
 
 type Listener = () => void
 
@@ -373,6 +400,30 @@ export class EngineSession {
     }
     // The input is on its way: Forge no longer waits.
     this.#set({ ...this.#snapshot, match: { ...match, conceding: true, waiting: client.engineWaiting } })
+    return { ok: true }
+  }
+
+  /**
+   * Taps a card for the player (prompt 14): Forge's card.tap - how cards are
+   * played, activated, paid with, declared as attackers or blockers, chosen;
+   * Forge decides what the tap means and rejects one it ignores (a notice).
+   * Only while Forge waits for the player: a tap sent while it computes would
+   * be read later, in whatever step comes then. Never for a concession on its
+   * way. The UI offers a tap only where Forge does (src/game/card-use.ts).
+   */
+  tapCard(card: number): InputResult {
+    const match = this.#snapshot.match
+    const client = this.#client
+    if (match?.status !== "playing" || client === null) return { ok: false, reason: "Es läuft keine Partie." }
+    if (match.conceding) return { ok: false, reason: "Die Aufgabe ist unterwegs." }
+    if (!client.engineWaiting) return { ok: false, reason: "Forge rechnet gerade – antippen geht, sobald Forge wieder auf dich wartet." }
+    try {
+      client.tapCard(card)
+    } catch (error) {
+      return { ok: false, reason: refusal(error) }
+    }
+    // The input is on its way: Forge no longer waits.
+    this.#set({ ...this.#snapshot, match: { ...match, waiting: client.engineWaiting } })
     return { ok: true }
   }
 

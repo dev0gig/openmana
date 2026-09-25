@@ -6,7 +6,8 @@
  * are shown as Forge sends them.
  */
 import type { VisibleCard } from "@openmana/engine-protocol"
-import type { CombatView, ManaColor, PlayerRef, Seat, StackEntryView, CardRef } from "./table-model"
+import type { CardUse } from "./card-use"
+import type { CardRef, CardZone, CombatView, ManaColor, PlayerRef, Seat, StackEntryView } from "./table-model"
 
 export const MANA_LABELS: Readonly<Record<ManaColor, string>> = {
   W: "Weiß",
@@ -152,4 +153,29 @@ export function attackLine(view: CombatView): string {
 /** Who blocks it ("geblockt von Riesenspinne, Grizzlybären" / "ungeblockt"). */
 export function blockLine(view: CombatView): string {
   return view.blockers.length === 0 ? "ungeblockt" : `geblockt von ${view.blockers.map((blocker) => cardName(blocker.card)).join(", ")}`
+}
+
+/**
+ * A card as a control, in words (its button's name, prompt 14): name, how
+ * many in the pile, Forge's facts, where it hangs, Forge's mark - and, where
+ * the button taps at once, what the tap does.
+ */
+export function cardButtonLabel(card: VisibleCard, use: CardUse, options: { readonly count?: number; readonly note?: string } = {}): string {
+  const parts = [cardName(card), ...cardFacts(card, options.count ?? 1), ...(options.note ? [options.note] : []), ...(use.markLabel ? [use.markLabel] : [])]
+  const label = parts.join(", ")
+  return use.primary === "tap" && use.tap !== null ? `${label} – Antippen: ${use.tap.label}` : label
+}
+
+const ZONE_PLACES: Readonly<Record<CardZone, { readonly me: string; readonly opponent: string }>> = {
+  battlefield: { me: "Dein Spielfeld", opponent: "Spielfeld der Forge-KI" },
+  hand: { me: "Deine Hand", opponent: "Hand der Forge-KI (aufgedeckt)" },
+  graveyard: { me: "Dein Friedhof", opponent: "Friedhof der Forge-KI" },
+  exile: { me: "Dein Exil", opponent: "Exil der Forge-KI" },
+  command: { me: "Deine Kommandozone", opponent: "Kommandozone der Forge-KI" },
+}
+
+/** Where a card lies, for the card view ("Deine Hand", "Spielfeld der Forge-KI" …). */
+export function placeLabel(zone: CardZone | null, seat: Seat): string {
+  if (zone === null) return seat === "me" ? "Dein Kommandeur, gerade auf keinem sichtbaren Platz" : "Kommandeur der Forge-KI, gerade auf keinem sichtbaren Platz"
+  return ZONE_PLACES[zone][seat]
 }

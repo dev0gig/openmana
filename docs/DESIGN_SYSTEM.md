@@ -82,6 +82,12 @@ files work under COEP and nothing leaks to third parties (Bible §15).
    lesson, Bible §16), the page header from `md`. An irreversible action
    (conceding) never goes into the `ActionBar`: a bar that is always under the
    thumb invites a tap by mistake.
+   Cards on the game table are sized by their rows (§4), not by this rule: on
+   a small phone a battlefield card can be smaller than 44 px. Their targets
+   keep WCAG 2.2's minimum (2.5.8, 24 × 24 px, measured by the end-to-end
+   test), and a mis-tap is harmless by design (prompt 14): outside the steps
+   Forge lets the player take back, a card's tap only opens its card view,
+   whose own buttons have the full touch size.
 6. **Accessible by default** (Bible §17). Text on every surface reaches WCAG
    2.2 AA 4.5:1 (checked from the tokens by `src/app/design-tokens.test.ts`;
    most pairs are above 7:1), and so does destructive text on its own 20 %
@@ -110,9 +116,10 @@ files work under COEP and nothing leaks to third parties (Bible §15).
    `src/components/ui`; a component added later must follow). Spinners keep
    turning: a loading indicator that stops looks like a frozen page. Code that
    moves things itself (the game table's animations, when later prompts add
-   them - the table of prompt 13 has none: a tapped card turns at once) asks
-   `useDeviceReducedMotion()`/`reducedMotion()` in `src/app/motion.ts` together
-   with the preference.
+   them - the table of prompts 13 and 14 has none: a tapped card turns at
+   once, a mark appears at once; the card view moves only as shadcn's `Sheet`)
+   asks `useDeviceReducedMotion()`/`reducedMotion()` in `src/app/motion.ts`
+   together with the preference.
 
 ## 4. Layout
 
@@ -140,6 +147,17 @@ scrolls inside its region – card rows sideways, texts downwards:
 | portrait (phones, folded foldables, tablets upright) | header · opponent (with their hand) · opponent's battlefield · stack and combat · your battlefield · you · decision · hand, top to bottom; stack/combat and decision capped (`max-h-32`, `max-h-44`) |
 | landscape (desktop, tablets, foldables and phones turned) | left: header, both battlefields, hand; right, a side column (15–24 rem): the opponent next to the header, stack and combat, the decision, you next to the hand |
 
+**Cards are controls** (prompt 14): every card the player may see is a
+`GameCardButton` in a `GameCardRow` toolbar (one Tab stop per row; arrow keys,
+Home and End move between its cards). Its primary activation opens the **card
+view** - a `Sheet` from the bottom in portrait (thumb reach), from the right in
+landscape: the card large, Forge's words and facts, what Forge offers, and a
+footer that stays in view while the card scrolls (in landscape its two buttons
+side by side). A long press, a right click or the context-menu key opens it
+too - in the steps whose taps act at once (paying, attacking, blocking, the
+London mulligan, a selection) the only way to look. The card view's main button
+carries Forge's words for the tap and is armed a moment after it appears.
+
 Both battlefields share the free height equally; a battlefield shows two rows
 (creatures next to the middle, other permanents outside) from 176 px, one
 below. Cards are sized by their row's height (`GameCard`), so less room means
@@ -160,6 +178,7 @@ the word.
 | `Switch` | shadcn/ui registry (`radix-maia`, prompt 12) | an on/off preference („Bewegungen reduzieren“), inside a `FieldLabel` row so the whole row is the touch target; one-of-several preferences (AI profile, card language) are a `RadioGroup` of choice cards like the backup import. Preferences are saved the moment they change (no save button) |
 | `GameBoard`, `GameBoardArea` | `src/components/ui/game-board.tsx`, built the shadcn way (prompt 13) | the game table's frame: eight named regions in a grid, portrait and landscape arrangement (§4), never scrolling itself |
 | `GameCard`, `GameCardCaption`, `GameCardBack`, `GameCardGroup` | `src/components/ui/game-card.tsx`, built the shadcn way (prompt 13) | a card on the game table, sized by its row's height (63 × 88): its `CardPicture`, turned a quarter when tapped (square place), its facts in the caption strip **below** the picture (never on it: Scryfall forbids covering card images); OpenMana's own back for cards Forge hides (never Wizards' back); a card with its attachments in one dashed frame |
+| `GameCardButton`, `GameCardRow`, `GameCardRowItem`, `GameCardRowButton`; the `mark` of `GameCard`/`GameCardButton` | `src/components/ui/game-card.tsx`, built the shadcn way (prompt 14) on Radix `Toolbar` (from `radix-ui`) | a card as a control: a button with shadcn's focus ring around the whole card, no image menu or text selection on a long press; Forge's state as a frame around the picture in the room every card keeps (`mark`: usable = dashed `--primary`, chosen = solid `--foreground`); a row of such cards as a toolbar (roving focus), else a focusable list |
 | `ActionBar` | `src/components/ui/action-bar.tsx`, built the shadcn way (prompt 10) | a page's primary action on phones: sticky right above the tab bar (`bottom-16`), at the end of the content column – on a short page too (since prompt 11 the `Page` column fills the screen and the bar is pushed to its end, `mt-auto`); pages render it only below `md` (`useIsMobile`) and put the same actions into the header above |
 | `CardPicture` | `src/components/ui/card-picture.tsx`, built the shadcn way (prompt 08) | every picture of a Magic card: `AspectRatio` 63 × 88, `Skeleton` while loading, the card's text in place of a missing or failed picture (`data-state` loading/loaded/failed/missing); loads Scryfall's pictures in CORS mode without referrer and never crops them (`object-contain`: Scryfall forbids cutting off artist or copyright) |
 | `BottomNav`, `BottomNavItem` | `src/components/ui/bottom-nav.tsx`, built the shadcn way | phone tab bar |
@@ -185,4 +204,11 @@ the word.
 - Nothing is drawn over a card picture (badges, counters, tints, blur): a
   card's facts go into the caption strip below it (`GameCardCaption`), a state
   that changes the card itself (tapped) is a quarter turn of the whole card
-  (prompt 13).
+  (prompt 13), and Forge's marks are a frame around the picture (prompt 14).
+- Card states (prompt 14) reuse the palette on purpose instead of new
+  colours: "usable now" is the one accent for "do this" (`--primary`, dashed),
+  "chosen" the strongest contrast there is (`--foreground`, solid). Dashed
+  against solid tells them apart without colour (WCAG 1.4.1); both reach 3:1
+  against the table's surfaces (1.4.11, checked by `design-tokens.test.ts`).
+  A state that needs a colour of its own later (targets, attackers - prompts
+  17-19) follows the token-pair rule above.

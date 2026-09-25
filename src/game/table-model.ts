@@ -130,6 +130,46 @@ export function visibleCards(state: GameState): ReadonlyMap<number, VisibleCard>
   return cards
 }
 
+/** The zones Forge shows the player (the library only as a number). */
+export type CardZone = "battlefield" | "hand" | "graveyard" | "exile" | "command"
+
+const ZONES: readonly CardZone[] = ["battlefield", "hand", "graveyard", "exile", "command"]
+
+export interface LocatedCard {
+  readonly card: VisibleCard
+  /** The zone it lies in now; null: in none the player is shown (a commander on the stack). */
+  readonly zone: CardZone | null
+  /** Whose zone it is (for a commander outside the zones: whose commander). */
+  readonly seat: Seat
+}
+
+/**
+ * Where a card lies in this state, by its id (prompt 14: the card view keeps
+ * only the id and reads the card from every new state - Anvil lesson: no
+ * stale card objects). null: Forge shows it nowhere any more.
+ */
+export function locateCard(state: GameState, id: number): LocatedCard | null {
+  for (const player of state.players) {
+    for (const zone of ZONES) {
+      for (const card of player.zones[zone]) if (isVisible(card) && card.id === id) return { card, zone, seat: player.me ? "me" : "opponent" }
+    }
+  }
+  for (const player of state.players) {
+    for (const commander of player.commanders) if (isVisible(commander.card) && commander.card.id === id) return { card: commander.card, zone: null, seat: player.me ? "me" : "opponent" }
+  }
+  return null
+}
+
+/** The pile of identical cards a card lies in on a battlefield (its ids, Forge's order), or null. */
+export function pileOf(view: TableView, id: number): readonly number[] | null {
+  for (const side of [...(view.me ? [view.me] : []), ...view.opponents]) {
+    for (const entry of [...side.battlefield.creatures, ...side.battlefield.others]) {
+      if (entry.kind === "card" && entry.ids.includes(id)) return entry.ids
+    }
+  }
+  return null
+}
+
 /** The card ids Forge names outside the card itself: questions, stack, combat, attachments. They never go into a pile. */
 export function namedCardIds(state: GameState, questions: readonly Question[]): ReadonlySet<number> {
   const ids = new Set<number>()

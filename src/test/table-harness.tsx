@@ -9,8 +9,13 @@
  * with prompts 14-19). Nothing here acts or simulates: it only renders a
  * state Forge sent.
  *
+ * Operating the cards (prompt 14): the table's taps go to a recorder the
+ * test reads (window.__openmanaTaps, the card ids in order) instead of an
+ * engine - so the test proves which card a click, a double click, a long
+ * press, a swipe or a key would tap, and that looking taps none.
+ *
  * Not part of the app: only the test's dev server serves it,
- * /scripts/e2e/table-harness.html?scene=<name>[&language=en].
+ * /scripts/e2e/table-harness.html?scene=<name>[&language=en][&waiting=0].
  */
 import { Menu } from "lucide-react"
 import { StrictMode, useEffect, useMemo } from "react"
@@ -25,7 +30,18 @@ import { visibleCards } from "@/game/table-model"
 import { StorageProvider } from "@/storage/storage-context"
 import { tableScene, type TableScene, type TableSceneName } from "./table-scenes"
 
-function SceneTable({ scene, language }: { scene: TableScene; language: "de" | "en" }) {
+declare global {
+  interface Window {
+    /** The cards the table tapped, in order (read by the end-to-end test). */
+    __openmanaTaps?: number[]
+  }
+}
+
+function recordTap(id: number): void {
+  window.__openmanaTaps = [...(window.__openmanaTaps ?? []), id]
+}
+
+function SceneTable({ scene, language, waiting }: { scene: TableScene; language: "de" | "en"; waiting: boolean }) {
   const cards = useMemo(() => [...visibleCards(scene.state).values()], [scene])
   const pictures = useTableCards(cards, language)
   return (
@@ -35,7 +51,8 @@ function SceneTable({ scene, language }: { scene: TableScene; language: "de" | "
         state={scene.state}
         questions={scene.questions}
         prompt={scene.prompt}
-        waiting={scene.questions.length > 0}
+        waiting={waiting && scene.questions.length > 0}
+        onTapCard={recordTap}
         aiProfile={scene.game.aiProfile}
         pictures={pictures}
         menu={
@@ -52,6 +69,7 @@ function Harness() {
   const params = new URLSearchParams(window.location.search)
   const scene = tableScene((params.get("scene") ?? "opening") as TableSceneName)
   const language = params.get("language") === "en" ? "en" : "de"
+  const waiting = params.get("waiting") !== "0"
   const catalog = useCardCatalog()
   const { status, install } = catalog
   useEffect(() => {
@@ -64,7 +82,7 @@ function Harness() {
       </p>
     )
   }
-  return <SceneTable scene={scene} language={language} />
+  return <SceneTable scene={scene} language={language} waiting={waiting} />
 }
 
 const container = document.getElementById("root")

@@ -25,11 +25,14 @@ beforeEach(() => {
 // machine took longer than a second. Passing tests are not slower for it.
 configure({ asyncUtilTimeout: 5000 })
 
-afterEach(() => {
+afterEach(async () => {
   // sonner keeps active toasts in a module-wide store and replays them to the
   // next Toaster: without this, a toast of one test shows up in the next.
   toast.dismiss()
   cleanup()
+  // Radix gives the focus back a tick after a dialog unmounts (FocusScope);
+  // without this tick it lands in the next test and takes its focus away.
+  await new Promise((resolve) => setTimeout(resolve, 0))
 })
 
 if (typeof window !== "undefined") {

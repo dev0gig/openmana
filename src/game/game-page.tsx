@@ -8,22 +8,26 @@
  * A running game is the game table (prompt 13, game-table.tsx): it takes the
  * whole screen (the app's frame steps aside, src/app/immersive.tsx), and its
  * menu holds the way around the app, Forge's notices and conceding (asked
- * first). Answering Forge's decisions and operating cards follow (prompts
- * 14-19); until then a game can be followed and conceded. Nothing here is
- * invented or computed: who is who comes from the state's `me` flags, the
- * result from game.end.
+ * first). Cards can be looked at and - where Forge offers it - tapped (prompt
+ * 14: the page hands the table the session's tapCard; a tap that cannot be
+ * sent says why). Answering Forge's decisions follows (prompts 15-19).
+ * Nothing here is invented or computed: who is who comes from the state's
+ * `me` flags, the result from game.end.
  *
  * A running game lives only in this page: reloading or closing it ends the
  * game (the session asks first). The page says so.
  */
-import { Menu, OctagonAlert, Swords, TriangleAlert } from "lucide-react"
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { ImageOff, Menu, OctagonAlert, Swords, TriangleAlert } from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { Link, NavLink, useNavigate } from "react-router"
 import { toast } from "sonner"
 import type { GameState } from "@openmana/engine-protocol"
 import { useImmersive } from "@/app/immersive"
 import { DESTINATIONS } from "@/app/navigation"
 import { usePreferences } from "@/app/preferences"
+import { useCardCatalog } from "@/cards/card-catalog-context"
+import { InstallButton, InstallProgressView } from "@/cards/card-data-card"
+import { CardDataErrorAlert } from "@/cards/card-error-alert"
 import { FactList } from "@/components/fact-list"
 import { Page } from "@/components/page-header"
 import { ActionBar } from "@/components/ui/action-bar"
@@ -419,9 +423,46 @@ function useNoticeToasts(notices: readonly GameNotice[], count: number): void {
 }
 
 /**
+ * Without card data on this device the table shows every card in Forge's
+ * words (prompt 14: a clear fallback, never an empty box). The menu says why,
+ * and sets the card data up right here - the pictures appear during the game.
+ * Nothing while the data is being read or cannot be (the settings say why).
+ */
+function TableCardData() {
+  const catalog = useCardCatalog()
+  if (catalog.usable || catalog.status === "loading" || catalog.status === "storage-error") return null
+  const title =
+    catalog.status === "unavailable" ? "Diese Version enthält keine Kartendaten" : catalog.status === "installing" ? "Die Kartendaten werden eingerichtet" : "Ohne Kartendaten: keine Kartenbilder"
+  return (
+    <>
+      <Alert>
+        <ImageOff aria-hidden />
+        <AlertTitle>{title}</AlertTitle>
+        <AlertDescription>
+          {catalog.status === "installing" ? (
+            <InstallProgressView state={catalog} />
+          ) : (
+            <>
+              <span>Der Tisch zeigt die Karten mit Forges Worten.{catalog.status === "unavailable" ? "" : " Mit den Kartendaten erscheinen ihre Bilder – auch während der Partie."}</span>
+              {catalog.status === "unavailable" ? null : (
+                <span className="mt-2 block">
+                  <InstallButton state={catalog} />
+                </span>
+              )}
+            </>
+          )}
+        </AlertDescription>
+      </Alert>
+      {catalog.error !== null ? <CardDataErrorAlert error={catalog.error} /> : null}
+    </>
+  )
+}
+
+/**
  * The table's menu: the game takes the whole screen, so the way around the
  * app is here - the game keeps running on other pages -, the game's facts,
- * Forge's notices and conceding (which the page confirms first).
+ * Forge's notices, the card data where they are missing, and conceding
+ * (which the page confirms first).
  */
 function TableMenu({ match, onConcede }: { match: Of<"playing">; onConcede: () => void }) {
   const [open, setOpen] = useState(false)
@@ -440,6 +481,7 @@ function TableMenu({ match, onConcede }: { match: Of<"playing">; onConcede: () =
         </SheetHeader>
         <div className="flex flex-col gap-6 px-4">
           <Matchup setup={match.setup} confirmedProfile={match.game.aiProfile} />
+          <TableCardData />
           <Notices notices={match.notices} />
           <nav aria-label="OpenMana" className="flex flex-col gap-1">
             <h2 className="text-sm font-medium">Zu einer anderen Seite</h2>
@@ -475,7 +517,7 @@ function TableMenu({ match, onConcede }: { match: Of<"playing">; onConcede: () =
 /** The running game: the table on the whole screen, its menu, the confirmation before conceding. */
 function Playing({ match }: { match: Of<"playing"> }) {
   useImmersive(true)
-  const { concede } = useEngineSession()
+  const { concede, tapCard } = useEngineSession()
   const { cardLanguage } = usePreferences()
   const [confirming, setConfirming] = useState(false)
   const cards = useMemo(() => (match.state === null ? [] : [...visibleCards(match.state).values()]), [match.state])
@@ -485,6 +527,14 @@ function Playing({ match }: { match: Of<"playing"> }) {
     const result = concede()
     if (!result.ok) toast.error("Aufgeben hat nicht geklappt", { description: result.reason })
   }
+  // Nothing fails silently: a tap the session cannot send says why (at the top - the hand stays free).
+  const tap = useCallback(
+    (card: number) => {
+      const result = tapCard(card)
+      if (!result.ok) toast.error("Die Karte wurde nicht angetippt", { description: result.reason, position: "top-center" })
+    },
+    [tapCard],
+  )
   const menu = <TableMenu match={match} onConcede={() => setConfirming(true)} />
   const alerts = match.stalledMs !== null ? <Stalled silentMs={match.stalledMs} /> : null
   return (
@@ -517,6 +567,7 @@ function Playing({ match }: { match: Of<"playing"> }) {
           conceding={match.conceding}
           menu={menu}
           alerts={alerts}
+          onTapCard={tap}
         />
       )}
       <AlertDialog open={confirming} onOpenChange={setConfirming}>

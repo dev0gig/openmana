@@ -30,6 +30,9 @@ function renderScene(name: TableSceneName, options: { pictures?: TableCardLookup
 
 const region = (name: string) => screen.getByRole("region", { name })
 
+/** The card rows of a region (lists or toolbars), top to bottom. */
+const rowsOf = (area: HTMLElement) => [...area.querySelectorAll<HTMLElement>('[data-slot="game-card-row"]')]
+
 describe("the regions", () => {
   it("every region is there and named, from the opponent to the hand", () => {
     renderScene("opening")
@@ -66,10 +69,11 @@ describe("what each player shows", () => {
     expect(within(hidden).getAllByRole("listitem")).toHaveLength(7)
     expect(within(hidden).getAllByText("verdeckte Karte")).toHaveLength(7)
     expect(within(hidden).queryAllByRole("img")).toHaveLength(0)
-    const hand = within(region("Deine Hand")).getByRole("list", { name: "Deine Hand: 7 Karten" })
+    // The player's cards are controls: a toolbar of card buttons (prompt 14).
+    const hand = within(region("Deine Hand")).getByRole("toolbar", { name: "Deine Hand: 7 Karten" })
     const names = scene.state.players.find((p) => p.me)!.zones.hand.map((c) => ("hidden" in c ? null : c.name))
     // Without card data the table shows Forge's own words for each card.
-    expect(within(hand).getAllByRole("listitem").map((item) => item.querySelector('[data-slot="card-picture-fallback"] span')?.textContent)).toEqual(names)
+    expect(within(hand).getAllByRole("button").map((button) => button.querySelector('[data-slot="card-picture-fallback"] span')?.textContent)).toEqual(names)
   })
 
   it("life, zone sizes and the AI profile Forge confirmed", () => {
@@ -108,44 +112,49 @@ describe("the battlefields", () => {
   it("two rows each: creatures next to the middle, the other permanents outside; piles with their count", () => {
     renderScene("main-phase")
     const mine = region("Dein Spielfeld")
-    const rows = within(mine).getAllByRole("list")
-    expect(rows.map((list) => list.getAttribute("aria-label"))).toEqual(["Kreaturen von dir", "Länder und weitere bleibende Karten von dir"])
-    const lands = within(rows[1]!).getAllByRole("listitem")
+    const rows = rowsOf(mine)
+    expect(rows.map((row) => row.getAttribute("aria-label"))).toEqual(["Kreaturen von dir", "Länder und weitere bleibende Karten von dir"])
+    // A row without cards stays a list (focusable itself); a row of cards is a toolbar.
+    expect(rows.map((row) => row.getAttribute("role"))).toEqual([null, "toolbar"])
+    const lands = within(rows[1]!).getAllByRole("button")
     expect(lands).toHaveLength(1)
-    expect(lands[0]!.querySelector("figcaption")).toHaveTextContent(/^6×/)
-    expect(lands[0]!.querySelector("figcaption")).toHaveAttribute("title", "Gebirge · 6 Karten")
+    expect(lands[0]!.querySelector('[data-slot="game-card-caption"]')).toHaveTextContent(/^6×/)
+    expect(lands[0]!.querySelector('[data-slot="game-card-caption"]')).toHaveAttribute("title", "Gebirge · 6 Karten")
+    expect(lands[0]).toHaveAccessibleName("Gebirge, 6 Karten")
 
     const theirs = region("Spielfeld der Forge-KI")
     // The opponent's creatures lie next to the middle too: below their lands.
-    expect(within(theirs).getAllByRole("list").map((list) => list.getAttribute("aria-label"))).toEqual(["Länder und weitere bleibende Karten von der Forge-KI", "Kreaturen von der Forge-KI"])
+    expect(rowsOf(theirs).map((row) => row.getAttribute("aria-label"))).toEqual(["Länder und weitere bleibende Karten von der Forge-KI", "Kreaturen von der Forge-KI"])
     const spiders = theirs.querySelector('[data-card="77"]')!
     expect(spiders).toHaveAttribute("data-tapped", "true")
-    expect(spiders.querySelector("figcaption")).toHaveAttribute("title", "Riesenspinne · 2 Karten · getappt · 2/4")
+    expect(spiders.querySelector('[data-slot="game-card-caption"]')).toHaveAttribute("title", "Riesenspinne · 2 Karten · getappt · 2/4")
   })
 
   it("a creature's facts below its picture: power/toughness and damage from Forge; the target of a spell stays single", () => {
     renderScene("stack")
     const arsonist = region("Dein Spielfeld").querySelector('[data-card="55"]')!
-    expect(arsonist.querySelector("figcaption")).toHaveAttribute("title", "Goblin-Brandstifter · 1/1 · 2 Schaden")
-    expect(arsonist.querySelector("figcaption")).toHaveTextContent("1/1 · 2 Schaden")
+    expect(arsonist.querySelector('[data-slot="game-card-caption"]')).toHaveAttribute("title", "Goblin-Brandstifter · 1/1 · 2 Schaden")
+    expect(arsonist.querySelector('[data-slot="game-card-caption"]')).toHaveTextContent("1/1 · 2 Schaden")
   })
 
-  it("combat on the cards: attacking and blocking, said for screen readers too", () => {
+  it("combat on the cards: attacking and blocking as signs, said in the card's name for screen readers", () => {
     renderScene("defend")
     const blocker = region("Dein Spielfeld").querySelector('[data-card="58"]')!
-    expect(blocker.querySelector("figcaption")).toHaveTextContent("blockt")
+    expect(blocker.querySelector('[data-slot="game-card-caption"] svg')).not.toBeNull()
+    expect(blocker).toHaveAccessibleName(/^Goblin Arsonist, blockt, 1\/1/)
     const attacker = region("Spielfeld der Forge-KI").querySelector('[data-card="80"]')!
     expect(attacker).toHaveAttribute("data-tapped", "true")
-    expect(attacker.querySelector("figcaption")).toHaveTextContent("getappt, greift an")
+    expect(attacker).toHaveAccessibleName(/^Giant Spider, getappt, greift an, 2\/4, ausgewählt/)
   })
 
   it("the command zone leads the outer row, Forge's effect cards as Forge names them", () => {
     renderScene("command-effects")
-    const outer = within(region("Dein Spielfeld")).getByRole("list", { name: "Länder und weitere bleibende Karten von dir" })
-    const items = within(outer).getAllByRole("listitem")
-    expect(items[0]).toHaveTextContent("Stomp (54)'s Effect")
-    expect(items[0]).toHaveTextContent("Kommandozone")
-    expect(items[1]).toHaveTextContent("Stomp (54)'s Adventure")
+    const outer = within(region("Dein Spielfeld")).getByRole("toolbar", { name: "Länder und weitere bleibende Karten von dir" })
+    const cards = within(outer).getAllByRole("button")
+    expect(cards[0]).toHaveTextContent("Stomp (54)'s Effect")
+    expect(cards[0]).toHaveTextContent("Kommandozone")
+    expect(cards[0]).toHaveAccessibleName("Stomp (54)'s Effect, Kommandozone")
+    expect(cards[1]).toHaveTextContent("Stomp (54)'s Adventure")
   })
 
   it("an empty battlefield says so", () => {
@@ -194,13 +203,28 @@ describe("stack, combat and Forge's decision", () => {
     const [question] = within(decision).getAllByRole("listitem")
     expect(question!.firstChild).toHaveTextContent("Mulligan")
     expect(within(within(decision).getByLabelText("Antworten, die Forge anbietet")).getAllByText(/./).map((b) => b.textContent)).toEqual(["Behalten", "Mulligan"])
-    expect(within(decision).getByText("Hier kannst du noch nicht antworten – nur die Partie verfolgen und im Menü aufgeben.")).toBeInTheDocument()
+    expect(
+      within(decision).getByText("Auf Forges Fragen kannst du hier noch nicht antworten. Karten ansehen geht immer, antippen dort, wo Forge es anbietet; aufgeben im Menü."),
+    ).toBeInTheDocument()
     expect(within(decision).queryByRole("button")).not.toBeInTheDocument()
+    // The mulligan's keep-or-not does not tap cards at once: no hint about it.
+    expect(within(decision).queryByText(/wirkt hier sofort/)).not.toBeInTheDocument()
+  })
+
+  it("in a step whose taps act at once (blocking), the decision says so - and how to look at a card then", () => {
+    renderScene("defend")
+    expect(within(region("Entscheidung")).getByText("Karten antippen wirkt hier sofort, ein zweiter Tipp nimmt es zurück. Lange drücken oder Rechtsklick zeigt eine Karte groß.")).toBeInTheDocument()
   })
 })
 
 describe("card pictures", () => {
-  const PICTURE = { src: "https://cards.scryfall.io/grid/front/a/b/ab.webp?1", srcSet: "https://cards.scryfall.io/thumb/front/a/b/ab.webp?1 146w, https://cards.scryfall.io/grid/front/a/b/ab.webp?1 488w", lang: "de" }
+  const PICTURE = {
+    src: "https://cards.scryfall.io/grid/front/a/b/ab.webp?1",
+    srcSet: "https://cards.scryfall.io/thumb/front/a/b/ab.webp?1 146w, https://cards.scryfall.io/grid/front/a/b/ab.webp?1 488w",
+    large: "https://cards.scryfall.io/display/front/a/b/ab.webp?1",
+    largeSrcSet: "https://cards.scryfall.io/grid/front/a/b/ab.webp?1 488w, https://cards.scryfall.io/display/front/a/b/ab.webp?1 672w",
+    lang: "de",
+  }
 
   it("from the catalog: the picture with both sizes, named by Forge's name; a placeholder while looking up", () => {
     const lookup: TableCardLookup = (card: VisibleCard) => (card.name === "Gebirge" ? PICTURE : "loading")

@@ -54,8 +54,8 @@ const AREA_CLASSES: Readonly<Record<GameBoardAreaName, string>> = {
   field: "[grid-area:field]",
   me: "[grid-area:me] landscape:border-t landscape:border-l",
   decision: "[grid-area:decision] max-h-[clamp(7rem,18dvh,11rem)] overflow-y-auto border-t landscape:max-h-none landscape:border-l",
-  // The hand's height follows the screen's: 6-9 rem, the most a low screen can spare.
-  hand: "[grid-area:hand] h-[clamp(6rem,14dvh,9rem)] border-t py-1",
+  // The hand's height follows the screen's: 6-9 rem, the most a low screen can spare. Its row keeps the padding (room for the cards' focus ring).
+  hand: "[grid-area:hand] h-[clamp(6rem,14dvh,9rem)] border-t",
 }
 
 /** One region of the board, a named section. */

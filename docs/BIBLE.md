@@ -188,6 +188,8 @@ Preserve Anvil's successful principle: priorities/decisions with no meaningful c
 
 Looking at a card must be safe. Committing an irreversible action requires clear intent. Full card view must be quickly accessible. Touch gestures must not cause accidental plays/activations.
 
+The implemented card interaction - every visible card a control, looking that sends nothing, a tap only where Forge offers one (as the card view's armed button, or at once in the steps Forge lets the player take back), Forge's state as a frame around the picture, mouse, keyboard and touch - is described in [implementation/14-card-hand-interactions.md](implementation/14-card-hand-interactions.md).
+
 ### Full card view
 
 - inspect without losing game context

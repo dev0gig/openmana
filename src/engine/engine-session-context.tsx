@@ -11,7 +11,7 @@ import { createContext, use, useEffect, useMemo, useRef, useState, useSyncExtern
 import { toast } from "sonner"
 import { engineAssets } from "./engine-assets"
 import { abortTitle } from "./engine-labels"
-import { EngineSession, matchInProgress, type ConcedeResult, type EngineBootOptions, type EngineSessionSnapshot, type MatchSetup } from "./engine-session"
+import { EngineSession, matchInProgress, type ConcedeResult, type EngineBootOptions, type EngineSessionSnapshot, type InputResult, type MatchSetup } from "./engine-session"
 
 const EngineSessionContext = createContext<EngineSession | null>(null)
 
@@ -33,6 +33,8 @@ export interface EngineSessionHandle {
   readonly startMatch: (setup: MatchSetup) => boolean
   readonly cancelMatch: () => void
   readonly concede: () => ConcedeResult
+  /** Taps a card for the player (Forge's card.tap); only where Forge offers it (src/game/card-use.ts). */
+  readonly tapCard: (card: number) => InputResult
   readonly abortMatch: () => void
 }
 
@@ -49,6 +51,7 @@ export function useEngineSession(): EngineSessionHandle {
       startMatch: (setup: MatchSetup) => session.startMatch(setup),
       cancelMatch: () => session.cancelMatch(),
       concede: () => session.concede(),
+      tapCard: (card: number) => session.tapCard(card),
       abortMatch: () => session.abortMatch(),
     }),
     [session],
