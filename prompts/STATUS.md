@@ -28,8 +28,8 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | – (keiner; nach 12 wie in `naechster-schritt.md` vorgesehen gestoppt) |
-| Nächster Prompt | **13 — Battlefield foundation** (PENDING, nicht begonnen) |
+| Aktuell ausgeführt | **13 — Battlefield foundation** |
+| Nächster Prompt | 14 — Cards, hand and safe interaction (erst nach 13 = COMPLETE) |
 | Zuletzt abgeschlossen | 12 — AI profiles and settings (`e618079`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-25 (Lauf über `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-25 |
@@ -51,7 +51,7 @@
 | 10 | [Deck library](queue/10-deck-library.md) | COMPLETE | `7aab76f` |
 | 11 | [Game session foundation](queue/11-game-session.md) | COMPLETE | `679fbfb` |
 | 12 | [AI profiles and settings](queue/12-ai-profiles-settings.md) | COMPLETE | `e618079` |
-| 13 | [Battlefield foundation](queue/13-battlefield-foundation.md) | PENDING | – |
+| 13 | [Battlefield foundation](queue/13-battlefield-foundation.md) | IN_PROGRESS | – |
 | 14 | [Cards, hand and safe interaction](queue/14-card-hand-interactions.md) | PENDING | – |
 | 15 | [Forge decision UI](queue/15-forge-decisions.md) | PENDING | – |
 | 16 | [Priority, stack and phases](queue/16-priority-stack-phases.md) | PENDING | – |
@@ -1308,6 +1308,11 @@
     Build erzwungen.
 - **Weiter mit:** Prompt 13 (Battlefield foundation). Nicht begonnen:
   `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
+
+### 13 — Battlefield foundation — IN_PROGRESS
+
+- Begonnen am 2026-09-25 von Claude Code (Claude Opus 5.5), Auftrag
+  „Führe prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
 
 ## Hinweise für spätere Prompts
 
