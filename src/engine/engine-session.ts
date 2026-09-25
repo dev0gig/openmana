@@ -37,6 +37,7 @@ import type {
   BootPhase,
   EngineAbort,
   EngineError,
+  EngineLanguage,
   EngineMessage,
   EngineReady,
   FeatureReport,
@@ -53,14 +54,33 @@ import { describeMissingFeatures, detectEngineFeatures } from "@openmana/engine-
 import { BOOT_PHASES } from "@openmana/engine-protocol/generated/constants"
 import type { EngineAssets } from "./engine-assets-types"
 
+/** What of the engine's start follows the player's preferences (prompt 12). */
+export interface EngineBootOptions {
+  /**
+   * The language of the cards in Forge's texts and card views (boot argument
+   * --card-language): the player's card language (src/cards/card-language.ts).
+   */
+  readonly cardLanguage: EngineLanguage
+}
+
+/** Until the preferences are read: German cards, like the rest of the app. */
+export const DEFAULT_BOOT_OPTIONS: EngineBootOptions = { cardLanguage: "de-DE" }
+
 /**
  * How the app boots Forge (engine.start args). Cards load eagerly: lazily the
  * engine stalls a game for tens of seconds when an effect needs all cards
  * (prompt 04). Forge speaks German: its questions, buttons and messages are
  * what the player reads during a game, and the language changes only Forge's
- * words, never the game (prompts 04/05: identical traces).
+ * words, never the game (prompts 04/05: identical traces). The cards inside
+ * them are in the player's card language (prompt 12, same trace too).
  */
-export const ENGINE_ARGS: readonly string[] = ["--card-loading=eager", "--language=de-DE"]
+export function engineArgs(options: EngineBootOptions): readonly string[] {
+  return ["--card-loading=eager", "--language=de-DE", `--card-language=${options.cardLanguage}`]
+}
+
+function sameOptions(a: EngineBootOptions, b: EngineBootOptions): boolean {
+  return a.cardLanguage === b.cardLanguage
+}
 
 export type BootStepState = "pending" | "active" | "done"
 
@@ -112,8 +132,8 @@ export interface MatchSetup {
   /** The match.start request (a copy of both decks; the library may change meanwhile). */
   readonly request: MatchRequest
   readonly human: MatchSideSetup
-  /** drawn: the AI's deck was drawn at random for this game. */
-  readonly ai: MatchSideSetup & { readonly drawn: boolean }
+  /** drawn: the AI's deck was drawn at random for this game; profileDrawn: its profile (request.ai.profile) too. */
+  readonly ai: MatchSideSetup & { readonly drawn: boolean; readonly profileDrawn: boolean }
 }
 
 interface MatchBase {
@@ -212,6 +232,8 @@ export interface EngineSessionOptions {
   readonly now?: () => number
   /** Base for the engine URLs (the page's location). */
   readonly baseUrl?: string
+  /** The boot options until setBootOptions says otherwise (default DEFAULT_BOOT_OPTIONS). */
+  readonly bootOptions?: EngineBootOptions
 }
 
 /** What concede() did: sent, or why not (German, for the player). */
@@ -230,11 +252,36 @@ export class EngineSession {
   #attempt = 0
   /** The input number of the concession sent in the running game (null: none). */
   #concedeSeq: number | null = null
+  /** How the next engine boots (the player's preferences). */
+  #bootOptions: EngineBootOptions
+  /** How the current worker was booted (null: no worker). */
+  #workerOptions: EngineBootOptions | null = null
 
   constructor(options: EngineSessionOptions) {
     this.#options = options
     this.#now = options.now ?? (() => performance.now())
+    this.#bootOptions = options.bootOptions ?? DEFAULT_BOOT_OPTIONS
     this.#snapshot = { engine: this.#initialEngine(), match: null }
+  }
+
+  /** How the next engine boots. */
+  get bootOptions(): EngineBootOptions {
+    return this.#bootOptions
+  }
+
+  /**
+   * The player's preferences for the engine's start changed. The next boot
+   * uses them. A warm engine that no game uses yet (booting or ready) is
+   * replaced right away by one booted with them, so the next game does not
+   * wait; an engine that is part of a game (on its way, running) is kept -
+   * that game was asked for with the old options.
+   */
+  setBootOptions(options: EngineBootOptions): void {
+    if (sameOptions(options, this.#bootOptions)) return
+    this.#bootOptions = options
+    const { engine, match } = this.#snapshot
+    const warm = engine.status === "booting" || engine.status === "ready"
+    if (warm && !matchInProgress(match) && this.#workerOptions !== null && !sameOptions(this.#workerOptions, options)) this.#boot()
   }
 
   getSnapshot = (): EngineSessionSnapshot => this.#snapshot
@@ -289,7 +336,8 @@ export class EngineSession {
     const { engine, match } = this.#snapshot
     if (engine.status === "unavailable" || engine.status === "unsupported" || matchInProgress(match)) return false
     const queued: MatchSnapshot = { status: "queued", setup, requestedAt: this.#now() }
-    if (engine.status === "ready" && this.#client) {
+    const fitting = this.#workerOptions !== null && sameOptions(this.#workerOptions, this.#bootOptions)
+    if (engine.status === "ready" && this.#client && fitting) {
       this.#set({ engine, match: queued })
       this.#send(this.#client, queued)
       return true
@@ -300,7 +348,8 @@ export class EngineSession {
       this.#attempt++
       this.#release()
     }
-    if (engine.status !== "booting") this.#boot()
+    // An engine booting with other options than the player's now is replaced.
+    if (engine.status !== "booting" || !fitting) this.#boot()
     return true
   }
 
@@ -356,6 +405,8 @@ export class EngineSession {
     if (!assets.available || current.status === "unavailable" || current.status === "unsupported") return
     this.#release()
     const attempt = ++this.#attempt
+    const options = this.#bootOptions
+    this.#workerOptions = options
     const features = current.features
     const startedAt = this.#now()
     const baseUrl = this.#options.baseUrl ?? globalThis.location.href
@@ -369,7 +420,7 @@ export class EngineSession {
           workerUrl: new URL(assets.workerUrl, baseUrl),
           engineScriptUrl: new URL(assets.launcherUrl, baseUrl).href,
           wasmUrl: new URL(assets.wasmUrl, baseUrl).href,
-          engineArgs: ENGINE_ARGS,
+          engineArgs: engineArgs(options),
         })
         this.#client = client
         this.#unsubscribe = client.subscribe((event) => this.#onEvent(client, event))
@@ -564,6 +615,7 @@ export class EngineSession {
     this.#unsubscribe = null
     const client = this.#client
     this.#client = null
+    this.#workerOptions = null
     client?.dispose()
   }
 

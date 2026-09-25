@@ -1,15 +1,19 @@
 /*
  * What to show for a card: German where Scryfall has it, English where not -
- * field by field, and always saying which is which. Pure: the same record
- * and request give the same display; no network, no database.
+ * field by field, and always saying which is which; or English throughout
+ * when the player prefers English cards (the card language, prompt 12,
+ * src/cards/card-language.ts). Pure: the same record and request give the
+ * same display; no network, no database.
  *
  * - Picture: a particular printing if one is asked for (a deck names set
  *   and collector number) and has a picture; an English alias name (a
  *   Universes Beyond card Forge knows by that name) shows the printing that
  *   carries it; otherwise the German default printing, else the English one.
- *   A double-faced printing shows the side of the requested face.
+ *   A double-faced printing shows the side of the requested face. With the
+ *   English card language: the requested printing, else the English one.
  * - Name, type line and rules text: the German printed text per face where
- *   it exists, else the English Oracle text (marked "en"). German printed
+ *   it exists, else the English Oracle text (marked "en"); with the English
+ *   card language always the English Oracle text. German printed
  *   texts are translations of their day and receive no errata; the rules
  *   are Forge's (in a game, Forge's own live text is authoritative).
  * - Mana cost, power, toughness, loyalty, defense: always the Oracle values.
@@ -66,6 +70,8 @@ export interface CardDisplay {
   readonly face: number
   readonly picture: DisplayPicture | null
   readonly language: {
+    /** The card language the display was made for (the player's preference). */
+    readonly preferred: TextLanguage
     /** null: no picture at all. */
     readonly picture: "de" | "en" | "other" | null
     /** "mixed": some fields German, some English. */
@@ -84,6 +90,8 @@ export interface DisplayRequest {
   readonly print?: PrintRecord | null
   /** How the card was found: an alias shows its own printing and face. */
   readonly match?: CardMatch
+  /** The player's card language (default de: German where it exists). */
+  readonly language?: TextLanguage
 }
 
 function sideFor(print: Pick<PrintRef, "imageSides">, face: number): ImageSide {
@@ -119,9 +127,10 @@ function localized(german: string | undefined, english: string | undefined): Loc
 
 export function cardDisplay(card: CardRecord, request: DisplayRequest = {}): CardDisplay {
   const match = request.match
+  const preferred = request.language ?? "de"
   const face = Math.min(Math.max(request.face ?? match?.face ?? 0, 0), card.faces.length - 1)
   const faces: DisplayFace[] = card.faces.map((oracle, index) => {
-    const printed = card.de?.faces[index]
+    const printed = preferred === "de" ? card.de?.faces[index] : undefined
     return {
       index,
       name: localized(printed?.name, oracle.name)!,
@@ -139,7 +148,7 @@ export function cardDisplay(card: CardRecord, request: DisplayRequest = {}): Car
   const candidates: [PrintRef | PrintRecord | null | undefined, PictureSource][] = [
     [request.print, "requested-print"],
     [match?.kind === "alias" ? match.alias?.print : null, "alias"],
-    [card.prints.de, "german"],
+    [preferred === "de" ? card.prints.de : null, "german"],
     [card.prints.fallback, "fallback"],
   ]
   let shown: DisplayPicture | null = null
@@ -169,6 +178,7 @@ export function cardDisplay(card: CardRecord, request: DisplayRequest = {}): Car
     face,
     picture: shown,
     language: {
+      preferred,
       picture: shown === null ? null : shown.lang === "de" ? "de" : shown.lang === "en" ? "en" : "other",
       text: german === 0 ? "en" : german === fields.length ? "de" : "mixed",
       germanTextExists: card.de !== null,

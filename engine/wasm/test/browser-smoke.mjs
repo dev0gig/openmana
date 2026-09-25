@@ -21,6 +21,7 @@
 // --cards runs the card probe (diagnostics.card-probe); with --expect it must
 // equal the JVM probe of the same card loading mode.
 // --language en-US|de-DE (every mode): the language Forge speaks.
+// --card-language en-US|de-DE (every mode): the language of the cards in Forge's texts (default: --language).
 // --negative serves the page WITHOUT cross-origin isolation and passes only if
 // the page reports the missing feature quickly instead of hanging.
 // --announce-protocol: the page claims another protocol version; passes only if
@@ -50,6 +51,8 @@ const queueCapacity = option("--queue-capacity", feeding === "eager" ? "256" : n
 const seed = Number(option("--seed", "42"));
 const cardLoading = option("--card-loading", "eager");
 const language = option("--language", "en-US");
+// The language of the cards in Forge's texts; null: the engine's default (the language).
+const cardLanguage = option("--card-language", null);
 const cards = args.includes("--cards");
 const expectFile = option("--expect", null);
 const expectedSha = option("--expect-log-sha256", null);
@@ -95,7 +98,7 @@ async function uaMemory(page) {
 }
 
 const mode = negative ? "negative (no COOP/COEP)" : announceProtocol ? "protocol mismatch" : transcriptFile ? `replay (${feeding})` : cards ? "card probe" : "positive";
-const report = { mode, seed, cardLoading, language, ok: false };
+const report = { mode, seed, cardLoading, language, cardLanguage: cardLanguage ?? language, ok: false };
 if (transcriptFile) {
   const transcript = JSON.parse(fs.readFileSync(transcriptFile, "utf8"));
   report.transcript = path.basename(transcriptFile);
@@ -110,13 +113,14 @@ const server = await startServer({
     ...(expectTrace ? { "/traces/expected.jsonl": path.resolve(expectTrace) } : {}),
   },
 });
+const cardParam = cardLanguage ? `&cardLanguage=${cardLanguage}` : "";
 const query = announceProtocol
   ? `announceProtocol=${announceProtocol}`
   : transcriptFile
-    ? `replay=transcripts/replay.json&cardLoading=${cardLoading}&language=${language}&feeding=${feeding}${queueCapacity ? `&queueCapacity=${queueCapacity}` : ""}`
+    ? `replay=transcripts/replay.json&cardLoading=${cardLoading}&language=${language}${cardParam}&feeding=${feeding}${queueCapacity ? `&queueCapacity=${queueCapacity}` : ""}`
     : cards
-      ? `cards=1&cardLoading=${cardLoading}&language=${language}`
-      : `seed=${seed}&cardLoading=${cardLoading}&language=${language}${expectTrace ? "&trace=traces/expected.jsonl" : ""}`;
+      ? `cards=1&cardLoading=${cardLoading}&language=${language}${cardParam}`
+      : `seed=${seed}&cardLoading=${cardLoading}&language=${language}${cardParam}${expectTrace ? "&trace=traces/expected.jsonl" : ""}`;
 const url = `http://127.0.0.1:${server.address().port}/?${query}`;
 const profileDir = fs.mkdtempSync(path.join(os.tmpdir(), "openmana-chrome-"));
 const executablePath = process.env.OPENMANA_CHROME || chromium.executablePath();
@@ -185,7 +189,8 @@ try {
     else if (!probe) failure = "the page finished without a card probe result";
     else {
       const problems = probeProblems(probe);
-      if (probe.language.selected !== language) problems.push(`the engine speaks ${probe.language.selected}, requested was ${language}`);
+      // selected: Forge's card translation, i.e. the card language.
+      if (probe.language.selected !== (cardLanguage ?? language)) problems.push(`the engine's cards are ${probe.language.selected}, requested was ${cardLanguage ?? language}`);
       if (expectFile) {
         const jvm = JSON.parse(fs.readFileSync(expectFile, "utf8")).result;
         const differences = probeDifferences(jvm, probe);

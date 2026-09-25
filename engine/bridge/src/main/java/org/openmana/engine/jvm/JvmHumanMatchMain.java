@@ -33,11 +33,11 @@ import java.util.Set;
  *      --bundle forge-res.bin --scenario scenario.json --out transcript.json [--messages messages.jsonl]
  * java -cp openmana-engine-jvm.jar org.openmana.engine.jvm.JvmHumanMatchMain \
  *      --bundle forge-res.bin --seed 42 --out transcript.json [--card-loading lazy|eager] [--language en-US|de-DE]
- *      [--concede-in-turn N | --defending] [--trace] [--messages messages.jsonl]
+ *      [--card-language en-US|de-DE] [--concede-in-turn N | --defending] [--trace] [--messages messages.jsonl]
  * </pre>
  * A scenario is a differential test fixture resolved by
  * engine/wasm/test/fixtures.ts ({@code openmana-scenario/1}: match request,
- * player policy, engine language and card loading); its match asks for the
+ * player policy, engine language, card language and card loading); its match asks for the
  * engine trace, which goes into the transcript ({@code trace}). Without a
  * scenario the classic smoke match of {@link SmokeDecks} is played (e.g. for
  * the tracing agent, engine/scripts/record-agent-config.sh); {@code --trace}
@@ -61,6 +61,7 @@ public final class JvmHumanMatchMain {
         Long seed = null;
         ForgeEngine.CardLoading cardLoading = null;
         ForgeEngine.Language language = null;
+        ForgeEngine.Language cardLanguage = null;
         int concedeInTurn = 0;
         boolean defending = false;
         boolean trace = false;
@@ -73,6 +74,7 @@ public final class JvmHumanMatchMain {
                 case "--out" -> out = args[++i];
                 case "--card-loading" -> cardLoading = ForgeEngine.CardLoading.parse(args[++i]);
                 case "--language" -> language = ForgeEngine.Language.parse(args[++i]);
+                case "--card-language" -> cardLanguage = ForgeEngine.Language.parse(args[++i]);
                 case "--concede-in-turn" -> concedeInTurn = Integer.parseInt(args[++i]);
                 case "--defending" -> defending = true;
                 case "--trace" -> trace = true;
@@ -89,7 +91,7 @@ public final class JvmHumanMatchMain {
         final JsonObject engine = new JsonObject();
         String name = null;
         if (scenarioFile != null) {
-            if (seed != null || cardLoading != null || language != null || concedeInTurn > 0 || defending || trace) {
+            if (seed != null || cardLoading != null || language != null || cardLanguage != null || concedeInTurn > 0 || defending || trace) {
                 throw new IllegalArgumentException("--scenario carries match, player and engine settings; do not combine it with other options");
             }
             final JsonObject scenario = JsonParser.parseString(Files.readString(Paths.get(scenarioFile), StandardCharsets.UTF_8)).getAsJsonObject();
@@ -104,6 +106,9 @@ public final class JvmHumanMatchMain {
             name = scenario.get("name").getAsString();
             final JsonObject engineSettings = scenario.getAsJsonObject("engine");
             language = ForgeEngine.Language.parse(engineSettings.get("language").getAsString());
+            if (engineSettings.has("cardLanguage")) {
+                cardLanguage = ForgeEngine.Language.parse(engineSettings.get("cardLanguage").getAsString());
+            }
             cardLoading = ForgeEngine.CardLoading.parse(engineSettings.get("cardLoading").getAsString());
             request = scenario.getAsJsonObject("match");
             human = ScriptedHuman.fromPolicy(scenario.getAsJsonObject("player"));
@@ -124,12 +129,16 @@ public final class JvmHumanMatchMain {
         if (language == null) {
             language = ForgeEngine.Language.EN_US;
         }
+        if (cardLanguage == null) {
+            cardLanguage = language;
+        }
         engine.addProperty("language", language.tag());
+        engine.addProperty("cardLanguage", cardLanguage.tag());
         engine.addProperty("cardLoading", cardLoading.name().toLowerCase(java.util.Locale.ROOT));
 
         final Path root = TempRoot.create();
         try (InputStream in = Files.newInputStream(Paths.get(bundle))) {
-            EngineBoot.boot(in, root, cardLoading, language);
+            EngineBoot.boot(in, root, cardLoading, language, cardLanguage);
         }
         final JsonArray traceEntries = new JsonArray();
         final JsonObject result;

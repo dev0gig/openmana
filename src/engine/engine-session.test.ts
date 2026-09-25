@@ -17,7 +17,7 @@ import {
   testSetup,
   type TestEngine,
 } from "@/test/game-fixtures"
-import { ENGINE_ARGS, EngineSession, matchInProgress, NOTICE_LIMIT, type MatchSnapshot } from "./engine-session"
+import { DEFAULT_BOOT_OPTIONS, engineArgs, EngineSession, matchInProgress, NOTICE_LIMIT, type MatchSnapshot } from "./engine-session"
 
 /** A booted, ready engine. */
 async function ready(): Promise<TestEngine> {
@@ -94,10 +94,11 @@ describe("EngineSession: the engine", () => {
     expect(launch.workerUrl.href).toBe("https://openmana.test/engine/0123456789abcdef/engine-worker.js")
     expect(launch.engineScriptUrl).toBe("https://openmana.test/engine/0123456789abcdef/openmana-engine.js")
     expect(launch.wasmUrl).toBe("https://openmana.test/engine/0123456789abcdef/openmana-engine.js.wasm")
-    expect(ENGINE_ARGS).toEqual(["--card-loading=eager", "--language=de-DE"])
+    expect(engineArgs(DEFAULT_BOOT_OPTIONS)).toEqual(["--card-loading=eager", "--language=de-DE", "--card-language=de-DE"])
+    expect(engineArgs({ cardLanguage: "en-US" })).toEqual(["--card-loading=eager", "--language=de-DE", "--card-language=en-US"])
     // The client starts the worker with exactly these arguments.
     const start = worker.commands[0]!
-    expect(start.type === "engine.start" && start.args).toEqual(["--card-loading=eager", "--language=de-DE"])
+    expect(start.type === "engine.start" && start.args).toEqual(["--card-loading=eager", "--language=de-DE", "--card-language=de-DE"])
 
     engine.tick(10)
     worker.send({ type: "engine.boot", phase: "worker-features", t: 10, features: SUPPORTED })
@@ -201,6 +202,76 @@ describe("EngineSession: the engine", () => {
     engine.worker().crash("the worker died")
     expect(engine.session.getSnapshot().engine.status).toBe("aborted")
     engine.session.prewarm()
+    await settle()
+    expect(engine.workers).toHaveLength(1)
+    expect(engine.session.getSnapshot().engine.status).toBe("aborted")
+  })
+})
+
+describe("EngineSession: the player's card language (prompt 12)", () => {
+  const args = (worker: { commands: readonly { type: string; args?: readonly string[] }[] }) => worker.commands.find((command) => command.type === "engine.start")?.args
+
+  it("boots with the card language it was told; the engine reports it", async () => {
+    const engine = testEngine()
+    engine.session.setBootOptions({ cardLanguage: "en-US" })
+    expect(engine.session.bootOptions).toEqual({ cardLanguage: "en-US" })
+    engine.session.prewarm()
+    await settle()
+    expect(args(engine.worker())).toEqual(["--card-loading=eager", "--language=de-DE", "--card-language=en-US"])
+    engine.worker().boot()
+    const snapshot = engine.session.getSnapshot().engine
+    expect(snapshot.status === "ready" && snapshot.ready.boot.cardLanguage).toBe("en-US")
+  })
+
+  it("replaces a warm engine no game uses yet, booting or ready; the same options change nothing", async () => {
+    const engine = testEngine()
+    engine.session.prewarm()
+    await settle()
+    engine.worker().boot()
+    engine.session.setBootOptions({ cardLanguage: "de-DE" })
+    await settle()
+    expect(engine.workers).toHaveLength(1)
+
+    engine.session.setBootOptions({ cardLanguage: "en-US" })
+    await settle()
+    expect(engine.workers).toHaveLength(2)
+    expect(engine.workers[0]!.terminated).toBe(true)
+    expect(args(engine.worker())).toContain("--card-language=en-US")
+    expect(engine.session.getSnapshot().engine.status).toBe("booting")
+
+    // Changed again while booting: that boot is dropped for one with the new options.
+    engine.session.setBootOptions({ cardLanguage: "de-DE" })
+    await settle()
+    expect(engine.workers).toHaveLength(3)
+    expect(engine.workers[1]!.terminated).toBe(true)
+    expect(args(engine.worker())).toContain("--card-language=de-DE")
+  })
+
+  it("keeps the engine of a game on its way or running; the next game boots with the new options", async () => {
+    const engine = await ready()
+    expect(engine.session.startMatch(testSetup())).toBe(true)
+    engine.worker().startGame()
+    engine.session.setBootOptions({ cardLanguage: "en-US" })
+    await settle()
+    expect(engine.workers).toHaveLength(1)
+    expect(match(engine, "playing").game.aiProfile).toBe("Default")
+    expect(engine.session.concede()).toEqual({ ok: true })
+    engine.worker().concedeAccepted()
+    expect(engine.session.startMatch(testSetup())).toBe(true)
+    await settle()
+    expect(engine.workers).toHaveLength(2)
+    expect(args(engine.worker())).toContain("--card-language=en-US")
+  })
+
+  it("an idle or failed engine is not started by an option change", async () => {
+    const engine = testEngine()
+    engine.session.setBootOptions({ cardLanguage: "en-US" })
+    await settle()
+    expect(engine.workers).toHaveLength(0)
+    engine.session.start()
+    await settle()
+    engine.worker().crash("died")
+    engine.session.setBootOptions({ cardLanguage: "de-DE" })
     await settle()
     expect(engine.workers).toHaveLength(1)
     expect(engine.session.getSnapshot().engine.status).toBe("aborted")

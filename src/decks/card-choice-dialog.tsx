@@ -7,6 +7,7 @@
  */
 import { Check } from "lucide-react"
 import { useId, useState } from "react"
+import { usePreferences } from "@/app/preferences"
 import { cardDisplay } from "@/cards/card-display"
 import type { CardMatch } from "@/cards/card-lookup"
 import { Badge } from "@/components/ui/badge"
@@ -19,9 +20,10 @@ import type { EntryReport } from "./deck-resolve"
 
 function Candidate({ match, current, onSelect }: { match: CardMatch; current: boolean; onSelect: () => void }) {
   const id = useId()
-  const display = cardDisplay(match.card, { match })
+  const { cardLanguage } = usePreferences()
+  const display = cardDisplay(match.card, { match, language: cardLanguage })
   const face = display.faces[display.face]!
-  const set = match.card.prints.de?.set ?? match.card.prints.fallback?.set
+  const set = display.picture?.set ?? match.card.prints.de?.set ?? match.card.prints.fallback?.set
   const forge = match.card.forgeNames[0]
   return (
     <Item asChild variant="outline" size="sm">

@@ -59,11 +59,14 @@ public final class WasmMain {
         try {
             ForgeEngine.CardLoading cardLoading = ForgeEngine.CardLoading.DEFAULT;
             ForgeEngine.Language language = ForgeEngine.Language.EN_US;
+            ForgeEngine.Language cardLanguage = null;
             for (final String arg : args) {
                 if (arg.startsWith("--card-loading=")) {
                     cardLoading = ForgeEngine.CardLoading.parse(arg.substring("--card-loading=".length()));
                 } else if (arg.startsWith("--language=")) {
                     language = ForgeEngine.Language.parse(arg.substring("--language=".length()));
+                } else if (arg.startsWith("--card-language=")) {
+                    cardLanguage = ForgeEngine.Language.parse(arg.substring("--card-language=".length()));
                 } else {
                     throw new IllegalArgumentException("unknown engine argument " + arg);
                 }
@@ -75,7 +78,8 @@ public final class WasmMain {
                 if (bundle == null) {
                     throw new IllegalStateException(RESOURCE_BUNDLE + " is not embedded in this engine build");
                 }
-                boot = EngineBoot.boot(bundle, Paths.get(VFS_ROOT), cardLoading, language);
+                // The cards follow Forge's language unless the page asks otherwise.
+                boot = EngineBoot.boot(bundle, Paths.get(VFS_ROOT), cardLoading, language, cardLanguage == null ? language : cardLanguage);
             }
 
             registerEngine(request -> JSString.of(handle(request.asString())));
@@ -128,9 +132,14 @@ public final class WasmMain {
         final JsonObject ready = new JsonObject();
         ready.addProperty("protocol", Protocol.VERSION);
         ready.add("engine", boot.get("engine"));
+        // Every field of the boot report but the build facts (engine.ready carries
+        // those on their own); the JVM tests hold the report to the schema's
+        // BootReport (AiProfilesTest).
         final JsonObject report = new JsonObject();
-        for (final String key : new String[]{"resourceFiles", "resourceBytes", "unpackMillis", "forgeInitMillis", "cardLoading", "language"}) {
-            report.add(key, boot.get(key));
+        for (final String key : boot.keySet()) {
+            if (!"engine".equals(key)) {
+                report.add(key, boot.get(key));
+            }
         }
         ready.add("boot", report);
         return ready;

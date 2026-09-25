@@ -5,7 +5,7 @@
 // loading mode (engine/scripts/test-engine.sh passes it).
 //
 //   node engine/wasm/test/node-cards.ts [--card-loading lazy|eager] [--language en-US|de-DE]
-//        [--expect jvm-probe.json] [--out result.json] [--dist <dir>]
+//        [--card-language en-US|de-DE] [--expect jvm-probe.json] [--out result.json] [--dist <dir>]
 import fs from "node:fs";
 import path from "node:path";
 import type { CardProbeResult } from "../../protocol/src/index.ts";
@@ -16,6 +16,7 @@ const args = process.argv.slice(2);
 const distDir = path.resolve(option(args, "--dist", path.join(ENGINE_DIR, "build", "dist")));
 const cardLoading = option(args, "--card-loading", "eager");
 const language = option(args, "--language", "en-US");
+const cardLanguage = option(args, "--card-language", null);
 const expectFile = option(args, "--expect", null);
 const outFile = option(args, "--out", null);
 
@@ -24,7 +25,7 @@ const origin = performance.now();
 const since = () => Math.round(performance.now() - origin);
 const phases: Record<string, number> = {};
 // The whole-database pass keeps the engine busy for a long time without messages.
-const client = nodeClient(distDir, cardLoading, { stallTimeoutMs: 600_000 }, language);
+const client = nodeClient(distDir, cardLoading, { stallTimeoutMs: 600_000 }, language, cardLanguage);
 const failures: string[] = [];
 const done = new Promise<void>((resolve) => {
   client.subscribe((event) => {
@@ -51,7 +52,8 @@ const probe = client.cardProbe;
 let matchesJvm: boolean | null = null;
 if (probe) {
   failures.push(...probeProblems(probe));
-  if (probe.language.selected !== language) failures.push(`the engine speaks ${probe.language.selected}, requested was ${language}`);
+  // selected: Forge's card translation, i.e. the card language.
+  if (probe.language.selected !== (cardLanguage ?? language)) failures.push(`the engine's cards are ${probe.language.selected}, requested was ${cardLanguage ?? language}`);
   if (expectFile) {
     const jvm = (JSON.parse(fs.readFileSync(expectFile, "utf8")) as { result: CardProbeResult }).result;
     const differences = probeDifferences(jvm, probe);
@@ -69,6 +71,7 @@ const report = {
   runtime: `node ${process.versions.node} (V8 ${process.versions.v8})`,
   cardLoading,
   language,
+  cardLanguage: cardLanguage ?? language,
   ok: failures.length === 0,
   failures,
   matchesJvm,

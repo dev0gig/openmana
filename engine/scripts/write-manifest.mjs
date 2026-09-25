@@ -4,7 +4,7 @@
 // module, and the size and SHA-256 of every artefact (raw, gzip -9,
 // brotli 11). The sizes over the wire are what a browser actually downloads.
 //
-//   forge        pinned upstream commit
+//   forge        pinned upstream commit and Forge's version code (e.g. 2.0.15)
 //   patches      the patch queue (count, SHA-256 over all patches, names)
 //   resources    the embedded Forge data: counts, sizes, SHA-256 of the bundle,
 //                per directory, languages, what was left out, and the
@@ -99,7 +99,7 @@ const protocolSchema = readJson(path.join(engineDir, "protocol", "schema", "prot
 const manifest = {
   format: "openmana-engine-manifest/2",
   builtAt: new Date().toISOString(),
-  forge: { repository: "https://github.com/Card-Forge/forge", commit: forgeSource.forgeCommit },
+  forge: { repository: "https://github.com/Card-Forge/forge", commit: forgeSource.forgeCommit, versionCode: forgeSource.forgeVersionCode },
   patches: { count: forgeSource.patchCount, sha256: forgeSource.patchesSha256, files: forgeSource.patches },
   resources: {
     format: resources.format,

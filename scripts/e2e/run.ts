@@ -72,6 +72,16 @@
  *     report; the same engine plays the next game). On a phone: no overflow,
  *     touch sizes, the result's action bar above the tab bar. axe-core on
  *     every state.
+ * 11. Preferences (prompt 12), in a fresh profile with these decks: the AI
+ *     profile (Forge's four verified profiles and random, saved at once)
+ *     reaches Forge - the running game shows the profile Forge confirmed;
+ *     random draws one per game; the card language English shows the cards
+ *     in English and boots the engine with English cards in Forge's texts
+ *     (the real engine reports it), switching back replaces the warm engine
+ *     (never two at once); dialogs animate by default and not with the
+ *     setting, nor on a device that asks for less motion; the diagnostics
+ *     report names every version and is copied as shown; on a phone every
+ *     option is a 44 px target. axe-core on every state.
  */
 import { createRequire } from "node:module"
 import { randomUUID } from "node:crypto"
@@ -83,6 +93,7 @@ import path from "node:path"
 import { gunzipSync, gzipSync } from "node:zlib"
 import { chromium, type Browser, type BrowserContext, type Locator, type Page } from "playwright-core"
 import { build, createServer, preview } from "vite"
+import { PROTOCOL_VERSION } from "../../engine/protocol/src/generated/constants.ts"
 import { SCHEMA_VERSION } from "../../src/storage/generated/constants.ts"
 import { ISOLATION_HEADERS } from "../../vite/isolation-headers.ts"
 import { playDeck, type StoredDeck } from "./engine-decks.ts"
@@ -384,7 +395,7 @@ async function engine(browser: Browser, base: string, id: string, viewport: View
   await panel.getByText("Bereit", { exact: true }).waitFor({ timeout: 180_000 })
   const wallMs = Date.now() - started
   const facts = await panel.locator("dl > div").evaluateAll((rows) => Object.fromEntries(rows.map((row) => [row.querySelector("dt")?.textContent ?? "", row.querySelector("dd")?.textContent ?? ""])))
-  check(facts["Protokoll"] === "Version 3", `${label}: protocol fact ${facts["Protokoll"]}`)
+  check(facts["Protokoll"] === `Version ${PROTOCOL_VERSION}`, `${label}: protocol fact ${facts["Protokoll"]}`)
   check(/^\d+(\.\d+)+ \([0-9a-f]{10}\)$/.test(facts["Forge"] ?? ""), `${label}: Forge fact ${facts["Forge"]}`)
   const engineRequests = pageLog.requests.filter((p) => p.startsWith(artefacts))
   for (const file of ["engine-worker.js", "openmana-engine.js", "openmana-engine.js.wasm"]) {
@@ -1318,6 +1329,8 @@ async function deckImport(browser: Browser, base: string, id: string): Promise<v
 
     // 10. Games against Forge's AI with these decks, in the browser.
     report["gameSession"] = await gameSession(browser, page, pageLog, base, id, decks)
+    // 11. The player's preferences with these decks and the real engine.
+    report["preferences"] = await preferences(browser, base, id, decks)
   } finally {
     await context.close()
   }
@@ -2029,6 +2042,237 @@ async function gamePhone(browser: Browser, base: string, decks: readonly SavedDe
     await context.close()
   }
   return results
+}
+
+// ── 11. Preferences (AI profile, card language, less motion, diagnostics) ──
+
+/** The settings store as the page keeps it (key → value). */
+function storedSettings(page: Page): Promise<Record<string, unknown>> {
+  return page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("openmana")
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+    const records = await new Promise<{ key: string; value: unknown }[]>((resolve, reject) => {
+      const request = db.transaction("settings").objectStore("settings").getAll()
+      request.onsuccess = () => resolve(request.result as { key: string; value: unknown }[])
+      request.onerror = () => reject(request.error)
+    })
+    db.close()
+    return Object.fromEntries(records.map((record) => [record.key, record.value]))
+  })
+}
+
+/** Label → value of the engine panel's facts (once it is ready). */
+async function engineFacts(page: Page): Promise<Record<string, string>> {
+  return enginePanel(page)
+    .locator("dl > div")
+    .evaluateAll((rows) => Object.fromEntries(rows.map((row) => [row.querySelector("dt")?.textContent ?? "", row.querySelector("dd")?.textContent ?? ""])))
+}
+
+/** The names of a radio group's options, as the player hears them (their titles). */
+async function radioNames(group: Locator): Promise<string[]> {
+  return group.getByRole("radio").evaluateAll((radios) => radios.map((radio) => document.getElementById(radio.getAttribute("aria-labelledby") ?? "")?.textContent ?? ""))
+}
+
+/** Waits until a setting is stored with this value (the page saves at once, asynchronously). */
+async function settingStored(page: Page, key: string, value: unknown, label: string): Promise<void> {
+  const deadline = Date.now() + 10_000
+  let stored: unknown
+  while (Date.now() < deadline) {
+    stored = (await storedSettings(page))[key]
+    if (JSON.stringify(stored) === JSON.stringify(value)) return
+    await page.waitForTimeout(100)
+  }
+  check(false, `${label}: ${key} stored as ${JSON.stringify(stored)}, expected ${JSON.stringify(value)}`)
+}
+
+/** The animation a freshly opened dialog plays (tw-animate-css: "enter"; none with less motion). */
+async function dialogAnimation(page: Page, open: () => Promise<void>, dialogName: string): Promise<string> {
+  await open()
+  const dialog = page.getByRole("dialog", { name: dialogName })
+  await dialog.waitFor()
+  const animation = await dialog.evaluate((element) => getComputedStyle(element).animationName)
+  await page.keyboard.press("Escape")
+  await overlaysGone(page)
+  return animation
+}
+
+async function preferences(browser: Browser, base: string, id: string, decks: readonly SavedDeck[]): Promise<Record<string, unknown>> {
+  log("Preferences (AI profile, card language, less motion, diagnostics)")
+  const results: Record<string, unknown> = {}
+  const context = await newContext(browser, VIEWPORTS[2]!)
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: new URL(base).origin })
+  const page = await context.newPage()
+  const pageLog = watch(page)
+  const workers = countWorkers(page)
+  try {
+    await loadDecks(page, base, decks)
+    await installFromSettings(await openCardData(page, base), "preferences")
+
+    // 1. Settings: Forge's four verified profiles and random; the choices are saved at once.
+    await page.goto(new URL("/settings", base).href, { waitUntil: "domcontentloaded" })
+    const profiles = page.getByRole("radiogroup", { name: "KI-Profil" })
+    await profiles.getByRole("radio").first().waitFor()
+    results["profiles"] = await radioNames(profiles)
+    check(JSON.stringify(results["profiles"]) === JSON.stringify(["Standard (Vorgabe)", "Vorsichtig", "Waghalsig", "Experimentell", "Zufällig"]), `preferences: profiles ${JSON.stringify(results["profiles"])}`)
+    check((await page.getByText(/Forge kennt keine Schwierigkeitsstufen/).count()) === 1, "preferences: the note that Forge has no difficulty levels is missing")
+    await profiles.getByRole("radio", { name: /^Waghalsig/ }).click()
+    await settingStored(page, "ai.profile", { kind: "profile", name: "Reckless" }, "preferences")
+    await page.getByRole("radiogroup", { name: "Kartensprache" }).getByRole("radio", { name: /^Englisch/ }).click()
+    await settingStored(page, "display.cardLanguage", "en", "preferences")
+    results["settingsAxe"] = await accessibility(page, "preferences: settings")
+    await screenshots(page, "desktop-settings")
+
+    // 2. The card language in the app: the deck list names the commander in English now.
+    await page.goto(new URL("/decks", base).href, { waitUntil: "domcontentloaded" })
+    const brawl = page.getByRole("list", { name: "Gespeicherte Decks" }).getByRole("link", { name: /E2E Brawl/ })
+    await brawl.waitFor()
+    const brawlText = (await brawl.textContent()) ?? ""
+    results["englishDeck"] = brawlText
+    check(brawlText.includes("Kommandeur: Valki, God of Lies") && !brawlText.includes("nicht ganz deutsch"), `preferences: English deck row "${brawlText}"`)
+
+    // 3. Play: the profile is shown (no step before the start), the engine boots with English cards.
+    await page.goto(new URL("/play", base).href, { waitUntil: "domcontentloaded" })
+    await chooseDeck(page, "Dein Deck wählen", "E2E Izzet Tempo")
+    await chooseDeck(page, "Deck der KI wählen", "E2E Deutsch")
+    await page.getByText(/^Profil Waghalsig – Spielt auf Angriff/).waitFor()
+    await enginePanel(page).getByText("Bereit", { exact: true }).waitFor({ timeout: 180_000 })
+    const english = await engineFacts(page)
+    results["englishEngine"] = english
+    check(
+      english["Sprache von Forge"] === "Deutsch" && english["Karten in Forges Texten"] === "Englisch" && english["KI-Profile"] === "Vorsichtig, Standard, Experimentell, Waghalsig",
+      `preferences: engine facts ${JSON.stringify(english)}`,
+    )
+
+    // 4. A game: Forge confirms the profile it plays (game.started), shown on the AI's side.
+    results["startMs"] = await startAndWait(page)
+    const game = page.getByRole("region", { name: "Partie läuft" })
+    const aiTitle = ((await game.getByRole("list", { name: "Spieler" }).getByRole("listitem").nth(1).locator('[data-slot="item-title"]').textContent()) ?? "").trim()
+    results["aiTitle"] = aiTitle
+    check(aiTitle === "Forge-KIWaghalsig", `preferences: the AI's title "${aiTitle}"`)
+    results["playingAxe"] = await accessibility(page, "preferences: running game")
+    await concedeGame(page)
+
+    // 5. German cards again while the next engine is warm: it is replaced by one with German cards - never two at once.
+    await page.goto(new URL("/settings", base).href, { waitUntil: "domcontentloaded" })
+    await page.getByRole("radiogroup", { name: "Kartensprache" }).getByRole("radio", { name: /^Deutsch/ }).click()
+    await settingStored(page, "display.cardLanguage", "de", "preferences")
+    await page.goto(new URL("/play", base).href, { waitUntil: "domcontentloaded" })
+    await enginePanel(page).getByText("Bereit", { exact: true }).waitFor({ timeout: 180_000 })
+    const german = await engineFacts(page)
+    results["germanEngine"] = german
+    check(german["Karten in Forges Texten"] === "Deutsch", `preferences: after switching back ${JSON.stringify(german)}`)
+
+    // 6. Random: a profile is drawn for the game, and the game says so.
+    await page.getByRole("button", { name: "KI-Profil ändern" }).click()
+    const dialog = page.getByRole("dialog", { name: "KI-Profil wählen" })
+    await dialog.getByRole("radio", { name: /^Zufällig/ }).click()
+    await settingStored(page, "ai.profile", { kind: "random" }, "preferences")
+    results["profileDialogAxe"] = await accessibility(page, "preferences: profile dialog")
+    await dialog.getByRole("button", { name: "Fertig" }).click()
+    await overlaysGone(page)
+    await startAndWait(page)
+    const drawnTitle = ((await page.getByRole("region", { name: "Partie läuft" }).getByRole("list", { name: "Spieler" }).getByRole("listitem").nth(1).locator('[data-slot="item-title"]').textContent()) ?? "").trim()
+    results["drawnTitle"] = drawnTitle
+    check(/^Forge-KI(Standard|Vorsichtig|Waghalsig|Experimentell) \(zufällig\)$/.test(drawnTitle), `preferences: the drawn profile "${drawnTitle}"`)
+    await concedeGame(page)
+    results["workers"] = { created: workers.created(), maxAtOnce: workers.max() }
+    check(workers.max() <= 1, `preferences: ${workers.max()} engines at the same time`)
+
+    // 7. Less motion: the dialogs animate by default; not with the setting.
+    await page.goto(new URL("/play", base).href, { waitUntil: "domcontentloaded" })
+    const openProfiles = () => page.getByRole("button", { name: "KI-Profil ändern" }).click()
+    const animated = await dialogAnimation(page, openProfiles, "KI-Profil wählen")
+    await page.goto(new URL("/settings", base).href, { waitUntil: "domcontentloaded" })
+    await page.getByRole("switch", { name: "Bewegungen reduzieren" }).click()
+    await settingStored(page, "display.motion", "reduce", "preferences")
+    // The page reads the stored setting back and then marks <html>.
+    const marked = await page
+      .waitForFunction(() => document.documentElement.hasAttribute("data-reduced-motion"), undefined, { timeout: 10_000 })
+      .then(() => true, () => false)
+    check(marked, "preferences: <html data-reduced-motion> missing")
+    await page.goto(new URL("/play", base).href, { waitUntil: "domcontentloaded" })
+    const reduced = await dialogAnimation(page, openProfiles, "KI-Profil wählen")
+    results["motion"] = { byDefault: animated, withTheSetting: reduced }
+    check(animated === "enter" && reduced === "none", `preferences: dialog animation ${JSON.stringify(results["motion"])}`)
+
+    // 8. Diagnostics: every version, copied as it is shown.
+    await page.goto(new URL("/settings", base).href, { waitUntil: "domcontentloaded" })
+    await page.getByRole("button", { name: "Diagnose anzeigen" }).click()
+    const diagnostics = page.getByRole("dialog", { name: "Diagnose" })
+    const text = await diagnostics.getByRole("textbox", { name: "Diagnose" }).inputValue()
+    results["diagnostics"] = text
+    for (const line of [
+      "[App]",
+      `Kennung: ${id}`,
+      "Forge: 2.0.15, Stand ed0333fecb1fea0671b3e50cadc1da4f71db5798",
+      "Protokoll: Version 4",
+      "KI-Profil: zufällig (jede Partie neu)",
+      "Kartensprache: Deutsch",
+      "Bewegungen reduzieren: immer (Gerät wünscht es: nein)",
+      "Isoliert (COOP/COEP): ja",
+    ]) {
+      check(text.includes(line), `preferences: the diagnostics lack "${line}"`)
+    }
+    results["diagnosticsAxe"] = await accessibility(page, "preferences: diagnostics")
+    await diagnostics.getByRole("button", { name: "Kopieren" }).click()
+    await page.getByText("Diagnose kopiert").waitFor()
+    const copied = await page.evaluate(() => navigator.clipboard.readText())
+    check(copied === text, "preferences: the copied diagnostics differ from the shown ones")
+    for (const error of pageLog.errors) check(false, `preferences: ${error}`)
+  } finally {
+    await context.close()
+  }
+  results["deviceMotion"] = await deviceMotion(browser, base)
+  results["phone"] = await preferencesPhone(browser, base)
+  return results
+}
+
+/** A device that asks for less motion: OpenMana follows it without the setting, and says so. */
+async function deviceMotion(browser: Browser, base: string): Promise<Record<string, unknown>> {
+  const viewport = VIEWPORTS[2]!
+  const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, locale: "de-DE", reducedMotion: "reduce" })
+  const page = await context.newPage()
+  const pageLog = watch(page)
+  try {
+    await page.goto(new URL("/settings", base).href, { waitUntil: "domcontentloaded" })
+    const said = page.getByText(/Dein Gerät wünscht weniger Bewegung/)
+    await said.waitFor()
+    const toggle = page.getByRole("switch", { name: "Bewegungen reduzieren" })
+    check(!(await toggle.isChecked()), "device motion: the switch is on without the player")
+    const animation = await dialogAnimation(page, () => page.getByRole("button", { name: "Diagnose anzeigen" }).click(), "Diagnose")
+    check(animation === "none", `device motion: the dialog animates (${animation})`)
+    for (const error of pageLog.errors) check(false, `device motion: ${error}`)
+    return { animation }
+  } finally {
+    await context.close()
+  }
+}
+
+/** The settings on a phone with touch: every option a large enough target, nothing overflows. */
+async function preferencesPhone(browser: Browser, base: string): Promise<Record<string, unknown>> {
+  const context = await newContext(browser, VIEWPORTS[0]!)
+  const page = await context.newPage()
+  const pageLog = watch(page)
+  try {
+    await page.goto(new URL("/settings", base).href, { waitUntil: "domcontentloaded" })
+    await page.getByRole("radiogroup", { name: "KI-Profil" }).getByRole("radio").first().waitFor()
+    // Measured before any full-page screenshot (it resets the touch emulation).
+    const rows = page.locator('[data-slot="field-label"]:has([role="radio"], [role="switch"])')
+    const heights: number[] = []
+    for (let i = 0; i < (await rows.count()); i++) heights.push(await layoutHeight(rows.nth(i)))
+    check(heights.length === 8 && heights.every((height) => height >= 44), `preferences (phone): option rows ${JSON.stringify(heights)}`)
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+    check(overflow <= 0, `preferences (phone): overflow ${overflow}px`)
+    const axe = await accessibility(page, "preferences (phone): settings")
+    await screenshots(page, "phone-settings")
+    for (const error of pageLog.errors) check(false, `preferences (phone): ${error}`)
+    return { heights, overflow, axe }
+  } finally {
+    await context.close()
+  }
 }
 
 // ── Run ──────────────────────────────────────────────────────────────────

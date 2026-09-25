@@ -140,12 +140,32 @@ zeigt die Testpartien.
 
 `--card-loading=eager|lazy` (Standard `eager`: `lazy` lädt die ganze
 Kartendatenbank mitten in der Partie nach, sobald ein Effekt oder der Spieler
-alle Karten braucht, im Wasm gemessen 17 s in Chrome, bis 42 s in Node) und `--language=en-US|de-DE`
-(Standard `en-US`, Sprache von Forges Meldungen und Spielverlauf). Die
+alle Karten braucht, im Wasm gemessen 17 s in Chrome, bis 42 s in Node), `--language=en-US|de-DE`
+(Standard `en-US`, Sprache von Forges Meldungen und Spielverlauf) und seit
+Prompt 12 `--card-language=en-US|de-DE` (Standard: die `--language`; die
+Sprache der Karten in Forges Texten und Kartenansichten – die App startet Forge
+deutsch und die Karten in der Kartensprache des Spielers). Die
 JVM-Werkzeuge (`JvmSmokeMain`, `JvmHumanMatchMain`, `JvmCardProbeMain`) nehmen
-dieselben Werte als `--card-loading`/`--language`; `JvmHumanMatchMain
+dieselben Werte als `--card-loading`/`--language`/`--card-language`; `JvmHumanMatchMain
 --scenario` liest sie aus der Testpartie, `JvmSmokeMain --trace <datei>`
 schreibt die Engine-Spur der KI-Partie.
+
+## KI-Profile (Prompt 12)
+
+Forges vier Profile (`res/ai/*.ai`: Cautious, Default, Experimental, Reckless)
+meldet die Engine beim Start (`boot.aiProfiles`); ein anderes Profil lehnt sie
+ab. Was die Profile ändern, ist in
+[`docs/research/AI_PROFILES.md`](../docs/research/AI_PROFILES.md) belegt – aus
+den Profilwerten und aus 2 400 Partien KI gegen KI, gespielt mit
+
+```bash
+bash engine/scripts/ai-profile-study.sh   # ~25 min, 4 JVMs; Ergebnis engine/build/report/ai-profiles/summary.md
+```
+
+(nur JVM, nicht Teil von `build.sh`/`test-engine.sh`; Plan
+`engine/fixtures/ai-profile-study.json`, Decks `engine/fixtures/decks/study-*.json`).
+Die App beschreibt genau die geprüften Profildateien; ändert ein Forge-Update
+eines, bricht ihr Build ab (`vite/engine-assets.ts`), bis es neu geprüft ist.
 
 ## Diagnoseseite von Hand öffnen
 
@@ -154,7 +174,7 @@ node engine/wasm/test/serve.mjs            # http://127.0.0.1:8765/?seed=42&card
 node engine/wasm/test/serve.mjs --no-isolation   # zeigt die Fehlermeldung ohne COOP/COEP
 ```
 
-Weitere Parameter: `&language=de-DE`, `?cards=1` (Kartenprüfung),
+Weitere Parameter: `&language=de-DE`, `&cardLanguage=en-US`, `?cards=1` (Kartenprüfung),
 `?announceProtocol=999` (Versionskonflikt). Eine
 aufgezeichnete Mensch-gegen-KI-Partie lässt sich im Browser nachspielen, z. B.
 über den Test: `node engine/wasm/test/browser-smoke.mjs --transcript

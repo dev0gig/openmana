@@ -92,7 +92,7 @@ EOF
 mkdir -p "$OM_REPORT_DIR"
 node -e '
 const fs = require("fs");
-const [file, commit, count, sha, names] = process.argv.slice(1);
-fs.writeFileSync(file, JSON.stringify({ forgeCommit: commit, patchCount: +count, patchesSha256: sha, patches: names.split(" ") }, null, 2) + "\n");
-' "$OM_REPORT_DIR/forge-source.json" "$pinned" "${#patches[@]}" "$patches_sha256" "$(for p in "${patches[@]}"; do basename "$p"; done | tr '\n' ' ' | sed 's/ $//')"
+const [file, commit, versionCode, count, sha, names] = process.argv.slice(1);
+fs.writeFileSync(file, JSON.stringify({ forgeCommit: commit, forgeVersionCode: versionCode, patchCount: +count, patchesSha256: sha, patches: names.split(" ") }, null, 2) + "\n");
+' "$OM_REPORT_DIR/forge-source.json" "$pinned" "$forge_version" "${#patches[@]}" "$patches_sha256" "$(for p in "${patches[@]}"; do basename "$p"; done | tr '\n' ' ' | sed 's/ $//')"
 om_log "Arbeitsbaum bereit: $OM_WORK_DIR (${#patches[@]} Patches, sha256 ${patches_sha256:0:12}…)"

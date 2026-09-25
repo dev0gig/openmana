@@ -56,7 +56,9 @@ files work under COEP and nothing leaks to third parties (Bible §15).
    without `next-themes`, a dialog that scrolls inside the screen instead of
    running off it (`DialogContent`: `max-h` + `overflow-y-auto`, prompt 07),
    `DropdownMenuCheckboxItem` passing `checked` through its props (TypeScript's
-   `exactOptionalPropertyTypes`, prompt 10).
+   `exactOptionalPropertyTypes`, prompt 10), and since prompt 12
+   `motion-reduce:animate-none!` / `motion-reduce:transition-none!` on every
+   animation and transition (rule 8).
 4. **Honest states.** No sample data, no simulated engine, no pretend
    features. Empty states use `Empty`; an action that is not possible yet
    stays visible but disabled and says why (`aria-describedby`); failures
@@ -94,8 +96,20 @@ files work under COEP and nothing leaks to third parties (Bible §15).
    screen-reader text is German (including the few strings inside shadcn
    components); code, identifiers, routes (`/decks`, `/play` …), protocol and
    developer messages are English.
-8. **Motion** comes only from the shadcn components' built-in transitions.
-   Honouring `prefers-reduced-motion` app-wide is part of prompt 12.
+8. **Motion** comes only from the shadcn components' built-in transitions –
+   and it stops when less motion is asked for (prompt 12): by the device
+   (`prefers-reduced-motion`, e.g. Android's "remove animations") or by the
+   player (Settings → Barrierefreiheit, `<html data-reduced-motion>`; the
+   setting can only add a reduction). `src/index.css` defines the
+   `motion-reduce:` variant as exactly that (like shadcn's class-based `dark`
+   variant), and every shadcn component carries it on each animation and
+   transition, with `!` so it wins over the `data-open:`/`data-closed:`
+   animations (`src/app/motion.test.ts` checks every file of
+   `src/components/ui`; a component added later must follow). Spinners keep
+   turning: a loading indicator that stops looks like a frozen page. Code that
+   moves things itself (the game table from prompt 13 on) asks
+   `useDeviceReducedMotion()`/`reducedMotion()` in `src/app/motion.ts` together
+   with the preference.
 
 ## 4. Layout
 
@@ -121,6 +135,7 @@ word in the heading font – gold for a win, the destructive colour for a loss
 | `AspectRatio`, `Progress` | shadcn/ui registry (`radix-maia`, prompt 08) | card proportions; installing the card catalog |
 | `Textarea` | shadcn/ui registry (`radix-maia`, prompt 09) | pasting a deck list (grows with its content up to `max-h-96`, then scrolls) |
 | `DropdownMenu`, `Select`, `ToggleGroup` (+ `Toggle` it needs) | shadcn/ui registry (`radix-maia`, prompt 10) | a deck's actions (menu „Mehr“, not modal so a dialog opened from it gets the focus), sorting and the format filter of the deck library |
+| `Switch` | shadcn/ui registry (`radix-maia`, prompt 12) | an on/off preference („Bewegungen reduzieren“), inside a `FieldLabel` row so the whole row is the touch target; one-of-several preferences (AI profile, card language) are a `RadioGroup` of choice cards like the backup import. Preferences are saved the moment they change (no save button) |
 | `ActionBar` | `src/components/ui/action-bar.tsx`, built the shadcn way (prompt 10) | a page's primary action on phones: sticky right above the tab bar (`bottom-16`), at the end of the content column – on a short page too (since prompt 11 the `Page` column fills the screen and the bar is pushed to its end, `mt-auto`); pages render it only below `md` (`useIsMobile`) and put the same actions into the header above |
 | `CardPicture` | `src/components/ui/card-picture.tsx`, built the shadcn way (prompt 08) | every picture of a Magic card: `AspectRatio` 63 × 88, `Skeleton` while loading, the card's text in place of a missing or failed picture (`data-state` loading/loaded/failed/missing); loads Scryfall's pictures in CORS mode without referrer and never crops them (`object-contain`: Scryfall forbids cutting off artist or copyright) |
 | `BottomNav`, `BottomNavItem` | `src/components/ui/bottom-nav.tsx`, built the shadcn way | phone tab bar |

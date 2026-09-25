@@ -180,7 +180,7 @@ function Matchup({ setup }: { setup: MatchSetup }) {
         { label: "Dein Deck", value: setup.human.deckName },
         { label: "Deck der Forge-KI", value: setup.ai.drawn ? `${setup.ai.deckName} (zufällig gezogen)` : setup.ai.deckName },
         { label: "Format", value: DECK_FORMAT_LABELS[setup.request.format] },
-        { label: "KI-Profil", value: aiProfileLabel(setup.request.ai.profile) },
+        { label: "KI-Profil", value: setup.ai.profileDrawn ? `${aiProfileLabel(setup.request.ai.profile)} (zufällig gezogen)` : aiProfileLabel(setup.request.ai.profile) },
       ]}
     />
   )
@@ -354,7 +354,8 @@ function zoneFacts(player: Player): Fact[] {
   ]
 }
 
-function Players({ state, setup }: { state: GameState; setup: MatchSetup }) {
+/** aiProfile: the profile Forge confirmed it plays (game.started), Forge's own word on it. */
+function Players({ state, setup, aiProfile }: { state: GameState; setup: MatchSetup; aiProfile: string }) {
   // The player first, then the AI.
   const players = [...state.players].sort((a, b) => Number(b.me) - Number(a.me))
   return (
@@ -364,6 +365,7 @@ function Players({ state, setup }: { state: GameState; setup: MatchSetup }) {
           <ItemContent>
             <ItemTitle>
               {player.me ? "Du" : "Forge-KI"}
+              {player.me ? null : <Badge variant="secondary">{setup.ai.profileDrawn ? `${aiProfileLabel(aiProfile)} (zufällig)` : aiProfileLabel(aiProfile)}</Badge>}
               {player.hasPriority ? <Badge variant="outline">Priorität</Badge> : null}
               {player.lost ? <Badge variant="destructive">verloren</Badge> : null}
             </ItemTitle>
@@ -471,7 +473,7 @@ function Playing({ match }: { match: Of<"playing"> }) {
       }
     >
       {match.stalledMs !== null ? <Stalled silentMs={match.stalledMs} /> : null}
-      {match.state ? <Players state={match.state} setup={match.setup} /> : <Skeleton className="h-40 w-full" aria-label="Spielstand wird geladen" />}
+      {match.state ? <Players state={match.state} setup={match.setup} aiProfile={match.game.aiProfile} /> : <Skeleton className="h-40 w-full" aria-label="Spielstand wird geladen" />}
       <Decision questions={match.questions} prompt={match.prompt} waiting={match.waiting} />
       <Notices notices={match.notices} />
       <AlertDialog open={confirming} onOpenChange={setConfirming}>

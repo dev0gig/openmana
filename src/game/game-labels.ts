@@ -5,6 +5,7 @@
  * protocol's structured values - never by Forge's (localized) texts.
  */
 import type { ButtonsPurpose, EngineError, GameEnd, GameResult, Phase, Question, QuestionKind, RejectReason } from "@openmana/engine-protocol"
+import { AI_PROFILE_TABLE } from "./ai-profile-table"
 
 /** The steps of a turn (comprehensive rules 500-514), as short labels. */
 export const PHASE_LABELS: Readonly<Record<Phase, string>> = {
@@ -134,9 +135,9 @@ export function questionChoices(question: Question): string[] {
   }
 }
 
-/** Forge's AI profile (res/ai/*.ai); friendly names and choosing one are prompt 12. */
+/** Forge's AI profile (res/ai/*.ai) by its German name (ai-profile-table.ts); an unknown one by Forge's name. */
 export function aiProfileLabel(profile: string): string {
-  return profile === "Default" ? "Standard (Forges Vorgabe)" : profile
+  return AI_PROFILE_TABLE.find((info) => info.name === profile)?.label ?? profile
 }
 
 /** Why Forge did not carry out an input (input.rejected); the engine's own detail stays below it. */

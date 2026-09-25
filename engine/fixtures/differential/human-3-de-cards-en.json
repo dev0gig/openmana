@@ -1,0 +1,6 @@
+{
+  "description": "human-3 with Forge speaking German but naming the cards in English (prompt 12: the card language of a player who prefers English cards). Forge's texts change, the game must not: the engine trace must equal human-3's.",
+  "sameGameAs": "human-3",
+  "engine": { "language": "de-DE", "cardLanguage": "en-US" },
+  "wasm": { "node": ["lazy"], "browser": [] }
+}

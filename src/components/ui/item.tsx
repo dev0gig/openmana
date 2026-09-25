@@ -5,6 +5,9 @@ import { Slot } from "radix-ui"
 
 import { Separator } from "@/components/ui/separator"
 
+// OpenMana: motion-reduce: stops the animations and transitions below when the
+// device or the player asks for less motion (src/app/motion.ts, prompt 12).
+
 function ItemGroup({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
@@ -34,7 +37,7 @@ function ItemSeparator({
 }
 
 const itemVariants = cva(
-  "group/item flex w-full flex-wrap items-center rounded-2xl border text-sm transition-colors duration-100 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 [a]:transition-colors [a]:hover:bg-muted",
+  "group/item flex w-full flex-wrap items-center rounded-2xl border text-sm transition-colors duration-100 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 [a]:transition-colors [a]:hover:bg-muted motion-reduce:transition-none!",
   {
     variants: {
       variant: {

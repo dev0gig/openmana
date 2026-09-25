@@ -43,7 +43,9 @@ fixtures/
   Angreifer), `assign` (Angreifer antippen, dann einen von Forge angebotenen
   Blocker; erst einer je Angreifer, dann ein zweiter für den ersten).
   `concedeInTurn`: aufgeben ab diesem Zug (0 = nie).
-- `engine`: Sprache (`en-US`, `de-DE`) und Kartenladen (`eager`, `lazy`).
+- `engine`: Sprache (`en-US`, `de-DE`), Kartensprache (`cardLanguage`, Standard:
+  die Sprache; die Karten in Forges Texten, seit Prompt 12) und Kartenladen
+  (`eager`, `lazy`).
 - `wasm`: welche Wiederholungen laufen – Node und Chrome, je `lazy` (eine
   Eingabe je Warten, Client und Engine müssen jede Eingabe gleich beurteilen)
   und/oder `eager` (256-Byte-Warteschlange: Umbruch, volle Warteschlange).
@@ -75,6 +77,7 @@ Unit-Test bei jedem Build).
 | `human-3-concede` | dieselben, Seed 3 | gibt in Zug 3 auf | Aufgeben |
 | `human-3-de` | Variante von `human-3` | – | Deutsch: dieselbe Spur wie Englisch |
 | `human-3-lazy` | Variante von `human-3` | – | faules Kartenladen: dieselbe Spur (nur JVM) |
+| `human-3-de-cards-en` | Variante von `human-3` | – | Deutsch mit englischen Karten (Prompt 12): dieselbe Spur (JVM, Node) |
 | `blocks-multi` | Grün gegen Rot, Seed 7 | greift jeden zweiten Kampf an, ordnet Blocker zu | zwei Angreifer in einem Kampf geblockt, Kampfschaden verteilen |
 | `blocks-double` | dieselben, Seed 12 | wie oben, gibt in Zug 13 auf | ein Angreifer von zwei Kreaturen geblockt |
 | `stack-response` | Grün gegen rote Instants, Seed 3 | greift an | die KI antwortet auf einen Zauber (Stapeltiefe 2, LIFO), Sieg |
@@ -92,3 +95,14 @@ Unit-Test bei jedem Build).
 
 Kein Deck und keine Partie ist eine Regel: Nichts in OpenMana darf auf diese
 Namen reagieren (Bible §2).
+
+## Die KI-Profil-Studie (Prompt 12)
+
+`ai-profile-study.json` ist kein Differenztest, sondern der Plan der Messung,
+was Forges KI-Profile ändern (`bash engine/scripts/ai-profile-study.sh`,
+Ergebnis und Schlüsse in
+[`docs/research/AI_PROFILES.md`](../../docs/research/AI_PROFILES.md)): drei
+Decks als Spiegelpartie (`decks/study-aggro-red.json`,
+`study-midrange-gw.json`, `study-control-ub.json`, je 60 Karten), jedes
+Nicht-Standard-Profil gegen „Default“ in beiden Sitzreihenfolgen je Seed,
+„Default“ gegen sich selbst als Kontrolle.

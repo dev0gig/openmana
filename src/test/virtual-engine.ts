@@ -4,6 +4,7 @@
  * engine build. It is never bundled into the app; the real engine is tested
  * end to end (scripts/e2e/run.mjs).
  */
+import { PROTOCOL_VERSION } from "@openmana/engine-protocol/generated/constants"
 import type { EngineAssets } from "@/engine/engine-assets-types"
 
 export const ENGINE_ASSETS: EngineAssets = {
@@ -17,8 +18,9 @@ export const ENGINE_ASSETS: EngineAssets = {
     builtAt: "2026-09-24T00:00:00.000Z",
     forgeRepository: "https://github.com/Card-Forge/forge",
     forgeCommit: "0000000000000000000000000000000000000000",
+    forgeVersionCode: "0.0.0",
     patchCount: 6,
-    protocolVersion: 3,
+    protocolVersion: PROTOCOL_VERSION,
     graalvm: "test",
     downloadBytes: 1048576,
     downloadBrotliBytes: 524288,

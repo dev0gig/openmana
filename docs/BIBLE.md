@@ -198,6 +198,8 @@ Expose understandable difficulty/profile choices based on capabilities actually 
 
 Anvil used Forge concepts such as Cautious, Default, Experimental and Reckless. Before mapping these to Easy/Normal/Hard, test their actual behaviour and label honestly.
 
+What the four profiles of the pinned Forge actually change - measured in 2 400 AI-against-AI games: styles, not difficulty levels, none measurably stronger or weaker than Forge's default - is in [research/AI_PROFILES.md](research/AI_PROFILES.md); how the player chooses one (and the other preferences: card language, less motion) in [implementation/12-ai-profiles-settings.md](implementation/12-ai-profiles-settings.md).
+
 ## 8. Formats
 
 Do not hard-code Standard-only assumptions.

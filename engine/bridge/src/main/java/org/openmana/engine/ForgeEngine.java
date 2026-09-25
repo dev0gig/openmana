@@ -1,5 +1,6 @@
 package org.openmana.engine;
 
+import forge.ai.AiProfileUtil;
 import forge.gui.GuiBase;
 import forge.localinstance.properties.ForgeConstants;
 import forge.localinstance.properties.ForgePreferences.FPref;
@@ -14,9 +15,11 @@ import org.tinylog.configuration.Configuration;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Brings Forge up inside OpenMana, identically on the JVM and in the browser.
@@ -68,12 +71,16 @@ public final class ForgeEngine {
     }
 
     /**
-     * The language Forge speaks: its own messages (prompts, buttons, the game
-     * log) and the card names inside them, from Forge's language files
-     * ({@code res/languages}). Card keys on the wire stay English whatever the
-     * language (Anvil lesson); how the UI shows cards is Scryfall's business.
-     * The engine ships exactly these two (Bible §4: German preferred, English
-     * fallback).
+     * A language of Forge's language files ({@code res/languages}), for two
+     * things: the language Forge speaks (its own messages: prompts, buttons,
+     * the game log) and the language of the cards inside them and in its card
+     * views (names, type lines, rules texts: {@code CardTranslation}). By
+     * default the cards follow the messages; the card language can be set on
+     * its own (prompt 12: German words with English card names for a player
+     * who prefers English cards). Card keys on the wire stay English whatever
+     * the language (Anvil lesson); how the UI shows cards is Scryfall's
+     * business. The engine ships exactly these two (Bible §4: German
+     * preferred, English fallback).
      */
     public enum Language {
         EN_US("en-US"),
@@ -122,6 +129,7 @@ public final class ForgeEngine {
     private static boolean runtimeConfigured;
     private static CardLoading initializedWith;
     private static Language language;
+    private static Language cardLanguage;
 
     private ForgeEngine() {
     }
@@ -170,8 +178,19 @@ public final class ForgeEngine {
         Logger.info("OpenMana engine: Forge logging configured (INFO and above, without caller lookup)");
     }
 
-    /** @return milliseconds spent in {@code FModel.initialize} */
+    /** Cards in the language Forge speaks. @return milliseconds spent in {@code FModel.initialize} */
     public static long initialize(final CardLoading cardLoading, final Language requestedLanguage) {
+        return initialize(cardLoading, requestedLanguage, requestedLanguage);
+    }
+
+    /**
+     * @param requestedLanguage     the language of Forge's own messages
+     * @param requestedCardLanguage the language of card names, type lines and
+     *                              rules texts in Forge's messages and card views
+     * @return milliseconds spent in {@code FModel.initialize} (and in reading
+     *         the other card language, if any)
+     */
+    public static long initialize(final CardLoading cardLoading, final Language requestedLanguage, final Language requestedCardLanguage) {
         if (!runtimeConfigured) {
             throw new IllegalStateException("configureRuntime must be called before initialize");
         }
@@ -179,6 +198,7 @@ public final class ForgeEngine {
             throw new IllegalStateException("Forge is already initialised (" + initializedWith + ")");
         }
         requireLanguageFiles(requestedLanguage);
+        requireLanguageFiles(requestedCardLanguage);
         final long start = System.nanoTime();
         FModel.initialize(null, prefs -> {
             // Here and not afterwards: FModel.initialize loads Lang, Localizer and
@@ -210,10 +230,19 @@ public final class ForgeEngine {
             prefs.setPref(FPref.PLAYER_NAME, "Player");
             return null;
         });
+        if (requestedCardLanguage != requestedLanguage) {
+            // FModel.initialize loaded the card translation of UI_LANGUAGE.
+            // Forge reads CardTranslation whenever it shows a card (CardView,
+            // game log, prompts), so replacing it here changes every card text
+            // from now on and nothing else; PaperCard recomputes its sortable
+            // name when the selected language changes.
+            CardTranslation.preloadTranslation(requestedCardLanguage.tag(), ForgeConstants.LANG_DIR);
+        }
         final long millis = (System.nanoTime() - start) / 1_000_000L;
-        requireLanguageLoaded(requestedLanguage);
+        requireLanguageLoaded(requestedLanguage, requestedCardLanguage);
         initializedWith = cardLoading;
         language = requestedLanguage;
+        cardLanguage = requestedCardLanguage;
         return millis;
     }
 
@@ -235,16 +264,16 @@ public final class ForgeEngine {
     }
 
     /**
-     * Checks that Forge really speaks the requested language: its selected
-     * card translation, and one message that every Forge translation has
-     * (lblYes) differs from English. In the browser the messages come from
+     * Checks that Forge really speaks the requested languages: its selected
+     * card translation is the card language, and one message that every Forge
+     * translation has (lblYes) differs from English. In the browser the messages come from
      * the resource bundles compiled into the module (build-wasm.sh), a
      * different path than on the JVM.
      */
-    private static void requireLanguageLoaded(final Language requested) {
-        if (!requested.tag().equals(CardTranslation.getLanguageSelected())) {
+    private static void requireLanguageLoaded(final Language requested, final Language requestedCards) {
+        if (!requestedCards.tag().equals(CardTranslation.getLanguageSelected())) {
             throw new IllegalStateException("Forge's card translation is " + CardTranslation.getLanguageSelected()
-                    + ", requested was " + requested.tag());
+                    + ", requested was " + requestedCards.tag());
         }
         if (requested != Language.EN_US) {
             final Localizer localizer = Localizer.getInstance();
@@ -261,6 +290,20 @@ public final class ForgeEngine {
 
     public static Language language() {
         return language;
+    }
+
+    public static Language cardLanguage() {
+        return cardLanguage;
+    }
+
+    /**
+     * The AI profiles Forge loaded ({@code res/ai/*.ai}, read by
+     * {@code FModel.initialize}; a file Forge cannot read stops the start),
+     * sorted by name: the directory listing's order differs between the JVM
+     * and the browser's file system.
+     */
+    public static List<String> aiProfiles() {
+        return List.copyOf(new TreeSet<>(AiProfileUtil.getAvailableProfiles()));
     }
 
     public static String forgeVersion() {

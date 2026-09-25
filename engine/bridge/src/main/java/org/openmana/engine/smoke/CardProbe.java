@@ -174,9 +174,12 @@ public final class CardProbe {
     // --- language ---------------------------------------------------------------
 
     /**
-     * Which language Forge speaks (its messages and card names in prompts and
-     * the game log) and a few samples, so a missing translation shows up;
-     * plus the runtime's time zone. Not part of the fingerprint.
+     * Which language Forge speaks and a few samples, so a missing translation
+     * shows up: {@code selected} is the language of the cards (Forge's card
+     * translation: card names in prompts, the game log and card views, the
+     * boot argument --card-language), {@code messages} Forge's own words
+     * (--language), {@code cardNames} translated sample names; plus the
+     * runtime's time zone. Not part of the fingerprint.
      */
     private static JsonObject language() {
         final JsonObject o = new JsonObject();

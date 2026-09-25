@@ -22,6 +22,8 @@ export interface EngineBuildFacts {
   readonly builtAt: string
   readonly forgeRepository: string
   readonly forgeCommit: string
+  /** Forge's own version number of the pinned commit (its pom.xml versionCode, e.g. 2.0.15). */
+  readonly forgeVersionCode: string
   readonly patchCount: number
   readonly protocolVersion: number
   readonly graalvm: string

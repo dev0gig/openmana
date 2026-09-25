@@ -9,12 +9,14 @@ import { resolveSelection, type AiDeckChoice } from "@/decks/deck-selection"
 import type { EngineSnapshot, MatchSnapshot } from "@/engine/engine-session"
 import { SUPPORTED, testSetup } from "@/test/game-fixtures"
 import { deck } from "@/test/storage-fixtures"
+import { resolveAiProfile } from "./ai-profiles"
 import { startState, type StartInput } from "./game-start"
 
 const red = deck({ name: "Rot" })
 const green = deck({ name: "Grün" })
 const selection = resolveSelection({ value: red.id, stored: true, invalid: false }, { value: { kind: "random" } as AiDeckChoice, stored: false, invalid: false }, { records: [red, green], invalid: [] })
-const READY_INPUT: StartInput = { data: "ready", noDecks: false, selection }
+const profile = resolveAiProfile({ kind: "profile", name: "Default" })
+const READY_INPUT: StartInput & { readonly profile: typeof profile } = { data: "ready", noDecks: false, selection, profile }
 
 const idle: EngineSnapshot = { status: "idle", features: SUPPORTED }
 const booting: EngineSnapshot = { status: "booting", features: SUPPORTED, startedAt: 0, steps: [] }
@@ -58,14 +60,29 @@ describe("startState", () => {
     expect(startState({ ...READY_INPUT, engine: { status: "unsupported", features: SUPPORTED, message: "" }, match: null }).note).toBe(
       "Dieser Browser kann die Forge-Engine nicht ausführen.",
     )
-    expect(startState({ data: "loading", noDecks: false, selection: null, engine: idle, match: null })).toMatchObject({ enabled: false, note: "Lese die Decks auf diesem Gerät …" })
-    expect(startState({ data: "error", noDecks: false, selection: null, engine: idle, match: null })).toMatchObject({
+    expect(startState({ data: "loading", noDecks: false, selection: null, engine: idle, match: null, profile })).toMatchObject({ enabled: false, note: "Lese die Decks auf diesem Gerät …" })
+    expect(startState({ data: "error", noDecks: false, selection: null, engine: idle, match: null, profile })).toMatchObject({
       enabled: false,
       note: "Die Decks auf diesem Gerät lassen sich gerade nicht lesen.",
     })
-    expect(startState({ data: "ready", noDecks: true, selection: null, engine: idle, match: null })).toMatchObject({ enabled: false, note: "Dafür fehlt noch ein Deck." })
+    expect(startState({ data: "ready", noDecks: true, selection: null, engine: idle, match: null, profile })).toMatchObject({ enabled: false, note: "Dafür fehlt noch ein Deck." })
     const none = resolveSelection({ value: null, stored: false, invalid: false }, { value: { kind: "random" }, stored: false, invalid: false }, { records: [red], invalid: [] })
-    expect(startState({ data: "ready", noDecks: false, selection: none, engine: idle, match: null })).toMatchObject({ enabled: false, note: "Wähle zuerst dein Deck." })
-    expect(startState({ data: "ready", noDecks: false, selection: none, engine: { status: "unsupported", features: SUPPORTED, message: "" }, match: null }).note).toBe("Wähle zuerst dein Deck.")
+    expect(startState({ data: "ready", noDecks: false, selection: none, engine: idle, match: null, profile })).toMatchObject({ enabled: false, note: "Wähle zuerst dein Deck." })
+    expect(startState({ data: "ready", noDecks: false, selection: none, engine: { status: "unsupported", features: SUPPORTED, message: "" }, match: null, profile }).note).toBe(
+      "Wähle zuerst dein Deck.",
+    )
+  })
+
+  it("the AI profile after the decks: while the preferences are read, and a stored profile this version does not have (prompt 12)", () => {
+    expect(startState({ ...READY_INPUT, profile: null, engine: idle, match: null })).toMatchObject({ enabled: false, note: "Lese die Einstellungen auf diesem Gerät …" })
+    expect(startState({ ...READY_INPUT, profile: resolveAiProfile({ kind: "profile", name: "Aggressive" }), engine: idle, match: null })).toEqual({
+      enabled: false,
+      action: "start",
+      note: "Das gewählte KI-Profil „Aggressive“ gibt es in dieser Version nicht mehr – wähle ein anderes.",
+    })
+    expect(startState({ ...READY_INPUT, profile: resolveAiProfile({ kind: "random" }), engine: idle, match: null })).toMatchObject({ enabled: true })
+    // The decks come first.
+    const none = resolveSelection({ value: null, stored: false, invalid: false }, { value: { kind: "random" }, stored: false, invalid: false }, { records: [red], invalid: [] })
+    expect(startState({ data: "ready", noDecks: false, selection: none, engine: idle, match: null, profile: null }).note).toBe("Wähle zuerst dein Deck.")
   })
 })

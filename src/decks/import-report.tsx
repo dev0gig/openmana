@@ -8,7 +8,8 @@
  */
 import { CircleCheck, CircleHelp, Pencil, RotateCcw, ScrollText, TriangleAlert, Undo2 } from "lucide-react"
 import type { ReactNode } from "react"
-import { cardDisplay } from "@/cards/card-display"
+import { usePreferences } from "@/app/preferences"
+import { cardDisplay, type TextLanguage } from "@/cards/card-display"
 import { FactList, type Fact } from "@/components/fact-list"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -27,6 +28,7 @@ export type LeaveOut = (line: number, leaveOut: boolean) => void
 
 /** A small card picture, or an icon where there is no Scryfall card to show. */
 function Thumb({ entry }: { entry: Pick<EntryReport, "card" | "match"> }) {
+  const { cardLanguage: language } = usePreferences()
   if (entry.card === null) {
     return (
       <ItemMedia variant="icon">
@@ -34,7 +36,7 @@ function Thumb({ entry }: { entry: Pick<EntryReport, "card" | "match"> }) {
       </ItemMedia>
     )
   }
-  const display = cardDisplay(entry.card, entry.match ? { match: entry.match } : {})
+  const display = cardDisplay(entry.card, { ...(entry.match ? { match: entry.match } : {}), language })
   return (
     <ItemMedia>
       <div className="w-10">
@@ -44,10 +46,10 @@ function Thumb({ entry }: { entry: Pick<EntryReport, "card" | "match"> }) {
   )
 }
 
-/** The card's name as the player reads it (German where there is one), and the name Forge knows. */
-function names(card: Pick<PlannedCard, "card" | "match" | "forgeName">): { readonly shown: string; readonly other: string | null } {
+/** The card's name as the player reads it (German where there is one, or English), and the name Forge knows. */
+function names(card: Pick<PlannedCard, "card" | "match" | "forgeName">, language: TextLanguage): { readonly shown: string; readonly other: string | null } {
   if (card.card === null) return { shown: card.forgeName, other: null }
-  const display = cardDisplay(card.card, card.match ? { match: card.match } : {})
+  const display = cardDisplay(card.card, { ...(card.match ? { match: card.match } : {}), language })
   const shown = display.name.text
   return { shown, other: shown === card.forgeName ? null : card.forgeName }
 }
@@ -64,7 +66,7 @@ function NoteList({ notes }: { notes: readonly string[] }) {
 }
 
 /** Deck-wide observations the player should know before saving. */
-function deckNotes(report: DeckImportReport, plan: DeckPlan): string[] {
+function deckNotes(report: DeckImportReport, plan: DeckPlan, language: TextLanguage): string[] {
   const notes: string[] = []
   const inferred = report.entries.filter((entry) => entry.entry.inferred && entry.entry.section === "sideboard")
   if (inferred.length > 0) {
@@ -73,7 +75,7 @@ function deckNotes(report: DeckImportReport, plan: DeckPlan): string[] {
     )
   }
   for (const companion of plan.companions) {
-    const name = names({ card: companion.entry.card, match: companion.entry.match, forgeName: companion.entry.forgeName! }).shown
+    const name = names({ card: companion.entry.card, match: companion.entry.match, forgeName: companion.entry.forgeName! }, language).shown
     notes.push(
       companion.addedToSideboard
         ? `Gefährte „${name}“: Er stand nicht im Sideboard – OpenMana legt ihn dort ab, denn dort sucht Forge ihn zu Spielbeginn.`
@@ -99,8 +101,9 @@ export function ReportSummary({ report, plan, onEdit, onRecheck }: { report: Dec
     { label: SECTION_LABELS.sideboard, value: cardsLabel(plannedCount(plan.sideboard)) },
     { label: "Zeilen der Liste", value: report.list.lines.toLocaleString("de-DE") },
   ]
+  const { cardLanguage } = usePreferences()
   const open = plan.blockers.length
-  const notes = deckNotes(report, plan)
+  const notes = deckNotes(report, plan, cardLanguage)
   return (
     <Card role="region" aria-labelledby="import-summary-title">
       <CardHeader>
@@ -242,7 +245,8 @@ export function OpenLines({ plan, onLeaveOut, onChoose }: { plan: DeckPlan; onLe
 }
 
 function PlannedRow({ card, entries, onChoose }: { card: PlannedCard; entries: ReadonlyMap<number, EntryReport>; onChoose: ChooseCard }) {
-  const { shown, other } = names(card)
+  const { cardLanguage } = usePreferences()
+  const { shown, other } = names(card, cardLanguage)
   const sources = card.lines.flatMap((line) => entries.get(line) ?? [])
   const notes = [...new Set(sources.flatMap((entry) => entry.notes.filter(isInformative).map(noteText)))]
   const choosable = sources.find(hasAlternatives)

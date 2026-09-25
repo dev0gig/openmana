@@ -21,8 +21,12 @@
  *   (Bible §4: German first) - the named printing stays as text and in the
  *   export. A Universes Beyond card shows the printing with the name Forge
  *   plays it under.
+ * - With the English card language (prompt 12) names are English and a
+ *   named printing shows its own (non-German) picture, else the card's
+ *   English one; the language status stays what it is: how German the deck
+ *   could be shown.
  */
-import { cardDisplay, type LocalizedText } from "@/cards/card-display"
+import { cardDisplay, type LocalizedText, type TextLanguage } from "@/cards/card-display"
 import { describeMatch, type CardMatch } from "@/cards/card-lookup"
 import type { ResolvedPrint } from "@/cards/print-key"
 import type { CheckedRecords, LocalDatabase } from "@/storage/database"
@@ -131,11 +135,12 @@ function languageOf(card: CardRecord): CardLanguage {
   return "partial"
 }
 
-export function entryView(part: DeckPart, entry: DeckCard, index: DeckCardIndex): EntryView {
+/** `language`: the player's card language (the name shown); the language status stays German availability. */
+export function entryView(part: DeckPart, entry: DeckCard, index: DeckCardIndex, language: TextLanguage = "de"): EntryView {
   const card = entry.oracleId !== undefined ? (index.cards.get(entry.oracleId) ?? null) : null
   if (card !== null) {
     const match = describeMatch(card, entry.name)
-    return { part, entry, card, match, forgeOnly: null, language: languageOf(card), name: cardDisplay(card, { match }).name }
+    return { part, entry, card, match, forgeOnly: null, language: languageOf(card), name: cardDisplay(card, { match, language }).name }
   }
   const forgeOnly = entry.oracleId === undefined ? (index.forgeOnly.get(entry.name) ?? null) : null
   return { part, entry, card: null, match: null, forgeOnly, language: forgeOnly !== null ? "forge-only" : "unknown", name: { text: entry.name, lang: "en" } }
@@ -180,8 +185,9 @@ function cover(parts: Readonly<Record<DeckPart, readonly EntryView[]>>): EntryVi
   return best ?? parts.main[0] ?? null
 }
 
-export function viewDeck(deck: DeckRecord, index: DeckCardIndex): DeckView {
-  const parts = Object.fromEntries(DECK_PARTS.map((part) => [part, partEntries(deck, part).map((entry) => entryView(part, entry, index))])) as Record<DeckPart, EntryView[]>
+/** `language`: the player's card language (names shown); the deck's language status is German availability either way. */
+export function viewDeck(deck: DeckRecord, index: DeckCardIndex, language: TextLanguage = "de"): DeckView {
+  const parts = Object.fromEntries(DECK_PARTS.map((part) => [part, partEntries(deck, part).map((entry) => entryView(part, entry, index, language))])) as Record<DeckPart, EntryView[]>
   const counts = Object.fromEntries(DECK_PARTS.map((part) => [part, partEntries(deck, part).reduce((sum, entry) => sum + entry.count, 0)])) as Record<DeckPart, number>
   const languageCounts: Record<CardLanguage, number> = { de: 0, partial: 0, en: 0, "forge-only": 0, unknown: 0 }
   const seen = new Set<string>()
@@ -210,12 +216,14 @@ function hasPicture(print: PrintRecord | null | undefined): print is PrintRecord
 
 /**
  * The printing whose picture an entry shows (see the head comment); null:
- * the card's default picture (German where there is one). `resolved` is
- * what Scryfall said about the printing the list named, if it was asked.
+ * the card's default picture (German where there is one, or English with the
+ * English card language). `resolved` is what Scryfall said about the
+ * printing the list named, if it was asked.
  */
-export function pictureOf(view: EntryView, resolved: ResolvedPrint | undefined): PrintRecord | null {
+export function pictureOf(view: EntryView, resolved: ResolvedPrint | undefined, language: TextLanguage = "de"): PrintRecord | null {
   const card = view.card
   if (card === null || resolved === undefined || view.match?.kind === "alias") return null
+  if (language === "en") return hasPicture(resolved.original) && resolved.original.lang !== "de" ? resolved.original : null
   if (hasPicture(resolved.german)) return resolved.german
   if (card.prints.de !== null) return null
   return hasPicture(resolved.original) ? resolved.original : null

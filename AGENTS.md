@@ -75,6 +75,13 @@ A game against Forge's AI runs through the app's one `EngineSession` (`src/engin
 - Who is who comes from Forge's structured state (`me`, `activePlayer`, `result`), never from names; Forge's own texts (German, `ENGINE_ARGS`) are shown as Forge sends them.
 - Conceding and ending a game without a result are confirmed first; while a game is on its way or running, leaving the page asks first (a reload ends the game).
 
+## Preferences Rules
+The player's preferences are settings in the local database, read and applied by `src/app/preferences.tsx` (prompt 12, `docs/implementation/12-ai-profiles-settings.md`):
+- A preference is chosen once - in Settings; the AI profile also through the play page's dialog - and saved the moment it changes; starting a game never asks for one. A stored value that fails its check is named and its default used, never silently replaced.
+- AI profiles are Forge's (`res/ai/*.ai`), described only as verified in `src/game/ai-profile-table.ts` (`docs/research/AI_PROFILES.md`): German names translating Forge's, behaviour from the profile values, no difficulty claims (none was measured). The build stops when the engine's profile files differ from the verified ones (`vite/engine-assets.ts`); re-run `engine/scripts/ai-profile-study.sh`, re-verify, then update the table. "Zufällig" is drawn by the app for every game; the engine refuses a profile it did not load (`engine.error invalid-request`).
+- The card language (`src/cards/card-language.ts`) decides how cards are shown - `cardDisplay(card, { language })` and the views built on it, from `usePreferences().cardLanguage` - and the cards in Forge's texts (`--card-language`, `EngineSession.setBootOptions`: a warm engine no game uses is replaced; Forge's own words stay German).
+- Less motion: every animation and transition in `src/components/ui` carries `motion-reduce:animate-none!`/`motion-reduce:transition-none!` (checked by `src/app/motion.test.ts`); the variant means the device's `prefers-reduced-motion` or the player's setting. Motion made in code asks `src/app/motion.ts`.
+
 ## Queue and Execution
 OpenMana currently has its own detailed queue ledger at `prompts/STATUS.md`. It remains authoritative while the numbered 00–32 implementation program is running.
 

@@ -17,6 +17,7 @@ import forge.item.PaperCard;
 import forge.player.GamePlayerUtil;
 import forge.util.MyRandom;
 import org.openmana.engine.EngineDiagnostics;
+import org.openmana.engine.ForgeEngine;
 import org.openmana.engine.trace.EngineTrace;
 
 import java.util.ArrayList;
@@ -41,7 +42,7 @@ import java.util.TreeSet;
  * <pre>
  * { "command": "human-match", "seed": 42 (optional), "format": "constructed" | "commander",
  *   "human": { "name": "…", "deck": DECK },
- *   "ai":    { "name": "…", "profile": "Default", "deck": DECK },
+ *   "ai":    { "name": "…", "profile": "Default", "deck": DECK },   (profile: one of BootReport.aiProfiles)
  *   "trace": true (optional, engine tests only) }
  * DECK = { "name": "…", "main": [ {"card": "Mountain", "count": 22}, … ],
  *          "sideboard": […], "commander": […] }
@@ -102,6 +103,12 @@ public final class HumanMatch {
         final JsonObject aiSpec = object(request, "ai");
         final Deck humanDeck = deck(object(humanSpec, "deck"), "Human deck");
         final Deck aiDeck = deck(object(aiSpec, "deck"), "AI deck");
+        final String profile = string(aiSpec, "profile", "Default");
+        // Forge takes any name and plays an unknown one with its built-in
+        // defaults (AiProps), which are none of its profiles - silently.
+        if (!ForgeEngine.aiProfiles().contains(profile)) {
+            throw new InvalidRequest("Forge has no AI profile '" + profile + "'; this engine has " + ForgeEngine.aiProfiles());
+        }
 
         if (request.has("seed") && !request.get("seed").isJsonNull()) {
             // Forge draws all game randomness from MyRandom (upstream hook).
@@ -111,7 +118,6 @@ public final class HumanMatch {
         // The singleton GUI player (Forge compares against it in places);
         // naming it also sets PLAYER_NAME, so HostedMatch does not ask for a name.
         final LobbyPlayer human = GamePlayerUtil.getGuiPlayer(string(humanSpec, "name", "Player"), 0, 0, true);
-        final String profile = string(aiSpec, "profile", "Default");
         final LobbyPlayer ai = GamePlayerUtil.createAiPlayer(string(aiSpec, "name", "Forge AI"), 1, 0, null, profile);
 
         final RegisteredPlayer humanSeat = type == GameType.Commander
@@ -192,8 +198,12 @@ public final class HumanMatch {
         return result;
     }
 
-    /** Builds a Forge deck; unknown card names are collected and reported together. */
-    static Deck deck(final JsonObject spec, final String fallbackName) {
+    /**
+     * Builds a Forge deck; unknown card names are collected and reported
+     * together. Public for the JVM-only AI profile study (prompt 12), which
+     * plays the same deck format.
+     */
+    public static Deck deck(final JsonObject spec, final String fallbackName) {
         final Deck deck = new Deck(string(spec, "name", fallbackName));
         final JsonArray unknown = new JsonArray();
         add(deck, DeckSection.Main, spec.get("main"), unknown);

@@ -1,0 +1,6 @@
+{
+  "description": "Prompt 12: what Forge's AI profiles change. Each non-default profile plays mirror matches against Default (both seat orders per seed); Default against Default is the control. Run with engine/scripts/ai-profile-study.sh; results in docs/research/AI_PROFILES.md.",
+  "decks": ["study-aggro-red", "study-midrange-gw", "study-control-ub"],
+  "pairings": [["Cautious", "Default"], ["Experimental", "Default"], ["Reckless", "Default"], ["Default", "Default"]],
+  "seeds": { "first": 1, "count": 100 }
+}

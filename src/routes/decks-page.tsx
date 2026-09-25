@@ -9,6 +9,7 @@
 import { ChevronRight, Layers, SearchX, Upload } from "lucide-react"
 import { useMemo } from "react"
 import { Link, useSearchParams } from "react-router"
+import { usePreferences } from "@/app/preferences"
 import { useCardCatalog } from "@/cards/card-catalog-context"
 import { cardDisplay } from "@/cards/card-display"
 import { Page } from "@/components/page-header"
@@ -44,8 +45,9 @@ function ImportButton() {
 
 /** The card standing for the deck, or the deck icon where there is no picture. */
 function Cover({ view }: { view: DeckView }) {
+  const { cardLanguage } = usePreferences()
   const cover = view.cover
-  const url = cover?.card ? (cardDisplay(cover.card, cover.match ? { match: cover.match } : {}).picture?.urls.thumb ?? null) : null
+  const url = cover?.card ? (cardDisplay(cover.card, { ...(cover.match ? { match: cover.match } : {}), language: cardLanguage }).picture?.urls.thumb ?? null) : null
   if (url === null) {
     return (
       <ItemMedia variant="icon">
@@ -63,7 +65,9 @@ function Cover({ view }: { view: DeckView }) {
 }
 
 function DeckRow({ view, catalogUsable }: { view: DeckView; catalogUsable: boolean }) {
-  const notGerman = view.language.notGerman.length
+  const { cardLanguage } = usePreferences()
+  // With English cards "not German" is no news (prompt 12).
+  const notGerman = cardLanguage === "de" ? view.language.notGerman.length : 0
   const companion = view.parts.companion[0]
   return (
     <div role="listitem">
@@ -169,9 +173,13 @@ function Toolbar({ query, views, onChange }: { query: LibraryQuery; views: reado
 export function DecksPage() {
   const library = useStorageQuery(LIBRARY_STORES, readLibrary)
   const catalog = useCardCatalog()
+  const { cardLanguage } = usePreferences()
   const [params, setParams] = useSearchParams()
   const query = queryFromParams(params)
-  const views = useMemo(() => (library.status === "ready" ? library.data.decks.records.map((deck) => viewDeck(deck, library.data.index)) : []), [library])
+  const views = useMemo(
+    () => (library.status === "ready" ? library.data.decks.records.map((deck) => viewDeck(deck, library.data.index, cardLanguage)) : []),
+    [library, cardLanguage],
+  )
   const shown = useMemo(() => arrangeDecks(views, query), [views, query])
   // Typing replaces the address instead of adding a history entry per letter.
   const change = (next: LibraryQuery) => setParams(paramsFromQuery(next), { replace: true })

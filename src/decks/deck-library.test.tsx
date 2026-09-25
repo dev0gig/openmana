@@ -12,6 +12,7 @@ import userEvent from "@testing-library/user-event"
 import { createMemoryRouter, RouterProvider } from "react-router"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { routes } from "@/app/router"
+import { CARD_LANGUAGE } from "@/cards/card-language"
 import { getDeck, listDecks, saveDeck } from "@/storage/decks"
 import type { DeckRecord } from "@/storage/generated/records"
 import { readSetting, writeSetting } from "@/storage/settings"
@@ -208,6 +209,29 @@ describe("a deck's details", () => {
     const collection = api.calls.filter((url) => url.endsWith("/cards/collection"))
     expect(collection).toHaveLength(1)
     expect(api.calls.filter((url) => !url.endsWith("/cards/collection")).sort()).toEqual(["https://api.scryfall.com/cards/2x2/361/de", "https://api.scryfall.com/cards/eld/115/de"])
+  })
+
+  it("with English cards (prompt 12): English names, no notes about German - only what is missing entirely is marked", async () => {
+    await setUp({ decks: [izzet] })
+    const db = await openTestDatabase()
+    await writeSetting(db, CARD_LANGUAGE, "en")
+    db.close()
+    renderAt(`/decks/${IZZET_ID}`)
+    expect(await screen.findByRole("heading", { level: 1, name: "Izzet Delver" })).toBeInTheDocument()
+    const main = screen.getByRole("region", { name: "Hauptdeck" })
+    await waitFor(() => expect(within(main).getAllByRole("button")[0]!.textContent).toContain("4 × Delver of Secrets"))
+    const rows = within(main)
+      .getAllByRole("button")
+      .map((row) => row.textContent)
+    expect(rows.join(" ")).not.toContain("Geheimnisstöberer")
+    expect(rows[5]).toContain("Hansk, Slayer Zealot")
+    expect(rows[5]).not.toContain("englisch")
+    expect(rows[7]).toContain("A-Canopy Tacticiannur Forge")
+    expect(screen.queryByRole("region", { name: "Kartensprache" })).toBeNull()
+
+    renderAt("/decks")
+    const list = await screen.findAllByRole("list", { name: "Gespeicherte Decks" })
+    expect(within(list.at(-1)!).queryByText(/nicht ganz deutsch/)).toBeNull()
   })
 
   it("a deck that is gone", async () => {

@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Spinner } from "@/components/ui/spinner"
+import { aiProfileLabel } from "@/game/game-labels"
 import { useNow } from "@/hooks/use-now"
 import { engineAssets } from "./engine-assets"
 import { abortTitle, BOOT_PHASE_LABELS, ENGINE_LANGUAGE_LABELS, formatMegabytes, formatSeconds, shortCommit } from "./engine-labels"
@@ -128,6 +129,8 @@ function PanelBody({ snapshot, now }: { snapshot: EngineSnapshot; now: number })
               { label: "Forge-Daten", value: `${boot.resourceFiles.toLocaleString("de-DE")} Dateien` },
               { label: "Karten", value: boot.cardLoading === "eager" ? "vollständig geladen" : "werden bei Bedarf geladen" },
               { label: "Sprache von Forge", value: ENGINE_LANGUAGE_LABELS[boot.language] },
+              { label: "Karten in Forges Texten", value: ENGINE_LANGUAGE_LABELS[boot.cardLanguage] },
+              { label: "KI-Profile", value: boot.aiProfiles.map(aiProfileLabel).join(", ") },
             ]}
           />
         </>

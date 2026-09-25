@@ -23,7 +23,8 @@ import java.nio.file.Paths;
  *
  * <pre>
  * java -Dforge.synchronous=true -jar openmana-engine-bridge-jar-with-dependencies.jar \
- *      --bundle forge-res.bin [--seed 42] [--card-loading lazy|eager] [--language en-US|de-DE] [--root DIR] [--log]
+ *      --bundle forge-res.bin [--seed 42] [--card-loading lazy|eager] [--language en-US|de-DE]
+ *      [--card-language en-US|de-DE] [--root DIR] [--log]
  *      [--trace trace.jsonl]
  * </pre>
  *
@@ -45,6 +46,7 @@ public final class JvmSmokeMain {
         long seed = 42;
         ForgeEngine.CardLoading cardLoading = ForgeEngine.CardLoading.DEFAULT;
         ForgeEngine.Language language = ForgeEngine.Language.EN_US;
+        ForgeEngine.Language cardLanguage = null;
         Path root = null;
         boolean includeLog = false;
         String trace = null;
@@ -54,6 +56,7 @@ public final class JvmSmokeMain {
                 case "--seed" -> seed = Long.parseLong(args[++i]);
                 case "--card-loading" -> cardLoading = ForgeEngine.CardLoading.parse(args[++i]);
                 case "--language" -> language = ForgeEngine.Language.parse(args[++i]);
+                case "--card-language" -> cardLanguage = ForgeEngine.Language.parse(args[++i]);
                 case "--root" -> root = Paths.get(args[++i]);
                 case "--log" -> includeLog = true;
                 case "--trace" -> trace = args[++i];
@@ -69,7 +72,7 @@ public final class JvmSmokeMain {
 
         final JsonObject out = new JsonObject();
         try (InputStream in = Files.newInputStream(Paths.get(bundle))) {
-            out.add("boot", EngineBoot.boot(in, root, cardLoading, language));
+            out.add("boot", EngineBoot.boot(in, root, cardLoading, language, cardLanguage == null ? language : cardLanguage));
         }
         if (trace == null) {
             out.add("result", AiSmokeMatch.run(seed, includeLog));

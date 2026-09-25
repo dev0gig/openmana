@@ -42,6 +42,7 @@ export const TEST_ASSETS: EngineAssets = {
     builtAt: "2026-09-24T00:00:00.000Z",
     forgeRepository: "https://github.com/Card-Forge/forge",
     forgeCommit: "ed0333fecb1fea0671b3e50cadc1da4f71db5798",
+    forgeVersionCode: "2.0.15",
     patchCount: 6,
     protocolVersion: PROTOCOL_VERSION,
     graalvm: "25.4.4.1.1",
@@ -87,8 +88,24 @@ export const READY: EngineMessage = {
     synchronous: true,
     resourcesSha256: "7e8aebee24e13111188a163cd5f7162ded2411728a85c6abc9ac2f5d5a0e6053",
   },
-  boot: { resourceFiles: 36905, resourceBytes: 44327452, unpackMillis: 900, forgeInitMillis: 2000, cardLoading: "eager", language: "de-DE" },
+  boot: {
+    resourceFiles: 36905,
+    resourceBytes: 44327452,
+    unpackMillis: 900,
+    forgeInitMillis: 2000,
+    cardLoading: "eager",
+    language: "de-DE",
+    cardLanguage: "de-DE",
+    aiProfiles: ["Cautious", "Default", "Experimental", "Reckless"],
+  },
   t: 4000,
+}
+
+/** engine.ready as the real engine answers these boot arguments (the card language, like --card-language). */
+export function readyFor(args: readonly string[]): EngineMessage {
+  if (READY.type !== "engine.ready") throw new Error("READY is engine.ready")
+  const cardLanguage = args.find((arg) => arg.startsWith("--card-language="))?.slice("--card-language=".length)
+  return cardLanguage === "en-US" || cardLanguage === "de-DE" ? { ...READY, boot: { ...READY.boot, cardLanguage } } : READY
 }
 
 export function started(format: "constructed" | "commander" = "constructed"): EngineMessage {
@@ -245,7 +262,8 @@ export class FakeEngineWorker {
     this.send({ type: "engine.boot", phase: "launcher-load", t: 5 })
     this.send({ type: "engine.boot", phase: "wasm-fetch-compile", t: 60 })
     this.send({ type: "engine.boot", phase: "java-main", t: 700 })
-    this.send(READY)
+    const start = this.commands.find((command) => command.type === "engine.start")
+    this.send(readyFor(start?.type === "engine.start" ? start.args : []))
   }
 
   /** The start of a game as the real engine sends it, up to Forge waiting for the mulligan. */
@@ -335,7 +353,7 @@ export function testSetup(overrides: { format?: "constructed" | "commander"; dra
       ai: { name: "Forge-KI", profile: "Default", deck: { name: "Grün", main: [{ card: "Forest", count: 24 }, { card: "Grizzly Bears", count: 36 }] } },
     },
     human: { deckId: "11111111-1111-4111-8111-111111111111", deckName: "Rot" },
-    ai: { deckId: "22222222-2222-4222-8222-222222222222", deckName: "Grün", drawn: overrides.drawn ?? false },
+    ai: { deckId: "22222222-2222-4222-8222-222222222222", deckName: "Grün", drawn: overrides.drawn ?? false, profileDrawn: false },
   }
 }
 

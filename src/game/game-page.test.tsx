@@ -12,10 +12,13 @@ import { act, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { createMemoryRouter, Outlet, RouterProvider } from "react-router"
 import { afterEach, describe, expect, it } from "vitest"
+import { PreferencesProvider } from "@/app/preferences"
 import { CardCatalogProvider } from "@/cards/card-catalog-context"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { AI_DECK, HUMAN_DECK } from "@/decks/deck-selection"
+import { AI_PROFILE, type AiProfileChoice } from "./ai-profiles"
+import { AI_PROFILE_TABLE } from "./ai-profile-table"
 import { EngineSessionProvider } from "@/engine/engine-session-context"
 import { PlayPage } from "@/routes/play-page"
 import { saveDeck } from "@/storage/decks"
@@ -29,11 +32,12 @@ import { GamePage } from "./game-page"
 const RED = deck({ id: "10000000-0000-4000-8000-00000000000a", name: "Rot", main: [{ count: 24, name: "Mountain" }, { count: 36, name: "Shock" }], sideboard: [] })
 const GREEN = deck({ id: "10000000-0000-4000-8000-00000000000b", name: "Grün", main: [{ count: 24, name: "Forest" }, { count: 36, name: "Grizzly Bears" }], sideboard: [] })
 
-async function store(decks: readonly DeckRecord[], human: string | null = RED.id): Promise<void> {
+async function store(decks: readonly DeckRecord[], human: string | null = RED.id, profile: AiProfileChoice | null = null): Promise<void> {
   const db = await openTestDatabase()
   for (const record of decks) await saveDeck(db, record)
   if (human !== null) await writeSetting(db, HUMAN_DECK, human)
   await writeSetting(db, AI_DECK, { kind: "random" })
+  if (profile !== null) await writeSetting(db, AI_PROFILE, profile)
   db.close()
 }
 
@@ -42,10 +46,12 @@ function Frame({ engine }: { engine: TestEngine }) {
     <StorageProvider>
       <CardCatalogProvider>
         <EngineSessionProvider session={engine.session}>
-          <TooltipProvider>
-            <Outlet />
-            <Toaster />
-          </TooltipProvider>
+          <PreferencesProvider>
+            <TooltipProvider>
+              <Outlet />
+              <Toaster />
+            </TooltipProvider>
+          </PreferencesProvider>
         </EngineSessionProvider>
       </CardCatalogProvider>
     </StorageProvider>
@@ -158,6 +164,57 @@ describe("the play page", () => {
   })
 })
 
+describe("the play page: the AI profile (prompt 12)", () => {
+  it("shows the stored profile, hands it to Forge, and the game names it", async () => {
+    const user = userEvent.setup()
+    await store([RED, GREEN], RED.id, { kind: "profile", name: "Reckless" })
+    const engine = testEngine()
+    renderAt("/play", engine)
+    expect(await screen.findByText(/^Profil Waghalsig – Spielt auf Angriff/)).toBeInTheDocument()
+    await waitFor(() => expect(startButton()).toBeEnabled())
+    await user.click(startButton())
+    act(() => engine.worker().boot())
+    expect(engine.worker().matchStarts()[0]?.match.ai.profile).toBe("Reckless")
+    expect(await screen.findByText("Waghalsig")).toBeInTheDocument()
+  })
+
+  it("changes the profile in a dialog, saved at once - no step before the start", async () => {
+    const user = userEvent.setup()
+    await store([RED, GREEN])
+    renderAt("/play", testEngine())
+    expect(await screen.findByText(/^Profil Standard – Forges Vorgabe/)).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "KI-Profil ändern" }))
+    const dialog = await screen.findByRole("dialog", { name: "KI-Profil wählen" })
+    await waitFor(() => expect(within(dialog).getByRole("radio", { name: /Vorsichtig/ })).toBeEnabled())
+    await user.click(within(dialog).getByRole("radio", { name: /Vorsichtig/ }))
+    await user.click(within(dialog).getByRole("button", { name: "Fertig" }))
+    expect(await screen.findByText(/^Profil Vorsichtig – Spielt zurückhaltender/)).toBeInTheDocument()
+  })
+
+  it("random: a profile is drawn for the game, and the game says it was drawn", async () => {
+    const user = userEvent.setup()
+    await store([RED, GREEN], RED.id, { kind: "random" })
+    const engine = testEngine()
+    renderAt("/play", engine)
+    expect(await screen.findByText(/^Profil Zufällig – Für jede Partie wird eines der 4 Profile neu gezogen/)).toBeInTheDocument()
+    await waitFor(() => expect(startButton()).toBeEnabled())
+    await user.click(startButton())
+    act(() => engine.worker().boot())
+    const profile = engine.worker().matchStarts()[0]?.match.ai.profile
+    const drawn = AI_PROFILE_TABLE.find((info) => info.name === profile)
+    expect(drawn).toBeDefined()
+    expect(await screen.findByText(`${drawn!.label} (zufällig gezogen)`)).toBeInTheDocument()
+  })
+
+  it("a stored profile this version does not have: no start, and why", async () => {
+    await store([RED, GREEN], RED.id, { kind: "profile", name: "Aggressive" })
+    renderAt("/play", testEngine())
+    expect(await screen.findByText("Profil Das gewählte Profil „Aggressive“ gibt es in dieser Version nicht mehr.")).toBeInTheDocument()
+    await waitFor(() => expect(startButton()).toHaveAccessibleDescription("Das gewählte KI-Profil „Aggressive“ gibt es in dieser Version nicht mehr – wähle ein anderes."))
+    expect(startButton()).toBeDisabled()
+  })
+})
+
 /** A ready engine running a game up to Forge's mulligan question. */
 async function runningGame(): Promise<TestEngine> {
   const engine = testEngine()
@@ -173,7 +230,7 @@ async function runningGame(): Promise<TestEngine> {
       ai: { name: "Forge-KI", profile: "Default", deck: { name: decks.green.name, main: [{ card: "Forest", count: 24 }, { card: "Grizzly Bears", count: 36 }] } },
     },
     human: { deckId: RED.id, deckName: RED.name },
-    ai: { deckId: GREEN.id, deckName: GREEN.name, drawn: true },
+    ai: { deckId: GREEN.id, deckName: GREEN.name, drawn: true, profileDrawn: false },
   })
   engine.worker().startGame()
   return engine

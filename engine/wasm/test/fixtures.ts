@@ -9,8 +9,8 @@
  *
  *   node engine/wasm/test/fixtures.ts resolve <out-dir>   one <name>.scenario.json per fixture
  *   node engine/wasm/test/fixtures.ts list                one tab-separated line per fixture for
- *                                                         test-engine.sh: name language cardLoading
- *                                                         sameGameAs node-feedings browser-feedings
+ *                                                         test-engine.sh: name language cardLanguage
+ *                                                         cardLoading sameGameAs node-feedings browser-feedings
  *                                                         ("-" for none, lists comma-separated)
  *
  * A fixture:
@@ -19,7 +19,8 @@
  *                  "human": { "name": "Player", "deck": "<deck file>" },
  *                  "ai":    { "name": "Forge AI", "profile": "Default", "deck": "<deck file>" } },
  *     "player":  { "attack": "all"|"none"|"alternate", "block": "none"|"one"|"assign", "concedeInTurn": 0 },
- *     "engine":  { "language": "en-US"|"de-DE", "cardLoading": "eager"|"lazy" },       (optional)
+ *     "engine":  { "language": "en-US"|"de-DE", "cardLanguage": "en-US"|"de-DE",       (optional; cardLanguage:
+ *                  "cardLoading": "eager"|"lazy" },                                    the cards in Forge's texts, default language)
  *     "wasm":    { "node": ["lazy", "eager"], "browser": ["lazy"] },                   (input feedings of the replays)
  *     "covers":  [ coverage categories of engine/wasm/spike/trace.ts the game must show ] }
  * or a variant of another fixture that must be the very same game (equal
@@ -52,7 +53,7 @@ export interface Fixture {
   sameGameAs: string | null;
   match: MatchRequest;
   player: PlayerPolicy;
-  engine: { language: string; cardLoading: string };
+  engine: { language: string; cardLanguage: string; cardLoading: string };
   wasm: { node: Feeding[]; browser: Feeding[] };
   covers: string[];
 }
@@ -60,7 +61,7 @@ export interface Fixture {
 export interface Scenario {
   format: typeof SCENARIO_FORMAT;
   name: string;
-  engine: { language: string; cardLoading: string };
+  engine: { language: string; cardLanguage: string; cardLoading: string };
   player: PlayerPolicy;
   match: MatchRequest;
 }
@@ -149,10 +150,12 @@ export function loadFixtures(dir = FIXTURES_DIR): Fixture[] {
 
     const engine = value["engine"] ?? {};
     if (!isObject(engine)) throw new Error(`${where}: engine must be an object`);
-    onlyKeys(`${where} engine`, engine, ["language", "cardLoading"]);
+    onlyKeys(`${where} engine`, engine, ["language", "cardLanguage", "cardLoading"]);
     const language = (engine["language"] ?? "en-US") as string;
+    const cardLanguage = (engine["cardLanguage"] ?? language) as string;
     const cardLoading = (engine["cardLoading"] ?? "eager") as string;
     if (!(ENGINE_LANGUAGES as readonly string[]).includes(language)) throw new Error(`${where}: engine.language is one of ${ENGINE_LANGUAGES.join(", ")}`);
+    if (!(ENGINE_LANGUAGES as readonly string[]).includes(cardLanguage)) throw new Error(`${where}: engine.cardLanguage is one of ${ENGINE_LANGUAGES.join(", ")}`);
     if (!(CARD_LOADINGS as readonly string[]).includes(cardLoading)) throw new Error(`${where}: engine.cardLoading is one of ${CARD_LOADINGS.join(", ")}`);
 
     const wasm = value["wasm"] ?? {};
@@ -171,7 +174,7 @@ export function loadFixtures(dir = FIXTURES_DIR): Fixture[] {
       sameGameAs: typeof variantOf === "string" ? variantOf : null,
       match: request,
       player: policy,
-      engine: { language, cardLoading },
+      engine: { language, cardLanguage, cardLoading },
       wasm: { node: feedings(`${where} wasm.node`, wasm["node"] ?? ["lazy", "eager"]), browser: feedings(`${where} wasm.browser`, wasm["browser"] ?? ["lazy"]) },
       covers: covers as string[],
     });
@@ -195,7 +198,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   } else if (command === "list") {
     const list = (l: readonly string[]) => (l.length === 0 ? "-" : l.join(","));
     for (const f of fixtures) {
-      console.log([f.name, f.engine.language, f.engine.cardLoading, f.sameGameAs ?? "-", list(f.wasm.node), list(f.wasm.browser)].join("\t"));
+      console.log([f.name, f.engine.language, f.engine.cardLanguage, f.engine.cardLoading, f.sameGameAs ?? "-", list(f.wasm.node), list(f.wasm.browser)].join("\t"));
     }
   } else {
     console.error("usage: fixtures.ts resolve <out-dir> | list");

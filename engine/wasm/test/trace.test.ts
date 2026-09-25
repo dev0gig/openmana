@@ -181,6 +181,11 @@ describe("fixtures", () => {
     }
     assert.ok(fixtures.some((f) => f.match.format === "commander"), "a Commander game");
     assert.ok(fixtures.some((f) => f.engine.language === "de-DE" && f.sameGameAs), "a German variant that must be the same game");
+    assert.ok(
+      fixtures.some((f) => f.engine.cardLanguage !== f.engine.language && f.sameGameAs),
+      "a variant whose cards are in another language than Forge's words (prompt 12) that must be the same game",
+    );
+    for (const f of fixtures) assert.ok(f.engine.cardLanguage, `${f.name}: the card language defaults to the language`);
   });
 
   test("a fixture with an unknown field, a missing seed or an unknown coverage category is refused", () => {

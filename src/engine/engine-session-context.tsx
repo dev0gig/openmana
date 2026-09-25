@@ -11,7 +11,7 @@ import { createContext, use, useEffect, useMemo, useRef, useState, useSyncExtern
 import { toast } from "sonner"
 import { engineAssets } from "./engine-assets"
 import { abortTitle } from "./engine-labels"
-import { EngineSession, matchInProgress, type ConcedeResult, type EngineSessionSnapshot, type MatchSetup } from "./engine-session"
+import { EngineSession, matchInProgress, type ConcedeResult, type EngineBootOptions, type EngineSessionSnapshot, type MatchSetup } from "./engine-session"
 
 const EngineSessionContext = createContext<EngineSession | null>(null)
 
@@ -54,6 +54,20 @@ export function useEngineSession(): EngineSessionHandle {
     [session],
   )
   return { snapshot, ...actions }
+}
+
+/**
+ * Hands the player's preferences for the engine's start to the session
+ * (src/app/preferences.tsx; null while they are being read): the next boot
+ * uses them, a warm engine no game uses yet is replaced (EngineSession.setBootOptions).
+ */
+export function useEngineBootOptions(options: EngineBootOptions | null): void {
+  const session = use(EngineSessionContext)
+  if (!session) throw new Error("useEngineBootOptions outside EngineSessionProvider")
+  const cardLanguage = options?.cardLanguage ?? null
+  useEffect(() => {
+    if (cardLanguage !== null) session.setBootOptions({ cardLanguage })
+  }, [session, cardLanguage])
 }
 
 /**

@@ -52,7 +52,7 @@ export const engineMessages: EngineMessage[] = [
       synchronous: true,
       resourcesSha256: "0a4ae34b35b7ce650ac6815b80d59c205a8ae9535743ef134506db3076a72fe9",
     },
-    boot: { resourceFiles: 36922, resourceBytes: 37706881, unpackMillis: 904, forgeInitMillis: 2462, cardLoading: "lazy", language: "en-US" },
+    boot: { resourceFiles: 36922, resourceBytes: 37706881, unpackMillis: 904, forgeInitMillis: 2462, cardLoading: "lazy", language: "en-US", cardLanguage: "en-US", aiProfiles: ["Cautious", "Default", "Experimental", "Reckless"] },
     t: 3472,
   },
   { type: "engine.waiting", consumed: 12 },

@@ -101,7 +101,11 @@ describe("game labels", () => {
     expect(formatDuration(42_000)).toBe("42 s")
     expect(formatDuration(180_000)).toBe("3 min")
     expect(formatDuration(192_400)).toBe("3 min 12 s")
-    expect(aiProfileLabel("Default")).toBe("Standard (Forges Vorgabe)")
-    expect(aiProfileLabel("Reckless")).toBe("Reckless")
+    expect(aiProfileLabel("Default")).toBe("Standard")
+    expect(aiProfileLabel("Reckless")).toBe("Waghalsig")
+    expect(aiProfileLabel("Cautious")).toBe("Vorsichtig")
+    expect(aiProfileLabel("Experimental")).toBe("Experimentell")
+    // A profile the app has not verified keeps Forge's name.
+    expect(aiProfileLabel("Aggressive")).toBe("Aggressive")
   })
 })

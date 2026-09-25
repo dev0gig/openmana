@@ -45,7 +45,7 @@ export interface Transcript {
   format: string;
   /** The differential test fixture this game comes from (engine/fixtures/differential). */
   name?: string;
-  engine?: { language: string; cardLoading: string };
+  engine?: { language: string; cardLanguage?: string; cardLoading: string };
   request: MatchRequest;
   inputs: Record<string, unknown>[];
   expected: Record<string, unknown>;

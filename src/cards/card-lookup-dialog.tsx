@@ -7,6 +7,7 @@
  */
 import { ArrowLeft, Search } from "lucide-react"
 import { useEffect, useId, useState } from "react"
+import { usePreferences } from "@/app/preferences"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { CardPicture } from "@/components/ui/card-picture"
@@ -59,7 +60,8 @@ function useCardSearch(database: LocalDatabase | null, text: string, enabled: bo
 
 function ResultItem({ match, onSelect }: { match: CardMatch; onSelect: () => void }) {
   const id = useId()
-  const display = cardDisplay(match.card, { match })
+  const { cardLanguage } = usePreferences()
+  const display = cardDisplay(match.card, { match, language: cardLanguage })
   const face = display.faces[display.face]!
   return (
     <Item asChild variant="outline" size="sm">

@@ -11,9 +11,10 @@
 import { ArrowLeft, CircleHelp, ScrollText } from "lucide-react"
 import { useCallback, useId, useMemo, useState } from "react"
 import { Link, useParams } from "react-router"
+import { usePreferences } from "@/app/preferences"
 import { useCardCatalog } from "@/cards/card-catalog-context"
 import { CardDetails } from "@/cards/card-details"
-import { cardDisplay } from "@/cards/card-display"
+import { cardDisplay, type TextLanguage } from "@/cards/card-display"
 import { FORGE_ONLY_LABELS } from "@/cards/card-labels"
 import { printKey } from "@/cards/print-key"
 import { FactList, type Fact } from "@/components/fact-list"
@@ -60,14 +61,15 @@ const PART_NOTES: Partial<Record<DeckPart, string>> = {
   companion: "Spielt aus dem Sideboard – dort sucht Forge ihn zu Spielbeginn.",
 }
 
-function printOf(view: EntryView, prints: NamedPrints): PrintRecord | null {
+function printOf(view: EntryView, prints: NamedPrints, language: TextLanguage): PrintRecord | null {
   const { set, collectorNumber } = view.entry
   if (set === undefined || collectorNumber === undefined) return null
-  return pictureOf(view, prints.prints.get(printKey({ set, collectorNumber })))
+  return pictureOf(view, prints.prints.get(printKey({ set, collectorNumber })), language)
 }
 
 function Thumb({ view, print }: { view: EntryView; print: PrintRecord | null }) {
-  const url = view.card ? (cardDisplay(view.card, { ...(view.match ? { match: view.match } : {}), print }).picture?.urls.thumb ?? null) : null
+  const { cardLanguage } = usePreferences()
+  const url = view.card ? (cardDisplay(view.card, { ...(view.match ? { match: view.match } : {}), print, language: cardLanguage }).picture?.urls.thumb ?? null) : null
   if (url === null) {
     return (
       <ItemMedia variant="icon">
@@ -99,13 +101,15 @@ function entryKey(view: EntryView): string {
 
 function EntryRow({ view, prints, onOpen }: { view: EntryView; prints: NamedPrints; onOpen: (view: EntryView) => void }) {
   const id = useId()
-  const badge = LANGUAGE_BADGES[view.language]
+  const { cardLanguage } = usePreferences()
+  // With English cards only what is missing entirely is news (prompt 12).
+  const badge = cardLanguage === "de" || view.language === "forge-only" || view.language === "unknown" ? LANGUAGE_BADGES[view.language] : null
   const detail = entryDetail(view)
   return (
     <div role="listitem">
       <Item asChild variant="outline" size="sm">
         <button type="button" className="text-left" onClick={() => onOpen(view)} aria-labelledby={`${id}-title`} aria-describedby={detail ? `${id}-detail` : undefined}>
-          <Thumb view={view} print={printOf(view, prints)} />
+          <Thumb view={view} print={printOf(view, prints, cardLanguage)} />
           <ItemContent>
             <ItemTitle id={`${id}-title`}>
               <span className="whitespace-nowrap tabular-nums">{view.entry.count} ×</span> {view.name.text}
@@ -239,9 +243,13 @@ export function DeckDetailsPage() {
   const { snapshot } = useStorage()
   const database = snapshot.status === "ready" ? snapshot.database : null
   const phone = useIsMobile()
+  const { cardLanguage } = usePreferences()
   // The open card by its identity, resolved against the deck as it is now (Bible §16: no stale card objects kept).
   const [shown, setShown] = useState<{ readonly key: string; readonly open: boolean } | null>(null)
-  const view = useMemo(() => (details.status === "ready" && details.data.lookup.status === "found" ? viewDeck(details.data.lookup.deck, details.data.index) : null), [details])
+  const view = useMemo(
+    () => (details.status === "ready" && details.data.lookup.status === "found" ? viewDeck(details.data.lookup.deck, details.data.index, cardLanguage) : null),
+    [details, cardLanguage],
+  )
   const prints = useNamedPrints(database, view)
   const opened = shown !== null && view !== null ? (DECK_PARTS.flatMap((part) => view.parts[part]).find((entry) => entryKey(entry) === shown.key) ?? null) : null
 
@@ -332,7 +340,8 @@ export function DeckDetailsPage() {
             <FactList facts={overviewFacts(view)} />
           </CardContent>
         </Card>
-        <LanguageCard view={view} usable={catalog.usable} />
+        {/* How German the deck can be shown: no news with English cards (prompt 12). */}
+        {cardLanguage === "de" ? <LanguageCard view={view} usable={catalog.usable} /> : null}
       </div>
       {DECK_PARTS.map((part) => (
         <PartCard key={part} view={view} part={part} prints={prints} onOpen={(entry) => setShown({ key: entryKey(entry), open: true })} />
@@ -341,7 +350,7 @@ export function DeckDetailsPage() {
         view={opened}
         // A card that is no longer in the deck (changed in another tab) closes its view.
         open={shown?.open === true && opened !== null}
-        print={opened !== null ? printOf(opened, prints) : null}
+        print={opened !== null ? printOf(opened, prints, cardLanguage) : null}
         onClose={() => setShown((current) => (current === null ? null : { ...current, open: false }))}
       />
       {phone ? <ActionBar aria-label="Deck-Aktionen">{actions("bar")}</ActionBar> : null}

@@ -1,5 +1,6 @@
 package org.openmana.engine;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import java.io.IOException;
@@ -15,7 +16,8 @@ import java.util.Properties;
  * <ol>
  *   <li>unpack the Forge resource bundle below {@code root/forge/},</li>
  *   <li>configure Forge's runtime ({@code root/home} as {@code user.home}),</li>
- *   <li>initialise Forge with the requested card loading mode and language.</li>
+ *   <li>initialise Forge with the requested card loading mode and languages
+ *       (Forge's messages, the cards in them).</li>
  * </ol>
  */
 public final class EngineBoot {
@@ -31,6 +33,14 @@ public final class EngineBoot {
     public static JsonObject boot(final InputStream resourceBundle, final Path root,
                                   final ForgeEngine.CardLoading cardLoading,
                                   final ForgeEngine.Language language) throws IOException {
+        return boot(resourceBundle, root, cardLoading, language, language);
+    }
+
+    /** @param cardLanguage the language of the cards in Forge's texts (ForgeEngine.Language) */
+    public static JsonObject boot(final InputStream resourceBundle, final Path root,
+                                  final ForgeEngine.CardLoading cardLoading,
+                                  final ForgeEngine.Language language,
+                                  final ForgeEngine.Language cardLanguage) throws IOException {
         final long t0 = System.nanoTime();
         final Path assets = root.resolve("forge");
         final Path home = root.resolve("home");
@@ -46,7 +56,7 @@ public final class EngineBoot {
         final long unpackMillis = (System.nanoTime() - t0) / 1_000_000L;
 
         ForgeEngine.configureRuntime(assets.toString() + "/", home.toString());
-        final long forgeInitMillis = ForgeEngine.initialize(cardLoading, language);
+        final long forgeInitMillis = ForgeEngine.initialize(cardLoading, language, cardLanguage);
 
         final JsonObject report = new JsonObject();
         report.addProperty("resourceFiles", stats.files);
@@ -55,6 +65,10 @@ public final class EngineBoot {
         report.addProperty("forgeInitMillis", forgeInitMillis);
         report.addProperty("cardLoading", cardLoading.name().toLowerCase());
         report.addProperty("language", language.tag());
+        report.addProperty("cardLanguage", cardLanguage.tag());
+        final JsonArray profiles = new JsonArray();
+        ForgeEngine.aiProfiles().forEach(profiles::add);
+        report.add("aiProfiles", profiles);
         report.add("engine", engineInfo());
         return report;
     }

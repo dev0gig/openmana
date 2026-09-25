@@ -1,0 +1,16 @@
+{
+  "name": "Study Aggro Red",
+  "main": [
+    { "card": "Mountain", "count": 20 },
+    { "card": "Goblin Guide", "count": 4 },
+    { "card": "Monastery Swiftspear", "count": 4 },
+    { "card": "Ember Hauler", "count": 4 },
+    { "card": "Keldon Raider", "count": 4 },
+    { "card": "Hellrider", "count": 4 },
+    { "card": "Lightning Bolt", "count": 4 },
+    { "card": "Shock", "count": 4 },
+    { "card": "Lightning Strike", "count": 4 },
+    { "card": "Searing Spear", "count": 4 },
+    { "card": "Brute Force", "count": 4 }
+  ]
+}

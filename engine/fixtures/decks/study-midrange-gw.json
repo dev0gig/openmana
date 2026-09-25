@@ -1,0 +1,17 @@
+{
+  "name": "Study Midrange Green-White",
+  "main": [
+    { "card": "Forest", "count": 12 },
+    { "card": "Plains", "count": 12 },
+    { "card": "Llanowar Elves", "count": 4 },
+    { "card": "Centaur Courser", "count": 4 },
+    { "card": "Watchwolf", "count": 4 },
+    { "card": "Loxodon Smiter", "count": 4 },
+    { "card": "Serra Angel", "count": 4 },
+    { "card": "Thragtusk", "count": 4 },
+    { "card": "Giant Growth", "count": 4 },
+    { "card": "Blossoming Defense", "count": 2 },
+    { "card": "Swords to Plowshares", "count": 4 },
+    { "card": "Ajani Goldmane", "count": 2 }
+  ]
+}

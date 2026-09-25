@@ -7,6 +7,7 @@
  */
 import { Check, Dices, Layers } from "lucide-react"
 import { useId, useMemo, useState } from "react"
+import { usePreferences } from "@/app/preferences"
 import { cardDisplay } from "@/cards/card-display"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -36,8 +37,9 @@ export interface RandomOption {
 
 function DeckOption({ view, selected, disabled, onSelect }: { view: DeckView; selected: boolean; disabled: string | null; onSelect: () => void }) {
   const id = useId()
+  const { cardLanguage } = usePreferences()
   const cover = view.cover
-  const url = cover?.card ? (cardDisplay(cover.card, cover.match ? { match: cover.match } : {}).picture?.urls.thumb ?? null) : null
+  const url = cover?.card ? (cardDisplay(cover.card, { ...(cover.match ? { match: cover.match } : {}), language: cardLanguage }).picture?.urls.thumb ?? null) : null
   return (
     <Item asChild variant="outline" size="sm">
       <button

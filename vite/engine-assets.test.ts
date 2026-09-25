@@ -6,13 +6,17 @@ import path from "node:path"
 import type { ResolvedConfig } from "vite"
 import { afterEach, describe, expect, it } from "vitest"
 import { PROTOCOL_VERSION } from "../engine/protocol/src/generated/constants.ts"
+import { AI_PROFILE_TABLE } from "../src/game/ai-profile-table.ts"
 import {
+  checkAiProfiles,
   describeEngine,
   ENGINE_MODULE_ID,
   EngineAssetsError,
   engineAssets,
   engineModeFromEnv,
+  INVENTORY_FILE,
   MANIFEST_FILE,
+  readEngineAiProfiles,
   RUNTIME_FILES,
   SERVED_FILES,
   verifyEngine,
@@ -25,8 +29,17 @@ afterEach(async () => {
 
 const sha256 = (data: string) => createHash("sha256").update(data).digest("hex")
 
-/** A small engine build: three runtime files and a manifest of format 2 describing them. */
-async function fakeEngine(edit: (manifest: Record<string, any>) => void = () => undefined): Promise<string> {
+/** Forge's data inventory of a fake engine: a card script and the AI profiles (by default exactly the verified ones). */
+function inventory(profiles: readonly { name: string; sha256: string }[] = AI_PROFILE_TABLE): string {
+  const files = [
+    ...profiles.map((profile) => [`res/ai/${profile.name}.ai`, 100, profile.sha256]),
+    ["res/cardsfolder/a/ajani_goldmane.txt", 50, "a".repeat(64)],
+  ]
+  return JSON.stringify({ format: "openmana-resource-inventory/1", forgeCommit: "ed0333fecb1fea0671b3e50cadc1da4f71db5798", columns: ["path", "bytes", "sha256"], files })
+}
+
+/** A small engine build: three runtime files, the data inventory and a manifest of format 2 describing them. */
+async function fakeEngine(edit: (manifest: Record<string, any>) => void = () => undefined, inventoryText = inventory()): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openmana-engine-test-"))
   dirs.push(dir)
   const artefacts: Record<string, unknown> = {}
@@ -35,10 +48,12 @@ async function fakeEngine(edit: (manifest: Record<string, any>) => void = () => 
     await fs.writeFile(path.join(dir, name), content)
     artefacts[name] = { bytes: Buffer.byteLength(content), sha256: sha256(content), gzip9Bytes: 10, brotli11Bytes: 7 }
   }
+  await fs.writeFile(path.join(dir, INVENTORY_FILE), inventoryText)
+  artefacts[INVENTORY_FILE] = { bytes: Buffer.byteLength(inventoryText), sha256: sha256(inventoryText), gzip9Bytes: 10, brotli11Bytes: 7 }
   const manifest: Record<string, any> = {
     format: "openmana-engine-manifest/2",
     builtAt: "2026-09-24T19:34:25.845Z",
-    forge: { repository: "https://github.com/Card-Forge/forge", commit: "ed0333fecb1fea0671b3e50cadc1da4f71db5798" },
+    forge: { repository: "https://github.com/Card-Forge/forge", commit: "ed0333fecb1fea0671b3e50cadc1da4f71db5798", versionCode: "2.0.15" },
     patches: { count: 6, sha256: "d434f05792db3addec2bcc386318a7cdb5e0e3f4f1394d5490a73d28d3238ad7", files: [] },
     toolchain: { graalvm: "25.4.4.1.1" },
     protocol: { version: PROTOCOL_VERSION, schema: "engine/protocol/schema/protocol.schema.json" },
@@ -58,6 +73,7 @@ describe("verifyEngine", () => {
       builtAt: "2026-09-24T19:34:25.845Z",
       forgeRepository: "https://github.com/Card-Forge/forge",
       forgeCommit: "ed0333fecb1fea0671b3e50cadc1da4f71db5798",
+      forgeVersionCode: "2.0.15",
       patchCount: 6,
       protocolVersion: PROTOCOL_VERSION,
       graalvm: "25.4.4.1.1",
@@ -109,6 +125,29 @@ describe("verifyEngine", () => {
     await expect(verifyEngine(await fakeEngine((m) => delete m["artefacts"]["engine-worker.js"]))).rejects.toThrow(/artefacts\.engine-worker\.js must be an object/)
     await expect(verifyEngine(await fakeEngine((m) => (m["forge"].commit = "")))).rejects.toThrow(/forge\.commit/)
     await expect(verifyEngine(await fakeEngine((m) => (m["artefacts"]["openmana-engine.js"].sha256 = "XYZ")))).rejects.toThrow(/SHA-256 in hex/)
+  })
+})
+
+describe("Forge's AI profiles in the engine (prompt 12)", () => {
+  it("reads them from the checked data inventory, sorted by name", async () => {
+    const profiles = await readEngineAiProfiles(await fakeEngine())
+    expect(profiles.map((profile) => profile.name)).toEqual(["Cautious", "Default", "Experimental", "Reckless"])
+    expect(profiles).toEqual([...AI_PROFILE_TABLE].map(({ name, sha256 }) => ({ name, sha256 })).sort((a, b) => a.name.localeCompare(b.name)))
+  })
+
+  it("refuses an inventory that does not match the manifest", async () => {
+    const dir = await fakeEngine()
+    await fs.appendFile(path.join(dir, INVENTORY_FILE), " ")
+    await expect(readEngineAiProfiles(dir)).rejects.toThrow(/forge-res\.inventory\.json has SHA-256 [0-9a-f]{64}, the manifest says/)
+  })
+
+  it("accepts exactly the verified profiles and names every difference", () => {
+    const verified = AI_PROFILE_TABLE.map(({ name, sha256 }) => ({ name, sha256 }))
+    expect(() => checkAiProfiles(verified)).not.toThrow()
+    const changed = verified.map((profile) => (profile.name === "Reckless" ? { ...profile, sha256: "b".repeat(64) } : profile))
+    expect(() => checkAiProfiles(changed)).toThrow(/Reckless changed .*update src\/game\/ai-profile-table\.ts/)
+    expect(() => checkAiProfiles([...verified, { name: "Aggressive", sha256: "c".repeat(64) }])).toThrow(/Aggressive is new/)
+    expect(() => checkAiProfiles(verified.filter((profile) => profile.name !== "Cautious"))).toThrow(/Cautious is gone/)
   })
 })
 
@@ -166,6 +205,14 @@ describe("engineAssets plugin", () => {
   it("OPENMANA_ENGINE=omit builds without an engine on purpose", async () => {
     const code = await resolve({ dir: "/nonexistent", mode: "omit" }, "build")
     expect(code).toContain('"reason":"omitted"')
+  })
+
+  it("an engine whose AI profiles are not the verified ones stops the build and is not served by the dev server", async () => {
+    const dir = await fakeEngine(undefined, inventory(AI_PROFILE_TABLE.map((profile) => (profile.name === "Default" ? { ...profile, sha256: "d".repeat(64) } : profile))))
+    await expect(resolve({ dir, mode: "required" }, "build")).rejects.toThrow(/Default changed/)
+    const code = await resolve({ dir, mode: "required" }, "serve")
+    expect(code).toContain('"available":false')
+    expect(code).toContain("Default changed")
   })
 
   it("a verified engine becomes the app's engine module", async () => {

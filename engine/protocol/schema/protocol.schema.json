@@ -11,8 +11,8 @@
   "$defs": {
     "ProtocolVersion": {
       "title": "ProtocolVersion",
-      "description": "Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace).",
-      "const": 3
+      "description": "Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace). 4: card language (boot argument --card-language, BootReport.cardLanguage) and Forge's AI profiles (BootReport.aiProfiles; match.start with any other profile is refused).",
+      "const": 4
     },
 
     "EngineMessage": {
@@ -147,16 +147,24 @@
     },
     "BootReport": {
       "title": "BootReport",
+      "description": "How the engine started: Forge's data unpacked, Forge initialised, card loading, the language Forge speaks (language) and the language of the cards in its texts and card views (cardLanguage: names, type lines, rules texts; boot argument --card-language, by default the language), the AI profiles Forge loaded.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["resourceFiles", "resourceBytes", "unpackMillis", "forgeInitMillis", "cardLoading", "language"],
+      "required": ["resourceFiles", "resourceBytes", "unpackMillis", "forgeInitMillis", "cardLoading", "language", "cardLanguage", "aiProfiles"],
       "properties": {
         "resourceFiles": { "type": "integer", "minimum": 0 },
         "resourceBytes": { "type": "integer", "minimum": 0 },
         "unpackMillis": { "type": "integer", "minimum": 0 },
         "forgeInitMillis": { "type": "integer", "minimum": 0 },
         "cardLoading": { "$ref": "#/$defs/CardLoading" },
-        "language": { "$ref": "#/$defs/EngineLanguage" }
+        "language": { "$ref": "#/$defs/EngineLanguage" },
+        "cardLanguage": { "$ref": "#/$defs/EngineLanguage" },
+        "aiProfiles": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/NonEmptyString" },
+          "description": "The AI profiles Forge loaded (res/ai/*.ai), each once, sorted by name. MatchRequest.ai.profile must be one of them."
+        }
       }
     },
     "CardLoading": {
@@ -166,7 +174,7 @@
     },
     "EngineLanguage": {
       "title": "EngineLanguage",
-      "description": "The language Forge speaks (boot argument --language): its own messages (prompts, buttons, game log) and the card names inside them. Card keys (Card.key) stay English in every language.",
+      "description": "A language of Forge: the language it speaks (boot argument --language: its own messages - prompts, buttons, game log) or the language of the cards in them and in its card views (boot argument --card-language: names, type lines, rules texts; by default the same). Card keys (Card.key) stay English in every language.",
       "enum": ["en-US", "de-DE"]
     },
 
@@ -1469,7 +1477,7 @@
         "protocol": { "$ref": "#/$defs/ProtocolVersion" },
         "engineScriptUrl": { "type": "string", "pattern": "\\S" },
         "wasmUrl": { "type": "string", "pattern": "\\S" },
-        "args": { "type": "array", "items": { "type": "string" }, "description": "Boot arguments of the engine: --card-loading=eager|lazy (default eager), --language=en-US|de-DE (default en-US). Anything else stops the boot (engine.abort boot-failed)." },
+        "args": { "type": "array", "items": { "type": "string" }, "description": "Boot arguments of the engine: --card-loading=eager|lazy (default eager), --language=en-US|de-DE (default en-US), --card-language=en-US|de-DE (default: the language). Anything else stops the boot (engine.abort boot-failed)." },
         "queue": { "tsType": "SharedArrayBuffer", "description": "The SharedArrayBuffer of the input queue (see input-queue.ts for its layout)." },
         "requireIsolation": { "type": "boolean", "description": "Require crossOriginIsolated (browsers: yes; Node tests: no)." }
       }
@@ -1509,7 +1517,7 @@
     },
     "MatchRequest": {
       "title": "MatchRequest",
-      "description": "A game human (through this protocol) against Forge's AI. Decks come from the UI (IndexedDB later), card names in English (front face of double-faced cards). ai.profile: a Forge AI profile (res/ai/*.ai), e.g. Default.",
+      "description": "A game human (through this protocol) against Forge's AI. Decks come from the UI (IndexedDB later), card names in English (front face of double-faced cards). ai.profile: one of the engine's AI profiles (BootReport.aiProfiles, Forge's res/ai/*.ai), e.g. Default; any other is refused (engine.error invalid-request) instead of Forge silently playing its built-in defaults.",
       "type": "object",
       "additionalProperties": false,
       "required": ["format", "human", "ai"],

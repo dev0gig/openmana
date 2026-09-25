@@ -5,9 +5,9 @@
  */
 
 /**
- * Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace).
+ * Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace). 4: card language (boot argument --card-language, BootReport.cardLanguage) and Forge's AI profiles (BootReport.aiProfiles; match.start with any other profile is refused).
  */
-export type ProtocolVersion = 3;
+export type ProtocolVersion = 4;
 /**
  * Everything the worker posts to the page: lifecycle messages of the worker host (engine.*, match.finished, diagnostics.*) and the game messages of the bridge.
  */
@@ -49,9 +49,10 @@ export type Sha2561 = string;
  */
 export type CardLoading = "lazy" | "eager";
 /**
- * The language Forge speaks (boot argument --language): its own messages (prompts, buttons, game log) and the card names inside them. Card keys (Card.key) stay English in every language.
+ * A language of Forge: the language it speaks (boot argument --language: its own messages - prompts, buttons, game log) or the language of the cards in them and in its card views (boot argument --card-language: names, type lines, rules texts; by default the same). Card keys (Card.key) stay English in every language.
  */
 export type EngineLanguage = "en-US" | "de-DE";
+export type NonEmptyString = string;
 /**
  * deck-rejected: Forge cannot build a deck (report names every card it does not know or support; nothing is dropped silently); invalid-request: the match request does not fit the contract; not-ready: match.start before engine.ready; already-started: this worker already ran a game (one game per worker, Forge's state is static).
  */
@@ -242,7 +243,6 @@ export type AnswerInput =
  */
 export type WorkerCommand =
   EngineStartCommand | MatchStartCommand | DiagnosticsAiMatchCommand | DiagnosticsCardProbeCommand;
-export type NonEmptyString = string;
 
 /**
  * Progress while the engine starts (for a loading indicator and start-up timings).
@@ -304,6 +304,9 @@ export interface EngineBuild {
   synchronous: boolean;
   resourcesSha256: Sha2561;
 }
+/**
+ * How the engine started: Forge's data unpacked, Forge initialised, card loading, the language Forge speaks (language) and the language of the cards in its texts and card views (cardLanguage: names, type lines, rules texts; boot argument --card-language, by default the language), the AI profiles Forge loaded.
+ */
 export interface BootReport {
   resourceFiles: number;
   resourceBytes: number;
@@ -311,6 +314,13 @@ export interface BootReport {
   forgeInitMillis: number;
   cardLoading: CardLoading;
   language: EngineLanguage;
+  cardLanguage: EngineLanguage;
+  /**
+   * The AI profiles Forge loaded (res/ai/*.ai), each once, sorted by name. MatchRequest.ai.profile must be one of them.
+   *
+   * @minItems 1
+   */
+  aiProfiles: [NonEmptyString, ...NonEmptyString[]];
 }
 /**
  * The engine found the input queue empty and now waits for the player. `consumed` inputs have been read so far; every input up to that number is completely processed (a rejection, if any, was posted before this message). While the engine waits it is not stalled.
@@ -1213,7 +1223,7 @@ export interface EngineStartCommand {
   engineScriptUrl: string;
   wasmUrl: string;
   /**
-   * Boot arguments of the engine: --card-loading=eager|lazy (default eager), --language=en-US|de-DE (default en-US). Anything else stops the boot (engine.abort boot-failed).
+   * Boot arguments of the engine: --card-loading=eager|lazy (default eager), --language=en-US|de-DE (default en-US), --card-language=en-US|de-DE (default: the language). Anything else stops the boot (engine.abort boot-failed).
    */
   args: string[];
   /**
@@ -1230,7 +1240,7 @@ export interface MatchStartCommand {
   match: MatchRequest;
 }
 /**
- * A game human (through this protocol) against Forge's AI. Decks come from the UI (IndexedDB later), card names in English (front face of double-faced cards). ai.profile: a Forge AI profile (res/ai/*.ai), e.g. Default.
+ * A game human (through this protocol) against Forge's AI. Decks come from the UI (IndexedDB later), card names in English (front face of double-faced cards). ai.profile: one of the engine's AI profiles (BootReport.aiProfiles, Forge's res/ai/*.ai), e.g. Default; any other is refused (engine.error invalid-request) instead of Forge silently playing its built-in defaults.
  */
 export interface MatchRequest {
   /**

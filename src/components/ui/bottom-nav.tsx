@@ -8,6 +8,9 @@ import * as React from "react"
 import { cn } from "cn"
 import { Slot } from "radix-ui"
 
+// OpenMana: motion-reduce: stops the animations and transitions below when the
+// device or the player asks for less motion (src/app/motion.ts, prompt 12).
+
 function BottomNav({ className, ...props }: React.ComponentProps<"nav">) {
   return (
     <nav
@@ -33,7 +36,7 @@ function BottomNavItem({
       data-slot="bottom-nav-item"
       data-active={isActive}
       className={cn(
-        "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 text-xs font-medium text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset data-[active=true]:text-primary [&_svg]:pointer-events-none [&_svg]:size-5 [&_svg]:shrink-0",
+        "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 text-xs font-medium text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset data-[active=true]:text-primary [&_svg]:pointer-events-none [&_svg]:size-5 [&_svg]:shrink-0 motion-reduce:transition-none!",
         className
       )}
       {...props}

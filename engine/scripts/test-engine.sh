@@ -55,13 +55,15 @@ failures=0
 tests="$OM_ENGINE_DIR/wasm/test"
 
 # The differential test fixtures, resolved into scenarios for the JVM, and as
-# lines "name language cardLoading sameGameAs node-feedings browser-feedings".
+# lines "name language cardLanguage cardLoading sameGameAs node-feedings browser-feedings".
 node "$tests/fixtures.ts" resolve "$scenarios" || om_die "Fixtures fehlerhaft (engine/fixtures)"
 FIXTURES="$(node "$tests/fixtures.ts" list)" || om_die "Fixtures fehlerhaft (engine/fixtures)"
 
-# Suffix of run names for a language other than English: jvm-lazy-42-de-DE.
+# Suffix of run names for a language other than English: jvm-lazy-42-de-DE,
+# and for cards in another language than Forge's words: jvm-cards-lazy-de-DE-cards-en-US.
 lang_suffix() {
     [ "${1:-en-US}" = "en-US" ] || printf -- '-%s' "$1"
+    [ -z "${2:-}" ] || [ "$2" = "${1:-en-US}" ] || printf -- '-cards-%s' "$2"
 }
 
 # The AI game on the JVM, with its engine trace (the reference of the Wasm runs).
@@ -76,11 +78,12 @@ jvm_run() {
 
 # The card probe (bridge CardProbe) on the JVM: the reference for the Wasm probes.
 jvm_cards_run() {
-    local mode="$1" language="${2:-en-US}" name
-    name="jvm-cards-$mode$(lang_suffix "$language")"
+    local mode="$1" language="${2:-en-US}" cardLanguage="${3:-${2:-en-US}}" name
+    name="jvm-cards-$mode$(lang_suffix "$language" "$cardLanguage")"
     node "$OM_ENGINE_DIR/scripts/measure.mjs" "$name" "$runs/measure.jsonl" -- \
         java -cp "$jar" org.openmana.engine.jvm.JvmCardProbeMain --bundle "$bundle" --card-loading "$mode" --language "$language" \
-        > "$runs/$name.log" 2>&1 || { om_log "JVM-Kartenpruefung $mode/$language fehlgeschlagen"; failures=$((failures + 1)); return; }
+        --card-language "$cardLanguage" \
+        > "$runs/$name.log" 2>&1 || { om_log "JVM-Kartenpruefung $mode/$language/$cardLanguage fehlgeschlagen"; failures=$((failures + 1)); return; }
     grep '^OPENMANA-RESULT:' "$runs/$name.log" | sed 's/^OPENMANA-RESULT://' > "$runs/$name.json"
 }
 
@@ -97,22 +100,23 @@ jvm_fixture_run() {
 
 # Replays a fixture's transcript in Wasm: node-replay.ts (Node) or browser-smoke.mjs --transcript (Chrome).
 replay_run() {
-    local where="$1" name="$2" feeding="$3" language="$4" loading="$5" script
+    local where="$1" name="$2" feeding="$3" language="$4" cardLanguage="$5" loading="$6" script
     [ -f "$transcripts/$name.json" ] || { om_log "$where-Wiederholung $name: keine Aufzeichnung"; failures=$((failures + 1)); return; }
     if [ "$where" = node ]; then script="node-replay.ts"; else script="browser-smoke.mjs"; fi
-    node "$tests/$script" --transcript "$transcripts/$name.json" --feeding "$feeding" --language "$language" --card-loading "$loading" \
+    node "$tests/$script" --transcript "$transcripts/$name.json" --feeding "$feeding" --language "$language" --card-language "$cardLanguage" \
+        --card-loading "$loading" \
         --out "$runs/$where-replay-$feeding-$name.json" > "$runs/$where-replay-$feeding-$name.log" 2>&1 \
         || { om_log "$where-Wiederholung $name ($feeding) fehlgeschlagen (siehe $runs/$where-replay-$feeding-$name.log)"; failures=$((failures + 1)); }
 }
 
 # Every replay the fixtures name for Node or the browser.
 replay_fixtures() {
-    local where="$1" name language loading same nodeFeedings browserFeedings feedings feeding
-    while IFS=$'\t' read -r name language loading same nodeFeedings browserFeedings; do
+    local where="$1" name language cardLanguage loading same nodeFeedings browserFeedings feedings feeding
+    while IFS=$'\t' read -r name language cardLanguage loading same nodeFeedings browserFeedings; do
         if [ "$where" = node ]; then feedings="$nodeFeedings"; else feedings="$browserFeedings"; fi
         [ "$feedings" = "-" ] && continue
         for feeding in ${feedings//,/ }; do
-            replay_run "$where" "$name" "$feeding" "$language" "$loading"
+            replay_run "$where" "$name" "$feeding" "$language" "$cardLanguage" "$loading"
         done
     done <<< "$FIXTURES"
 }
@@ -135,15 +139,15 @@ wasm_ai_run() {
 
 # The card probe in Wasm (node-cards.ts or browser-smoke.mjs --cards); must equal the JVM probe.
 wasm_cards_run() {
-    local where="$1" mode="$2" language="${3:-en-US}" name expect
-    name="$where-cards-$mode$(lang_suffix "$language")"
-    expect="$runs/jvm-cards-$mode$(lang_suffix "$language").json"
-    [ -s "$expect" ] || { om_log "$where-Kartenpruefung $mode/$language: keine JVM-Referenz"; failures=$((failures + 1)); return; }
+    local where="$1" mode="$2" language="${3:-en-US}" cardLanguage="${4:-${3:-en-US}}" name expect
+    name="$where-cards-$mode$(lang_suffix "$language" "$cardLanguage")"
+    expect="$runs/jvm-cards-$mode$(lang_suffix "$language" "$cardLanguage").json"
+    [ -s "$expect" ] || { om_log "$where-Kartenpruefung $mode/$language/$cardLanguage: keine JVM-Referenz"; failures=$((failures + 1)); return; }
     if [ "$where" = node ]; then
-        node "$tests/node-cards.ts" --card-loading "$mode" --language "$language" --expect "$expect" --out "$runs/$name.json" > "$runs/$name.log" 2>&1
+        node "$tests/node-cards.ts" --card-loading "$mode" --language "$language" --card-language "$cardLanguage" --expect "$expect" --out "$runs/$name.json" > "$runs/$name.log" 2>&1
     else
-        node "$tests/browser-smoke.mjs" --cards --card-loading "$mode" --language "$language" --expect "$expect" --out "$runs/$name.json" > "$runs/$name.log" 2>&1
-    fi || { om_log "$where-Kartenpruefung $mode/$language fehlgeschlagen (siehe $runs/$name.log)"; failures=$((failures + 1)); }
+        node "$tests/browser-smoke.mjs" --cards --card-loading "$mode" --language "$language" --card-language "$cardLanguage" --expect "$expect" --out "$runs/$name.json" > "$runs/$name.log" 2>&1
+    fi || { om_log "$where-Kartenpruefung $mode/$language/$cardLanguage fehlgeschlagen (siehe $runs/$name.log)"; failures=$((failures + 1)); }
 }
 
 # Two engine traces of the same game on the same runtime must be equal.
@@ -185,14 +189,17 @@ done <<< "$FIXTURES"
 node "$tests/check-traces.ts" --transcripts "$transcripts" --out "$runs/jvm-traces.json" > "$runs/jvm-traces.log" 2>&1 \
     || { om_log "Engine-Spuren der JVM-Partien unvollstaendig oder ungleich (siehe $runs/jvm-traces.log)"; failures=$((failures + 1)); }
 same_game_other_language "$runs/jvm-fixture-human-3.json" "$runs/jvm-fixture-human-3-de.json" human-3
+same_game_other_language "$runs/jvm-fixture-human-3-de.json" "$runs/jvm-fixture-human-3-de-cards-en.json" human-3-cards-en
 node "$tests/validate-messages.ts" "$transcripts"/*.messages.jsonl --out "$runs/jvm-messages-schema.json" \
     > "$runs/jvm-messages-schema.log" 2>&1 \
     || { om_log "JVM-Nachrichten verletzen das Protokoll (siehe $runs/jvm-messages-schema.json)"; failures=$((failures + 1)); }
 jvm_cards_run lazy
 jvm_cards_run eager
 jvm_cards_run lazy de-DE
+jvm_cards_run lazy de-DE en-US
 node "$tests/check-card-probes.ts" --lazy "$runs/jvm-cards-lazy.json" --eager "$runs/jvm-cards-eager.json" \
-    --german "$runs/jvm-cards-lazy-de-DE.json" --out "$runs/jvm-cards-check.json" > "$runs/jvm-cards-check.log" 2>&1 \
+    --german "$runs/jvm-cards-lazy-de-DE.json" --german-english-cards "$runs/jvm-cards-lazy-de-DE-cards-en-US.json" \
+    --out "$runs/jvm-cards-check.json" > "$runs/jvm-cards-check.log" 2>&1 \
     || { om_log "JVM-Kartenpruefungen passen nicht zusammen (siehe $runs/jvm-cards-check.json)"; failures=$((failures + 1)); }
 
 om_log "2/4 Wasm in Node"
@@ -204,6 +211,7 @@ replay_fixtures node
 wasm_cards_run node lazy
 wasm_cards_run node eager
 wasm_cards_run node lazy de-DE
+wasm_cards_run node lazy de-DE en-US
 node "$tests/node-protocol.ts" --transcript "$transcripts/human-3-concede.json" --out "$runs/node-protocol.json" \
     > "$runs/node-protocol.log" 2>&1 || { om_log "Protokoll-Szenarien in Node fehlgeschlagen (siehe $runs/node-protocol.log)"; failures=$((failures + 1)); }
 node "$tests/node-divergence.ts" --transcript "$transcripts/human-3-concede.json" --out "$runs/node-divergence.json" \
@@ -218,6 +226,7 @@ if [ "${OPENMANA_SKIP_BROWSER:-0}" != "1" ]; then
     replay_fixtures browser
     wasm_cards_run browser lazy
     wasm_cards_run browser eager
+    wasm_cards_run browser lazy de-DE en-US
     node "$tests/browser-smoke.mjs" --announce-protocol 999 --out "$runs/browser-protocol-mismatch.json" \
         > "$runs/browser-protocol-mismatch.log" 2>&1 || { om_log "Versionskonflikt im Browser nicht laut abgewiesen"; failures=$((failures + 1)); }
     om_log "4/4 Chrome ohne COOP/COEP"

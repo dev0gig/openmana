@@ -1,4 +1,4 @@
-# OpenMana-Protokoll (Version 3)
+# OpenMana-Protokoll (Version 4)
 
 Der **einzige Vertrag** zwischen der OpenMana-Oberfläche und der Engine (Forge
 im Dedicated Worker). Die Oberfläche sieht keine Forge-Klassen und rechnet
@@ -6,7 +6,8 @@ keine Regel aus; Forge entscheidet alles, das Protokoll transportiert und
 prüft nur. Eingeführt mit Prompt 03, Nachweise in
 [`docs/implementation/03-worker-transport-protocol.md`](../../docs/implementation/03-worker-transport-protocol.md);
 Version 2 mit Prompt 04 (siehe [unten](#änderungen-in-version-2-prompt-04)),
-Version 3 mit Prompt 05 (siehe [unten](#änderungen-in-version-3-prompt-05)).
+Version 3 mit Prompt 05 (siehe [unten](#änderungen-in-version-3-prompt-05)),
+Version 4 mit Prompt 12 (siehe [unten](#änderungen-in-version-4-prompt-12)).
 
 ```
  UI ──ruft──▶ EngineClient (Main Thread) ──WorkerCommand (postMessage, nur wenn der Worker frei ist)──▶ Worker-Host
@@ -27,7 +28,7 @@ Version 3 mit Prompt 05 (siehe [unten](#änderungen-in-version-3-prompt-05)).
 
 ## Versionen
 
-- `ProtocolVersion` ist eine ganze Zahl (jetzt **3**). UI, Worker-Host und
+- `ProtocolVersion` ist eine ganze Zahl (jetzt **4**). UI, Worker-Host und
   Engine müssen **genau dieselbe** Version sprechen; es gibt keine
   Aushandlung. Eine App liefert UI und Engine immer zusammen aus
   (`engine.lock.json`, Prompt 25/26); eine Abweichung heißt „alter Cache“ oder
@@ -56,7 +57,7 @@ Version 3 mit Prompt 05 (siehe [unten](#änderungen-in-version-3-prompt-05)).
 | `type` | Zweck |
 |---|---|
 | `engine.boot` | Fortschritt des Starts: `worker-features` (mit `features`), `launcher-load`, `wasm-fetch-compile`, `java-main`; `t` = ms seit Worker-Start |
-| `engine.ready` | Forge ist bereit: `protocol`, `engine` (Forge-Version und -Commit, Patch-Zahl und -Hash, OpenMana-Commit, `engineSourcesModified`, `synchronous`, `resourcesSha256` = SHA-256 der eingebauten Forge-Daten wie im `engine-manifest.json`), `boot` (Ressourcen, Zeiten, `cardLoading`, `language`) |
+| `engine.ready` | Forge ist bereit: `protocol`, `engine` (Forge-Version und -Commit, Patch-Zahl und -Hash, OpenMana-Commit, `engineSourcesModified`, `synchronous`, `resourcesSha256` = SHA-256 der eingebauten Forge-Daten wie im `engine-manifest.json`), `boot` (Ressourcen, Zeiten, `cardLoading`, `language` = Forges Wörter, `cardLanguage` = die Karten darin, `aiProfiles` = Forges geladene KI-Profile, sortiert) |
 | `engine.waiting` | Die Warteschlange ist leer und Forge wartet auf den Spieler. `consumed` = gelesene Eingaben; alles bis dahin ist fertig verarbeitet. Eine wartende Engine ist nicht „hängend“ |
 | `engine.error` | Ein Befehl schlug fehl, der Worker bleibt nutzbar: `deck-rejected` (mit `report.unknownCards`), `invalid-request`, `not-ready`, `already-started` |
 | `engine.abort` | **Technischer Abbruch**, kein Spielergebnis; der Worker ist verloren (siehe unten) |
@@ -86,7 +87,8 @@ Wiederholung oder eine fehlende Nummer heißt, dass der Transport kaputt ist:
 
 `engine.start` (Protokollversion, Adressen von Launcher und Modul, Argumente,
 die Warteschlange, ob Cross-Origin-Isolation Pflicht ist), `match.start`
-(`MatchRequest`: Seed, Format, Mensch mit Deck, KI mit Profil und Deck; nur in
+(`MatchRequest`: Seed, Format, Mensch mit Deck, KI mit Profil – eines aus
+`boot.aiProfiles`, sonst `engine.error invalid-request` – und Deck; nur in
 Tests `trace`), `diagnostics.ai-match` (nur Tests, optional `trace`) und
 `diagnostics.card-probe` (nur Tests). Befehle wirken
 nur, wenn der Worker frei ist: Während einer Partie steckt er in Forges
@@ -248,6 +250,22 @@ die Hand der KI).
 
 Vergleich, Prüfsumme und Abdeckung: [`engine/wasm/spike/trace.ts`](../wasm/spike/trace.ts);
 die Testpartien: [`engine/fixtures`](../fixtures/README.md).
+
+## Änderungen in Version 4 (Prompt 12)
+
+- Start-Argument `--card-language=en-US|de-DE` (Standard: die `--language`):
+  die Sprache der **Karten** in Forges Texten und Kartenansichten (Namen,
+  Typzeilen, Regeltexte, über Forges `CardTranslation`), unabhängig von Forges
+  eigenen Wörtern. Die App startet Forge immer deutsch und die Karten in der
+  Kartensprache des Spielers. `BootReport.cardLanguage` bestätigt sie.
+- `BootReport.aiProfiles`: die KI-Profile, die Forge geladen hat
+  (`res/ai/*.ai`), nach Namen sortiert. `match.start` mit einem anderen Profil
+  lehnt die Bridge ab (`engine.error invalid-request`, die Engine bleibt
+  bereit) – Forge selbst spielte einen unbekannten Namen still mit seinen
+  eingebauten Vorgabewerten.
+- Nachweis, dass die Kartensprache nur Wörter ändert: die Testpartie
+  `human-3-de-cards-en` (gleiche Engine-Spur wie `human-3`) und die
+  Kartenprüfung „Deutsch mit englischen Karten“ auf JVM, Node und Chrome.
 
 ## Änderungen in Version 3 (Prompt 05)
 

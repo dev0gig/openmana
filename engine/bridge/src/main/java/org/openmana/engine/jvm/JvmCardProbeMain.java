@@ -18,7 +18,7 @@ import java.nio.file.Paths;
  *
  * <pre>
  * java -cp openmana-engine-jvm.jar org.openmana.engine.jvm.JvmCardProbeMain \
- *      --bundle forge-res.bin [--card-loading lazy|eager] [--language en-US|de-DE] [--root DIR]
+ *      --bundle forge-res.bin [--card-loading lazy|eager] [--language en-US|de-DE] [--card-language en-US|de-DE] [--root DIR]
  * </pre>
  *
  * Prints one line {@code OPENMANA-RESULT:{"boot": …, "result": …}} on stdout.
@@ -32,12 +32,14 @@ public final class JvmCardProbeMain {
         String bundle = null;
         ForgeEngine.CardLoading cardLoading = ForgeEngine.CardLoading.DEFAULT;
         ForgeEngine.Language language = ForgeEngine.Language.EN_US;
+        ForgeEngine.Language cardLanguage = null;
         Path root = null;
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
                 case "--bundle" -> bundle = args[++i];
                 case "--card-loading" -> cardLoading = ForgeEngine.CardLoading.parse(args[++i]);
                 case "--language" -> language = ForgeEngine.Language.parse(args[++i]);
+                case "--card-language" -> cardLanguage = ForgeEngine.Language.parse(args[++i]);
                 case "--root" -> root = Paths.get(args[++i]);
                 default -> throw new IllegalArgumentException("unknown argument " + args[i]);
             }
@@ -50,7 +52,7 @@ public final class JvmCardProbeMain {
         }
         final JsonObject out = new JsonObject();
         try (InputStream in = Files.newInputStream(Paths.get(bundle))) {
-            out.add("boot", EngineBoot.boot(in, root, cardLoading, language));
+            out.add("boot", EngineBoot.boot(in, root, cardLoading, language, cardLanguage == null ? language : cardLanguage));
         }
         out.add("result", CardProbe.run());
         System.out.println(JvmSmokeMain.RESULT_PREFIX + new GsonBuilder().serializeNulls().create().toJson(out));

@@ -20,12 +20,13 @@ export function option(args: readonly string[], name: string, fallback: string |
   return i >= 0 && i + 1 < args.length ? args[i + 1]! : fallback;
 }
 
-export function nodeClient(distDir: string, cardLoading: string, extra: Partial<EngineClientOptions> = {}, language = "en-US"): EngineClient {
+/** cardLanguage: the language of the cards in Forge's texts (--card-language); null: the engine's default, the language. */
+export function nodeClient(distDir: string, cardLoading: string, extra: Partial<EngineClientOptions> = {}, language = "en-US", cardLanguage: string | null = null): EngineClient {
   return new EngineClient({
     createPort: nodeWorkerPort(),
     engineScriptUrl: path.join(distDir, "openmana-engine.js"),
     wasmUrl: path.join(distDir, "openmana-engine.js.wasm"),
-    engineArgs: [`--card-loading=${cardLoading}`, `--language=${language}`],
+    engineArgs: [`--card-loading=${cardLoading}`, `--language=${language}`, ...(cardLanguage === null ? [] : [`--card-language=${cardLanguage}`])],
     requireIsolation: false,
     ...extra,
   });

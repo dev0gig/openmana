@@ -19,7 +19,7 @@ describe("German first", () => {
     expect(display.faces[0]).toMatchObject({ typeLine: { text: "Spontanzauber", lang: "de" }, manaCost: "{R}", englishName: "Lightning Bolt" })
     expect(display.picture).toMatchObject({ source: "german", lang: "de", set: "tle", side: "front", lowQuality: false })
     expect(display.picture?.urls.grid).toMatch(/^https:\/\/cards\.scryfall\.io\/grid\/front\/.+\.webp\?\d+$/)
-    expect(display.language).toEqual({ picture: "de", text: "de", germanTextExists: true, germanPictureExists: true })
+    expect(display.language).toEqual({ preferred: "de", picture: "de", text: "de", germanTextExists: true, germanPictureExists: true })
   })
 
   it("German text on an English picture when Scryfall has no German picture", () => {
@@ -33,7 +33,7 @@ describe("German first", () => {
     const display = cardDisplay(card("Akki Lavarunner // Tok-Tok, Volcano Born"))
     expect(display.name).toEqual({ text: "Akki Lavarunner // Tok-Tok, Volcano Born", lang: "en" })
     expect(display.faces.map((face) => face.text?.lang)).toEqual(["en", "en"])
-    expect(display.language).toEqual({ picture: "en", text: "en", germanTextExists: false, germanPictureExists: false })
+    expect(display.language).toEqual({ preferred: "de", picture: "en", text: "en", germanTextExists: false, germanPictureExists: false })
   })
 
   it("field by field: an untranslated field stays English and says so", () => {
@@ -49,6 +49,30 @@ describe("German first", () => {
     expect(display.picture?.lang).toBe("ja")
     expect(display.language.picture).toBe("other")
     expect(display.name).toEqual({ text: "Tornellan Protector", lang: "en" })
+  })
+})
+
+describe("the English card language (prompt 12)", () => {
+  it("English name, texts and picture although Scryfall has German ones", () => {
+    const display = cardDisplay(card("Lightning Bolt"), { language: "en" })
+    expect(display.name).toEqual({ text: "Lightning Bolt", lang: "en" })
+    expect(display.faces[0]).toMatchObject({ typeLine: { lang: "en" }, text: { lang: "en" }, manaCost: "{R}" })
+    expect(display.picture).toMatchObject({ source: "fallback", lang: "en" })
+    // The facts about German stay what they are; the display says what it was made for.
+    expect(display.language).toEqual({ preferred: "en", picture: "en", text: "en", germanTextExists: true, germanPictureExists: true })
+  })
+
+  it("both faces English; a requested printing still wins", () => {
+    const delver = card("Delver of Secrets // Insectile Aberration")
+    expect(cardDisplay(delver, { language: "en" }).name).toEqual({ text: "Delver of Secrets // Insectile Aberration", lang: "en" })
+    const german = delver.prints.de
+    expect(german).not.toBeNull()
+    const requested = cardDisplay(delver, { language: "en", print: german as unknown as PrintRecord })
+    expect(requested.picture?.source).toBe("requested-print")
+  })
+
+  it("a card only printed in Japanese keeps that picture", () => {
+    expect(cardDisplay(card("Tornellan Protector"), { language: "en" }).language.picture).toBe("other")
   })
 })
 

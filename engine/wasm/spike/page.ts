@@ -11,6 +11,7 @@
  *                                            a JVM-recorded human-vs-AI game (replay.ts)
  *   ?cards=1&cardLoading=eager|lazy          Forge's card scripts are checked (diagnostics.card-probe)
  *   &language=en-US|de-DE                    the language Forge speaks (every mode)
+ *   &cardLanguage=en-US|de-DE                the language of the cards in Forge's texts (default: language)
  *   ?announceProtocol=999                    the page claims another protocol version:
  *                                            the worker must refuse it at once
  *
@@ -40,6 +41,7 @@ const params = new URLSearchParams(location.search);
 const seed = Number(params.get("seed") ?? 42);
 const cardLoading = params.get("cardLoading") ?? "eager";
 const language = params.get("language") ?? "en-US";
+const cardLanguage = params.get("cardLanguage");
 const replayUrl = params.get("replay");
 const feeding = (params.get("feeding") ?? "lazy") as Feeding;
 const queueCapacity = params.get("queueCapacity") ? Number(params.get("queueCapacity")) : undefined;
@@ -97,7 +99,7 @@ const client = new EngineClient({
   createPort: browserWorkerPort(new URL("engine/engine-worker.js", location.href)),
   engineScriptUrl: new URL("engine/openmana-engine.js", location.href).href,
   wasmUrl: new URL("engine/openmana-engine.js.wasm", location.href).href,
-  engineArgs: [`--card-loading=${cardLoading}`, `--language=${language}`],
+  engineArgs: [`--card-loading=${cardLoading}`, `--language=${language}`, ...(cardLanguage ? [`--card-language=${cardLanguage}`] : [])],
   // The card probe's whole-database pass keeps the engine busy without messages.
   ...(state.mode === "cards" ? { stallTimeoutMs: 600_000 } : {}),
   ...(queueCapacity ? { queueCapacity } : {}),

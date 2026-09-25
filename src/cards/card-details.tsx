@@ -7,6 +7,7 @@
  */
 import { RefreshCw } from "lucide-react"
 import { useState } from "react"
+import { usePreferences } from "@/app/preferences"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { CardPicture } from "@/components/ui/card-picture"
@@ -50,7 +51,8 @@ function FaceText({ face, showName }: { face: DisplayFace; showName: boolean }) 
 
 export function CardDetails({ card, match, print }: { card: CardRecord; match?: CardMatch; print?: PrintRecord | null }) {
   const [face, setFace] = useState<number | null>(null)
-  const display = cardDisplay(card, { ...(face !== null ? { face } : {}), ...(match ? { match } : {}), ...(print ? { print } : {}) })
+  const { cardLanguage } = usePreferences()
+  const display = cardDisplay(card, { ...(face !== null ? { face } : {}), ...(match ? { match } : {}), ...(print ? { print } : {}), language: cardLanguage })
   const note = languageNote(display)
   const turnable = card.faces.length === 2 && (card.prints.de?.imageSides === 2 || card.prints.fallback?.imageSides === 2)
   const picture = display.picture

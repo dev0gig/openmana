@@ -2,7 +2,9 @@
  * Play: prepare a game against Forge's AI. The player chooses their deck and
  * the AI's - one of their decks, or a random one drawn for every game
  * (src/decks/deck-selection.ts); both choices are kept in the local
- * database, so the next game starts without choosing again.
+ * database, so the next game starts without choosing again. The AI profile
+ * is a preference (prompt 12): shown here with a way to change it, never a
+ * step before the start.
  *
  * Opening the page with a deck to play prewarms the engine (about 4-5 s of
  * boot, research §4), so "Partie starten" usually finds it ready; the engine
@@ -15,6 +17,7 @@ import { Bot, Layers, Swords, TriangleAlert, Upload } from "lucide-react"
 import { useEffect, useMemo } from "react"
 import { Link } from "react-router"
 import { toast } from "sonner"
+import { usePreferences } from "@/app/preferences"
 import { Page } from "@/components/page-header"
 import { TextLink } from "@/components/text-link"
 import { ActionBar } from "@/components/ui/action-bar"
@@ -29,9 +32,8 @@ import { LIBRARY_STORES, readDeckCards, viewDeck, type DeckCardIndex, type DeckV
 import { describeDeck } from "@/decks/library-labels"
 import { EnginePanel } from "@/engine/engine-panel"
 import { useEngineSession } from "@/engine/engine-session-context"
-import { aiProfileLabel } from "@/game/game-labels"
+import { AiProfileDialog, describeAiProfileChoice } from "@/game/ai-profile-options"
 import { useGameStart, type StartState } from "@/game/game-start"
-import { DEFAULT_AI_PROFILE } from "@/game/match-setup"
 import { useIsMobile } from "@/hooks/use-mobile"
 import type { LocalDatabase } from "@/storage/database"
 import { toStorageError } from "@/storage/errors"
@@ -116,9 +118,13 @@ export function PlayPage() {
   const database = snapshot.status === "ready" ? snapshot.database : null
   const phone = useIsMobile()
   const { prewarm } = useEngineSession()
+  const preferences = usePreferences()
   const views = useMemo(
-    () => (data.status === "ready" ? new Map(data.data.stored.decks.records.map((deck) => [deck.id, viewDeck(deck, data.data.index)])) : new Map<string, DeckView>()),
-    [data],
+    () =>
+      data.status === "ready"
+        ? new Map(data.data.stored.decks.records.map((deck) => [deck.id, viewDeck(deck, data.data.index, preferences.cardLanguage)]))
+        : new Map<string, DeckView>(),
+    [data, preferences.cardLanguage],
   )
   const selection = data.status === "ready" ? resolveSelection(data.data.stored.human, data.data.stored.ai, data.data.stored.decks) : null
   const noDecks = data.status === "ready" && data.data.stored.decks.records.length === 0
@@ -250,8 +256,11 @@ export function PlayPage() {
                     </ItemMedia>
                     <ItemContent>
                       <ItemTitle>Gegner: Forge-KI</ItemTitle>
-                      <ItemDescription>Profil {aiProfileLabel(DEFAULT_AI_PROFILE)}. Die Wahl des KI-Profils folgt.</ItemDescription>
+                      <ItemDescription>Profil {describeAiProfileChoice(preferences.aiProfile)}</ItemDescription>
                     </ItemContent>
+                    <ItemActions>
+                      <AiProfileDialog />
+                    </ItemActions>
                   </Item>
                 </ItemGroup>
               </>

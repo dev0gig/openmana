@@ -1,9 +1,9 @@
 // @vitest-environment node
 /*
- * A game from the deck choice: decks go to Forge as the protocol's Deck with
- * the names Forge knows (nothing else, no file), the AI's random deck is
- * drawn anew for every game from the fitting decks, the seed is random and
- * known, and a choice that does not allow a game gives none.
+ * A game from the deck choice and the AI profile: decks go to Forge as the
+ * protocol's Deck with the names Forge knows (nothing else, no file), the
+ * AI's random deck and random profile are drawn anew for every game, the seed
+ * is random and known, and a choice that does not allow a game gives none.
  */
 import { checkMatchRequest } from "@openmana/engine-protocol"
 import { describe, expect, it } from "vitest"
@@ -12,8 +12,10 @@ import type { CheckedRecords } from "@/storage/database"
 import type { DeckRecord } from "@/storage/generated/records"
 import type { SettingValue } from "@/storage/settings"
 import { deck } from "@/test/storage-fixtures"
+import { AI_PROFILE_TABLE, DEFAULT_AI_PROFILE } from "./ai-profile-table"
+import { resolveAiProfile } from "./ai-profiles"
 import { engineDeck } from "./engine-deck"
-import { AI_NAME, DEFAULT_AI_PROFILE, HUMAN_NAME, matchSetup, planGame, randomSeed, SEED_LIMIT } from "./match-setup"
+import { AI_NAME, HUMAN_NAME, matchSetup, planGame, randomSeed, SEED_LIMIT } from "./match-setup"
 
 const value = <T,>(v: T): SettingValue<T> => ({ value: v, stored: true, invalid: false })
 const decks = (records: readonly DeckRecord[]): CheckedRecords<DeckRecord> => ({ records, invalid: [] })
@@ -77,8 +79,12 @@ describe("matchSetup", () => {
     })
     expect(setup.request).not.toHaveProperty("trace")
     expect(setup.human).toEqual({ deckId: izzet.id, deckName: "Izzet Tempo" })
-    expect(setup.ai).toEqual({ deckId: other.id, deckName: "Gruul", drawn: true })
+    expect(setup.ai).toEqual({ deckId: other.id, deckName: "Gruul", drawn: true, profileDrawn: false })
     expect(DEFAULT_AI_PROFILE).toBe("Default")
+    expect(matchSetup(izzet, other, { seed: 1, drawn: false, profile: "Reckless", profileDrawn: true })).toMatchObject({
+      request: { ai: { profile: "Reckless" } },
+      ai: { drawn: false, profileDrawn: true },
+    })
   })
 })
 
@@ -103,14 +109,15 @@ describe("planGame", () => {
 
   it("the chosen AI deck", () => {
     const setup = planGame(resolveSelection(value(izzet.id), value<AiDeckChoice>({ kind: "deck", deckId: mono.id }), all), { seed: 7 })
-    expect(setup?.ai).toEqual({ deckId: mono.id, deckName: "Mono Rot", drawn: false })
+    expect(setup?.ai).toEqual({ deckId: mono.id, deckName: "Mono Rot", drawn: false, profileDrawn: false })
     expect(setup?.request.seed).toBe(7)
+    expect(setup?.request.ai.profile).toBe("Default")
   })
 
   it("random: drawn anew for every game from the other decks of the format, never the player's own", () => {
     const selection = resolveSelection(value(izzet.id), value(RANDOM), all)
-    expect(planGame(selection, { random: () => 0 })?.ai).toEqual({ deckId: mono.id, deckName: "Mono Rot", drawn: true })
-    expect(planGame(selection, { random: () => 0.99 })?.ai).toEqual({ deckId: other.id, deckName: "Gruul", drawn: true })
+    expect(planGame(selection, { random: () => 0 })?.ai).toEqual({ deckId: mono.id, deckName: "Mono Rot", drawn: true, profileDrawn: false })
+    expect(planGame(selection, { random: () => 0.99 })?.ai).toEqual({ deckId: other.id, deckName: "Gruul", drawn: true, profileDrawn: false })
     const drawn = new Set(Array.from({ length: 40 }, () => planGame(selection)?.ai.deckName))
     expect([...drawn].sort()).toEqual(["Gruul", "Mono Rot"])
   })
@@ -126,6 +133,24 @@ describe("planGame", () => {
     expect(setup?.request.format).toBe("commander")
     expect(setup?.request.human.deck).toEqual(setup?.request.ai.deck)
     expect(setup?.request.human.deck.commander).toEqual([{ card: "Valki, God of Lies", count: 1 }])
+  })
+
+  it("the chosen AI profile goes to Forge; random draws one of the verified profiles for every game", () => {
+    const selection = resolveSelection(value(izzet.id), value<AiDeckChoice>({ kind: "deck", deckId: mono.id }), all)
+    const cautious = planGame(selection, { profile: resolveAiProfile({ kind: "profile", name: "Cautious" }) })
+    expect(cautious?.request.ai.profile).toBe("Cautious")
+    expect(cautious?.ai.profileDrawn).toBe(false)
+    const random = resolveAiProfile({ kind: "random" })
+    expect(planGame(selection, { profile: random, random: () => 0 })?.request.ai.profile).toBe(AI_PROFILE_TABLE[0]!.name)
+    expect(planGame(selection, { profile: random, random: () => 0.999 })?.request.ai.profile).toBe(AI_PROFILE_TABLE.at(-1)!.name)
+    expect(planGame(selection, { profile: random })?.ai.profileDrawn).toBe(true)
+    const drawn = new Set(Array.from({ length: 80 }, () => planGame(selection, { profile: random })?.request.ai.profile))
+    expect([...drawn].sort()).toEqual(AI_PROFILE_TABLE.map((profile) => profile.name).sort())
+  })
+
+  it("no game with a stored profile this version does not have", () => {
+    const selection = resolveSelection(value(izzet.id), value<AiDeckChoice>({ kind: "deck", deckId: mono.id }), all)
+    expect(planGame(selection, { profile: resolveAiProfile({ kind: "profile", name: "Aggressive" }) })).toBeNull()
   })
 
   it("no game while the choice does not allow one", () => {

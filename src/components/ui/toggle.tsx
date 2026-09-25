@@ -3,11 +3,14 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 import { Toggle as TogglePrimitive } from "radix-ui"
 
+// OpenMana: motion-reduce: stops the animations and transitions below when the
+// device or the player asks for less motion (src/app/motion.ts, prompt 12).
+
 // OpenMana: on coarse pointers toggles grow like buttons (default and sm to
 // 44/40 px, lg to 48 px; docs/DESIGN_SYSTEM.md rule 5).
 
 const toggleVariants = cva(
-  "group/toggle inline-flex items-center justify-center gap-1 rounded-4xl text-sm font-medium whitespace-nowrap transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 aria-pressed:bg-muted dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/toggle inline-flex items-center justify-center gap-1 rounded-4xl text-sm font-medium whitespace-nowrap transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 aria-pressed:bg-muted dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 motion-reduce:transition-none!",
   {
     variants: {
       variant: {

@@ -12,6 +12,22 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Less motion (prompt 12, src/app/motion.ts): motion-reduce: applies when the
+ * device asks for it (prefers-reduced-motion) or the player does in Settings
+ * (<html data-reduced-motion>). Defined like shadcn's class-based dark
+ * variant; the shadcn components carry it on every animation and transition
+ * (src/app/motion.test.ts checks that).
+ */
+@custom-variant motion-reduce {
+  @media (prefers-reduced-motion: reduce) {
+    @slot;
+  }
+  &:where([data-reduced-motion], [data-reduced-motion] *) {
+    @slot;
+  }
+}
+
 @theme inline {
   --font-heading: "Cinzel Variable", ui-serif, Georgia, serif;
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;

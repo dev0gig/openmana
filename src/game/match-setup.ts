@@ -1,6 +1,7 @@
 /*
- * A game from the player's deck choice (src/decks/deck-selection.ts): which
- * decks play - the AI's drawn now if "random" is chosen, anew for every game
+ * A game from the player's deck choice (src/decks/deck-selection.ts) and AI
+ * profile (src/game/ai-profiles.ts): which decks play and which profile - the
+ * AI's deck and profile drawn now if "random" is chosen, anew for every game
  * - and exactly what Forge receives (match.start).
  *
  * The seed: the app draws it (48 random bits from the browser's
@@ -13,14 +14,13 @@ import type { MatchRequest } from "@openmana/engine-protocol"
 import { drawAiDeck, type PlaySelection } from "@/decks/deck-selection"
 import type { MatchSetup } from "@/engine/engine-session"
 import type { DeckRecord } from "@/storage/generated/records"
+import { DEFAULT_AI_PROFILE } from "./ai-profile-table"
+import { drawAiProfile, type ResolvedAiProfile } from "./ai-profiles"
 import { engineDeck } from "./engine-deck"
 
 /** How Forge calls the players (its game log uses the names; the app says "Du" and "Forge-KI"). */
 export const HUMAN_NAME = "Spieler"
 export const AI_NAME = "Forge-KI"
-
-/** Forge's default AI profile (res/ai/Default.ai). Choosing one is prompt 12. */
-export const DEFAULT_AI_PROFILE = "Default"
 
 /** Largest seed + 1: java.util.Random, which Forge seeds with it, keeps 48 bits. */
 export const SEED_LIMIT = 2 ** 48
@@ -34,7 +34,10 @@ export interface MatchSetupOptions {
   readonly seed: number
   /** The AI's deck was drawn at random. */
   readonly drawn: boolean
+  /** Forge's AI profile (default: Forge's default profile). */
   readonly profile?: string
+  /** The profile was drawn at random. */
+  readonly profileDrawn?: boolean
 }
 
 /** Both decks as Forge gets them, in the player's deck's format (Forge plays both in one). */
@@ -48,23 +51,31 @@ export function matchSetup(human: DeckRecord, ai: DeckRecord, options: MatchSetu
   return {
     request,
     human: { deckId: human.id, deckName: human.name },
-    ai: { deckId: ai.id, deckName: ai.name, drawn: options.drawn },
+    ai: { deckId: ai.id, deckName: ai.name, drawn: options.drawn, profileDrawn: options.profileDrawn ?? false },
   }
 }
 
 export interface PlanOptions {
-  /** In [0, 1): the random deck draw (Math.random by default). */
+  /** The AI profile as chosen (default: Forge's default profile). */
+  readonly profile?: ResolvedAiProfile
+  /** In [0, 1): the random draws of deck and profile (Math.random by default). */
   readonly random?: () => number
   readonly seed?: number
 }
 
-/** The next game for this choice, or null while the choice does not allow one (selection.blocker). */
+/**
+ * The next game for this choice, or null while the choice does not allow one
+ * (selection.blocker, or a stored profile this engine does not have).
+ */
 export function planGame(selection: PlaySelection, options: PlanOptions = {}): MatchSetup | null {
   if (selection.blocker !== null || selection.human.status !== "ok") return null
+  const chosen = options.profile ?? { status: "ok" as const, profile: { name: DEFAULT_AI_PROFILE } }
+  if (chosen.status === "missing") return null
   const seed = options.seed ?? randomSeed()
   const human = selection.human.deck
   const ai = selection.ai
-  if (ai.status === "ok") return matchSetup(human, ai.deck, { seed, drawn: false })
-  if (ai.status === "random" && ai.pool !== null && ai.pool.length > 0) return matchSetup(human, drawAiDeck(ai.pool, options.random), { seed, drawn: true })
-  return null
+  const deck = ai.status === "ok" ? ai.deck : ai.status === "random" && ai.pool !== null && ai.pool.length > 0 ? drawAiDeck(ai.pool, options.random) : null
+  if (deck === null) return null
+  const profile = chosen.status === "random" ? drawAiProfile(chosen.pool, options.random).name : chosen.profile.name
+  return matchSetup(human, deck, { seed, drawn: ai.status === "random", profile, profileDrawn: chosen.status === "random" })
 }

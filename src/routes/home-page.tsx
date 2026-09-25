@@ -12,7 +12,7 @@ import { useDeviceFeatures } from "@/engine/device-support"
 
 const STEPS = [
   { icon: Upload, title: "Deck importieren", description: "Eine Arena-Deckliste einfügen – sie bleibt auf diesem Gerät.", ready: true },
-  { icon: Bot, title: "Gegner wählen", description: "Die Forge-KI spielt eines deiner Decks – von dir gewählt oder zufällig. Das KI-Profil folgt.", ready: true },
+  { icon: Bot, title: "Gegner wählen", description: "Die Forge-KI spielt eines deiner Decks – von dir gewählt oder zufällig –, im Stil eines ihrer Profile.", ready: true },
   { icon: Swords, title: "Spielen", description: "Forge entscheidet jede Regel; OpenMana zeigt dir, was möglich ist.", ready: true },
 ] as const
 

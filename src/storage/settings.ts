@@ -5,8 +5,10 @@
  * app, and keys this app version does not define are kept untouched (a newer
  * version may have written them) and travel in backups.
  *
- * The settings themselves (AI profile, card language, motion) arrive with
- * prompt 12.
+ * The settings themselves live with what they set: the deck choice in
+ * src/decks/deck-selection.ts, the AI profile in src/game/ai-profiles.ts, the
+ * card language in src/cards/card-language.ts, less motion in
+ * src/app/motion.ts; src/app/preferences.tsx reads and applies them.
  */
 import { assertRecord, type LocalDatabase } from "./database"
 import { StorageError } from "./errors"

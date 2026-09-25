@@ -14,7 +14,10 @@
  * A build without a verified engine fails loudly. OPENMANA_ENGINE=omit builds
  * without one on purpose (UI-only checks); the app then says that this build
  * has no engine. The dev server starts without an engine too and the app
- * shows why. Nothing here knows about Forge beyond its manifest.
+ * shows why. Nothing here knows about Forge beyond its manifest - and the AI
+ * profiles in its data inventory: the app describes them to the player
+ * (src/game/ai-profile-table.ts, prompt 12), so an engine whose profiles are
+ * not exactly the verified files stops the build until someone verifies them.
  */
 import { createHash } from "node:crypto"
 import { createReadStream } from "node:fs"
@@ -23,6 +26,7 @@ import path from "node:path"
 import type { Plugin } from "vite"
 import { PROTOCOL_VERSION } from "../engine/protocol/src/generated/constants.ts"
 import type { EngineAssets, EngineBuildFacts } from "../src/engine/engine-assets-types.ts"
+import { AI_PROFILE_TABLE } from "../src/game/ai-profile-table.ts"
 import { ISOLATION_HEADERS } from "./isolation-headers.ts"
 
 export const ENGINE_MODULE_ID = "virtual:openmana-engine"
@@ -34,6 +38,9 @@ export const MANIFEST_FORMAT = "openmana-engine-manifest/2"
 export const RUNTIME_FILES = ["engine-worker.js", "openmana-engine.js", "openmana-engine.js.wasm"] as const
 /** Everything served under engine/<id>/: the runtime files and the manifest (diagnostics). */
 export const SERVED_FILES: readonly string[] = [...RUNTIME_FILES, MANIFEST_FILE]
+/** Every file of Forge's data in the engine, with size and SHA-256 (listed in the manifest; not served). */
+export const INVENTORY_FILE = "forge-res.inventory.json"
+const INVENTORY_FORMAT = "openmana-resource-inventory/1"
 
 const CONTENT_TYPES: Readonly<Record<string, string>> = {
   ".js": "text/javascript; charset=utf-8",
@@ -126,6 +133,7 @@ export async function verifyEngine(dir: string): Promise<VerifiedEngine> {
     builtAt: string(manifest["builtAt"], "builtAt"),
     forgeRepository: string(forge["repository"], "forge.repository"),
     forgeCommit: string(forge["commit"], "forge.commit"),
+    forgeVersionCode: string(forge["versionCode"], "forge.versionCode"),
     patchCount: integer(record(manifest["patches"], "patches")["count"], "patches.count"),
     protocolVersion,
     graalvm: string(record(manifest["toolchain"], "toolchain")["graalvm"], "toolchain.graalvm"),
@@ -135,6 +143,74 @@ export async function verifyEngine(dir: string): Promise<VerifiedEngine> {
   }
   const id = createHash("sha256").update(digests.join("")).digest("hex").slice(0, 16)
   return { dir, id, build }
+}
+
+/** An AI profile in the engine's data: Forge's name (res/ai/<name>.ai) and the file's SHA-256. */
+export interface EngineAiProfile {
+  readonly name: string
+  readonly sha256: string
+}
+
+/**
+ * Forge's AI profiles in the engine build in `dir`, from its data inventory
+ * (checked against the manifest first), sorted by name.
+ */
+export async function readEngineAiProfiles(dir: string): Promise<EngineAiProfile[]> {
+  const manifest = record(JSON.parse(await fs.readFile(path.join(dir, MANIFEST_FILE), "utf8")), MANIFEST_FILE)
+  const entry = record(record(manifest["artefacts"], "artefacts")[INVENTORY_FILE], `artefacts.${INVENTORY_FILE}`)
+  const file = path.join(dir, INVENTORY_FILE)
+  let actual: string
+  try {
+    actual = await sha256File(file)
+  } catch (e) {
+    throw new EngineAssetsError(`${file} is missing (${errorCode(e)}), the manifest lists it`)
+  }
+  if (actual !== hex64(entry["sha256"], `artefacts.${INVENTORY_FILE}.sha256`)) {
+    throw new EngineAssetsError(`${file} has SHA-256 ${actual}, the manifest says ${String(entry["sha256"])}: incomplete or foreign engine build`)
+  }
+  let inventory: Record<string, unknown>
+  try {
+    inventory = record(JSON.parse(await fs.readFile(file, "utf8")), INVENTORY_FILE)
+  } catch (e) {
+    throw new EngineAssetsError(`${file} is not a readable inventory: ${e instanceof Error ? e.message : String(e)}`)
+  }
+  if (inventory["format"] !== INVENTORY_FORMAT) {
+    throw new EngineAssetsError(`${file}: format ${JSON.stringify(inventory["format"])}, expected ${INVENTORY_FORMAT}`)
+  }
+  const columns = inventory["columns"]
+  if (!Array.isArray(columns) || columns.join() !== "path,bytes,sha256" || !Array.isArray(inventory["files"])) {
+    throw new EngineAssetsError(`${file}: expected the columns path, bytes, sha256 and a list of files`)
+  }
+  const profiles: EngineAiProfile[] = []
+  for (const row of inventory["files"] as unknown[]) {
+    if (!Array.isArray(row) || typeof row[0] !== "string") throw new EngineAssetsError(`${file}: a file entry is not [path, bytes, sha256]`)
+    const match = /^res\/ai\/([^/]+)\.ai$/.exec(row[0])
+    if (match) profiles.push({ name: match[1]!, sha256: hex64(row[2], `${INVENTORY_FILE} ${row[0]}`) })
+  }
+  return profiles.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
+}
+
+/**
+ * The app describes Forge's AI profiles to the player (src/game/ai-profile-table.ts);
+ * those descriptions were verified against particular files. Throws unless
+ * the engine carries exactly the verified profiles, byte for byte.
+ */
+export function checkAiProfiles(found: readonly EngineAiProfile[], verified: readonly EngineAiProfile[] = AI_PROFILE_TABLE): void {
+  const problems: string[] = []
+  for (const profile of found) {
+    const known = verified.find((v) => v.name === profile.name)
+    if (!known) problems.push(`${profile.name} is new`)
+    else if (known.sha256 !== profile.sha256) problems.push(`${profile.name} changed (SHA-256 ${profile.sha256}, verified ${known.sha256})`)
+  }
+  for (const known of verified) {
+    if (!found.some((profile) => profile.name === known.name)) problems.push(`${known.name} is gone`)
+  }
+  if (problems.length > 0) {
+    throw new EngineAssetsError(
+      `the engine's Forge AI profiles are not the verified ones: ${problems.join("; ")}. Verify what they do ` +
+        "(docs/research/AI_PROFILES.md, bash engine/scripts/ai-profile-study.sh) and update src/game/ai-profile-table.ts",
+    )
+  }
 }
 
 /** The module the app imports: where the engine is served, or why there is none. */
@@ -175,7 +251,9 @@ export function engineAssets(options: EngineAssetsOptions): Plugin {
         return
       }
       try {
-        engine = await verifyEngine(options.dir)
+        const verified = await verifyEngine(options.dir)
+        checkAiProfiles(await readEngineAiProfiles(options.dir))
+        engine = verified
       } catch (e) {
         // A production build must never ship without its engine.
         if (config.command === "build" || !(e instanceof EngineAssetsError)) throw e

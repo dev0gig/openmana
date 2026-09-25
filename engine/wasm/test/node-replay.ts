@@ -7,9 +7,9 @@
 //
 //   node engine/wasm/test/node-replay.ts --transcript t.json [--feeding lazy|eager]
 //        [--queue-capacity <bytes>] [--card-loading lazy|eager] [--language en-US|de-DE]
-//        [--out result.json] [--dist <dir>]
+//        [--card-language en-US|de-DE] [--out result.json] [--dist <dir>]
 //
-// Card loading and language default to the transcript's engine settings.
+// Card loading and the languages default to the transcript's engine settings.
 // Exit code 0 only if the game ends exactly as on the JVM.
 import fs from "node:fs";
 import path from "node:path";
@@ -31,11 +31,12 @@ if (!transcriptFile || (feeding !== "lazy" && feeding !== "eager")) {
 const transcript = JSON.parse(fs.readFileSync(transcriptFile, "utf8")) as Transcript;
 const cardLoading = option(args, "--card-loading", transcript.engine?.cardLoading ?? "eager");
 const language = option(args, "--language", transcript.engine?.language ?? "en-US");
+const cardLanguage = option(args, "--card-language", transcript.engine?.cardLanguage ?? language);
 const baselineMiB = vmHwmMiB();
 const origin = performance.now();
 const since = () => Math.round(performance.now() - origin);
 const phases: Record<string, number> = {};
-const client = nodeClient(distDir, cardLoading, { queueCapacity }, language);
+const client = nodeClient(distDir, cardLoading, { queueCapacity }, language, cardLanguage);
 client.subscribe((event) => {
   if (event.kind === "message" && (event.message.type === "engine.boot" || event.message.type === "engine.ready")) {
     phases[event.message.type === "engine.boot" ? event.message.phase : "ready"] = since();
@@ -57,6 +58,7 @@ const report = {
   recordedInputs: transcript.inputs.length,
   cardLoading,
   language,
+  cardLanguage,
   feeding,
   ok: verdict.ok,
   failures: verdict.failures,

@@ -117,7 +117,10 @@ describe("engine panel", () => {
     expect(screen.getByText("Bereit")).toBeInTheDocument()
     expect(screen.getByText("2.0.15 (ed0333fecb)")).toBeInTheDocument()
     expect(screen.getByText(`Version ${PROTOCOL_VERSION}`)).toBeInTheDocument()
-    expect(screen.getByText("Deutsch")).toBeInTheDocument()
+    // Forge's own words and the cards in them (prompt 12: the card language), and the AI profiles Forge loaded.
+    expect(screen.getAllByText("Deutsch")).toHaveLength(2)
+    expect(screen.getByText("Karten in Forges Texten")).toBeInTheDocument()
+    expect(screen.getByText("Vorsichtig, Standard, Experimentell, Waghalsig")).toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Engine beenden" }))
     expect(screen.getByText("Nicht geladen")).toBeInTheDocument()
     expect(worker.terminated).toBe(true)

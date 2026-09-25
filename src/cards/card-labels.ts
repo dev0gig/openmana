@@ -39,9 +39,14 @@ export function cardErrorAdvice(error: CardDataError): string {
   return ERROR_ADVICE[error.code]
 }
 
-/** A short note on what of a card is not German (null: everything is). */
+/**
+ * A short note on what of a card is not German (null: everything is). With
+ * the English card language nothing is "not German" - only a picture in a
+ * third language is worth a word.
+ */
 export function languageNote(display: CardDisplay): string | null {
-  const { picture, text, germanTextExists, germanPictureExists } = display.language
+  const { preferred, picture, text, germanTextExists, germanPictureExists } = display.language
+  if (preferred === "en") return picture === "other" ? "Bild in der Sprache des Drucks" : null
   if (!germanTextExists && !germanPictureExists) {
     return picture === "other" ? "Keine deutsche Fassung – Text englisch, Bild in der Sprache des Drucks" : "Keine deutsche Fassung – englisch"
   }
