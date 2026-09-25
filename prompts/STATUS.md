@@ -28,8 +28,8 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | – (keiner; nach 08 wie in `naechster-schritt.md` vorgesehen gestoppt) |
-| Nächster Prompt | **09 — Arena deck import** (PENDING, nicht begonnen) |
+| Aktuell ausgeführt | **09 — Arena deck import** |
+| Nächster Prompt | 10 — Deck library (erst nach 09 = COMPLETE) |
 | Zuletzt abgeschlossen | 08 — Scryfall card data (`45f57d7`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-25 (Lauf über `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-25 |
@@ -47,7 +47,7 @@
 | 06 | [OpenMana web/PWA skeleton](queue/06-web-pwa-skeleton.md) | COMPLETE | `cfb2252` |
 | 07 | [IndexedDB local data layer](queue/07-indexeddb-storage.md) | COMPLETE | `c9ee901` |
 | 08 | [Scryfall card data](queue/08-scryfall-data.md) | COMPLETE | `45f57d7` |
-| 09 | [Arena deck import](queue/09-arena-deck-import.md) | PENDING | – |
+| 09 | [Arena deck import](queue/09-arena-deck-import.md) | IN_PROGRESS | – |
 | 10 | [Deck library](queue/10-deck-library.md) | PENDING | – |
 | 11 | [Game session foundation](queue/11-game-session.md) | PENDING | – |
 | 12 | [AI profiles and settings](queue/12-ai-profiles-settings.md) | PENDING | – |
@@ -846,6 +846,11 @@
     Einstellung (12), Offline/Update (25), Vercel-Lieferung des Katalogs (31).
 - **Weiter mit:** Prompt 09 (Arena deck import). Nicht begonnen:
   `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
+
+### 09 — Arena deck import — IN_PROGRESS
+
+- Begonnen am 2026-09-25 von Claude Code (Claude Opus 5.5), Auftrag
+  „Führe prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
 
 ## Hinweise für spätere Prompts
 
