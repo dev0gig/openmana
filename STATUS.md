@@ -107,8 +107,18 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - The engine boots with `--card-loading=eager --language=de-DE` (Forge's texts are what the player reads in a game). Conceding and ending a game without a result are confirmed; leaving the page during a game asks first (a reload ends it, said on the page).
 - Evidence: Vitest with the real `EngineClient` over a scripted worker (session and pages), end to end in Chrome with the real engine (prewarm without a click, Commander and Constructed games, moving around the app during a game, concede, result, a fresh engine, never two at once, reload, a failed engine download and its retry, a deck Forge refuses and the same engine playing next, phone). No legality check yet: Forge only reports English prose (documented). Details: `docs/implementation/11-game-session.md`.
 
+### AI Profiles and Settings (Prompt 12)
+- Forge's AI profiles verified (`docs/research/AI_PROFILES.md`): the 80 of 121 values that differ, which of them act in OpenMana and where Forge reads them, and 2 400 AI-against-AI mirror games (three decks, both seat orders per seed): no profile measurably stronger or weaker than Default (47.5 / 48.2 / 52.5 %, every 95 % interval includes 50 %), clear style differences (Reckless up to 26 % more attackers per turn, fewer blocks, more counters). JVM study tool `engine/scripts/ai-profile-study.sh` (not part of the Wasm engine).
+- Preferences in the local database, read and applied by `src/app/preferences.tsx`, saved the moment they change, never asked when a game starts: AI profile (`ai.profile`: one of the verified profiles in `src/game/ai-profile-table.ts` - German names, verified traits, no difficulty words - or random, drawn per game; also changeable in a dialog on the play page; a stored profile the engine lacks blocks the start with the reason), card language (`display.cardLanguage`: German preferred with English fallback, or English), less motion (`display.motion`).
+- Engine, protocol version 4: `BootReport.aiProfiles` (the profiles Forge loaded) and a match with any other profile refused (`invalid-request`; Forge would silently use built-in defaults); boot argument `--card-language` (`BootReport.cardLanguage`): Forge's words stay German, the cards in its texts follow the player's card language - proven to change only words (differential variant `human-3-de-cards-en`, card probe German with English cards on JVM, Node and Chrome). The running game shows the profile Forge confirmed. Manifest carries Forge's version code (2.0.15).
+- Card language in the app: `cardDisplay(card, { language })` and the views built on it (deck list and details, lookup, import, pickers); English shows Oracle texts and English pictures and no "not German" notes. `EngineSession.setBootOptions` replaces a warm engine no game uses when the card language changes (never two engines).
+- Less motion: `@custom-variant motion-reduce` (the device's `prefers-reduced-motion` or `<html data-reduced-motion>`), carried by every animation and transition of the shadcn components (checked by a test), spinners excepted; a switch in Settings → Barrierefreiheit.
+- Diagnostics: Settings → Über OpenMana names Forge's version; "Diagnose anzeigen" shows a text report (app, engine of the build and running, card data, database, preferences, browser) to copy; nothing is sent.
+- The build checks the engine's AI profile files (SHA-256) against the verified table and stops on any difference.
+- Evidence: see `prompts/STATUS.md` and `docs/implementation/12-ai-profiles-settings.md`.
+
 ## Currently In Progress
-Nothing. Prompts 00–11 are `COMPLETE`. The next prompt is **12 — AI profiles and settings** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
+Nothing. Prompts 00–12 are `COMPLETE`. The next prompt is **13 — Battlefield foundation** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
 
 Any agent entering the repository must first reconcile this statement with the latest `prompts/STATUS.md` and Git state.
 
@@ -148,7 +158,7 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 ## Workflow Compatibility
 OpenMana predates the generic Dropzone `queue → active → completed` lifecycle and is worked through **its own numbered ledger**, one prompt at a time.
 
-Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 11 complete, 12 next, nothing in progress).
+Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 12 complete, 13 next, nothing in progress).
 
 Dropzone Master/Standalone must respect:
 - `prompts/STATUS.md` statuses,

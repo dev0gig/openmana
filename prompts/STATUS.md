@@ -28,9 +28,9 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | **12 — AI profiles and settings** |
-| Nächster Prompt | 13 — Battlefield foundation (erst nach 12 = COMPLETE) |
-| Zuletzt abgeschlossen | 11 — Game session foundation (`679fbfb`) |
+| Aktuell ausgeführt | – (keiner; nach 12 wie in `naechster-schritt.md` vorgesehen gestoppt) |
+| Nächster Prompt | **13 — Battlefield foundation** (PENDING, nicht begonnen) |
+| Zuletzt abgeschlossen | 12 — AI profiles and settings (`e618079`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-25 (Lauf über `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-25 |
 
@@ -50,7 +50,7 @@
 | 09 | [Arena deck import](queue/09-arena-deck-import.md) | COMPLETE | `c7bb533` |
 | 10 | [Deck library](queue/10-deck-library.md) | COMPLETE | `7aab76f` |
 | 11 | [Game session foundation](queue/11-game-session.md) | COMPLETE | `679fbfb` |
-| 12 | [AI profiles and settings](queue/12-ai-profiles-settings.md) | IN_PROGRESS | – |
+| 12 | [AI profiles and settings](queue/12-ai-profiles-settings.md) | COMPLETE | `e618079` |
 | 13 | [Battlefield foundation](queue/13-battlefield-foundation.md) | PENDING | – |
 | 14 | [Cards, hand and safe interaction](queue/14-card-hand-interactions.md) | PENDING | – |
 | 15 | [Forge decision UI](queue/15-forge-decisions.md) | PENDING | – |
@@ -1182,10 +1182,132 @@
 - **Weiter mit:** Prompt 12 (AI profiles and settings). Nicht begonnen:
   `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
 
-### 12 — AI profiles and settings — IN_PROGRESS
+### 12 — AI profiles and settings — COMPLETE
 
-- Begonnen am 2026-09-25 von Claude Code (Claude Opus 5.5), Auftrag
-  „Führe prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
+- **Commits:** `e618079` Implementierung (Engine aus diesem Commit gebaut,
+  `engineSourcesModified=false`; alle Nachweise liefen auf diesem Stand,
+  sauberer Arbeitsbaum), danach Doku und dieser Eintrag (2026-09-25).
+  Agent: Claude Code (Claude Opus 5.5), Auftrag „Führe
+  prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
+  Status-Commit zu Beginn: `bc44993`.
+- **Zusammenfassung:** Die **KI-Profile** der gepinnten Engine sind geprüft
+  und wählbar: „Standard“ (Default, Vorgabe), „Vorsichtig“ (Cautious),
+  „Waghalsig“ (Reckless), „Experimentell“ (Experimental) und „Zufällig“ (die
+  App zieht je Partie eines). **Geprüft** auf zwei Wegen
+  (`docs/research/AI_PROFILES.md`): die 80 von 121 Werten, die sich
+  unterscheiden, samt der Forge-Stellen, die sie lesen (welche in OpenMana
+  wirken, welche nie), und **2 400 Partien Forge-KI gegen Forge-KI**
+  (Spiegelpartien mit drei Decks, beide Sitzreihenfolgen je Seed, Default
+  gegen Default als Kontrolle): **kein Profil messbar stärker oder
+  schwächer** (Siegquote gegen Default 47,5 / 48,2 / 52,5 %, jedes
+  95-%-Intervall enthält 50 %, gepaarter Vorzeichentest p = 0,067 / 0,161 /
+  0,082), aber deutliche **Stilunterschiede** (Waghalsig bis +26 %
+  angreifende Kreaturen je Zug, weniger Blocks, +12 % Konter; Vorsichtig
+  seltener Konter). Deshalb **keine Schwierigkeitsstufen**: deutsche Namen
+  übersetzen Forges, Beschreibungen nennen nur belegte Unterschiede, jede
+  Profilwahl sagt „Forge kennt keine Schwierigkeitsstufen …“. Die Wahl ist
+  eine **Einstellung** (Einstellungen → Gegner; Dialog „Ändern“ auf der
+  Spielen-Seite), nie ein Schritt vor dem Start; die laufende Partie zeigt
+  das Profil, das Forge bestätigt. **Kartensprache** „Deutsch“ (Vorgabe,
+  englisch wo es nichts Deutsches gibt) oder „Englisch“ – für jede
+  Kartenanzeige der App **und** die Karten in Forges Texten (neues
+  Start-Argument `--card-language`; Forges Sätze bleiben deutsch); eine
+  vorgewärmte Engine der alten Sprache wird ersetzt. **Weniger Bewegung**:
+  alle Animationen stoppen, wenn Gerät oder Spieler es wünschen.
+  **Versions-Diagnose**: Forge-Version (2.0.15) in „Über OpenMana“,
+  Diagnosebericht aller Versionen zum Kopieren (nichts wird gesendet). Engine:
+  **Protokoll 4** (`BootReport.cardLanguage`, `.aiProfiles`), ein
+  unbekanntes Profil wird abgelehnt statt still mit Forges Vorgabewerten
+  gespielt; der Build bricht ab, wenn die Profildateien der Engine nicht die
+  geprüften sind. Kein Blocker.
+- **Wichtige Komponenten:**
+  - Engine: `ForgeEngine` (`--card-language`: Kartenübersetzung nach
+    `FModel.initialize` nachgeladen; `aiProfiles()` sortiert), `EngineBoot`
+    (Boot-Bericht), `HumanMatch` (unbekanntes Profil → `InvalidRequest` vor
+    jeder Nachricht), `WasmMain` (Argument, alle Boot-Felder in
+    `engine.ready`), Schema Version 4, `jvm/AiProfileStudy` +
+    `JvmAiProfileStudyMain` + `scripts/ai-profile-study.sh` +
+    `ai-profile-summary.mjs` (Studie, nur JVM), `prepare-forge.sh`/
+    `write-manifest.mjs` (`forge.versionCode`), `test-engine.sh` (Varianten
+    Deutsch mit englischen Karten), Fixtures `human-3-de-cards-en`,
+    `ai-profile-study.json`, `decks/study-*.json`
+  - App: `src/game/ai-profile-table.ts` (geprüfte Profile mit SHA-256),
+    `ai-profiles.ts` (Einstellung, Auflösung, Zufall),
+    `ai-profile-options.tsx` (Auswahl, Dialog), `match-setup.ts`/
+    `game-start.ts` (Profil an Forge, Startsperre bei fehlendem Profil);
+    `src/app/preferences.tsx` (liest und wendet an), `motion.ts`,
+    `motion-options.tsx`, `diagnostics.ts`, `diagnostics-dialog.tsx`;
+    `src/cards/card-language.ts`, `card-language-options.tsx`,
+    `card-display.ts` (`language`), `src/decks/deck-view.ts`;
+    `src/engine/engine-session.ts` (`EngineBootOptions`, `setBootOptions`,
+    `engineArgs`); `src/routes/settings-page.tsx`; `src/index.css`
+    (`@custom-variant motion-reduce`), `motion-reduce:` in 16
+    shadcn-Bausteinen, `Switch` neu; `vite/engine-assets.ts`
+    (Profilprüfung, `forgeVersionCode`)
+  - Doku: `docs/research/AI_PROFILES.md`,
+    `docs/implementation/12-ai-profiles-settings.md`, `AGENTS.md`
+    (Preferences Rules), `docs/DESIGN_SYSTEM.md` (Regeln 3, 8, Inventar),
+    Bible §7, `engine/README.md`, `engine/protocol/README.md`,
+    `engine/fixtures/README.md`, `README.md`, `STATUS.md`
+- **Tests (alle bestanden, auf `e618079`):**
+  - Erzeugte Dateien = Schemas (App und Protokoll), `tsc -b`, `oxlint` ohne
+    Befund.
+  - **510 Vitest-Tests** (468 bestehende + 42 neue): Profile 5, Bewegung 3,
+    Diagnose 4, Einstellungs-Provider 4, Einstellungsseite 7, Sitzung +4
+    (Kartensprache: Boot, warme Engine ersetzt, Partie behält ihre, ruhende
+    startet nicht), Spielen-Seite +4 (Profil gezeigt und an Forge, Dialog,
+    Zufall, fehlendes Profil sperrt), Partie-Plan +2, Start-Knopf +1,
+    Kartenanzeige +3 (Englisch), Deckbibliothek +1 (Englisch), Engine-Assets
+    +4 (Profilprüfung im Build); angepasst: Texte, Engine-Kasten.
+  - **Engine:** `build.sh` aus `e618079` (368 s, `engineSourcesModified=false`):
+    **56 JVM-Tests** (51 + 5 `AiProfilesTest`: Profile gemeldet, Bericht =
+    Schema, eigene Werte je Profil, unbekanntes abgelehnt bevor etwas
+    gesendet ist, kein Schummeln), 80 TypeScript-Tests.
+    `test-engine.sh` (17,4 min): **69 Läufe, 0 Fehler** – neu die
+    Kartenprüfung „Deutsch mit englischen Karten“ auf JVM, Node und Chrome
+    (gleicher Fingerabdruck; Meldungen deutsch, Kartennamen englisch) und die
+    Testpartie `human-3-de-cards-en` (dieselbe Engine-Spur wie `human-3`).
+  - **End-to-End** (`npm run check` 405 s, Chrome 153, echte Engine
+    `42f3bf1c7706cec5`, echter Katalog, echte Scryfall-API, **0 Fehler**, axe
+    ohne Befund): alle bisherigen Abschnitte plus Abschnitt 11: Profil und
+    Englisch sofort gespeichert; Deckliste englisch („Valki, God of Lies“);
+    Engine bootet mit „Karten in Forges Texten: Englisch“ und meldet die vier
+    Profile; Partie zeigt „Waghalsig“ als Forges Bestätigung; zurück auf
+    Deutsch ersetzt die vorgewärmte Engine; „Zufällig“ zog „Experimentell“;
+    nie zwei Engines zugleich; Dialog-Animation `enter` → mit Schalter `none`,
+    ebenso auf einem Gerät mit `prefers-reduced-motion`; Diagnose vollständig
+    und kopiert; Handy: alle Auswahlzeilen ≥ 44 px, kein Überlauf.
+  - **KI-Profil-Studie** (`engine/scripts/ai-profile-study.sh`, JVM-Build vor
+    dem Commit: derselbe Forge-Stand, dieselben Patches und Profildateien; die
+    Bridge-Änderungen danach berühren KI-gegen-KI-Partien nicht): 2 400
+    Partien, 0 gescheitert, 0 Forge-Fehler, keine abgelaufene Zeitgrenze;
+    Ergebnisse in `docs/research/AI_PROFILES.md`.
+- **Messwerte (odin):** Engine-Build 368 s; Wasm-Modul 79,1 MB (+112 KB),
+  Brotli 12,5 MB (+44 KB). Start-JavaScript (Skripte und Modulvorladungen der
+  `index.html`, gzip, beide Stände gleich gebaut) 221,4 → **228,9 KB**
+  (+7,5 KB). Vorwärmen 5,9 s, Start nach dem Vorwärmen 0,82–0,86 s,
+  Engine-Start mit englischen Karten 5,7 s (gleich). Studie: im Mittel 2,2 s
+  je Partie, 88 CPU-Minuten auf 4 JVMs (~26 min neben anderen Sitzungen).
+- **Erkenntnisse/Abweichungen:**
+  - **Forge spielt einen unbekannten Profilnamen still** mit den eingebauten
+    `AiProps`-Werten (keinem Profil gleich) – daher die Ablehnung in der
+    Bridge und `boot.aiProfiles`.
+  - **Einige Profilwerte wirken in OpenMana nie** (Sideboarding bei einem
+    Spiel je Match, Varianten, Werte hinter Schaltern, die in allen Profilen
+    gleich stehen); „Vorsichtig“ lässt sogar eine Angriffs-Zusatzprüfung weg –
+    die App behauptet nur, was wirkt.
+  - **Kartensprache getrennt von Forges Sprache:** Forge kennt nur
+    `UI_LANGUAGE` für beides; die Engine lädt die zweite Kartenübersetzung
+    nach dem Start nach. Beleg, dass nur Wörter sich ändern: gleiche
+    Engine-Spur und gleicher Kartenprüf-Fingerabdruck.
+  - **Der Engine-Build löscht `engine/build/report`** – die Studie vor
+    einem Build sichern (ist hier passiert, rechtzeitig gesichert).
+  - Bewusst: keine Schwierigkeitswörter; „Zufällig“ zieht die App; Lade-
+    Kreisel drehen auch bei weniger Bewegung; die Studie gehört nicht zu
+    `test-engine.sh` (25 min), wird aber bei geänderten Profildateien vom
+    Build erzwungen.
+- **Weiter mit:** Prompt 13 (Battlefield foundation). Nicht begonnen:
+  `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
 
 ## Hinweise für spätere Prompts
 
@@ -1219,6 +1341,33 @@ Seit Prompt 11 läuft eine Partie über die eine `EngineSession`
   Satzbruchstücke – eine Legalitätsanzeige braucht strukturierte oder
   übersetzte Befunde (upstream). Arenas Brawl-Decks spielt Forge als Commander
   (das Protokoll kennt kein Brawl).
+
+### Einstellungen, KI-Profile, Kartensprache, Bewegung (Stand 2026-09-25, für 13 ff.)
+
+Seit Prompt 12 (`docs/implementation/12-ai-profiles-settings.md`):
+
+- **13–20 (Spieltisch):** Jede Karte des Spieltischs zeigt der Katalog in der
+  Kartensprache des Spielers: `cardDisplay(card, { language:
+  usePreferences().cardLanguage })`, nie eine eigene Sprachlogik. Forges
+  eigene Kartentexte (`VisibleCard.name/typeLine/text`) kommen schon in der
+  Kartensprache (`--card-language`), Forges Sätze deutsch.
+- **Bewegung:** Eigene Animationen des Spieltischs (Karten ziehen, Angriff,
+  Stapel) fragen `useDeviceReducedMotion()`/`reducedMotion()` mit
+  `usePreferences().motion` (`src/app/motion.ts`); CSS-Animationen nur über
+  shadcn-Bausteine mit `motion-reduce:…!` (ein Test prüft
+  `src/components/ui`). Ein neuer shadcn-Baustein braucht die Klassen samt
+  Kommentar.
+- **KI-Profil:** `game.started.aiProfile` ist Forges Bestätigung (die
+  Partie zeigt sie beim Gegner); `MatchSetup.ai.profileDrawn` sagt, ob
+  gezogen – beides für die Aufzeichnung (22). Ein Forge-Update, das eine
+  Profildatei ändert, stoppt den Build (`vite/engine-assets.ts`): Studie
+  `engine/scripts/ai-profile-study.sh` neu laufen lassen (~25 min),
+  `src/game/ai-profile-table.ts` und `docs/research/AI_PROFILES.md`
+  nachziehen (26).
+- **Diagnose:** `src/app/diagnostics.ts` ist der Ort für weitere
+  Versionsangaben (Service Worker/Cache ab 25, Auslieferung ab 31).
+- ⚠️ `engine/scripts/build.sh` löscht `engine/build/report` – Ergebnisse der
+  Studie vorher sichern.
 
 ### Vercel und Android (Stand 2026-09-25, für 28 und 31)
 

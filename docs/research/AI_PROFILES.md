@@ -141,7 +141,10 @@ Schummeln. Die Wasm-Engine spielt bei gleichem Seed dieselben Partien (Prompt
   das Profil beide Partien gewann, gegen Seeds, in denen es beide verlor;
   geteilte Seeds entscheidet der Sitz, nicht das Profil).
 
-**Lauf:** 2 400 Partien, 0 gescheitert, 0 Forge-Fehler, keine abgelaufene
+**Lauf** (JVM-Build des Arbeitsstands vor `e618079`: derselbe Forge-Stand,
+dieselben Patches und Profildateien wie die ausgelieferte Engine; deren
+spätere Bridge-Änderungen – Profilprüfung, Kartensprache – berühren
+KI-gegen-KI-Partien nicht): 2 400 Partien, 0 gescheitert, 0 Forge-Fehler, keine abgelaufene
 Zeitgrenze (`AvailableActions: heuristic timed out` kam nicht vor); im Mittel
 2,2 s je Partie, 88 CPU-Minuten auf 4 JVMs (~26 min Wandzeit neben anderen
 Sitzungen). Forge schrieb bei den roten Karten ~3 400-mal seinen eigenen
