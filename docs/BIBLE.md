@@ -128,6 +128,10 @@ Resolve cards to stable identities and convert them to the representation Forge 
 
 The implemented import (format, how a line becomes a card, the report and what is saved) is described in [implementation/09-arena-deck-import.md](implementation/09-arena-deck-import.md).
 
+### Library
+
+The implemented deck library (list, search, details, rename, duplicate, delete, import again, export, German/English status) and the choice of the player's and the AI's deck for a game (including a random AI deck) are described in [implementation/10-deck-library.md](implementation/10-deck-library.md).
+
 ### IndexedDB
 
 Decks are local-first and stored in IndexedDB, not localStorage.

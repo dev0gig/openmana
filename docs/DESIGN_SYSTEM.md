@@ -51,9 +51,12 @@ files work under COEP and nothing leaks to third parties (Bible §15).
    theme tokens only. Example: `bottom-nav.tsx` (shadcn has no bottom tab bar).
 3. **Changes to shadcn components are deliberate and few** – and apply
    everywhere, never per page. Current changes (each commented in place):
-   touch sizes (rule 5), German screen-reader strings, the dark-only toaster
+   touch sizes (rule 5; since prompt 10 also menu entries, select triggers
+   and options, toggles), German screen-reader strings, the dark-only toaster
    without `next-themes`, a dialog that scrolls inside the screen instead of
-   running off it (`DialogContent`: `max-h` + `overflow-y-auto`, prompt 07).
+   running off it (`DialogContent`: `max-h` + `overflow-y-auto`, prompt 07),
+   `DropdownMenuCheckboxItem` passing `checked` through its props (TypeScript's
+   `exactOptionalPropertyTypes`, prompt 10).
 4. **Honest states.** No sample data, no simulated engine, no pretend
    features. Empty states use `Empty`; an action that is not possible yet
    stays visible but disabled and says why (`aria-describedby`); failures
@@ -64,13 +67,18 @@ files work under COEP and nothing leaks to third parties (Bible §15).
    Irreversible actions (deleting, replacing, resetting data) are confirmed
    in an `AlertDialog` whose destructive button says what happens
    ("Endgültig entfernen", "Lokale Daten ersetzen").
-5. **Touch first.** On coarse pointers (`pointer-coarse:`) buttons and
-   sidebar entries grow to at least 44 px (default `h-11`, `lg` `h-12`,
-   icons `size-11`); the phone's tab bar gives each destination a 64 px
-   high, full-width target. Mouse layouts stay compact.
+5. **Touch first.** On coarse pointers (`pointer-coarse:`) buttons, sidebar
+   entries, menu entries, select triggers and options and toggles grow to at
+   least 44 px (default `h-11`, `lg` `h-12`, icons `size-11`, menu entries
+   `min-h-11`); the phone's tab bar gives each destination a 64 px high,
+   full-width target. Mouse layouts stay compact. A page's primary action
+   stays on screen on phones: an `ActionBar` right above the tab bar (Anvil
+   lesson, Bible §16), the page header from `md`.
 6. **Accessible by default** (Bible §17). Text on every surface reaches WCAG
    2.2 AA 4.5:1 (checked from the tokens by `src/app/design-tokens.test.ts`;
-   most pairs are above 7:1). Focus is a gold ring. Links in running text are
+   most pairs are above 7:1), and so does destructive text on its own 20 %
+   tint (the confirm buttons of dialogs, destructive badges – checked since
+   prompt 10, which raised `--destructive` from L 0.71 to 0.74 for it). Focus is a gold ring. Links in running text are
    always underlined (`TextLink`), not told apart by colour alone. Every page
    has one `h1`, regions have names, icons are `aria-hidden` next to text.
    The end-to-end test runs axe-core on every surface at three sizes and
@@ -102,6 +110,8 @@ not turn into one endless vertical page (Bible §6).
 | `Dialog`, `AlertDialog`, `RadioGroup`, `Field` (+ `Label` it needs) | shadcn/ui registry (`radix-maia`, prompt 07) | the backup import (dialog with choice cards: `RadioGroup` items inside `FieldLabel`, named by `aria-labelledby`), confirmations of irreversible actions |
 | `AspectRatio`, `Progress` | shadcn/ui registry (`radix-maia`, prompt 08) | card proportions; installing the card catalog |
 | `Textarea` | shadcn/ui registry (`radix-maia`, prompt 09) | pasting a deck list (grows with its content up to `max-h-96`, then scrolls) |
+| `DropdownMenu`, `Select`, `ToggleGroup` (+ `Toggle` it needs) | shadcn/ui registry (`radix-maia`, prompt 10) | a deck's actions (menu „Mehr“, not modal so a dialog opened from it gets the focus), sorting and the format filter of the deck library |
+| `ActionBar` | `src/components/ui/action-bar.tsx`, built the shadcn way (prompt 10) | a page's primary action on phones: sticky right above the tab bar (`bottom-16`), at the end of the content column; pages render it only below `md` (`useIsMobile`) and put the same actions into the header above |
 | `CardPicture` | `src/components/ui/card-picture.tsx`, built the shadcn way (prompt 08) | every picture of a Magic card: `AspectRatio` 63 × 88, `Skeleton` while loading, the card's text in place of a missing or failed picture (`data-state` loading/loaded/failed/missing); loads Scryfall's pictures in CORS mode without referrer and never crops them (`object-contain`: Scryfall forbids cutting off artist or copyright) |
 | `BottomNav`, `BottomNavItem` | `src/components/ui/bottom-nav.tsx`, built the shadcn way | phone tab bar |
 | `Brand` | `src/components/brand.tsx` | icon + Cinzel wordmark |

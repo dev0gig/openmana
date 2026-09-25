@@ -29,6 +29,12 @@ About 45 s on odin. Inputs:
   (`engine/forge`, must be unmodified), so catalog and engine know the same
   cards. The Vite build refuses a catalog matched against another Forge
   commit than the engine's.
+- The local data schema version (`src/storage/schema/local-data.schema.json`):
+  the catalog's lines are records of it, and its header names the version.
+  Any schema change - also one that only touches decks, like prompt 10's
+  companion (version 3) - needs the catalog rebuilt (`--offline` is enough);
+  the Vite build says so. A browser with an older catalog keeps using it
+  ("veraltet") until the player updates it.
 - [`forge-unmatched.json`](forge-unmatched.json): Forge cards that have no
   Scryfall card, each with the reason.
 

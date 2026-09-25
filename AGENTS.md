@@ -60,6 +60,13 @@ Arena deck lists are imported through `src/decks/` (prompt 09, `docs/implementat
 - `deck-resolve.ts` resolves a line through the card catalog first (ranked: own/Forge name, front face, later face, alias, printed German name); Scryfall's API only for lines the catalog cannot decide that name a printing. Never guess: several playable cards of one name are the printed line's or the player's decision. A deck entry's `name` is the name Forge knows (`CardRecord.forgeNames` / Forge-only cards); set codes are stored as Scryfall's.
 - `deck-plan.ts` decides what is saved: nothing is saved while a line is open (corrected, chosen or explicitly left out), the list is kept unchanged in `source.text`, the companion goes into the sideboard (Forge looks for it there), a commander makes it `commander`. No legality checks (deck size, copies, colour identity, bans): Forge decides.
 
+## Deck Library Rules
+The library and the deck choice for a game are `src/decks/` (prompt 10, `docs/implementation/10-deck-library.md`):
+- Change decks only through `src/storage/decks.ts` (`renameDeck`, `duplicateDeck`, `replaceDeck`, `deleteDeck`): read and write in one transaction, so a deck deleted meanwhile is never brought back (`not-found`) and a damaged one never overwritten. Renaming and duplicating keep the imported list (`source`); only importing the list again replaces it, confirmed.
+- `deck-view.ts` is how a saved deck is shown (card per entry, German/English status, cover card, which picture): by Oracle id and Forge name, never by parsing names or texts; without catalog data the name Forge knows, marked, never a guessed card. Scryfall's API only for printings the catalog lacks (`named-prints.ts` through the one client).
+- The deck choice is two settings, `play.humanDeck` and `play.aiDeck` (`deck-selection.ts`). Both decks share the player's format (Forge plays one `MatchRequest.format`); a random AI deck is drawn when a game starts (`drawAiDeck`) from the valid decks of that format other than the player's own. A choice that stopped fitting is shown, never silently replaced.
+- A phone page's primary action lives in an `ActionBar` above the tab bar; the export keeps the imported list available unchanged.
+
 ## Queue and Execution
 OpenMana currently has its own detailed queue ledger at `prompts/STATUS.md`. It remains authoritative while the numbered 00–32 implementation program is running.
 

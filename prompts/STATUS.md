@@ -28,9 +28,9 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | **10 — Deck library** |
-| Nächster Prompt | 11 — Game session foundation (erst nach 10 = COMPLETE) |
-| Zuletzt abgeschlossen | 09 — Arena deck import (`c7bb533`) |
+| Aktuell ausgeführt | – (keiner; nach 10 wie in `naechster-schritt.md` vorgesehen gestoppt) |
+| Nächster Prompt | **11 — Game session foundation** (PENDING, nicht begonnen) |
+| Zuletzt abgeschlossen | 10 — Deck library (`7aab76f`, Nachweise auf `58aaa58`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-25 (Lauf über `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-25 |
 
@@ -48,7 +48,7 @@
 | 07 | [IndexedDB local data layer](queue/07-indexeddb-storage.md) | COMPLETE | `c9ee901` |
 | 08 | [Scryfall card data](queue/08-scryfall-data.md) | COMPLETE | `45f57d7` |
 | 09 | [Arena deck import](queue/09-arena-deck-import.md) | COMPLETE | `c7bb533` |
-| 10 | [Deck library](queue/10-deck-library.md) | IN_PROGRESS | – |
+| 10 | [Deck library](queue/10-deck-library.md) | COMPLETE | `7aab76f` |
 | 11 | [Game session foundation](queue/11-game-session.md) | PENDING | – |
 | 12 | [AI profiles and settings](queue/12-ai-profiles-settings.md) | PENDING | – |
 | 13 | [Battlefield foundation](queue/13-battlefield-foundation.md) | PENDING | – |
@@ -955,12 +955,133 @@
 - **Weiter mit:** Prompt 10 (Deck library). Nicht begonnen:
   `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
 
-### 10 — Deck library — IN_PROGRESS
+### 10 — Deck library — COMPLETE
 
-- Begonnen am 2026-09-25 von Claude Code (Claude Opus 5.5), Auftrag
-  „Führe prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
+- **Commits:** `7aab76f` Implementierung, `c2f2084` (Texte des Imports wieder
+  nur mit der Import-Seite geladen), `58aaa58` (zeitabhängiger Test aus 08
+  behoben); alle Nachweise liefen auf `58aaa58` (sauberer Arbeitsbaum, die App
+  meldet keine lokalen Änderungen), danach Doku und dieser Eintrag
+  (2026-09-25). Agent: Claude Code (Claude Opus 5.5), Auftrag „Führe
+  prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
+  Status-Commit zu Beginn: `9dfd76f`.
+- **Zusammenfassung:** Die importierten Decks bilden eine **Bibliothek** auf
+  dem Gerät. **Liste** (`/decks`): Titelkarte, Format, Kartenzahlen,
+  Kommandeur, Gefährte, wie viele Karten nicht ganz deutsch sind; **Suche**
+  nach Deckname oder irgendeinem Kartennamen darin (deutsch, englisch,
+  Kartenseite, Forges Name), **Formatfilter**, **Sortierung** (Name, zuletzt
+  geändert, zuletzt angelegt) – in der Adresse. **Details** (`/decks/:id`,
+  nachgeladen): Kommandeur, Gefährte, Hauptdeck, Sideboard Karte für Karte,
+  Überblick, **Kartensprache** (deutsch / teilweise englisch / englisch / nur
+  Forge / ohne Kartendaten), volle Kartenansicht; die **genannten Drucke**, die
+  der Katalog nicht hat, einmal bei Scryfall (deutsch, wo es sie deutsch gibt).
+  **Aktionen:** spielen, umbenennen, duplizieren, **exportieren** (Arena-Liste
+  mit Forges Namen – wieder importierbar ohne offene Zeile und ohne
+  Scryfall-Anfrage – oder die importierte Liste unverändert; Zwischenablage
+  oder Textdatei), **erneut importieren** (gespeicherte Liste und Name,
+  frühere Wahl mehrdeutiger Namen bleibt, Ersetzen bestätigt, Id und Anlage
+  bleiben), als Deck der KI wählen, **löschen** (bestätigt). Am Handy steht die
+  Hauptaktion in einer festen Leiste über der Tab-Leiste. **Deckwahl**
+  (`/play`): dein Deck und das Deck der KI – eines deiner Decks im gleichen
+  Format oder **zufällig** (für jede Partie neu gezogen, nie dein eigenes);
+  gespeichert; was nicht passt, wird gesagt, nie ersetzt. Die importierte Liste
+  bleibt beim Deck. Neu gespeichert: der **Gefährte** (Schema-Version 3). Kein
+  Blocker.
+- **Wichtige Komponenten:**
+  - Bibliothek: `src/decks/deck-view.ts` (Karte je Eintrag, Sprache,
+    Titelkarte, `pictureOf`, `needsNamedPrint`, `readLibrary`), `library.ts`
+    (Suche/Filter/Sortierung, Adresse), `library-labels.ts`,
+    `arena-export.ts`, `named-prints.ts`, `catalog-hint.tsx`
+  - Oberfläche: `src/routes/decks-page.tsx` (Liste), `deck-details-page.tsx`,
+    `deck-actions.tsx`, `deck-dialogs.tsx` (Umbenennen, Löschen, Exportieren),
+    `deck-update-page.tsx` (`/decks/:id/import`), Import-Seite mit Modus
+    „Deck neu importieren“, `deck-picker-dialog.tsx`, `src/routes/play-page.tsx`
+  - Deckwahl: `src/decks/deck-selection.ts` (Einstellungen `play.humanDeck`,
+    `play.aiDeck`; `resolveSelection`, `randomPool`, `drawAiDeck`)
+  - Speicher: `src/storage/decks.ts` (`getDeck`, `renameDeck`,
+    `duplicateDeck`, `replaceDeck`, `deleteDeck` – je eine Transaktion),
+    Fehlercode `not-found`; Schema-Version **3** (`DeckRecord.companion`,
+    Migration 3 ohne Umbau), Resolver-Option `previous`
+  - UI-Bausteine: shadcn `DropdownMenu`, `Select`, `ToggleGroup` (+ `Toggle`)
+    aus der Registry (Touch-Größen), `ActionBar` (shadcn-Bauweise);
+    `--destructive` L 0,71 → 0,74 (Kontrast der Bestätigungsknöpfe)
+  - `src/cards/print-key.ts` (Scryfall-Code lädt wieder erst bei Bedarf),
+    `src/test/deck-fixtures.ts`, E2E-Abschnitt 9 in `scripts/e2e/run.ts`
+  - Doku: `docs/implementation/10-deck-library.md`, `AGENTS.md` (Regeln der
+    Bibliothek), `docs/DESIGN_SYSTEM.md`, Bible §5, `cards/README.md`
+    (Schema ↔ Katalog), `README.md`, `STATUS.md`
+- **Tests (alle bestanden, auf `58aaa58`):**
+  - Erzeugte Dateien = Schemas, `tsc -b`, `oxlint` ohne Befund.
+  - **418 Vitest-Tests** (352 bestehende + 66 neue): Speicher 9, Ansicht 10,
+    Bibliothek 7, Export 7 (inkl. Rundreise Export → Import), Deckwahl 9,
+    Oberfläche 16, Resolver +3, Deck-Plan +1, Migration 2 → 3 +1,
+    Design-Tokens +3.
+  - **End-to-End** (`npm run check` 364 s, Chrome 153, echte Engine
+    `0c82db80023ac0cc`, echter Katalog `4647d01ae90b1c6a`, 0 Fehler, axe ohne
+    Befund): alle bisherigen Prüfungen plus Abschnitt 9 – Liste (Suche
+    „Zwang“ findet das deutsche Deck, bleibt nach Neuladen, Format, Sortierung
+    in der Adresse), Details (12 Kartenbilder geladen, 0 fehlerhaft;
+    genannte Drucke: 1× `/cards/collection` + 4 deutsche Fassungen, 1× 404 =
+    „gibt es nicht“), Kartenansicht, Umbenennen, Export (Zwischenablage,
+    zwei echte Downloads, exportierte Liste erneut importiert = dasselbe Deck,
+    0 Scryfall-Anfragen), Duplizieren, erneuter Import („Zwang“ wie bisher, eine
+    Zeile weggelassen, Ersetzen bestätigt, gleiche Id/Anlage, 0
+    Scryfall-Anfragen), Löschen, Deckwahl (Zufall aus 2 Decks, Commander
+    gesperrt, Spiegelpartie, nach Neuladen gespeichert), Handy mit Touch
+    (Aktionsleiste direkt über der Tab-Leiste, Knöpfe 48 px, Menüeinträge
+    44 px, kein Überlauf); danach **alle vier Decks in der echten Engine**
+    (auch das erneut importierte): kein „deck-rejected“, Partie mit genau den
+    Karten, Aufgabe beendet sie.
+  - Engine unverändert: erzeugte Protokolldateien = Schema, `tsc`, **80/80**.
+    Frischer Klon von `58aaa58`: `npm ci`, Build ohne Engine scheitert laut,
+    mit `OPENMANA_ENGINE=omit OPENMANA_CARDS=omit` baut er, 418 Tests grün.
+- **Messwerte (odin):** Start-JavaScript 207,7 → **221,7 KB gzip** (App-Code
+  108,4 → 122,4 KB: Liste mit Suche/Filter/Sortierung, Deckwahl; davon Radix
+  `Select` ~5,9 KB); nachgeladen: Deck-Details 11,3 KB, „Deck neu
+  importieren“ 1,0 KB, Import-Seite 11,2 KB gzip. Katalog nach dem
+  Schemawechsel neu gebaut (64 s offline, gleiche Zahlen). Prüfen der
+  exportierten Liste im E2E 74 ms, erneuter Import 88 ms; genannte Drucke des
+  E2E-Decks: 6 von 11 trägt der Katalog, 1 ist nur bei Forge, 4 kosten 1
+  Sammelanfrage + 4 deutsche Fassungen (einmal je 30 Tage).
+- **Erkenntnisse/Abweichungen:**
+  - **Behoben, vom E2E gefunden:** der rote Bestätigungsknopf erreichte im
+    Dialog nur 4,43:1 (betraf auch „Lokale Daten zurücksetzen“ aus 07, dort nie
+    per axe geprüft) → `--destructive` heller, neuer Token-Test; ein Dialog
+    verlor beim Schließen seinen Titel (axe: Dialog ohne Namen) → Anzeige bleibt
+    bis zum Ende der Animation; statische Importe von `prints.ts` (seit 09)
+    verhinderten das Nachladen des Scryfall-Codes → `print-key.ts`.
+  - **Schemawechsel = Katalog neu bauen:** Die Katalogzeilen tragen die
+    Schema-Version (08); auch ein Wechsel nur an Decks verlangt
+    `npm run cards:build -- --offline` (in `cards/README.md` festgehalten).
+  - **Bewusste Entscheidungen:** Gefährte als optionales Feld (keine Umwandlung
+    gespeicherter Decks); Zufall ohne eigenes Deck, gezogen beim Start jeder
+    Partie (`drawAiDeck`, benutzt ab 11); Bild: genannter Druck deutsch, sonst
+    deutsches Kartenbild vor englischem Druck (Bible §4); erneuter Import
+    ersetzt die gespeicherte Liste (bestätigt), keine Listen-Historie; Menü
+    nicht modal; Deckwahl als Einstellung; Startseite „Gegner wählen“ vorhanden
+    (KI-Profil folgt mit 12).
+  - Testumgebung: Wartezeit von Testing Library global 5 s (nachgeladene
+    Seiten brauchten unter Last > 1 s); ein zeitabhängiger Test aus 08 wartet
+    jetzt auf sein Abzeichen.
+- **Weiter mit:** Prompt 11 (Game session foundation). Nicht begonnen:
+  `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
 
 ## Hinweise für spätere Prompts
+
+### Decks für die Partie (Stand 2026-09-25, für 11)
+
+- Die Wahl steht in den Einstellungen `play.humanDeck` und `play.aiDeck`
+  (`src/decks/deck-selection.ts`: `readSelection` + `resolveSelection` sagen,
+  ob beide Decks stehen und warum nicht). Bei `ai.status === "random"` zieht
+  `drawAiDeck(pool)` das Deck der KI **beim Start** (neu je Partie; der Pool
+  enthält nie das Deck des Spielers). Das Format der Partie ist das des
+  Spieler-Decks.
+- An Forge geht ein `DeckRecord` als Protokoll-`Deck`: `name`, `main`,
+  `sideboard`, `commander` mit `{card: entry.name, count}`. Der Gefährte steht
+  schon im Sideboard – `DeckRecord.companion` nicht zusätzlich übergeben.
+- Für die Partie aufgezeichnet wird eine Kopie des Decks (`MatchDeck`), weil
+  sich das Bibliotheks-Deck danach ändern oder verschwinden kann.
+- Offen aus 05/09: Forge prüft Decks beim Start nicht (Vorschlag: Forges
+  `DeckFormat.getDeckConformanceProblem` über die Engine abfragen und zeigen).
 
 ### Vercel und Android (Stand 2026-09-25, für 28 und 31)
 

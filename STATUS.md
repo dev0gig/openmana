@@ -92,8 +92,17 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - UI: report (state, counts, notes), "Zu klären" (line number, text, reason, choose / leave out / take back), save with a name (prefilled from About/Name), the deck per section with German names and Forge names; the card data can be set up right on the import page.
 - Evidence: 352 Vitest tests (54 new: parser, resolution, plan, page), end to end in Chrome with the real catalog and Scryfall's real API (English, German with a choice, a printing deciding and a French name identified through Scryfall, a card Forge lacks left out, a Commander list from a file, reload, IndexedDB records, phone, axe-core) - and every imported deck handed to the real Forge engine starts a game with exactly its cards. Details: `docs/implementation/09-arena-deck-import.md`.
 
+### Deck Library (Prompt 10)
+- `/decks`: every deck with cover card (commander, else the main-deck card of the highest mana value), format, counts, commander, companion, how many cards are not entirely German, date; search by deck name or any card name (English, German, faces, Forge's name, through the catalog's name keys), format filter, sort by name/last changed/last created - kept in the address (`?q=…&format=…&sort=…`).
+- `/decks/:id` (loaded on demand): parts card by card (commander, companion, main, sideboard) with German name, Forge's name, the named printing and a language badge; overview; language status (distinct cards: German, partly English, English, Forge only, no card data); every card opens its full view. Printings the list named that the catalog lacks are asked of Scryfall once through the shared client (`named-prints.ts`, 30 days kept); picture rule: the named printing in German, else the card's German picture, else the named printing, else the usual one (`deck-view.ts pictureOf`).
+- Actions (`deck-actions.tsx`, phones: `ActionBar` above the tab bar): play with this deck, rename, duplicate (same cards and imported list, new id), export (Arena list with Forge's names and Arena's set codes - imports again without an open line or a Scryfall request - or the imported list unchanged; clipboard or text file), import again (`/decks/:id/import`: the saved list and name, earlier choices of ambiguous names kept via the resolver's `previous`, replacing confirmed, id and creation kept), give it to the AI, delete (confirmed).
+- Storage: `getDeck`, `renameDeck`, `duplicateDeck`, `replaceDeck`, `deleteDeck` read and write in one transaction (a deck deleted meanwhile is never brought back: new error `not-found`). Schema version 3: `DeckRecord.companion` (optional; migration 3 changes no stored record); the card catalog was rebuilt for it (its header carries the schema version).
+- Deck choice for a game (`deck-selection.ts`, `/play`): settings `play.humanDeck` and `play.aiDeck` (`random` by default or one deck); the AI's deck must share the player's format (one `MatchRequest.format`); random = drawn when a game starts from the valid decks of that format other than the player's own (`drawAiDeck`, used from prompt 11); a mirror match only on purpose; deleted/damaged/other-format choices are named, never replaced. Starting the game is prompt 11.
+- UI: shadcn `DropdownMenu`, `Select`, `ToggleGroup` (registry, touch sizes), `ActionBar` (built the shadcn way); `--destructive` raised to L 0.74 so the destructive confirm buttons reach 4.5:1 (the end-to-end test found 4.43:1).
+- Evidence: 418 Vitest tests (66 new), end to end in Chrome with the real catalog, Scryfall's real API and the real engine (new section 9: list, details, pictures of named printings, rename, export with real downloads and the round trip, duplicate, import again without a Scryfall request, delete, deck choice, phone with touch). Details: `docs/implementation/10-deck-library.md`.
+
 ## Currently In Progress
-Nothing. Prompts 00–09 are `COMPLETE`. The next prompt is **10 — Deck library** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
+Nothing. Prompts 00–10 are `COMPLETE`. The next prompt is **11 — Game session foundation** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
 
 Any agent entering the repository must first reconcile this statement with the latest `prompts/STATUS.md` and Git state.
 
@@ -116,8 +125,7 @@ Exact order/status is authoritative only in `prompts/STATUS.md`.
 
 ## Not Yet Implemented
 At this review point:
-- no deck library UI yet (decks arrive through the Arena import or a backup and are listed; details, editing, deleting and choosing decks for a game follow with prompt 10),
-- no game session and no playable OpenMana battlefield UI yet,
+- no game session and no playable OpenMana battlefield UI yet (the decks for a game can be chosen; starting it is prompt 11),
 - no service worker/offline mode, no deployment, no Android artifact yet.
 
 Anvil remains the working reference implementation until OpenMana reaches the intended parity.
@@ -134,7 +142,7 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 ## Workflow Compatibility
 OpenMana predates the generic Dropzone `queue → active → completed` lifecycle and is worked through **its own numbered ledger**, one prompt at a time.
 
-Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 09 complete, 10 next, nothing in progress).
+Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 10 complete, 11 next, nothing in progress).
 
 Dropzone Master/Standalone must respect:
 - `prompts/STATUS.md` statuses,
