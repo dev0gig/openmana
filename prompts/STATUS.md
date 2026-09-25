@@ -30,9 +30,9 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | **14 — Cards, hand and safe interaction** |
-| Nächster Prompt | 15 — Forge decision UI (erst nach 14 = COMPLETE) |
-| Zuletzt abgeschlossen | 13 — Battlefield foundation (`eb8e0ab`) |
+| Aktuell ausgeführt | – (keiner; nach 14 wie vorgesehen gestoppt) |
+| Nächster Prompt | **15 — Forge decision UI** (PENDING, nicht begonnen) |
+| Zuletzt abgeschlossen | 14 — Cards, hand and safe interaction (`1b3e3b6`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-26 (Dropzone-Standalone-Lauf, Regeln aus `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-26 |
 
@@ -54,7 +54,7 @@
 | 11 | [Game session foundation](queue/11-game-session.md) | COMPLETE | `679fbfb` |
 | 12 | [AI profiles and settings](queue/12-ai-profiles-settings.md) | COMPLETE | `e618079` |
 | 13 | [Battlefield foundation](queue/13-battlefield-foundation.md) | COMPLETE | `eb8e0ab` |
-| 14 | [Cards, hand and safe interaction](queue/14-card-hand-interactions.md) | IN_PROGRESS | – |
+| 14 | [Cards, hand and safe interaction](queue/14-card-hand-interactions.md) | COMPLETE | `1b3e3b6` |
 | 15 | [Forge decision UI](queue/15-forge-decisions.md) | PENDING | – |
 | 16 | [Priority, stack and phases](queue/16-priority-stack-phases.md) | PENDING | – |
 | 17 | [Targeting and cost payment](queue/17-targeting-cost-payment.md) | PENDING | – |
@@ -1436,11 +1436,132 @@
 - **Weiter mit:** Prompt 14 (Cards, hand and safe interaction). Nicht
   begonnen: `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
 
-### 14 — Cards, hand and safe interaction — IN_PROGRESS
+### 14 — Cards, hand and safe interaction — COMPLETE
 
-- Begonnen am 2026-09-26 von Claude Code (Claude Opus 5.5), Auftrag „Mach den
-  Standalone Prompt in Dropzone für Open Mana“ (Dropzone `fixed/standalone.md`
-  mit den Regeln aus `naechster-schritt.md`: genau ein Prompt, danach Stopp).
+- **Commits:** `1b3e3b6` Implementierung (Engine unverändert; alle Nachweise
+  liefen auf diesem Stand, sauberer Arbeitsbaum), danach Doku und dieser
+  Eintrag (2026-09-26). Agent: Claude Code (Claude Opus 5.5), Auftrag „Mach den
+  Standalone Prompt in Dropzone für Open Mana“ (Dropzone
+  `fixed/standalone.md` mit den Regeln aus `naechster-schritt.md`: genau ein
+  Prompt, danach Stopp). Status-Commit zu Beginn: `40bfd03`.
+- **Zusammenfassung:** Jede Karte, die der Spieler sehen darf, ist ein
+  **Bedienelement** (Hand, beide Spielfelder mit Stapeln und Anhängseln,
+  Kommandozone, aufgedeckte Karten der KI-Hand) – für Maus, Tastatur und
+  Touch. **Ansehen ist gefahrlos:** die **Kartenansicht** (Sheet; Hochformat
+  von unten, Querformat von rechts) zeigt die Karte groß (Katalogbild in der
+  Kartensprache, ohne Bild Forges Worte), Forges Namen, Typ, Kosten,
+  Regeltext, Zustand, Stapel, Anhängsel, Besitz und **was Forge anbietet**
+  (samt `ways`) – sie sendet nichts, hält nur die Id und liest jeden neuen
+  Zustand („Karte nicht mehr zu sehen“). **Antippen** ist Forges `card.tap`,
+  nur wo Forge einen Tipp anbietet (`src/game/card-use.ts`: Auswahl,
+  `action`, London-Mulligan, `playable`): bei der Priorität und überall sonst
+  über den **Hauptknopf der Ansicht** mit Forges Worten („Spiele ein Land“);
+  **sofort** in den Schritten, die Forge zurücknehmen lässt (Auswahl,
+  Bezahlen, Angreifen, Blocken, London-Mulligan – Anvils Lehren), dort zeigt
+  **langes Drücken / Rechtsklick / Kontextmenü-Taste** die Karte. **Schutz
+  gegen Fehltipps:** Ansicht fokussiert sich selbst (nie den Knopf), Knopf
+  500 ms nach Erscheinen/Bedeutungswechsel scharf (wie Chromiums
+  Rückfragen), Druck daneben schließt so früh nicht, gehaltene Taste
+  wiederholt nichts, Doppeltipp auf Sofort-Karte zählt einmal, nichts tippt
+  während Forge rechnet / eine blockierende Frage wartet / die Aufgabe
+  unterwegs ist (Grund steht da). **Forges Zustand als Rahmen um das Bild**:
+  gestrichelt gold = nutzbar („spielbar“, „kann angreifen“, „kann blocken“,
+  „kann bezahlen“, „wählbar“), durchgezogen hell = „ausgewählt“; getappt
+  bleibt die Vierteldrehung. **Kartenreihen** sind Werkzeugleisten (ein
+  Tab-Halt, Pfeile, Pos1, Ende). Die Sitzung hat `tapCard` (nur solange Forge
+  wartet); ohne Kartendaten erklärt das Tischmenü, warum Karten als Text
+  erscheinen, und richtet sie ein. Keine Regel im Client, Engine unverändert.
+  Kein Blocker.
+- **Wichtige Komponenten:**
+  - `src/game/card-use.ts` (rein: Markierung, Tipp, Wirkung des Antippens,
+    Sperrgrund), `card-sheet.tsx` (Kartenansicht, gesicherter Knopf),
+    `game-table.tsx` (`TableCard`, Werkzeugleisten, `onTapCard`,
+    Doppeltipp-Schutz, Hinweis im Entscheidungsbereich), `table-model.ts`
+    (`locateCard`, `pileOf`), `table-labels.ts` (`cardButtonLabel`,
+    `placeLabel`), `table-cards.ts` (großes Bild), `game-page.tsx`
+    (`tapCard` an den Tisch, Menü-Hinweis Kartendaten)
+  - `src/components/ui/game-card.tsx`: `GameCardButton`, `mark`,
+    `GameCardRow`/`-RowItem`/`-RowButton` (Radix `Toolbar`);
+    `game-board.tsx` (Innenabstand der Hand in die Reihe)
+  - `src/hooks/use-card-press.ts` (Tipp vs. langer Druck/Rechtsklick,
+    Wischen ist kein Tipp), `use-landscape.ts`
+  - `src/engine/engine-session.ts` (`tapCard`, deutsche Ablehnungsgründe),
+    `engine-session-context.tsx`
+  - Prüfstand: `src/test/table-harness.tsx` zeichnet Tipps auf
+    (`window.__openmanaTaps`); E2E `tableInteractions`, `cardTargets`,
+    `lookInRealGame`
+  - Doku: `docs/implementation/14-card-hand-interactions.md`, `AGENTS.md`
+    (Card Interaction Rules), `docs/DESIGN_SYSTEM.md` (Regel 5, 8, §4, §5,
+    §6), Bible §6 (Verweis), `README.md`, `STATUS.md`
+- **Tests (alle bestanden, auf `1b3e3b6`):**
+  - Erzeugte Dateien = Schemas, `tsc -b`, `oxlint` ohne Befund.
+  - **669 Vitest-Tests** (622 bestehende + 47 neue): Kartennutzung 15
+    (`card-use.test.ts`, echte Szenen: Priorität, Mulligan, Blocken,
+    erklärter Angriff, Bezahlen; gebaut: Auswahl, London-Mulligan,
+    blockierende Frage, rechnende Engine, Aufgabe unterwegs), Bedienung 19
+    (`card-interaction.test.tsx`: Rahmen, Ansehen sendet nichts, Fokus in der
+    Ansicht und zurück, Fakten, gegnerische Karte, Scharfschalten, Stapel,
+    gesperrt mit Grund, gehaltene Taste, Live-Zustand, reine Ansicht,
+    Sofort-Tipp und Doppelklick, Rechtsklick, langer Druck, Wischen,
+    Tastatur, Kontextmenü-Taste, aufgedeckte KI-Hand), Sitzung 5
+    (`tapCard`), Seite 1 (+1 erweitert: Kartendaten-Hinweis im Menü), Tisch
+    1 (6 angepasst: Knöpfe und Werkzeugleisten statt Listen), Tokens 6
+    (Rahmen 3:1); der Wackeltest aus 12 ist behoben.
+  - **End-to-End** (`npm run check` 8 min 52 s, Chrome 153, echte Engine
+    `42f3bf1c7706cec5`, echter Katalog, echte Scryfall-API, **0 Befunde**):
+    alle bisherigen Abschnitte; neu in 10: **Ansehen in der echten Partie**
+    (Desktop: Kommandeur „Valki, Gott der Lügen“; Handy: „Gebirge“ per
+    Tipp) – Ansicht mit Bild, in der ersten Entscheidung bietet Forge nichts
+    an (nur „Schließen“), Fokus in der Ansicht, axe 0, danach wartet Forge
+    unverändert, kein Hinweis; neu in 12 (`tableInteractions`,
+    `cardTargets`): in sechs Größen Markierungen wie erwartet, kleinste Karte
+    41 × 79 px (Handy) bis 84 × 117 px (Desktop), Ansicht unten
+    (hochkant)/rechts (quer), ihr Knopf 48 px (Touch), **Scharfschalten** (ein
+    Druck einen Frame nach dem Öffnen tippt nicht, ein späterer genau
+    einmal), Doppelklick auf eine Karte tippt nicht, Blocken tippt sofort und
+    beim Doppelklick einmal, **langer Druck** (echter Chrome-Touch) und
+    Rechtsklick sehen nur an, **Wischen** rollt die Reihe (0 → 189 px) ohne
+    Tipp, **Tastatur** (→, Ende, Pos1, Enter, Escape, Tab), **axe 0 in allen
+    42 Kombinationen und jeder offenen Ansicht**.
+  - Engine unverändert (`engine/` nicht berührt).
+- **Messwerte (odin):** Start-JavaScript (Skripte und Modulvorladungen der
+  `index.html`, gzip -9, beide Stände gleich gebaut) 241,6 → **242,9 KB**
+  (+1,3 KB); Partie-Seite (nachgeladen) 12,0 → **16,7 KB** gzip. Der erste
+  Gesamtlauf fiel in die nächtliche Sicherung (siehe unten); der Nachweislauf
+  danach: 8 min 52 s.
+- **Erkenntnisse/Abweichungen:**
+  - **Wackeltest aus Prompt 12 behoben:** `preferences.test.tsx` scheiterte
+    unter Last 5 von 24 Mal (nachgestellt: 6 parallele Schleifen × 4) –
+    er prüfte Ergebnisse von React-Effekten sofort nach dem Text. Jetzt
+    `waitFor` auf dieselben Ergebnisse: 24 von 24 grün. Kein App-Fehler.
+  - **Radix gibt den Fokus einen Takt später zurück** (nach dem Abbau eines
+    Dialogs) und **bewegt ihn bei Pfeiltasten einen Takt später**: in Tests
+    abwarten (`src/test/setup.ts` wartet nach dem Aufräumen einen Takt;
+    E2E wartet auf den erwarteten Fokus).
+  - **Querformat-Handy:** das große Bild schob den Knopf der Ansicht unter
+    den Rand → Knopfleiste bleibt stehen, im Querformat nebeneinander.
+  - **Forges Tipp-Worte teils englisch** („Remove card from combat“,
+    „Declare blockers for card“; Auswahl hartcodiert „select card“) – gezeigt
+    wie gesendet, bei der Auswahl spricht der Schritt („Auswählen“).
+  - **`action` ist bei der Priorität mehr als `playable`** (Manafähigkeiten
+    der Länder, von der Heuristik als unbezahlbar eingestufte Zauber): markiert
+    wird nach `playable`, angeboten nach `action` – kein legaler Zug
+    versteckt.
+  - **Nebenwirkung von `getActivateDescription`** (seit 05 offen): bewusst
+    nach 16 verschoben (baut die Engine ohnehin neu, `StackItem.card`);
+    Vorschlag dort: `action` bei der Priorität nur für eigene und von Forge
+    markierte Karten.
+  - **E2E und die nächtliche Sicherung:** Der erste Gesamtlauf fiel in die
+    Sicherung von odin (01:0x Uhr: `restic-backup-system.sh` stoppt
+    Datenbank-Container) → Docker-Netze ändern sich, Chrome bricht laufende
+    Bildanfragen mit `net::ERR_NETWORK_CHANGED` ab (16 Meldungen, 7 Bilder
+    im Querformat-Handy). Kein App-Fehler; der Nachweislauf lief danach.
+  - Bewusst: keine Hover-Vorschau (20/24), Karten auf kleinen Handys unter
+    44 px (Mindestmaß 24 px gemessen, Fehltipp öffnet nur die Ansicht),
+    keine neuen Farb-Tokens, `sick` erst mit 18, mehrdeutige Spielsteine
+    weiter ohne geratenes Bild.
+- **Weiter mit:** Prompt 15 (Forge decision UI). Nicht begonnen:
+  `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
 
 ## Hinweise für spätere Prompts
 
@@ -1507,7 +1628,7 @@ Seit Prompt 12 (`docs/implementation/12-ai-profiles-settings.md`):
 Seit Prompt 13 ist die laufende Partie der Spieltisch
 (`src/game/game-table.tsx`, Doku `docs/implementation/13-battlefield-foundation.md`):
 
-- **14 (Karten, Hand):** Karten sind `GameCard`s (`src/components/ui/game-card.tsx`)
+- **14 (Karten, Hand) – erledigt, siehe „Karten und Bedienung“ unten.** Karten sind `GameCard`s (`src/components/ui/game-card.tsx`)
   in `CardRow`s; `FieldCard`, `Entry`, `Hand` in `game-table.tsx` rendern sie,
   jede trägt `data-card` = Forges Id. Forges Markierungen (`playable`,
   `action`, `ways`, `highlighted`) liegen im Zustand, sind aber noch nicht
@@ -1555,6 +1676,64 @@ Seit Prompt 13 ist die laufende Partie der Spieltisch
   nach dem ersten Zeichnen lässt den Browser begonnene Bilder verwerfen
   (E2E: `requestfailed`) – Maße vor dem ersten Zeichnen nehmen
   (`useElementHeight`).
+
+### Karten und Bedienung (Stand 2026-09-26, für 15 ff.)
+
+Seit Prompt 14 ist jede sichtbare Karte bedienbar
+(`src/game/card-use.ts`, `card-sheet.tsx`, Doku
+`docs/implementation/14-card-hand-interactions.md`, Regeln in `AGENTS.md`
+„Card Interaction Rules“):
+
+- **15 (Entscheidungen):** Die Sitzung hat `tapCard` (nur solange Forge
+  wartet, deutsche Gründe, `InputResult`); `answer` gehört genauso daneben
+  (`EngineSession`, `useEngineSession`, an den Tisch wie `onTapCard`). Was 14
+  schon abdeckt und 15 nur ergänzen muss:
+  - **London-Mulligan** (`purpose` `mulliganBottom`): Tipps auf eigene
+    Handkarten wirken sofort („Unter die Bibliothek legen“/„Doch behalten“,
+    Forges `highlighted` = gewählt); 15 braucht Anzahl und Forges OK-Knopf.
+  - **Auswahl** (`select`): genannte Karten wählen sofort (`card.tap` – die
+    Bridge macht daraus dasselbe `selectCard` wie `answer select`); 15 braucht
+    die Liste für Einträge ohne Tischkarte (Spieler, verdeckte, Karten aus
+    Zonen) und `min`/`max`.
+  - **Mehrere Wege** (`ways` ≥ 2): die Ansicht nennt sie; nach dem Tipp fragt
+    Forge mit einer `options`-Frage (blockierend) – die beantwortet 15.
+  - Der Hinweis im Entscheidungsbereich („Auf Forges Fragen kannst du hier
+    noch nicht antworten …“, in Sofort-Schritten „Karten antippen wirkt hier
+    sofort …“) wird durch die Bedienelemente ersetzt bzw. angepasst.
+  - Die Live-Partie erreicht erst mit 15 die Priorität: dann im E2E die
+    Kartenbedienung im echten Spiel prüfen (Land spielen über die Ansicht).
+- **16 (Priorität, Stapel):** Engine-Neubau (`StackItem.card`, Protokoll 5)
+  mit der **`action`-Nebenwirkung** (Befund 05 §7.2, 14 §11.6): `action`
+  bei der Priorität nur für eigene und von Forge als spielbar markierte
+  Karten. Danach `test-engine.sh` und `record-table-scenes.ts` neu; E2E
+  `SCENE_MARKS` und `card-use.test.ts` prüfen, ob sich Markierungen ändern.
+- **17 (Ziele, Kosten):** Spieler als Ziel antippen (`player.tap`); Forges
+  Hervorhebung für Spieler (`setHighlighted(PlayerView)`) fehlt noch im
+  Protokoll (heute nur Karten). Bezahlen tippt schon sofort; Quelle und
+  nötige Anzahl zeigen.
+- **18/19 (Kampf):** Angreifen/Blocken tippt schon sofort („kann
+  angreifen“/„kann blocken“ = Forges `playable`, `highlighted` = aktueller
+  Angreifer/Verteidiger); Forges englische Wörter („Remove card from
+  combat“, „Declare blockers for card“) nach Schritt und Markern deutsch
+  fassen; `sick` zeigen; Angreifer, die man beim Blocken wählen kann, haben
+  heute keinen Rahmen (nur `action`).
+- **20 (Zonen, Kartenansicht):** `card-sheet.tsx` ist die Grundlage der
+  großen Kartenansicht; `locateCard`/`placeLabel` kennen Friedhof und Exil
+  schon. Fehlt: Zonen blättern, Stapel gleicher Karten durchblättern,
+  doppelseitige Karten drehen, Hover-Vorschau am Desktop, Bild eindeutiger
+  Spielsteine über Forges `set`.
+- **22 (Wiedergabe):** `GameTable` ohne `onTapCard` = nur ansehen (die
+  Ansicht sagt „Forge bot an: …“).
+- **24 (Größen):** Karten auf kleinen Handys unter 44 px (gemessen ≥ 24 px,
+  E2E `cardTargets`); die Ansicht und ihre Knöpfe haben volle Touch-Größe.
+- ⚠️ **Tests:** Radix bewegt den Fokus bei Pfeiltasten und gibt ihn nach
+  einem Dialog **einen Takt später** → `waitFor`/`waitForFunction`;
+  `src/test/setup.ts` wartet nach dem Aufräumen einen Takt. Der
+  Scharfschalt-Schutz liest `performance.now()` → in Tests
+  `vi.spyOn(performance, "now")`.
+- ⚠️ **E2E nachts:** Um ca. 01:00 stoppt `restic-backup-system.sh`
+  Datenbank-Container; Chrome meldet dann `net::ERR_NETWORK_CHANGED` für
+  laufende Scryfall-Bilder → Lauf wiederholen, kein App-Fehler.
 
 ### Vercel und Android (Stand 2026-09-25, für 28 und 31)
 

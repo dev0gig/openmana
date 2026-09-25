@@ -1,6 +1,6 @@
 # OpenMana — Current Status
 
-Last repository review: 2026-09-25
+Last repository review: 2026-09-26
 
 Compact implementation map. This file deliberately does **not** replace the active queue ledger in `prompts/STATUS.md`.
 
@@ -124,6 +124,16 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Stack and combat in Forge's words and the table's names (alike unblocked attackers in one line); Forge's decision with its prompt, the kind of question and the answers it offers, said to be not answerable here yet (prompts 15/16); Forge's notices as a toast at the top and in the menu (session: `noticeCount`).
 - Evidence: unit tests on seven real states recorded from the engine's test games (`scripts/record-table-scenes.ts` → `src/test/fixtures/table-scenes.json`), end to end in Chrome with the real engine (the live table on desktop, in portrait and landscape windows and on a phone upright and turned, menu, conceding) and the recorded scenes in the real table at six sizes (section 12). See `prompts/STATUS.md` and `docs/implementation/13-battlefield-foundation.md`.
 
+### Cards, Hand and Safe Interaction (Prompt 14)
+- Every card the player may see on the table (hand, both battlefields with piles and attachments, command zone, cards Forge reveals from the AI's hand) is a control: `GameCardButton` in a `GameCardRow` toolbar (`src/components/ui/game-card.tsx`, Radix Toolbar: one Tab stop per row, arrow keys, Home, End; a row without such cards stays a focusable list).
+- Looking is safe and sends nothing: the card view (`src/game/card-sheet.tsx`, a `Sheet` from the bottom in portrait, from the side in landscape) shows the card large (catalog picture in the card language, Forge's words without one), Forge's live name, type, cost, rules text and facts, the pile, attachments, ownership, what Forge offers and its `ways`; it keeps only the card's id and reads every new state (a card that left says so); its buttons stay in view while the card scrolls.
+- What a card can do comes only from Forge (`src/game/card-use.ts`, pure): marks from `highlighted` (chosen) and `playable` or an open selection naming the card (usable - "spielbar", "kann angreifen", "kann blocken", "kann bezahlen", "wählbar"); the tap from the selection, Forge's `action` (its words), the London mulligan's step (the player's hand) or `playable`; no tap where a tap would do nothing. The primary activation opens the card view (its main button taps: priority, play/activate) except in the steps Forge lets the player take back - a selection, `payment`, `attack`/`attackDeclared`, `block`, `mulliganBottom` -, where it taps at once (Anvil's lessons); a long press, right click or the context-menu key always looks.
+- Against taps by mistake: the view focuses itself, never its tap button; the button ignores presses for 500 ms after it appeared or changed (like Chromium's own permission prompts), outside presses do not close the view that early, held keys repeat nothing, a double tap on a direct card counts once, and nothing taps while Forge computes, a blocking question waits or a concession is on its way (the reason is shown).
+- Forge's state as a frame around the picture, never on it: usable = dashed gold (`--primary`), chosen = solid parchment (`--foreground`) - apart without colour, 3:1 non-text contrast (token test); tapped stays the quarter turn.
+- Without card data on the device the table's menu says why cards show Forge's words and sets the data up there (pictures appear during the game).
+- `EngineSession.tapCard` sends Forge's `card.tap` only while Forge waits (a tap sent while it computes would be read in a later step), never during a concession; the client's refusals come back in German, Forge's `input.rejected` as a notice. The page hands it to the table (`onTapCard`); without it (the replay of 22) cards can be looked at, never tapped.
+- Evidence: 669 Vitest tests (47 new: card use on the recorded scenes and built selections/mulligan, interactions - look, arming, keyboard, context menu, long press, swipe, live updates -, session, page, mark contrast; the flaky preferences test of prompt 12 fixed), and end to end in Chrome with 0 findings: looking at a card in the live game sends nothing (desktop and phone), and on the recorded scenes at six sizes the harness records every tap - clicks, double clicks, long presses, swipes, keys -, axe 0 everywhere, smallest card target 41 × 79 px. See `prompts/STATUS.md` and `docs/implementation/14-card-hand-interactions.md`.
+
 ### ORYX Cloud Sync (outside the queue, 2026-09-25)
 - dev0gig's direct assignment, not a queue prompt (`prompts/STATUS.md` unchanged): the player's collection syncs through their ORYX account (the launcher's Supabase cloud) with the vendored ORYX SDK 1.0.0 (`src/cloud/oryx-sdk.js` and `.d.ts`, byte-identical copies of `oryx-games/shared`, checksum-tested, excluded from lint only themselves). Active only on `https://openmana.vercel.app/`; locally, in tests and previews inactive (no request, nothing stored). Local stays the source of truth.
 - One slot `collection` = one document (`src/storage/collection.ts`, schema `CollectionDocument`, version = `SCHEMA_VERSION`): valid decks, deletion marks (90 days) and every setting except `display.*`; never caches, recorded matches or `meta`.
@@ -135,7 +145,7 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Evidence: 622 Vitest tests (63 new: merge and check, read/apply on fake-indexeddb, the real SDK against a stand-in ORYX cloud on the real storage session, the card and the return notice in the real app frame, the SDK checksum), `npm run check` with the end-to-end test in Chrome, including the new section 13: the build served as `https://openmana.vercel.app` with a stand-in ORYX cloud - the whole OAuth/PKCE round trip under COOP/COEP, the start's merge, uploads, disconnecting, axe, 360 px; plus the card absent and Web Storage empty off the real address, and the deletion mark in IndexedDB after deleting a deck. Limits: ORYX takes 1 MB per slot by default (≈ 146 Constructed or 48 Commander decks); ORYX needs an OAuth client for `openmana`; effective once deployed. Details: `docs/implementation/oryx-cloud-sync.md`.
 
 ## Currently In Progress
-Nothing. Prompts 00–13 are `COMPLETE`. The next prompt is **14 — Cards, hand and safe interaction** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
+Nothing. Prompts 00–14 are `COMPLETE`. The next prompt is **15 — Forge decision UI** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
 
 Any agent entering the repository must first reconcile this statement with the latest `prompts/STATUS.md` and Git state.
 
@@ -158,7 +168,7 @@ Exact order/status is authoritative only in `prompts/STATUS.md`.
 
 ## Not Yet Implemented
 At this review point:
-- the game table shows every state, but answering Forge's decisions and operating cards come with prompts 14–19 (until then a game can be followed and conceded),
+- the game table shows every state and its cards can be looked at and tapped where Forge offers it, but answering Forge's decisions (its buttons and questions) comes with prompts 15–19 (until then a live game stops at Forge's first decision, can be followed and conceded),
 - no service worker/offline mode, no deployment, no Android artifact yet,
 - the ORYX cloud sync is built but inactive until OpenMana runs at `openmana.vercel.app` and ORYX has an OAuth client for it.
 
@@ -176,7 +186,7 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 ## Workflow Compatibility
 OpenMana predates the generic Dropzone `queue → active → completed` lifecycle and is worked through **its own numbered ledger**, one prompt at a time.
 
-Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 13 complete, 14 next, nothing in progress).
+Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 14 complete, 15 next, nothing in progress).
 
 Dropzone Master/Standalone must respect:
 - `prompts/STATUS.md` statuses,
