@@ -22,7 +22,7 @@ import {
 } from "@/test/storage-fixtures"
 import { backupFileName, createBackup, importBackup, importSpaceNeeded, planImport, readBackup, recordExport, type BackupContents } from "./backup"
 import type { LocalDatabase } from "./database"
-import { saveDeck } from "./decks"
+import { deleteDeck, saveDeck } from "./decks"
 import { StorageError } from "./errors"
 import { SCHEMA_VERSION } from "./generated/constants"
 import type { DeckRecord } from "./generated/records"
@@ -301,6 +301,30 @@ describe("importing", () => {
       backupCreatedAt: "2026-09-24T12:00:00.000Z",
       backupApp: APP,
     })
+    db.close()
+  })
+
+  it.each(["merge", "replace"] as const)("%s: a deck deleted since the backup comes back as a new change, its deletion mark goes", async (mode) => {
+    const db = await openTestDatabase()
+    const gone = deck({ name: "Gelöscht", updatedAt: "2026-09-20T10:00:00.000Z" })
+    const untouched = deck({ name: "Nie gelöscht", updatedAt: "2026-09-20T10:00:00.000Z" })
+    // Its copy in the backup is newer than its deletion: it wins as it is.
+    const changedLater = deck({ name: "Später geändert", updatedAt: "2026-09-24T10:00:00.000Z" })
+    await saveDeck(db, gone)
+    await saveDeck(db, changedLater)
+    await deleteDeck(db, gone.id, () => new Date("2026-09-22T10:00:00.000Z"))
+    await deleteDeck(db, changedLater.id, () => new Date("2026-09-23T10:00:00.000Z"))
+    const other = { id: "00000000-0000-4000-8000-0000000000c1", deletedAt: "2026-09-21T10:00:00.000Z" }
+    await putRaw("deckTombstones", other)
+    const contents = await contentsOf({ decks: [gone, untouched, changedLater] })
+    expect((await planImport(db, contents, mode)).stores.decks).toMatchObject({ inBackup: 3, added: 3 })
+    await importBackup(db, contents, mode, { storage: PLENTY, now: () => new Date("2026-09-25T11:00:00.000Z") })
+    // Dated to the import, so merging with the ORYX cloud does not delete it again (collection.ts).
+    const decks = await readRaw("decks")
+    expect(decks).toHaveLength(3)
+    expect(decks).toEqual(expect.arrayContaining([{ ...gone, updatedAt: "2026-09-25T11:00:00.000Z" }, untouched, changedLater]))
+    // The marks of the decks that came back are gone; another deck's mark stays (marks are no part of a backup).
+    expect(await readRaw("deckTombstones")).toEqual([other])
     db.close()
   })
 

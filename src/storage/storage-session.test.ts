@@ -139,6 +139,8 @@ describe("change notifications", () => {
     const unsubscribe = s.subscribeChanges(["matches"], matches)
     await saveDeck(db, deck())
     expect(decks).toHaveBeenCalledTimes(1)
+    // A write of this tab (the one this tab uploads to the ORYX cloud).
+    expect(decks).toHaveBeenCalledWith("this-tab")
     expect(matches).not.toHaveBeenCalled()
     unsubscribe()
     await db.write(["matches"], async () => undefined)
@@ -156,6 +158,8 @@ describe("change notifications", () => {
     first.subscribeChanges(["decks"], listener)
     await saveDeck(db, deck())
     await vi.waitFor(() => expect(listener).toHaveBeenCalledTimes(1))
+    // The other tab wrote it: the other tab uploads it, not this one.
+    expect(listener).toHaveBeenCalledWith("other-tab")
   })
 
   it("a failed write announces nothing", async () => {

@@ -5,9 +5,9 @@
  */
 
 /**
- * Version of the record schemas below = version of the IndexedDB database. Every change to a record shape or to the stores raises it and adds a migration (src/storage/migrations.ts) that upgrades the database and older backups alike.
+ * Version of the record schemas below = version of the IndexedDB database. Every change to a record shape or to the stores raises it and adds a migration (src/storage/migrations.ts) that upgrades the database and older backups alike. It is also the version of the collection the ORYX cloud keeps (CollectionDocument).
  */
-export type SchemaVersion = 3;
+export type SchemaVersion = 4;
 /**
  * Version of the backup container (header, record and end lines). Independent of the record schemas, which the header names by SchemaVersion.
  */
@@ -180,6 +180,13 @@ export interface DeckRecord {
   source: DeckSource;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+}
+/**
+ * Store deckTombstones (key: id; schema version 4). A deletion mark: the deck with this id was deleted at deletedAt - on this device (deleteDeck writes it) or on another device of the player (it came with the collection of the ORYX cloud). It keeps the merge of two collections from bringing the deck back; a deck changed after deletedAt wins over it (src/storage/collection.ts). Kept 90 days; stays in this browser and in the synced collection, never in a backup.
+ */
+export interface DeckTombstoneRecord {
+  id: Uuid;
+  deletedAt: Timestamp;
 }
 /**
  * Store settings (key: key). One preference. The value is checked by the setting's definition in src/storage/settings.ts; keys this app version does not know are kept as they are.
@@ -507,6 +514,24 @@ export interface BackupEnd {
     [k: string]: number;
   };
   records: number;
+}
+/**
+ * The player's collection as one JSON document: what the ORYX cloud keeps in its slot 'collection' (src/cloud; built, checked, merged and applied by src/storage/collection.ts). Like the lines of a backup, its records are those of its own schemaVersion and are checked one by one after the database's own migrations upgraded them. decks: every valid deck; deckTombstones: the deletion marks; settings: the preferences shared between the player's devices - every setting except display.*, which belong to the device. Never caches (card catalog, printings, engine), recorded matches or the database's metadata. Sorted by id and key, so equal content gives equal JSON.
+ */
+export interface CollectionDocument {
+  /**
+   * The local data schema version its records follow (4: the first synced one).
+   */
+  schemaVersion: number;
+  decks: {
+    [k: string]: unknown;
+  }[];
+  deckTombstones: {
+    [k: string]: unknown;
+  }[];
+  settings: {
+    [k: string]: unknown;
+  }[];
 }
 /**
  * The Scryfall data a card catalog was made from: the bulk file (as Scryfall published it) and the set list.

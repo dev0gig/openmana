@@ -41,7 +41,7 @@ The web app (repository root, `src/`) follows `docs/DESIGN_SYSTEM.md`:
 
 ## Local Data Rules
 The player's data lives in IndexedDB through `src/storage` (prompt 07, `docs/implementation/07-indexeddb-storage.md`):
-- Never `localStorage`/`sessionStorage` as a store (enforced by `src/app/local-first.test.ts`); the storage layer never talks to a network.
+- Never `localStorage`/`sessionStorage` as a store (enforced by `src/app/local-first.test.ts`; the one exception is the vendored ORYX SDK's own connection data); the storage layer never talks to a network.
 - Record shapes and the backup lines are defined only in `src/storage/schema/local-data.schema.json`; after a change run `npm run generate` and commit the generated files (`npm run check`/`build` fail on stale ones).
 - Any change to a record shape or to stores/indexes raises `SchemaVersion` in the schema and adds a migration in `src/storage/migrations.ts` (never edit a released one); record upgrades are pure functions, because older backups are upgraded with them too. User data is migrated, caches may be emptied.
 - Write through `LocalDatabase.write` (one transaction, all or nothing, only IndexedDB requests awaited inside) and check records before writing (`assertRecord`); show damaged stored records as damaged, never drop them silently.
@@ -62,7 +62,7 @@ Arena deck lists are imported through `src/decks/` (prompt 09, `docs/implementat
 
 ## Deck Library Rules
 The library and the deck choice for a game are `src/decks/` (prompt 10, `docs/implementation/10-deck-library.md`):
-- Change decks only through `src/storage/decks.ts` (`renameDeck`, `duplicateDeck`, `replaceDeck`, `deleteDeck`): read and write in one transaction, so a deck deleted meanwhile is never brought back (`not-found`) and a damaged one never overwritten. Renaming and duplicating keep the imported list (`source`); only importing the list again replaces it, confirmed.
+- Change decks only through `src/storage/decks.ts` (`renameDeck`, `duplicateDeck`, `replaceDeck`, `deleteDeck`): read and write in one transaction, so a deck deleted meanwhile is never brought back (`not-found`) and a damaged one never overwritten. Renaming and duplicating keep the imported list (`source`); only importing the list again replaces it, confirmed. Every change sets `updatedAt` (the cloud merge goes by it), and deleting leaves a deletion mark (`deckTombstones`) in the same transaction - never delete a deck record any other way.
 - `deck-view.ts` is how a saved deck is shown (card per entry, German/English status, cover card, which picture): by Oracle id and Forge name, never by parsing names or texts; without catalog data the name Forge knows, marked, never a guessed card. Scryfall's API only for printings the catalog lacks (`named-prints.ts` through the one client).
 - The deck choice is two settings, `play.humanDeck` and `play.aiDeck` (`deck-selection.ts`). Both decks share the player's format (Forge plays one `MatchRequest.format`); a random AI deck is drawn when a game starts (`drawAiDeck`) from the valid decks of that format other than the player's own. A choice that stopped fitting is shown, never silently replaced.
 - A phone page's primary action lives in an `ActionBar` above the tab bar; the export keeps the imported list available unchanged.
@@ -92,6 +92,13 @@ The player's preferences are settings in the local database, read and applied by
 - AI profiles are Forge's (`res/ai/*.ai`), described only as verified in `src/game/ai-profile-table.ts` (`docs/research/AI_PROFILES.md`): German names translating Forge's, behaviour from the profile values, no difficulty claims (none was measured). The build stops when the engine's profile files differ from the verified ones (`vite/engine-assets.ts`); re-run `engine/scripts/ai-profile-study.sh`, re-verify, then update the table. "Zufällig" is drawn by the app for every game; the engine refuses a profile it did not load (`engine.error invalid-request`).
 - The card language (`src/cards/card-language.ts`) decides how cards are shown - `cardDisplay(card, { language })` and the views built on it, from `usePreferences().cardLanguage` - and the cards in Forge's texts (`--card-language`, `EngineSession.setBootOptions`: a warm engine no game uses is replaced; Forge's own words stay German).
 - Less motion: every animation and transition in `src/components/ui` carries `motion-reduce:animate-none!`/`motion-reduce:transition-none!` (checked by `src/app/motion.test.ts`); the variant means the device's `prefers-reduced-motion` or the player's setting. Motion made in code asks `src/app/motion.ts`.
+
+## ORYX Cloud Rules
+The optional sync of the player's collection through their ORYX account (dev0gig, 2026-09-25, outside the queue; `src/cloud/`, `src/storage/collection.ts`, `docs/implementation/oryx-cloud-sync.md`):
+- `src/cloud/oryx-sdk.js` / `.d.ts` are unchanged copies of `oryx-games/shared` (checksums in `src/cloud/oryx-sdk.test.ts`): never edit them; to update, copy the new master and change the checksums. Only `src/cloud` talks to the cloud, and only through the SDK; the storage layer stays network-free.
+- No SDK dialog (`ui: false`): the collection is merged (`mergeCollections`: per deck the newer `updatedAt`, deletion marks, `display.*` never), never chosen; any UI is shadcn in `src/cloud/oryx-cloud-card.tsx`.
+- Synced: decks, deletion marks, settings except `display.*`. A new device-specific setting belongs under `display.*`; caches, matches and `meta` are never synced. The slot's version is `SCHEMA_VERSION`: a schema bump also changes the synced collection (older ones are upgraded with the migrations, like backups) and needs the card catalog rebuilt (`npm run cards:build -- --offline`).
+- Applying the cloud's collection must never mark a change (no round between devices); only this tab's own writes upload (`subscribeChanges` origin `this-tab`).
 
 ## Queue and Execution
 OpenMana currently has its own detailed queue ledger at `prompts/STATUS.md`. It remains authoritative while the numbered 00–32 implementation program is running.

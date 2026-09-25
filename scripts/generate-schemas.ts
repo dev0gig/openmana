@@ -60,6 +60,7 @@ const TARGETS: readonly Target[] = [
     rootTitle: "LocalDataDefinitions",
     validators: {
       validateDeckRecord: "DeckRecord",
+      validateDeckTombstoneRecord: "DeckTombstoneRecord",
       validateSettingRecord: "SettingRecord",
       validateMatchRecord: "MatchRecord",
       validateMatchLogEntry: "MatchLogEntry",
@@ -72,6 +73,7 @@ const TARGETS: readonly Target[] = [
       validateBackupHeader: "BackupHeader",
       validateBackupRecordLine: "BackupRecordLine",
       validateBackupEnd: "BackupEnd",
+      validateCollectionDocument: "CollectionDocument",
     },
     constants: {
       versions: [

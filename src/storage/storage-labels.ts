@@ -61,6 +61,7 @@ export const STORE_LABELS: Readonly<Record<StoreName, string>> = {
   meta: "Datenbank-Angaben",
   settings: "Einstellungen",
   decks: "Decks",
+  deckTombstones: "Löschmarken gelöschter Decks",
   matches: "Partien",
   matchLog: "Partieverläufe",
   scryfallCards: "Kartendaten",

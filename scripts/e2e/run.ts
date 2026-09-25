@@ -28,7 +28,9 @@
  *     and loading it into a second, empty browser profile (same records),
  *     refused files, damaged records found and removed, another tab
  *     upgrading the database, site data cleared while open; and quota
- *     awareness with DevTools' quota override (localDataQuota).
+ *     awareness with DevTools' quota override (localDataQuota). Off
+ *     OpenMana's real address the ORYX cloud stays inactive: no settings
+ *     card, nothing in Web Storage.
  *  7. Card data: the card catalog is served like the engine (preview and dev
  *     server), nothing of it or of Scryfall is loaded before the player
  *     asks; installing it from the settings into the real IndexedDB (as the
@@ -55,7 +57,8 @@
  *     Scryfall's real API, a card's full view), rename, export (clipboard and
  *     real downloads; the list imported again gives the same deck without a
  *     question to Scryfall), duplicate, import a deck's list again (the
- *     earlier choice kept, confirmed, same id), delete (confirmed), choosing
+ *     earlier choice kept, confirmed, same id), delete (confirmed; its
+ *     deletion mark for the ORYX cloud merge in IndexedDB), choosing
  *     the decks for a game (random, another format, a mirror match, kept
  *     after a reload), axe-core; on a phone with touch the action bars above
  *     the tab bar and 44 px targets. The decks as they end up are the ones
@@ -91,16 +94,23 @@
  *     recorded real states of the engine's test games (full battlefields,
  *     piles, a stack, blockers, fourteen attackers, the command zone) in the
  *     real table at six sizes (tableHarness), each with axe-core.
+ * 13. The ORYX cloud on OpenMana's real address (Playwright serves the build
+ *     as https://openmana.vercel.app; the ORYX cloud is a stand-in): a guest
+ *     sees the card and sends nothing; connecting leaves for the consent page
+ *     with PKCE; coming back exchanges the code, cleans the address, says
+ *     so and merges this device's decks with the cloud's; a changed AI profile goes
+ *     up, a setting of the device never, recorded matches never;
+ *     disconnecting keeps the data. On a 360 px phone the card fits. axe-core.
  */
 import { createRequire } from "node:module"
-import { randomUUID } from "node:crypto"
+import { createHash, randomUUID } from "node:crypto"
 import fs from "node:fs"
 import http from "node:http"
 import os from "node:os"
 import type { AddressInfo } from "node:net"
 import path from "node:path"
 import { gunzipSync, gzipSync } from "node:zlib"
-import { chromium, type Browser, type BrowserContext, type Locator, type Page } from "playwright-core"
+import { chromium, type Browser, type BrowserContext, type Locator, type Page, type Route } from "playwright-core"
 import { build, createServer, preview } from "vite"
 import { PROTOCOL_VERSION } from "../../engine/protocol/src/generated/constants.ts"
 import { SCHEMA_VERSION } from "../../src/storage/generated/constants.ts"
@@ -599,6 +609,9 @@ async function localData(browser: Browser, base: string): Promise<void> {
     const databases = await page.evaluate(async () => ({ databases: await indexedDB.databases(), localStorage: localStorage.length }))
     check(databases.databases.some((db) => db.name === "openmana" && db.version === SCHEMA_VERSION), `local data: IndexedDB databases ${JSON.stringify(databases.databases)}`)
     check(databases.localStorage === 0, `local data: localStorage holds ${databases.localStorage} entries`)
+    // Off OpenMana's real address the ORYX cloud is inactive: no card, no request, nothing stored (the SDK wrote no key above).
+    check((await page.getByRole("region", { name: "ORYX-Cloud" }).count()) === 0, "local data: the ORYX-Cloud card shows off OpenMana's real address")
+    check((await page.evaluate(() => sessionStorage.length)) === 0, "local data: sessionStorage is not empty")
     results["fresh"] = { facts: fresh, databases }
 
     // Load a backup: the dialog says what is in it and what changes; merge.
@@ -1598,7 +1611,8 @@ async function deckLibrary(browser: Browser, context: BrowserContext, page: Page
   )
 
   // 7. Delete, after confirming.
-  await page.goto(new URL(`/decks/${stored.get("E2E Rundreise")?.id}`, base).href, { waitUntil: "networkidle" })
+  const deletedId = stored.get("E2E Rundreise")?.id
+  await page.goto(new URL(`/decks/${deletedId}`, base).href, { waitUntil: "networkidle" })
   await page.getByRole("heading", { level: 1, name: "E2E Rundreise" }).waitFor()
   await deckMenu(page, "Löschen")
   const confirmDelete = page.getByRole("alertdialog", { name: "„E2E Rundreise“ löschen?" })
@@ -1608,6 +1622,10 @@ async function deckLibrary(browser: Browser, context: BrowserContext, page: Page
   await page.getByRole("heading", { level: 1, name: "Decks" }).waitFor()
   await expectTitles(page, ["E2E Brawl", "E2E Deutsch", "E2E Deutsch (Kopie)", "E2E Izzet Tempo"], "after deleting")
   check(!(await libraryDecks(page)).has("E2E Rundreise"), "deck library: the deleted deck is still stored")
+  // The deletion leaves its mark in the same transaction (the ORYX cloud merge must not bring the deck back).
+  const marks = ((await dumpDatabase(page))["deckTombstones"] ?? []) as { id?: string; deletedAt?: string }[]
+  check(marks.length === 1 && marks[0]?.id === deletedId && /^\d{4}-\d{2}-\d{2}T/.test(marks[0]?.deletedAt ?? ""), `deck library: deletion marks ${JSON.stringify(marks)}`)
+  results["deletionMarks"] = marks
   // Order by the last change: the deck imported again, then the renamed one.
   await page.getByRole("combobox", { name: "Sortieren" }).click()
   await page.getByRole("option", { name: "Zuletzt geändert" }).click()
@@ -2540,6 +2558,274 @@ async function tableHarness(browser: Browser): Promise<Record<string, unknown>> 
   return results
 }
 
+// ── 13. The ORYX cloud on OpenMana's real address ─────────────────────────
+
+const REAL_ORIGIN = "https://openmana.vercel.app"
+const SUPABASE = "https://fellumrfugohnnvtxxye.supabase.co"
+const STAND_IN_CLIENT = "00000000-0000-4000-8000-00000000c11e"
+
+interface StandInRow {
+  revision: number
+  save_version: number
+  save_data: unknown
+  data_hash: string
+  summary: unknown
+  playtime_ms: number | null
+  device_label: string | null
+  updated_at: string
+  deleted_at: string | null
+}
+
+/**
+ * A stand-in for the ORYX cloud as the SDK reaches it - Supabase's OAuth
+ * endpoints (the consent page only remembers the PKCE challenge; the token
+ * exchange checks the verifier against it), the games table, the client
+ * config, cloud_saves and oryx_put_save with its revision check - answered
+ * with Supabase's CORS headers, so Chrome applies COEP to them as to the real
+ * one. Nothing reaches the real ORYX.
+ */
+function standInCloud(): {
+  readonly rows: Map<string, StandInRow>
+  readonly calls: string[]
+  readonly uploads: Record<string, unknown>[]
+  /** The access token the stand-in hands out (a device that connected before keeps it). */
+  readonly token: string
+  handle(route: Route): Promise<void>
+} {
+  const rows = new Map<string, StandInRow>()
+  const calls: string[] = []
+  const uploads: Record<string, unknown>[] = []
+  let challenge: string | null = null
+  const token = ["{\"alg\":\"ES256\"}", JSON.stringify({ sub: "00000000-0000-4000-8000-0000000000a1", email: "spieler@example.invalid", exp: Math.floor(Date.now() / 1000) + 3600 }), "sig"]
+    .map((part, i) => (i < 2 ? Buffer.from(part).toString("base64url") : part))
+    .join(".")
+  const cors = {
+    "access-control-allow-origin": REAL_ORIGIN,
+    "access-control-allow-headers": "apikey, authorization, content-type",
+    "access-control-allow-methods": "GET, POST, OPTIONS",
+    vary: "Origin",
+  }
+  async function handle(route: Route): Promise<void> {
+    const request = route.request()
+    const url = new URL(request.url())
+    if (request.method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors })
+    calls.push(`${request.method()} ${url.pathname}`)
+    const json = (status: number, body: unknown) => route.fulfill({ status, headers: { ...cors, "content-type": "application/json" }, body: JSON.stringify(body) })
+    if (url.pathname === "/auth/v1/oauth/authorize") {
+      challenge = url.searchParams.get("code_challenge")
+      return route.fulfill({ status: 200, headers: { "content-type": "text/html; charset=utf-8" }, body: "<!doctype html><title>ORYX</title><p>Zustimmung (Stand-in)</p>" })
+    }
+    // The browser asks the consent page's site for its icon.
+    if (url.pathname === "/favicon.ico") return route.fulfill({ status: 204 })
+    if (url.pathname === "/rest/v1/games") return json(200, [{ oauth_client_id: STAND_IN_CLIENT, active: true }])
+    if (url.pathname === "/auth/v1/oauth/token") {
+      const form = new URLSearchParams(request.postData() ?? "")
+      const verified = createHash("sha256").update(form.get("code_verifier") ?? "").digest("base64url") === challenge
+      if (form.get("grant_type") !== "authorization_code" || form.get("code") !== "e2e-code" || form.get("client_id") !== STAND_IN_CLIENT || !verified) {
+        return json(400, { error: "invalid_grant" })
+      }
+      return json(200, { access_token: token, refresh_token: "e2e-refresh", expires_in: 3600, token_type: "bearer" })
+    }
+    if (url.pathname === "/auth/v1/logout") return route.fulfill({ status: 204, headers: cors })
+    if (request.headers()["authorization"] !== `Bearer ${token}`) return json(401, { message: "JWT expired" })
+    if (url.pathname === "/rest/v1/rpc/oryx_client_config") return json(200, { ok: true, sync_enabled: true, max_slots: 2, max_save_bytes: 1_048_576 })
+    if (url.pathname === "/rest/v1/rpc/oryx_add_playtime") return json(200, { ok: true })
+    if (url.pathname === "/rest/v1/cloud_saves") {
+      const row = rows.get((url.searchParams.get("slot") ?? "").replace(/^eq\./, ""))
+      return json(200, row ? [row] : [])
+    }
+    if (url.pathname === "/rest/v1/rpc/oryx_put_save") {
+      const body = request.postDataJSON() as Record<string, unknown>
+      const slot = String(body["p_slot"])
+      const row = rows.get(slot)
+      if ((row?.revision ?? 0) !== body["p_base_revision"]) return json(200, { ok: false, error: "conflict", revision: row?.revision ?? 0 })
+      const next: StandInRow = {
+        revision: (row?.revision ?? 0) + 1,
+        save_version: Number(body["p_save_version"]),
+        save_data: body["p_data"],
+        data_hash: String(body["p_data_hash"]),
+        summary: body["p_summary"] ?? null,
+        playtime_ms: null,
+        device_label: typeof body["p_device_label"] === "string" ? body["p_device_label"] : null,
+        updated_at: new Date().toISOString(),
+        deleted_at: null,
+      }
+      rows.set(slot, next)
+      uploads.push(body["p_data"] as Record<string, unknown>)
+      return json(200, { ok: true, revision: next.revision })
+    }
+    return json(404, { message: `not in the stand-in: ${request.method()} ${url.pathname}` })
+  }
+  return { rows, calls, uploads, token, handle }
+}
+
+/**
+ * The build as OpenMana's real address serves it: Playwright answers every
+ * request to https://openmana.vercel.app from the running preview (with its
+ * COOP/COEP headers), so the ORYX SDK is active exactly as on the real site.
+ */
+async function servedAsReal(context: BrowserContext, base: string): Promise<void> {
+  await context.route(`${REAL_ORIGIN}/**`, async (route) => {
+    const url = new URL(route.request().url())
+    const response = await route.fetch({ url: new URL(`${url.pathname}${url.search}`, base).href })
+    await route.fulfill({ response })
+  })
+}
+
+async function oryxCloud(browser: Browser, base: string): Promise<void> {
+  log("ORYX cloud (OpenMana's real address, a stand-in ORYX cloud)")
+  const results: Record<string, unknown> = {}
+  const cloud = standInCloud()
+  // A collection another device of the player saved: one deck and the AI profile.
+  const fromThere = sampleBackup(1, "Aus der Cloud")
+  const cloudDeck = (gunzipSync(fromThere.bytes).toString("utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>).find((line) => line["store"] === "decks")?.["record"]) as Record<string, unknown>
+  cloud.rows.set("collection", {
+    revision: 4,
+    save_version: SCHEMA_VERSION,
+    save_data: { schemaVersion: SCHEMA_VERSION, decks: [cloudDeck], deckTombstones: [], settings: [{ key: "ai.profile", value: { kind: "random" }, updatedAt: "2026-09-01T10:00:00.000Z" }] },
+    data_hash: "from-another-device",
+    summary: { Decks: 1 },
+    playtime_ms: null,
+    device_label: "Android · ORYX-App",
+    updated_at: "2026-09-25T10:00:00.000Z",
+    deleted_at: null,
+  })
+  const narrow: Viewport = { name: "narrow phone", width: 360, height: 780, touch: true, scale: 3 }
+  for (const viewport of [VIEWPORTS[0]!, narrow]) {
+    const context = await newContext(browser, viewport)
+    await servedAsReal(context, base)
+    await context.route(`${SUPABASE}/**`, (route) => cloud.handle(route))
+    const page = await context.newPage()
+    const pageLog = watch(page)
+    try {
+      if (viewport === narrow) {
+        // A narrow phone: the card of a guest fits, and its button stays a touch target.
+        await page.goto(`${REAL_ORIGIN}/settings`, { waitUntil: "networkidle" })
+        const card = page.getByRole("region", { name: "ORYX-Cloud" })
+        await card.getByText("ORYX-Cloud: nicht verbunden").waitFor()
+        const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+        const button = await card.getByRole("button", { name: "Mit ORYX verbinden" }).boundingBox()
+        const cardBox = await card.boundingBox()
+        check(overflow <= 0, `oryx: the settings page overflows a 360 px phone by ${overflow}px`)
+        check(button !== null && cardBox !== null && button.x + button.width <= cardBox.x + cardBox.width, `oryx: the connect button runs out of its card at 360 px ${JSON.stringify({ button, cardBox })}`)
+        check((button?.height ?? 0) >= 44, `oryx: the connect button is ${button?.height}px high`)
+        await card.scrollIntoViewIfNeeded()
+        await page.screenshot({ path: path.join(reportDir, "screens", "narrow-phone-settings-oryx-guest.png") })
+        // The same phone as a device that connected before: the longer button fits as well.
+        await page.evaluate(
+          (access) =>
+            localStorage.setItem(
+              "oryx.openmana.auth",
+              JSON.stringify({ access, refresh: "e2e-refresh", expiresAt: Date.now() + 3_600_000, user: { id: "00000000-0000-4000-8000-0000000000a1", email: "spieler@example.invalid" } }),
+            ),
+          cloud.token,
+        )
+        await page.reload({ waitUntil: "networkidle" })
+        const disconnect = card.getByRole("button", { name: "Verbindung auf diesem Gerät trennen" })
+        await disconnect.waitFor()
+        await card.getByText(/^ORYX-Cloud: verbunden/).waitFor()
+        const connectedOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+        const disconnectBox = await disconnect.boundingBox()
+        const connectedCard = await card.boundingBox()
+        check(connectedOverflow <= 0, `oryx: the connected card overflows a 360 px phone by ${connectedOverflow}px`)
+        check(
+          disconnectBox !== null && connectedCard !== null && disconnectBox.x + disconnectBox.width <= connectedCard.x + connectedCard.width,
+          `oryx: the disconnect button runs out of its card at 360 px ${JSON.stringify({ disconnectBox, connectedCard })}`,
+        )
+        check((disconnectBox?.height ?? 0) >= 44, `oryx: the disconnect button is ${disconnectBox?.height}px high`)
+        await card.scrollIntoViewIfNeeded()
+        await page.screenshot({ path: path.join(reportDir, "screens", "narrow-phone-settings-oryx-connected.png") })
+        results["narrow"] = { overflow, button, connectedOverflow, disconnect: disconnectBox }
+        for (const error of pageLog.errors) check(false, `oryx (narrow phone): ${error}`)
+        continue
+      }
+
+      // 1. A guest with a deck of their own: the card, and not one request to the cloud.
+      await page.goto(`${REAL_ORIGIN}/settings`, { waitUntil: "networkidle" })
+      const local = await openLocalData(page, REAL_ORIGIN)
+      const ownDecks = sampleBackup(1, "Nur hier")
+      await chooseBackup(local, "eigene-decks.jsonl.gz", ownDecks.bytes)
+      await page.getByRole("dialog", { name: "Sicherung laden" }).getByRole("button", { name: "Zusammenführen", exact: true }).click()
+      await page.getByText("Sicherung geladen").waitFor()
+      const card = page.getByRole("region", { name: "ORYX-Cloud" })
+      await card.getByText("ORYX-Cloud: nicht verbunden").waitFor()
+      check(await card.getByText("Nicht verbunden", { exact: true }).isVisible(), "oryx: the guest badge is missing")
+      check(cloud.calls.length === 0, `oryx: a guest already talked to the cloud: ${JSON.stringify(cloud.calls)}`)
+      check(await page.evaluate(() => globalThis.crossOriginIsolated), "oryx: the page on the real address is not cross-origin isolated")
+      const connect = card.getByRole("button", { name: "Mit ORYX verbinden" })
+      check(((await connect.boundingBox())?.height ?? 0) >= 44, "oryx: the connect button is smaller than 44 px")
+      results["guestAxe"] = await accessibility(page, "oryx: settings (guest)")
+      await card.scrollIntoViewIfNeeded()
+      await page.screenshot({ path: path.join(reportDir, "screens", "phone-settings-oryx-guest.png") })
+
+      // 2. Connecting leaves for ORYX's consent page (a redirect, no popup: COOP), with PKCE.
+      await connect.click()
+      await page.waitForURL((url) => url.href.startsWith(`${SUPABASE}/auth/v1/oauth/authorize`))
+      const authorize = new URL(page.url())
+      check(authorize.searchParams.get("client_id") === STAND_IN_CLIENT, `oryx: client ${authorize.searchParams.get("client_id")}`)
+      check(authorize.searchParams.get("redirect_uri") === `${REAL_ORIGIN}/`, `oryx: redirect ${authorize.searchParams.get("redirect_uri")}`)
+      check(authorize.searchParams.get("code_challenge_method") === "S256" && (authorize.searchParams.get("code_challenge") ?? "").length >= 43, "oryx: no PKCE challenge")
+      const state = authorize.searchParams.get("state") ?? ""
+
+      // 3. ORYX sends the player back to OpenMana's address (its start page): the code is exchanged (verifier
+      //    checked), code and state leave the address, the player is told, and the start's pull merges.
+      await page.goto(`${REAL_ORIGIN}/?code=e2e-code&state=${encodeURIComponent(state)}`, { waitUntil: "networkidle" })
+      await page.getByText("Mit ORYX verbunden").waitFor()
+      check(page.url() === `${REAL_ORIGIN}/`, `oryx: the address after connecting is ${page.url()}`)
+      await page.screenshot({ path: path.join(reportDir, "screens", "phone-start-oryx-connected.png") })
+      await expectUpload(cloud, 1, "the start's merge")
+      const merged = cloud.uploads[0] as { decks?: { name?: string }[]; settings?: { key?: string }[]; matches?: unknown }
+      check(JSON.stringify((merged.decks ?? []).map((d) => d.name).sort()) === JSON.stringify(["Aus der Cloud 1", "Nur hier 1"]), `oryx: merged decks ${JSON.stringify(merged.decks?.map((d) => d.name))}`)
+      check(JSON.stringify((merged.settings ?? []).map((s) => s.key)) === JSON.stringify(["ai.profile", "e2e.sample"]), `oryx: merged settings ${JSON.stringify(merged.settings?.map((s) => s.key))}`)
+      check(!("matches" in merged), "oryx: recorded matches went to the cloud")
+      const stored = await dumpDatabase(page)
+      check(JSON.stringify(((stored["decks"] ?? []) as { name: string }[]).map((d) => d.name).sort()) === JSON.stringify(["Aus der Cloud 1", "Nur hier 1"]), "oryx: the merged decks are not on the device")
+      // To the settings through the app (no reload): the card says connected.
+      await page.getByRole("link", { name: "Einstellungen" }).first().click()
+      await page.getByRole("heading", { level: 1, name: "Einstellungen" }).waitFor()
+      await card.getByText("Verbunden", { exact: true }).waitFor()
+      await card.getByText(/^ORYX-Cloud: verbunden/).waitFor()
+      const connectedOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+      check(connectedOverflow <= 0, `oryx: the connected settings page overflows the phone by ${connectedOverflow}px`)
+      const disconnectHeight = (await card.getByRole("button", { name: "Verbindung auf diesem Gerät trennen" }).boundingBox())?.height ?? 0
+      check(disconnectHeight >= 44, `oryx: the disconnect button is ${disconnectHeight}px high`)
+      results["connectedAxe"] = await accessibility(page, "oryx: settings (connected)")
+      await card.scrollIntoViewIfNeeded()
+      await page.screenshot({ path: path.join(reportDir, "screens", "phone-settings-oryx-connected.png") })
+
+      // 4. The player's changes go up (collected: the SDK waits 15 s); settings of the device never.
+      await page.getByRole("switch", { name: "Bewegungen reduzieren" }).click()
+      await page.getByRole("radiogroup", { name: "KI-Profil" }).getByRole("radio", { name: /^Waghalsig/ }).click()
+      await expectUpload(cloud, 2, "a changed AI profile", 40_000)
+      const changed = cloud.uploads[1] as { settings?: { key?: string; value?: unknown }[] }
+      const profile = (changed.settings ?? []).find((s) => s.key === "ai.profile")?.value
+      check(JSON.stringify(profile) === JSON.stringify({ kind: "profile", name: "Reckless" }), `oryx: uploaded profile ${JSON.stringify(profile)}`)
+      check(!(changed.settings ?? []).some((s) => s.key?.startsWith("display.")), `oryx: a setting of the device went to the cloud ${JSON.stringify(changed.settings)}`)
+      check(cloud.rows.get("collection")?.save_version === SCHEMA_VERSION, "oryx: the collection's version is not the schema version")
+
+      // 5. Disconnecting on this device: the data stays, the connection is forgotten.
+      await card.getByRole("button", { name: "Verbindung auf diesem Gerät trennen" }).click()
+      await page.getByText("Verbindung auf diesem Gerät getrennt").waitFor()
+      await card.getByRole("button", { name: "Mit ORYX verbinden" }).waitFor()
+      check((await page.evaluate(() => localStorage.getItem("oryx.openmana.auth"))) === null, "oryx: the tokens stayed after disconnecting")
+      check(((await dumpDatabase(page))["decks"] ?? []).length === 2, "oryx: disconnecting changed the decks")
+      results["calls"] = cloud.calls
+      results["uploads"] = cloud.uploads.length
+      for (const error of pageLog.errors) check(false, `oryx: ${error}`)
+    } finally {
+      await context.close()
+    }
+  }
+  report["oryxCloud"] = results
+}
+
+/** Waits until the stand-in cloud holds `count` uploads (the SDK collects changes up to 15 s). */
+async function expectUpload(cloud: { readonly uploads: readonly unknown[] }, count: number, label: string, timeoutMs = 15_000): Promise<void> {
+  const until = Date.now() + timeoutMs
+  while (cloud.uploads.length < count && Date.now() < until) await new Promise((resolve) => setTimeout(resolve, 100))
+  check(cloud.uploads.length === count, `oryx: ${label}: ${cloud.uploads.length} uploads, expected ${count}`)
+}
+
 // ── Run ──────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -2569,6 +2855,7 @@ async function main(): Promise<void> {
     await deckImport(browser, base, id)
     await pwa(base, executablePath)
     await withoutIsolation(browser)
+    await oryxCloud(browser, base)
     report["gameTable"] = await tableHarness(browser)
   } finally {
     await browser.close()

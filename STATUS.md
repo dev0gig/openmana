@@ -124,6 +124,16 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Stack and combat in Forge's words and the table's names (alike unblocked attackers in one line); Forge's decision with its prompt, the kind of question and the answers it offers, said to be not answerable here yet (prompts 15/16); Forge's notices as a toast at the top and in the menu (session: `noticeCount`).
 - Evidence: unit tests on seven real states recorded from the engine's test games (`scripts/record-table-scenes.ts` → `src/test/fixtures/table-scenes.json`), end to end in Chrome with the real engine (the live table on desktop, in portrait and landscape windows and on a phone upright and turned, menu, conceding) and the recorded scenes in the real table at six sizes (section 12). See `prompts/STATUS.md` and `docs/implementation/13-battlefield-foundation.md`.
 
+### ORYX Cloud Sync (outside the queue, 2026-09-25)
+- dev0gig's direct assignment, not a queue prompt (`prompts/STATUS.md` unchanged): the player's collection syncs through their ORYX account (the launcher's Supabase cloud) with the vendored ORYX SDK 1.0.0 (`src/cloud/oryx-sdk.js` and `.d.ts`, byte-identical copies of `oryx-games/shared`, checksum-tested, excluded from lint only themselves). Active only on `https://openmana.vercel.app/`; locally, in tests and previews inactive (no request, nothing stored). Local stays the source of truth.
+- One slot `collection` = one document (`src/storage/collection.ts`, schema `CollectionDocument`, version = `SCHEMA_VERSION`): valid decks, deletion marks (90 days) and every setting except `display.*`; never caches, recorded matches or `meta`.
+- Merged, never chosen (SDK `merge`, `ui: false`, no SDK dialog): per deck the newer `updatedAt` wins (equal times: a fixed canonical choice), a deletion mark removes a deck last changed before it, nothing disappears without a mark; settings: the newer change per key. A download is merged into the local data in one transaction (never replaces it; what only this device has is uploaded afterwards); a cloud collection that fails its check is not applied; a newer version is neither taken nor overwritten; a collection marked deleted in the cloud is kept here and uploaded again.
+- Flow: `oryx.ready()` before the first render (return from ORYX's consent page, `?oryx_sync=1`), one `pull()` once the local database is open (pages show local data at once and re-read what it writes), uploads only for this tab's own writes that change the document (hash compared with the synced one), never after applying the cloud's document.
+- Local database **schema version 4**: store `deckTombstones` (role internal, never in backups; migration 4); `deleteDeck` writes the mark in the same transaction and drops marks older than 90 days; loading a backup that brings a deleted deck back makes it a new change. `StorageSession.subscribeChanges` names the origin (`this-tab`/`other-tab`). Card catalog rebuilt for schema 4 (content unchanged, id `059d16eea3753a24`).
+- UI: Settings card "ORYX-Cloud" below "Daten auf diesem Gerät" (the SDK's status line, what syncs and what stays, "Mit ORYX verbinden" / "Verbindung auf diesem Gerät trennen", problems in place), not shown while inactive.
+- After returning from ORYX's consent page (it lands on the start page) a toast says once whether connecting worked; if the cloud cannot even start, OpenMana starts without it.
+- Evidence: 622 Vitest tests (63 new: merge and check, read/apply on fake-indexeddb, the real SDK against a stand-in ORYX cloud on the real storage session, the card and the return notice in the real app frame, the SDK checksum), `npm run check` with the end-to-end test in Chrome, including the new section 13: the build served as `https://openmana.vercel.app` with a stand-in ORYX cloud - the whole OAuth/PKCE round trip under COOP/COEP, the start's merge, uploads, disconnecting, axe, 360 px; plus the card absent and Web Storage empty off the real address, and the deletion mark in IndexedDB after deleting a deck. Limits: ORYX takes 1 MB per slot by default (≈ 146 Constructed or 48 Commander decks); ORYX needs an OAuth client for `openmana`; effective once deployed. Details: `docs/implementation/oryx-cloud-sync.md`.
+
 ## Currently In Progress
 Nothing. Prompts 00–13 are `COMPLETE`. The next prompt is **14 — Cards, hand and safe interaction** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
 
@@ -149,7 +159,8 @@ Exact order/status is authoritative only in `prompts/STATUS.md`.
 ## Not Yet Implemented
 At this review point:
 - the game table shows every state, but answering Forge's decisions and operating cards come with prompts 14–19 (until then a game can be followed and conceded),
-- no service worker/offline mode, no deployment, no Android artifact yet.
+- no service worker/offline mode, no deployment, no Android artifact yet,
+- the ORYX cloud sync is built but inactive until OpenMana runs at `openmana.vercel.app` and ORYX has an OAuth client for it.
 
 Anvil remains the working reference implementation until OpenMana reaches the intended parity.
 
@@ -159,7 +170,7 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 - UI ↔ protocol ↔ bridge ↔ Forge WASM remains a hard boundary.
 - Browser-local operation must not require Odin/Tailscale.
 - Scryfall supplies metadata/images, not legality/rules.
-- Local-first deck/user data remains a core product requirement.
+- Local-first deck/user data remains a core product requirement (the optional ORYX cloud merges into it, never replaces it).
 - Web/touch/desktop share one application; later Android is a wrapper, not a second UI.
 
 ## Workflow Compatibility

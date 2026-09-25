@@ -142,6 +142,16 @@ Provide backup/export and restore/import because browser storage can be deleted.
 
 The implemented database (stores, schema, migrations) and backup format are described in [implementation/07-indexeddb-storage.md](implementation/07-indexeddb-storage.md).
 
+### ORYX cloud (optional sync)
+
+Decided by dev0gig on 2026-09-25 (outside the numbered queue): the player may connect OpenMana to their ORYX account (the ORYX launcher's cloud, Supabase) to keep their collection in sync across devices. Local stays the source of truth and works without it; OpenMana has no account of its own.
+
+- Synced, as one document: decks, deletion marks of deleted decks (kept 90 days) and the settings shared between devices (every setting except `display.*`, which belongs to the device). Never caches (card catalog, engine), recorded matches or the database's metadata.
+- Two versions are merged, never chosen: per deck the newer change wins, a deletion mark removes a deck last changed before it, nothing disappears without a mark. Deleting a deck leaves such a mark.
+- Only through the ORYX SDK (an unchanged copy), only on OpenMana's real address, connected by redirects (COOP forbids popups), and its UI is OpenMana's own (shadcn), never the SDK's dialog.
+
+The implementation (document, merge rule, flow, card in Settings, limits) is described in [implementation/oryx-cloud-sync.md](implementation/oryx-cloud-sync.md).
+
 ## 6. Game UX
 
 Target modern digital-card-game usability with an original OpenMana identity. MTG Arena is a UX reference, not an asset/UI template to copy.
@@ -285,6 +295,8 @@ Initial target:
 
 Future cloud sync must be explicit and must not silently replace local ownership.
 
+The ORYX cloud sync (§5, since 2026-09-25) follows this: nothing leaves the device until the player connects ("Mit ORYX verbinden"); a download is merged into the local data, never replaces it; a deletion in the cloud is never taken over silently; disconnecting keeps every local record. Once connected, the player's ORYX account receives the synced collection, a short summary (number of decks), a random installation id, a device label and the foreground play time ORYX shows.
+
 ## 16. Lessons that must survive Anvil
 
 - Fixed primary actions beat controls hidden at the end of long scrolling screens.
@@ -381,7 +393,7 @@ A user can:
 - rewriting Magic rules in TypeScript
 - replacing Forge AI
 - multiplayer/network matchmaking
-- accounts/cloud deck sync
+- accounts/cloud deck sync of OpenMana's own (the optional sync through the player's ORYX account, §5, came on 2026-09-25)
 - purchasing/owning digital cards
 - reproducing MTG Arena assets/UI exactly
 - Odin/Toride/Arcaneum runtime requirements

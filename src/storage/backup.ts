@@ -30,6 +30,11 @@
  *   match is never overwritten. "replace" empties the stores of the backup
  *   first. Decisions are taken inside the writing transaction, so a change
  *   in another tab cannot slip in between.
+ * - A deck that comes back although it was deleted meanwhile wins over its
+ *   deletion mark (restoredDeck): the backup's decks are what the player
+ *   wants, also on the devices the ORYX cloud syncs. Deletion marks are no
+ *   part of a backup ("replace" writes none either: decks it removes here
+ *   may come back from the cloud - only deleting a deck deletes it there).
  */
 import { StorageError, type RecordProblem } from "./errors"
 import { BACKUP_FORMAT_VERSION, BACKUP_STORES, SCHEMA_VERSION } from "./generated/constants"
@@ -409,7 +414,7 @@ interface Decision {
   readonly replaceLogOf: readonly string[]
 }
 
-type ImportStores = BackupStore | "meta"
+type ImportStores = BackupStore | "deckTombstones" | "meta"
 
 /** Reads only; a writing transaction is passed as the reading one it also is. */
 async function readLocalState(transaction: ReadTransaction<BackupStore>): Promise<LocalState> {
@@ -535,6 +540,17 @@ export interface ImportOptions {
 }
 
 /**
+ * A deck the backup brings back that was deleted meanwhile - here, or on
+ * another device and synced here - comes back as a new change: its deletion
+ * mark goes, and a copy not newer than the deletion is dated to the import.
+ * Otherwise merging the collection with the ORYX cloud would delete it again
+ * (collection.ts). Any other deck is written exactly as the backup has it.
+ */
+function restoredDeck(deck: StoreRecord<"decks">, deletedAt: string | undefined, at: string): StoreRecord<"decks"> {
+  return deletedAt !== undefined && deletedAt >= deck.updatedAt ? { ...deck, updatedAt: at } : deck
+}
+
+/**
  * Imports a checked backup in one transaction. Checks the space first
  * (insufficient-space, nothing written); any failure while writing leaves
  * the database exactly as it was.
@@ -543,11 +559,16 @@ export async function importBackup(db: LocalDatabase, contents: BackupContents, 
   const planned = await planImport(db, contents, mode)
   await ensureSpace(importSpaceNeeded(planned), options.storage)
   const at = (options.now ?? (() => new Date()))().toISOString()
-  const stores: ImportStores[] = [...BACKUP_STORES, "meta"]
+  const stores: ImportStores[] = [...BACKUP_STORES, "deckTombstones", "meta"]
   return db.write(stores, async (transaction) => {
     const decision = decide(await readLocalState(transaction as unknown as ReadTransaction<BackupStore>), contents, mode)
     const meta = transaction.objectStore("meta")
     const current = readBackupMeta(await meta.get("backup"))
+    const marks = transaction.objectStore("deckTombstones")
+    const deletedAt = new Map<string, string>()
+    for (const mark of await marks.getAll()) {
+      if (RECORD_CHECKS.deckTombstones(mark) === null) deletedAt.set(mark.id, mark.deletedAt)
+    }
     const requests = new PendingRequests()
     for (const store of decision.clear) requests.add(transaction.objectStore(store).clear())
     for (const matchId of decision.replaceLogOf) {
@@ -555,7 +576,16 @@ export async function importBackup(db: LocalDatabase, contents: BackupContents, 
     }
     for (const store of BACKUP_STORES) {
       const target = transaction.objectStore(store)
-      for (const record of decision.put[store]) requests.add(target.put(record as never))
+      for (const record of decision.put[store]) {
+        if (store !== "decks") {
+          requests.add(target.put(record as never))
+          continue
+        }
+        const deck = record as StoreRecord<"decks">
+        const mark = deletedAt.get(deck.id)
+        if (mark !== undefined) requests.add(marks.delete(deck.id))
+        requests.add(target.put(restoredDeck(deck, mark, at) as never))
+      }
     }
     requests.add(
       meta.put({

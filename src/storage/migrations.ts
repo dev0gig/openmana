@@ -104,6 +104,15 @@ const CARD_STORES_V2: Readonly<Record<string, StoreLayout>> = {
   },
 }
 
+/**
+ * The store of schema version 4 (frozen): the deletion marks of deleted decks,
+ * so that merging the collection with the ORYX cloud does not bring a deck
+ * back that was deleted on one device (src/storage/collection.ts).
+ */
+const DECK_TOMBSTONES_V4: Readonly<Record<string, StoreLayout>> = {
+  deckTombstones: { keyPath: "id", indexes: {} },
+}
+
 export const MIGRATIONS: readonly Migration[] = [
   {
     version: 1,
@@ -124,6 +133,12 @@ export const MIGRATIONS: readonly Migration[] = [
     version: 3,
     // An optional field: every stored deck and every deck of an older backup is valid as it is.
     summary: "Decks may name their companion (DeckRecord.companion); no stored record changes.",
+  },
+  {
+    version: 4,
+    // A new, empty store: every stored record and every record of an older backup stays valid as it is.
+    summary: "Deletion marks for the ORYX cloud sync: store deckTombstones (the id of a deleted deck and when); no stored record changes.",
+    structure: (db) => createStores(db, DECK_TOMBSTONES_V4),
   },
 ]
 

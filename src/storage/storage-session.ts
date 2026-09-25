@@ -61,10 +61,15 @@ const LOSS_MESSAGES: Readonly<Record<ConnectionLoss, string>> = {
 
 type Listener = () => void
 
+/** Where a change was made: a write of this tab, or one another tab of the app announced. */
+export type ChangeOrigin = "this-tab" | "other-tab"
+
+export type StoreChangeListener = (origin: ChangeOrigin) => void
+
 export class StorageSession {
   readonly #options: StorageSessionOptions
   readonly #listeners = new Set<Listener>()
-  readonly #changeListeners = new Set<{ readonly stores: ReadonlySet<StoreName>; readonly listener: Listener }>()
+  readonly #changeListeners = new Set<{ readonly stores: ReadonlySet<StoreName>; readonly listener: StoreChangeListener }>()
   #snapshot: StorageSnapshot = { status: "opening" }
   #database: LocalDatabase | null = null
   #channel: BroadcastChannel | null = null
@@ -89,8 +94,12 @@ export class StorageSession {
     }
   }
 
-  /** Calls `listener` whenever one of `stores` changed (a committed write here or in another tab). */
-  subscribeChanges(stores: readonly StoreName[], listener: Listener): () => void {
+  /**
+   * Calls `listener` whenever one of `stores` changed (a committed write here
+   * or in another tab), saying which: this tab's writes are the ones this tab
+   * uploads to the ORYX cloud (src/cloud); another tab uploads its own.
+   */
+  subscribeChanges(stores: readonly StoreName[], listener: StoreChangeListener): () => void {
     const entry = { stores: new Set(stores), listener }
     this.#changeListeners.add(entry)
     return () => {
@@ -191,8 +200,9 @@ export class StorageSession {
   }
 
   #announce(stores: readonly StoreName[], broadcast: boolean): void {
+    const origin: ChangeOrigin = broadcast ? "this-tab" : "other-tab"
     for (const entry of Array.from(this.#changeListeners)) {
-      if (stores.some((store) => entry.stores.has(store))) entry.listener()
+      if (stores.some((store) => entry.stores.has(store))) entry.listener(origin)
     }
     if (broadcast) {
       try {

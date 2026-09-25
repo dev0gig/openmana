@@ -124,6 +124,44 @@ describe("deleting", () => {
     expect(await readRaw("decks")).toEqual([])
     db.close()
   })
+
+  it("leaves a deletion mark with the deck's id and the time, in the same transaction (the cloud merge must not bring it back)", async () => {
+    const db = await openTestDatabase()
+    const saved = deck()
+    await saveDeck(db, saved)
+    await putRaw("decks", { id: "broken", name: "" })
+    expect(await deleteDeck(db, saved.id, at("2026-09-25T10:00:00.000Z"))).toBe(true)
+    // A damaged record without a deck id has nothing to mark; a deck already gone gets no second mark.
+    expect(await deleteDeck(db, "broken", at("2026-09-25T10:01:00.000Z"))).toBe(true)
+    expect(await deleteDeck(db, saved.id, at("2026-09-25T10:02:00.000Z"))).toBe(false)
+    expect(await readRaw("deckTombstones")).toEqual([{ id: saved.id, deletedAt: "2026-09-25T10:00:00.000Z" }])
+    db.close()
+  })
+
+  it("keeps the marks bounded: those older than 90 days go with the next deletion, a damaged one stays for the check", async () => {
+    const db = await openTestDatabase()
+    const old = { id: "00000000-0000-4000-8000-0000000000a1", deletedAt: "2026-06-26T09:59:59.999Z" }
+    const recent = { id: "00000000-0000-4000-8000-0000000000a2", deletedAt: "2026-06-27T10:00:00.000Z" }
+    const damaged = { id: "00000000-0000-4000-8000-0000000000a3", deletedAt: "gestern" }
+    await putRaw("deckTombstones", old, recent, damaged)
+    const saved = deck()
+    await saveDeck(db, saved)
+    // 90 days before 2026-09-25T10:00Z is 2026-06-27T10:00Z: the older mark goes, the one exactly 90 days old stays.
+    await deleteDeck(db, saved.id, at("2026-09-25T10:00:00.000Z"))
+    const marks = await readRaw("deckTombstones")
+    expect(marks).toHaveLength(3)
+    expect(marks).toEqual(expect.arrayContaining([recent, damaged, { id: saved.id, deletedAt: "2026-09-25T10:00:00.000Z" }]))
+    db.close()
+  })
+
+  it("a refused deletion leaves no mark", async () => {
+    const db = await openTestDatabase()
+    await putRaw("deckTombstones", { id: "00000000-0000-4000-8000-0000000000b1", deletedAt: "2026-06-01T10:00:00.000Z" })
+    expect(await deleteDeck(db, "00000000-0000-4000-8000-ffffffffffff", at("2026-09-25T10:00:00.000Z"))).toBe(false)
+    // Nothing was deleted, so nothing expired was cleaned up either: the transaction only reads.
+    expect(await readRaw("deckTombstones")).toEqual([{ id: "00000000-0000-4000-8000-0000000000b1", deletedAt: "2026-06-01T10:00:00.000Z" }])
+    db.close()
+  })
 })
 
 it("every change is announced after it is written (other views and tabs update)", async () => {
@@ -136,6 +174,7 @@ it("every change is announced after it is written (other views and tabs update)"
   await deleteDeck(db, COPY_ID)
   // A refused change announces nothing.
   await rejectionOf(renameDeck(db, COPY_ID, "Weg"))
-  expect(changes).toEqual([["decks"], ["decks"], ["decks"], ["decks"]])
+  // Deleting also writes the deletion mark (one transaction, one announcement).
+  expect(changes).toEqual([["decks"], ["decks"], ["decks"], ["decks", "deckTombstones"]])
   db.close()
 })

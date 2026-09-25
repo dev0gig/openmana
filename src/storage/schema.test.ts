@@ -10,7 +10,7 @@ import { GAME_RESULTS as PROTOCOL_GAME_RESULTS, MATCH_FORMATS } from "@openmana/
 import { describe, expect, it } from "vitest"
 import { APP, card, deck, logEntry, match, setting } from "@/test/storage-fixtures"
 import { DECK_FORMATS, GAME_RESULTS, SCHEMA_VERSION } from "./generated/constants"
-import { validateBackupEnd, validateBackupHeader } from "./generated/validators.js"
+import { validateBackupEnd, validateBackupHeader, validateCollectionDocument } from "./generated/validators.js"
 import { formatKey, RECORD_CHECKS, STORE_LAYOUT, STORE_NAMES, STORE_ROLES } from "./schema"
 
 describe("generated files", () => {
@@ -63,6 +63,22 @@ describe("record checks", () => {
     expect(RECORD_CHECKS.matchLog({ ...logEntry("00000000-0000-4000-8000-000000000001", 0), message: { seq: 1 } })).not.toBeNull()
   })
 
+  it("check deletion marks: a deck id and when", () => {
+    expect(RECORD_CHECKS.deckTombstones({ id: "00000000-0000-4000-8000-000000000001", deletedAt: "2026-09-25T08:00:00.000Z" })).toBeNull()
+    expect(RECORD_CHECKS.deckTombstones({ id: "broken", deletedAt: "2026-09-25T08:00:00.000Z" })).not.toBeNull()
+    expect(RECORD_CHECKS.deckTombstones({ id: "00000000-0000-4000-8000-000000000001", deletedAt: "2026-09-25" })).not.toBeNull()
+    expect(RECORD_CHECKS.deckTombstones({ id: "00000000-0000-4000-8000-000000000001", deletedAt: "2026-09-25T08:00:00.000Z", name: "x" })).not.toBeNull()
+  })
+
+  it("check the collection document's container (its records are checked one by one: collection.test.ts)", () => {
+    const empty = { schemaVersion: 4, decks: [], deckTombstones: [], settings: [] }
+    expect(validateCollectionDocument(empty)).toBe(true)
+    expect(validateCollectionDocument({ ...empty, schemaVersion: 3 })).toBe(false)
+    expect(validateCollectionDocument({ ...empty, matches: [] })).toBe(false)
+    expect(validateCollectionDocument({ schemaVersion: 4, decks: [] })).toBe(false)
+    expect(validateCollectionDocument({ ...empty, decks: ["not a record"] })).toBe(false)
+  })
+
   it("tell the meta records apart by key", () => {
     expect(RECORD_CHECKS.meta({ key: "database", lastExport: null, lastImport: null })).not.toBeNull()
     expect(RECORD_CHECKS.meta({ key: "other" })).not.toBeNull()
@@ -93,7 +109,15 @@ describe("stores", () => {
 
   it("the schema version is the database version", () => {
     // Version 2 (prompt 08): the card catalog stores. Version 3 (prompt 10): a deck names its companion.
-    expect(SCHEMA_VERSION).toBe(3)
+    // Version 4 (ORYX cloud): the deletion marks of deleted decks.
+    expect(SCHEMA_VERSION).toBe(4)
+  })
+
+  it("deletion marks are the database's own bookkeeping: never in a backup", async () => {
+    const { BACKUP_STORES } = await import("./generated/constants")
+    expect(STORE_ROLES.deckTombstones).toBe("internal")
+    expect([...BACKUP_STORES]).not.toContain("deckTombstones")
+    expect(STORE_LAYOUT.deckTombstones).toEqual({ keyPath: "id", indexes: {} })
   })
 
   it("formats keys for reports", () => {

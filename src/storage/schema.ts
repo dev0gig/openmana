@@ -10,7 +10,10 @@
  * - cache: derived data (the card catalog with Scryfall data, fetched
  *   printings, cache bookkeeping). Never backed up; a migration may simply
  *   empty it, it is downloaded again.
- * - internal: this database's own metadata. Stays in this browser.
+ * - internal: this database's own bookkeeping - its metadata (meta) and the
+ *   deletion marks of deleted decks (deckTombstones, which travel only inside
+ *   the collection the ORYX cloud keeps: src/storage/collection.ts). Migrated
+ *   like user data, but never part of a backup.
  */
 import type { DBSchema } from "idb"
 import type { RecordProblem } from "./errors"
@@ -18,6 +21,7 @@ import type {
   CacheEntryRecord,
   CardRecord,
   DeckRecord,
+  DeckTombstoneRecord,
   ForgeOnlyCardRecord,
   MatchLogEntry,
   MatchRecord,
@@ -30,6 +34,7 @@ import {
   validateCacheEntryRecord,
   validateCardRecord,
   validateDeckRecord,
+  validateDeckTombstoneRecord,
   validateForgeOnlyCardRecord,
   validateMatchLogEntry,
   validateMatchRecord,
@@ -47,6 +52,7 @@ export const STORE_NAMES = [
   "meta",
   "settings",
   "decks",
+  "deckTombstones",
   "matches",
   "matchLog",
   "scryfallCards",
@@ -63,6 +69,7 @@ export const STORE_ROLES: Readonly<Record<StoreName, StoreRole>> = {
   meta: "internal",
   settings: "user",
   decks: "user",
+  deckTombstones: "internal",
   matches: "user",
   matchLog: "user",
   scryfallCards: "cache",
@@ -100,6 +107,7 @@ export const STORE_LAYOUT: Readonly<Record<StoreName, StoreLayout>> = {
   meta: { keyPath: "key", indexes: {} },
   settings: { keyPath: "key", indexes: {} },
   decks: { keyPath: "id", indexes: {} },
+  deckTombstones: { keyPath: "id", indexes: {} },
   matches: { keyPath: "id", indexes: { startedAt: index("startedAt") } },
   matchLog: { keyPath: ["matchId", "seq"], indexes: {} },
   scryfallCards: { keyPath: "oracleId", indexes: { nameKeys: index("nameKeys", { multiEntry: true }) } },
@@ -114,6 +122,7 @@ export interface OpenManaDB extends DBSchema {
   meta: { key: string; value: MetaRecord }
   settings: { key: string; value: SettingRecord }
   decks: { key: string; value: DeckRecord }
+  deckTombstones: { key: string; value: DeckTombstoneRecord }
   matches: { key: string; value: MatchRecord; indexes: { startedAt: string } }
   matchLog: { key: [string, number]; value: MatchLogEntry }
   scryfallCards: { key: string; value: CardRecord; indexes: { nameKeys: string } }
@@ -171,6 +180,7 @@ export const RECORD_CHECKS: Readonly<Record<StoreName, RecordCheck>> = {
   meta: check(validateMetaRecord),
   settings: check(validateSettingRecord),
   decks: check(validateDeckRecord),
+  deckTombstones: check(validateDeckTombstoneRecord),
   matches: check(validateMatchRecord),
   matchLog: check(validateMatchLogEntry),
   scryfallCards: check(validateCardRecord),

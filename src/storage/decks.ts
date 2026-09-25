@@ -8,9 +8,11 @@
  * brought back ("not-found"), and a damaged one is never overwritten with a
  * guess of what it was ("invalid-record"; the settings' check shows it).
  */
+import { tombstoneCutoff } from "./collection"
 import { StorageError } from "./errors"
 import { sortOut, assertRecord, type CheckedRecords, type InvalidRecord, type LocalDatabase, type WriteTransaction } from "./database"
 import type { DeckRecord } from "./generated/records"
+import { RECORD_CHECKS } from "./schema"
 
 const byName = new Intl.Collator("de-DE", { sensitivity: "base", numeric: true })
 
@@ -112,13 +114,36 @@ export async function replaceDeck(db: LocalDatabase, deck: DeckRecord): Promise<
   return changeDeck(db, deck.id, (stored) => ({ ...deck, createdAt: stored.createdAt }))
 }
 
-/** Deletes a deck (valid or damaged). False if it was not there (deleted meanwhile): the outcome is the same. */
-export async function deleteDeck(db: LocalDatabase, id: string): Promise<boolean> {
-  return db.write(["decks"], async (transaction) => {
+/**
+ * Deletes a deck (valid or damaged). False if it was not there (deleted
+ * meanwhile): the outcome is the same.
+ *
+ * In the same transaction it leaves a deletion mark (deck id and when), so
+ * that merging the collection with the ORYX cloud does not bring the deck
+ * back from another device (collection.ts) - for a record without a deck id
+ * (a damaged one) there is nothing to mark. Marks older than TOMBSTONE_DAYS
+ * are dropped here, so they never pile up.
+ */
+export async function deleteDeck(db: LocalDatabase, id: string, now: () => Date = () => new Date()): Promise<boolean> {
+  const at = now()
+  const mark = { id, deletedAt: at.toISOString() }
+  const markable = RECORD_CHECKS.deckTombstones(mark) === null
+  const cutoff = tombstoneCutoff(at)
+  return db.write(["decks", "deckTombstones"], async (transaction) => {
     const store = transaction.objectStore("decks")
     const there = (await store.count(id)) > 0
-    if (there) await store.delete(id)
-    return there
+    if (!there) return false
+    await store.delete(id)
+    const marks = transaction.objectStore("deckTombstones")
+    if (markable) await marks.put(assertRecord("deckTombstones", mark))
+    let cursor = await marks.openCursor()
+    while (cursor) {
+      const deletedAt: unknown = (cursor.value as { deletedAt?: unknown } | undefined)?.deletedAt
+      // Only valid marks expire; a damaged one stays for the check to show (never dropped silently).
+      if (RECORD_CHECKS.deckTombstones(cursor.value) === null && typeof deletedAt === "string" && deletedAt < cutoff) await cursor.delete()
+      cursor = await cursor.continue()
+    }
+    return true
   })
 }
 

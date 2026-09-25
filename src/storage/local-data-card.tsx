@@ -47,7 +47,7 @@ export function LocalDataCard() {
           <Database aria-hidden className="size-5 text-primary" />
           Daten auf diesem Gerät
         </CardTitle>
-        <CardDescription>Decks, Einstellungen und Partien liegen nur in diesem Browser – ohne Konto und ohne Cloud.</CardDescription>
+        <CardDescription>Decks, Einstellungen und Partien liegen in diesem Browser – ohne Konto.</CardDescription>
         <CardAction>
           <StatusBadge snapshot={snapshot} />
         </CardAction>

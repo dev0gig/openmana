@@ -22,6 +22,7 @@ export interface Validator<T> {
 }
 
 export declare const validateDeckRecord: Validator<R.DeckRecord>
+export declare const validateDeckTombstoneRecord: Validator<R.DeckTombstoneRecord>
 export declare const validateSettingRecord: Validator<R.SettingRecord>
 export declare const validateMatchRecord: Validator<R.MatchRecord>
 export declare const validateMatchLogEntry: Validator<R.MatchLogEntry>
@@ -34,3 +35,4 @@ export declare const validateMetaRecord: Validator<R.MetaRecord>
 export declare const validateBackupHeader: Validator<R.BackupHeader>
 export declare const validateBackupRecordLine: Validator<R.BackupRecordLine>
 export declare const validateBackupEnd: Validator<R.BackupEnd>
+export declare const validateCollectionDocument: Validator<R.CollectionDocument>

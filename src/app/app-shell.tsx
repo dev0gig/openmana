@@ -1,6 +1,7 @@
 /*
  * Frame of every surface: sidebar (md and up) or top bar + tab bar (phones),
- * the local database, the card catalog, the engine session and the player's
+ * the local database (linked to the ORYX cloud when main.tsx provides one),
+ * the card catalog, the engine session and the player's
  * preferences shared by all pages, tooltips and toasts. A page may take the
  * whole screen (the running game, src/app/immersive.tsx): then the frame
  * steps aside and the page fills the screen without scrolling.
@@ -10,6 +11,7 @@ import { NavLink, Outlet, ScrollRestoration, useLocation } from "react-router"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Brand } from "@/components/brand"
 import { CardCatalogProvider } from "@/cards/card-catalog-context"
+import { CloudReturnNotice, CloudStorageLink } from "@/cloud/cloud-context"
 import { BottomNav, BottomNavItem } from "@/components/ui/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
@@ -24,6 +26,8 @@ import { PreferencesProvider } from "./preferences"
 export function AppShell() {
   return (
     <StorageProvider>
+      <CloudStorageLink />
+      <CloudReturnNotice />
       <CardCatalogProvider>
         <EngineSessionProvider>
           <PreferencesProvider>

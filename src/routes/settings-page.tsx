@@ -2,7 +2,8 @@
  * Settings: the player's preferences (prompt 12) - the AI profile, the card
  * language, less motion - each saved at once; what this build and this
  * device are, with the diagnostics report; the data kept on the device
- * (backups, check) and the card data (Scryfall). The preferences are chosen
+ * (backups, check), the ORYX cloud (only on OpenMana's real address) and the
+ * card data (Scryfall). The preferences are chosen
  * here once, never on the way to a game (Anvil lesson).
  */
 import { Info, TriangleAlert } from "lucide-react"
@@ -13,6 +14,7 @@ import { MotionOptions } from "@/app/motion-options"
 import { usePreferences } from "@/app/preferences"
 import { CardDataCard } from "@/cards/card-data-card"
 import { CardLanguageOptions } from "@/cards/card-language-options"
+import { OryxCloudCard } from "@/cloud/oryx-cloud-card"
 import { FactList, type Fact } from "@/components/fact-list"
 import { Page } from "@/components/page-header"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -150,6 +152,7 @@ export function SettingsPage() {
         </Card>
       </div>
       <LocalDataCard />
+      <OryxCloudCard />
       <CardDataCard />
     </Page>
   )
