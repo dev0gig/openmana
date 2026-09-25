@@ -39,9 +39,8 @@ import { useStorage, useStorageQuery } from "@/storage/storage-context"
 import { DECK_FORMAT_LABELS, formatDateTime } from "@/storage/storage-labels"
 import { CatalogHint } from "./catalog-hint"
 import { DeckActions } from "./deck-actions"
-import { cardsLabel } from "./deck-import-labels"
 import { DECK_PARTS, EMPTY_INDEX, LIBRARY_STORES, pictureOf, readDeckCards, viewDeck, type DeckCardIndex, type DeckPart, type DeckView, type EntryView } from "./deck-view"
-import { describeDeck, LANGUAGE_BADGES, LANGUAGE_REASONS, languageSummary, PART_LABELS } from "./library-labels"
+import { cardsLabel, describeDeck, LANGUAGE_BADGES, LANGUAGE_REASONS, languageSummary, PART_LABELS } from "./library-labels"
 import { useNamedPrints, type NamedPrints } from "./named-prints"
 
 interface DeckDetails {

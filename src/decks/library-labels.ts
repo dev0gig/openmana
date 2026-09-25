@@ -3,10 +3,14 @@
  * stay English (system EN); the player reads German (user DE).
  */
 import type { DeckFormat } from "@/storage/generated/records"
-import { cardsLabel } from "./deck-import-labels"
 import type { SelectionBlocker } from "./deck-selection"
 import type { CardLanguage, DeckPart, DeckView } from "./deck-view"
 import type { DeckSort, FormatFilter } from "./library"
+
+/** "1 Karte", "60 Karten" */
+export function cardsLabel(n: number): string {
+  return n === 1 ? "1 Karte" : `${n.toLocaleString("de-DE")} Karten`
+}
 
 export const PART_LABELS: Readonly<Record<DeckPart, string>> = {
   commander: "Kommandeur",

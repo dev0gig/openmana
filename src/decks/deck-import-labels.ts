@@ -96,10 +96,8 @@ export function isInformative(note: EntryNote): boolean {
   return note.kind !== "chosen"
 }
 
-/** "1 Karte", "60 Karten" */
-export function cardsLabel(n: number): string {
-  return n === 1 ? "1 Karte" : `${n.toLocaleString("de-DE")} Karten`
-}
+// Shared with the deck library (library-labels.ts, part of the start bundle, unlike this file).
+export { cardsLabel } from "./library-labels"
 
 /** "Zeile 12" */
 export function lineLabel(line: number): string {
