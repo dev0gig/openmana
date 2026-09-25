@@ -117,8 +117,15 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - The build checks the engine's AI profile files (SHA-256) against the verified table and stops on any difference.
 - Evidence: see `prompts/STATUS.md` and `docs/implementation/12-ai-profiles-settings.md`.
 
+### Game Table Foundation (Prompt 13)
+- A running game is the game table (`src/game/game-table.tsx`), a view of Forge's full state: fixed regions - header (turn, step, whose turn, whether Forge waits, the menu), the AI with its hand, its battlefield, stack and combat, your battlefield, you, Forge's decision, your hand. `GameBoard` (`src/components/ui/game-board.tsx`) arranges them in portrait (stacked) and landscape (side column; both battlefields always equally high); the page never scrolls, card rows scroll sideways, texts inside their region. While the game runs the table takes the whole screen (`src/app/immersive.tsx`: the app shell hides sidebar, top bar and tab bar); the table's menu leads around the app (the game keeps running), shows the matchup and Forge's notices and concedes after asking.
+- `src/game/table-model.ts` arranges the state from Forge's values only: seats from `me`; two rows per battlefield (cards with power/toughness next to the middle, the rest outside; one row when the region is lower than 176 px); piles of cards whose every value is equal (never cards Forge names in questions, on the stack, in combat or as attachments); attachments with their host, also across sides; stack in Forge's order (first = top); combat pairs with defenders and blockers.
+- Cards (`GameCard`, `src/components/ui/game-card.tsx`): sized by their row's height, pictures from the card catalog in the player's card language (`src/game/table-cards.ts`: Forge's key resolved once per key; ambiguous tokens, Forge-only and Forge's effect cards show Forge's words, never a guessed picture), tapped = a quarter turn, facts (pile size, attacking, blocking, power/toughness, loyalty, damage, counters in German, face-down, phased out) in a strip below the picture - nothing drawn over it (Scryfall's terms). Hidden cards (the AI's hand, its face-down permanents) are OpenMana's own backs, counted, never identified.
+- Stack and combat in Forge's words and the table's names (alike unblocked attackers in one line); Forge's decision with its prompt, the kind of question and the answers it offers, said to be not answerable here yet (prompts 15/16); Forge's notices as a toast at the top and in the menu (session: `noticeCount`).
+- Evidence: unit tests on seven real states recorded from the engine's test games (`scripts/record-table-scenes.ts` → `src/test/fixtures/table-scenes.json`), end to end in Chrome with the real engine (the live table on desktop, in portrait and landscape windows and on a phone upright and turned, menu, conceding) and the recorded scenes in the real table at six sizes (section 12). See `prompts/STATUS.md` and `docs/implementation/13-battlefield-foundation.md`.
+
 ## Currently In Progress
-Nothing. Prompts 00–12 are `COMPLETE`. The next prompt is **13 — Battlefield foundation** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
+Nothing. Prompts 00–13 are `COMPLETE`. The next prompt is **14 — Cards, hand and safe interaction** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
 
 Any agent entering the repository must first reconcile this statement with the latest `prompts/STATUS.md` and Git state.
 
@@ -141,7 +148,7 @@ Exact order/status is authoritative only in `prompts/STATUS.md`.
 
 ## Not Yet Implemented
 At this review point:
-- no playable OpenMana battlefield UI yet: a game starts and runs, but cards and decisions are operated from prompt 13 on (until then it can be followed and conceded),
+- the game table shows every state, but answering Forge's decisions and operating cards come with prompts 14–19 (until then a game can be followed and conceded),
 - no service worker/offline mode, no deployment, no Android artifact yet.
 
 Anvil remains the working reference implementation until OpenMana reaches the intended parity.
@@ -158,7 +165,7 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 ## Workflow Compatibility
 OpenMana predates the generic Dropzone `queue → active → completed` lifecycle and is worked through **its own numbered ledger**, one prompt at a time.
 
-Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 12 complete, 13 next, nothing in progress).
+Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 13 complete, 14 next, nothing in progress).
 
 Dropzone Master/Standalone must respect:
 - `prompts/STATUS.md` statuses,

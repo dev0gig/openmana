@@ -28,9 +28,9 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | **13 — Battlefield foundation** |
-| Nächster Prompt | 14 — Cards, hand and safe interaction (erst nach 13 = COMPLETE) |
-| Zuletzt abgeschlossen | 12 — AI profiles and settings (`e618079`) |
+| Aktuell ausgeführt | – (keiner; nach 13 wie in `naechster-schritt.md` vorgesehen gestoppt) |
+| Nächster Prompt | **14 — Cards, hand and safe interaction** (PENDING, nicht begonnen) |
+| Zuletzt abgeschlossen | 13 — Battlefield foundation (`eb8e0ab`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-25 (Lauf über `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-25 |
 
@@ -51,7 +51,7 @@
 | 10 | [Deck library](queue/10-deck-library.md) | COMPLETE | `7aab76f` |
 | 11 | [Game session foundation](queue/11-game-session.md) | COMPLETE | `679fbfb` |
 | 12 | [AI profiles and settings](queue/12-ai-profiles-settings.md) | COMPLETE | `e618079` |
-| 13 | [Battlefield foundation](queue/13-battlefield-foundation.md) | IN_PROGRESS | – |
+| 13 | [Battlefield foundation](queue/13-battlefield-foundation.md) | COMPLETE | `eb8e0ab` |
 | 14 | [Cards, hand and safe interaction](queue/14-card-hand-interactions.md) | PENDING | – |
 | 15 | [Forge decision UI](queue/15-forge-decisions.md) | PENDING | – |
 | 16 | [Priority, stack and phases](queue/16-priority-stack-phases.md) | PENDING | – |
@@ -1309,10 +1309,130 @@
 - **Weiter mit:** Prompt 13 (Battlefield foundation). Nicht begonnen:
   `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
 
-### 13 — Battlefield foundation — IN_PROGRESS
+### 13 — Battlefield foundation — COMPLETE
 
-- Begonnen am 2026-09-25 von Claude Code (Claude Opus 5.5), Auftrag
-  „Führe prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
+- **Commits:** `eb8e0ab` Implementierung (Engine unverändert; alle Nachweise
+  liefen auf diesem Stand, sauberer Arbeitsbaum), danach Doku und dieser
+  Eintrag (2026-09-25). Agent: Claude Code (Claude Opus 5.5), Auftrag „Führe
+  prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
+  Status-Commit zu Beginn: `e5edb83`.
+- **Zusammenfassung:** Eine laufende Partie ist jetzt der **Spieltisch**,
+  gebaut aus Forges vollständigem Zustand (`GameState`, offene Fragen,
+  Anweisungszeile). **Feste Bereiche:** Kopf (Zug, Schritt, wer am Zug ist,
+  „Du bist dran“/„Forge rechnet“, Menü), Forge-KI (Profil, Leben, Zonen,
+  Mana, Marken, Kommandeursteuer und -schaden, Hand als Rückseiten), ihr
+  Spielfeld, Stapel und Kampf, dein Spielfeld, du, Forges Entscheidung,
+  deine Hand. **Hochformat** untereinander, **Querformat** mit Seitenspalte
+  (KI neben dem Kopf, du neben der Hand, beide Spielfelder exakt gleich
+  hoch); die Seite rollt nie, Kartenreihen rollen seitwärts, Texte in ihrem
+  Bereich; Regionhöhen richten sich nach der Bildschirmhöhe. **Vollbild:**
+  Seitenleiste, Kopf- und Tab-Leiste treten während der Partie zurück; das
+  **Menü** des Tischs führt zu jeder Seite (die Partie läuft weiter), zeigt
+  Paarung und Forges Meldungen und hat „Aufgeben“ (bestätigt). **Karten**
+  von der Reihenhöhe bemessen, Bilder aus dem Katalog in der Kartensprache
+  (Forges Schlüssel einmal je Schlüssel aufgelöst; nicht eindeutig →
+  Forges Worte statt eines geratenen Bildes), getappt = Vierteldrehung,
+  Fakten (Stapelgröße, Angriff, Block, Stärke/Widerstandskraft, Loyalität,
+  Schaden, Marken deutsch, verdeckt, ausgephast) **unter** dem Bild,
+  gleiche Karten als Stapel („9×“; nie Karten, die Forge in Fragen, auf dem
+  Stapel, im Kampf oder als Anhängsel nennt), Auren/Ausrüstung beim Träger
+  (auch über die Seiten). **Verborgenes** bleibt Rückseite und Zahl.
+  **Stapel** (oben zuerst) und **Kampf** in Forges Worten; **Entscheidung**
+  mit Forges Anweisung, Frageart und angebotenen Antworten, ehrlich „noch
+  nicht beantwortbar“ (Prompt 15/16). Keine Regel im Client. Kein Blocker.
+- **Wichtige Komponenten:**
+  - Tisch: `src/game/game-table.tsx` (reine Ansicht eines Zustands; Menü und
+    Warnungen kommen von außen – auch für die Wiedergabe in 22),
+    `table-model.ts` (Sitzplätze, Reihen, Stapel, Anhängsel, Stapel/Kampf;
+    rein), `table-cards.ts` (Bilder: `useTableCards`, `pictureKey`,
+    `resolvePictures`), `table-labels.ts` (Marken, Fakten, Stapel-/
+    Kampfzeilen)
+  - Bausteine (shadcn-Weise): `src/components/ui/game-board.tsx`
+    (`GameBoard`, `GameBoardArea`: acht Bereiche, Hoch/Quer),
+    `game-card.tsx` (`GameCard`, `GameCardCaption`, `GameCardBack`,
+    `GameCardGroup`); `card-picture.tsx` + `compact`
+  - App: `src/app/immersive.tsx` (`useImmersive`), `app-shell.tsx` (Rahmen
+    tritt zurück); `src/game/game-page.tsx` (Tisch im Vollbild,
+    `TableMenu`, Meldungs-Hinweise); `src/engine/engine-session.ts`
+    (`noticeCount`); `src/hooks/use-element-height.ts`
+  - Echte Szenen: `scripts/record-table-scenes.ts` →
+    `src/test/fixtures/table-scenes.json` (sieben Momente aus den
+    Mitschnitten der Differenztests, Engine von `e618079`),
+    `src/test/table-scenes.ts`; Prüfstand `src/test/table-harness.tsx` +
+    `scripts/e2e/table-harness.html`
+  - Doku: `docs/implementation/13-battlefield-foundation.md`, `AGENTS.md`
+    (Game Table Rules), `docs/DESIGN_SYSTEM.md` (§3 Regel 3/8, §4 Tisch,
+    §5 Inventar, §6 nichts über Kartenbilder), Bible §6 (Verweis),
+    `README.md`, `STATUS.md`
+- **Tests (alle bestanden, auf `eb8e0ab`):**
+  - Erzeugte Dateien = Schemas, `tsc -b`, `oxlint` ohne Befund.
+  - **559 Vitest-Tests** (510 bestehende + 49 neue): Tischmodell 15 (auf
+    sieben echten Szenen: Protokollprüfung, Sitzplätze, Stapel gleicher
+    Karten, Reihen, Stapel, Kampf, Commander, Effektkarten; gebaut: Aura des
+    Gegners auf eigener Kreatur, verdeckte Karten, genannte Karten), Bilder 6
+    (echter Mini-Katalog), Tisch 18, Wörter 6, Vollbild 3, Partie-Seite +1
+    (Meldungen; 4 angepasst: Tisch statt Zusammenfassung, Aufgeben aus dem
+    Menü), Sitzung (1 erweitert: `noticeCount`).
+  - **End-to-End** (`npm run check` 8 min 2 s, Chrome 153, echte Engine
+    `42f3bf1c7706cec5`, echter Katalog, echte Scryfall-API, **0 Befunde**):
+    alle bisherigen Abschnitte, 10 und 11 jetzt am Tisch – Commander-
+    Spiegelpartie am Desktop (kein App-Rahmen, nichts rollt, alle Bereiche im
+    Fenster, Hand 7 offen mit echten Bildern, KI-Hand 7 Rückseiten ohne Bild,
+    Kommandeur mit Bild in der Kommandozone, axe 0), Fenster hochkant/quer/
+    zurück ohne Wirkung auf die Partie, Menü in die App und zurück, Aufgeben
+    aus dem Menü, Constructed gegen „zufällig“, Fehlerwege, Handy hochkant
+    und gedreht (48-px-Menü, echte Bilder), Profil vom Tisch gelesen. **Neu
+    Abschnitt 12:** sieben echte Szenen im echten Tischcode in sechs Größen
+    (Handy, Handy quer, kleines Handy, Foldable, Tablet quer, Desktop) = 42
+    Kombinationen: nichts rollt, jeder Bereich im Fenster, Spielfelder gleich
+    hoch, kleinstes 112 px, jede Karte in ihrer Reihe, 127 Bilder geladen,
+    0 gescheitert, **axe 0 Befunde**.
+  - Engine unverändert: erzeugte Protokolldateien = Schema, `tsc`, **80/80**.
+    Frischer Klon von `eb8e0ab`: `npm ci` 4,6 s, Build ohne Engine scheitert
+    laut, mit `OPENMANA_ENGINE=omit OPENMANA_CARDS=omit` baut er, 559 Tests
+    grün.
+- **Messwerte (odin):** Vorwärmen bis „Bereit“ 6,4 s; Start bis zur ersten
+  Entscheidung 0,84–0,90 s (Desktop, Handy); Kartendaten am Handy in 4,1 s
+  eingerichtet. Start-JavaScript (Skripte und Modulvorladungen der
+  `index.html`, gzip -9, beide Stände gleich gebaut) 228,5 → **229,7 KB**
+  (+1,2 KB); Partie-Seite (nachgeladen) 4,6 → **12,1 KB** gzip. Nie mehr als
+  eine Engine.
+- **Erkenntnisse/Abweichungen:**
+  - **Unsichtbare Texte ließen die Seite rollen:** `sr-only`-Texte in
+    seitwärts rollenden Reihen hatten keinen positionierten Vorfahren und
+    streckten die Seite auf 1540 × 3421 px; Reihen, Bereiche und Raster sind
+    jetzt `relative`, der E2E prüft je Größe und Szene, dass nichts rollt.
+  - **Kleines Handy (360×740):** der erste Lauf fand 68 px je Spielfeld in der
+    späten Commander-Szene → Rückseiten-Reihe der KI nur bei breiter Leiste
+    (aufgedeckte Karten immer), Kommandeur-Angaben als kurze Stücke,
+    Entscheidung/Stapel/Hand nach Bildschirmhöhe (`clamp(…dvh…)`) → 112 px.
+  - **Abgebrochene Bildanfragen** im Handy-Querformat: Das Feld maß seine
+    Höhe erst nach dem ersten Zeichnen und stellte von zwei auf eine Reihe
+    um; der Browser verwarf die schon begonnenen kleinen Bilder. Jetzt vor
+    dem ersten Zeichnen gemessen.
+  - **axe im einblendenden Menü:** Kontrast wurde mitten in der
+    Einblend-Animation gemessen; der Test wartet jetzt das Animationsende ab
+    (`animationsDone`).
+  - **Forges Texte teils englisch** (Stapelbeschreibungen aus den
+    Kartenskripten, „Select creatures to attack …“, Knöpfe „Call Back“,
+    „Auto“, „Cancel“) – gezeigt wie gesendet; für 15/16: Knöpfe nach
+    `purpose` deutsch beschriften.
+  - **Zauber auf dem Stapel ohne Karte im Protokoll** (`StackItem.source`
+    zeigt in Forges Stapelzone) → Vorschlag `StackItem.card`, Protokoll 5
+    (16).
+  - **Spielsteine eines Namens** (Goblin 1/1 rot: drei Scryfall-Designs) →
+    kein Bild, Forges Worte (Kandidat 14/20).
+  - Ein unveränderter Test aus Prompt 12 (`preferences.test.tsx`) schlug in
+    einem von sechs vollen Vitest-Läufen unter Last fehl, sonst grün;
+    beobachtet, nicht verändert.
+  - Bewusst: Vollbild mit eigenem Menü; Antworten sichtbar, nicht bedienbar;
+    Einsatzbereitschaft, spielbare Karten, Hervorhebungen noch nicht gezeigt
+    (14/17/18/23); Zonen durchblättern und große Kartenansicht (20); volles
+    Spielfeld im E2E mit echten, aufgezeichneten Zuständen im echten Tisch
+    geprüft, weil die Live-Partie bis 15/16 nur Forges erste Entscheidung
+    erreicht.
+- **Weiter mit:** Prompt 14 (Cards, hand and safe interaction). Nicht
+  begonnen: `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
 
 ## Hinweise für spätere Prompts
 
@@ -1373,6 +1493,60 @@ Seit Prompt 12 (`docs/implementation/12-ai-profiles-settings.md`):
   Versionsangaben (Service Worker/Cache ab 25, Auslieferung ab 31).
 - ⚠️ `engine/scripts/build.sh` löscht `engine/build/report` – Ergebnisse der
   Studie vorher sichern.
+
+### Spieltisch (Stand 2026-09-25, für 14 ff.)
+
+Seit Prompt 13 ist die laufende Partie der Spieltisch
+(`src/game/game-table.tsx`, Doku `docs/implementation/13-battlefield-foundation.md`):
+
+- **14 (Karten, Hand):** Karten sind `GameCard`s (`src/components/ui/game-card.tsx`)
+  in `CardRow`s; `FieldCard`, `Entry`, `Hand` in `game-table.tsx` rendern sie,
+  jede trägt `data-card` = Forges Id. Forges Markierungen (`playable`,
+  `action`, `ways`, `highlighted`) liegen im Zustand, sind aber noch nicht
+  gezeigt; ein Zustand braucht ein Token-Paar (Design-System §6) und darf
+  **nie auf das Bild** (Rahmen um die Karte oder Leiste darunter). Ein Stapel
+  (`BoardEntry.ids`) ist eine Karte mit Anzahl – wer eine davon bedient,
+  muss eine Id wählen (Anvil: die erste); von Fragen genannte Karten liegen
+  schon einzeln (`namedCardIds`). Reihen haben `tabIndex=0` (Tastatur
+  rollt sie), bis ihre Karten selbst fokussierbar sind – dann die Reihe
+  weiter per Tastatur rollbar halten. Mehrdeutige Spielsteine zeigen Forges
+  Worte (Befund 11.5): Kandidat für ein eindeutiges Bild.
+- **15 (Entscheidungen):** Der Bereich `decision` (`Decision` in
+  `game-table.tsx`) zeigt Anweisung, Frageart und Forges Antworten als
+  Marken mit dem Satz „Hier kannst du noch nicht antworten …“ – den ersetzen
+  die Bedienelemente; die Sitzung braucht `answer`. Forges Knöpfe sind teils
+  englisch („Call Back“, „Auto“, „Cancel“) → nach `purpose` deutsch
+  beschriften. `GameTable` bekommt heute `menu` und `alerts` von außen; die
+  Bedienung kommt am besten ebenso von der Seite (der Tisch bleibt Ansicht,
+  auch für 22).
+- **16 (Priorität, Stapel):** Stapel im Bereich `center`, oben zuerst
+  (`StackEntryView`); für Zauber gibt es nur Forges Text, weil ihre Karte in
+  Forges Stapelzone liegt → Vorschlag `StackItem.card` (VisibleCard) mit
+  Protokoll 5. Die Phasenleiste gehört in den Kopf (`header`, heute „Zug 3 ·
+  Erste Hauptphase“).
+- **17 (Ziele, Kosten):** Ziele der Stapeleinträge sind aufgelöst
+  (`CardRef`/`PlayerRef`); Hervorhebung über `data-card` am `GameCard`.
+- **18/19 (Kampf):** Kampfzeilen im `center` (gleiche ungeblockte Angreifer
+  gebündelt); Angreifer/Blocker tragen Schwert/Schild in der Leiste;
+  Kampfkarten liegen nie im Stapel. `sick` ist noch nicht gezeigt.
+- **20 (Zonen):** Friedhof und Exil sind Zahlen in den Spielerleisten
+  (`Count`), die Kommandozone Karten vorne in der äußeren Reihe.
+- **21 (Verlauf):** Im Tisch ist kein Bereich dafür reserviert (Vorschlag:
+  Menü oder eigenes Sheet); die Sitzung verwirft `events` noch.
+- **22 (Wiedergabe):** `GameTable` ist eine reine Ansicht (state, questions,
+  prompt, waiting, aiProfile, pictures, menu, alerts); wie man sie mit
+  aufgezeichneten Zuständen und dem Katalog füttert, zeigt
+  `src/test/table-harness.tsx`.
+- **24 (Größen):** E2E-Abschnitt 12 prüft sechs Größen mit echten Szenen;
+  eng bleibt das Handy quer (Spielfelder ~120 px, eine Reihe). Neue echte
+  Szenen: `engine/scripts/test-engine.sh`, dann
+  `node scripts/record-table-scenes.ts`.
+- ⚠️ `sr-only`-Texte in rollenden Bereichen brauchen einen positionierten
+  Vorfahren, sonst rollt die ganze Seite (Befund 11.1).
+- ⚠️ Kartenbilder im Tisch haben `srcset` + `sizes="auto"`: eine Umordnung
+  nach dem ersten Zeichnen lässt den Browser begonnene Bilder verwerfen
+  (E2E: `requestfailed`) – Maße vor dem ersten Zeichnen nehmen
+  (`useElementHeight`).
 
 ### Vercel und Android (Stand 2026-09-25, für 28 und 31)
 
