@@ -28,9 +28,9 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | **09 — Arena deck import** |
-| Nächster Prompt | 10 — Deck library (erst nach 09 = COMPLETE) |
-| Zuletzt abgeschlossen | 08 — Scryfall card data (`45f57d7`) |
+| Aktuell ausgeführt | – (keiner; nach 09 wie in `naechster-schritt.md` vorgesehen gestoppt) |
+| Nächster Prompt | **10 — Deck library** (PENDING, nicht begonnen) |
+| Zuletzt abgeschlossen | 09 — Arena deck import (`c7bb533`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-25 (Lauf über `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-25 |
 
@@ -47,7 +47,7 @@
 | 06 | [OpenMana web/PWA skeleton](queue/06-web-pwa-skeleton.md) | COMPLETE | `cfb2252` |
 | 07 | [IndexedDB local data layer](queue/07-indexeddb-storage.md) | COMPLETE | `c9ee901` |
 | 08 | [Scryfall card data](queue/08-scryfall-data.md) | COMPLETE | `45f57d7` |
-| 09 | [Arena deck import](queue/09-arena-deck-import.md) | IN_PROGRESS | – |
+| 09 | [Arena deck import](queue/09-arena-deck-import.md) | COMPLETE | `c7bb533` |
 | 10 | [Deck library](queue/10-deck-library.md) | PENDING | – |
 | 11 | [Game session foundation](queue/11-game-session.md) | PENDING | – |
 | 12 | [AI profiles and settings](queue/12-ai-profiles-settings.md) | PENDING | – |
@@ -847,10 +847,113 @@
 - **Weiter mit:** Prompt 09 (Arena deck import). Nicht begonnen:
   `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
 
-### 09 — Arena deck import — IN_PROGRESS
+### 09 — Arena deck import — COMPLETE
 
-- Begonnen am 2026-09-25 von Claude Code (Claude Opus 5.5), Auftrag
-  „Führe prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
+- **Commits:** `c7bb533` Implementierung (alle Nachweise liefen auf diesem
+  Stand, sauberer Arbeitsbaum), danach Doku und dieser Eintrag (2026-09-25).
+  Agent: Claude Code (Claude Opus 5.5), Auftrag „Führe
+  prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
+  Status-Commit zu Beginn: `75e4f71`.
+- **Zusammenfassung:** Decks → „Arena-Deck importieren“ (`/decks/import`,
+  nachgeladen): Arena-Liste einfügen oder Textdatei öffnen, prüfen, offene
+  Zeilen klären, Namen vergeben, speichern. Gelesen wird Arenas Format
+  vollständig (Deck, Sideboard, Commander, Companion, About/Name, Anzahl, Set
+  + Sammlernummer, Arenas Regel für Blöcke ohne Überschrift); jede andere
+  Zeile ist ein Problem mit Zeilennummer. Jede Zeile wird über den
+  Kartenkatalog auf dem Gerät der Karte zugeordnet, die Forge kennt (Rang:
+  eigener/Forge-Name, Vorderseite, spätere Seite, Alias, deutscher Name;
+  Forge-only-Karten wie Arenas „A-“-Karten; Arenas Setcodes → Scryfalls).
+  Scryfalls API **nur** für Zeilen, die der Katalog nicht entscheidet und die
+  einen Druck nennen (andere Sprachen, 32 Namen mehrerer spielbarer Karten,
+  24 davon alte deutsche Doppelübersetzungen wie „Zwang“ = Duress/Coercion);
+  sonst wählt der Spieler – nie geraten. Speichern erst, wenn jede Zeile
+  geklärt ist (korrigiert, gewählt oder bewusst weggelassen) und das Deck
+  einen Namen hat; die Liste bleibt unverändert beim Deck. Gefährte ins
+  Sideboard (dort sucht Forge ihn), Kommandeur → `commander`. Keine
+  Legalitätsprüfung (Forge entscheidet). Im E2E-Test startet die **echte
+  Forge-Engine** mit jedem importierten Deck eine Partie. Kein Blocker.
+- **Wichtige Komponenten:**
+  - Import: `src/decks/arena-list.ts` (Parser, rein), `deck-resolve.ts`
+    (Zuordnung, Bericht je Zeile, `decideName`), `deck-plan.ts` (was
+    gespeichert wird, Sperren, `deckRecordFrom`), `deck-import-labels.ts`,
+    `deck-import-page.tsx`, `import-report.tsx`, `card-choice-dialog.tsx`,
+    `fixtures/` (Arena-Beispiellisten + README)
+  - `src/cards/scryfall-access.ts` (der eine Scryfall-Client der App, erst bei
+    der ersten Nachfrage geladen); `ScryfallClient` holt `fetch` jetzt je
+    Anfrage
+  - Oberfläche: Route `decks/import` mit `lazy` + `HydrateFallback`
+    (`src/routes/page-loading.tsx`), Decks-Seite mit Import-Link, Startseite,
+    Kartendaten-Einrichten auch auf der Import-Seite (`InstallButton`,
+    `InstallProgressView` exportiert), shadcn `Textarea` (Registry)
+  - Schema: Beschreibung von `DeckCard.set` (Scryfalls Setcode) – keine
+    Formatänderung, Schema-Version bleibt 2
+  - E2E: Abschnitt 8 „Deck import“ in `scripts/e2e/run.ts`,
+    `scripts/e2e/engine-decks.ts` (Deck in der echten Engine anspielen)
+  - Doku: `docs/implementation/09-arena-deck-import.md`, `AGENTS.md`
+    (Regeln für den Deck-Import, ein Scryfall-Client), `docs/DESIGN_SYSTEM.md`
+    (`Textarea`, `PageLoading`), Bible §5 (Verweis), `README.md`, `STATUS.md`
+- **Tests (alle bestanden, auf `c7bb533`):**
+  - Erzeugte Dateien = Schemas, `tsc -b`, `oxlint` ohne Befund.
+  - **352 Vitest-Tests** (298 bestehende + 54 neue): Parser 16 (Arena-Exporte
+    englisch/Gefährte/Brawl/deutsch mit BOM und CRLF, Arenas Regel ohne
+    Überschrift, Deckseiten-Varianten, jede unlesbare Zeile mit Nummer),
+    Zuordnung 18 (kleiner echter Katalog: englisch, deutsch, Rückseiten,
+    Aliasse, Forge-Namen, nicht spielbar, Spielstein, unbekannt, „A-“,
+    mehrdeutig + Wahl, Setcodes, Druck identifiziert/entscheidet/andere
+    Karte/unbekannt/offline, keine unnötige Anfrage; die Regeln einzeln),
+    Deck-Aufbau 11 (Addieren, Drucke, Scryfall-Id, Gefährte, Commander,
+    Sperren, Weglassen, leeres Hauptdeck, gültiger `DeckRecord`), Oberfläche 9
+    (Weg hinein, Kartendaten einrichten, Speichern bis in die Datenbank,
+    wählen/weglassen/wieder aufnehmen, Commander, fremdsprachiger Name über
+    Scryfall, Scryfall offline + erneut prüfen, Textdatei, Liste bearbeiten).
+  - **End-to-End** (`npm run check` 188 s, Chrome 153, echte Engine
+    `0c82db80023ac0cc`, echter Katalog `cacfe9aca953cd50`, 0 Fehler): alle
+    bisherigen Prüfungen, die Import-Seite in drei Größen (axe 0, kein
+    Überlauf), plus Abschnitt 8: Kartendaten auf der Import-Seite
+    eingerichtet (4,8 s); englische Arena-Liste (21 Zeilen) in 0,12 s geklärt,
+    ohne jede Scryfall-Anfrage (`DAR 254` → `dom 254`, Hansk → Forge „Daryl,
+    Hunter of Walkers“, „A-Luminarch Aspirant“, Gefährte im Sideboard);
+    deutsche Liste: „Zwang“ gewählt (Duress), „Wucherndes Wachstum (M10) 201“
+    vom Druck entschieden, „Foudre (M11) 149“ über Scryfall erkannt und mit
+    „Blitzschlag“ addiert, Alchemy-Karte weggelassen (1,3 s inkl. 1×
+    `/cards/collection` + 2 deutsche Fassungen, alle 200); Commander-Liste
+    als Datei; nach Neuladen alle Decks, IndexedDB-Datensätze wie erwartet;
+    axe 0 (Bericht, offene Zeilen, Handy, Auswahldialog); **jedes Deck in der
+    echten Forge-Engine** (Wasm in Node): kein „deck-rejected“, `game.started`
+    mit genau den Karten des Decks, Aufgabe beendet die Partie.
+  - Engine unverändert: erzeugte Protokolldateien = Schema, `tsc`, 80/80.
+    Frischer Klon: `npm ci`, Build ohne Engine scheitert laut, mit `omit`
+    baut er, 352 Tests grün.
+- **Messwerte (odin, Lastmittel 5–9 durch andere Sitzungen):** Start-JavaScript
+  206,7 → **207,7 KB gzip** (App-Code 107,4 → 108,4 KB); Import-Seite 13,2 KB
+  gzip und Scryfall-Client 5,1 KB gzip nur bei Bedarf. Engine in Node bereit
+  nach 9,6–12,0 s, Partie 70–152 ms danach gestartet.
+- **Erkenntnisse/Abweichungen:**
+  - **Deutsche Arena-Clients exportieren deutsche Namen**, Arena übersetzt
+    einige Karten selbst; im Katalog tragen 32 Namen mehrere spielbare Karten
+    → Druck oder Spieler entscheidet. Die neue „prepare“-Kartenart
+    überschneidet sich mit bekannten Kartennamen (26 Fälle) → Rang „eigener
+    Name vor Seitenname“.
+  - **Forge nimmt die Katalog-Namen an** (Vorderseiten, Split „ // “,
+    „A-“-Karten, Universes Beyond unter dem gedruckten Namen) – in der echten
+    Engine belegt.
+  - **Behoben:** `ScryfallClient` band `fetch` beim Anlegen (für einen
+    app-weiten Client falsch); React Router warnte beim Direktaufruf der
+    nachgeladenen Route ohne `HydrateFallback` (E2E fand es) → `PageLoading`.
+  - **Bewusste Entscheidungen:** keine Legalitätsprüfung (Forge; Befund 05:
+    Forge prüft beim Start nicht → Vorschlag für 11: Forges
+    `DeckFormat.getDeckConformanceProblem` über die Engine abfragen); Gefährte
+    ohne eigenes Feld (liegt im Sideboard, Liste bleibt beim Deck; Feld erst,
+    wenn 10 es braucht); `DeckCard.set` = Scryfalls Setcode; „Weglassen“ ist
+    eine sichtbare Entscheidung des Spielers; Scryfall nur für offene Zeilen
+    mit Druck; „4x“ und die deutschen Abschnittsnamen „Kommandeur“/„Gefährte“
+    toleriert (Letztere unbestätigt); eigene Seite statt Dialog, nachgeladen.
+  - Offen mit Ziel: Deck ansehen/umbenennen/erneut importieren/exportieren,
+    Bilder der genannten Drucke (10); Legalität vor Spielstart (11);
+    deutsche Abschnittsnamen und „A-“-Karten in deutschen Exporten mit einem
+    echten deutschen Export bestätigen (bei Gelegenheit); Manasymbole (14).
+- **Weiter mit:** Prompt 10 (Deck library). Nicht begonnen:
+  `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
 
 ## Hinweise für spätere Prompts
 

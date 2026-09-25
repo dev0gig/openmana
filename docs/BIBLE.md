@@ -126,6 +126,8 @@ Support as applicable:
 
 Resolve cards to stable identities and convert them to the representation Forge needs. Never silently discard unresolved cards; show an import report.
 
+The implemented import (format, how a line becomes a card, the report and what is saved) is described in [implementation/09-arena-deck-import.md](implementation/09-arena-deck-import.md).
+
 ### IndexedDB
 
 Decks are local-first and stored in IndexedDB, not localStorage.

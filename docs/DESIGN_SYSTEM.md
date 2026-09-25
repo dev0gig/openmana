@@ -101,10 +101,12 @@ not turn into one endless vertical page (Bible §6).
 | `Button`, `Badge`, `Card`, `Alert`, `Separator`, `Tooltip`, `Sheet`, `Sidebar` (+ `Input`, `Skeleton` it needs), `Sonner`, `Empty`, `Item`, `Spinner` | shadcn/ui registry (`radix-maia`) | everything on screen |
 | `Dialog`, `AlertDialog`, `RadioGroup`, `Field` (+ `Label` it needs) | shadcn/ui registry (`radix-maia`, prompt 07) | the backup import (dialog with choice cards: `RadioGroup` items inside `FieldLabel`, named by `aria-labelledby`), confirmations of irreversible actions |
 | `AspectRatio`, `Progress` | shadcn/ui registry (`radix-maia`, prompt 08) | card proportions; installing the card catalog |
+| `Textarea` | shadcn/ui registry (`radix-maia`, prompt 09) | pasting a deck list (grows with its content up to `max-h-96`, then scrolls) |
 | `CardPicture` | `src/components/ui/card-picture.tsx`, built the shadcn way (prompt 08) | every picture of a Magic card: `AspectRatio` 63 × 88, `Skeleton` while loading, the card's text in place of a missing or failed picture (`data-state` loading/loaded/failed/missing); loads Scryfall's pictures in CORS mode without referrer and never crops them (`object-contain`: Scryfall forbids cutting off artist or copyright) |
 | `BottomNav`, `BottomNavItem` | `src/components/ui/bottom-nav.tsx`, built the shadcn way | phone tab bar |
 | `Brand` | `src/components/brand.tsx` | icon + Cinzel wordmark |
 | `Page`, `PageHeader` | `src/components/page-header.tsx` | every surface: `<title>`, `h1`, description, content column |
+| `PageLoading` | `src/routes/page-loading.tsx` | a page that loads on demand (React Router `lazy`, e.g. the deck import) while its code arrives: `Skeleton`s in the content column, the frame stays usable |
 | `FactList` | `src/components/fact-list.tsx` | label/value facts (versions, sizes, timings) |
 | `TextLink` | `src/components/text-link.tsx` | links inside running text |
 | `AppSidebar`, `AppShell` | `src/components/app-sidebar.tsx`, `src/app/app-shell.tsx` | the frame around all surfaces |

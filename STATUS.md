@@ -84,8 +84,16 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - UI: Settings card "Kartendaten" (Scryfall date, counts, device state, install/update with progress, errors), "Karte nachschlagen" (search, details, turning double-faced cards, clear missing-data notes), `CardPicture` (CORS mode under COEP, no referrer, never cropped, text in place of a missing/failed picture), Credits for Scryfall and Wizards of the Coast.
 - Evidence: unit/component tests on a small real catalog (46 Scryfall objects, real Forge scripts), the real catalog build, and end to end in Chrome: install into real IndexedDB in ~4-5 s (66 MB), real Scryfall pictures under COEP (and proof that a picture without CORS mode is blocked), German, double-faced, English-only, Forge-only, offline pictures, phone layout, axe-core, stop/resume, damaged download refused. Details: `docs/implementation/08-scryfall-data.md`.
 
+### Arena Deck Import (Prompt 09)
+- Route `/decks/import` (loaded on demand) from the decks page: paste an MTG Arena deck list or open a text file (UTF-8, UTF-16 with BOM).
+- `src/decks/arena-list.ts` reads Arena's format purely: sections Deck, Sideboard, Commander, Companion, About/Name; counts; set and collector numbers; blocks without a header by Arena's rule (after the first blank line: sideboard); tolerated `4x`, `Sideboard:`, tabs, CRLF, BOM. Every other line is a problem with its line number, never skipped.
+- `src/decks/deck-resolve.ts`: every line through the card catalog on the device (one read transaction) - ranked own/Forge name, front face, later face, alias, printed German name; Forge-only cards (Arena's rebalanced `A-` cards) by their Forge name; Arena's set codes mapped to Scryfall's (`DAR` → `dom`). Scryfall's API (one shared client, `src/cards/scryfall-access.ts`, through `ensurePrints`) only for lines the catalog cannot decide that name a printing: names in other languages, the 32 names several playable cards share (24 old German translations such as "Zwang" = Duress/Coercion). Never a guess: otherwise the player chooses.
+- `src/decks/deck-plan.ts`: what is saved - entries of one card and printing added up, the companion in the sideboard (Forge looks there), `commander` when the list names a commander, else `constructed`; blocks saving while any line is open (unreadable, not found, ambiguous, not in Forge) unless corrected, chosen or explicitly left out; `DeckRecord` with Forge's name, Oracle id, Scryfall's set code and collector number, the list unchanged. No legality checks (Forge decides).
+- UI: report (state, counts, notes), "Zu klären" (line number, text, reason, choose / leave out / take back), save with a name (prefilled from About/Name), the deck per section with German names and Forge names; the card data can be set up right on the import page.
+- Evidence: 352 Vitest tests (54 new: parser, resolution, plan, page), end to end in Chrome with the real catalog and Scryfall's real API (English, German with a choice, a printing deciding and a French name identified through Scryfall, a card Forge lacks left out, a Commander list from a file, reload, IndexedDB records, phone, axe-core) - and every imported deck handed to the real Forge engine starts a game with exactly its cards. Details: `docs/implementation/09-arena-deck-import.md`.
+
 ## Currently In Progress
-Nothing. Prompts 00–08 are `COMPLETE`. The next prompt is **09 — Arena deck import** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
+Nothing. Prompts 00–09 are `COMPLETE`. The next prompt is **10 — Deck library** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
 
 Any agent entering the repository must first reconcile this statement with the latest `prompts/STATUS.md` and Git state.
 
@@ -108,7 +116,7 @@ Exact order/status is authoritative only in `prompts/STATUS.md`.
 
 ## Not Yet Implemented
 At this review point:
-- no deck library/import UI yet (the local database, backups and the card catalog exist; decks only arrive through a backup),
+- no deck library UI yet (decks arrive through the Arena import or a backup and are listed; details, editing, deleting and choosing decks for a game follow with prompt 10),
 - no game session and no playable OpenMana battlefield UI yet,
 - no service worker/offline mode, no deployment, no Android artifact yet.
 
@@ -126,7 +134,7 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 ## Workflow Compatibility
 OpenMana predates the generic Dropzone `queue → active → completed` lifecycle and is worked through **its own numbered ledger**, one prompt at a time.
 
-Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 08 complete, 09 next, nothing in progress).
+Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 09 complete, 10 next, nothing in progress).
 
 Dropzone Master/Standalone must respect:
 - `prompts/STATUS.md` statuses,

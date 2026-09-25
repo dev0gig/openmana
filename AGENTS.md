@@ -49,10 +49,16 @@ The player's data lives in IndexedDB through `src/storage` (prompt 07, `docs/imp
 ## Card Data Rules
 Card names, texts and pictures come from the card catalog (prompt 08, `cards/README.md`, `docs/implementation/08-scryfall-data.md`):
 - Scryfall data is for display, search and import lookups only - never for rules, legality or card behaviour (Forge decides). In a game, Forge's live text is authoritative.
-- Built at build time from Scryfall's bulk data and Forge's card database (`npm run cards:build`), checked and served like the engine (`vite/card-assets.ts`), installed into IndexedDB once per version. The app never asks Scryfall's API per card shown; the API is only for particular printings (`src/cards/prints.ts` through `src/cards/scryfall-client.ts`, which alone enforces Scryfall's rate limits, the Accept header and the 30-second pause after HTTP 429).
+- Built at build time from Scryfall's bulk data and Forge's card database (`npm run cards:build`), checked and served like the engine (`vite/card-assets.ts`), installed into IndexedDB once per version. The app never asks Scryfall's API per card shown; the API is only for particular printings (`src/cards/prints.ts` through `src/cards/scryfall-client.ts`, which alone enforces Scryfall's rate limits, the Accept header and the 30-second pause after HTTP 429). The app has one client for its whole life: use `src/cards/scryfall-access.ts`, never a second `new ScryfallClient()`.
 - Look cards up through `src/cards/card-lookup.ts` (names via `src/cards/names.ts` keys; engine keys via `resolveEngineKey`), and derive what to show with `src/cards/card-display.ts` (German where it exists, English marked). Never parse localized names or texts to find a card.
 - Card pictures only through `CardPicture` (`src/components/ui/card-picture.tsx`): CORS mode under COEP, no referrer, never cropped, blurred or overlaid (Scryfall's terms); a missing or failing picture shows the card's text, never an empty box.
 - A Forge update rebuilds the catalog; a Forge card without Scryfall match is decided in `cards/forge-unmatched.json`, never silently dropped.
+
+## Deck Import Rules
+Arena deck lists are imported through `src/decks/` (prompt 09, `docs/implementation/09-arena-deck-import.md`):
+- `arena-list.ts` reads MTG Arena's format only and is pure; every line is an entry, a header, an About line, blank, or a problem with its line number - never skipped silently.
+- `deck-resolve.ts` resolves a line through the card catalog first (ranked: own/Forge name, front face, later face, alias, printed German name); Scryfall's API only for lines the catalog cannot decide that name a printing. Never guess: several playable cards of one name are the printed line's or the player's decision. A deck entry's `name` is the name Forge knows (`CardRecord.forgeNames` / Forge-only cards); set codes are stored as Scryfall's.
+- `deck-plan.ts` decides what is saved: nothing is saved while a line is open (corrected, chosen or explicitly left out), the list is kept unchanged in `source.text`, the companion goes into the sideboard (Forge looks for it there), a commander makes it `commander`. No legality checks (deck size, copies, colour identity, bans): Forge decides.
 
 ## Queue and Execution
 OpenMana currently has its own detailed queue ledger at `prompts/STATUS.md`. It remains authoritative while the numbered 00–32 implementation program is running.
