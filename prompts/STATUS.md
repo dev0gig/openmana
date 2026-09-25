@@ -28,8 +28,8 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | – (keiner; nach 09 wie in `naechster-schritt.md` vorgesehen gestoppt) |
-| Nächster Prompt | **10 — Deck library** (PENDING, nicht begonnen) |
+| Aktuell ausgeführt | **10 — Deck library** |
+| Nächster Prompt | 11 — Game session foundation (erst nach 10 = COMPLETE) |
 | Zuletzt abgeschlossen | 09 — Arena deck import (`c7bb533`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-25 (Lauf über `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-25 |
@@ -48,7 +48,7 @@
 | 07 | [IndexedDB local data layer](queue/07-indexeddb-storage.md) | COMPLETE | `c9ee901` |
 | 08 | [Scryfall card data](queue/08-scryfall-data.md) | COMPLETE | `45f57d7` |
 | 09 | [Arena deck import](queue/09-arena-deck-import.md) | COMPLETE | `c7bb533` |
-| 10 | [Deck library](queue/10-deck-library.md) | PENDING | – |
+| 10 | [Deck library](queue/10-deck-library.md) | IN_PROGRESS | – |
 | 11 | [Game session foundation](queue/11-game-session.md) | PENDING | – |
 | 12 | [AI profiles and settings](queue/12-ai-profiles-settings.md) | PENDING | – |
 | 13 | [Battlefield foundation](queue/13-battlefield-foundation.md) | PENDING | – |
@@ -954,6 +954,11 @@
     echten deutschen Export bestätigen (bei Gelegenheit); Manasymbole (14).
 - **Weiter mit:** Prompt 10 (Deck library). Nicht begonnen:
   `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
+
+### 10 — Deck library — IN_PROGRESS
+
+- Begonnen am 2026-09-25 von Claude Code (Claude Opus 5.5), Auftrag
+  „Führe prompts/naechster-schritt.md aus“ (genau ein Prompt, danach Stopp).
 
 ## Hinweise für spätere Prompts
 
