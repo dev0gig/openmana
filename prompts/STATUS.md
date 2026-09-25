@@ -30,11 +30,11 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | – (keiner; nach 13 wie in `naechster-schritt.md` vorgesehen gestoppt) |
-| Nächster Prompt | **14 — Cards, hand and safe interaction** (PENDING, nicht begonnen) |
+| Aktuell ausgeführt | **14 — Cards, hand and safe interaction** |
+| Nächster Prompt | 15 — Forge decision UI (erst nach 14 = COMPLETE) |
 | Zuletzt abgeschlossen | 13 — Battlefield foundation (`eb8e0ab`) |
-| Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-25 (Lauf über `prompts/naechster-schritt.md`) |
-| Letzte Aktualisierung | 2026-09-25 |
+| Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-26 (Dropzone-Standalone-Lauf, Regeln aus `prompts/naechster-schritt.md`) |
+| Letzte Aktualisierung | 2026-09-26 |
 
 ## Übersicht
 
@@ -54,7 +54,7 @@
 | 11 | [Game session foundation](queue/11-game-session.md) | COMPLETE | `679fbfb` |
 | 12 | [AI profiles and settings](queue/12-ai-profiles-settings.md) | COMPLETE | `e618079` |
 | 13 | [Battlefield foundation](queue/13-battlefield-foundation.md) | COMPLETE | `eb8e0ab` |
-| 14 | [Cards, hand and safe interaction](queue/14-card-hand-interactions.md) | PENDING | – |
+| 14 | [Cards, hand and safe interaction](queue/14-card-hand-interactions.md) | IN_PROGRESS | – |
 | 15 | [Forge decision UI](queue/15-forge-decisions.md) | PENDING | – |
 | 16 | [Priority, stack and phases](queue/16-priority-stack-phases.md) | PENDING | – |
 | 17 | [Targeting and cost payment](queue/17-targeting-cost-payment.md) | PENDING | – |
@@ -1435,6 +1435,12 @@
     erreicht.
 - **Weiter mit:** Prompt 14 (Cards, hand and safe interaction). Nicht
   begonnen: `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
+
+### 14 — Cards, hand and safe interaction — IN_PROGRESS
+
+- Begonnen am 2026-09-26 von Claude Code (Claude Opus 5.5), Auftrag „Mach den
+  Standalone Prompt in Dropzone für Open Mana“ (Dropzone `fixed/standalone.md`
+  mit den Regeln aus `naechster-schritt.md`: genau ein Prompt, danach Stopp).
 
 ## Hinweise für spätere Prompts
 
