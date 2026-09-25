@@ -86,6 +86,8 @@ export function noteText(note: EntryNote): string {
       return "Scryfall war nicht erreichbar; über Set und Sammlernummer ließ sich die Karte nicht bestimmen. Prüfe die Liste später erneut."
     case "chosen":
       return "Von dir gewählt."
+    case "previous":
+      return "Wie bisher im Deck – der Name passt auch zu anderen Karten."
   }
 }
 

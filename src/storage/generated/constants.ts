@@ -7,7 +7,7 @@
 import type * as R from "./records.ts"
 
 /** Version of the record schemas = version of the IndexedDB database. */
-export const SCHEMA_VERSION = 2 as const satisfies R.SchemaVersion
+export const SCHEMA_VERSION = 3 as const satisfies R.SchemaVersion
 
 /** Version of the backup container format. */
 export const BACKUP_FORMAT_VERSION = 1 as const satisfies R.BackupFormatVersion

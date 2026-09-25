@@ -19,31 +19,17 @@ import type { CacheEntryRecord, PrintRecord } from "@/storage/generated/records"
 import { CardDataError } from "./errors"
 import type { ScryfallCard } from "./scryfall/generated/records"
 import type { ScryfallClient } from "./scryfall-client"
+import { printKey, type PrintKey, type ResolvedPrint } from "./print-key"
 import { printFacts, ScryfallDataError, translatedFaces } from "./scryfall-print"
 
 export const PRINT_MAX_AGE = 30 * 24 * 60 * 60 * 1000
 /** cacheIndex kind of "Scryfall has no such printing (in that language)". */
 export const MISSING_PRINT_KIND = "scryfall-print-missing"
 
-export interface PrintKey {
-  readonly set: string
-  readonly collectorNumber: string
-}
-
-/** "m19|152": set codes are compared in lower case, as Scryfall writes them. */
-export function printKey(key: PrintKey): string {
-  return `${key.set.toLowerCase()}|${key.collectorNumber}`
-}
+export { printKey, type PrintKey, type ResolvedPrint } from "./print-key"
 
 function missingKey(lang: "de" | "default", key: PrintKey): string {
   return `print:${lang}:${printKey(key)}`
-}
-
-export interface ResolvedPrint {
-  /** The printing as Scryfall lists it by default (English, or its only language); null: no such printing. */
-  readonly original: PrintRecord | null
-  /** Its German version; null: none. */
-  readonly german: PrintRecord | null
 }
 
 interface Known {

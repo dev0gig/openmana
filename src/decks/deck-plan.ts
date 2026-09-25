@@ -11,7 +11,9 @@
  *   (Arena lists a card twice when its copies differ in art style).
  * - A companion plays from the sideboard: Forge looks for it there when a
  *   game starts. Arena lists it in the sideboard as well; a list that does
- *   not gets it added there, and the plan says so.
+ *   not gets it added there, and the plan says so. The deck also names it
+ *   (DeckRecord.companion), so the library can show it and export the list
+ *   with its Companion section.
  * - The format is "commander" when the list names a commander, otherwise
  *   "constructed" - how Forge plays the deck, not a legality verdict.
  */
@@ -38,6 +40,8 @@ export interface PlannedCard {
 
 export interface PlannedCompanion {
   readonly entry: EntryReport
+  /** The companion as the deck names it (DeckRecord.companion). */
+  readonly card: PlannedCard
   /** The list did not have it in the sideboard; the plan adds it there. */
   readonly addedToSideboard: boolean
 }
@@ -82,15 +86,19 @@ function printingOf(entry: EntryReport): Pick<PlannedCard, "set" | "collectorNum
   return { set, collectorNumber, scryfallId: id }
 }
 
+function plannedCard(entry: EntryReport, count: number, forgeName: string): PlannedCard {
+  return { count, forgeName, card: entry.card, match: entry.match, forgeOnly: entry.forgeOnly, ...printingOf(entry), lines: [entry.entry.line] }
+}
+
 function add(section: PlannedCard[], entry: EntryReport, count: number, forgeName: string): void {
-  const printing = printingOf(entry)
-  const same = section.findIndex((planned) => planned.forgeName === forgeName && planned.set === printing.set && planned.collectorNumber === printing.collectorNumber)
+  const card = plannedCard(entry, count, forgeName)
+  const same = section.findIndex((planned) => planned.forgeName === forgeName && planned.set === card.set && planned.collectorNumber === card.collectorNumber)
   if (same >= 0) {
     const planned = section[same]!
     section[same] = { ...planned, count: planned.count + count, lines: [...planned.lines, entry.entry.line] }
     return
   }
-  section.push({ count, forgeName, card: entry.card, match: entry.match, forgeOnly: entry.forgeOnly, ...printing, lines: [entry.entry.line] })
+  section.push(card)
 }
 
 /** The deck the report and the player's decisions give (see the head comment). leftOut: line numbers the player left out. */
@@ -121,7 +129,7 @@ export function planDeck(report: DeckImportReport, leftOut: ReadonlySet<number> 
   const planned: PlannedCompanion[] = companions.map((entry) => {
     const inSideboard = sections.sideboard.some((card) => card.forgeName === entry.forgeName)
     if (!inSideboard) add(sections.sideboard, entry, entry.entry.count, entry.forgeName!)
-    return { entry, addedToSideboard: !inSideboard }
+    return { entry, card: plannedCard(entry, entry.entry.count, entry.forgeName!), addedToSideboard: !inSideboard }
   })
 
   if (sections.main.length === 0) blockers.push({ kind: "empty-main" })
@@ -179,6 +187,7 @@ export function deckRecordFrom(plan: DeckPlan, input: DeckRecordInput): DeckReco
     main: [first, ...rest],
     sideboard: plan.sideboard.map(deckCard),
     commander: plan.commander.map(deckCard),
+    ...(plan.companions.length > 0 ? { companion: plan.companions.map((companion) => deckCard(companion.card)) } : {}),
     source: { kind: "arena", text: input.text, importedAt: input.now },
     createdAt: input.now,
     updatedAt: input.now,

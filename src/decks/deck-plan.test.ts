@@ -130,6 +130,16 @@ describe("the saved record", () => {
     expect(record.main[2]).toEqual({ count: 2, name: "Fire // Ice", oracleId: fixtureCard("Fire // Ice").oracleId })
   })
 
+  it("names its companion, which plays from the sideboard", async () => {
+    const text = fixture("arena-companion.txt")
+    const record = deckRecordFrom(planDeck(await check(text)), { id: ID, name: "Bruna", text, now: NOW })
+    const bruna = fixtureCard("Bruna, the Fading Light")
+    expect(assertRecord("decks", record).companion).toEqual([{ count: 1, name: "Bruna, the Fading Light", set: "emn", collectorNumber: "15", oracleId: bruna.oracleId }])
+    expect(record.sideboard.filter((c) => c.name === "Bruna, the Fading Light").map((c) => c.count)).toEqual([1])
+    // A deck without companion has no such field (as decks saved before schema version 3).
+    expect("companion" in deckRecordFrom(planDeck(await check("4 Lightning Bolt")), { id: ID, name: "Bolt", text: "4 Lightning Bolt", now: NOW })).toBe(false)
+  })
+
   it("a commander deck with its commander", async () => {
     const text = fixture("arena-brawl.txt")
     const record = deckRecordFrom(planDeck(await check(text)), { id: ID, name: "Valki", text, now: NOW })

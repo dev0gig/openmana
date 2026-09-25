@@ -55,8 +55,10 @@
  * primary actions and focus. <html class="dark"> switches on the dark:
  * variants of the shadcn components; there is no light theme.
  * Contrast (WCAG 2.2): text on every surface >= 6.5:1, primary button
- * 9.6:1; src/app/design-tokens.test.ts recomputes it from these values, and
- * public/manifest.webmanifest carries --background as theme_color (#0d121b).
+ * 9.6:1, destructive text on its own tint (the confirm buttons of dialogs,
+ * badges) >= 4.6:1; src/app/design-tokens.test.ts recomputes it from these
+ * values, and public/manifest.webmanifest carries --background as
+ * theme_color (#0d121b).
  */
 :root {
   --radius: 0.625rem;
@@ -74,7 +76,7 @@
   --muted-foreground: oklch(0.75 0.02 262);
   --accent: oklch(0.31 0.03 262);
   --accent-foreground: oklch(0.955 0.012 85);
-  --destructive: oklch(0.71 0.18 25);
+  --destructive: oklch(0.74 0.18 25);
   --border: oklch(0.955 0.012 85 / 12%);
   --input: oklch(0.955 0.012 85 / 16%);
   --ring: oklch(0.8 0.12 80);

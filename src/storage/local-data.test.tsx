@@ -119,7 +119,7 @@ describe("settings: data on this device", () => {
       "Aus der Sicherung",
       "Noch eins",
     ])
-    expect(within(list).getAllByText(/^Constructed · 24 Karten · Sideboard 2 · geändert am /)).toHaveLength(2)
+    expect(within(list).getAllByText("Constructed · 24 Karten · Sideboard 2")).toHaveLength(2)
   })
 
   it("replacing says what it deletes, on its button too", async () => {
@@ -212,7 +212,10 @@ describe("pages list what is stored", () => {
     renderAt("/decks")
     const list = await screen.findByRole("list", { name: "Gespeicherte Decks" })
     expect(within(list).getByText("Zebra")).toBeInTheDocument()
-    expect(within(list).getByText(/^Commander · 24 Karten · Commander 1 · Sideboard 2/)).toBeInTheDocument()
+    expect(within(list).getByText("Commander · 24 Karten · Kommandeur 1 · Sideboard 2")).toBeInTheDocument()
+    expect(within(list).getByText(/^Geändert am \d{2}\.\d{2}\.\d{4}/)).toBeInTheDocument()
+    // Without card data: the name Forge knows.
+    expect(within(list).getByText("Kommandeur: Talrand, Sky Summoner")).toBeInTheDocument()
     expect(within(list).getByText("beschädigt")).toBeInTheDocument()
     expect(screen.getByText("1 Deck")).toBeInTheDocument()
     expect(screen.getByRole("link", { name: /Arena-Deck importieren/ })).toHaveAttribute("href", "/decks/import")
@@ -236,14 +239,15 @@ describe("pages list what is stored", () => {
     expect(within(list).getAllByText("Muster-Deck gegen Forge-KI")).toHaveLength(2)
   })
 
-  it("play: counts the decks, starting still says why it is not possible", async () => {
+  it("play: the stored decks to choose from, starting still says why it is not possible", async () => {
     const db = await openTestDatabase()
     await saveDeck(db, deck())
     await saveDeck(db, deck())
     db.close()
     renderAt("/play")
-    expect(await screen.findByText("2 Decks auf diesem Gerät – die Deckwahl folgt.")).toBeInTheDocument()
+    expect(await screen.findByText("Noch kein Deck gewählt.")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Dein Deck wählen" })).toBeEnabled()
     expect(screen.getByRole("button", { name: /Partie starten/ })).toBeDisabled()
-    expect(screen.getByText("Das Starten einer Partie folgt in Kürze.")).toBeInTheDocument()
+    expect(screen.getByText("Wähle zuerst dein Deck.")).toBeInTheDocument()
   })
 })

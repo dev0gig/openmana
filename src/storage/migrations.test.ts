@@ -1,17 +1,17 @@
 // @vitest-environment node
 /*
  * Upgrades through made-up schema versions (1 → 2 → 3) with the real
- * upgrade code, and the first real schema version.
+ * upgrade code, and the app's real schema versions (1 → 2 → 3).
  */
 import { openDB } from "idb"
 import { describe, expect, it } from "vitest"
-import { APP, deck, FIXED_NOW, logEntry, match, openTestDatabase, setting, uuid } from "@/test/storage-fixtures"
+import { APP, card, deck, FIXED_NOW, logEntry, match, openTestDatabase, setting, uuid } from "@/test/storage-fixtures"
 import { StorageError } from "./errors"
 import { SCHEMA_VERSION } from "./generated/constants"
 import type { DatabaseMeta } from "./generated/records"
 import { createStores, LAYOUT_V1, latestVersion, MIGRATIONS, upgradeRecord, type Migration } from "./migrations"
 import { compareLayout, openWithMigrations } from "./open"
-import { DATABASE_NAME, STORE_LAYOUT, type StoreLayout } from "./schema"
+import { DATABASE_NAME, RECORD_CHECKS, STORE_LAYOUT, type StoreLayout } from "./schema"
 
 const NAME = "migration-test"
 
@@ -200,7 +200,7 @@ describe("the app's schema versions", () => {
     raw.close()
   })
 
-  it("version 1 → 2 keeps every user record, replaces the card store and empties the cache index", async () => {
+  it("version 1 → current keeps every user record, replaces the card store and empties the cache index", async () => {
     // A database exactly as the prompt-07 app left it, with one record in every store.
     const v1 = await openWithMigrations({ name: DATABASE_NAME, migrations: MIGRATIONS.slice(0, 1), layout: LAYOUT_V1, app: APP, now: at("2026-09-25T01:00:00.000Z") })
     const userRecords = { decks: deck(), settings: setting("ai.profile", "Default"), matches: match() }
@@ -216,7 +216,7 @@ describe("the app's schema versions", () => {
     const db = await openTestDatabase()
     db.close()
     const raw = await openDB(DATABASE_NAME)
-    expect(raw.version).toBe(2)
+    expect(raw.version).toBe(SCHEMA_VERSION)
     expect(await compareLayout(raw, STORE_LAYOUT)).toEqual([])
     expect(await raw.getAll("decks")).toEqual([userRecords.decks])
     expect(await raw.getAll("settings")).toEqual([userRecords.settings])
@@ -226,9 +226,31 @@ describe("the app's schema versions", () => {
       expect(await raw.count(store)).toBe(0)
     }
     const meta = (await raw.get("meta", "database")) as DatabaseMeta
-    expect(meta.schemaVersion).toBe(2)
+    expect(meta.schemaVersion).toBe(SCHEMA_VERSION)
     expect(meta.createdAt).toBe("2026-09-25T01:00:00.000Z")
-    expect(meta.migrations.map((entry) => entry.version)).toEqual([1, 2])
+    expect(meta.migrations.map((entry) => entry.version)).toEqual(MIGRATIONS.map((migration) => migration.version))
     raw.close()
+  })
+
+  it("version 2 → 3 keeps every record as it is: a deck without companion stays valid, the card data stay installed", async () => {
+    const v2 = await openWithMigrations({ name: DATABASE_NAME, migrations: MIGRATIONS.slice(0, 2), layout: STORE_LAYOUT, app: APP, now: at("2026-09-25T02:00:00.000Z") })
+    const saved = deck()
+    const cardRecord = card()
+    await v2.put("decks", saved)
+    await v2.put("scryfallCards", cardRecord)
+    v2.close()
+
+    const db = await openTestDatabase()
+    db.close()
+    const raw = await openDB(DATABASE_NAME)
+    expect(raw.version).toBe(3)
+    expect(await raw.getAll("decks")).toEqual([saved])
+    expect(RECORD_CHECKS.decks(saved)).toBeNull()
+    expect(await raw.getAll("scryfallCards")).toEqual([cardRecord])
+    const meta = (await raw.get("meta", "database")) as DatabaseMeta
+    expect(meta.migrations.map((entry) => entry.version)).toEqual([1, 2, 3])
+    raw.close()
+    // A deck that names its companion is a valid record of version 3.
+    expect(RECORD_CHECKS.decks({ ...saved, companion: [{ count: 1, name: "Lurrus of the Dream-Den" }] })).toBeNull()
   })
 })

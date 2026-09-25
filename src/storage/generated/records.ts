@@ -7,7 +7,7 @@
 /**
  * Version of the record schemas below = version of the IndexedDB database. Every change to a record shape or to the stores raises it and adds a migration (src/storage/migrations.ts) that upgrades the database and older backups alike.
  */
-export type SchemaVersion = 2;
+export type SchemaVersion = 3;
 /**
  * Version of the backup container (header, record and end lines). Independent of the record schemas, which the header names by SchemaVersion.
  */
@@ -173,6 +173,10 @@ export interface DeckRecord {
   main: [DeckCard, ...DeckCard[]];
   sideboard: DeckCard[];
   commander: DeckCard[];
+  /**
+   * The companion the list names (MTG Arena's Companion section; schema version 3). It plays from the sideboard, where Forge looks for it, so it is in the sideboard as well; this names which card it is. Absent: none known (decks saved before schema version 3 did not record it).
+   */
+  companion?: DeckCard[];
   source: DeckSource;
   createdAt: Timestamp;
   updatedAt: Timestamp;

@@ -24,6 +24,10 @@
  *  3. A card only Forge knows (Scryfall has no data: MTG Arena's rebalanced
  *     "A-" cards and a few others) is found by its Forge name.
  *  4. A card Forge does not know cannot be played: reported as such.
+ *  5. Importing a deck's list again (the library's "Erneut importieren"):
+ *     where the name and the printing leave the choice open, the card the
+ *     deck already has is taken - the player chose it before. A choice made
+ *     now wins; a printing that decides wins too.
  *
  * Scryfall data is display and identity only; whether a deck is legal is
  * Forge's decision and not checked here.
@@ -31,7 +35,7 @@
 import { describeMatch, getCards, type CardMatch } from "@/cards/card-lookup"
 import type { CardDataError } from "@/cards/errors"
 import { nameKey, TOKEN_LAYOUTS } from "@/cards/names"
-import { printKey, type PrintKey, type ResolvedPrint } from "@/cards/prints"
+import { printKey, type PrintKey, type ResolvedPrint } from "@/cards/print-key"
 import type { LocalDatabase } from "@/storage/database"
 import type { CardRecord, ForgeOnlyCardRecord, PrintRecord, SetRecord } from "@/storage/generated/records"
 import type { ArenaDeckList, ArenaEntry } from "./arena-list"
@@ -57,6 +61,8 @@ export type ResolvedBy =
   | "print"
   /** The player chose it. */
   | "choice"
+  /** The deck being imported again has it (the player chose it before). */
+  | "previous"
 
 export type EntryNote =
   /** Several Scryfall cards (variants of an Un-card) share the name; Forge has one card of that name. Which picture is open. */
@@ -87,6 +93,8 @@ export type EntryNote =
   | { readonly kind: "print-unreachable" }
   /** The player chose this card among the candidates. */
   | { readonly kind: "chosen" }
+  /** Several cards fit; the deck being imported again has this one, as before. */
+  | { readonly kind: "previous" }
 
 /** The printing a line names: what was written, the Scryfall set behind it and - where Scryfall was asked - the printing. */
 export interface EntryPrinting {
@@ -134,6 +142,12 @@ export interface ResolveOptions {
   readonly choices?: ReadonlyMap<string, string>
   /** Omitted: no network; lines the catalog cannot decide stay as they are. */
   readonly lookupPrints?: PrintLookup
+  /**
+   * The cards (Oracle ids) of the deck this list is imported into again. A
+   * name several cards fit that is still open after the player's choices and
+   * the printing becomes the one card of them the deck has (head comment, 5).
+   */
+  readonly previous?: ReadonlySet<string>
 }
 
 const RANK_PRINTED = 4
@@ -223,6 +237,21 @@ function applyChoice(decision: Decision, found: Found, key: string, choice: stri
   const chosen = decision.candidates.find((candidate) => candidate.card.oracleId === choice)
   if (!chosen || decision.card?.oracleId === choice) return decision
   return cardDecision(chosen, found, key, "choice", [{ kind: "chosen" }], decision.candidates)
+}
+
+/**
+ * The card the deck being imported again already has, where the name alone
+ * leaves a choice (several cards, or an English name that is also another
+ * card's German name): only if exactly one candidate Forge can play is in
+ * the deck. Choices and printings that decided are not touched.
+ */
+function applyPrevious(decision: Decision, found: Found, key: string, previous: ReadonlySet<string> | undefined): Decision {
+  if (previous === undefined || previous.size === 0 || decision.candidates.length < 2) return decision
+  if (decision.by === "choice" || decision.by === "print") return decision
+  if (decision.card !== null && previous.has(decision.card.oracleId)) return decision
+  const kept = decision.candidates.filter((candidate) => candidate.card.forgeNames.length > 0 && previous.has(candidate.card.oracleId))
+  if (kept.length !== 1) return decision
+  return cardDecision(kept[0]!, found, key, "previous", [{ kind: "previous" }], decision.candidates)
 }
 
 /** A set code as the catalog finds it: Arena's code first, then Scryfall's own (card-lookup.ts findSetByArenaCode, for many codes at once). */
@@ -319,6 +348,7 @@ export async function resolveDeckList(db: LocalDatabase, list: ArenaDeckList, op
           : { ...decision, notes: [...decision.notes, { kind: "print-other-card", card: original.name }] }
       }
     }
+    result = applyPrevious(result, known, key, options.previous)
     return { entry, key, ...result, notes: [...result.notes, ...printingNotes(printing)], printing: shown }
   })
 

@@ -38,12 +38,25 @@ function luminance(rgb: [number, number, number]): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 
-function contrast(foreground: string, background: string): number {
-  const a = tokens.get(foreground)
-  const b = tokens.get(background)
-  if (!a || !b) throw new Error(`token ${a ? background : foreground} missing in :root`)
-  const [hi, lo] = [luminance(srgb(a)), luminance(srgb(b))].sort((x, y) => y - x) as [number, number]
+function ratio(a: [number, number, number], b: [number, number, number]): number {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number]
   return (hi + 0.05) / (lo + 0.05)
+}
+
+function token(name: string): [number, number, number] {
+  const value = tokens.get(name)
+  if (!value) throw new Error(`token ${name} missing in :root`)
+  return srgb(value)
+}
+
+function contrast(foreground: string, background: string): number {
+  return ratio(token(foreground), token(background))
+}
+
+/** `color` at `alpha` over `under` (Tailwind's bg-x/20), in sRGB as the browser composites it. */
+function over(color: string, alpha: number, under: string): [number, number, number] {
+  const [top, bottom] = [token(color), token(under)]
+  return top.map((v, i) => v * alpha + bottom[i]! * (1 - alpha)) as [number, number, number]
 }
 
 const hex = (rgb: [number, number, number]) => `#${rgb.map((v) => Math.round(v * 255).toString(16).padStart(2, "0")).join("")}`
@@ -70,6 +83,12 @@ describe("design tokens", () => {
     ["sidebar-primary-foreground", "sidebar-primary"],
   ])("%s on %s reaches 4.5:1", (foreground, background) => {
     expect(contrast(foreground, background)).toBeGreaterThanOrEqual(4.5)
+  })
+
+  // The destructive button and badge: destructive text on a 20 % destructive tint (dark:bg-destructive/20),
+  // in dialogs (popover) and on cards - "Endgültig löschen" in a confirmation (prompt 10's end-to-end test found 4.43:1).
+  it.each([["popover"], ["card"], ["background"]])("destructive text on its own tint over %s reaches 4.5:1", (surface) => {
+    expect(ratio(token("destructive"), over("destructive", 0.2, surface))).toBeGreaterThanOrEqual(4.5)
   })
 
   it("the manifest's theme colour is the background token", () => {

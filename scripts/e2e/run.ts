@@ -49,6 +49,17 @@
  *     deck is handed to the real Forge engine (WebAssembly in Node): Forge
  *     accepts every name, the game starts with exactly these cards and ends
  *     when the player concedes.
+ *  9. Deck library, on the imported decks: the list (search by a German card
+ *     name, format, order - kept in the address across a reload), a deck's
+ *     details (parts, language, pictures of the named printings through
+ *     Scryfall's real API, a card's full view), rename, export (clipboard and
+ *     real downloads; the list imported again gives the same deck without a
+ *     question to Scryfall), duplicate, import a deck's list again (the
+ *     earlier choice kept, confirmed, same id), delete (confirmed), choosing
+ *     the decks for a game (random, another format, a mirror match, kept
+ *     after a reload), axe-core; on a phone with touch the action bars above
+ *     the tab bar and 44 px targets. The decks as they end up are the ones
+ *     handed to the engine (8).
  */
 import { createRequire } from "node:module"
 import { randomUUID } from "node:crypto"
@@ -89,6 +100,8 @@ const ROUTES = [
   { path: "/", title: "OpenMana", heading: "OpenMana" },
   { path: "/decks", title: "Decks · OpenMana", heading: "Decks" },
   { path: "/decks/import", title: "Arena-Deck importieren · OpenMana", heading: "Arena-Deck importieren" },
+  // A deck that is not there: the details page says so (loaded on demand, like the import).
+  { path: "/decks/00000000-0000-4000-8000-000000000000", title: "Deck nicht gefunden · OpenMana", heading: "Deck nicht gefunden" },
   { path: "/play", title: "Spielen · OpenMana", heading: "Spielen" },
   { path: "/matches", title: "Partien · OpenMana", heading: "Partien" },
   { path: "/settings", title: "Einstellungen · OpenMana", heading: "Einstellungen" },
@@ -228,7 +241,9 @@ function watch(page: Page): PageLog {
     if (message.worker()) {
       pageLog.engineLog.push(`[${message.type()}] ${message.text()}`)
     } else if (message.type() === "error" || message.type() === "warning") {
-      pageLog.errors.push(`[console.${message.type()}] ${message.text()}`)
+      // Where it came from: "Failed to load resource" alone does not say which resource.
+      const where = message.location().url
+      pageLog.errors.push(`[console.${message.type()}] ${message.text()}${where ? ` (${where})` : ""}`)
     }
   })
   page.on("pageerror", (error) => pageLog.errors.push(`[pageerror] ${error.message}`))
@@ -577,7 +592,7 @@ async function localData(browser: Browser, base: string): Promise<void> {
     await page.goto(new URL("/matches", base).href, { waitUntil: "networkidle" })
     await page.getByRole("list", { name: "Gespeicherte Partien" }).getByText(`${sample.deckNames[0]} gegen Forge-KI`).waitFor()
     await page.goto(new URL("/play", base).href, { waitUntil: "networkidle" })
-    await page.getByText("2 Decks auf diesem Gerät – die Deckwahl folgt.").waitFor()
+    await page.getByText("Noch kein Deck gewählt.").waitFor()
     results["decksAfterReload"] = titles
 
     // Save a backup: a real download in the documented format.
@@ -1282,6 +1297,10 @@ async function deckImport(browser: Browser, base: string, id: string): Promise<v
     // A 404 for a German version that does not exist is Scryfall's answer "none", not an error of the app.
     for (const error of pageLog.errors.filter((e) => !/api\.scryfall\.com\/cards\/[^/\s]+\/[^/\s]+\/de/.test(e) || !/404/.test(e))) check(false, `deck import: ${error}`)
     check([...pageLog.hosts].every((host) => [new URL(base).host, "cards.scryfall.io", "api.scryfall.com"].includes(host)), `deck import: requests to ${[...pageLog.hosts].join(", ")}`)
+
+    // 9. The library, on these decks; the engine then plays the decks as they end up.
+    report["deckLibrary"] = await deckLibrary(browser, context, page, pageLog, base, api)
+    decks = ((await dumpDatabase(page))["decks"] ?? []) as SavedDeck[]
   } finally {
     await context.close()
   }
@@ -1295,9 +1314,365 @@ async function deckImport(browser: Browser, base: string, id: string): Promise<v
     played.push(result)
     for (const problem of result.problems) check(false, `deck import: Forge and "${deck.name}": ${problem}`)
   }
-  check(played.length === 3, `deck import: ${played.length} decks played in the engine`)
+  // The three imported decks (one renamed) and the copy whose list was imported again (9).
+  check(played.length === 4, `deck import: ${played.length} decks played in the engine`)
   results["engine"] = played
   report["deckImport"] = results
+}
+
+// ── 9. Deck library (list, details, actions, export, import again, deck choice) ──
+
+interface LibraryDeck extends SavedDeck {
+  readonly id: string
+  readonly createdAt: string
+  readonly sideboard: readonly SavedCard[]
+  readonly companion?: readonly SavedCard[]
+}
+
+/** The decks the library lists, in order (titles). */
+async function libraryTitles(page: Page): Promise<string[]> {
+  return page.getByRole("list", { name: "Gespeicherte Decks" }).getByRole("link").locator('[data-slot="item-title"]').allTextContents()
+}
+
+/** Waits until the library lists exactly these decks (the list follows the address and the database). */
+async function expectTitles(page: Page, expected: readonly string[], label: string): Promise<void> {
+  const deadline = Date.now() + 10_000
+  let titles: string[] = []
+  while (Date.now() < deadline) {
+    titles = await libraryTitles(page)
+    if (JSON.stringify(titles) === JSON.stringify(expected)) return
+    await page.waitForTimeout(100)
+  }
+  check(false, `deck library (${label}): listed ${JSON.stringify(titles)}, expected ${JSON.stringify(expected)}`)
+}
+
+/** Until no dialog or menu is left: Radix keeps them for their closing animation (axe would see a closing one). */
+async function overlaysGone(page: Page): Promise<void> {
+  await page.waitForFunction(() => document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]') === null)
+}
+
+/** An element's layout height (offsetHeight): what it takes on screen, unlike its box during a zoom animation. */
+async function layoutHeight(locator: Locator): Promise<number> {
+  return locator.evaluate((element) => (element as HTMLElement).offsetHeight)
+}
+
+async function deckMenu(page: Page, item: string): Promise<void> {
+  await page.getByRole("button", { name: "Mehr" }).click()
+  await page.getByRole("menuitem", { name: item }).click()
+}
+
+async function libraryDecks(page: Page): Promise<Map<string, LibraryDeck>> {
+  const decks = ((await dumpDatabase(page))["decks"] ?? []) as LibraryDeck[]
+  return new Map(decks.map((deck) => [deck.name, deck]))
+}
+
+/** A deck's cards as the engine gets them (and the printing), to compare decks. */
+const cardsOf = (cards: readonly SavedCard[] | undefined) => JSON.stringify((cards ?? []).map((card) => [card.count, card.name, card.set ?? null, card.collectorNumber ?? null]))
+
+/** Text of a download. */
+async function downloaded(page: Page, click: () => Promise<void>): Promise<{ readonly name: string; readonly text: string }> {
+  const [download] = await Promise.all([page.waitForEvent("download"), click()])
+  const file = path.join(reportDir, download.suggestedFilename())
+  await download.saveAs(file)
+  return { name: download.suggestedFilename(), text: fs.readFileSync(file, "utf8") }
+}
+
+/** Scrolls through the page (pictures load lazily), then waits until no card picture in `scope` is still loading; how many loaded and failed. */
+async function settlePictures(page: Page, scope: Locator): Promise<{ readonly loaded: number; readonly failed: number; readonly loading: number }> {
+  await page.evaluate(async () => {
+    for (let y = 0; y < document.documentElement.scrollHeight; y += 400) {
+      window.scrollTo(0, y)
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    }
+    window.scrollTo(0, 0)
+  })
+  const deadline = Date.now() + 30_000
+  let states: string[] = []
+  while (Date.now() < deadline) {
+    states = await scope.locator('[data-slot="card-picture"]').evaluateAll((pictures) => pictures.map((picture) => picture.getAttribute("data-state") ?? ""))
+    if (!states.includes("loading")) break
+    await page.waitForTimeout(200)
+  }
+  return { loaded: states.filter((s) => s === "loaded").length, failed: states.filter((s) => s === "failed").length, loading: states.filter((s) => s === "loading").length }
+}
+
+/** A backup of these decks in the documented format (to take them into another browser profile). */
+function decksBackup(decks: readonly unknown[]): Buffer {
+  const now = new Date().toISOString()
+  const lines = [
+    { type: "header", format: "openmana-backup", formatVersion: 1, schemaVersion: SCHEMA_VERSION, createdAt: now, app: { version: "0.1.0", commit: null }, stores: ["decks", "settings", "matches", "matchLog"] },
+    ...decks.map((record) => ({ type: "record", store: "decks", record })),
+    { type: "end", counts: { decks: decks.length, settings: 0, matches: 0, matchLog: 0 }, records: decks.length },
+  ]
+  return gzipSync(`${lines.map((line) => JSON.stringify(line)).join("\n")}\n`)
+}
+
+async function deckLibrary(browser: Browser, context: BrowserContext, page: Page, pageLog: PageLog, base: string, api: readonly { url: string; status: number; method: string }[]): Promise<Record<string, unknown>> {
+  log("Deck library (list, details, actions, export, import again, deck choice)")
+  const results: Record<string, unknown> = {}
+  const errorsBefore = pageLog.errors.length
+  const apiBefore = api.length
+
+  // 1. The list: every deck with format, counts, commander and companion.
+  await page.goto(new URL("/decks", base).href, { waitUntil: "networkidle" })
+  await expectTitles(page, ["E2E Brawl", "E2E Deutsch", "E2E Izzet"], "all")
+  const list = page.getByRole("list", { name: "Gespeicherte Decks" })
+  const row = async (name: string) => (await list.getByRole("link").filter({ has: page.getByText(name, { exact: true }) }).textContent()) ?? ""
+  const rows = { izzet: await row("E2E Izzet"), brawl: await row("E2E Brawl"), german: await row("E2E Deutsch") }
+  check(rows.izzet.includes("Constructed · 60 Karten · Sideboard 3") && rows.izzet.includes("Gefährte: Lurrus aus der Traumhöhle"), `deck library: Izzet row ${rows.izzet}`)
+  check(rows.brawl.includes("Commander · 59 Karten · Kommandeur 1") && rows.brawl.includes("Kommandeur: Valki, Gott der Lügen"), `deck library: Brawl row ${rows.brawl}`)
+  check(rows.german.includes("Constructed · 60 Karten · Sideboard 2"), `deck library: German row ${rows.german}`)
+  results["rows"] = rows
+
+  // Search by a card's German name; the query is in the address and survives a reload.
+  await page.getByRole("searchbox", { name: "Suchen" }).fill("Zwang")
+  await expectTitles(page, ["E2E Deutsch"], "search Zwang")
+  check(new URL(page.url()).search === "?q=Zwang", `deck library: address ${page.url()}`)
+  await page.reload({ waitUntil: "networkidle" })
+  await expectTitles(page, ["E2E Deutsch"], "search after reload")
+  check((await page.getByRole("searchbox", { name: "Suchen" }).inputValue()) === "Zwang", "deck library: search lost on reload")
+  await page.getByText("1 von 3 Decks").waitFor()
+  await page.getByRole("searchbox", { name: "Suchen" }).fill("")
+  await page.getByRole("radio", { name: "Commander" }).click()
+  await expectTitles(page, ["E2E Brawl"], "format Commander")
+  await page.getByRole("radio", { name: "Alle" }).click()
+  await expectTitles(page, ["E2E Brawl", "E2E Deutsch", "E2E Izzet"], "format all")
+  results["listAxe"] = await accessibility(page, "deck library: list")
+  await screenshots(page, "desktop-deck-library")
+
+  // 2. A deck's details: parts, language, the pictures of the named printings (Scryfall's real API).
+  await list.getByRole("link").filter({ has: page.getByText("E2E Izzet", { exact: true }) }).click()
+  await page.getByRole("heading", { level: 1, name: "E2E Izzet" }).waitFor()
+  await page.getByText(/^Lade (das Bild|die Bilder)/).waitFor({ state: "detached", timeout: 60_000 })
+  const main = page.getByRole("region", { name: "Hauptdeck" })
+  const companion = page.getByRole("region", { name: "Gefährte" })
+  check((await main.textContent())?.includes("60 Karten") === true, "deck library: main deck not 60 cards")
+  check((await companion.textContent())?.includes("Lurrus aus der Traumhöhle") === true, "deck library: companion not shown")
+  check((await page.getByRole("region", { name: "Sideboard" }).textContent())?.includes("3 Karten") === true, "deck library: sideboard not 3 cards")
+  const language = (await page.getByRole("region", { name: "Kartensprache" }).textContent()) ?? ""
+  check(/\d+ von \d+ Karten nicht ganz deutsch/.test(language) && language.includes("A-Luminarch Aspirant"), `deck library: language ${language}`)
+  const pictures = await settlePictures(page, page.locator("main"))
+  check(pictures.loaded >= 12 && pictures.failed === 0, `deck library: pictures ${JSON.stringify(pictures)}`)
+  const printCalls = api.slice(apiBefore)
+  check(printCalls.filter((call) => call.url.endsWith("/cards/collection")).length <= 1, `deck library: /cards/collection asked ${printCalls.length} times`)
+  check(printCalls.every((call) => call.status === 200 || (call.status === 404 && /\/cards\/[^/]+\/[^/]+\/de$/.test(call.url))), `deck library: Scryfall answered ${JSON.stringify(printCalls)}`)
+  results["details"] = { pictures, scryfallApi: printCalls, language }
+  // A card's full view.
+  await main.getByRole("button", { name: /Geheimnisstöberer/ }).click()
+  const cardDialog = page.getByRole("dialog", { name: "4 × Geheimnisstöberer" })
+  await cardDialog.waitFor()
+  check((await settlePictures(page, cardDialog)).loaded === 1, "deck library: the card view shows no picture")
+  results["cardAxe"] = await accessibility(page, "deck library: card view")
+  await page.keyboard.press("Escape")
+  await overlaysGone(page)
+  results["detailsAxe"] = await accessibility(page, "deck library: details")
+  await screenshots(page, "desktop-deck-details")
+
+  // 3. Rename.
+  await deckMenu(page, "Umbenennen")
+  const renameDialog = page.getByRole("dialog", { name: "Deck umbenennen" })
+  await renameDialog.getByLabel("Name des Decks").fill("E2E Izzet Tempo")
+  await renameDialog.getByRole("button", { name: "Speichern" }).click()
+  await page.getByRole("heading", { level: 1, name: "E2E Izzet Tempo" }).waitFor()
+
+  // 4. Export: copy and real downloads, both lists.
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: new URL(base).origin })
+  await deckMenu(page, "Exportieren")
+  const exportDialog = page.getByRole("dialog", { name: "Deck exportieren" })
+  await exportDialog.waitFor()
+  const listText = exportDialog.getByLabel("Deckliste")
+  const normalized = await listText.inputValue()
+  check(normalized.startsWith("About\nName E2E Izzet Tempo\n\nCompanion\n1 Lurrus of the Dream-Den (IKO) 226\n\nDeck\n4 Delver of Secrets (MID) 47\n"), `deck library: export starts ${JSON.stringify(normalized.slice(0, 160))}`)
+  check(normalized.includes("\n20 Island (DAR) 254\n") && normalized.includes("\n1 Daryl, Hunter of Walkers") && normalized.includes("\n\nSideboard\n1 Lurrus of the Dream-Den (IKO) 226\n"), `deck library: export ${JSON.stringify(normalized)}`)
+  results["exportAxe"] = await accessibility(page, "deck library: export")
+  await page.screenshot({ path: path.join(reportDir, "screens", "desktop-deck-export.png") })
+  await exportDialog.getByRole("button", { name: "Kopieren" }).click()
+  await page.getByText("Liste kopiert").waitFor()
+  check((await page.evaluate(() => navigator.clipboard.readText())) === normalized, "deck library: clipboard differs from the list")
+  const normalizedFile = await downloaded(page, () => exportDialog.getByRole("button", { name: "Als Textdatei speichern" }).click())
+  check(normalizedFile.name === "E2E Izzet Tempo.txt" && normalizedFile.text === normalized, `deck library: download ${normalizedFile.name}`)
+  await exportDialog.getByRole("radio", { name: "Importierte Liste, unverändert" }).click()
+  check((await listText.inputValue()) === ENGLISH_LIST, "deck library: the imported list is not shown unchanged")
+  const originalFile = await downloaded(page, () => exportDialog.getByRole("button", { name: "Als Textdatei speichern" }).click())
+  check(originalFile.name === "E2E Izzet Tempo (Original).txt" && originalFile.text === ENGLISH_LIST, `deck library: original download ${originalFile.name}`)
+  await page.keyboard.press("Escape")
+  results["export"] = { files: [normalizedFile.name, originalFile.name], normalizedLines: normalized.split("\n").length }
+
+  // The exported list imported again: the same deck, every line clear, no question to Scryfall.
+  const apiBeforeRoundTrip = api.length
+  await page.goto(new URL("/decks/import", base).href, { waitUntil: "networkidle" })
+  const roundTrip = await checkList(page, normalized, "export imported again")
+  await roundTrip.getByText("Alle Zeilen geklärt").waitFor()
+  check(api.length === apiBeforeRoundTrip, "deck library: importing the exported list asked Scryfall")
+  await saveImported(page, "E2E Rundreise")
+  let stored = await libraryDecks(page)
+  const tempo = stored.get("E2E Izzet Tempo")
+  const again = stored.get("E2E Rundreise")
+  for (const part of ["main", "sideboard", "companion"] as const) {
+    check(cardsOf(again?.[part]) === cardsOf(tempo?.[part]), `deck library: round trip ${part} ${cardsOf(again?.[part])} vs ${cardsOf(tempo?.[part])}`)
+  }
+  check(tempo?.companion?.length === 1, `deck library: the companion was not kept: ${JSON.stringify(tempo?.companion)}`)
+
+  // 5. Duplicate.
+  await page.goto(new URL("/decks", base).href, { waitUntil: "networkidle" })
+  await list.getByRole("link").filter({ has: page.getByText("E2E Deutsch", { exact: true }) }).click()
+  await page.getByRole("heading", { level: 1, name: "E2E Deutsch" }).waitFor()
+  await deckMenu(page, "Duplizieren")
+  await page.getByRole("heading", { level: 1, name: "E2E Deutsch (Kopie)" }).waitFor()
+  stored = await libraryDecks(page)
+  const original = stored.get("E2E Deutsch")
+  const copy = stored.get("E2E Deutsch (Kopie)")
+  check(copy !== undefined && copy.id !== original?.id && page.url().endsWith(`/decks/${copy.id}`), `deck library: copy ${copy?.id} at ${page.url()}`)
+  check(cardsOf(copy?.main) === cardsOf(original?.main) && copy?.source.text === GERMAN_LIST, "deck library: the copy differs from its original")
+
+  // 6. Import the copy's list again: "Zwang" as before, one line left out, confirmed; same id and creation.
+  const apiBeforeUpdate = api.length
+  await deckMenu(page, "Erneut importieren")
+  await page.getByRole("heading", { level: 1, name: "Deck neu importieren" }).waitFor()
+  const input = page.getByLabel("Liste im Arena-Format")
+  check((await input.inputValue()) === GERMAN_LIST, "deck library: the import does not start from the saved list")
+  const edited = GERMAN_LIST.replace("46 Wald", "44 Wald\n2 Insel")
+  let summary = await checkList(page, edited, "import again")
+  await summary.getByText("Eine Zeile ist noch zu klären").waitFor()
+  const duress = await rowText(page.getByRole("region", { name: "Hauptdeck" }), "Zwang")
+  check(duress.includes("Forge: Duress") && duress.includes("Wie bisher im Deck"), `deck library: Zwang not decided as before: ${duress}`)
+  await page.getByRole("region", { name: "Zu klären" }).getByRole("button", { name: "Zeile 7 weglassen" }).click()
+  summary = page.getByRole("region", { name: "Prüfbericht" })
+  await summary.getByText("Alle Zeilen geklärt").waitFor()
+  check((await page.getByLabel("Name des Decks").inputValue()) === "E2E Deutsch (Kopie)", "deck library: the deck's name is not kept")
+  await page.getByRole("button", { name: "Deck ersetzen" }).click()
+  const confirmReplace = page.getByRole("alertdialog", { name: "„E2E Deutsch (Kopie)“ ersetzen?" })
+  await confirmReplace.waitFor()
+  results["replaceAxe"] = await accessibility(page, "deck library: confirm replacing")
+  await confirmReplace.getByRole("button", { name: "Deck ersetzen" }).click()
+  await page.getByRole("heading", { level: 1, name: "E2E Deutsch (Kopie)" }).waitFor()
+  check(api.length === apiBeforeUpdate, `deck library: importing again asked Scryfall ${api.length - apiBeforeUpdate} times (the printings are kept 30 days)`)
+  stored = await libraryDecks(page)
+  const replaced = stored.get("E2E Deutsch (Kopie)")
+  check(replaced?.id === copy?.id && replaced?.createdAt === copy?.createdAt && replaced?.source.text === edited, "deck library: the replaced deck lost its id, creation or list")
+  check(
+    cardsOf(replaced?.main) === JSON.stringify([[6, "Lightning Bolt", "m11", "149"], [2, "Duress", null, null], [2, "Rampant Growth", "m10", "201"], [4, "Delver of Secrets", "mid", "47"], [44, "Forest", null, null], [2, "Island", null, null]]),
+    `deck library: replaced main ${cardsOf(replaced?.main)}`,
+  )
+
+  // 7. Delete, after confirming.
+  await page.goto(new URL(`/decks/${stored.get("E2E Rundreise")?.id}`, base).href, { waitUntil: "networkidle" })
+  await page.getByRole("heading", { level: 1, name: "E2E Rundreise" }).waitFor()
+  await deckMenu(page, "Löschen")
+  const confirmDelete = page.getByRole("alertdialog", { name: "„E2E Rundreise“ löschen?" })
+  await confirmDelete.waitFor()
+  results["deleteAxe"] = await accessibility(page, "deck library: confirm deleting")
+  await confirmDelete.getByRole("button", { name: "Endgültig löschen" }).click()
+  await page.getByRole("heading", { level: 1, name: "Decks" }).waitFor()
+  await expectTitles(page, ["E2E Brawl", "E2E Deutsch", "E2E Deutsch (Kopie)", "E2E Izzet Tempo"], "after deleting")
+  check(!(await libraryDecks(page)).has("E2E Rundreise"), "deck library: the deleted deck is still stored")
+  // Order by the last change: the deck imported again, then the renamed one.
+  await page.getByRole("combobox", { name: "Sortieren" }).click()
+  await page.getByRole("option", { name: "Zuletzt geändert" }).click()
+  await expectTitles(page, ["E2E Deutsch (Kopie)", "E2E Izzet Tempo", "E2E Brawl", "E2E Deutsch"], "sorted by change")
+  check(new URL(page.url()).search === "?sort=updated", `deck library: sort not in the address ${page.url()}`)
+
+  // 8. Choosing the decks for a game.
+  await page.goto(new URL("/play", base).href, { waitUntil: "networkidle" })
+  await page.getByText("Noch kein Deck gewählt.").waitFor()
+  await page.getByRole("button", { name: "Dein Deck wählen" }).click()
+  await page.getByRole("dialog", { name: "Dein Deck wählen" }).getByRole("button", { name: "E2E Izzet Tempo" }).click()
+  await page.getByText("E2E Izzet Tempo – Constructed · 60 Karten · Sideboard 3").waitFor()
+  await page.getByText("Zufällig aus 2 Constructed-Decks, jede Partie neu.").waitFor()
+  await page.getByText("Beide Decks stehen fest – das Starten einer Partie folgt in Kürze.").waitFor()
+  check(await page.getByRole("button", { name: /Partie starten/ }).isDisabled(), "deck library: a game can be started before prompt 11")
+  await page.getByRole("button", { name: "Deck der KI wählen" }).click()
+  const aiDialog = page.getByRole("dialog", { name: "Deck der KI wählen" })
+  check(await aiDialog.getByRole("button", { name: "E2E Brawl" }).isDisabled(), "deck library: a Commander deck can be chosen against a Constructed deck")
+  results["aiDialogAxe"] = await accessibility(page, "deck library: the AI's deck")
+  await page.screenshot({ path: path.join(reportDir, "screens", "desktop-play-ai-deck.png") })
+  await aiDialog.getByRole("button", { name: "E2E Deutsch", exact: true }).click()
+  await page.getByText("E2E Deutsch – Constructed · 60 Karten · Sideboard 2").waitFor()
+  await page.reload({ waitUntil: "networkidle" })
+  await page.getByText("E2E Izzet Tempo – Constructed · 60 Karten · Sideboard 3").waitFor()
+  await page.getByText("E2E Deutsch – Constructed · 60 Karten · Sideboard 2").waitFor()
+  // A Commander deck: the AI's Constructed deck no longer fits; random has nothing to draw; a mirror match does.
+  await page.getByRole("button", { name: "Dein Deck wählen" }).click()
+  await page.getByRole("dialog", { name: "Dein Deck wählen" }).getByRole("button", { name: "E2E Brawl" }).click()
+  await page.getByText("Das Deck der KI hat ein anderes Format als deins – wähle ein passendes.").waitFor()
+  await page.getByRole("button", { name: "Deck der KI wählen" }).click()
+  check(await aiDialog.getByRole("button", { name: "Zufällig" }).isDisabled(), "deck library: random offered without a second Commander deck")
+  await aiDialog.getByRole("button", { name: "E2E Brawl" }).click()
+  await page.getByText("Beide Decks stehen fest – das Starten einer Partie folgt in Kürze.").waitFor()
+  results["playAxe"] = await accessibility(page, "deck library: play")
+  await screenshots(page, "desktop-play-decks")
+  const settings = ((await dumpDatabase(page))["settings"] ?? []) as { key: string; value: unknown }[]
+  const brawlId = (await libraryDecks(page)).get("E2E Brawl")?.id
+  check(
+    JSON.stringify(settings.filter((setting) => setting.key.startsWith("play.")).map((setting) => [setting.key, setting.value]).sort()) ===
+      JSON.stringify([["play.aiDeck", { kind: "deck", deckId: brawlId }], ["play.humanDeck", brawlId]]),
+    `deck library: stored choice ${JSON.stringify(settings)}`,
+  )
+  results["timings"] = checkTimes
+
+  // 9. A phone with touch, in its own profile (the decks through a backup, no card data): action bars and touch sizes.
+  const phoneDecks = ((await dumpDatabase(page))["decks"] ?? []) as LibraryDeck[]
+  const phone = await newContext(browser, VIEWPORTS[0]!)
+  const phonePage = await phone.newPage()
+  const phoneLog = watch(phonePage)
+  try {
+    const card = await openLocalData(phonePage, base)
+    await chooseBackup(card, "decks.jsonl.gz", decksBackup(phoneDecks))
+    const dialog = phonePage.getByRole("dialog", { name: "Sicherung laden" })
+    await dialog.getByRole("button", { name: "Zusammenführen", exact: true }).click()
+    await phonePage.getByText("Sicherung geladen").waitFor()
+    const tempoId = phoneDecks.find((deck) => deck.name === "E2E Izzet Tempo")?.id
+    await phonePage.goto(new URL(`/decks/${tempoId}`, base).href, { waitUntil: "networkidle" })
+    await phonePage.getByRole("heading", { level: 1, name: "E2E Izzet Tempo" }).waitFor()
+    await phonePage.getByText("Ohne Kartendaten: englische Namen, keine Bilder").waitFor()
+    const bar = phonePage.getByRole("region", { name: "Deck-Aktionen" })
+    const tabBar = phonePage.getByRole("navigation", { name: "Hauptnavigation" })
+    const placement: unknown[] = []
+    for (const top of [0, 700]) {
+      await phonePage.evaluate((y) => window.scrollTo(0, y), top)
+      await phonePage.waitForTimeout(100)
+      const [barBox, tabBox] = [await bar.boundingBox(), await tabBar.boundingBox()]
+      placement.push({ top, bar: barBox, tabBar: tabBox })
+      check(barBox !== null && tabBox !== null && barBox.y >= 0 && Math.abs(barBox.y + barBox.height - tabBox.y) <= 1, `deck library (phone): action bar not above the tab bar at ${top}px: ${JSON.stringify(placement.at(-1))}`)
+    }
+    const playHeight = await layoutHeight(bar.getByRole("button", { name: "Mit diesem Deck spielen" }))
+    const moreHeight = await layoutHeight(bar.getByRole("button", { name: "Mehr" }))
+    check(playHeight >= 44 && moreHeight >= 44, `deck library (phone): action bar buttons ${playHeight}/${moreHeight}px high`)
+    await bar.getByRole("button", { name: "Mehr" }).click()
+    const itemHeight = await layoutHeight(phonePage.getByRole("menuitem", { name: "Umbenennen" }))
+    check(itemHeight >= 44, `deck library (phone): menu entry ${itemHeight}px high`)
+    await phonePage.keyboard.press("Escape")
+    await overlaysGone(phonePage)
+    const overflow = await phonePage.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+    check(overflow <= 0, `deck library (phone): details overflow by ${overflow}px`)
+    results["phoneDetailsAxe"] = await accessibility(phonePage, "deck library (phone): details")
+    await phonePage.evaluate(() => window.scrollTo(0, 700))
+    await phonePage.screenshot({ path: path.join(reportDir, "screens", "phone-deck-details.png") })
+    // Play from the details: the deck is chosen on the play page, whose start stays at the bottom too.
+    await bar.getByRole("button", { name: "Mit diesem Deck spielen" }).click()
+    await phonePage.getByRole("heading", { level: 1, name: "Spielen" }).waitFor()
+    await phonePage.getByText(/^E2E Izzet Tempo – Constructed · 60 Karten/).waitFor()
+    const startBar = phonePage.getByRole("region", { name: "Partie starten" })
+    const [startBox, tabBox] = [await startBar.boundingBox(), await tabBar.boundingBox()]
+    check(startBox !== null && tabBox !== null && Math.abs(startBox.y + startBox.height - tabBox.y) <= 1, `deck library (phone): start bar ${JSON.stringify(startBox)} tab bar ${JSON.stringify(tabBox)}`)
+    results["phonePlayAxe"] = await accessibility(phonePage, "deck library (phone): play")
+    await phonePage.screenshot({ path: path.join(reportDir, "screens", "phone-play-decks.png") })
+    await phonePage.goto(new URL("/decks", base).href, { waitUntil: "networkidle" })
+    await expectTitles(phonePage, ["E2E Brawl", "E2E Deutsch", "E2E Deutsch (Kopie)", "E2E Izzet Tempo"], "phone")
+    const listOverflow = await phonePage.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+    check(listOverflow <= 0, `deck library (phone): list overflows by ${listOverflow}px`)
+    results["phoneListAxe"] = await accessibility(phonePage, "deck library (phone): list")
+    await screenshots(phonePage, "phone-deck-library")
+    results["phone"] = { placement, playButton: playHeight, moreButton: moreHeight, menuEntry: itemHeight }
+    for (const error of phoneLog.errors) check(false, `deck library (phone): ${error}`)
+  } finally {
+    await phone.close()
+  }
+
+  // No errors of the app; a 404 for a German version that does not exist is Scryfall's answer "none".
+  for (const error of pageLog.errors.slice(errorsBefore).filter((e) => !/api\.scryfall\.com\/cards\/[^/\s]+\/[^/\s]+\/de/.test(e) || !/404/.test(e))) check(false, `deck library: ${error}`)
+  results["scryfallApi"] = api.slice(apiBefore)
+  return results
 }
 
 // ── Run ──────────────────────────────────────────────────────────────────

@@ -218,6 +218,39 @@ describe("printings, where the catalog cannot decide", () => {
   })
 })
 
+describe("importing a deck's list again", () => {
+  const candidates = async () => (await resolve("1 Joven and Chandler")).entries[0]!.candidates
+  const oracleOf = async (forgeName: string) => (await candidates()).find((c) => c.card.forgeNames[0] === forgeName)!.card.oracleId
+
+  it("an open name becomes the card the deck already has", async () => {
+    const playtest = await oracleOf("P-Joven and Chandler")
+    const report = await resolve("1 Joven and Chandler\n4 Lightning Bolt", { previous: new Set([playtest, fixtureCard("Lightning Bolt").oracleId]) })
+    expect(outcome(report)).toEqual([
+      ["Joven and Chandler", "resolved", "P-Joven and Chandler", "previous"],
+      ["Lightning Bolt", "resolved", "Lightning Bolt", "name"],
+    ])
+    expect(notes(report.entries[0])).toEqual(["previous"])
+    // The other card stays offered.
+    expect(report.entries[0]?.candidates).toHaveLength(2)
+  })
+
+  it("a choice made now wins; a deck with both cards, or with neither, leaves the choice open", async () => {
+    const [playtest, real] = [await oracleOf("P-Joven and Chandler"), await oracleOf("Joven and Chandler")]
+    const key = (await resolve("1 Joven and Chandler")).entries[0]!.key
+    const chosen = await resolve("1 Joven and Chandler", { previous: new Set([playtest]), choices: new Map([[key, real]]) })
+    expect(outcome(chosen)).toEqual([["Joven and Chandler", "resolved", "Joven and Chandler", "choice"]])
+    expect((await resolve("1 Joven and Chandler", { previous: new Set([playtest, real]) })).entries[0]?.status).toBe("ambiguous")
+    expect((await resolve("1 Joven and Chandler", { previous: new Set([fixtureCard("Forest").oracleId]) })).entries[0]?.status).toBe("ambiguous")
+  })
+
+  it("a printing that decides wins over the deck", async () => {
+    const mbc = (await candidates()).find((c) => c.card.forgeNames[0] === "Joven and Chandler")!.card
+    const { lookup } = scryfall([printOf(mbc, "mbc", "24")])
+    const report = await resolve("1 Joven and Chandler (MBC) 24", { lookupPrints: lookup, previous: new Set([await oracleOf("P-Joven and Chandler")]) })
+    expect(outcome(report)).toEqual([["Joven and Chandler", "resolved", "Joven and Chandler", "print"]])
+  })
+})
+
 describe("deciding a name (the rules)", () => {
   const match = (candidates: readonly CardMatch[]) => candidates.map((c) => c.card.name)
 

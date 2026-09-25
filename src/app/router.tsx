@@ -1,8 +1,9 @@
 /*
  * Routes: one per surface (navigation.ts), all inside the app shell. Page
- * errors render inside the shell, so navigation stays usable. Pages used
- * rarely load on demand (route-based code splitting), so they do not weigh
- * on the start: the deck import with its parser and report.
+ * errors render inside the shell, so navigation stays usable. Pages that are
+ * not needed at the start load on demand (route-based code splitting), so
+ * they do not weigh on it: the deck import with its parser and report, a
+ * deck's details and importing a deck's list again.
  */
 import { createBrowserRouter, type RouteObject } from "react-router"
 import { CreditsPage } from "@/routes/credits-page"
@@ -31,6 +32,17 @@ export const routes: RouteObject[] = [
             // The stand-in while the page's code loads must not be lazy itself.
             HydrateFallback: PageLoading,
             lazy: async () => ({ Component: (await import("@/decks/deck-import-page")).DeckImportPage }),
+          },
+          {
+            // A static segment ranks before a dynamic one: /decks/import stays the import.
+            path: "decks/:deckId",
+            HydrateFallback: PageLoading,
+            lazy: async () => ({ Component: (await import("@/decks/deck-details-page")).DeckDetailsPage }),
+          },
+          {
+            path: "decks/:deckId/import",
+            HydrateFallback: PageLoading,
+            lazy: async () => ({ Component: (await import("@/decks/deck-update-page")).DeckUpdatePage }),
           },
           { path: "play", element: <PlayPage /> },
           { path: "matches", element: <MatchesPage /> },

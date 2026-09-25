@@ -92,8 +92,8 @@ describe("stores", () => {
   })
 
   it("the schema version is the database version", () => {
-    // Version 2 (prompt 08): the card catalog stores.
-    expect(SCHEMA_VERSION).toBe(2)
+    // Version 2 (prompt 08): the card catalog stores. Version 3 (prompt 10): a deck names its companion.
+    expect(SCHEMA_VERSION).toBe(3)
   })
 
   it("formats keys for reports", () => {

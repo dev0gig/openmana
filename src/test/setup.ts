@@ -11,7 +11,7 @@
  */
 import "fake-indexeddb/auto"
 import "@testing-library/jest-dom/vitest"
-import { cleanup } from "@testing-library/react"
+import { cleanup, configure } from "@testing-library/react"
 import { IDBFactory } from "fake-indexeddb"
 import { toast } from "sonner"
 import { afterEach, beforeEach } from "vitest"
@@ -19,6 +19,11 @@ import { afterEach, beforeEach } from "vitest"
 beforeEach(() => {
   globalThis.indexedDB = new IDBFactory()
 })
+
+// findBy…/waitFor wait up to 5 s instead of 1 s: pages that load on demand
+// (React Router lazy routes) are transformed on first use, which on a busy
+// machine took longer than a second. Passing tests are not slower for it.
+configure({ asyncUtilTimeout: 5000 })
 
 afterEach(() => {
   // sonner keeps active toasts in a module-wide store and replays them to the

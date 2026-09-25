@@ -2,8 +2,14 @@
  * The deck library in the local database. Import (prompt 09) and the library
  * screens (prompt 10) build on these; a deck is checked against its schema
  * before it is written, and a damaged stored deck is reported, never dropped.
+ *
+ * Changing a deck (rename, replace its cards) reads and writes it in one
+ * transaction: a deck deleted meanwhile - in another tab, say - is never
+ * brought back ("not-found"), and a damaged one is never overwritten with a
+ * guess of what it was ("invalid-record"; the settings' check shows it).
  */
-import { sortOut, assertRecord, type CheckedRecords, type LocalDatabase } from "./database"
+import { StorageError } from "./errors"
+import { sortOut, assertRecord, type CheckedRecords, type InvalidRecord, type LocalDatabase, type WriteTransaction } from "./database"
 import type { DeckRecord } from "./generated/records"
 
 const byName = new Intl.Collator("de-DE", { sensitivity: "base", numeric: true })
@@ -22,11 +28,97 @@ export async function countDecks(db: LocalDatabase): Promise<number> {
   return db.read(["decks"], (transaction) => transaction.objectStore("decks").count())
 }
 
+/** One deck as the database holds it: there and valid, there but damaged, or not (any more) there. */
+export type DeckLookup =
+  | { readonly status: "found"; readonly deck: DeckRecord }
+  | { readonly status: "damaged"; readonly record: InvalidRecord }
+  | { readonly status: "missing" }
+
+export async function getDeck(db: LocalDatabase, id: string): Promise<DeckLookup> {
+  const value: unknown = await db.read(["decks"], (transaction) => transaction.objectStore("decks").get(id))
+  if (value === undefined) return { status: "missing" }
+  const checked = sortOut("decks", [id], [value])
+  const deck = checked.records[0]
+  if (deck !== undefined) return { status: "found", deck }
+  return { status: "damaged", record: checked.invalid[0]! }
+}
+
 /** Writes a deck (new or updated). Throws invalid-record before touching the database if it does not match the schema. */
 export async function saveDeck(db: LocalDatabase, deck: DeckRecord): Promise<void> {
   const record = assertRecord("decks", deck)
   await db.write(["decks"], async (transaction) => {
     await transaction.objectStore("decks").put(record)
+  })
+}
+
+/** The stored deck, valid - inside a writing transaction (see the head comment). */
+async function storedDeck(transaction: WriteTransaction<"decks">, id: string): Promise<DeckRecord> {
+  const stored: unknown = await transaction.objectStore("decks").get(id)
+  if (stored === undefined) throw new StorageError("not-found", `deck ${id} is not in the database`)
+  return assertRecord("decks", stored)
+}
+
+/** Reads, changes and writes one deck in one transaction; the changed deck is checked before it is written. */
+async function changeDeck(db: LocalDatabase, id: string, change: (deck: DeckRecord) => DeckRecord): Promise<DeckRecord> {
+  return db.write(["decks"], async (transaction) => {
+    const next = assertRecord("decks", change(await storedDeck(transaction, id)))
+    await transaction.objectStore("decks").put(next)
+    return next
+  })
+}
+
+function deckName(name: string): string {
+  const trimmed = name.trim()
+  if (trimmed === "") throw new StorageError("invalid-record", "a deck needs a name")
+  return trimmed
+}
+
+/** Gives a deck another name (trimmed, not empty); everything else stays. */
+export async function renameDeck(db: LocalDatabase, id: string, name: string, now: () => Date = () => new Date()): Promise<DeckRecord> {
+  const newName = deckName(name)
+  const at = now().toISOString()
+  return changeDeck(db, id, (deck) => ({ ...deck, name: newName, updatedAt: at }))
+}
+
+export interface DuplicateOptions {
+  /** The copy's id (crypto.randomUUID()). */
+  readonly id: string
+  readonly name: string
+  readonly now?: () => Date
+}
+
+/**
+ * A copy of a deck under a new id and name: the same cards and the same
+ * import (source.text and importedAt stay - the list it came from is the
+ * same), created now.
+ */
+export async function duplicateDeck(db: LocalDatabase, id: string, options: DuplicateOptions): Promise<DeckRecord> {
+  const name = deckName(options.name)
+  const at = (options.now ?? (() => new Date()))().toISOString()
+  return db.write(["decks"], async (transaction) => {
+    const copy = assertRecord("decks", { ...(await storedDeck(transaction, id)), id: options.id, name, createdAt: at, updatedAt: at })
+    // add, not put: an id that is already taken fails instead of replacing that deck.
+    await transaction.objectStore("decks").add(copy)
+    return copy
+  })
+}
+
+/**
+ * Replaces a deck's cards, format, name and import with those of `deck`
+ * (a new import of its list); its id and creation stay. Fails with
+ * not-found if the deck is gone.
+ */
+export async function replaceDeck(db: LocalDatabase, deck: DeckRecord): Promise<DeckRecord> {
+  return changeDeck(db, deck.id, (stored) => ({ ...deck, createdAt: stored.createdAt }))
+}
+
+/** Deletes a deck (valid or damaged). False if it was not there (deleted meanwhile): the outcome is the same. */
+export async function deleteDeck(db: LocalDatabase, id: string): Promise<boolean> {
+  return db.write(["decks"], async (transaction) => {
+    const store = transaction.objectStore("decks")
+    const there = (await store.count(id)) > 0
+    if (there) await store.delete(id)
+    return there
   })
 }
 

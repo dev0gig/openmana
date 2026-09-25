@@ -23,6 +23,8 @@ export type StorageErrorCode =
   | "insufficient-space"
   /** A record does not match its schema; it was not written. */
   | "invalid-record"
+  /** The record to change is not there (any more): deleted meanwhile, e.g. in another tab. Nothing was written. */
+  | "not-found"
   /** Any other failed read or write; nothing of a failed write was stored. */
   | "transaction-failed"
   /** A file is not a complete, readable OpenMana backup. */

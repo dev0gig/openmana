@@ -7,7 +7,7 @@
  */
 import type { LocalDatabase } from "@/storage/database"
 import { CardDataError } from "./errors"
-import type { PrintKey, ResolvedPrint } from "./prints"
+import type { PrintKey, ResolvedPrint } from "./print-key"
 import type { ScryfallClient } from "./scryfall-client"
 
 let shared: Promise<ScryfallClient> | null = null

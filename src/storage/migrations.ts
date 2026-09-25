@@ -120,6 +120,11 @@ export const MIGRATIONS: readonly Migration[] = [
     },
     clear: ["cacheIndex"],
   },
+  {
+    version: 3,
+    // An optional field: every stored deck and every deck of an older backup is valid as it is.
+    summary: "Decks may name their companion (DeckRecord.companion); no stored record changes.",
+  },
 ]
 
 /** The version the migrations lead to; throws if they are not 1, 2, 3 … in order. */

@@ -7,7 +7,7 @@
     "SchemaVersion": {
       "title": "SchemaVersion",
       "description": "Version of the record schemas below = version of the IndexedDB database. Every change to a record shape or to the stores raises it and adds a migration (src/storage/migrations.ts) that upgrades the database and older backups alike.",
-      "const": 2
+      "const": 3
     },
     "BackupFormatVersion": {
       "title": "BackupFormatVersion",
@@ -97,6 +97,11 @@
         "main": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/DeckCard" } },
         "sideboard": { "type": "array", "items": { "$ref": "#/$defs/DeckCard" } },
         "commander": { "type": "array", "items": { "$ref": "#/$defs/DeckCard" } },
+        "companion": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/DeckCard" },
+          "description": "The companion the list names (MTG Arena's Companion section; schema version 3). It plays from the sideboard, where Forge looks for it, so it is in the sideboard as well; this names which card it is. Absent: none known (decks saved before schema version 3 did not record it)."
+        },
         "source": { "$ref": "#/$defs/DeckSource" },
         "createdAt": { "$ref": "#/$defs/Timestamp" },
         "updatedAt": { "$ref": "#/$defs/Timestamp" }

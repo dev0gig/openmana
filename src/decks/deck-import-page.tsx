@@ -14,8 +14,14 @@
  *
  * Without the card catalog nothing can be checked: the page offers to set
  * it up right here (the same install as in the settings).
+ *
+ * The same page imports a deck's list again (the library's "Erneut
+ * importieren", /decks/:id/import): it starts with the deck's saved list and
+ * name, a name the deck's cards decide is taken as before (the player chose
+ * it then), and saving replaces the deck's cards and list - confirmed, since
+ * it cannot be undone - while the deck keeps its id and creation.
  */
-import { ArrowLeft, FileText, ListChecks, Save } from "lucide-react"
+import { ArrowLeft, FileText, ListChecks, RefreshCw, Save } from "lucide-react"
 import { useCallback, useMemo, useRef, useState, type ChangeEvent } from "react"
 import { Link, useNavigate } from "react-router"
 import { toast } from "sonner"
@@ -26,6 +32,16 @@ import { lookupPrints } from "@/cards/scryfall-access"
 import { Page } from "@/components/page-header"
 import { TextLink } from "@/components/text-link"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field"
@@ -33,8 +49,9 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
-import { saveDeck } from "@/storage/decks"
+import { replaceDeck, saveDeck } from "@/storage/decks"
 import { toStorageError, type StorageError } from "@/storage/errors"
+import type { DeckRecord } from "@/storage/generated/records"
 import { StorageErrorAlert } from "@/storage/storage-alert"
 import { useStorage } from "@/storage/storage-context"
 import { DECK_FORMAT_LABELS, formatBytes } from "@/storage/storage-labels"
@@ -42,6 +59,7 @@ import { MAX_LIST_CHARACTERS, parseArenaDeckList } from "./arena-list"
 import { cardsLabel } from "./deck-import-labels"
 import { deckRecordFrom, planDeck, plannedCount } from "./deck-plan"
 import { resolveDeckList, type DeckImportReport } from "./deck-resolve"
+import { deckOracleIds } from "./deck-view"
 import { DeckPreview, OpenLines, ReportSummary } from "./import-report"
 
 interface Checked {
@@ -116,17 +134,20 @@ function CatalogNeeded() {
   )
 }
 
-export function DeckImportPage() {
+/** update: the deck whose list is imported again (see the head comment); absent: a new deck. */
+export function DeckImportPage({ update }: { update?: DeckRecord }) {
   const navigate = useNavigate()
   const catalog = useCardCatalog()
   const { snapshot } = useStorage()
   const database = snapshot.status === "ready" ? snapshot.database : null
-  const [text, setText] = useState("")
+  const [text, setText] = useState(update?.source.text ?? "")
   const [view, setView] = useState<"input" | "report">("input")
   const [check, setCheck] = useState<Check>({ status: "idle" })
   const [choices, setChoices] = useState<ReadonlyMap<string, string>>(() => new Map())
   const [leftOut, setLeftOut] = useState<ReadonlySet<number>>(() => new Set())
-  const [name, setName] = useState<string | null>(null)
+  const [name, setName] = useState<string | null>(update?.name ?? null)
+  const [confirming, setConfirming] = useState(false)
+  const previous = useMemo(() => (update ? deckOracleIds(update) : null), [update])
   const [fileError, setFileError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<StorageError | null>(null)
@@ -150,6 +171,7 @@ export function DeckImportPage() {
       try {
         const report = await resolveDeckList(database, parseArenaDeckList(source), {
           choices: picks,
+          ...(previous !== null ? { previous } : {}),
           lookupPrints: (keys) => {
             if (mine === ticket.current) setCheck((current) => ({ status: "checking", scryfall: keys.length, previous: current.status === "checking" ? current.previous : null }))
             return lookupPrints(database, keys)
@@ -160,7 +182,7 @@ export function DeckImportPage() {
         if (mine === ticket.current) setCheck({ status: "failed", error: toStorageError(error, "checking the deck list") })
       }
     },
-    [database],
+    [database, previous],
   )
 
   const start = (source: string) => {
@@ -223,10 +245,17 @@ export function DeckImportPage() {
     setSaving(true)
     setSaveError(null)
     try {
-      const record = deckRecordFrom(plan, { id: crypto.randomUUID(), name: deckName, text: shown.text, now: new Date().toISOString() })
-      await saveDeck(database, record)
-      toast.success(`Deck „${record.name}“ gespeichert`, { description: `${cardsLabel(plannedCount(plan.main))} im Hauptdeck.` })
-      void navigate("/decks")
+      const record = deckRecordFrom(plan, { id: update?.id ?? crypto.randomUUID(), name: deckName, text: shown.text, now: new Date().toISOString() })
+      if (update) {
+        // The deck keeps its id and creation; a deck deleted meanwhile is not brought back (not-found).
+        await replaceDeck(database, record)
+        toast.success(`Deck „${record.name}“ aktualisiert`, { description: `${cardsLabel(plannedCount(plan.main))} im Hauptdeck.` })
+        void navigate(`/decks/${record.id}`)
+      } else {
+        await saveDeck(database, record)
+        toast.success(`Deck „${record.name}“ gespeichert`, { description: `${cardsLabel(plannedCount(plan.main))} im Hauptdeck.` })
+        void navigate("/decks")
+      }
     } catch (error) {
       setSaveError(toStorageError(error, "saving the deck"))
     } finally {
@@ -236,15 +265,23 @@ export function DeckImportPage() {
 
   const back = (
     <Button asChild variant="ghost">
-      <Link to="/decks">
+      <Link to={update ? `/decks/${update.id}` : "/decks"}>
         <ArrowLeft data-icon="inline-start" aria-hidden />
-        Zu den Decks
+        {update ? "Zum Deck" : "Zu den Decks"}
       </Link>
     </Button>
   )
 
   return (
-    <Page title="Arena-Deck importieren" description="Eine Deckliste aus MTG Arena einfügen – sie bleibt auf diesem Gerät." actions={back}>
+    <Page
+      title={update ? "Deck neu importieren" : "Arena-Deck importieren"}
+      description={
+        update
+          ? `Eine neue oder geänderte Arena-Liste für „${update.name}“ – sie ersetzt die Karten und die gespeicherte Liste des Decks.`
+          : "Eine Deckliste aus MTG Arena einfügen – sie bleibt auf diesem Gerät."
+      }
+      actions={back}
+    >
       {snapshot.status === "failed" || snapshot.status === "closed" ? <StorageErrorAlert error={snapshot.error} /> : null}
       <CatalogNeeded />
 
@@ -333,11 +370,13 @@ export function DeckImportPage() {
           <OpenLines plan={plan} onLeaveOut={leaveOut} onChoose={choose} />
           <Card role="region" aria-labelledby="import-save-title">
             <CardHeader>
-              <CardTitle id="import-save-title">Deck speichern</CardTitle>
+              <CardTitle id="import-save-title">{update ? "Deck ersetzen" : "Deck speichern"}</CardTitle>
               <CardDescription>
                 Format {DECK_FORMAT_LABELS[plan.format]}
-                {plan.format === "commander" ? " – Forge spielt das Deck als Commander-Partie" : ""}. Gespeichert wird nur auf diesem Gerät; die Liste bleibt
-                unverändert beim Deck.
+                {plan.format === "commander" ? " – Forge spielt das Deck als Commander-Partie" : ""}.{" "}
+                {update
+                  ? "Das Deck bekommt diese Karten und diese Liste; seine bisherigen Karten und seine bisherige Liste werden ersetzt."
+                  : "Gespeichert wird nur auf diesem Gerät; die Liste bleibt unverändert beim Deck."}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
@@ -348,9 +387,14 @@ export function DeckImportPage() {
               {saveError !== null ? <StorageErrorAlert error={saveError} /> : null}
             </CardContent>
             <CardFooter className="flex flex-wrap gap-3">
-              <Button size="lg" disabled={saveBlocked !== null || saving} onClick={() => void save()} aria-describedby={saveBlocked !== null ? "deck-import-save-note" : undefined}>
-                {saving ? <Spinner data-icon="inline-start" /> : <Save data-icon="inline-start" aria-hidden />}
-                Deck speichern
+              <Button
+                size="lg"
+                disabled={saveBlocked !== null || saving}
+                onClick={() => (update ? setConfirming(true) : void save())}
+                aria-describedby={saveBlocked !== null ? "deck-import-save-note" : undefined}
+              >
+                {saving ? <Spinner data-icon="inline-start" /> : update ? <RefreshCw data-icon="inline-start" aria-hidden /> : <Save data-icon="inline-start" aria-hidden />}
+                {update ? "Deck ersetzen" : "Deck speichern"}
               </Button>
               {saveBlocked !== null ? (
                 <p id="deck-import-save-note" className="basis-full text-sm text-muted-foreground">
@@ -359,6 +403,22 @@ export function DeckImportPage() {
               ) : null}
             </CardFooter>
           </Card>
+          {update ? (
+            <AlertDialog open={confirming} onOpenChange={setConfirming}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>„{update.name}“ ersetzen?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Karten, Format und gespeicherte Liste des Decks werden durch diese Liste ersetzt. Zurück geht es danach nur mit einer Sicherung.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => void save()}>Deck ersetzen</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : null}
           <DeckPreview report={shown.report} plan={plan} onChoose={choose} />
           <p className="text-sm text-muted-foreground">
             Ob ein Deck in einem Format erlaubt ist, entscheidet Forge – der Import prüft nur, ob jede Karte eindeutig ist und Forge sie kennt. Kartendaten und
