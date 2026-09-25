@@ -32,9 +32,14 @@ interface CardPictureProps extends Omit<React.ComponentProps<"img">, "src" | "al
   fallback: React.ReactNode
   /** Called once the picture loaded or failed. */
   onStateChange?: (state: Exclude<PictureState, "loading">) => void
+  /**
+   * OpenMana (prompt 13): a small card (the game table's rows) - the
+   * fallback text box keeps little padding, so a name still fits.
+   */
+  compact?: boolean
 }
 
-function CardPicture({ src, alt, fallback, className, onStateChange, ...props }: CardPictureProps) {
+function CardPicture({ src, alt, fallback, className, onStateChange, compact = false, ...props }: CardPictureProps) {
   // Keyed by URL: a new picture starts at "loading" without an effect.
   const [status, setStatus] = React.useState<{ readonly src: string | null; readonly state: PictureState }>({ src, state: "loading" })
   const state: PictureState = status.src === src ? status.state : "loading"
@@ -67,7 +72,7 @@ function CardPicture({ src, alt, fallback, className, onStateChange, ...props }:
           />
         </>
       ) : (
-        <div data-slot="card-picture-fallback" className="flex size-full flex-col gap-2 overflow-hidden bg-card p-3 text-left text-card-foreground">
+        <div data-slot="card-picture-fallback" className={cn("flex size-full flex-col overflow-hidden bg-card text-left text-card-foreground", compact ? "gap-0.5 p-1" : "gap-2 p-3")}>
           {fallback}
         </div>
       )}

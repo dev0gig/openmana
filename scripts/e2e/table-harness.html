@@ -1,0 +1,19 @@
+<!doctype html>
+<!--
+  The game table harness of the end-to-end test (scripts/e2e/run.ts, section
+  12): the real table code shows a recorded real scene
+  (src/test/table-harness.tsx). Not part of the app - only the test's dev
+  server serves it: /scripts/e2e/table-harness.html?scene=<name>
+-->
+<html lang="de" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Spieltisch-Prüfstand</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/test/table-harness.tsx"></script>
+  </body>
+</html>

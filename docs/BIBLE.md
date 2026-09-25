@@ -190,6 +190,8 @@ Looking at a card must be safe. Committing an irreversible action requires clear
 
 Do not create a vertically endless table. Keep opponent summary/hand, opponent battlefield, combat/stack, player battlefield, decision area and player hand spatially understandable. Responsive layouts may reorganize them.
 
+The implemented game table - its regions in portrait and landscape, cards from Forge's state (piles, attachments, hidden cards), stack and combat, the decision area and the table's menu - is described in [implementation/13-battlefield-foundation.md](implementation/13-battlefield-foundation.md).
+
 ## 7. Forge AI
 
 Forge AI remains the AI implementation.

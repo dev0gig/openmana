@@ -2,9 +2,9 @@
  * The game session as the player meets it: the play page prewarms the
  * engine, "Partie starten" hands the chosen decks to Forge and leads to the
  * game page, which shows every state - waiting for the engine, Forge building
- * the game, the running game with Forge's state and decision, the result,
- * a refusal with Forge's report, a technical abort, a silent engine - and
- * offers a way on from each. The engine is the real EngineClient over a
+ * the game, the running game on the game table (prompt 13) with its menu,
+ * the result, a refusal with Forge's report, a technical abort, a silent
+ * engine - and offers a way on from each. The engine is the real EngineClient over a
  * scripted worker (src/test/game-fixtures.ts); the decks come from the
  * local database.
  */
@@ -12,6 +12,7 @@ import { act, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { createMemoryRouter, Outlet, RouterProvider } from "react-router"
 import { afterEach, describe, expect, it } from "vitest"
+import { DESTINATIONS } from "@/app/navigation"
 import { PreferencesProvider } from "@/app/preferences"
 import { CardCatalogProvider } from "@/cards/card-catalog-context"
 import { Toaster } from "@/components/ui/sonner"
@@ -159,7 +160,7 @@ describe("the play page", () => {
     expect(within(panel).getByRole("link", { name: "Zur Partie" })).toHaveAttribute("href", "/play/game")
     await user.click(screen.getByRole("button", { name: "Zur laufenden Partie" }))
     expect(router.state.location.pathname).toBe("/play/game")
-    expect(await screen.findByRole("region", { name: "Partie läuft" })).toBeInTheDocument()
+    expect(await screen.findByRole("region", { name: "Deine Hand" })).toBeInTheDocument()
     expect(engine.worker().matchStarts()).toHaveLength(1)
   })
 })
@@ -247,49 +248,55 @@ describe("the game page", () => {
     expect(router.state.location.pathname).toBe("/play")
   })
 
-  it("a running game: Forge's state and decision, conceding only after confirming, the result in one word, a fresh engine for the next game", { timeout: 20_000 }, async () => {
+  it("a running game: the table with Forge's state and decision, conceding from the menu only after confirming, the result in one word, a fresh engine for the next game", { timeout: 20_000 }, async () => {
     const user = userEvent.setup()
     await store([RED, GREEN])
     const engine = await runningGame()
     renderAt("/play/game", engine)
-    const game = await screen.findByRole("region", { name: "Partie läuft" })
-    expect(within(game).getByText("Vor dem ersten Zug")).toBeInTheDocument()
-    const players = within(game).getByRole("list", { name: "Spieler" })
-    const [me, ai] = within(players).getAllByRole("listitem")
-    expect(within(me!).getByText("Du")).toBeInTheDocument()
-    expect(within(me!).getByText("Rot")).toBeInTheDocument()
-    expect(within(ai!).getByText("Forge-KI")).toBeInTheDocument()
-    expect(within(ai!).getByText("Grün (zufällig gezogen)")).toBeInTheDocument()
-    for (const item of [me!, ai!]) {
-      const facts = Object.fromEntries([...item.querySelectorAll("dl > div")].map((row) => [row.querySelector("dt")?.textContent, row.querySelector("dd")?.textContent]))
-      expect(facts).toMatchObject({ Lebenspunkte: "20", Hand: "7", Bibliothek: "53", Spielfeld: "0", Friedhof: "0", Exil: "0" })
-    }
-    expect(within(game).getByText("Forge wartet auf deine Entscheidung")).toBeInTheDocument()
+    const header = await screen.findByRole("region", { name: "Spielstand" })
+    expect(screen.getByRole("heading", { level: 1, name: "Partie" })).toBeInTheDocument()
+    expect(within(header).getByText("Vor dem ersten Zug")).toBeInTheDocument()
+    expect(within(header).getByText("Du bist dran")).toBeInTheDocument()
+    const opponent = screen.getByRole("region", { name: "Forge-KI" })
+    expect(within(opponent).getByText("Standard")).toBeInTheDocument()
+    expect(within(opponent).getByTitle("Lebenspunkte")).toHaveTextContent("20")
+    expect(within(opponent).getByRole("list", { name: "Hand der Forge-KI: 7 Karten" })).toBeInTheDocument()
+    expect(within(screen.getByRole("region", { name: "Du" })).getByTitle("Lebenspunkte")).toHaveTextContent("20")
+    // Forge's cards by Forge's names (no card data on this device).
+    const hand = screen.getByRole("list", { name: "Deine Hand: 7 Karten" })
+    expect(within(hand).getAllByText("Mountain")).toHaveLength(4)
+    expect(within(hand).getAllByText("Shock")).toHaveLength(3)
+    const decision = screen.getByRole("region", { name: "Entscheidung" })
     // Forge's own words (Testing Library collapses its double space).
-    expect(within(game).getByText(MULLIGAN_PROMPT.replace(/\s+/g, " "))).toBeInTheDocument()
-    const decision = within(within(game).getByRole("alert")).getAllByRole("listitem")
-    expect(decision).toHaveLength(1)
-    expect(decision[0]!.firstChild?.textContent).toBe("Mulligan")
-    expect(within(within(game).getByLabelText("Antworten, die Forge anbietet")).getAllByText(/./).map((b) => b.textContent)).toEqual(["Behalten", "Mulligan"])
-    expect(within(game).getByText("Du bist dran")).toBeInTheDocument()
-    expect(within(game).getByText("Neu laden oder Schließen der Seite beendet die Partie.")).toBeInTheDocument()
+    expect(within(decision).getByText(MULLIGAN_PROMPT.replace(/\s+/g, " "))).toBeInTheDocument()
+    expect(within(within(decision).getByLabelText("Antworten, die Forge anbietet")).getAllByText(/./).map((b) => b.textContent)).toEqual(["Behalten", "Mulligan"])
 
     // Leaving the page asks first while the game runs.
     const leave = new Event("beforeunload", { cancelable: true })
     window.dispatchEvent(leave)
     expect(leave.defaultPrevented).toBe(true)
 
+    // The menu: the game, Forge's notices, the way around the app (the game keeps running), conceding.
+    await user.click(within(header).getByRole("button", { name: "Menü" }))
+    let menu = await screen.findByRole("dialog", { name: "Partie" })
+    expect(within(menu).getByText("Die Partie läuft weiter, wenn du eine andere Seite öffnest. Neu laden oder Schließen beendet sie.")).toBeInTheDocument()
+    expect(within(menu).getByText("Grün (zufällig gezogen)")).toBeInTheDocument()
+    expect(within(menu).getByText("In dieser Partie hat Forge noch nichts gemeldet.")).toBeInTheDocument()
+    expect(within(within(menu).getByRole("navigation", { name: "OpenMana" })).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual(DESTINATIONS.map((d) => d.path))
+
     // Conceding needs a second, explicit step; "Weiterspielen" sends nothing.
-    await user.click(within(game).getByRole("button", { name: "Aufgeben" }))
+    await user.click(within(menu).getByRole("button", { name: "Aufgeben" }))
     let dialog = await screen.findByRole("alertdialog", { name: "Partie aufgeben?" })
     expect(within(dialog).getByText("Die Forge-KI gewinnt die Partie. Das lässt sich nicht rückgängig machen.")).toBeInTheDocument()
     await user.click(within(dialog).getByRole("button", { name: "Weiterspielen" }))
     expect(engine.worker().inputs()).toEqual([])
-    await user.click(within(game).getByRole("button", { name: "Aufgeben" }))
+    await user.click(within(screen.getByRole("region", { name: "Spielstand" })).getByRole("button", { name: "Menü" }))
+    menu = await screen.findByRole("dialog", { name: "Partie" })
+    await user.click(within(menu).getByRole("button", { name: "Aufgeben" }))
     dialog = await screen.findByRole("alertdialog", { name: "Partie aufgeben?" })
     await user.click(within(dialog).getByRole("button", { name: "Aufgeben" }))
     expect(engine.worker().inputs()).toEqual([{ type: "concede", seq: 1 }])
-    expect(await within(game).findByRole("button", { name: "Gibt auf …" })).toBeDisabled()
+    expect(await within(screen.getByRole("region", { name: "Spielstand" })).findByText("Gibt auf …")).toBeInTheDocument()
 
     act(() => engine.worker().concedeAccepted())
     expect(await screen.findByRole("heading", { level: 2, name: "Verloren" })).toBeInTheDocument()
@@ -348,7 +355,7 @@ describe("the game page", () => {
     await store([RED, GREEN])
     const engine = await runningGame()
     renderAt("/play/game", engine)
-    await screen.findByRole("region", { name: "Partie läuft" })
+    await screen.findByRole("region", { name: "Deine Hand" })
     act(() => engine.worker().crash("Uncaught RuntimeError: unreachable"))
     const aborted = await screen.findByRole("region", { name: "Partie abgebrochen" })
     expect(within(aborted).getByText("Der Engine-Worker ist abgestürzt")).toBeInTheDocument()
@@ -389,7 +396,7 @@ describe("the game page", () => {
     const engine = await runningGame()
     engine.session.concede()
     renderAt("/play/game", engine)
-    await screen.findByRole("region", { name: "Partie läuft" })
+    await screen.findByRole("region", { name: "Deine Hand" })
     act(() => engine.timers.advance(30_000))
     expect(await screen.findByText("Die Engine reagiert seit 30,0 s nicht")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Partie beenden" }))
@@ -411,6 +418,24 @@ describe("the game page", () => {
     await user.click(within(waiting).getByRole("button", { name: "Abbrechen" }))
     expect(router.state.location.pathname).toBe("/play")
     expect(engine.session.getSnapshot()).toMatchObject({ engine: { status: "booting" }, match: null })
+  })
+
+  it("Forge's notices during a game: a toast at the top as they come, all of them in the menu", async () => {
+    const user = userEvent.setup()
+    await store([RED, GREEN])
+    const engine = await runningGame()
+    renderAt("/play/game", engine)
+    await screen.findByRole("region", { name: "Deine Hand" })
+    act(() => engine.worker().send({ type: "message", kind: "notice", title: "Forge-KI", text: "Forge-KI zeigt dir eine Karte." }))
+    const toast = await screen.findByText("Forge-KI: Forge-KI zeigt dir eine Karte.", { selector: "[data-title]" })
+    expect(toast.closest("[data-sonner-toast]")).toHaveAttribute("data-y-position", "top")
+    act(() => engine.worker().send({ type: "message", kind: "error", text: "Die Karte kann so nicht gespielt werden." }))
+    expect(await screen.findByText("Die Karte kann so nicht gespielt werden.", { selector: "[data-title]" })).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Menü, 2 Meldungen von Forge" }))
+    const menu = await screen.findByRole("dialog", { name: "Partie" })
+    const notices = within(within(menu).getByRole("region", { name: "Meldungen von Forge" })).getAllByRole("listitem")
+    expect(notices.map((item) => item.textContent)).toEqual(["Forge-KI: Forge-KI zeigt dir eine Karte.", "Die Karte kann so nicht gespielt werden."])
+    expect(notices[1]).toHaveClass("text-destructive")
   })
 
   it("on a phone the next game's button stays in the action bar", async () => {

@@ -82,6 +82,15 @@
  *     setting, nor on a device that asks for less motion; the diagnostics
  *     report names every version and is copied as shown; on a phone every
  *     option is a 44 px target. axe-core on every state.
+ * 12. The game table (prompt 13): the live games of 10 on the table - the
+ *     whole screen without the app's frame, every region in view, the page
+ *     never scrolls, the player's hand face up with real pictures, the AI's
+ *     hand only as backs, the commander in the command zone, the table's menu
+ *     around the app and back, conceding from the menu; resizing the window
+ *     and turning the phone re-lay the table without touching the game. And
+ *     recorded real states of the engine's test games (full battlefields,
+ *     piles, a stack, blockers, fourteen attackers, the command zone) in the
+ *     real table at six sizes (tableHarness), each with axe-core.
  */
 import { createRequire } from "node:module"
 import { randomUUID } from "node:crypto"
@@ -1750,17 +1759,130 @@ async function chooseDeck(page: Page, which: "Dein Deck wählen" | "Deck der KI 
   await overlaysGone(page)
 }
 
-/** Label → value of the running game's players, the player first (the page puts them so). */
-async function playerFacts(game: Locator): Promise<{ readonly who: string; readonly facts: Record<string, string> }[]> {
-  const items = game.getByRole("list", { name: "Spieler" }).getByRole("listitem")
-  const out = []
-  for (let i = 0; i < (await items.count()); i++) {
-    const item = items.nth(i)
-    const who = ((await item.locator('[data-slot="item-title"]').textContent()) ?? "").trim()
-    const facts = await item.locator("dl > div").evaluateAll((rows) => Object.fromEntries(rows.map((row) => [row.querySelector("dt")?.textContent ?? "", row.querySelector("dd")?.textContent ?? ""])))
-    out.push({ who, facts })
+/** The running game's table (prompt 13): its header region, where the menu is. */
+function tableHeader(page: Page): Locator {
+  return page.getByRole("region", { name: "Spielstand" })
+}
+
+/** What the table shows of one player: life, zone sizes, the cards on the battlefield and in the hand. */
+interface SideFacts {
+  readonly life: number
+  readonly hand: number
+  readonly library: number
+  readonly graveyard: number
+  readonly exile: number
+  /** The command zone's size (0 when the table shows none). */
+  readonly command: number
+  /** Cards on the battlefield (piles counted by their size), without the command zone. */
+  readonly permanents: number
+  /** The hand's cards as the table draws them: faces and backs. */
+  readonly handFaces: number
+  readonly handBacks: number
+}
+
+/** Reads the table's facts of both players from its regions (the player's bar "Du", the opponent's "Forge-KI"). */
+async function tableFacts(page: Page): Promise<{ readonly me: SideFacts; readonly ai: SideFacts }> {
+  return page.evaluate(() => {
+    const region = (name: string) => document.querySelector(`section[aria-label="${name}"]`)
+    const number = (element: Element | null | undefined) => {
+      const match = /(-?\d+)\s*$/.exec(element?.textContent ?? "")
+      return match ? Number(match[1]) : Number.NaN
+    }
+    const side = (bar: Element | null, field: Element | null, hand: Element | null) => {
+      const count = (label: string) => (bar?.querySelector(`[title="${label}"]`) ? number(bar.querySelector(`[title="${label}"]`)) : 0)
+      const figures = [...(field?.querySelectorAll('figure[data-slot="game-card"]') ?? [])]
+      const permanents = figures
+        .filter((figure) => !(figure.querySelector("figcaption")?.getAttribute("title") ?? "").endsWith("Kommandozone"))
+        .reduce((sum, figure) => sum + (Number(/(\d+) Karten/.exec(figure.querySelector("figcaption")?.getAttribute("title") ?? "")?.[1] ?? 1) || 1), 0)
+      return {
+        life: number(bar?.querySelector('[title="Lebenspunkte"]')?.querySelector(".tabular-nums")),
+        hand: count("Hand"),
+        library: count("Bibliothek"),
+        graveyard: count("Friedhof"),
+        exile: count("Exil"),
+        command: count("Kommandozone"),
+        permanents,
+        handFaces: hand?.querySelectorAll('figure[data-slot="game-card"]').length ?? 0,
+        handBacks: hand?.querySelectorAll('[data-slot="game-card-back"]').length ?? 0,
+      }
+    }
+    const opponentBar = region("Forge-KI")
+    return {
+      me: side(region("Du"), region("Dein Spielfeld"), region("Deine Hand")),
+      ai: side(opponentBar, region("Spielfeld der Forge-KI"), opponentBar?.querySelector('ul[aria-label^="Hand der Forge-KI"]') ?? null),
+    }
+  })
+}
+
+/**
+ * The table fits the screen (Bible §6): the page itself never scrolls, the
+ * app's frame is gone (the table's own menu leads around the app), and every
+ * region lies inside the window with room to show something. Returns the
+ * regions' boxes.
+ */
+async function checkTableFits(page: Page, label: string): Promise<Record<string, unknown>> {
+  const layout = await page.evaluate(() => {
+    const areas = Object.fromEntries(
+      [...document.querySelectorAll('[data-slot="game-board-area"]')].map((area) => {
+        const box = area.getBoundingClientRect()
+        return [(area as HTMLElement).dataset["area"] ?? "?", { top: Math.round(box.top), left: Math.round(box.left), width: Math.round(box.width), height: Math.round(box.height) }]
+      }),
+    )
+    return {
+      window: { width: window.innerWidth, height: window.innerHeight },
+      scroll: { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight },
+      frame: {
+        tabBar: document.querySelectorAll('nav[aria-label="Hauptnavigation"]').length,
+        sidebar: document.querySelectorAll('[data-slot="sidebar"]').length,
+      },
+      areas,
+    }
+  })
+  const { window: view, scroll, frame, areas } = layout
+  check(scroll.width <= view.width && scroll.height <= view.height, `${label}: the page scrolls (${scroll.width}×${scroll.height} in ${view.width}×${view.height})`)
+  check(frame.tabBar === 0 && frame.sidebar === 0, `${label}: the app's frame is still there ${JSON.stringify(frame)}`)
+  const names = ["header", "opponent", "opponent-field", "center", "field", "me", "decision", "hand"]
+  check(names.every((name) => name in areas), `${label}: regions ${Object.keys(areas).join(", ")}`)
+  for (const [name, box] of Object.entries(areas)) {
+    check(box.top >= 0 && box.left >= 0 && box.top + box.height <= view.height + 1 && box.left + box.width <= view.width + 1, `${label}: region ${name} outside the window ${JSON.stringify(box)}`)
   }
-  return out
+  // Both battlefields get room for cards, the same in each half; the hand is there.
+  const opponentField = areas["opponent-field"]
+  const field = areas["field"]
+  check(opponentField !== undefined && field !== undefined && Math.min(opponentField.height, field.height) >= 80, `${label}: battlefields ${opponentField?.height}/${field?.height}px high`)
+  check((areas["hand"]?.height ?? 0) >= 80, `${label}: the hand ${areas["hand"]?.height}px high`)
+  return layout
+}
+
+/**
+ * The card pictures of the table: none failed, and every picture on screen
+ * has loaded (pictures in a row's hidden part load when it is scrolled to).
+ */
+async function tablePictures(page: Page, label: string): Promise<{ readonly loaded: number; readonly lazy: number; readonly failed: number; readonly text: number }> {
+  const deadline = Date.now() + 30_000
+  let states = { loaded: 0, lazy: 0, failed: 0, text: 0, loadingOnScreen: 0 }
+  while (Date.now() < deadline) {
+    states = await page.evaluate(() => {
+      const out = { loaded: 0, lazy: 0, failed: 0, text: 0, loadingOnScreen: 0 }
+      for (const picture of document.querySelectorAll('[data-slot="card-picture"]')) {
+        const state = picture.getAttribute("data-state")
+        const box = picture.getBoundingClientRect()
+        const row = picture.closest("ul")?.getBoundingClientRect()
+        const onScreen = box.right > 0 && box.left < window.innerWidth && (row === undefined || (box.right > row.left && box.left < row.right))
+        if (state === "loaded") out.loaded++
+        else if (state === "failed") out.failed++
+        else if (state === "missing") out.text++
+        else if (onScreen) out.loadingOnScreen++
+        else out.lazy++
+      }
+      return out
+    })
+    if (states.loadingOnScreen === 0) break
+    await page.waitForTimeout(200)
+  }
+  check(states.failed === 0, `${label}: ${states.failed} card pictures failed`)
+  check(states.loadingOnScreen === 0, `${label}: ${states.loadingOnScreen} card pictures on screen still loading`)
+  return { loaded: states.loaded, lazy: states.lazy, failed: states.failed, text: states.text }
 }
 
 /**
@@ -1773,35 +1895,43 @@ const FIRST_DECISIONS: Readonly<Record<string, { readonly answers: string; reado
 }
 
 /**
- * Checks the running game's first decision and both players against what
- * Forge must show before anyone has played: the decision with Forge's own
- * German words and answers, the life total, no card anywhere but hand,
- * library and (Commander) the command zone, hand + library = the deck.
+ * Checks the running game's first decision and both players on the table
+ * against what Forge must show before anyone has played: the decision with
+ * Forge's own German words and answers, the life total, no card anywhere but
+ * hand, library and (Commander) the command zone, hand + library = the deck;
+ * the player's hand face up, the AI's only as backs.
  */
-async function checkFirstDecision(game: Locator, label: string, expect: { readonly life: string; readonly cards: number; readonly command: number }): Promise<Record<string, unknown>> {
-  const decision = game.getByRole("alert")
+async function checkFirstDecision(page: Page, label: string, expect: { readonly life: number; readonly cards: number; readonly command: number }): Promise<Record<string, unknown>> {
+  const decision = page.getByRole("region", { name: "Entscheidung" })
   const text = (await decision.textContent()) ?? ""
-  const answers = (await game.getByLabel("Antworten, die Forge anbietet").textContent()) ?? ""
+  const answers = (await decision.getByLabel("Antworten, die Forge anbietet").textContent()) ?? ""
   const first = FIRST_DECISIONS[answers]
   check(first !== undefined, `${label}: the first decision offers "${answers}" (${text})`)
   check(text.startsWith("Forge wartet auf deine Entscheidung") && /\?/.test(text), `${label}: the first decision "${text}"`)
-  const players = await playerFacts(game)
-  check(players.length === 2 && players[0]!.who.startsWith("Du") && players[1]!.who.startsWith("Forge-KI"), `${label}: players ${JSON.stringify(players)}`)
-  for (const { who, facts } of players) {
-    const hand = Number(facts["Hand"])
-    const library = Number(facts["Bibliothek"])
+  const facts = await tableFacts(page)
+  for (const [who, side] of Object.entries(facts)) {
     check(
-      facts["Lebenspunkte"] === expect.life &&
-        (first === undefined || hand === first.hand) &&
-        hand + library === expect.cards &&
-        facts["Spielfeld"] === "0" &&
-        facts["Friedhof"] === "0" &&
-        facts["Exil"] === "0" &&
-        (facts["Kommandozone"] ?? "0") === String(expect.command),
-      `${label}: ${who} ${JSON.stringify(facts)}`,
+      side.life === expect.life &&
+        (first === undefined || side.hand === first.hand) &&
+        side.hand + side.library === expect.cards &&
+        side.permanents === 0 &&
+        side.graveyard === 0 &&
+        side.exile === 0 &&
+        side.command === expect.command,
+      `${label}: ${who} ${JSON.stringify(side)}`,
     )
   }
-  return { decision: text, answers, players }
+  // The player's hand face up, the AI's hand only as backs: Forge hides it (mayView), and so does the table.
+  check(facts.me.handFaces === facts.me.hand && facts.me.handBacks === 0, `${label}: the player's hand ${JSON.stringify(facts.me)}`)
+  check(facts.ai.handBacks === facts.ai.hand && facts.ai.handFaces === 0, `${label}: the AI's hand ${JSON.stringify(facts.ai)}`)
+  const aiHandPictures = await page.locator('ul[aria-label^="Hand der Forge-KI"] img').count()
+  check(aiHandPictures === 0, `${label}: ${aiHandPictures} pictures in the AI's hidden hand`)
+  return { decision: text, answers, players: facts }
+}
+
+/** Waits until Forge asks the player on the running game's table. */
+async function waitForDecision(page: Page): Promise<void> {
+  await page.getByRole("region", { name: "Entscheidung" }).getByRole("heading", { name: "Forge wartet auf deine Entscheidung" }).waitFor({ timeout: 180_000 })
 }
 
 /** Starts a game from the play page and waits for Forge's first decision; returns the milliseconds from the click. */
@@ -1809,15 +1939,36 @@ async function startAndWait(page: Page): Promise<number> {
   const started = Date.now()
   await page.getByRole("button", { name: "Partie starten" }).first().click()
   await page.waitForURL(/\/play\/game$/)
-  await page.getByRole("region", { name: "Partie läuft" }).getByText("Forge wartet auf deine Entscheidung").waitFor({ timeout: 180_000 })
+  await waitForDecision(page)
   return Date.now() - started
 }
 
-/** Concedes after confirming; returns the result region. */
+/**
+ * Waits until the element's animations (and those inside it) have ended: a
+ * dialog fading in is half transparent, and axe would measure the contrast of
+ * that moment.
+ */
+async function animationsDone(locator: Locator): Promise<void> {
+  await locator.evaluate((element) => Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished.catch(() => undefined))))
+}
+
+/** Opens the table's menu (the way around the app, Forge's notices, conceding). */
+async function openTableMenu(page: Page): Promise<Locator> {
+  await tableHeader(page).getByRole("button", { name: /^Menü/ }).click()
+  const menu = page.getByRole("dialog", { name: "Partie" })
+  await menu.waitFor()
+  await animationsDone(menu)
+  return menu
+}
+
+/** Concedes from the table's menu after confirming; returns the result region. */
 async function concedeGame(page: Page, axeLabel?: string): Promise<{ readonly result: Locator; readonly axe: number | null }> {
-  await page.getByRole("region", { name: "Partie läuft" }).getByRole("button", { name: "Aufgeben" }).click()
+  const menu = await openTableMenu(page)
+  await menu.getByRole("button", { name: "Aufgeben" }).click()
   const dialog = page.getByRole("alertdialog", { name: "Partie aufgeben?" })
   await dialog.waitFor()
+  await page.waitForFunction(() => document.querySelector('[role="dialog"]') === null)
+  await animationsDone(dialog)
   const axe = axeLabel ? await accessibility(page, axeLabel) : null
   await dialog.getByRole("button", { name: "Aufgeben" }).click()
   await page.getByRole("heading", { level: 2, name: "Verloren" }).waitFor({ timeout: 60_000 })
@@ -1851,24 +2002,45 @@ async function gameSession(browser: Browser, page: Page, pageLog: PageLog, base:
   const readyFacts = await enginePanel(page).locator("dl > div").evaluateAll((rows) => Object.fromEntries(rows.map((row) => [row.querySelector("dt")?.textContent ?? "", row.querySelector("dd")?.textContent ?? ""])))
   check(readyFacts["Sprache von Forge"] === "Deutsch" && readyFacts["Karten"] === "vollständig geladen", `game: engine facts ${JSON.stringify(readyFacts)}`)
 
-  // 2. A Commander game (the mirror match chosen in 9: 59 cards and the commander): Forge's state and its first decision, in German.
+  // 2. A Commander game (the mirror match chosen in 9: 59 cards and the commander): Forge's state and its first decision, in German,
+  // on the game table (prompt 13): the whole screen, every region in view, the commander in the command zone with its picture.
   results["startCommanderMs"] = await startAndWait(page)
-  let game = page.getByRole("region", { name: "Partie läuft" })
-  results["commander"] = await checkFirstDecision(game, "game (Commander)", { life: "40", cards: 59, command: 1 })
+  results["commander"] = await checkFirstDecision(page, "game (Commander)", { life: 40, cards: 59, command: 1 })
+  const table: Record<string, unknown> = { desktop: await checkTableFits(page, "game table (desktop)") }
+  results["table"] = table
+  results["tablePictures"] = await tablePictures(page, "game table (desktop)")
+  const commanders = await page.locator('section[aria-label="Dein Spielfeld"] figure').evaluateAll((figures) =>
+    figures
+      .filter((figure) => (figure.querySelector("figcaption")?.getAttribute("title") ?? "").endsWith("Kommandozone"))
+      .map((figure) => ({ state: figure.querySelector('[data-slot="card-picture"]')?.getAttribute("data-state"), alt: figure.querySelector("img")?.getAttribute("alt") ?? null })),
+  )
+  results["commanderInCommandZone"] = commanders
+  check(commanders.length === 1 && commanders[0]?.state === "loaded" && commanders[0].alt !== null, `game table: the commander in the command zone ${JSON.stringify(commanders)}`)
   results["playingAxe"] = await accessibility(page, "game: running")
-  await screenshots(page, "desktop-game-playing")
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
-  check(overflow <= 0, `game: overflow ${overflow}px`)
+  await page.screenshot({ path: path.join(reportDir, "screens", "desktop-game-table.png") })
 
-  // 3. Around the app and back: the game keeps running in the session.
-  await page.locator('[data-slot="sidebar"] a', { hasText: "Decks" }).click()
+  // The table follows the window without touching the game: a portrait window, a landscape one, back.
+  await page.setViewportSize({ width: 884, height: 1104 })
+  table["portraitWindow"] = await checkTableFits(page, "game table (portrait window)")
+  await page.screenshot({ path: path.join(reportDir, "screens", "portrait-window-game-table.png") })
+  await page.setViewportSize({ width: 1104, height: 884 })
+  table["landscapeWindow"] = await checkTableFits(page, "game table (landscape window)")
+  await page.setViewportSize({ width: VIEWPORTS[2]!.width, height: VIEWPORTS[2]!.height })
+  await waitForDecision(page)
+  check(workers.created() === 1, `game table: resizing the window changed the engine (${workers.created()} workers)`)
+
+  // 3. Around the app and back through the table's menu: the game keeps running in the session, the app's frame is back outside it.
+  const menu = await openTableMenu(page)
+  results["menuAxe"] = await accessibility(page, "game: the table's menu")
+  await menu.getByRole("link", { name: "Decks" }).click()
   await page.getByRole("heading", { level: 1, name: "Decks" }).waitFor()
+  check((await page.locator('[data-slot="sidebar"]').count()) > 0, "game: the app's frame did not come back outside the game")
   await page.locator('[data-slot="sidebar"] a', { hasText: "Spielen" }).click()
   await page.getByText("Eine Partie läuft", { exact: true }).waitFor()
   check(((await enginePanel(page).locator('[data-slot="badge"]').first().textContent()) ?? "") === "Spielt", "game: the engine panel does not say it plays")
   await page.getByRole("button", { name: "Zur laufenden Partie" }).first().click()
-  game = page.getByRole("region", { name: "Partie läuft" })
-  await game.getByText("Forge wartet auf deine Entscheidung").waitFor()
+  await waitForDecision(page)
+  await checkTableFits(page, "game table (back from the app)")
 
   // 4. Conceding needs a confirmation; the result in one word; the spent engine goes, a fresh one is prewarmed.
   const conceded = await concedeGame(page, "game: confirm conceding")
@@ -1889,9 +2061,11 @@ async function gameSession(browser: Browser, page: Page, pageLog: PageLog, base:
   await page.getByText("Zufällig aus 2 Constructed-Decks, jede Partie neu.").waitFor()
   await enginePanel(page).getByText("Bereit", { exact: true }).waitFor({ timeout: 180_000 })
   results["startConstructedMs"] = await startAndWait(page)
-  game = page.getByRole("region", { name: "Partie läuft" })
-  results["constructed"] = await checkFirstDecision(game, "game (Constructed)", { life: "20", cards: 60, command: 0 })
-  const aiDeck = ((await game.getByRole("list", { name: "Spieler" }).getByRole("listitem").nth(1).locator('[data-slot="item-description"]').textContent()) ?? "").trim()
+  results["constructed"] = await checkFirstDecision(page, "game (Constructed)", { life: 20, cards: 60, command: 0 })
+  const matchup = await openTableMenu(page)
+  const aiDeck = ((await matchup.locator("dl > div", { hasText: "Deck der Forge-KI" }).locator("dd").textContent()) ?? "").trim()
+  await page.keyboard.press("Escape")
+  await page.waitForFunction(() => document.querySelector('[role="dialog"]') === null)
   results["drawnAiDeck"] = aiDeck
   check(["E2E Deutsch (zufällig gezogen)", "E2E Deutsch (Kopie) (zufällig gezogen)"].includes(aiDeck), `game: the AI's random deck "${aiDeck}"`)
 
@@ -1965,7 +2139,7 @@ async function gameFailures(browser: Browser, base: string, id: string, decks: r
     await context.unroute(`**${wasm}`)
     const retried = Date.now()
     await failed.getByRole("button", { name: "Neue Partie" }).click()
-    await page.getByRole("region", { name: "Partie läuft" }).getByText("Forge wartet auf deine Entscheidung").waitFor({ timeout: 180_000 })
+    await waitForDecision(page)
     results["retryStartMs"] = Date.now() - retried
     const { result } = await concedeGame(page)
     await result.getByRole("link", { name: "Zur Deckwahl" }).click()
@@ -2011,19 +2185,28 @@ async function gamePhone(browser: Browser, base: string, decks: readonly SavedDe
   const pageLog = watch(page)
   try {
     await loadDecks(page, base, decks)
+    // The card data too, so the table shows the cards' pictures (without it: Forge's words for each card).
+    results["catalogInstallMs"] = await installFromSettings(await openCardData(page, base), "game (phone): card data")
     await page.goto(new URL("/play", base).href, { waitUntil: "domcontentloaded" })
     await chooseDeck(page, "Dein Deck wählen", "E2E Izzet Tempo")
     await enginePanel(page).getByText("Bereit", { exact: true }).waitFor({ timeout: 180_000 })
     results["startMs"] = await startAndWait(page)
-    const game = page.getByRole("region", { name: "Partie läuft" })
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
-    check(overflow <= 0, `game (phone): overflow ${overflow}px`)
-    const concedeHeight = await layoutHeight(game.getByRole("button", { name: "Aufgeben" }))
-    check(concedeHeight >= 44, `game (phone): "Aufgeben" ${concedeHeight}px high`)
+    // The table on the phone: the whole screen (no tab bar), every region in view, a 44 px menu button.
+    results["table"] = await checkTableFits(page, "game table (phone)")
+    results["tablePictures"] = await tablePictures(page, "game table (phone)")
+    const menuHeight = await layoutHeight(tableHeader(page).getByRole("button", { name: /^Menü/ }))
+    check(menuHeight >= 44, `game table (phone): the menu button ${menuHeight}px high`)
     results["playingAxe"] = await accessibility(page, "game (phone): running")
     // Only the first screen here: Playwright's full-page screenshot resets the touch
     // emulation (pointer: coarse is false afterwards), which would shrink what is measured next.
-    await page.screenshot({ path: path.join(reportDir, "screens", "phone-game-playing.png") })
+    await page.screenshot({ path: path.join(reportDir, "screens", "phone-game-table.png") })
+    // Turned sideways and back: the table follows, the game goes on untouched.
+    await page.setViewportSize({ width: VIEWPORTS[0]!.height, height: VIEWPORTS[0]!.width })
+    results["tableLandscape"] = await checkTableFits(page, "game table (phone, landscape)")
+    results["landscapeAxe"] = await accessibility(page, "game (phone, landscape): running")
+    await page.screenshot({ path: path.join(reportDir, "screens", "phone-landscape-game-table.png") })
+    await page.setViewportSize({ width: VIEWPORTS[0]!.width, height: VIEWPORTS[0]!.height })
+    await waitForDecision(page)
     const { result } = await concedeGame(page)
     const bar = page.getByRole("region", { name: "Neue Partie" })
     const tabBar = page.getByRole("navigation", { name: "Hauptnavigation" })
@@ -2036,7 +2219,7 @@ async function gamePhone(browser: Browser, base: string, decks: readonly SavedDe
     check(resultOverflow <= 0, `game (phone): result overflows by ${resultOverflow}px`)
     results["resultAxe"] = await accessibility(page, "game (phone): result")
     await screenshots(page, "phone-game-result")
-    results["sizes"] = { concede: concedeHeight, again: againHeight, bar: barBox, tabBar: tabBox }
+    results["sizes"] = { menu: menuHeight, again: againHeight, bar: barBox, tabBar: tabBox }
     for (const error of pageLog.errors) check(false, `game (phone): ${error}`)
   } finally {
     await context.close()
@@ -2148,10 +2331,9 @@ async function preferences(browser: Browser, base: string, id: string, decks: re
 
     // 4. A game: Forge confirms the profile it plays (game.started), shown on the AI's side.
     results["startMs"] = await startAndWait(page)
-    const game = page.getByRole("region", { name: "Partie läuft" })
-    const aiTitle = ((await game.getByRole("list", { name: "Spieler" }).getByRole("listitem").nth(1).locator('[data-slot="item-title"]').textContent()) ?? "").trim()
-    results["aiTitle"] = aiTitle
-    check(aiTitle === "Forge-KIWaghalsig", `preferences: the AI's title "${aiTitle}"`)
+    const aiBadges = await page.getByRole("region", { name: "Forge-KI" }).locator('[data-slot="badge"]').allTextContents()
+    results["aiBadges"] = aiBadges
+    check(aiBadges[0] === "Waghalsig", `preferences: the AI's profile on the table ${JSON.stringify(aiBadges)}`)
     results["playingAxe"] = await accessibility(page, "preferences: running game")
     await concedeGame(page)
 
@@ -2174,9 +2356,9 @@ async function preferences(browser: Browser, base: string, id: string, decks: re
     await dialog.getByRole("button", { name: "Fertig" }).click()
     await overlaysGone(page)
     await startAndWait(page)
-    const drawnTitle = ((await page.getByRole("region", { name: "Partie läuft" }).getByRole("list", { name: "Spieler" }).getByRole("listitem").nth(1).locator('[data-slot="item-title"]').textContent()) ?? "").trim()
-    results["drawnTitle"] = drawnTitle
-    check(/^Forge-KI(Standard|Vorsichtig|Waghalsig|Experimentell) \(zufällig\)$/.test(drawnTitle), `preferences: the drawn profile "${drawnTitle}"`)
+    const drawnBadges = await page.getByRole("region", { name: "Forge-KI" }).locator('[data-slot="badge"]').allTextContents()
+    results["drawnBadges"] = drawnBadges
+    check(/^(Standard|Vorsichtig|Waghalsig|Experimentell) \(zufällig\)$/.test(drawnBadges[0] ?? ""), `preferences: the drawn profile ${JSON.stringify(drawnBadges)}`)
     await concedeGame(page)
     results["workers"] = { created: workers.created(), maxAtOnce: workers.max() }
     check(workers.max() <= 1, `preferences: ${workers.max()} engines at the same time`)
@@ -2275,6 +2457,89 @@ async function preferencesPhone(browser: Browser, base: string): Promise<Record<
   }
 }
 
+// ── 12. Game table (recorded real scenes in the real table, every size) ────
+
+/** The recorded real scenes (src/test/table-scenes.ts, scripts/record-table-scenes.ts). */
+const TABLE_SCENES = ["opening", "main-phase", "stack", "blockers", "defend", "commander-late", "command-effects"] as const
+
+/** The sizes the table must fit: phones upright and turned, a small phone, an unfolded foldable upright, a tablet turned, a desktop. */
+const TABLE_VIEWPORTS: readonly Viewport[] = [
+  VIEWPORTS[0]!,
+  { name: "phone-landscape", width: 915, height: 412, touch: true, scale: 2.625 },
+  { name: "small-phone", width: 360, height: 740, touch: true, scale: 3 },
+  VIEWPORTS[1]!,
+  { name: "tablet-landscape", width: 1104, height: 884, touch: true, scale: 2 },
+  VIEWPORTS[2]!,
+]
+
+/**
+ * The live games of 10 can only reach Forge's first decision (answering
+ * Forge comes with prompts 14-19), so their battlefields are empty. The
+ * table's layout with full battlefields - piles, tapped cards, a stack,
+ * blockers, fourteen attackers, the command zone - is checked here: the real
+ * table code (GameTable, the real card lookup and catalog) shows recorded
+ * real states of the engine's test games in real Chrome, served by the dev
+ * server (scripts/e2e/table-harness.html, src/test/table-harness.tsx), at
+ * every size: the page never scrolls, every region is in view, cards keep
+ * to their row (a full row scrolls sideways), pictures load, touch targets,
+ * axe-core.
+ */
+async function tableHarness(browser: Browser): Promise<Record<string, unknown>> {
+  log("Game table (recorded real scenes in the real table, every size)")
+  const server = await createServer({ root, configFile: path.join(root, "vite.config.ts"), logLevel: "warn", server: { host: "127.0.0.1", port: 0 } })
+  await server.listen()
+  const base = server.resolvedUrls?.local[0]
+  if (!base) throw new Error("the dev server did not report its URL")
+  const results: Record<string, unknown> = {}
+  try {
+    for (const viewport of TABLE_VIEWPORTS) {
+      log(`  ${viewport.name} (${viewport.width}x${viewport.height}${viewport.touch ? ", touch" : ""})`)
+      const context = await newContext(browser, viewport)
+      const page = await context.newPage()
+      const pageLog = watch(page)
+      const scenes: Record<string, unknown> = {}
+      try {
+        for (const scene of TABLE_SCENES) {
+          const label = `game table (${viewport.name}, ${scene})`
+          await page.goto(new URL(`/scripts/e2e/table-harness.html?scene=${scene}`, base).href, { waitUntil: "domcontentloaded" })
+          // The first scene of a browser profile installs the card catalog, as the app does.
+          await page.locator('[data-harness="table"]').waitFor({ timeout: 300_000 })
+          const layout = await checkTableFits(page, label)
+          const pictures = await tablePictures(page, label)
+          // Every card keeps to its row's height; a row with more cards than room scrolls sideways.
+          const rows = await page.evaluate(() =>
+            [...document.querySelectorAll('[data-slot="game-board-area"] ul')].map((row) => {
+              const box = row.getBoundingClientRect()
+              const cards = [...row.querySelectorAll('figure[data-slot="game-card"]')].map((figure) => figure.getBoundingClientRect())
+              return {
+                label: row.getAttribute("aria-label"),
+                height: Math.round(box.height),
+                cardHeight: cards.length > 0 ? Math.round(Math.min(...cards.map((card) => card.height))) : null,
+                inside: cards.every((card) => card.top >= box.top - 1 && card.bottom <= box.bottom + 1),
+                scrolls: row.scrollWidth > row.clientWidth + 1,
+              }
+            }),
+          )
+          for (const row of rows) check(row.inside, `${label}: cards leave their row ${JSON.stringify(row)}`)
+          if (scene === "commander-late" && viewport.width < 768) check(rows.some((row) => row.scrolls), `${label}: no row scrolls sideways with 14 attackers on a phone`)
+          const menu = viewport.touch ? await layoutHeight(page.getByRole("button", { name: "Menü" })) : null
+          if (menu !== null) check(menu >= 44, `${label}: the menu button ${menu}px high`)
+          const axe = await accessibility(page, label)
+          await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-${scene}.png`) })
+          scenes[scene] = { areas: layout["areas"], pictures, rows, menu, axe }
+        }
+        for (const error of pageLog.errors) check(false, `game table (${viewport.name}): ${error}`)
+      } finally {
+        await context.close()
+      }
+      results[viewport.name] = scenes
+    }
+  } finally {
+    await server.close()
+  }
+  return results
+}
+
 // ── Run ──────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -2304,6 +2569,7 @@ async function main(): Promise<void> {
     await deckImport(browser, base, id)
     await pwa(base, executablePath)
     await withoutIsolation(browser)
+    report["gameTable"] = await tableHarness(browser)
   } finally {
     await browser.close()
     await new Promise<void>((resolve) => server.httpServer.close(() => resolve()))

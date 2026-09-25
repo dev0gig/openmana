@@ -75,6 +75,17 @@ A game against Forge's AI runs through the app's one `EngineSession` (`src/engin
 - Who is who comes from Forge's structured state (`me`, `activePlayer`, `result`), never from names; Forge's own texts (German, `ENGINE_ARGS`) are shown as Forge sends them.
 - Conceding and ending a game without a result are confirmed first; while a game is on its way or running, leaving the page asks first (a reload ends the game).
 
+## Game Table Rules
+A running game is the game table (`src/game/game-table.tsx`; prompt 13, `docs/implementation/13-battlefield-foundation.md`):
+- The table is a view of one full state (`GameState`, the open questions, Forge's prompt line) and never acts; the page adds the menu (the way around the app, Forge's notices, conceding - confirmed) and the warnings. Later prompts (the replay of 22) can show recorded states with it.
+- `src/game/table-model.ts` arranges the state from Forge's structured values only: seats from `me`, the row of a card from whether Forge sends power/toughness, piles of cards whose every value Forge sends is equal - never cards Forge names elsewhere (open questions, stack sources and targets, combat, attachments) -, attachments with their host (`attachedTo`), the stack in Forge's order (first = top). No legality, no computed values (no "remaining toughness"), no card- or name-specific branches.
+- Hidden stays hidden: a `HiddenCard` is a back and a count, never told apart or identified; what Forge reveals is shown; `game.started.cardNames` is never shown as anyone's cards.
+- Card pictures through `useTableCards` (`src/game/table-cards.ts`): Forge's key resolved once per key against the installed catalog, shown in the player's card language; a key the catalog cannot decide (tokens of one name that fit alike, Forge-only cards, Forge's effect cards) gets Forge's own words, never a guessed picture. Only catalog answers are remembered, never cards of the game.
+- Nothing is drawn over a card picture: a card's facts go into `GameCardCaption` below it; tapped is a quarter turn (`GameCard`).
+- `GameBoard` keeps eight regions on the screen (portrait: stacked; landscape: side column) and the page never scrolls; card rows scroll sideways, texts inside their region. The table takes the whole screen while the game runs (`useImmersive`, `src/app/immersive.tsx`).
+- Forge's own texts (prompt line, questions, stack descriptions, button labels) are shown as Forge sends them; a notice appears as a toast at the top and stays in the menu (`noticeCount`).
+- Verify table changes with the unit tests on real recorded scenes (`src/test/table-scenes.ts`, re-recorded with `scripts/record-table-scenes.ts` after `engine/scripts/test-engine.sh`) and the end-to-end test's section 12 (those scenes in the real table at six sizes).
+
 ## Preferences Rules
 The player's preferences are settings in the local database, read and applied by `src/app/preferences.tsx` (prompt 12, `docs/implementation/12-ai-profiles-settings.md`):
 - A preference is chosen once - in Settings; the AI profile also through the play page's dialog - and saved the moment it changes; starting a game never asks for one. A stored value that fails its check is named and its default used, never silently replaced.

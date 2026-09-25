@@ -56,9 +56,11 @@ files work under COEP and nothing leaks to third parties (Bible §15).
    without `next-themes`, a dialog that scrolls inside the screen instead of
    running off it (`DialogContent`: `max-h` + `overflow-y-auto`, prompt 07),
    `DropdownMenuCheckboxItem` passing `checked` through its props (TypeScript's
-   `exactOptionalPropertyTypes`, prompt 10), and since prompt 12
+   `exactOptionalPropertyTypes`, prompt 10), since prompt 12
    `motion-reduce:animate-none!` / `motion-reduce:transition-none!` on every
-   animation and transition (rule 8).
+   animation and transition (rule 8), and since prompt 13 `CardPicture`'s
+   `compact` (little padding in the text box that stands in for a missing
+   picture on the small cards of the game table).
 4. **Honest states.** No sample data, no simulated engine, no pretend
    features. Empty states use `Empty`; an action that is not possible yet
    stays visible but disabled and says why (`aria-describedby`); failures
@@ -107,7 +109,8 @@ files work under COEP and nothing leaks to third parties (Bible §15).
    animations (`src/app/motion.test.ts` checks every file of
    `src/components/ui`; a component added later must follow). Spinners keep
    turning: a loading indicator that stops looks like a frozen page. Code that
-   moves things itself (the game table from prompt 13 on) asks
+   moves things itself (the game table's animations, when later prompts add
+   them - the table of prompt 13 has none: a tapped card turns at once) asks
    `useDeviceReducedMotion()`/`reducedMotion()` in `src/app/motion.ts` together
    with the preference.
 
@@ -119,12 +122,31 @@ files work under COEP and nothing leaks to third parties (Bible §15).
 | from 768 px (tablets, unfolded foldables, desktop) | shadcn **Sidebar**, collapsible to icons (`Ctrl/⌘+B`), all six surfaces | the lower group holds Einstellungen and Credits |
 
 Content sits in one column, `max-w-5xl`, with cards in a one- or two-column
-grid. Bars are sticky: the page scrolls, the navigation stays reachable. The
-game page (`/play/game`, prompt 11) sits in this frame for now; the game table
-(prompt 13 onwards) will have its own full-screen layout there and must not
-turn into one endless vertical page (Bible §6). A game's result is one large
-word in the heading font – gold for a win, the destructive colour for a loss
-(Anvil: "verloren oder gewonnen in großen Buchstaben").
+grid. Bars are sticky: the page scrolls, the navigation stays reachable. A
+game's result is one large word in the heading font – gold for a win, the
+destructive colour for a loss (Anvil: "verloren oder gewonnen in großen
+Buchstaben").
+
+**The game table** (prompt 13, `/play/game` while a game runs) takes the whole
+screen: the page asks for it (`useImmersive`, `src/app/immersive.tsx`) and the
+app shell hides sidebar, top bar and tab bar until the game ends or the player
+leaves the page; the table's own menu (a `Sheet`) leads around the app, holds
+Forge's notices and conceding. `GameBoard` lays out eight fixed regions and
+never scrolls itself (Bible §6: no vertically endless table); what does not fit
+scrolls inside its region – card rows sideways, texts downwards:
+
+| Orientation | Regions |
+|---|---|
+| portrait (phones, folded foldables, tablets upright) | header · opponent (with their hand) · opponent's battlefield · stack and combat · your battlefield · you · decision · hand, top to bottom; stack/combat and decision capped (`max-h-32`, `max-h-44`) |
+| landscape (desktop, tablets, foldables and phones turned) | left: header, both battlefields, hand; right, a side column (15–24 rem): the opponent next to the header, stack and combat, the decision, you next to the hand |
+
+Both battlefields share the free height equally; a battlefield shows two rows
+(creatures next to the middle, other permanents outside) from 176 px, one
+below. Cards are sized by their row's height (`GameCard`), so less room means
+smaller cards, never a longer page. Rows are centred while they fit and scroll
+sideways when not. Zone sizes show their word where the bar is wide enough
+(container query) and their symbol where not; screen readers and tooltips keep
+the word.
 
 ## 5. Inventory
 
@@ -136,6 +158,8 @@ word in the heading font – gold for a win, the destructive colour for a loss
 | `Textarea` | shadcn/ui registry (`radix-maia`, prompt 09) | pasting a deck list (grows with its content up to `max-h-96`, then scrolls) |
 | `DropdownMenu`, `Select`, `ToggleGroup` (+ `Toggle` it needs) | shadcn/ui registry (`radix-maia`, prompt 10) | a deck's actions (menu „Mehr“, not modal so a dialog opened from it gets the focus), sorting and the format filter of the deck library |
 | `Switch` | shadcn/ui registry (`radix-maia`, prompt 12) | an on/off preference („Bewegungen reduzieren“), inside a `FieldLabel` row so the whole row is the touch target; one-of-several preferences (AI profile, card language) are a `RadioGroup` of choice cards like the backup import. Preferences are saved the moment they change (no save button) |
+| `GameBoard`, `GameBoardArea` | `src/components/ui/game-board.tsx`, built the shadcn way (prompt 13) | the game table's frame: eight named regions in a grid, portrait and landscape arrangement (§4), never scrolling itself |
+| `GameCard`, `GameCardCaption`, `GameCardBack`, `GameCardGroup` | `src/components/ui/game-card.tsx`, built the shadcn way (prompt 13) | a card on the game table, sized by its row's height (63 × 88): its `CardPicture`, turned a quarter when tapped (square place), its facts in the caption strip **below** the picture (never on it: Scryfall forbids covering card images); OpenMana's own back for cards Forge hides (never Wizards' back); a card with its attachments in one dashed frame |
 | `ActionBar` | `src/components/ui/action-bar.tsx`, built the shadcn way (prompt 10) | a page's primary action on phones: sticky right above the tab bar (`bottom-16`), at the end of the content column – on a short page too (since prompt 11 the `Page` column fills the screen and the bar is pushed to its end, `mt-auto`); pages render it only below `md` (`useIsMobile`) and put the same actions into the header above |
 | `CardPicture` | `src/components/ui/card-picture.tsx`, built the shadcn way (prompt 08) | every picture of a Magic card: `AspectRatio` 63 × 88, `Skeleton` while loading, the card's text in place of a missing or failed picture (`data-state` loading/loaded/failed/missing); loads Scryfall's pictures in CORS mode without referrer and never crops them (`object-contain`: Scryfall forbids cutting off artist or copyright) |
 | `BottomNav`, `BottomNavItem` | `src/components/ui/bottom-nav.tsx`, built the shadcn way | phone tab bar |
@@ -158,3 +182,7 @@ word in the heading font – gold for a win, the destructive colour for a loss
 - Card-, mechanic- or name-specific styling is forbidden (Bible §2): what is
   playable, targetable or attacking comes from Forge's structured state, and
   the UI styles those states, not particular cards.
+- Nothing is drawn over a card picture (badges, counters, tints, blur): a
+  card's facts go into the caption strip below it (`GameCardCaption`), a state
+  that changes the card itself (tapped) is a quarter turn of the whole card
+  (prompt 13).

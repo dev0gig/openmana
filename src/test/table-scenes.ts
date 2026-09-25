@@ -1,0 +1,33 @@
+/*
+ * Real game scenes for the table's tests (prompt 13): what the real Forge
+ * engine showed the player at telling moments of the recorded test games
+ * (scripts/record-table-scenes.ts, from engine/scripts/test-engine.sh's
+ * transcripts) - the latest full state, the open questions, Forge's prompt
+ * line and notices, as the engine session holds them. Unedited Forge output;
+ * every state is checked against the protocol by the tests.
+ */
+import type { GameMessage, GameStarted, GameState, InputRejected, Question } from "@openmana/engine-protocol"
+import recorded from "./fixtures/table-scenes.json"
+
+export type TableSceneName = "opening" | "main-phase" | "stack" | "blockers" | "defend" | "commander-late" | "command-effects"
+
+export interface TableScene {
+  readonly name: TableSceneName
+  readonly description: string
+  /** The fixture game (engine/fixtures/differential) and the message index of the moment. */
+  readonly fixture: string
+  readonly message: number
+  readonly game: GameStarted
+  readonly state: GameState
+  readonly questions: readonly Question[]
+  readonly prompt: string | null
+  readonly notices: readonly (GameMessage | InputRejected)[]
+}
+
+export const TABLE_SCENES = (recorded as unknown as { readonly scenes: readonly TableScene[] }).scenes
+
+export function tableScene(name: TableSceneName): TableScene {
+  const found = TABLE_SCENES.find((scene) => scene.name === name)
+  if (!found) throw new Error(`no recorded table scene "${name}"`)
+  return found
+}

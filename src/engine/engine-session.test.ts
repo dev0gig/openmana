@@ -513,12 +513,17 @@ describe("EngineSession: a game", () => {
     expect(engine.session.getSnapshot().engine.status).toBe("idle")
   })
 
-  it("keeps Forge's notices and refused inputs for the player to see", async () => {
+  it("keeps Forge's notices and refused inputs for the player to see, and counts them all", async () => {
     const engine = await playing()
     const worker = engine.worker()
+    expect(match(engine, "playing").noticeCount).toBe(0)
     worker.send({ type: "message", kind: "notice", text: "Forge-KI zeigt Riesenwuchs.", title: "Hinweis" })
     worker.send({ type: "message", kind: "error", text: "Etwas ging schief." })
     expect(match(engine, "playing").notices.map((n) => (n.type === "message" ? n.kind : n.type))).toEqual(["notice", "error"])
+    expect(match(engine, "playing").noticeCount).toBe(2)
+    // Forge's prompt line is no notice.
+    worker.send({ type: "message", kind: "prompt", text: "Starthand behalten?" })
+    expect(match(engine, "playing").noticeCount).toBe(2)
 
     engine.session.concede()
     worker.send({ type: "input.rejected", seq: 1, reason: "invalid", detail: "concede is not possible now", input: { type: "concede", seq: 1 } })
@@ -530,6 +535,8 @@ describe("EngineSession: a game", () => {
     const notices = match(engine, "playing").notices
     expect(notices).toHaveLength(NOTICE_LIMIT)
     expect(notices.at(-1)).toMatchObject({ text: `Hinweis ${NOTICE_LIMIT + 4}` })
+    // The count goes on past the kept ones: the table tells new notices from old ones by it.
+    expect(match(engine, "playing").noticeCount).toBe(3 + NOTICE_LIMIT + 5)
   })
 
   it("concedes only a running game", async () => {

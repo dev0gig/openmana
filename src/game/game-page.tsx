@@ -5,21 +5,26 @@
  * a result. Every state comes from the engine session; a failure always
  * says what happened and offers a way on, so a start never looks frozen.
  *
- * The game table (cards, decisions, priority, combat) is built from prompt 13
- * on. Until then a running game shows Forge's authoritative state in summary
- * - turn, step, life, zone sizes, the decision Forge waits for, Forge's
- * messages - and can be conceded. Nothing here is invented or computed: who
- * is who comes from the state's `me` flags, the result from game.end.
+ * A running game is the game table (prompt 13, game-table.tsx): it takes the
+ * whole screen (the app's frame steps aside, src/app/immersive.tsx), and its
+ * menu holds the way around the app, Forge's notices and conceding (asked
+ * first). Answering Forge's decisions and operating cards follow (prompts
+ * 14-19); until then a game can be followed and conceded. Nothing here is
+ * invented or computed: who is who comes from the state's `me` flags, the
+ * result from game.end.
  *
  * A running game lives only in this page: reloading or closing it ends the
  * game (the session asks first). The page says so.
  */
-import { Hourglass, OctagonAlert, Swords, TriangleAlert } from "lucide-react"
-import { useEffect, useState, type ReactNode } from "react"
-import { Link, useNavigate } from "react-router"
+import { Menu, OctagonAlert, Swords, TriangleAlert } from "lucide-react"
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { Link, NavLink, useNavigate } from "react-router"
 import { toast } from "sonner"
-import type { GameState, Player, Question } from "@openmana/engine-protocol"
-import { FactList, type Fact } from "@/components/fact-list"
+import type { GameState } from "@openmana/engine-protocol"
+import { useImmersive } from "@/app/immersive"
+import { DESTINATIONS } from "@/app/navigation"
+import { usePreferences } from "@/app/preferences"
+import { FactList } from "@/components/fact-list"
 import { Page } from "@/components/page-header"
 import { ActionBar } from "@/components/ui/action-bar"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -37,7 +42,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
-import { Item, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@/components/ui/item"
+import { GameBoard, GameBoardArea } from "@/components/ui/game-board"
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { readSelection, resolveSelection } from "@/decks/deck-selection"
@@ -55,8 +61,6 @@ import {
   endReason,
   formatDuration,
   phaseLabel,
-  questionChoices,
-  questionLabel,
   REFUSAL_ADVICE,
   REFUSAL_TITLES,
   REJECT_REASON_LABELS,
@@ -64,6 +68,9 @@ import {
   turnsLabel,
 } from "./game-labels"
 import { useGameStart, type StartState } from "./game-start"
+import { GameTable } from "./game-table"
+import { useTableCards } from "./table-cards"
+import { visibleCards } from "./table-model"
 
 const SELECTION_STORES: readonly StoreName[] = ["settings", "decks"]
 
@@ -89,11 +96,32 @@ export function GamePage() {
   }, [over, engine.status, canStart, prewarm])
 
   const again = match?.status === "over" || match?.status === "aborted" ? <NewGameButton state={startState} start={start} /> : null
+  const live = (
+    <p className="sr-only" aria-live="polite">
+      {announcement(match)}
+    </p>
+  )
+  // The running game is the table: the whole screen, no page frame around it.
+  if (match?.status === "playing") {
+    return (
+      <>
+        {live}
+        <Playing match={match} />
+      </>
+    )
+  }
+  return (
+    <>
+      {live}
+      <GameFrame match={match} engine={engine} again={again} phone={phone} note={startState.enabled ? null : startState.note} />
+    </>
+  )
+}
+
+/** Every state but the running game: a page in the app's frame. */
+function GameFrame({ match, engine, again, phone, note }: { match: Exclude<MatchSnapshot, { status: "playing" }> | null; engine: EngineSnapshot; again: ReactNode; phone: boolean; note: string | null }) {
   return (
     <Page title="Partie" description="Du gegen die Forge-KI. Forge entscheidet jede Regel.">
-      <p className="sr-only" aria-live="polite">
-        {announcement(match)}
-      </p>
       {match === null ? (
         <NoGame />
       ) : match.status === "queued" ? (
@@ -102,12 +130,10 @@ export function GamePage() {
         <Starting match={match} />
       ) : match.status === "refused" ? (
         <Refused match={match} />
-      ) : match.status === "playing" ? (
-        <Playing match={match} />
       ) : match.status === "over" ? (
-        <Over match={match} again={phone ? null : again} note={startState.enabled ? null : startState.note} />
+        <Over match={match} again={phone ? null : again} note={note} />
       ) : (
-        <Aborted match={match} again={phone ? null : again} note={startState.enabled ? null : startState.note} />
+        <Aborted match={match} again={phone ? null : again} note={note} />
       )}
       {phone && again !== null ? <ActionBar aria-label="Neue Partie">{again}</ActionBar> : null}
     </Page>
@@ -172,15 +198,16 @@ function NoGame() {
   )
 }
 
-/** Which decks play, in which format, against which AI profile. */
-function Matchup({ setup }: { setup: MatchSetup }) {
+/** Which decks play, in which format, against which AI profile (the one Forge confirmed, once the game runs). */
+function Matchup({ setup, confirmedProfile }: { setup: MatchSetup; confirmedProfile?: string }) {
+  const profile = confirmedProfile ?? setup.request.ai.profile
   return (
     <FactList
       facts={[
         { label: "Dein Deck", value: setup.human.deckName },
         { label: "Deck der Forge-KI", value: setup.ai.drawn ? `${setup.ai.deckName} (zufällig gezogen)` : setup.ai.deckName },
         { label: "Format", value: DECK_FORMAT_LABELS[setup.request.format] },
-        { label: "KI-Profil", value: setup.ai.profileDrawn ? `${aiProfileLabel(setup.request.ai.profile)} (zufällig gezogen)` : aiProfileLabel(setup.request.ai.profile) },
+        { label: "KI-Profil", value: setup.ai.profileDrawn ? `${aiProfileLabel(profile)} (zufällig gezogen)` : aiProfileLabel(profile) },
       ]}
     />
   )
@@ -341,141 +368,157 @@ function turnLine(state: GameState): string {
   return parts.filter((part) => part !== null).join(" · ")
 }
 
-function zoneFacts(player: Player): Fact[] {
-  const { zones } = player
-  return [
-    { label: "Lebenspunkte", value: player.life },
-    { label: "Hand", value: zones.hand.length },
-    { label: "Bibliothek", value: player.library },
-    { label: "Spielfeld", value: zones.battlefield.length },
-    { label: "Friedhof", value: zones.graveyard.length },
-    { label: "Exil", value: zones.exile.length },
-    ...(zones.command.length > 0 ? [{ label: "Kommandozone", value: zones.command.length }] : []),
-  ]
-}
-
-/** aiProfile: the profile Forge confirmed it plays (game.started), Forge's own word on it. */
-function Players({ state, setup, aiProfile }: { state: GameState; setup: MatchSetup; aiProfile: string }) {
-  // The player first, then the AI.
-  const players = [...state.players].sort((a, b) => Number(b.me) - Number(a.me))
-  return (
-    <ItemGroup className="grid gap-3 sm:grid-cols-2" aria-label="Spieler">
-      {players.map((player) => (
-        <Item key={player.id} variant="outline" role="listitem" className="items-start">
-          <ItemContent>
-            <ItemTitle>
-              {player.me ? "Du" : "Forge-KI"}
-              {player.me ? null : <Badge variant="secondary">{setup.ai.profileDrawn ? `${aiProfileLabel(aiProfile)} (zufällig)` : aiProfileLabel(aiProfile)}</Badge>}
-              {player.hasPriority ? <Badge variant="outline">Priorität</Badge> : null}
-              {player.lost ? <Badge variant="destructive">verloren</Badge> : null}
-            </ItemTitle>
-            <ItemDescription>{player.me ? setup.human.deckName : setup.ai.drawn ? `${setup.ai.deckName} (zufällig gezogen)` : setup.ai.deckName}</ItemDescription>
-            <FactList facts={zoneFacts(player)} />
-          </ItemContent>
-        </Item>
-      ))}
-    </ItemGroup>
-  )
-}
-
-function Decision({ questions, prompt, waiting }: { questions: readonly Question[]; prompt: string | null; waiting: boolean }) {
-  if (questions.length === 0) {
-    return waiting ? (
-      <p className="text-sm">{prompt ?? "Forge wartet auf dich."}</p>
-    ) : (
-      <p className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Spinner aria-hidden />
-        Forge rechnet …
-      </p>
-    )
-  }
-  return (
-    <Alert>
-      <Hourglass aria-hidden />
-      <AlertTitle>Forge wartet auf deine Entscheidung</AlertTitle>
-      <AlertDescription>
-        {prompt !== null ? <span className="block text-foreground">{prompt}</span> : null}
-        <ul className="flex flex-col gap-2">
-          {questions.map((question) => {
-            const choices = questionChoices(question)
-            return (
-              <li key={question.id}>
-                <span className="font-medium text-foreground">{questionLabel(question)}</span>
-                {question.text && question.text !== prompt ? `: ${question.text}` : null}
-                {choices.length > 0 ? (
-                  <span className="mt-1 flex flex-wrap gap-1" aria-label="Antworten, die Forge anbietet">
-                    {choices.map((choice) => (
-                      <Badge key={choice} variant="outline">
-                        {choice}
-                      </Badge>
-                    ))}
-                  </span>
-                ) : null}
-              </li>
-            )
-          })}
-        </ul>
-        <span className="mt-2 block">
-          Entscheiden wirst du am Spieltisch, der als Nächstes entsteht. Bis dahin kannst du die Partie hier verfolgen und aufgeben.
-        </span>
-      </AlertDescription>
-    </Alert>
-  )
-}
-
 function noticeText(notice: GameNotice): { readonly text: string; readonly detail: string | null; readonly error: boolean } {
   if (notice.type === "input.rejected") return { text: `Forge hat eine Eingabe nicht ausgeführt: ${REJECT_REASON_LABELS[notice.reason]}`, detail: notice.detail, error: true }
   return { text: notice.title ? `${notice.title}: ${notice.text}` : notice.text, detail: null, error: notice.kind === "error" }
 }
 
+/** Forge's notices of this game, oldest first (the menu keeps them; a new one also shows as a toast). */
 function Notices({ notices }: { notices: readonly GameNotice[] }) {
-  if (notices.length === 0) return null
   return (
     <section className="flex flex-col gap-2" aria-labelledby="game-notices-title">
       <h2 id="game-notices-title" className="text-sm font-medium">
         Meldungen von Forge
       </h2>
-      <ul className="flex flex-col gap-1 text-sm">
-        {notices.map((notice, index) => {
-          const { text, detail, error } = noticeText(notice)
-          return (
-            <li key={index} className={error ? "text-destructive" : undefined}>
-              {text}
-              {detail ? <code className="block text-xs break-words text-muted-foreground">{detail}</code> : null}
-            </li>
-          )
-        })}
-      </ul>
+      {notices.length === 0 ? (
+        <p className="text-sm text-muted-foreground">In dieser Partie hat Forge noch nichts gemeldet.</p>
+      ) : (
+        <ul className="flex flex-col gap-1 text-sm">
+          {notices.map((notice, index) => {
+            const { text, detail, error } = noticeText(notice)
+            return (
+              <li key={index} className={error ? "text-destructive" : undefined}>
+                {text}
+                {detail ? <code className="block text-xs break-words text-muted-foreground">{detail}</code> : null}
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </section>
   )
 }
 
+/**
+ * Shows each notice Forge sends from now on as a toast at the top (the hand
+ * stays free); notices that came while the player was elsewhere are in the
+ * menu. Nothing fails silently (Bible §16).
+ */
+function useNoticeToasts(notices: readonly GameNotice[], count: number): void {
+  const seen = useRef(count)
+  useEffect(() => {
+    const fresh = Math.min(count - seen.current, notices.length)
+    seen.current = count
+    for (const notice of notices.slice(notices.length - fresh)) {
+      const { text, detail, error } = noticeText(notice)
+      const options = { position: "top-center" as const, ...(detail ? { description: detail } : {}) }
+      if (error) toast.error(text, options)
+      else toast(text, options)
+    }
+  }, [count, notices])
+}
+
+/**
+ * The table's menu: the game takes the whole screen, so the way around the
+ * app is here - the game keeps running on other pages -, the game's facts,
+ * Forge's notices and conceding (which the page confirms first).
+ */
+function TableMenu({ match, onConcede }: { match: Of<"playing">; onConcede: () => void }) {
+  const [open, setOpen] = useState(false)
+  const notices = match.notices.length
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon-lg" aria-label={notices > 0 ? `Menü, ${notices === 1 ? "1 Meldung" : `${notices} Meldungen`} von Forge` : "Menü"}>
+          <Menu aria-hidden />
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>Partie</SheetTitle>
+          <SheetDescription>Die Partie läuft weiter, wenn du eine andere Seite öffnest. Neu laden oder Schließen beendet sie.</SheetDescription>
+        </SheetHeader>
+        <div className="flex flex-col gap-6 px-4">
+          <Matchup setup={match.setup} confirmedProfile={match.game.aiProfile} />
+          <Notices notices={match.notices} />
+          <nav aria-label="OpenMana" className="flex flex-col gap-1">
+            <h2 className="text-sm font-medium">Zu einer anderen Seite</h2>
+            {DESTINATIONS.map((destination) => (
+              <Button key={destination.path} asChild variant="ghost" className="justify-start">
+                <NavLink to={destination.path} end={destination.path === "/"}>
+                  <destination.icon data-icon="inline-start" aria-hidden />
+                  {destination.label}
+                </NavLink>
+              </Button>
+            ))}
+          </nav>
+        </div>
+        <SheetFooter>
+          <Button
+            size="lg"
+            variant="outline"
+            disabled={match.conceding}
+            onClick={() => {
+              setOpen(false)
+              onConcede()
+            }}
+          >
+            {match.conceding ? <Spinner data-icon="inline-start" aria-hidden /> : null}
+            {match.conceding ? "Gibt auf …" : "Aufgeben"}
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+/** The running game: the table on the whole screen, its menu, the confirmation before conceding. */
 function Playing({ match }: { match: Of<"playing"> }) {
+  useImmersive(true)
   const { concede } = useEngineSession()
+  const { cardLanguage } = usePreferences()
   const [confirming, setConfirming] = useState(false)
+  const cards = useMemo(() => (match.state === null ? [] : [...visibleCards(match.state).values()]), [match.state])
+  const pictures = useTableCards(cards, cardLanguage)
+  useNoticeToasts(match.notices, match.noticeCount)
   const giveUp = () => {
     const result = concede()
     if (!result.ok) toast.error("Aufgeben hat nicht geklappt", { description: result.reason })
   }
+  const menu = <TableMenu match={match} onConcede={() => setConfirming(true)} />
+  const alerts = match.stalledMs !== null ? <Stalled silentMs={match.stalledMs} /> : null
   return (
-    <GameCard
-      title="Partie läuft"
-      description={match.state ? turnLine(match.state) : "Forge teilt gleich den Spielstand mit."}
-      badge={match.waiting ? <Badge>Du bist dran</Badge> : <Badge variant="secondary">Forge rechnet</Badge>}
-      footer={
-        <>
-          <Button size="lg" variant="outline" disabled={match.conceding} onClick={() => setConfirming(true)}>
-            {match.conceding ? <Spinner data-icon="inline-start" aria-hidden /> : null}
-            {match.conceding ? "Gibt auf …" : "Aufgeben"}
-          </Button>
-          <span className="text-sm text-muted-foreground">Neu laden oder Schließen der Seite beendet die Partie.</span>
-        </>
-      }
-    >
-      {match.stalledMs !== null ? <Stalled silentMs={match.stalledMs} /> : null}
-      {match.state ? <Players state={match.state} setup={match.setup} aiProfile={match.game.aiProfile} /> : <Skeleton className="h-40 w-full" aria-label="Spielstand wird geladen" />}
-      <Decision questions={match.questions} prompt={match.prompt} waiting={match.waiting} />
-      <Notices notices={match.notices} />
+    <>
+      {match.state === null ? (
+        // game.started came, the first full state is a moment behind it.
+        <GameBoard>
+          <title>Partie · OpenMana</title>
+          <GameBoardArea area="header" aria-label="Spielstand" className="flex items-center gap-2 px-2 py-1">
+            {menu}
+            <h1 className="text-sm font-medium">Partie</h1>
+          </GameBoardArea>
+          <GameBoardArea area="opponent-field" aria-label="Spielstand wird geladen" className="p-3">
+            <Skeleton className="size-full" />
+          </GameBoardArea>
+          <GameBoardArea area="decision" aria-label="Entscheidung" className="flex flex-col gap-2 px-3 py-2">
+            {alerts}
+            <p className="text-sm text-muted-foreground">Forge teilt gleich den Spielstand mit.</p>
+          </GameBoardArea>
+        </GameBoard>
+      ) : (
+        <GameTable
+          state={match.state}
+          questions={match.questions}
+          prompt={match.prompt}
+          waiting={match.waiting}
+          aiProfile={match.game.aiProfile}
+          profileDrawn={match.setup.ai.profileDrawn}
+          pictures={pictures}
+          conceding={match.conceding}
+          menu={menu}
+          alerts={alerts}
+        />
+      )}
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -490,7 +533,7 @@ function Playing({ match }: { match: Of<"playing"> }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </GameCard>
+    </>
   )
 }
 

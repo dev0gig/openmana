@@ -172,6 +172,8 @@ export type MatchSnapshot =
       readonly conceding: boolean
       /** Forge's notices, errors and refused inputs, oldest first (at most NOTICE_LIMIT). */
       readonly notices: readonly GameNotice[]
+      /** How many notices this game has had in all (the newest are the last of `notices`): the table announces new ones. */
+      readonly noticeCount: number
     })
   | (MatchBase & {
       readonly status: "over"
@@ -506,6 +508,7 @@ export class EngineSession {
             stalledMs: match.stalledMs,
             conceding: false,
             notices: [],
+            noticeCount: 0,
           },
         })
         return
@@ -543,10 +546,13 @@ export class EngineSession {
       case "message":
         // The prompt line belongs to the current decision (an empty one clears it); everything else must be seen.
         if (message.kind === "prompt") this.#set({ engine, match: { ...match, prompt: message.text.trim() === "" ? null : message.text, waiting } })
-        else this.#set({ engine, match: { ...match, notices: keep(match.notices, message), waiting } })
+        else this.#set({ engine, match: { ...match, notices: keep(match.notices, message), noticeCount: match.noticeCount + 1, waiting } })
         return
       case "input.rejected":
-        this.#set({ engine, match: { ...match, notices: keep(match.notices, message), conceding: match.conceding && message.seq !== this.#concedeSeq, waiting } })
+        this.#set({
+          engine,
+          match: { ...match, notices: keep(match.notices, message), noticeCount: match.noticeCount + 1, conceding: match.conceding && message.seq !== this.#concedeSeq, waiting },
+        })
         return
       case "game.end":
         this.#set({
