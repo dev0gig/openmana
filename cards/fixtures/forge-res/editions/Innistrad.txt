@@ -1,0 +1,8 @@
+[metadata]
+Code=ISD
+Date=2011-09-30
+Name=Innistrad
+Type=Expansion
+
+[cards]
+51 C Delver of Secrets @Matt Stewart

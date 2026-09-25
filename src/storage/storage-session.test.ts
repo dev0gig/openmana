@@ -10,6 +10,7 @@ import { APP, deck, rejectionOf } from "@/test/storage-fixtures"
 import type { LocalDatabase } from "./database"
 import { countDecks, saveDeck } from "./decks"
 import { StorageError } from "./errors"
+import { SCHEMA_VERSION } from "./generated/constants"
 import { StorageSession, type StorageSnapshot } from "./storage-session"
 
 const sessions: StorageSession[] = []
@@ -70,12 +71,12 @@ describe("lifecycle", () => {
   })
 
   it("waits while another tab holds an older version", async () => {
-    const stubborn = await openDB("openmana", 1, { upgrade: (db) => db.createObjectStore("old") })
-    const s = session({ migrations: [...(await import("./migrations")).MIGRATIONS, { version: 2, summary: "test" }] })
+    const stubborn = await openDB("openmana", SCHEMA_VERSION, { upgrade: (db) => db.createObjectStore("old") })
+    const s = session({ migrations: [...(await import("./migrations")).MIGRATIONS, { version: SCHEMA_VERSION + 1, summary: "test" }] })
     s.open()
     await until(s, "blocked")
     stubborn.close()
-    // Opened, but the stubborn tab's version 1 lacked the stores: reported, not hidden.
+    // Opened, but the stubborn tab's older version lacked the stores: reported, not hidden.
     const failed = await until(s, "failed")
     expect(failed.status === "failed" && failed.error.code).toBe("schema-mismatch")
   })
@@ -86,7 +87,7 @@ describe("losing the connection", () => {
     const s = session()
     s.open()
     const db = await ready(s)
-    const newer = await openDB("openmana", 2)
+    const newer = await openDB("openmana", SCHEMA_VERSION + 1)
     const closed = await until(s, "closed")
     expect(closed.status === "closed" && closed.reason).toBe("upgraded")
     const error = await rejectionOf(countDecks(db))

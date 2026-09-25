@@ -1,0 +1,348 @@
+{
+ "object": "list",
+ "has_more": false,
+ "data": [
+  {
+   "object": "set",
+   "code": "mbc",
+   "name": "Mystery Booster Commander Edition",
+   "released_at": "2026-11-09",
+   "set_type": "draft_innovation",
+   "card_count": 80,
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "tecl",
+   "name": "Lorwyn Eclipsed Tokens",
+   "released_at": "2026-01-23",
+   "set_type": "token",
+   "card_count": 13,
+   "parent_set_code": "ecl",
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "tle",
+   "mtgo_code": "tle",
+   "arena_code": "tle",
+   "name": "Avatar: The Last Airbender Eternal",
+   "released_at": "2025-11-21",
+   "set_type": "eternal",
+   "card_count": 317,
+   "parent_set_code": "tla",
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "inr",
+   "name": "Innistrad Remastered",
+   "released_at": "2025-01-24",
+   "set_type": "masters",
+   "card_count": 495,
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "altc",
+   "name": "Tales of Middle-earth Scene Box",
+   "released_at": "2023-11-04",
+   "set_type": "memorabilia",
+   "card_count": 24,
+   "parent_set_code": "ltc",
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "cmm",
+   "mtgo_code": "cmm",
+   "arena_code": "cmm",
+   "name": "Commander Masters",
+   "released_at": "2023-08-04",
+   "set_type": "masters",
+   "card_count": 1067,
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "sir",
+   "name": "Shadows over Innistrad Remastered",
+   "released_at": "2023-03-21",
+   "set_type": "masters",
+   "card_count": 294,
+   "digital": true
+  },
+  {
+   "object": "set",
+   "code": "unk",
+   "name": "Unknown Event",
+   "released_at": "2023-02-15",
+   "set_type": "funny",
+   "card_count": 512,
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "2x2",
+   "name": "Double Masters 2022",
+   "released_at": "2022-07-08",
+   "set_type": "masters",
+   "card_count": 579,
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "clb",
+   "name": "Commander Legends: Battle for Baldur's Gate",
+   "released_at": "2022-06-10",
+   "set_type": "draft_innovation",
+   "card_count": 936,
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "tclb",
+   "name": "Battle for Baldur's Gate Tokens",
+   "released_at": "2022-06-10",
+   "set_type": "token",
+   "card_count": 51,
+   "parent_set_code": "clb",
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "snc",
+   "mtgo_code": "snc",
+   "arena_code": "snc",
+   "name": "Streets of New Capenna",
+   "released_at": "2022-04-29",
+   "set_type": "expansion",
+   "card_count": 469,
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "slx",
+   "name": "Universes Within",
+   "released_at": "2022-03-03",
+   "set_type": "masters",
+   "card_count": 30,
+   "parent_set_code": "sld",
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "neo",
+   "mtgo_code": "neo",
+   "arena_code": "neo",
+   "name": "Kamigawa: Neon Dynasty",
+   "released_at": "2022-02-18",
+   "set_type": "expansion",
+   "card_count": 514,
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "mid",
+   "mtgo_code": "mid",
+   "arena_code": "mid",
+   "name": "Innistrad: Midnight Hunt",
+   "released_at": "2021-09-24",
+   "set_type": "expansion",
+   "card_count": 392,
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "astx",
+   "name": "Strixhaven Art Series",
+   "released_at": "2021-04-23",
+   "set_type": "memorabilia",
+   "card_count": 162,
+   "parent_set_code": "stx",
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "khm",
+   "mtgo_code": "khm",
+   "arena_code": "khm",
+   "name": "Kaldheim",
+   "released_at": "2021-02-05",
+   "set_type": "expansion",
+   "card_count": 407,
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "plst",
+   "name": "The List",
+   "released_at": "2020-09-26",
+   "set_type": "masters",
+   "card_count": 5663,
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "sld",
+   "name": "Secret Lair Drop",
+   "released_at": "2019-12-02",
+   "set_type": "box",
+   "card_count": 2757,
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "eld",
+   "mtgo_code": "eld",
+   "arena_code": "eld",
+   "name": "Throne of Eldraine",
+   "released_at": "2019-10-04",
+   "set_type": "expansion",
+   "card_count": 397,
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "tgk2",
+   "name": "RNA Guild Kit Tokens",
+   "released_at": "2019-02-15",
+   "set_type": "token",
+   "card_count": 9,
+   "parent_set_code": "gk2",
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "dom",
+   "mtgo_code": "dar",
+   "arena_code": "dar",
+   "name": "Dominaria",
+   "released_at": "2018-04-27",
+   "set_type": "expansion",
+   "card_count": 280,
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "pemn",
+   "name": "Eldritch Moon Promos",
+   "released_at": "2016-07-22",
+   "set_type": "promo",
+   "card_count": 77,
+   "parent_set_code": "emn",
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "emn",
+   "mtgo_code": "emn",
+   "arena_code": "emn",
+   "name": "Eldritch Moon",
+   "released_at": "2016-07-22",
+   "set_type": "expansion",
+   "card_count": 208,
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "l12",
+   "name": "League Tokens 2012",
+   "released_at": "2012-01-01",
+   "set_type": "token",
+   "card_count": 2,
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "isd",
+   "mtgo_code": "isd",
+   "arena_code": "isd",
+   "name": "Innistrad",
+   "released_at": "2011-09-30",
+   "set_type": "expansion",
+   "card_count": 264,
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "cmd",
+   "mtgo_code": "cmd",
+   "arena_code": "cmd",
+   "name": "Commander 2011",
+   "released_at": "2011-06-17",
+   "set_type": "commander",
+   "card_count": 318,
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "m11",
+   "mtgo_code": "m11",
+   "arena_code": "m11",
+   "name": "Magic 2011",
+   "released_at": "2010-07-16",
+   "set_type": "core",
+   "card_count": 249,
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "f06",
+   "name": "Friday Night Magic 2006",
+   "released_at": "2006-01-01",
+   "set_type": "promo",
+   "card_count": 12,
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "chk",
+   "mtgo_code": "chk",
+   "arena_code": "chk",
+   "name": "Champions of Kamigawa",
+   "released_at": "2004-10-01",
+   "set_type": "expansion",
+   "card_count": 307,
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "prm",
+   "mtgo_code": "prm",
+   "arena_code": "prm",
+   "name": "Magic Online Promos",
+   "released_at": "2002-06-24",
+   "set_type": "promo",
+   "card_count": 3094,
+   "digital": true
+  },
+  {
+   "object": "set",
+   "code": "wc01",
+   "name": "World Championship Decks 2001",
+   "released_at": "2001-08-08",
+   "set_type": "memorabilia",
+   "card_count": 138,
+   "digital": false
+  },
+  {
+   "object": "set",
+   "code": "psdg",
+   "name": "Sega Dreamcast Cards",
+   "released_at": "2001-06-28",
+   "set_type": "box",
+   "card_count": 10,
+   "digital": true
+  },
+  {
+   "object": "set",
+   "code": "3ed",
+   "name": "Revised Edition",
+   "released_at": "1994-04-11",
+   "set_type": "core",
+   "card_count": 306,
+   "digital": false
+  }
+ ]
+}

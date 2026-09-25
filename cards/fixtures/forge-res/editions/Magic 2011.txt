@@ -1,0 +1,9 @@
+[metadata]
+Code=M11
+Date=2010-07-16
+Name=Magic 2011
+Type=Core
+ScryfallCode=M11
+
+[cards]
+149 C Lightning Bolt @Christopher Moeller

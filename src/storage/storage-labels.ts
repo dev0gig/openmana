@@ -62,6 +62,9 @@ export const STORE_LABELS: Readonly<Record<StoreName, string>> = {
   matches: "Partien",
   matchLog: "Partieverläufe",
   scryfallCards: "Kartendaten",
+  scryfallPrints: "Kartendrucke",
+  scryfallSets: "Sets",
+  forgeOnlyCards: "Forge-Karten ohne Scryfall-Daten",
   cacheIndex: "Zwischenspeicher",
 }
 

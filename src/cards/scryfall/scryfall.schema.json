@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openmana.invalid/schemas/scryfall/v1",
+  "title": "Scryfall as OpenMana reads it",
+  "description": "The part of Scryfall's API objects (https://scryfall.com/docs/api) that OpenMana reads: card objects of the bulk data and the API, set objects, lists, errors and the bulk data index. Only these fields are checked; Scryfall's other fields are allowed and ignored (additionalProperties), so new fields never break anything, while a changed or missing field OpenMana relies on fails loudly - in the catalog build (cards/scripts) and when the app reads the API (src/cards/scryfall-client.ts). The only source of src/cards/scryfall/generated (scripts/generate-schemas.ts).",
+  "$defs": {
+    "Uuid": {
+      "title": "Uuid",
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "NonEmptyString": {
+      "title": "NonEmptyString",
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "Color": {
+      "title": "Color",
+      "enum": ["W", "U", "B", "R", "G"]
+    },
+    "Colors": {
+      "title": "Colors",
+      "type": "array",
+      "items": { "$ref": "#/$defs/Color" }
+    },
+    "ScryfallDate": {
+      "title": "ScryfallDate",
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "ImageStatus": {
+      "title": "ImageStatus",
+      "enum": ["missing", "placeholder", "lowres", "highres_scan"]
+    },
+    "ImageUris": {
+      "title": "ImageUris",
+      "description": "Picture URLs by version. OpenMana derives them from the card id (src/cards/images.ts); the catalog build checks that every URL follows that rule.",
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "properties": {
+        "small": { "type": "string" },
+        "normal": { "type": "string" },
+        "large": { "type": "string" },
+        "png": { "type": "string" },
+        "art_crop": { "type": "string" },
+        "border_crop": { "type": "string" },
+        "thumb": { "type": "string" },
+        "grid": { "type": "string" },
+        "display": { "type": "string" },
+        "art": { "type": "string" },
+        "crop": { "type": "string" }
+      }
+    },
+    "ScryfallCardFace": {
+      "title": "ScryfallCardFace",
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["object", "name"],
+      "properties": {
+        "object": { "const": "card_face" },
+        "name": { "$ref": "#/$defs/NonEmptyString" },
+        "oracle_id": { "$ref": "#/$defs/Uuid" },
+        "layout": { "type": "string" },
+        "mana_cost": { "type": "string" },
+        "type_line": { "type": "string" },
+        "oracle_text": { "type": "string" },
+        "power": { "type": "string" },
+        "toughness": { "type": "string" },
+        "loyalty": { "type": "string" },
+        "defense": { "type": "string" },
+        "colors": { "$ref": "#/$defs/Colors" },
+        "printed_name": { "type": "string" },
+        "printed_type_line": { "type": "string" },
+        "printed_text": { "type": "string" },
+        "flavor_name": { "type": "string" },
+        "artist": { "type": "string" },
+        "image_uris": { "$ref": "#/$defs/ImageUris" }
+      }
+    },
+    "ScryfallCard": {
+      "title": "ScryfallCard",
+      "description": "A card object (one printing in one language). oracle_id is absent only for reversible cards, whose faces carry it.",
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "object",
+        "id",
+        "lang",
+        "name",
+        "layout",
+        "set",
+        "set_type",
+        "collector_number",
+        "released_at",
+        "digital",
+        "promo",
+        "full_art",
+        "textless",
+        "oversized",
+        "border_color",
+        "image_status",
+        "color_identity",
+        "games"
+      ],
+      "properties": {
+        "object": { "const": "card" },
+        "id": { "$ref": "#/$defs/Uuid" },
+        "oracle_id": { "$ref": "#/$defs/Uuid" },
+        "lang": { "type": "string", "pattern": "^[a-z]{2,3}$" },
+        "name": { "$ref": "#/$defs/NonEmptyString" },
+        "layout": { "$ref": "#/$defs/NonEmptyString" },
+        "set": { "$ref": "#/$defs/NonEmptyString" },
+        "set_type": { "$ref": "#/$defs/NonEmptyString" },
+        "collector_number": { "$ref": "#/$defs/NonEmptyString" },
+        "released_at": { "$ref": "#/$defs/ScryfallDate" },
+        "digital": { "type": "boolean" },
+        "promo": { "type": "boolean" },
+        "full_art": { "type": "boolean" },
+        "textless": { "type": "boolean" },
+        "oversized": { "type": "boolean" },
+        "content_warning": { "type": "boolean" },
+        "border_color": { "type": "string" },
+        "frame_effects": { "type": "array", "items": { "type": "string" } },
+        "games": { "type": "array", "items": { "type": "string" } },
+        "image_status": { "$ref": "#/$defs/ImageStatus" },
+        "image_uris": { "$ref": "#/$defs/ImageUris" },
+        "card_faces": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/ScryfallCardFace" } },
+        "cmc": { "type": "number", "minimum": 0 },
+        "mana_cost": { "type": "string" },
+        "type_line": { "type": "string" },
+        "oracle_text": { "type": "string" },
+        "power": { "type": "string" },
+        "toughness": { "type": "string" },
+        "loyalty": { "type": "string" },
+        "defense": { "type": "string" },
+        "colors": { "$ref": "#/$defs/Colors" },
+        "color_identity": { "$ref": "#/$defs/Colors" },
+        "printed_name": { "type": "string" },
+        "printed_type_line": { "type": "string" },
+        "printed_text": { "type": "string" },
+        "flavor_name": { "type": "string" },
+        "artist": { "type": "string" }
+      }
+    },
+    "ScryfallSet": {
+      "title": "ScryfallSet",
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["object", "code", "name", "set_type", "digital", "card_count"],
+      "properties": {
+        "object": { "const": "set" },
+        "code": { "$ref": "#/$defs/NonEmptyString" },
+        "name": { "$ref": "#/$defs/NonEmptyString" },
+        "set_type": { "$ref": "#/$defs/NonEmptyString" },
+        "released_at": { "$ref": "#/$defs/ScryfallDate" },
+        "digital": { "type": "boolean" },
+        "card_count": { "type": "integer", "minimum": 0 },
+        "parent_set_code": { "$ref": "#/$defs/NonEmptyString" },
+        "arena_code": { "$ref": "#/$defs/NonEmptyString" },
+        "mtgo_code": { "$ref": "#/$defs/NonEmptyString" }
+      }
+    },
+    "ScryfallList": {
+      "title": "ScryfallList",
+      "description": "A list object (search results, sets, /cards/collection with not_found). The items are checked one by one by the reader.",
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["object", "data"],
+      "properties": {
+        "object": { "const": "list" },
+        "data": { "type": "array" },
+        "has_more": { "type": "boolean" },
+        "next_page": { "type": "string" },
+        "total_cards": { "type": "integer", "minimum": 0 },
+        "not_found": { "type": "array" },
+        "warnings": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "ScryfallError": {
+      "title": "ScryfallError",
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["object", "status", "code", "details"],
+      "properties": {
+        "object": { "const": "error" },
+        "status": { "type": "integer" },
+        "code": { "type": "string" },
+        "details": { "type": "string" },
+        "type": { "type": "string" },
+        "warnings": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "ScryfallBulkData": {
+      "title": "ScryfallBulkData",
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["object", "type", "updated_at", "jsonl_download_uri", "compressed_size"],
+      "properties": {
+        "object": { "const": "bulk_data" },
+        "type": { "$ref": "#/$defs/NonEmptyString" },
+        "updated_at": { "$ref": "#/$defs/NonEmptyString" },
+        "jsonl_download_uri": { "$ref": "#/$defs/NonEmptyString" },
+        "compressed_size": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "ScryfallBulkDataList": {
+      "title": "ScryfallBulkDataList",
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["object", "data"],
+      "properties": {
+        "object": { "const": "list" },
+        "data": { "type": "array", "items": { "$ref": "#/$defs/ScryfallBulkData" } }
+      }
+    }
+  }
+}

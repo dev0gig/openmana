@@ -29,6 +29,15 @@
  *     refused files, damaged records found and removed, another tab
  *     upgrading the database, site data cleared while open; and quota
  *     awareness with DevTools' quota override (localDataQuota).
+ *  7. Card data: the card catalog is served like the engine (preview and dev
+ *     server), nothing of it or of Scryfall is loaded before the player
+ *     asks; installing it from the settings into the real IndexedDB (as the
+ *     preview server sends it, unpacked by the browser, and as Vercel would,
+ *     gzip), stopping and resuming, a damaged download refused; looking cards
+ *     up with real pictures from Scryfall under COEP (German, the back of a
+ *     double-faced card, English only, no Scryfall data, pictures offline);
+ *     an image without CORS mode is blocked (why card-picture.tsx sets it);
+ *     phone layout; axe-core.
  */
 import { createRequire } from "node:module"
 import { randomUUID } from "node:crypto"
@@ -40,6 +49,7 @@ import path from "node:path"
 import { gunzipSync, gzipSync } from "node:zlib"
 import { chromium, type Browser, type BrowserContext, type Locator, type Page } from "playwright-core"
 import { build, createServer, preview } from "vite"
+import { SCHEMA_VERSION } from "../../src/storage/generated/constants.ts"
 import { ISOLATION_HEADERS } from "../../vite/isolation-headers.ts"
 
 const root = path.resolve(import.meta.dirname, "../..")
@@ -106,6 +116,36 @@ function engineId(): string {
   return ids[0]!
 }
 
+interface CatalogManifest {
+  readonly id: string
+  readonly file: { readonly bytes: number; readonly uncompressedBytes: number; readonly lines: number }
+  readonly source: { readonly updatedAt: string }
+  readonly forge: { readonly forgeOnly: number }
+  readonly counts: { readonly cards: number; readonly germanText: number; readonly germanImage: number; readonly sets: number; readonly forgeOnly: number }
+}
+
+/** The card catalog the build copied into dist/cards/<id>/. */
+function catalogManifest(): CatalogManifest {
+  const ids = fs.readdirSync(path.join(dist, "cards"))
+  if (ids.length !== 1) throw new Error(`dist/cards should hold exactly one card catalog, found ${ids.join(", ") || "none"}`)
+  return JSON.parse(fs.readFileSync(path.join(dist, "cards", ids[0]!, "card-catalog-manifest.json"), "utf8")) as CatalogManifest
+}
+
+/**
+ * The catalog file as a server sends it: the preview server (sirv) marks the
+ * .gz file Content-Encoding: gzip (then every client unpacks it), the dev
+ * server and Vercel send it as application/gzip.
+ */
+async function checkCatalogFile(base: string, label: string, catalog: CatalogManifest): Promise<string | null> {
+  const response = await checkHeaders(base, label, `/cards/${catalog.id}/card-catalog.jsonl.gz`)
+  const encoding = response.headers.get("content-encoding")
+  const bytes = (await response.arrayBuffer()).byteLength
+  const expected = encoding === "gzip" ? catalog.file.uncompressedBytes : catalog.file.bytes
+  check(bytes === expected, `${label} card catalog: ${bytes} bytes, expected ${expected} (Content-Encoding ${encoding})`)
+  await (await checkHeaders(base, label, `/cards/${catalog.id}/card-catalog-manifest.json`, /^application\/json/)).arrayBuffer()
+  return encoding
+}
+
 async function httpChecks(base: string, id: string): Promise<void> {
   log("HTTP (vite preview)")
   for (const pathname of ["/", "/play", "/credits", "/does-not-exist"]) {
@@ -125,6 +165,7 @@ async function httpChecks(base: string, id: string): Promise<void> {
     const bytes = (await response.arrayBuffer()).byteLength
     check(bytes === fs.statSync(path.join(dist, "engine", id, file)).size, `preview engine ${file}: ${bytes} bytes served`)
   }
+  report["catalogPreviewEncoding"] = await checkCatalogFile(base, "preview", catalogManifest())
 }
 
 async function devServerChecks(browser: Browser, id: string): Promise<void> {
@@ -144,6 +185,12 @@ async function devServerChecks(browser: Browser, id: string): Promise<void> {
     check(missing.status === 404, `dev: unknown engine file answered ${missing.status}`)
     check(missing.headers.get("Cross-Origin-Embedder-Policy") === "require-corp", "dev: 404 without isolation headers")
     await missing.arrayBuffer()
+    const catalog = catalogManifest()
+    const encoding = await checkCatalogFile(base, "dev", catalog)
+    check(encoding === null, `dev: the card catalog is sent with Content-Encoding ${encoding}`)
+    const unknownCard = await fetch(new URL(`/cards/${catalog.id}/secret.txt`, base))
+    check(unknownCard.status === 404, `dev: unknown card catalog file answered ${unknownCard.status}`)
+    await unknownCard.arrayBuffer()
     report["devServer"] = await engine(browser, base, id, VIEWPORTS[2]!, "dev")
   } finally {
     await server.close()
@@ -158,10 +205,12 @@ interface PageLog {
   /** What the engine worker printed (Forge's own log). Recorded, judged by the engine's own messages instead. */
   engineLog: string[]
   requests: string[]
+  /** Every host the page requested something from. */
+  hosts: Set<string>
 }
 
 function watch(page: Page): PageLog {
-  const pageLog: PageLog = { errors: [], engineLog: [], requests: [] }
+  const pageLog: PageLog = { errors: [], engineLog: [], requests: [], hosts: new Set() }
   page.on("console", (message) => {
     if (message.worker()) {
       pageLog.engineLog.push(`[${message.type()}] ${message.text()}`)
@@ -174,7 +223,11 @@ function watch(page: Page): PageLog {
   page.on("response", (response) => {
     if (response.status() >= 400) pageLog.errors.push(`[http ${response.status()}] ${response.url()}`)
   })
-  page.on("request", (request) => pageLog.requests.push(new URL(request.url()).pathname))
+  page.on("request", (request) => {
+    const url = new URL(request.url())
+    pageLog.requests.push(url.pathname)
+    pageLog.hosts.add(url.host)
+  })
   return pageLog
 }
 
@@ -257,6 +310,8 @@ async function surfaces(browser: Browser, base: string, id: string): Promise<voi
       results.push({ viewport: viewport.name, route: route.path, ...state, violations, screenshots: shots })
     }
     check(!pageLog.requests.some((p) => p.startsWith(`/engine/${id}/`)), `${viewport.name}: engine files requested without being asked`)
+    check(!pageLog.requests.some((p) => p.startsWith("/cards/")), `${viewport.name}: card catalog requested without being asked`)
+    check(pageLog.hosts.size === 1, `${viewport.name}: requests to other hosts without being asked: ${[...pageLog.hosts].join(", ")}`)
     for (const error of pageLog.errors) check(false, `${viewport.name}: ${error}`)
     await context.close()
   }
@@ -477,10 +532,10 @@ async function localData(browser: Browser, base: string): Promise<void> {
     let card = await openLocalData(page, base)
     const fresh = await cardFacts(card)
     check(fresh["Decks"] === "0" && fresh["Partien"] === "0", `local data: fresh database not empty ${JSON.stringify(fresh)}`)
-    check((fresh["Datenbank"] ?? "").startsWith("Version 1, angelegt am "), `local data: database fact ${fresh["Datenbank"]}`)
+    check((fresh["Datenbank"] ?? "").startsWith(`Version ${SCHEMA_VERSION}, angelegt am `), `local data: database fact ${fresh["Datenbank"]}`)
     check(fresh["Belegt"] !== "unbekannt" && fresh["Noch frei"] !== "unbekannt", `local data: space unknown ${JSON.stringify(fresh)}`)
     const databases = await page.evaluate(async () => ({ databases: await indexedDB.databases(), localStorage: localStorage.length }))
-    check(databases.databases.some((db) => db.name === "openmana" && db.version === 1), `local data: IndexedDB databases ${JSON.stringify(databases.databases)}`)
+    check(databases.databases.some((db) => db.name === "openmana" && db.version === SCHEMA_VERSION), `local data: IndexedDB databases ${JSON.stringify(databases.databases)}`)
     check(databases.localStorage === 0, `local data: localStorage holds ${databases.localStorage} entries`)
     results["fresh"] = { facts: fresh, databases }
 
@@ -520,7 +575,7 @@ async function localData(browser: Browser, base: string): Promise<void> {
     check(/^openmana-sicherung-\d{4}-\d{2}-\d{2}-\d{4}\.jsonl\.gz$/.test(download.suggestedFilename()), `local data: download name ${download.suggestedFilename()}`)
     const exported = gunzipSync(fs.readFileSync(saved)).toString("utf8").trimEnd().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>)
     const end = exported.at(-1) as { type?: string; counts?: Record<string, number> } | undefined
-    check(exported[0]?.["type"] === "header" && exported[0]?.["schemaVersion"] === 1, `local data: exported header ${JSON.stringify(exported[0])}`)
+    check(exported[0]?.["type"] === "header" && exported[0]?.["schemaVersion"] === SCHEMA_VERSION, `local data: exported header ${JSON.stringify(exported[0])}`)
     check(end?.type === "end" && JSON.stringify(end.counts) === JSON.stringify({ decks: 2, settings: 1, matches: 1, matchLog: 2 }), `local data: exported end ${JSON.stringify(end)}`)
     await page.getByText("Sicherung erstellt").waitFor()
     await card.getByText("Letzte Sicherung").waitFor()
@@ -594,15 +649,16 @@ async function localData(browser: Browser, base: string): Promise<void> {
     const other = await context.newPage()
     await other.goto(new URL("/manifest.webmanifest", base).href)
     await other.evaluate(
-      () =>
+      (newer) =>
         new Promise<void>((resolve, reject) => {
-          const request = indexedDB.open("openmana", 2)
+          const request = indexedDB.open("openmana", newer)
           request.onsuccess = () => {
             request.result.close()
             resolve()
           }
           request.onerror = () => reject(request.error)
         }),
+      SCHEMA_VERSION + 1,
     )
     await card.getByText("OpenMana wurde in einem anderen Tab aktualisiert").waitFor()
     await page.getByText("Bitte lade die Seite neu.").waitFor()
@@ -706,6 +762,280 @@ async function localDataQuota(executablePath: string, base: string): Promise<voi
   }
 }
 
+// ── 7. Card data (catalog, lookup, Scryfall pictures) ──────────────────────
+
+interface StoredCatalog {
+  readonly counts: Record<string, number>
+  readonly entry: { status?: string; version?: string; records?: number } | null
+}
+
+/** What the page's IndexedDB holds of the catalog, counted in the page (no records leave it). */
+function storedCatalog(page: Page): Promise<StoredCatalog> {
+  return page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("openmana")
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+    const count = (store: string) =>
+      new Promise<number>((resolve, reject) => {
+        const request = db.transaction(store).objectStore(store).count()
+        request.onsuccess = () => resolve(request.result)
+        request.onerror = () => reject(request.error)
+      })
+    const counts: Record<string, number> = {}
+    for (const store of ["scryfallCards", "scryfallSets", "forgeOnlyCards", "scryfallPrints"]) counts[store] = await count(store)
+    const entry = await new Promise<StoredCatalog["entry"]>((resolve, reject) => {
+      const request = db.transaction("cacheIndex").objectStore("cacheIndex").get("card-catalog")
+      request.onsuccess = () => resolve((request.result as StoredCatalog["entry"]) ?? null)
+      request.onerror = () => reject(request.error)
+    })
+    db.close()
+    return { counts, entry }
+  })
+}
+
+async function openCardData(page: Page, base: string): Promise<Locator> {
+  await page.goto(new URL("/settings", base).href, { waitUntil: "networkidle" })
+  const card = page.getByRole("region", { name: "Kartendaten" })
+  await card.locator("dl").waitFor()
+  return card
+}
+
+/** Installs the catalog from the settings card; returns the wall time until "Bereit". */
+async function installFromSettings(card: Locator, label: string): Promise<number> {
+  const started = Date.now()
+  await card.getByRole("button", { name: /Kartendaten einrichten|Erneut einrichten/ }).click()
+  await card.getByText("Bereit", { exact: true }).waitFor({ timeout: 300_000 })
+  const wallMs = Date.now() - started
+  log(`  ${label}: installed in ${(wallMs / 1000).toFixed(1)} s`)
+  return wallMs
+}
+
+async function lookUp(page: Page, name: string, choose: string): Promise<Locator> {
+  const dialog = page.getByRole("dialog", { name: "Karte nachschlagen" })
+  if (!(await dialog.isVisible())) {
+    await page.getByRole("region", { name: "Kartendaten" }).getByRole("button", { name: "Karte nachschlagen" }).click()
+    await dialog.waitFor()
+  }
+  const back = dialog.getByRole("button", { name: "Zur Trefferliste" })
+  if (await back.isVisible()) await back.click()
+  await dialog.getByLabel("Kartenname").fill(name)
+  await dialog.getByRole("group", { name: "Gefundene Karten" }).getByRole("button", { name: choose, exact: true }).click()
+  await dialog.getByRole("button", { name: "Zur Trefferliste" }).waitFor()
+  return dialog
+}
+
+/** Waits until the dialog's main picture has loaded or failed; returns its state and URL. */
+async function pictureOf(dialog: Locator): Promise<{ state: string | null; src: string | null; naturalWidth: number }> {
+  const frame = dialog.locator("[data-slot=card-picture]").first()
+  await frame.evaluate(
+    (element) =>
+      new Promise<void>((resolve) => {
+        const done = () => ["loaded", "failed", "missing"].includes(element.getAttribute("data-state") ?? "")
+        if (done()) return resolve()
+        const observer = new MutationObserver(() => {
+          if (done()) {
+            observer.disconnect()
+            resolve()
+          }
+        })
+        observer.observe(element, { attributes: true })
+      }),
+  )
+  return frame.evaluate(async (element) => {
+    const img = element.querySelector("img")
+    // Loaded is not yet painted: wait until the picture is decoded (for the screenshots).
+    if (element.getAttribute("data-state") === "loaded") await img?.decode().catch(() => undefined)
+    return { state: element.getAttribute("data-state"), src: img?.getAttribute("src") ?? null, naturalWidth: img?.naturalWidth ?? 0 }
+  })
+}
+
+async function cardData(browser: Browser, base: string): Promise<void> {
+  log("Card data (catalog, lookup, Scryfall pictures)")
+  const catalog = catalogManifest()
+  const catalogPath = `/cards/${catalog.id}/card-catalog.jsonl.gz`
+  const results: Record<string, unknown> = { catalog: catalog.id, bytes: catalog.file.bytes, uncompressedBytes: catalog.file.uncompressedBytes }
+  const context = await newContext(browser, VIEWPORTS[2]!)
+  const page = await context.newPage()
+  const pageLog = watch(page)
+  const scryfall: { url: string; status: number }[] = []
+  page.on("response", (response) => {
+    if (new URL(response.url()).host === "cards.scryfall.io") scryfall.push({ url: response.url(), status: response.status() })
+  })
+  try {
+    // What the build brings; nothing is downloaded before the player asks.
+    let card = await openCardData(page, base)
+    await card.getByText("Nicht eingerichtet", { exact: true }).waitFor()
+    const facts = await cardFacts(card)
+    check(facts["Karten"] === catalog.counts.cards.toLocaleString("de-DE"), `card data: cards fact ${facts["Karten"]}`)
+    check(facts["davon mit deutschem Text"] === catalog.counts.germanText.toLocaleString("de-DE"), `card data: German text fact ${facts["davon mit deutschem Text"]}`)
+    check(facts["Auf diesem Gerät"] === "nicht eingerichtet", `card data: device fact ${facts["Auf diesem Gerät"]}`)
+    check(!pageLog.requests.some((p) => p.startsWith("/cards/")), "card data: catalog downloaded before the player asked")
+    results["factsBefore"] = facts
+    results["settingsAxe"] = await accessibility(page, "card data: settings")
+
+    // Install it (the preview server sends the file Content-Encoding: gzip: the browser unpacks it).
+    const installMs = await installFromSettings(card, "preview (unpacked by the browser)")
+    const stored = await storedCatalog(page)
+    check(stored.counts["scryfallCards"] === catalog.counts.cards, `card data: ${stored.counts["scryfallCards"]} cards stored, ${catalog.counts.cards} expected`)
+    check(stored.counts["scryfallSets"] === catalog.counts.sets, `card data: ${stored.counts["scryfallSets"]} sets stored`)
+    check(stored.counts["forgeOnlyCards"] === catalog.counts.forgeOnly, `card data: ${stored.counts["forgeOnlyCards"]} Forge-only cards stored`)
+    check(stored.entry?.status === "complete" && stored.entry.version === catalog.id, `card data: cache entry ${JSON.stringify(stored.entry)}`)
+    check(pageLog.requests.filter((p) => p === catalogPath).length === 1, "card data: the catalog was not downloaded exactly once")
+    check(await page.evaluate(() => globalThis.crossOriginIsolated), "card data: not cross-origin isolated after installing")
+    results["install"] = { wallMs: installMs, stored, estimate: await page.evaluate(async () => navigator.storage.estimate()) }
+    await screenshots(page, "desktop-settings-card-data-ready")
+
+    // A German card with its German picture, straight from Scryfall under COEP.
+    let dialog = await lookUp(page, "Blitzschlag", "Blitzschlag")
+    const bolt = await pictureOf(dialog)
+    check(bolt.state === "loaded" && bolt.naturalWidth > 0, `card data: Blitzschlag picture ${JSON.stringify(bolt)}`)
+    check(bolt.src?.startsWith("https://cards.scryfall.io/display/front/") === true, `card data: picture URL ${bolt.src}`)
+    await dialog.getByText("Spontanzauber").first().waitFor()
+    await dialog.getByText("Lightning Bolt", { exact: true }).waitFor()
+    results["dialogAxe"] = await accessibility(page, "card data: card details")
+    await page.screenshot({ path: path.join(reportDir, "screens", "desktop-card-lookup-blitzschlag.png") })
+
+    // The back of a double-faced card.
+    dialog = await lookUp(page, "Geheimnisstöberer", "Geheimnisstöberer // Insekten-Scheußlichkeit")
+    const front = await pictureOf(dialog)
+    await dialog.getByRole("button", { name: "Rückseite zeigen" }).click()
+    await dialog.getByRole("img", { name: "Kartenbild: Insekten-Scheußlichkeit" }).waitFor()
+    const backSide = await pictureOf(dialog)
+    check(front.state === "loaded" && front.src?.includes("/front/") === true, `card data: Delver front ${JSON.stringify(front)}`)
+    check(backSide.state === "loaded" && backSide.src?.includes("/back/") === true, `card data: Delver back ${JSON.stringify(backSide)}`)
+    await page.screenshot({ path: path.join(reportDir, "screens", "desktop-card-lookup-dfc-back.png") })
+
+    // No German printing: English, and it says so.
+    dialog = await lookUp(page, "Akki Lavarunner", "Akki Lavarunner // Tok-Tok, Volcano Born")
+    await dialog.getByText("Keine deutsche Fassung – englisch").waitFor()
+    check((await pictureOf(dialog)).state === "loaded", "card data: Akki Lavarunner picture did not load")
+
+    // A card Forge knows without Scryfall data, and an unknown name.
+    await dialog.getByRole("button", { name: "Zur Trefferliste" }).click()
+    await dialog.getByLabel("Kartenname").fill("Drake Stone")
+    await dialog.getByText("Keine Scryfall-Daten zu dieser Karte").waitFor()
+    await dialog.getByLabel("Kartenname").fill("Zzyzx Unbekannt")
+    await dialog.getByText("Keine Karte gefunden").waitFor()
+
+    // Phone size: the dialog fits, and passes axe.
+    await page.setViewportSize({ width: VIEWPORTS[0]!.width, height: VIEWPORTS[0]!.height })
+    dialog = await lookUp(page, "Knochenmalmer", "Knochenmalmer-Riese // Stampfen")
+    await pictureOf(dialog)
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+    check(overflow <= 0, `card data: the lookup dialog overflows the phone by ${overflow}px`)
+    results["phoneDialogAxe"] = await accessibility(page, "card data: card details (phone)")
+    await page.screenshot({ path: path.join(reportDir, "screens", "phone-card-lookup-adventure.png") })
+    await page.setViewportSize({ width: VIEWPORTS[2]!.width, height: VIEWPORTS[2]!.height })
+
+    // Why card-picture.tsx loads in CORS mode: without it, COEP blocks Scryfall's pictures.
+    // From here until the pictures are reachable again, blocked pictures are on purpose.
+    const blockedFrom = pageLog.errors.length
+    const blocked = await page.evaluate(async (src) => {
+      const load = (cors: boolean) =>
+        new Promise<string>((resolve) => {
+          const img = new Image()
+          if (cors) img.crossOrigin = "anonymous"
+          img.onload = () => resolve("loaded")
+          img.onerror = () => resolve("blocked")
+          img.src = `${src}${src.includes("?") ? "&" : "?"}probe=${cors ? "cors" : "no-cors"}`
+        })
+      return { withCors: await load(true), withoutCors: await load(false) }
+    }, bolt.src ?? "")
+    check(blocked.withCors === "loaded" && blocked.withoutCors === "blocked", `card data: COEP probe ${JSON.stringify(blocked)}`)
+    results["coepProbe"] = blocked
+
+    // Pictures unreachable (offline, blocked): the card's text takes their place.
+    await context.route("https://cards.scryfall.io/**", (route) => route.abort("internetdisconnected"))
+    dialog = await lookUp(page, "Wald", "Wald")
+    const offline = await pictureOf(dialog)
+    check(offline.state === "failed", `card data: offline picture state ${offline.state}`)
+    await dialog.getByText("Das Bild konnte nicht geladen werden.").waitFor()
+    await page.screenshot({ path: path.join(reportDir, "screens", "desktop-card-lookup-offline.png") })
+    await context.unroute("https://cards.scryfall.io/**")
+    await page.keyboard.press("Escape")
+    // Chrome names no URL in its console message for a blocked resource: what was blocked on purpose is
+    // told apart by when it happened and by its error (the COEP probe, the unreachable picture server).
+    const onPurpose = pageLog.errors.splice(blockedFrom)
+    const isBlockedPicture = (error: string) =>
+      /net::ERR_BLOCKED_BY_RESPONSE\.NotSameOriginAfterDefaultedToSameOriginByCoep|net::ERR_INTERNET_DISCONNECTED/.test(error) ||
+      error.startsWith("[requestfailed] https://cards.scryfall.io/")
+    for (const error of onPurpose.filter((e) => !isBlockedPicture(e))) check(false, `card data (pictures blocked on purpose): ${error}`)
+    check(onPurpose.some((e) => e.includes("NotSameOriginAfterDefaultedToSameOriginByCoep")), "card data: the COEP probe did not show up as blocked")
+    results["blockedOnPurpose"] = onPurpose.length
+
+    // The catalog stays on the device.
+    card = await openCardData(page, base)
+    await card.getByText("Bereit", { exact: true }).waitFor()
+    check((await storedCatalog(page)).counts["scryfallCards"] === catalog.counts.cards, "card data: catalog gone after a reload")
+
+    // "Daten prüfen" checks every record, the catalog's too: how long that takes.
+    const local = await openLocalData(page, base)
+    check((await cardFacts(local))["Kartendaten (Scryfall)"] === `${catalog.counts.cards.toLocaleString("de-DE")} Karten`, "card data: local data card does not count the catalog")
+    const checkStarted = Date.now()
+    await local.getByRole("button", { name: "Daten prüfen" }).click()
+    await local.getByText(/^Alles in Ordnung/).waitFor({ timeout: 120_000 })
+    results["integrityCheckMs"] = Date.now() - checkStarted
+
+    // Every other problem of the page is one.
+    for (const error of pageLog.errors) check(false, `card data: ${error}`)
+    results["scryfallResponses"] = scryfall.length
+    check(scryfall.every((response) => response.status === 200), `card data: Scryfall answered ${JSON.stringify(scryfall.filter((r) => r.status !== 200))}`)
+    check([...pageLog.hosts].every((host) => host === new URL(base).host || host === "cards.scryfall.io"), `card data: requests to ${[...pageLog.hosts].join(", ")}`)
+  } finally {
+    await context.close()
+  }
+
+  // As Vercel sends it (application/gzip, unpacked by the app), stopped once, then resumed.
+  const gzipContext = await newContext(browser, VIEWPORTS[2]!)
+  const gzipPage = await gzipContext.newPage()
+  const gzipLog = watch(gzipPage)
+  const catalogFile = fs.readFileSync(path.join(dist, "cards", catalog.id, "card-catalog.jsonl.gz"))
+  try {
+    await gzipContext.route(`**${catalogPath}`, (route) =>
+      route.fulfill({ status: 200, headers: { ...ISOLATION_HEADERS, "Content-Type": "application/gzip", "Cache-Control": "no-cache" }, body: catalogFile }),
+    )
+    const card = await openCardData(gzipPage, base)
+    await card.getByRole("button", { name: "Kartendaten einrichten" }).click()
+    await card.getByRole("button", { name: "Abbrechen" }).click()
+    await card.getByText("Das Einrichten der Kartendaten wurde abgebrochen").waitFor()
+    await card.getByText("Unvollständig", { exact: true }).waitFor()
+    await screenshots(gzipPage, "desktop-settings-card-data-aborted")
+    results["gzipInstall"] = { wallMs: await installFromSettings(card, "gzip (as Vercel sends it)") }
+    check((await storedCatalog(gzipPage)).counts["scryfallCards"] === catalog.counts.cards, "card data (gzip): not every card stored")
+
+    // A damaged download is refused; nothing counts as installed.
+    const damaged = Buffer.from(catalogFile)
+    damaged[Math.floor(damaged.length / 2)] = (damaged[Math.floor(damaged.length / 2)] ?? 0) ^ 0xff
+    await gzipContext.unroute(`**${catalogPath}`)
+    await gzipContext.route(`**${catalogPath}`, (route) => route.fulfill({ status: 200, headers: { ...ISOLATION_HEADERS, "Content-Type": "application/gzip" }, body: damaged }))
+    await gzipPage.evaluate(async () => {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open("openmana")
+        request.onsuccess = () => resolve(request.result)
+        request.onerror = () => reject(request.error)
+      })
+      await new Promise<void>((resolve, reject) => {
+        const transaction = db.transaction("cacheIndex", "readwrite")
+        transaction.objectStore("cacheIndex").delete("card-catalog")
+        transaction.oncomplete = () => resolve()
+        transaction.onerror = () => reject(transaction.error)
+      })
+      db.close()
+    })
+    const again = await openCardData(gzipPage, base)
+    await again.getByRole("button", { name: "Kartendaten einrichten" }).click()
+    await again.getByText("Die heruntergeladenen Kartendaten sind fehlerhaft").waitFor({ timeout: 120_000 })
+    check((await storedCatalog(gzipPage)).entry?.status === "partial", "card data: a damaged catalog counts as installed")
+    await screenshots(gzipPage, "desktop-settings-card-data-damaged")
+    for (const error of gzipLog.errors) check(false, `card data (gzip): ${error}`)
+  } finally {
+    await gzipContext.close()
+  }
+  report["cardData"] = results
+}
+
 // ── Run ──────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -731,6 +1061,7 @@ async function main(): Promise<void> {
     report["engine"] = [await engine(browser, base, id, VIEWPORTS[2]!), await engine(browser, base, id, VIEWPORTS[0]!)]
     await localData(browser, base)
     await localDataQuota(executablePath, base)
+    await cardData(browser, base)
     await pwa(base, executablePath)
     await withoutIsolation(browser)
   } finally {

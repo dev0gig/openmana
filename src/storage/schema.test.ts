@@ -17,7 +17,7 @@ describe("generated files", () => {
   it("match the schema (run npm run generate after a schema change)", () => {
     const root = path.resolve(import.meta.dirname, "../..")
     // Throws (with the generator's message) if a generated file is stale.
-    const output = execFileSync(process.execPath, ["scripts/generate-storage.ts", "--check"], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })
+    const output = execFileSync(process.execPath, ["scripts/generate-schemas.ts", "--check"], { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })
     expect(output).toBe("")
   })
 })
@@ -92,7 +92,8 @@ describe("stores", () => {
   })
 
   it("the schema version is the database version", () => {
-    expect(SCHEMA_VERSION).toBe(1)
+    // Version 2 (prompt 08): the card catalog stores.
+    expect(SCHEMA_VERSION).toBe(2)
   })
 
   it("formats keys for reports", () => {

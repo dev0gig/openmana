@@ -1,0 +1,13 @@
+{
+  "$comment": "Forge cards the card catalog finds no Scryfall card for, each with the reason (checked 2026-09-25, Forge ed0333fecb, Scryfall all_cards of 2026-09-24). They stay playable and are shown with Forge's own texts. Rebalanced MTG Arena cards (A-…) are recognized on their own and not listed here. The catalog build fails for an unmatched Forge card that is not listed, and for a listed card that is no longer unmatched: each Forge update decides them deliberately (cards/README.md).",
+  "cards": [
+    { "name": "Blinding Radiance", "note": "In Forge without an edition (only Forge's Chinese and Korean name lists have it); Scryfall does not list it." },
+    { "name": "Distract", "note": "From Forge's \"Drake Stone\" edition (DS0, a 2010 set of type Funny); Scryfall does not list it." },
+    { "name": "Drake Stone", "note": "From Forge's \"Drake Stone\" edition (DS0, a 2010 set of type Funny); Scryfall does not list it." },
+    { "name": "Enthrall", "note": "From Forge's \"Drake Stone\" edition (DS0, a 2010 set of type Funny); Scryfall does not list it." },
+    { "name": "Goblin Bruiser", "note": "In Forge without an edition (only Forge's Chinese and Korean name lists have it); Scryfall does not list it." },
+    { "name": "Ogre Painbringer", "note": "In Forge without an edition (only Forge's Chinese and Korean name lists have it); Scryfall does not list it." },
+    { "name": "Titanic Pelagosaur", "note": "In Forge without an edition (only Forge's Chinese and Korean name lists have it); Scryfall does not list it." },
+    { "name": "Treetop Recluse", "note": "In Forge without an edition (only Forge's Chinese and Korean name lists have it); Scryfall does not list it." }
+  ]
+}

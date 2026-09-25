@@ -12,6 +12,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest"
 import { routes } from "@/app/router"
 import { backupEnd, backupFile, backupHeader, deck, match, openTestDatabase, putRaw, readRaw } from "@/test/storage-fixtures"
 import { saveDeck } from "./decks"
+import { SCHEMA_VERSION } from "./generated/constants"
 
 // jsdom has no object URLs; a download is observed at its link instead.
 const createObjectURL = vi.fn((_blob: Blob) => "blob:openmana-test")
@@ -55,7 +56,7 @@ describe("settings: data on this device", () => {
       Einstellungen: "0",
       "Kartendaten (Scryfall)": "noch keine",
       "Letzte Sicherung": "noch keine",
-      Datenbank: expect.stringMatching(/^Version 1, angelegt am /),
+      Datenbank: expect.stringMatching(new RegExp(`^Version ${SCHEMA_VERSION}, angelegt am `)),
     })
   })
 
@@ -180,7 +181,7 @@ describe("settings: data on this device", () => {
   })
 
   it("a damaged database can be reset after confirmation", async () => {
-    const damaged = await openDB("openmana", 1, { upgrade: (db) => db.createObjectStore("decks") })
+    const damaged = await openDB("openmana", SCHEMA_VERSION, { upgrade: (db) => db.createObjectStore("decks") })
     damaged.close()
     renderAt("/settings")
     const card = await screen.findByRole("region", { name: "Daten auf diesem Gerät" })
@@ -194,7 +195,7 @@ describe("settings: data on this device", () => {
   it("losing the connection to another tab shows up at once", async () => {
     renderAt("/settings")
     const card = await localDataCard()
-    const newer = await openDB("openmana", 2)
+    const newer = await openDB("openmana", SCHEMA_VERSION + 1)
     expect(await within(card).findByText("OpenMana wurde in einem anderen Tab aktualisiert")).toBeInTheDocument()
     expect(within(card).getByRole("button", { name: "Neu laden" })).toBeInTheDocument()
     expect(await screen.findByText("Bitte lade die Seite neu.")).toBeInTheDocument()

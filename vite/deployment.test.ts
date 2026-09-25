@@ -3,7 +3,8 @@
  * Vercel serves OpenMana the way the dev and preview servers do: with the
  * cross-origin isolation headers on every route (without them the engine
  * cannot start), immutable caching only for content-addressed files, and the
- * SPA fallback for the app's own routes but never for engine or asset files.
+ * SPA fallback for the app's own routes but never for engine, card catalog or
+ * asset files.
  */
 import { readFileSync } from "node:fs"
 import path from "node:path"
@@ -46,7 +47,7 @@ describe("vercel.json", () => {
     expect(vercel).toMatchObject({ framework: "vite", installCommand: "npm ci", buildCommand: "npm run build", outputDirectory: "dist" })
   })
 
-  it.each(["/", "/index.html", "/play", "/decks", "/manifest.webmanifest", "/icons/icon-192.png", "/assets/index-abc.js", "/engine/0123456789abcdef/openmana-engine.js.wasm"])(
+  it.each(["/", "/index.html", "/play", "/decks", "/manifest.webmanifest", "/icons/icon-192.png", "/assets/index-abc.js", "/engine/0123456789abcdef/openmana-engine.js.wasm", "/cards/0123456789abcdef/card-catalog.jsonl.gz"])(
     "%s carries the isolation headers",
     (pathname) => {
       expect(headersFor(pathname)).toMatchObject(ISOLATION_HEADERS)
@@ -56,19 +57,20 @@ describe("vercel.json", () => {
   it("caches only content-addressed files forever", () => {
     expect(headersFor("/assets/index-abc.js")["Cache-Control"]).toBe("public, max-age=31536000, immutable")
     expect(headersFor("/engine/0123456789abcdef/openmana-engine.js.wasm")["Cache-Control"]).toBe("public, max-age=31536000, immutable")
+    expect(headersFor("/cards/0123456789abcdef/card-catalog.jsonl.gz")["Cache-Control"]).toBe("public, max-age=31536000, immutable")
     for (const pathname of ["/", "/index.html", "/play", "/manifest.webmanifest", "/icons/icon-192.png", "/favicon.ico"]) {
       expect(headersFor(pathname)).not.toHaveProperty("Cache-Control")
     }
   })
 
-  it("falls back to the app for its routes, never for engine or asset files", () => {
+  it("falls back to the app for its routes, never for engine, card catalog or asset files", () => {
     expect(vercel.rewrites).toHaveLength(1)
     const [rewrite] = vercel.rewrites
     expect(rewrite!.destination).toBe("/index.html")
     for (const pathname of ["/", "/play", "/decks", "/settings", "/credits", "/matches", "/unknown/deep/link"]) {
       expect(matches(rewrite!.source, pathname), pathname).toBe(true)
     }
-    for (const pathname of ["/engine/0123456789abcdef/missing.js", "/assets/missing.js", "/icons/missing.png"]) {
+    for (const pathname of ["/engine/0123456789abcdef/missing.js", "/cards/0123456789abcdef/missing.gz", "/assets/missing.js", "/icons/missing.png"]) {
       expect(matches(rewrite!.source, pathname), pathname).toBe(false)
     }
   })
@@ -82,13 +84,13 @@ describe("vite.config.ts", () => {
 })
 
 describe("dev server file watching", () => {
-  it("watches the app, engine/protocol and engine/client, but not Forge, builds or reports", async () => {
+  it("watches the app, engine/protocol and engine/client, but not Forge, builds, the card catalog build or reports", async () => {
     const { unwatchedPaths } = await import("./watch.ts")
     const ignored = unwatchedPaths(root)
-    for (const watched of ["src/engine/engine-session.ts", "src/app/router.tsx", "engine", "engine/protocol", "engine/protocol/src/index.ts", "engine/client/src/engine-client.ts", "vite.config.ts", "index.html"]) {
+    for (const watched of ["src/engine/engine-session.ts", "src/app/router.tsx", "src/cards/names.ts", "engine", "engine/protocol", "engine/protocol/src/index.ts", "engine/client/src/engine-client.ts", "vite.config.ts", "index.html"]) {
       expect(ignored(path.join(root, watched)), watched).toBe(false)
     }
-    for (const unwatched of ["engine/forge", "engine/forge/forge-gui/res/cardsfolder/a/abc.txt", "engine/build/dist/openmana-engine.js.wasm", "engine/bridge/src", "engine/wasm/host/worker-host.ts", "engine/node_modules/ajv", "dist/index.html", "reports/e2e/report.json"]) {
+    for (const unwatched of ["engine/forge", "engine/forge/forge-gui/res/cardsfolder/a/abc.txt", "engine/build/dist/openmana-engine.js.wasm", "engine/bridge/src", "engine/wasm/host/worker-host.ts", "engine/node_modules/ajv", "dist/index.html", "reports/e2e/report.json", "cards/build/cache/all-cards-1.jsonl.gz", "cards/build/dist/card-catalog.jsonl.gz"]) {
       expect(ignored(path.join(root, unwatched)), unwatched).toBe(true)
     }
   })

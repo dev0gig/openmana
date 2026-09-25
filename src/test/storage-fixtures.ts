@@ -73,15 +73,25 @@ export function logEntry(matchId: string, seq: number): MatchLogEntry {
 
 export function card(overrides: Partial<CardRecord> = {}): CardRecord {
   return {
-    id: uuid(),
     oracleId: uuid(),
-    lang: "de",
     name: "Lightning Strike",
-    printedName: "Blitzschlag",
+    layout: "normal",
+    faces: [{ name: "Lightning Strike", manaCost: "{1}{R}", typeLine: "Instant", oracleText: "Lightning Strike deals 3 damage to any target." }],
+    manaValue: 2,
+    colors: "R",
+    colorIdentity: "R",
+    forgeNames: ["Lightning Strike"],
     nameKeys: ["lightning strike", "blitzschlag"],
-    set: "m19",
-    collectorNumber: "152",
-    data: { rarity: "common" },
+    de: {
+      faces: [{ name: "Blitzschlag", typeLine: "Spontanzauber", text: "Blitzschlag fügt einem Ziel deiner Wahl 3 Schadenspunkte zu." }],
+      set: "m19",
+      collectorNumber: "152",
+      releasedAt: "2018-07-13",
+    },
+    prints: {
+      de: { id: uuid(), set: "m19", collectorNumber: "152", lang: "de", releasedAt: "2018-07-13", imageStatus: "lowres", imageSides: 1, imageVersion: "1562302708" },
+      fallback: { id: uuid(), set: "m19", collectorNumber: "152", lang: "en", releasedAt: "2018-07-13", imageStatus: "highres_scan", imageSides: 1, imageVersion: "1562302708" },
+    },
     ...overrides,
   }
 }

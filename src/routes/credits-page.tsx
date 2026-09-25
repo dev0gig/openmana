@@ -1,10 +1,14 @@
 /*
- * Credits (Bible §14): software OpenMana incorporates, inspiration and
- * reference, AI assistance, the temporary icon. Kinds are kept apart, and
- * nothing is claimed that is not so: Scryfall appears once card data is
- * used, the complete license notices come before any public release, and the
- * open GraalVM license question stays open here too
- * (docs/research/LICENSES.md).
+ * Credits (Bible §14): software OpenMana incorporates, data providers,
+ * inspiration and reference, AI assistance, the temporary icon. Kinds are
+ * kept apart, and nothing is claimed that is not so: the complete license
+ * notices come before any public release, and the open GraalVM license
+ * question stays open here too (docs/research/LICENSES.md).
+ *
+ * Scryfall (prompt 08) is named as the source of card data and pictures -
+ * without its logo and without implying that Scryfall endorses OpenMana, as
+ * Scryfall's terms require; the card data and pictures themselves belong to
+ * Wizards of the Coast (Fan Content Policy).
  */
 import { ExternalLink } from "lucide-react"
 import type { ReactNode } from "react"
@@ -12,6 +16,8 @@ import { Page } from "@/components/page-header"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { cardAssets } from "@/cards/card-assets"
+import { formatDate } from "@/cards/card-labels"
 import { engineAssets } from "@/engine/engine-assets"
 import { shortCommit } from "@/engine/engine-labels"
 
@@ -85,6 +91,26 @@ export function CreditsPage() {
               Veröffentlichung.
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Kartendaten und Kartenbilder</CardTitle>
+          <CardDescription>Woher Kartennamen, Kartentexte und Kartenbilder kommen.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-5">
+          <CreditEntry name="Scryfall" href="https://scryfall.com">
+            Deutsche und englische Kartennamen, Kartentexte, Set-Angaben und Kartenbilder stammen von Scryfall
+            {cardAssets.available ? ` (Stand ${formatDate(cardAssets.source.updatedAt)})` : ""}. OpenMana nutzt sie nur zur Anzeige und zum
+            Nachschlagen; welche Karten es gibt und was sie tun, entscheidet allein Forge. Scryfall steht in keiner Verbindung zu OpenMana und hat
+            OpenMana weder geprüft noch empfohlen.
+          </CreditEntry>
+          <CreditEntry name="Wizards of the Coast – Fan Content Policy" href="https://company.wizards.com/fancontentpolicy">
+            Die Karteninformationen und Kartenbilder, einschließlich der Manasymbole, sind urheberrechtlich geschützt von Wizards of the Coast LLC.
+            OpenMana nutzt sie als inoffizieller Fan-Inhalt im Rahmen der Fan Content Policy. Jedes Kartenbild nennt seine Künstlerin oder seinen
+            Künstler; OpenMana zeigt die Bilder immer vollständig und unverändert.
+          </CreditEntry>
         </CardContent>
       </Card>
 

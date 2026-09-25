@@ -24,6 +24,7 @@ import { backupFileName, createBackup, importBackup, importSpaceNeeded, planImpo
 import type { LocalDatabase } from "./database"
 import { saveDeck } from "./decks"
 import { StorageError } from "./errors"
+import { SCHEMA_VERSION } from "./generated/constants"
 import type { DeckRecord } from "./generated/records"
 import { createStores, type Migration } from "./migrations"
 import { readOverview } from "./overview"
@@ -81,7 +82,7 @@ describe("creating a backup", () => {
       type: "header",
       format: "openmana-backup",
       formatVersion: 1,
-      schemaVersion: 1,
+      schemaVersion: SCHEMA_VERSION,
       createdAt: file.createdAt,
       app: APP,
       stores: ["decks", "settings", "matches", "matchLog"],
@@ -196,7 +197,7 @@ describe("reading a backup", () => {
 
   it("refuses backups of a newer OpenMana", async () => {
     await refused(backupFile([backupHeader({ formatVersion: 2 }), backupEnd({})]), "backup-unsupported")
-    await refused(backupFile([backupHeader({ schemaVersion: 2 }), backupEnd({})]), "backup-unsupported")
+    await refused(backupFile([backupHeader({ schemaVersion: SCHEMA_VERSION + 1 }), backupEnd({})]), "backup-unsupported")
   })
 
   it("skips damaged, duplicate and orphaned records and says why", async () => {

@@ -1,0 +1,4 @@
+{
+  "$comment": "Test fixture: Forge cards of forge-res/ without Scryfall data (cards/scripts/catalog.test.ts).",
+  "cards": [{ "name": "Drake Stone", "note": "From Forge's \"Drake Stone\" edition (DS0); Scryfall does not list it." }]
+}

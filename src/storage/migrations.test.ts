@@ -5,11 +5,11 @@
  */
 import { openDB } from "idb"
 import { describe, expect, it } from "vitest"
-import { APP, FIXED_NOW, openTestDatabase } from "@/test/storage-fixtures"
+import { APP, deck, FIXED_NOW, logEntry, match, openTestDatabase, setting, uuid } from "@/test/storage-fixtures"
 import { StorageError } from "./errors"
 import { SCHEMA_VERSION } from "./generated/constants"
 import type { DatabaseMeta } from "./generated/records"
-import { createStores, latestVersion, MIGRATIONS, upgradeRecord, type Migration } from "./migrations"
+import { createStores, LAYOUT_V1, latestVersion, MIGRATIONS, upgradeRecord, type Migration } from "./migrations"
 import { compareLayout, openWithMigrations } from "./open"
 import { DATABASE_NAME, STORE_LAYOUT, type StoreLayout } from "./schema"
 
@@ -184,19 +184,51 @@ describe("migration list", () => {
   })
 })
 
-describe("the first schema version", () => {
-  it("creates exactly the current layout and records its creation", async () => {
+describe("the app's schema versions", () => {
+  it("a new database gets exactly the current layout and records its creation", async () => {
     const db = await openTestDatabase()
     db.close()
     const raw = await openDB(DATABASE_NAME)
     expect(await compareLayout(raw, STORE_LAYOUT)).toEqual([])
     expect(await raw.get("meta", "database")).toEqual({
       key: "database",
-      schemaVersion: 1,
+      schemaVersion: SCHEMA_VERSION,
       createdAt: FIXED_NOW.toISOString(),
       createdBy: APP,
-      migrations: [{ version: 1, appliedAt: FIXED_NOW.toISOString(), app: APP }],
+      migrations: MIGRATIONS.map(({ version }) => ({ version, appliedAt: FIXED_NOW.toISOString(), app: APP })),
     })
+    raw.close()
+  })
+
+  it("version 1 → 2 keeps every user record, replaces the card store and empties the cache index", async () => {
+    // A database exactly as the prompt-07 app left it, with one record in every store.
+    const v1 = await openWithMigrations({ name: DATABASE_NAME, migrations: MIGRATIONS.slice(0, 1), layout: LAYOUT_V1, app: APP, now: at("2026-09-25T01:00:00.000Z") })
+    const userRecords = { decks: deck(), settings: setting("ai.profile", "Default"), matches: match() }
+    const played = userRecords.matches
+    await v1.put("decks", userRecords.decks)
+    await v1.put("settings", userRecords.settings)
+    await v1.put("matches", played)
+    await v1.put("matchLog", logEntry(played.id, 0))
+    await v1.put("scryfallCards", { id: uuid(), oracleId: null, lang: "de", name: "Shock", printedName: "Schock", nameKeys: ["shock"], set: "m19", collectorNumber: "156", data: {} })
+    await v1.put("cacheIndex", { key: "old", kind: "bulk", status: "complete", source: null, version: null, storedAt: "2026-09-25T01:00:00.000Z", lastUsedAt: "2026-09-25T01:00:00.000Z", bytes: null, records: null })
+    v1.close()
+
+    const db = await openTestDatabase()
+    db.close()
+    const raw = await openDB(DATABASE_NAME)
+    expect(raw.version).toBe(2)
+    expect(await compareLayout(raw, STORE_LAYOUT)).toEqual([])
+    expect(await raw.getAll("decks")).toEqual([userRecords.decks])
+    expect(await raw.getAll("settings")).toEqual([userRecords.settings])
+    expect(await raw.getAll("matches")).toEqual([played])
+    expect(await raw.getAll("matchLog")).toEqual([logEntry(played.id, 0)])
+    for (const store of ["scryfallCards", "scryfallPrints", "scryfallSets", "forgeOnlyCards", "cacheIndex"]) {
+      expect(await raw.count(store)).toBe(0)
+    }
+    const meta = (await raw.get("meta", "database")) as DatabaseMeta
+    expect(meta.schemaVersion).toBe(2)
+    expect(meta.createdAt).toBe("2026-09-25T01:00:00.000Z")
+    expect(meta.migrations.map((entry) => entry.version)).toEqual([1, 2])
     raw.close()
   })
 })

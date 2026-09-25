@@ -7,8 +7,9 @@
  * Roles:
  * - user: the player's own data (decks, settings, recorded matches). Migrated
  *   on every upgrade, part of every backup.
- * - cache: derived data (Scryfall card data, cache bookkeeping). Never backed
- *   up; a migration may simply empty it, it is downloaded again.
+ * - cache: derived data (the card catalog with Scryfall data, fetched
+ *   printings, cache bookkeeping). Never backed up; a migration may simply
+ *   empty it, it is downloaded again.
  * - internal: this database's own metadata. Stays in this browser.
  */
 import type { DBSchema } from "idb"
@@ -17,18 +18,24 @@ import type {
   CacheEntryRecord,
   CardRecord,
   DeckRecord,
+  ForgeOnlyCardRecord,
   MatchLogEntry,
   MatchRecord,
   MetaRecord,
+  PrintRecord,
+  SetRecord,
   SettingRecord,
 } from "./generated/records"
 import {
   validateCacheEntryRecord,
   validateCardRecord,
   validateDeckRecord,
+  validateForgeOnlyCardRecord,
   validateMatchLogEntry,
   validateMatchRecord,
   validateMetaRecord,
+  validatePrintRecord,
+  validateSetRecord,
   validateSettingRecord,
   type SchemaError,
   type Validator,
@@ -36,7 +43,18 @@ import {
 
 export const DATABASE_NAME = "openmana"
 
-export const STORE_NAMES = ["meta", "settings", "decks", "matches", "matchLog", "scryfallCards", "cacheIndex"] as const
+export const STORE_NAMES = [
+  "meta",
+  "settings",
+  "decks",
+  "matches",
+  "matchLog",
+  "scryfallCards",
+  "scryfallPrints",
+  "scryfallSets",
+  "forgeOnlyCards",
+  "cacheIndex",
+] as const
 export type StoreName = (typeof STORE_NAMES)[number]
 
 export type StoreRole = "user" | "cache" | "internal"
@@ -48,6 +66,9 @@ export const STORE_ROLES: Readonly<Record<StoreName, StoreRole>> = {
   matches: "user",
   matchLog: "user",
   scryfallCards: "cache",
+  scryfallPrints: "cache",
+  scryfallSets: "cache",
+  forgeOnlyCards: "cache",
   cacheIndex: "cache",
 }
 
@@ -81,10 +102,10 @@ export const STORE_LAYOUT: Readonly<Record<StoreName, StoreLayout>> = {
   decks: { keyPath: "id", indexes: {} },
   matches: { keyPath: "id", indexes: { startedAt: index("startedAt") } },
   matchLog: { keyPath: ["matchId", "seq"], indexes: {} },
-  scryfallCards: {
-    keyPath: "id",
-    indexes: { oracleId: index("oracleId"), nameKeys: index("nameKeys", { multiEntry: true }), print: index(["set", "collectorNumber"]) },
-  },
+  scryfallCards: { keyPath: "oracleId", indexes: { nameKeys: index("nameKeys", { multiEntry: true }) } },
+  scryfallPrints: { keyPath: "id", indexes: { print: index(["set", "collectorNumber", "lang"]), oracleId: index("oracleId") } },
+  scryfallSets: { keyPath: "code", indexes: { arenaCode: index("arenaCode"), forgeCodes: index("forgeCodes", { multiEntry: true }) } },
+  forgeOnlyCards: { keyPath: "name", indexes: { nameKeys: index("nameKeys", { multiEntry: true }) } },
   cacheIndex: { keyPath: "key", indexes: { kind: index("kind"), lastUsedAt: index("lastUsedAt") } },
 }
 
@@ -95,7 +116,10 @@ export interface OpenManaDB extends DBSchema {
   decks: { key: string; value: DeckRecord }
   matches: { key: string; value: MatchRecord; indexes: { startedAt: string } }
   matchLog: { key: [string, number]; value: MatchLogEntry }
-  scryfallCards: { key: string; value: CardRecord; indexes: { oracleId: string; nameKeys: string; print: [string, string] } }
+  scryfallCards: { key: string; value: CardRecord; indexes: { nameKeys: string } }
+  scryfallPrints: { key: string; value: PrintRecord; indexes: { print: [string, string, string]; oracleId: string } }
+  scryfallSets: { key: string; value: SetRecord; indexes: { arenaCode: string; forgeCodes: string } }
+  forgeOnlyCards: { key: string; value: ForgeOnlyCardRecord; indexes: { nameKeys: string } }
   cacheIndex: { key: string; value: CacheEntryRecord; indexes: { kind: string; lastUsedAt: string } }
 }
 
@@ -150,6 +174,9 @@ export const RECORD_CHECKS: Readonly<Record<StoreName, RecordCheck>> = {
   matches: check(validateMatchRecord),
   matchLog: check(validateMatchLogEntry),
   scryfallCards: check(validateCardRecord),
+  scryfallPrints: check(validatePrintRecord),
+  scryfallSets: check(validateSetRecord),
+  forgeOnlyCards: check(validateForgeOnlyCardRecord),
   cacheIndex: check(validateCacheEntryRecord),
 }
 

@@ -1,0 +1,9 @@
+[metadata]
+Code=UNK
+Date=2022-01-01
+Name=Unknown Event
+Type=Funny
+ScryfallCode=UNK
+
+[cards]
+UR05 U P-Joven and Chandler @

@@ -50,8 +50,8 @@ function toKeyPath(keyPath: string | readonly string[]): string | string[] {
   return typeof keyPath === "string" ? keyPath : [...keyPath]
 }
 
-/** The stores of schema version 1 (frozen: this is history, STORE_LAYOUT is the present). */
-const LAYOUT_V1: Readonly<Record<string, StoreLayout>> = {
+/** The stores of schema version 1 (frozen: this is history, STORE_LAYOUT is the present). Exported for the upgrade tests. */
+export const LAYOUT_V1: Readonly<Record<string, StoreLayout>> = {
   meta: { keyPath: "key", indexes: {} },
   settings: { keyPath: "key", indexes: {} },
   decks: { keyPath: "id", indexes: {} },
@@ -74,11 +74,51 @@ const LAYOUT_V1: Readonly<Record<string, StoreLayout>> = {
   },
 }
 
+/**
+ * The card stores of schema version 2 (frozen): the card catalog (one record
+ * per Oracle identity instead of one per printing), particular printings,
+ * sets, and Forge cards without Scryfall data.
+ */
+const CARD_STORES_V2: Readonly<Record<string, StoreLayout>> = {
+  scryfallCards: {
+    keyPath: "oracleId",
+    indexes: { nameKeys: { keyPath: "nameKeys", unique: false, multiEntry: true } },
+  },
+  scryfallPrints: {
+    keyPath: "id",
+    indexes: {
+      print: { keyPath: ["set", "collectorNumber", "lang"], unique: false, multiEntry: false },
+      oracleId: { keyPath: "oracleId", unique: false, multiEntry: false },
+    },
+  },
+  scryfallSets: {
+    keyPath: "code",
+    indexes: {
+      arenaCode: { keyPath: "arenaCode", unique: false, multiEntry: false },
+      forgeCodes: { keyPath: "forgeCodes", unique: false, multiEntry: true },
+    },
+  },
+  forgeOnlyCards: {
+    keyPath: "name",
+    indexes: { nameKeys: { keyPath: "nameKeys", unique: false, multiEntry: true } },
+  },
+}
+
 export const MIGRATIONS: readonly Migration[] = [
   {
     version: 1,
     summary: "First schema: meta, settings, decks, matches with matchLog, Scryfall card data and the cache index.",
     structure: (db) => createStores(db, LAYOUT_V1),
+  },
+  {
+    version: 2,
+    summary: "Card data as a catalog: scryfallCards keyed by Oracle id, plus scryfallPrints, scryfallSets and forgeOnlyCards; the cache index is emptied.",
+    structure: (db) => {
+      // A cache: its records are simply downloaded again with the catalog.
+      if (db.objectStoreNames.contains("scryfallCards")) db.deleteObjectStore("scryfallCards")
+      createStores(db, CARD_STORES_V2)
+    },
+    clear: ["cacheIndex"],
   },
 ]
 

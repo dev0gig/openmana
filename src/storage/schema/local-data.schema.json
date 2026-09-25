@@ -7,7 +7,7 @@
     "SchemaVersion": {
       "title": "SchemaVersion",
       "description": "Version of the record schemas below = version of the IndexedDB database. Every change to a record shape or to the stores raises it and adds a migration (src/storage/migrations.ts) that upgrades the database and older backups alike.",
-      "const": 1
+      "const": 2
     },
     "BackupFormatVersion": {
       "title": "BackupFormatVersion",
@@ -246,22 +246,186 @@
       }
     },
 
-    "CardRecord": {
-      "title": "CardRecord",
-      "description": "Store scryfallCards (key: id; indexes oracleId, nameKeys (multi-entry), print [set, collectorNumber]). Card metadata from Scryfall for display and import lookups, never for rules. Derived data: never backed up, may be dropped and downloaded again. The payload (data) is shaped by prompt 08.",
+    "ColorLetters": {
+      "title": "ColorLetters",
+      "description": "Colours as letters in WUBRG order; empty = colourless.",
+      "type": "string",
+      "pattern": "^W?U?B?R?G?$"
+    },
+    "LanguageCode": {
+      "title": "LanguageCode",
+      "description": "Scryfall's language code of a printing (en, de, ja …).",
+      "type": "string",
+      "pattern": "^[a-z]{2,3}$"
+    },
+    "ReleaseDate": {
+      "title": "ReleaseDate",
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "ImageStatus": {
+      "title": "ImageStatus",
+      "description": "Scryfall's image_status of a printing. Only lowres and highres_scan are real pictures of the card; placeholder is a stand-in Scryfall shows until it has a scan, missing means no picture at all.",
+      "enum": ["missing", "placeholder", "lowres", "highres_scan"]
+    },
+    "PrintRef": {
+      "title": "PrintRef",
+      "description": "One printing of a card as far as display needs it. The picture URLs are not stored: they follow from id, side and imageVersion (src/cards/images.ts; the catalog build checks every URL of the catalog against that rule). imageSides: 0 no picture, 1 one picture (front), 2 front and back (double-faced cards).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "oracleId", "lang", "name", "printedName", "nameKeys", "set", "collectorNumber", "data"],
+      "required": ["id", "set", "collectorNumber", "lang", "releasedAt", "imageStatus", "imageSides"],
       "properties": {
         "id": { "$ref": "#/$defs/Uuid", "description": "Scryfall's id of this printing." },
-        "oracleId": { "anyOf": [{ "$ref": "#/$defs/Uuid" }, { "type": "null" }] },
-        "lang": { "type": "string", "pattern": "^[a-z]{2,3}$" },
-        "name": { "$ref": "#/$defs/NonEmptyString", "description": "The English (Oracle) name." },
-        "printedName": { "anyOf": [{ "$ref": "#/$defs/NonEmptyString" }, { "type": "null" }], "description": "The printed name in lang, if not English." },
-        "nameKeys": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/NonEmptyString" }, "description": "Normalized names this printing is found by." },
+        "set": { "$ref": "#/$defs/NonEmptyString", "description": "Scryfall's set code (lower case)." },
+        "collectorNumber": { "$ref": "#/$defs/NonEmptyString" },
+        "lang": { "$ref": "#/$defs/LanguageCode" },
+        "releasedAt": { "$ref": "#/$defs/ReleaseDate" },
+        "imageStatus": { "$ref": "#/$defs/ImageStatus" },
+        "imageSides": { "enum": [0, 1, 2] },
+        "imageVersion": { "type": "string", "pattern": "^\\d+$", "description": "Scryfall's image timestamp (the query of its image URLs); present when imageSides > 0." },
+        "artist": { "$ref": "#/$defs/NonEmptyString" }
+      }
+    },
+    "CardFace": {
+      "title": "CardFace",
+      "description": "One face of a card in English, as the Oracle has it today. Absent fields: the face has none (a land has no mana cost). colors: only on multi-face cards whose faces have colours of their own.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "$ref": "#/$defs/NonEmptyString" },
+        "manaCost": { "type": "string" },
+        "typeLine": { "type": "string" },
+        "oracleText": { "type": "string" },
+        "power": { "type": "string" },
+        "toughness": { "type": "string" },
+        "loyalty": { "type": "string" },
+        "defense": { "type": "string" },
+        "colors": { "$ref": "#/$defs/ColorLetters" }
+      }
+    },
+    "PrintedFace": {
+      "title": "PrintedFace",
+      "description": "What one face says in the language of a printing (Scryfall's printed_name, printed_type_line, printed_text). Absent fields were not printed or are unknown to Scryfall; the English face stands in for them.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": { "$ref": "#/$defs/NonEmptyString" },
+        "typeLine": { "type": "string" },
+        "text": { "type": "string" }
+      }
+    },
+    "PrintedText": {
+      "title": "PrintedText",
+      "description": "A card's printed text in one language, per face in the order of the card's faces, from the printing named here. A translation of the Oracle text of its day: it does not receive errata.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["faces", "set", "collectorNumber", "releasedAt"],
+      "properties": {
+        "faces": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/PrintedFace" } },
         "set": { "$ref": "#/$defs/NonEmptyString" },
         "collectorNumber": { "$ref": "#/$defs/NonEmptyString" },
-        "data": { "type": "object", "additionalProperties": true }
+        "releasedAt": { "$ref": "#/$defs/ReleaseDate" }
+      }
+    },
+    "CardAlias": {
+      "title": "CardAlias",
+      "description": "Another English name printed on some printings of a card (Universes Beyond names, flavour names) and the printing that shows it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "print"],
+      "properties": {
+        "name": { "$ref": "#/$defs/NonEmptyString" },
+        "print": { "$ref": "#/$defs/PrintRef" }
+      }
+    },
+    "CardRecord": {
+      "title": "CardRecord",
+      "description": "Store scryfallCards (key: oracleId; index nameKeys, multi-entry). One card (one Oracle identity) of the card catalog: English faces, the German printed text, the default printings to show, and the names of the Forge cards that are this card. For display, search and import lookups only - never for rules, which Forge alone decides. Derived data from the card catalog (cards/): never backed up, replaced as a whole when the app brings a new catalog.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["oracleId", "name", "layout", "faces", "manaValue", "colors", "colorIdentity", "forgeNames", "nameKeys", "de", "prints"],
+      "properties": {
+        "oracleId": { "$ref": "#/$defs/Uuid", "description": "Scryfall's Oracle id: the same for every printing of the card." },
+        "name": { "$ref": "#/$defs/NonEmptyString", "description": "The English Oracle name; \"Front // Back\" for cards with several faces." },
+        "layout": { "$ref": "#/$defs/NonEmptyString", "description": "Scryfall's layout (normal, split, flip, transform, modal_dfc, meld, adventure, token …)." },
+        "faces": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/CardFace" }, "description": "One face for single-faced cards, else Scryfall's faces in order." },
+        "manaValue": { "type": "number", "minimum": 0 },
+        "colors": { "$ref": "#/$defs/ColorLetters", "description": "The card's colours; for a double-faced card without colours of its own those of its front face." },
+        "colorIdentity": { "$ref": "#/$defs/ColorLetters" },
+        "forgeNames": { "type": "array", "items": { "$ref": "#/$defs/NonEmptyString" }, "description": "The names of the Forge cards that are this card, as Forge's deck lists and protocol use them (usually one); empty: the engine does not know it." },
+        "nameKeys": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/NonEmptyString" }, "description": "Normalized names (src/cards/names.ts) the card is found by: English name and face names, English names of printings and aliases, German printed names." },
+        "de": { "anyOf": [{ "$ref": "#/$defs/PrintedText" }, { "type": "null" }], "description": "The German printed text; null: Scryfall knows no German printing with text." },
+        "prints": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["de", "fallback"],
+          "description": "The printings shown by default. de: the best German printing with a real picture (null: none). fallback: the best English printing, or one in the card's only language.",
+          "properties": {
+            "de": { "anyOf": [{ "$ref": "#/$defs/PrintRef" }, { "type": "null" }] },
+            "fallback": { "anyOf": [{ "$ref": "#/$defs/PrintRef" }, { "type": "null" }] }
+          }
+        },
+        "aliases": { "type": "array", "items": { "$ref": "#/$defs/CardAlias" } }
+      }
+    },
+    "PrintRecord": {
+      "title": "PrintRecord",
+      "description": "Store scryfallPrints (key: id; indexes print [set, collectorNumber, lang], oracleId). One particular printing, fetched from Scryfall's API when a deck names it (set and collector number) and the catalog does not carry it. Derived data: never backed up; fetchedAt decides when it is fetched again.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "oracleId", "name", "set", "collectorNumber", "lang", "releasedAt", "imageStatus", "imageSides", "fetchedAt"],
+      "properties": {
+        "id": { "$ref": "#/$defs/Uuid" },
+        "oracleId": { "$ref": "#/$defs/Uuid" },
+        "name": { "$ref": "#/$defs/NonEmptyString", "description": "The English Oracle name." },
+        "set": { "$ref": "#/$defs/NonEmptyString" },
+        "collectorNumber": { "$ref": "#/$defs/NonEmptyString" },
+        "lang": { "$ref": "#/$defs/LanguageCode" },
+        "releasedAt": { "$ref": "#/$defs/ReleaseDate" },
+        "imageStatus": { "$ref": "#/$defs/ImageStatus" },
+        "imageSides": { "enum": [0, 1, 2] },
+        "imageVersion": { "type": "string", "pattern": "^\\d+$" },
+        "artist": { "$ref": "#/$defs/NonEmptyString" },
+        "printed": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/PrintedFace" }, "description": "The printed text per face, for printings not in English." },
+        "fetchedAt": { "$ref": "#/$defs/Timestamp" }
+      }
+    },
+    "SetRecord": {
+      "title": "SetRecord",
+      "description": "Store scryfallSets (key: code; indexes arenaCode, forgeCodes (multi-entry)). A Magic set as Scryfall lists it, with the codes MTG Arena and Forge use for it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "name", "setType", "digital", "cardCount", "forgeCodes"],
+      "properties": {
+        "code": { "$ref": "#/$defs/NonEmptyString", "description": "Scryfall's set code (lower case)." },
+        "name": { "$ref": "#/$defs/NonEmptyString", "description": "English set name." },
+        "setType": { "$ref": "#/$defs/NonEmptyString" },
+        "releasedAt": { "$ref": "#/$defs/ReleaseDate" },
+        "digital": { "type": "boolean" },
+        "cardCount": { "type": "integer", "minimum": 0 },
+        "parentCode": { "$ref": "#/$defs/NonEmptyString" },
+        "arenaCode": { "$ref": "#/$defs/NonEmptyString", "description": "The set code MTG Arena uses (deck exports), if it differs or exists." },
+        "mtgoCode": { "$ref": "#/$defs/NonEmptyString" },
+        "forgeCodes": { "type": "array", "items": { "$ref": "#/$defs/NonEmptyString" }, "description": "Forge edition codes whose cards are this set (Forge's ScryfallCode)." }
+      }
+    },
+    "ForgeOnlyReason": {
+      "title": "ForgeOnlyReason",
+      "description": "Why a Forge card has no Scryfall data. rebalanced: an MTG Arena rebalanced card (A-), which Scryfall does not list; listed: named in cards/forge-unmatched.json with a note.",
+      "enum": ["rebalanced", "listed"]
+    },
+    "ForgeOnlyCardRecord": {
+      "title": "ForgeOnlyCardRecord",
+      "description": "Store forgeOnlyCards (key: name; index nameKeys, multi-entry). A card the engine knows but the card catalog has no Scryfall data for: it stays playable and is shown with Forge's own texts.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "nameKeys", "reason"],
+      "properties": {
+        "name": { "$ref": "#/$defs/NonEmptyString", "description": "The Forge card name." },
+        "nameKeys": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/NonEmptyString" } },
+        "reason": { "$ref": "#/$defs/ForgeOnlyReason" },
+        "note": { "$ref": "#/$defs/NonEmptyString" }
       }
     },
     "CacheStatus": {
@@ -271,7 +435,7 @@
     },
     "CacheEntryRecord": {
       "title": "CacheEntryRecord",
-      "description": "Store cacheIndex (key: key; indexes kind, lastUsedAt). Bookkeeping of one cached resource (a Scryfall bulk dataset, a card image in Cache Storage …): where from, which version, complete or not, size, last use. Derived data: never backed up.",
+      "description": "Store cacheIndex (key: key; indexes kind, lastUsedAt). Bookkeeping of one cached resource (the card catalog, later card images in Cache Storage …): where from, which version, complete or not, size, last use. Derived data: never backed up.",
       "type": "object",
       "additionalProperties": false,
       "required": ["key", "kind", "status", "source", "version", "storedAt", "lastUsedAt", "bytes", "records"],
@@ -366,7 +530,7 @@
 
     "BackupStore": {
       "title": "BackupStore",
-      "description": "The stores a backup holds: the user's own data. Caches (scryfallCards, cacheIndex) and meta are never part of a backup.",
+      "description": "The stores a backup holds: the user's own data. Caches (scryfallCards, scryfallPrints, scryfallSets, forgeOnlyCards, cacheIndex) and meta are never part of a backup.",
       "enum": ["decks", "settings", "matches", "matchLog"]
     },
     "BackupHeader": {
@@ -409,6 +573,137 @@
           "type": "object",
           "propertyNames": { "$ref": "#/$defs/BackupStore" },
           "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "records": { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "Sha256": {
+      "title": "Sha256",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "CatalogFormatVersion": {
+      "title": "CatalogFormatVersion",
+      "description": "Version of the card catalog container (header, record lines, end line). Its records are those of the header's schemaVersion.",
+      "const": 1
+    },
+    "CatalogSource": {
+      "title": "CatalogSource",
+      "description": "The Scryfall data a card catalog was made from: the bulk file (as Scryfall published it) and the set list.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "bulkType", "updatedAt", "uri", "bytes", "sha256", "setsUri", "setsSha256"],
+      "properties": {
+        "provider": { "const": "scryfall" },
+        "bulkType": { "const": "all_cards" },
+        "updatedAt": { "$ref": "#/$defs/Timestamp", "description": "When Scryfall made the bulk file." },
+        "uri": { "$ref": "#/$defs/NonEmptyString" },
+        "bytes": { "type": "integer", "minimum": 0 },
+        "sha256": { "$ref": "#/$defs/Sha256" },
+        "setsUri": { "$ref": "#/$defs/NonEmptyString" },
+        "setsSha256": { "$ref": "#/$defs/Sha256" }
+      }
+    },
+    "CatalogForge": {
+      "title": "CatalogForge",
+      "description": "The Forge card database the catalog was matched against (the engine's pinned Forge): how many cards it has, how many the catalog found, how many have no Scryfall data.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "commit", "cards", "matched", "forgeOnly"],
+      "properties": {
+        "repository": { "$ref": "#/$defs/NonEmptyString" },
+        "commit": { "$ref": "#/$defs/GitCommit" },
+        "cards": { "type": "integer", "minimum": 0 },
+        "matched": { "type": "integer", "minimum": 0 },
+        "forgeOnly": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "CatalogCounts": {
+      "title": "CatalogCounts",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cards", "germanText", "germanImage", "sets", "forgeOnly"],
+      "properties": {
+        "cards": { "type": "integer", "minimum": 0 },
+        "germanText": { "type": "integer", "minimum": 0, "description": "Cards with German printed text." },
+        "germanImage": { "type": "integer", "minimum": 0, "description": "Cards with a German picture." },
+        "sets": { "type": "integer", "minimum": 0 },
+        "forgeOnly": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "CatalogHeader": {
+      "title": "CatalogHeader",
+      "description": "First line of a card catalog file (cards/build/dist, made by cards/scripts/build-catalog.ts).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "format", "formatVersion", "schemaVersion", "source", "forge", "counts"],
+      "properties": {
+        "type": { "const": "header" },
+        "format": { "const": "openmana-card-catalog" },
+        "formatVersion": { "type": "integer", "minimum": 1 },
+        "schemaVersion": { "type": "integer", "minimum": 1, "description": "The local data schema version its records follow." },
+        "source": { "$ref": "#/$defs/CatalogSource" },
+        "forge": { "$ref": "#/$defs/CatalogForge" },
+        "counts": { "$ref": "#/$defs/CatalogCounts" }
+      }
+    },
+    "CatalogCardLine": {
+      "title": "CatalogCardLine",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "record"],
+      "properties": {
+        "type": { "const": "card" },
+        "record": { "$ref": "#/$defs/CardRecord" }
+      }
+    },
+    "CatalogSetLine": {
+      "title": "CatalogSetLine",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "record"],
+      "properties": {
+        "type": { "const": "set" },
+        "record": { "$ref": "#/$defs/SetRecord" }
+      }
+    },
+    "CatalogForgeOnlyLine": {
+      "title": "CatalogForgeOnlyLine",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "record"],
+      "properties": {
+        "type": { "const": "forge-only" },
+        "record": { "$ref": "#/$defs/ForgeOnlyCardRecord" }
+      }
+    },
+    "CatalogLine": {
+      "title": "CatalogLine",
+      "description": "A record line of a card catalog file: a card, a set or a Forge card without Scryfall data.",
+      "type": "object",
+      "required": ["type"],
+      "properties": { "type": { "type": "string" } },
+      "discriminator": { "propertyName": "type" },
+      "oneOf": [{ "$ref": "#/$defs/CatalogCardLine" }, { "$ref": "#/$defs/CatalogSetLine" }, { "$ref": "#/$defs/CatalogForgeOnlyLine" }]
+    },
+    "CatalogEnd": {
+      "title": "CatalogEnd",
+      "description": "Last line of a card catalog file: how many lines of each kind came before. A file without it, or with other counts, is incomplete.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "counts", "records"],
+      "properties": {
+        "type": { "const": "end" },
+        "counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["card", "set", "forge-only"],
+          "properties": {
+            "card": { "type": "integer", "minimum": 0 },
+            "set": { "type": "integer", "minimum": 0 },
+            "forge-only": { "type": "integer", "minimum": 0 }
+          }
         },
         "records": { "type": "integer", "minimum": 0 }
       }

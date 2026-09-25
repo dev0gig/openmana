@@ -1,0 +1,9 @@
+[metadata]
+Code=DOM
+Code2=DOM
+Date=2018-04-27
+Name=Dominaria
+Type=Expansion
+ScryfallCode=DOM
+
+[cards]

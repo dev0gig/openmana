@@ -4,3 +4,6 @@
 /dist/
 /reports/
 *.local
+
+# Card catalog build (cards/scripts): Scryfall downloads and the built catalog.
+/cards/build/

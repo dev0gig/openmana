@@ -1,0 +1,9 @@
+[metadata]
+Code=MBC
+Date=2025-02-07
+Name=Mystery Booster Commander Edition
+Type=Other
+ScryfallCode=MBC
+
+[cards]
+24 R Joven and Chandler @Douglas Shuler
