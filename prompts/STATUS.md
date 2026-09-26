@@ -30,9 +30,9 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | **16 — Priority, stack and phases** |
-| Nächster Prompt | 17 — Targeting and cost payment (erst nach 16 = COMPLETE) |
-| Zuletzt abgeschlossen | 15 — Forge decision UI (`cf4d2ad`) |
+| Aktuell ausgeführt | – (keiner; nach 16 wie vorgesehen gestoppt) |
+| Nächster Prompt | **17 — Targeting and cost payment** (PENDING, nicht begonnen) |
+| Zuletzt abgeschlossen | 16 — Priority, stack and phases (`492e07d`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-26 (Dropzone-Standalone-Lauf, Regeln aus `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-26 |
 
@@ -56,7 +56,7 @@
 | 13 | [Battlefield foundation](queue/13-battlefield-foundation.md) | COMPLETE | `eb8e0ab` |
 | 14 | [Cards, hand and safe interaction](queue/14-card-hand-interactions.md) | COMPLETE | `1b3e3b6` |
 | 15 | [Forge decision UI](queue/15-forge-decisions.md) | COMPLETE | `cf4d2ad` |
-| 16 | [Priority, stack and phases](queue/16-priority-stack-phases.md) | IN_PROGRESS | – |
+| 16 | [Priority, stack and phases](queue/16-priority-stack-phases.md) | COMPLETE | `492e07d` |
 | 17 | [Targeting and cost payment](queue/17-targeting-cost-payment.md) | PENDING | – |
 | 18 | [Combat: attackers](queue/18-combat-attackers.md) | PENDING | – |
 | 19 | [Combat: blockers](queue/19-combat-blockers.md) | PENDING | – |
@@ -1688,12 +1688,133 @@
 - **Weiter mit:** Prompt 16 (Priority, stack and phases). Nicht begonnen:
   `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
 
-### 16 — Priority, stack and phases — IN_PROGRESS
+### 16 — Priority, stack and phases — COMPLETE
 
-- Begonnen am 2026-09-26 von Claude Code (Claude Opus 5.5), Auftrag
-  „Standalone von Dropzone für OpenMana, bitte.“ (Dropzone
-  `fixed/standalone.md` mit den Regeln aus `naechster-schritt.md`: genau ein
-  Prompt, danach Stopp).
+- **Commits:** `6eb3087` Engine (Protokoll 5, Testpartie `priority-respond`,
+  JVM-Tests), `9f3ff08` JVM-Test („Zug beenden“ hält beim Zauberspruch und
+  Angriff der KI an), `492e07d` Oberfläche, `519c745` E2E (Entwicklungsserver
+  erst aufwärmen), `977b204` Test ohne implizites `any`, `eb4ff6c`
+  Kartenbild-Nachschlag und E2E (Protokollversion, ausgeblendete Tippziele),
+  `dca8e9f` Worte der Priorität in eigenem Modul, `e2892b4` E2E (axe nach
+  Übergängen). Engine-Build und Differenztests auf `6eb3087`
+  (`engineSourcesModified: false`, Engine-Quellen seitdem unverändert), die
+  65 JVM-Tests auf `eb4ff6c`, der Gesamtlauf `npm run check` auf `e2892b4` –
+  jeweils sauberer Arbeitsbaum; danach Doku und dieser Eintrag (2026-09-26).
+  Agent: Claude Code (Claude Opus 5.5), Auftrag „Standalone von Dropzone für
+  OpenMana, bitte.“ (Dropzone `fixed/standalone.md` mit den Regeln aus
+  `naechster-schritt.md`: genau ein Prompt, danach Stopp). Status-Commit zu
+  Beginn: `82a02c9`.
+- **Zusammenfassung:** Zug, Phase, Priorität und Stapel sind ohne
+  Forge-Wissen verständlich, ohne eine Regel im Client. **Kopfzeile:** Forges
+  Schritt in Worten, eine **Phasenleiste** (13 Schritte in fünf Phasen, der
+  laufende breit in Gold, die vergangenen gedämpft) und wer am Zug ist.
+  **Priorität in Worten** statt Forges Lagebericht, nur aus Forges Zustand
+  (wessen Zug, was oben auf dem Stapel liegt – dessen Karte daneben): „Du
+  kannst jetzt eine Karte spielen – oder weitergeben.“, „Zug der Forge-KI: …“,
+  „Die Forge-KI hat „X“ gewirkt. Du kannst darauf antworten – oder es
+  verrechnen lassen.“ **Forges Knöpfe nach ihrer Bedeutung**
+  (`Button.meaning`, von der Bridge an Forges Textschlüsseln erkannt): OK =
+  „Weiter“ bzw. mit etwas auf dem Stapel „Verrechnen lassen“, darüber ein
+  Satz, was das Abgeben bewirkt; „Zug beenden“ nur nach Rückfrage
+  (`AlertDialog`: gibt den Rest des Zuges weg, auch einen eigenen Angriff;
+  Forge hält beim Zauberspruch oder Angriff der KI an); „Rückgängig (n)“ mit
+  Forges Worten, sofort. **Forges APINA bleibt Forges:** jede Priorität am
+  Tisch ist eine, in der Forge etwas für den Spieler fand (in allen
+  Testpartien belegt); die App gibt nie selbst weiter. **Stapel mit Karten:**
+  jeder Eintrag mit seiner Karte (Zauberspruch: die eigene, Fähigkeit: die
+  Quelle; verdeckt: Rückseite), Art, wessen, Zielen und Forges Text; das Bild
+  öffnet die Kartenansicht (wo auf dem Stapel, wie viel darüber – ansehen, nie
+  antippen). Karten spielt man durch Antippen (Prompt 14), nie über eine Liste
+  der App. **Engine, Protokoll 5:** `StackItem.card`/`ability`,
+  `Button.meaning`, `select.cards` nur sichtbare Ids, `action` bei Priorität
+  und Bezahlen nur für eigene und von Forge markierte Karten (die Nebenwirkung
+  aus Befund 05 §7.2 ist weg). Kein Blocker, keine Regel im Client.
+- **Wichtige Komponenten:**
+  - `src/game/turn-model.ts` (rein: Schritte in Phasen, Stapelart, Oberstes,
+    wessen Zug, Priorität des Spielers), `priority-labels.ts` (Worte; nur die
+    Partie-Seite lädt sie), `decision-panel.tsx` (`PriorityDecision`,
+    `EndTurnButton`, `ForgeWorking`), `game-table.tsx` (`TurnTrack`,
+    `StackEntry`), `card-sheet.tsx` (`StackFacts`), `table-model.ts`
+    (Stapelkarten, `stackEntriesOf`), `card-use.ts` (Stapelkarte: nur ansehen),
+    `table-labels.ts`, `src/components/ui/phase-track.tsx`,
+    `src/cards/card-lookup.ts` (Name = Seite einer anderen Karte)
+  - Engine: `StateBuilder` (Stapelkarten, `mayAskAction`), `BridgeGuiGame`
+    (`meaningOf`, sichtbare Auswahl-Ids), `Protocol` (Version 5,
+    `MEANING_*`), Schema/Typen/Beispiele, `ScriptedHuman` (`play: respond`),
+    `engine/fixtures/differential/priority-respond.json`,
+    `engine/wasm/spike/trace.ts` (`priority-response`,
+    `priority-opponent-turn` Pflicht), `PriorityStackTest`
+  - Tests/Prüfstand: drei neue Szenen in `scripts/record-table-scenes.ts`
+    (`opponent-turn`, `respond`, `respond-own`); E2E: echte Partie mit
+    „Weiter“ und Phasenleiste, Prioritätsantworten samt Rückfrage, Stapelkarte
+    in der Kartenansicht, Aufwärmen des Entwicklungsservers, axe nach
+    Übergängen, Protokollversion aus der Konstante
+  - Doku: `docs/implementation/16-priority-stack-phases.md`, `AGENTS.md`
+    („Priority, Stack and Turn Rules“), `docs/DESIGN_SYSTEM.md` (Priorität,
+    Stapel, `PhaseTrack`, Regel 4), Bible §6 (Verweis), `README.md`,
+    `STATUS.md`, `engine/protocol/README.md` (Version 5),
+    `engine/fixtures/README.md`
+- **Tests (alle bestanden):**
+  - **Engine:** Build (349,5 s, `native-image` 108 s bei 6,0 GiB);
+    Differenztests **72 Läufe, 0 Fehler** – `priority-respond` JVM = Node =
+    Chrome (Forge-Protokoll `91697aa7…`, 443 Nachrichten `7a3447e3…`, Spur 319
+    Einträge gleich), Referenzpartien wie seit 02 (`c1e990c6…`,
+    `7c3f673f…`), Abdeckung vollständig; **65 JVM-Tests** (neu
+    `PriorityStackTest` 9: APINA, Knopfbedeutungen, „Zug beenden“ im eigenen
+    Zug ohne Angriff und im Zug der KI mit Halt bei Zauberspruch (Zug 4) und
+    Angriff (Zug 8), „Rückgängig (1)“ nimmt ein Mana-Land zurück,
+    Stapelkarten, Antwort über dem KI-Zauber, Ansehen ohne Nebenwirkung,
+    sichtbare Auswahl-Ids; Vertrag Bedeutungen = Schema); **81
+    Engine-Unit-Tests**.
+  - **Prioritäten in allen zwölf Testpartien:** 241, **jede mit `canAct`**
+    und einer von Forge markierten Karte; 53 im Zug der KI (52 in
+    `priority-respond`), 8 mit etwas auf dem Stapel.
+  - Erzeugte Dateien = Schemas, `tsc -b`, `oxlint` ohne Befund; **759
+    Vitest-Tests in 62 Dateien** (729 nach Prompt 15, 30 neue): Zugmodell 13,
+    Priorität im echten Tischcode 13, Seite +2 (mit dem echten Client:
+    Rückfrage vor „Zug beenden“, Kopfzeile), Tischmodell +1, Karten-Nachschlag
+    +1; angepasst: Entscheidungsbereich, Tisch, Beschriftungen.
+  - **End-to-End** (`npm run check` 11 min 51 s, Chrome 153.0.8010.12, echte
+    Engine `79b08e1a19afa7ae`, **0 Befunde**): echte Partie Desktop/Handy
+    „Spielen“ → „Behalten“ → Land über die Kartenansicht → **„Weiter“**,
+    Phasenleiste = Forges Schritt (`MAIN1`), Knöpfe 40/48 px, 3,2/3,3 s;
+    **19 echte + 6 gebaute Szenen in sechs Größen** (150 Kombinationen, axe
+    0, kleinstes Tippziel 29 × 40 px = Stapelkarte); in drei Größen
+    „Weiter“, „Verrechnen lassen“ und „Zug beenden …“ → Rückfrage →
+    „Weiterspielen“ (nichts gesendet) → „Zug beenden“ (Knopf 2); in allen
+    sechs die Kartenansicht einer Stapelkarte.
+- **Messwerte (odin):** Start-JavaScript unverändert 251,4 → 251,5 KB gzip -9
+  (`a651b2a` → `dca8e9f`, nur Oberfläche gebaut); Partie-Seite
+  (nachgeladen) 26,4 → 28,9 KB. Engine-Modul 78,95 MB / 13,09 MB Brotli.
+  Entscheidungsbereich bei der Priorität: Tabelle in der Doku §10.3.
+- **Erkenntnisse/Abweichungen:**
+  - **APINA ist lückenlos** – die App braucht (und hat) kein eigenes
+    Weitergeben; wo Forge fragt, gibt es etwas zu entscheiden.
+  - **Die Nebenwirkung des Ansehens gab es auch beim Bezahlen**
+    (`InputPayMana.getActivateAction` → `getAllManaAbilities`); beide
+    beschränkt, Partien unverändert.
+  - **Forges Stapeltexte sind für Zaubersprüche englisch**, auch in de-DE
+    („Schock (29) deals 2 damage to …“) → gezeigt wie gesendet, Name, Art,
+    Besitzer und Ziele deutsch aus den Feldern; upstream bzw. 26.
+  - **„Zug beenden“ lässt den eigenen Angriff aus** (Forge,
+    `declareAttackers`) – daher die Rückfrage; Forges Unterbrechungen bei
+    Zauberspruch/Angriff der KI wirken auch ohne Forges Oberfläche (geprüft).
+  - **Kartenbild:** „Rampant Growth“ ist auch die zweite Seite von „Studious
+    First-Year“ → `resolveEngineKey` entscheidet jetzt nach Forges eigenem
+    Namen (`forgeNames`); vorher ohne Bild.
+  - **E2E:** Vite bündelt nach einem Engine-Neubau neu und lädt die Seite
+    einmal neu → Aufwärmen; axe maß mitten im Überblenden (`transition-all`)
+    → wartet Übergänge ab; die Protokollversion stand fest im Test (wie in
+    12) → aus der Konstante. Start-JavaScript: neue Worte in
+    `game-labels.ts` zogen 2,3 KB in den Start → eigenes Modul.
+  - **odin:** `/tmp` war zu 90 % voll (Arbeitsordner anderer Sitzungen) →
+    Engine-Build, Differenz- und Gesamttest mit Arbeitsordnern unter
+    `engine/build/tmp`; ohne Einfluss auf die Ergebnisse.
+  - Bewusst: kein eigener Auto-Pass, kein Zeitlimit; Forges Stapeltext
+    bleibt (zweite Zeile); die Leiste zeigt Balken statt Namen (360 px);
+    Details `docs/implementation/16-priority-stack-phases.md` §11, §12.
+- **Weiter mit:** Prompt 17 (Targeting and cost payment). Nicht begonnen:
+  `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
 
 ## Hinweise für spätere Prompts
 
@@ -1911,6 +2032,53 @@ Entscheidungsbereich (`src/game/decision-panel.tsx`, Regeln in
   nicht erreichen, baut `src/test/built-questions.ts` (als gebaut markiert).
 - ⚠️ **E2E-Prüfstand:** je Szene eine frische Seite (sonst erschöpfte Chrome
   auf dem vollen odin die Ressourcen); keine Protokoll-Prüfer im Prüfstand.
+
+### Priorität, Stapel und Phasen (Stand 2026-09-26, für 17 ff.)
+
+Seit Prompt 16 spricht die Priorität in Worten, der Stapel zeigt Karten und
+die Kopfzeile den Zug (`src/game/turn-model.ts`, `priority-labels.ts`,
+`PriorityDecision` in `decision-panel.tsx`, Doku
+`docs/implementation/16-priority-stack-phases.md`, Regeln in `AGENTS.md`
+„Priority, Stack and Turn Rules“):
+
+- **17 (Ziele, Kosten):** Spieler als Ziel fehlen weiter (`player.tap`,
+  Forges gültige Spieler ins Protokoll). `action` wird bei Priorität und
+  Bezahlen nur noch für eigene und von Forge markierte Karten gefragt
+  (`StateBuilder.mayAskAction`, wegen Forges Nebenwirkung) – braucht 17 dort
+  eine Karte der KI, zuerst prüfen, ob Forge sie markiert. Stapeleinträge
+  tragen `targets` und die Karte (Zauberspruch bzw. Quelle); die Auswahl eines
+  Ziels ist weiter Prompt 15s `select`, nicht `PriorityDecision` (die nur ohne
+  offene Auswahl gilt).
+- **18/19 (Kampf):** `Button.meaning` gibt es nur bei der Priorität
+  (`BridgeGuiGame.meaningOf`); Forges OK beim Angreifen/Blocken braucht eigene
+  Bedeutungen auf demselben Weg (Forges Textschlüssel, nie die Beschriftung).
+  Nach „Zug beenden“ fragt Forge im eigenen Zug nicht mehr nach Angreifern
+  (so gewollt, die Rückfrage sagt es). Die Phasenleiste überspringt
+  ausgelassene Kampfschritte von selbst.
+- **21 (Verlauf):** Was die KI tat, während Forge rechnete, zeigt der Tisch
+  noch nicht (`ForgeWorking` sagt nur, wer dran ist). Forges Stapeltexte für
+  Zaubersprüche sind englisch.
+- **22 (Wiedergabe):** `PriorityDecision` und `EndTurnButton` hängen am selben
+  `blocked` wie alle Knöpfe – ohne `onAnswer` „Nur ansehen“, alles aus.
+- **24 (Größen):** Handy quer und kleines Handy mit Stapel: der Inhalt der
+  Priorität ist höher als der Bereich (129/199 bzw. 207/215 px) und rollt, die
+  Knöpfe kleben unten; kleinstes Tippziel die Stapelkarte 29 × 40 px.
+- **26 (Forge-Update):** `meaningOf` liest `lblOK`/`lblEndTurn`/`lblUndo`,
+  `ScriptedHuman` erkennt Länder an `lblPlayLand` – ändert Forge diese
+  Schlüssel, schlagen `PriorityStackTest`/Differenztests an. Englische
+  Stapeltexte in de-DE (`getStackDescription`) upstream melden. Kartennamen,
+  die zugleich Seite einer anderen Karte sind, entscheidet der Katalog nach
+  `forgeNames`.
+- ⚠️ **Tests:** Nach einem Engine-Neubau lädt der erste Entwicklungsserver die
+  Seite einmal neu (Vite bündelt neu) – der E2E wärmt ihn auf. axe erst nach
+  Übergängen messen (Knöpfe, Marken haben `transition-all`). Nie eine
+  Protokollversion fest in einen Test schreiben (`PROTOCOL_VERSION`). Die
+  Szenen wählt `record-table-scenes.ts` nach Regeln, nicht nach Nummern (die
+  verschieben sich mit jeder Engine-Änderung).
+- ⚠️ **odin:** Ist `/tmp` voll, Engine-Build und Tests mit Arbeitsordnern auf
+  der Platte fahren (`TMPDIR`, `JDK_JAVA_OPTIONS=-Djava.io.tmpdir=…`,
+  `NATIVE_IMAGE_OPTIONS=-J-Djava.io.tmpdir=…` unter `engine/build/tmp`); die
+  Ordner anderer Sitzungen nicht löschen.
 
 ### Vercel und Android (Stand 2026-09-25, für 28 und 31)
 

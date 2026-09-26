@@ -141,6 +141,14 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - The region grows only as far as its content needs (`GameBoard decision`: `tall` for words, at most 28 % of a portrait screen, `expanded` for lists and forms, at most 36 %; in a low landscape window an expanded decision takes the place of an empty or waiting stack), the answer buttons stick to its bottom. A card of a question that lies in no zone of the table opens the card view as the question shows it. New decisions are announced to screen readers.
 - Evidence: see `prompts/STATUS.md` and `docs/implementation/15-forge-decisions.md`.
 
+### Priority, Stack and Phases (Prompt 16)
+- The header shows where in its turn the game is: Forge's step in words, a `PhaseTrack` of the turn's 13 steps in five phases (`src/components/ui/phase-track.tsx`; Forge's step wide in gold, the steps before it muted; a picture of the words, hidden from screen readers) and whose turn it is.
+- The player's priority (`PriorityDecision` in `src/game/decision-panel.tsx`, data in `src/game/turn-model.ts`, words in `src/game/priority-labels.ts`) says what it is about from Forge's structured state - whose turn, what lies on top of the stack (its card beside the words) - instead of Forge's status line with player names. Forge's OK is "Weiter" (empty stack) or "Verrechnen lassen" (something on it), explained above the buttons; Forge's "Zug beenden" asks first in an `AlertDialog` (it passes for the rest of the turn and leaves out an own attack; Forge stops for the AI's spell or attack), "Rückgängig (n)" keeps Forge's words. All by `Button.meaning` (the bridge reads Forge's label keys), never by parsing labels.
+- Forge's own auto-pass (APINA, `YIELD_AUTO_PASS_NO_ACTIONS`) stays in charge: every priority that reaches the table is one in which Forge found something the player can do (proven in every test game); the app never passes by itself. While Forge computes the region says who is at it and that Forge stops where the player can act.
+- The stack shows each item top first with its card (a spell's own card, an ability's source; hidden = a back), what it is, whose, its targets and Forge's words; its picture opens the card view, which says where on the stack the card lies - to look at, never to tap. Cards are played by tapping them (prompt 14), never through a question the app makes up.
+- Engine, protocol 5: `StackItem.card`/`ability`, `Button.meaning`, `select.cards` only visible ids, `action` during priority and payment only for the player's own and Forge-marked cards (Forge's answer there set the player as activating player of the AI's abilities - prompt 05 §7.2). New differential test game `priority-respond` (the player holds instants and answers the AI's spells; coverage `priority-opponent-turn`, `priority-response`); JVM test `PriorityStackTest`.
+- Evidence: see `prompts/STATUS.md` and `docs/implementation/16-priority-stack-phases.md`.
+
 ### ORYX Cloud Sync (outside the queue, 2026-09-25)
 - dev0gig's direct assignment, not a queue prompt (`prompts/STATUS.md` unchanged): the player's collection syncs through their ORYX account (the launcher's Supabase cloud) with the vendored ORYX SDK 1.0.0 (`src/cloud/oryx-sdk.js` and `.d.ts`, byte-identical copies of `oryx-games/shared`, checksum-tested, excluded from lint only themselves). Active only on `https://openmana.vercel.app/`; locally, in tests and previews inactive (no request, nothing stored). Local stays the source of truth.
 - One slot `collection` = one document (`src/storage/collection.ts`, schema `CollectionDocument`, version = `SCHEMA_VERSION`): valid decks, deletion marks (90 days) and every setting except `display.*`; never caches, recorded matches or `meta`.
@@ -152,7 +160,7 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Evidence: 622 Vitest tests (63 new: merge and check, read/apply on fake-indexeddb, the real SDK against a stand-in ORYX cloud on the real storage session, the card and the return notice in the real app frame, the SDK checksum), `npm run check` with the end-to-end test in Chrome, including the new section 13: the build served as `https://openmana.vercel.app` with a stand-in ORYX cloud - the whole OAuth/PKCE round trip under COOP/COEP, the start's merge, uploads, disconnecting, axe, 360 px; plus the card absent and Web Storage empty off the real address, and the deletion mark in IndexedDB after deleting a deck. Limits: ORYX takes 1 MB per slot by default (≈ 146 Constructed or 48 Commander decks); ORYX needs an OAuth client for `openmana`; effective once deployed. Details: `docs/implementation/oryx-cloud-sync.md`.
 
 ## Currently In Progress
-Nothing. Prompts 00–15 are `COMPLETE`. The next prompt is **16 — Priority, stack and phases** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
+Nothing. Prompts 00–16 are `COMPLETE`. The next prompt is **17 — Targeting and cost payment** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
 
 Any agent entering the repository must first reconcile this statement with the latest `prompts/STATUS.md` and Git state.
 
@@ -175,7 +183,7 @@ Exact order/status is authoritative only in `prompts/STATUS.md`.
 
 ## Not Yet Implemented
 At this review point:
-- the game table shows every state, its cards can be looked at and tapped where Forge offers it and every kind of Forge's questions can be answered, but players as targets (prompt 17) and the finer presentation of priority, stack, targeting and combat (prompts 16–19) follow,
+- the game table shows every state, its cards can be looked at and tapped where Forge offers it, every kind of Forge's questions can be answered and priority, stack and phases are presented, but players as targets (prompt 17) and the finer presentation of targeting and combat (prompts 17–19) follow,
 - no service worker/offline mode, no deployment, no Android artifact yet,
 - the ORYX cloud sync is built but inactive until OpenMana runs at `openmana.vercel.app` and ORYX has an OAuth client for it.
 
@@ -193,7 +201,7 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 ## Workflow Compatibility
 OpenMana predates the generic Dropzone `queue → active → completed` lifecycle and is worked through **its own numbered ledger**, one prompt at a time.
 
-Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 15 complete, 16 next, nothing in progress).
+Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 16 complete, 17 next, nothing in progress).
 
 Dropzone Master/Standalone must respect:
 - `prompts/STATUS.md` statuses,
