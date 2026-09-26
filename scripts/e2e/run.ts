@@ -3198,6 +3198,8 @@ function standInCloud(): {
     if (request.headers()["authorization"] !== `Bearer ${token}`) return json(401, { message: "JWT expired" })
     if (url.pathname === "/rest/v1/rpc/oryx_client_config") return json(200, { ok: true, sync_enabled: true, max_slots: 2, max_save_bytes: 1_048_576 })
     if (url.pathname === "/rest/v1/rpc/oryx_add_playtime") return json(200, { ok: true })
+    // Since ORYX SDK 1.1.0 the play time is reported as a device's total.
+    if (url.pathname === "/rest/v1/rpc/oryx_report_playtime") return json(200, { ok: true })
     if (url.pathname === "/rest/v1/cloud_saves") {
       const row = rows.get((url.searchParams.get("slot") ?? "").replace(/^eq\./, ""))
       return json(200, row ? [row] : [])

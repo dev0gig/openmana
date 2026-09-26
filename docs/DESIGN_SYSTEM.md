@@ -166,10 +166,10 @@ several, like the preference choices), rows of cards the table does not show,
 lists with arrows (order, top/bottom of a pile), plus/minus for amounts, a
 field for a number - and the answer buttons, which stick to the bottom of the
 region while a long list scrolls above them. The region grows only as far as
-its content needs: `GameBoard decision="tall"` (more words than fit) and
-`"expanded"` (a list or form Forge waits on alone, cards outside the table)
-let it take up to 36 % of a portrait screen (expanded: stack and combat keep
-a smaller strip, the battlefields a row of cards); in a low landscape window
+its content needs: `GameBoard decision="tall"` (more words than fit: up to
+28 % of a portrait screen, the rest scrolls) and `"expanded"` (a list or form
+Forge waits on alone, cards outside the table: up to 36 %; stack and combat
+keep a smaller strip, the battlefields a row of cards); in a low landscape window
 (`short:` = at most 32rem high, a custom variant in `src/index.css`) an
 expanded decision takes both middle rows of the side column and stack and
 combat step aside. Sending buttons are armed a moment after they appear, like

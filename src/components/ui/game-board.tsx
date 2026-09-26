@@ -24,9 +24,10 @@
  * The decision region grows when its content needs it (prompt 15):
  *  - `decision="tall"` (more words than the compact region holds, e.g. a
  *    long prompt of Forge's, while stack or combat have something to show):
- *    in portrait it may grow to 36 % of the screen's height, only as far as
- *    its content needs. Nothing else changes - the stack stays in view (the
- *    player may want to answer it).
+ *    in portrait it may grow to 28 % of the screen's height, only as far as
+ *    its content needs; more words scroll inside it. Nothing else changes -
+ *    the stack stays in view (the player may want to answer it), and the
+ *    battlefields keep their room (paying taps lands there).
  *  - `decision="expanded"` (a question Forge waits on alone with a list, a
  *    form or amounts, cards to choose outside the table - or more words than
  *    fit while stack and combat are empty): the same in portrait, and stack
@@ -74,9 +75,9 @@ const AREA_CLASSES: Readonly<Record<GameBoardAreaName, string>> = {
     "[grid-area:center] max-h-[clamp(5rem,15dvh,8rem)] portrait:group-data-[decision=expanded]/board:max-h-[clamp(3rem,10dvh,5rem)] overflow-y-auto landscape:max-h-none landscape:border-l short:landscape:group-data-[decision=expanded]/board:hidden",
   field: "[grid-area:field]",
   me: "[grid-area:me] landscape:border-t landscape:border-l",
-  // A decision that needs room may grow to 36 % of the screen's height in portrait (see above).
+  // A decision that needs room may grow to 36 % of the screen's height in portrait, words that do not fit to 28 % (see above).
   decision:
-    "[grid-area:decision] max-h-[clamp(7rem,18dvh,11rem)] portrait:group-data-[decision=expanded]/board:max-h-[clamp(9rem,36dvh,26rem)] portrait:group-data-[decision=tall]/board:max-h-[clamp(9rem,36dvh,26rem)] overflow-y-auto border-t landscape:max-h-none landscape:border-l",
+    "[grid-area:decision] max-h-[clamp(7rem,18dvh,11rem)] portrait:group-data-[decision=expanded]/board:max-h-[clamp(9rem,36dvh,26rem)] portrait:group-data-[decision=tall]/board:max-h-[clamp(9rem,28dvh,20rem)] overflow-y-auto border-t landscape:max-h-none landscape:border-l",
   // The hand's height follows the screen's: 6-9 rem, the most a low screen can spare. Its row keeps the padding (room for the cards' focus ring).
   hand: "[grid-area:hand] h-[clamp(6rem,14dvh,9rem)] border-t",
 }
