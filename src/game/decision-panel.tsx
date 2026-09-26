@@ -128,7 +128,8 @@ import {
   type PileSide,
   type SelectView,
 } from "./decision-model"
-import { endTurnText, PASS_LABELS, PASS_NOTES, priorityText, questionLabel } from "./game-labels"
+import { questionLabel } from "./game-labels"
+import { endTurnText, PASS_LABELS, PASS_NOTES, priorityText } from "./priority-labels"
 import type { TableCardLookup } from "./table-cards"
 import { cardName } from "./table-labels"
 import { TablePicture } from "./table-picture"

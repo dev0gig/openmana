@@ -9,7 +9,7 @@ import { checkGameState, PHASES, type ButtonsQuestion, type GameState, type Ques
 import { describe, expect, it } from "vitest"
 import { gameState } from "@/test/game-fixtures"
 import { tableScene, type TableSceneName } from "@/test/table-scenes"
-import { endTurnText, PASS_LABELS, PASS_NOTES, priorityText, STACK_KIND_LABELS, TURN_PHASE_LABELS, turnOwnerLabel } from "./game-labels"
+import { endTurnText, PASS_LABELS, PASS_NOTES, priorityText, STACK_KIND_LABELS, TURN_PHASE_LABELS, turnOwnerLabel } from "./priority-labels"
 import { priorityHolder, priorityMoment, priorityQuestion, stackKind, stackTop, TURN_PHASES, TURN_STEPS, turnSeat, turnSteps } from "./turn-model"
 
 /** The recorded priority of a scene with what it is about. */

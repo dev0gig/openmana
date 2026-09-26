@@ -41,7 +41,7 @@ import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHe
 import { Skeleton } from "@/components/ui/skeleton"
 import { useLandscape } from "@/hooks/use-landscape"
 import { cardUse, type CardUse, type TableMoment } from "./card-use"
-import { STACK_KIND_LABELS } from "./game-labels"
+import { STACK_KIND_LABELS } from "./priority-labels"
 import type { TableCardLookup } from "./table-cards"
 import { captionFacts, cardName, placeLabel, spokenFacts, stackOwner, stackTargets } from "./table-labels"
 import { locateCard, pileOf, stackEntriesOf, visibleCards, type StackEntryView, type TableView } from "./table-model"
