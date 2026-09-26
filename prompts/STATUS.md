@@ -30,8 +30,8 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | – (keiner; nach 15 wie vorgesehen gestoppt) |
-| Nächster Prompt | **16 — Priority, stack and phases** (PENDING, nicht begonnen) |
+| Aktuell ausgeführt | **16 — Priority, stack and phases** |
+| Nächster Prompt | 17 — Targeting and cost payment (erst nach 16 = COMPLETE) |
 | Zuletzt abgeschlossen | 15 — Forge decision UI (`cf4d2ad`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-26 (Dropzone-Standalone-Lauf, Regeln aus `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-26 |
@@ -56,7 +56,7 @@
 | 13 | [Battlefield foundation](queue/13-battlefield-foundation.md) | COMPLETE | `eb8e0ab` |
 | 14 | [Cards, hand and safe interaction](queue/14-card-hand-interactions.md) | COMPLETE | `1b3e3b6` |
 | 15 | [Forge decision UI](queue/15-forge-decisions.md) | COMPLETE | `cf4d2ad` |
-| 16 | [Priority, stack and phases](queue/16-priority-stack-phases.md) | PENDING | – |
+| 16 | [Priority, stack and phases](queue/16-priority-stack-phases.md) | IN_PROGRESS | – |
 | 17 | [Targeting and cost payment](queue/17-targeting-cost-payment.md) | PENDING | – |
 | 18 | [Combat: attackers](queue/18-combat-attackers.md) | PENDING | – |
 | 19 | [Combat: blockers](queue/19-combat-blockers.md) | PENDING | – |
@@ -1687,6 +1687,13 @@
     Zahlen. Details: `docs/implementation/15-forge-decisions.md` §9.6, §10.
 - **Weiter mit:** Prompt 16 (Priority, stack and phases). Nicht begonnen:
   `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
+
+### 16 — Priority, stack and phases — IN_PROGRESS
+
+- Begonnen am 2026-09-26 von Claude Code (Claude Opus 5.5), Auftrag
+  „Standalone von Dropzone für OpenMana, bitte.“ (Dropzone
+  `fixed/standalone.md` mit den Regeln aus `naechster-schritt.md`: genau ein
+  Prompt, danach Stopp).
 
 ## Hinweise für spätere Prompts
 
