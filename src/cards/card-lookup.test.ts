@@ -5,7 +5,8 @@
  */
 import { beforeEach, describe, expect, it } from "vitest"
 import type { LocalDatabase } from "@/storage/database"
-import { installFixtureCatalog } from "@/test/catalog-fixtures"
+import type { CardRecord } from "@/storage/generated/records"
+import { fixtureCard, installFixtureCatalog } from "@/test/catalog-fixtures"
 import { openTestDatabase } from "@/test/storage-fixtures"
 import { findCardsByName, findForgeOnly, findSetByArenaCode, findSetsByForgeCode, getCard, getCards, getSet, resolveEngineKey, searchCardsByName } from "./card-lookup"
 
@@ -79,6 +80,37 @@ describe("the engine's key", () => {
     expect(giant.status === "found" && giant.match.face).toBe(0)
     const brisela = await resolveEngineKey(db, "Brisela, Voice of Nightmares")
     expect(brisela.status === "found" && brisela.match.card.layout).toBe("meld")
+  })
+
+  it("a card's own name beats another card's face of the same name - by the name Forge knows (prompt 16)", async () => {
+    // Real since 2026: "Rampant Growth" is a card of its own and the second face of Studious First-Year; Forge names
+    // the one "Rampant Growth", the other "Studious First-Year". Both are Forge cards.
+    const base = fixtureCard("Lightning Bolt")
+    const growth: CardRecord = { ...base, oracleId: "00000000-0000-4000-8000-000000000001", name: "Rampant Growth", nameKeys: ["rampant growth"], forgeNames: ["Rampant Growth"] }
+    const studious: CardRecord = {
+      ...base,
+      oracleId: "00000000-0000-4000-8000-000000000002",
+      name: "Studious First-Year // Rampant Growth",
+      layout: "prepare",
+      faces: [
+        { ...base.faces[0], name: "Studious First-Year" },
+        { ...base.faces[0], name: "Rampant Growth" },
+      ],
+      nameKeys: ["studious first-year // rampant growth", "studious first-year", "rampant growth"],
+      forgeNames: ["Studious First-Year"],
+    }
+    await db.write(["scryfallCards"], async (transaction) => {
+      await transaction.objectStore("scryfallCards").put(growth)
+      await transaction.objectStore("scryfallCards").put(studious)
+    })
+    expect(summary(await findCardsByName(db, "Rampant Growth"))).toEqual([
+      ["Rampant Growth", "name", null],
+      ["Studious First-Year // Rampant Growth", "face", 1],
+    ])
+    const found = await resolveEngineKey(db, "Rampant Growth")
+    expect(found.status === "found" && found.match.card.oracleId).toBe(growth.oracleId)
+    const front = await resolveEngineKey(db, "Studious First-Year")
+    expect(found.status === "found" && front.status === "found" && [front.match.card.oracleId, front.match.face]).toEqual([studious.oracleId, 0])
   })
 
   it("never resolves by a German name (the engine's keys are English)", async () => {

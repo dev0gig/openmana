@@ -165,7 +165,11 @@ export async function resolveEngineKey(db: LocalDatabase, key: string, hints: Ke
   }
   const matches = (await findCardsByName(db, key)).filter((match) => !TOKEN_LAYOUTS.has(match.card.layout) && match.kind !== "printed")
   if (matches.length > 1) {
-    // Forge's own name for the card decides between cards that share a face name.
+    // Forge's own name for the card decides between cards that share a face name: the card Forge knows by exactly
+    // this name ("Rampant Growth" is a card of its own and also the second face of Studious First-Year, which Forge
+    // names "Studious First-Year" - prompt 16), else the only one Forge has at all.
+    const named = matches.filter((match) => match.card.forgeNames.some((forgeName) => nameKey(forgeName) === nameKey(key)))
+    if (named.length === 1) return { status: "found", match: named[0]! }
     const own = matches.filter((match) => match.card.forgeNames.length > 0)
     if (own.length === 1) return { status: "found", match: own[0]! }
     return { status: "ambiguous", matches }

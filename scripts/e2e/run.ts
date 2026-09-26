@@ -2646,7 +2646,7 @@ async function preferences(browser: Browser, base: string, id: string, decks: re
       "[App]",
       `Kennung: ${id}`,
       "Forge: 2.0.15, Stand ed0333fecb1fea0671b3e50cadc1da4f71db5798",
-      "Protokoll: Version 4",
+      `Protokoll: Version ${PROTOCOL_VERSION}`,
       "KI-Profil: zufällig (jede Partie neu)",
       "Kartensprache: Deutsch",
       "Bewegungen reduzieren: immer (Gerät wünscht es: nein)",
@@ -2777,11 +2777,15 @@ const SCENE_MARKS: Partial<Record<(typeof TABLE_SCENES)[number], { readonly usab
  * card view, and the steps that tap at once take a tap back.
  */
 async function cardTargets(page: Page, label: string): Promise<{ readonly count: number; readonly smallest: { readonly width: number; readonly height: number } | null }> {
+  // Only cards on screen are targets: a region the layout sets aside (stack and combat beside a big question in a low
+  // landscape window, prompt 15) takes its cards - since prompt 16 also those of the stack - out of the page.
   const boxes = await page.evaluate(() =>
-    [...document.querySelectorAll('button[data-slot="game-card"]')].map((card) => {
-      const box = card.getBoundingClientRect()
-      return { width: Math.round(box.width), height: Math.round(box.height) }
-    }),
+    [...document.querySelectorAll('button[data-slot="game-card"]')]
+      .filter((card) => card.checkVisibility())
+      .map((card) => {
+        const box = card.getBoundingClientRect()
+        return { width: Math.round(box.width), height: Math.round(box.height) }
+      }),
   )
   if (boxes.length === 0) return { count: 0, smallest: null }
   const smallest = { width: Math.min(...boxes.map((box) => box.width)), height: Math.min(...boxes.map((box) => box.height)) }
