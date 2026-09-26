@@ -241,6 +241,31 @@ async function httpChecks(base: string, id: string): Promise<void> {
   report["catalogPreviewEncoding"] = await checkCatalogFile(base, "preview", catalogManifest())
 }
 
+/**
+ * The dev server's first page after a changed config - a new engine build
+ * changes it (its id) - makes Vite bundle the dependencies anew and reload the
+ * page once that is done, possibly seconds later (prompt 16: it reloaded the
+ * engine check midway and lost its boot). A first visit lets that happen:
+ * it waits until the page has not been navigated for QUIET_MS.
+ */
+async function warmUp(browser: Browser, base: string): Promise<{ readonly navigations: number; readonly ms: number }> {
+  const QUIET_MS = 5000
+  const started = Date.now()
+  const context = await newContext(browser, VIEWPORTS[2]!)
+  const page = await context.newPage()
+  let navigations = 0
+  let last = Date.now()
+  page.on("framenavigated", (frame) => {
+    if (frame !== page.mainFrame()) return
+    navigations++
+    last = Date.now()
+  })
+  await page.goto(new URL("/play", base).href, { waitUntil: "networkidle" })
+  while (Date.now() - last < QUIET_MS && Date.now() - started < 120_000) await page.waitForTimeout(500)
+  await context.close()
+  return { navigations, ms: Date.now() - started }
+}
+
 async function devServerChecks(browser: Browser, id: string): Promise<void> {
   log("HTTP and engine boot (vite dev server)")
   const server = await createServer({ root, configFile: path.join(root, "vite.config.ts"), logLevel: "warn", server: { host: "127.0.0.1", port: 0 } })
@@ -264,6 +289,7 @@ async function devServerChecks(browser: Browser, id: string): Promise<void> {
     const unknownCard = await fetch(new URL(`/cards/${catalog.id}/secret.txt`, base))
     check(unknownCard.status === 404, `dev: unknown card catalog file answered ${unknownCard.status}`)
     await unknownCard.arrayBuffer()
+    report["devServerWarmUp"] = await warmUp(browser, base)
     report["devServer"] = await engine(browser, base, id, VIEWPORTS[2]!, "dev")
   } finally {
     await server.close()
