@@ -37,12 +37,19 @@
  * selection of a running step the words are Forge's current prompt line: the
  * question's own text is the line Forge showed when the step began, often
  * the one before (Anvil lesson). A blocking question brings its own text.
+ *
+ * The player's priority (prompt 16) is the one step with words of its own:
+ * Forge's prompt line there is a status report (turn, step, stack, with the
+ * players' names) that the header and the stack already show, so the region
+ * says what the moment is about instead - from Forge's structured state -
+ * and Forge's OK says what passing does now (see PriorityDecision).
  */
 import { ArrowDown, ArrowUp, Minus, Plus, Search, X } from "lucide-react"
 import { createContext, use, useEffect, useId, useMemo, useRef, useState, type ComponentProps, type ReactNode } from "react"
 import type {
   AnswerBody,
   ArrangeQuestion,
+  Button as ForgeButton,
   ButtonsQuestion,
   ChooseQuestion,
   ConfirmQuestion,
@@ -56,6 +63,17 @@ import type {
   SelectQuestion,
   VisibleCard,
 } from "@openmana/engine-protocol"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -110,10 +128,11 @@ import {
   type PileSide,
   type SelectView,
 } from "./decision-model"
-import { questionLabel } from "./game-labels"
+import { endTurnText, PASS_LABELS, PASS_NOTES, priorityText, questionLabel } from "./game-labels"
 import type { TableCardLookup } from "./table-cards"
 import { cardName } from "./table-labels"
 import { TablePicture } from "./table-picture"
+import { priorityHolder, priorityMoment, type PriorityMoment } from "./turn-model"
 
 /** From this many entries a list gets a search field. */
 const SEARCH_FROM = 12
@@ -195,10 +214,7 @@ export function DecisionPanel({ state, questions, prompt, waiting, conceding, pi
           waiting ? (
             <p className="text-sm">{prompt ?? "Forge wartet auf dich."}</p>
           ) : (
-            <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Spinner aria-hidden />
-              Forge rechnet …
-            </p>
+            <ForgeWorking state={state} />
           )
         ) : (
           <>
@@ -210,12 +226,40 @@ export function DecisionPanel({ state, questions, prompt, waiting, conceding, pi
             )}
           </>
         )}
-        {/* New decisions are announced (the priority of every step is not: "Du bist dran" says it). */}
+        {/* New decisions are announced; a priority only with something on the stack (a chance to answer) - "Du bist dran" says the others. */}
         <p className="sr-only" aria-live="polite">
-          {question === null || (question.kind === "buttons" && question.purpose === "priority") ? "" : `Forge fragt: ${questionLabel(question)}`}
+          {announcement(question, state)}
         </p>
       </GameDecision>
     </DecisionContext>
+  )
+}
+
+/** What the live region says about a new decision. */
+function announcement(question: Question | null, state: GameState): string {
+  if (question === null) return ""
+  if (question.kind === "buttons" && question.purpose === "priority") {
+    const moment = priorityMoment(state, question)
+    return moment.top === null ? "" : `Priorität: ${priorityText(moment)}`
+  }
+  return `Forge fragt: ${questionLabel(question)}`
+}
+
+/**
+ * Forge computes - the AI's turn, a spell resolving, the next step: who is
+ * at it, and that the game runs on by itself only where the player has
+ * nothing to do (Forge's own auto-pass, APINA - prompt 16).
+ */
+function ForgeWorking({ state }: { state: GameState }) {
+  const holder = priorityHolder(state)
+  return (
+    <div className="flex flex-col gap-1">
+      <p className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Spinner aria-hidden />
+        {holder !== null && !holder.me ? "Die Forge-KI ist dran …" : "Forge rechnet …"}
+      </p>
+      <GameDecisionNote>Forge spielt von selbst weiter, bis du etwas tun oder entscheiden kannst – dann hält Forge an.</GameDecisionNote>
+    </div>
   )
 }
 
@@ -446,6 +490,7 @@ function useSearch(items: readonly Item[], labelOf: (item: Item) => string): { r
 
 function StepDecision({ buttons, select, prompt }: { buttons: ButtonsQuestion | null; select: SelectQuestion | null; prompt: string | null }) {
   const { state } = useDecision()
+  if (buttons?.purpose === "priority" && select === null) return <PriorityDecision moment={priorityMoment(state, buttons)} />
   const selection = select === null ? null : selectView(select, state)
   const main = buttons ?? select
   const label = buttons?.purpose !== undefined ? questionLabel(buttons) : select !== null ? questionLabel(select) : main !== null ? questionLabel(main) : "Entscheidung"
@@ -461,6 +506,108 @@ function StepDecision({ buttons, select, prompt }: { buttons: ButtonsQuestion | 
       <BlockedNote />
       {buttons !== null ? <ForgeButtons question={buttons} /> : null}
     </>
+  )
+}
+
+/**
+ * The player's priority (prompt 16). Instead of Forge's status line (turn,
+ * step and stack with the players' names - what the header and the stack
+ * already show) the region says what the moment is about, from Forge's
+ * structured state: whose turn it is, what lies on top of the stack (its
+ * card beside the words, to look at). Forge's OK says what passing does now
+ * - "Weiter" with an empty stack, "Verrechnen lassen" with something on it -
+ * and the line above the buttons explains it. Forge's second button keeps
+ * Forge's words: Undo takes the last action back (a land tapped for mana),
+ * End Turn - Forge's auto-pass until the end of the turn, which also leaves
+ * out an attack of the player's own turn - only after asking: the one press
+ * here that gives more than this moment away (Bible §6).
+ *
+ * Playing a card is not answered here: cards are played by tapping them -
+ * their card view's button, Forge's card.tap (prompt 14) - exactly as
+ * Forge's own GUI plays them during priority, never through a list the app
+ * would make up.
+ */
+function PriorityDecision({ moment }: { moment: PriorityMoment }) {
+  const { answer } = useDecision()
+  const noteId = useId()
+  const offId = useId()
+  const { question, top } = moment
+  const pass = question.buttons.find((button) => button.nr === 1) ?? null
+  const second = question.buttons.find((button) => button.nr === 2) ?? null
+  const off = question.buttons.filter((button) => !button.enabled)
+  return (
+    <>
+      <DecisionHeading label={questionLabel(question)} text={priorityText(moment)} source={top?.card ? { id: top.card.id, card: top.card } : null} />
+      <GameDecisionNote id={noteId}>{PASS_NOTES[moment.pass]}</GameDecisionNote>
+      {off.length > 0 ? (
+        <GameDecisionNote id={offId}>
+          {off.length === 1 ? `„${off[0]!.nr === 1 ? PASS_LABELS[moment.pass] : buttonText(off[0]!)}“ hat Forge gerade abgeschaltet.` : "Forge hat beide Knöpfe gerade abgeschaltet."}
+        </GameDecisionNote>
+      ) : null}
+      <BlockedNote />
+      <GameDecisionActions role="group" aria-label="Antworten, die Forge anbietet">
+        {pass !== null ? (
+          <SendButton
+            armKey={question.id}
+            data-meaning="pass"
+            disabled={!pass.enabled}
+            reasonId={pass.enabled ? noteId : offId}
+            onSend={() => answer(question.id, buttonsAnswer(1))}
+          >
+            {PASS_LABELS[moment.pass]}
+          </SendButton>
+        ) : null}
+        {second === null ? null : moment.second === "endTurn" ? (
+          <EndTurnButton question={question} button={second} turn={moment.turn} reasonId={second.enabled ? undefined : offId} />
+        ) : (
+          <SendButton
+            armKey={question.id}
+            variant="outline"
+            {...(moment.second !== null ? { "data-meaning": moment.second } : {})}
+            {...(moment.second === "undo" ? { title: "Nimmt deine letzte Aktion zurück, etwa ein für Mana getapptes Land" } : {})}
+            disabled={!second.enabled}
+            reasonId={second.enabled ? undefined : offId}
+            onSend={() => answer(question.id, buttonsAnswer(2))}
+          >
+            {buttonText(second)}
+          </SendButton>
+        )}
+      </GameDecisionActions>
+    </>
+  )
+}
+
+/**
+ * Forge's End Turn, only after asking (see PriorityDecision): the dialog says
+ * what it gives away; its confirming button sends Forge's button. Opening it
+ * sends nothing, so it needs no arming; while nothing can be sent it stays off.
+ */
+function EndTurnButton({ question, button, turn, reasonId }: { question: ButtonsQuestion; button: ForgeButton; turn: PriorityMoment["turn"]; reasonId: string | undefined }) {
+  const { answer, blocked, blockedId } = useDecision()
+  const [open, setOpen] = useState(false)
+  const label = buttonText(button)
+  const off = !button.enabled || blocked !== null
+  const describedBy = [blocked !== null ? blockedId : null, reasonId ?? null].filter((id) => id !== null).join(" ")
+  return (
+    <AlertDialog open={open && !off} onOpenChange={setOpen}>
+      <AlertDialogTrigger asChild>
+        <Button size="lg" variant="outline" data-meaning="endTurn" disabled={off} {...(describedBy ? { "aria-describedby": describedBy } : {})}>
+          {label} …
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{label}?</AlertDialogTitle>
+          <AlertDialogDescription>{endTurnText(turn)}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Weiterspielen</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" disabled={off} onClick={() => answer(question.id, buttonsAnswer(2))}>
+            {label}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }
 

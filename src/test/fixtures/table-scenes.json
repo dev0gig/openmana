@@ -1,9 +1,9 @@
 {
  "source": "Protocol messages of the fixture games of engine/scripts/test-engine.sh (JVM run, scripted rule-free test player), folded like EngineSession folds them; see scripts/record-table-scenes.ts.",
  "engine": {
-  "builtAt": "2026-09-25T08:18:35.696Z",
+  "builtAt": "2026-09-26T08:15:26.896Z",
   "forgeCommit": "ed0333fecb1fea0671b3e50cadc1da4f71db5798",
-  "protocol": 4
+  "protocol": 5
  },
  "scenes": [
   {
@@ -13,7 +13,7 @@
    "message": 5,
    "game": {
     "type": "game.started",
-    "protocol": 4,
+    "protocol": 5,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -280,10 +280,10 @@
    "name": "main-phase",
    "description": "The player's own main phase with priority, lands and creatures on both sides, the most permanents of such moments (human-3-de).",
    "fixture": "human-3-de",
-   "message": 481,
+   "message": 479,
    "game": {
     "type": "game.started",
-    "protocol": 4,
+    "protocol": 5,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -318,7 +318,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 83,
+    "seq": 82,
     "running": true,
     "turn": 14,
     "phase": "MAIN1",
@@ -783,12 +783,14 @@
       {
        "nr": 1,
        "label": "OK",
-       "enabled": true
+       "enabled": true,
+       "meaning": "pass"
       },
       {
        "nr": 2,
        "label": "Zug beenden",
-       "enabled": true
+       "enabled": true,
+       "meaning": "endTurn"
       }
      ],
      "id": 50,
@@ -867,7 +869,7 @@
    "message": 279,
    "game": {
     "type": "game.started",
-    "protocol": 4,
+    "protocol": 5,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -1200,7 +1202,23 @@
       "id": 14,
       "text": "Magmastrahl (14) - Magmastrahl (14) deals 2 damage to Goblin-Brandstifter (55). Player scries 2.",
       "source": 14,
+      "card": {
+       "id": 14,
+       "key": "Magma Jet",
+       "name": "Magmastrahl",
+       "typeLine": "Spontanzauber",
+       "cost": "{1}{R}",
+       "set": "JMP",
+       "text": "Der Magmastrahl fügt einer Kreatur oder einem Spieler deiner Wahl 2 Schadenspunkte zu. Hellsicht 2. (Schaue dir die obersten zwei Karten deiner Bibliothek an. Du kannst eine beliebige Anzahl davon unter deine Bibliothek legen und den Rest in beliebiger Reihenfolge oben darauf.)",
+       "tapped": false,
+       "sick": false,
+       "faceDown": false,
+       "damage": 0,
+       "owner": 0,
+       "controller": 0
+      },
       "player": 0,
+      "ability": false,
       "trigger": false,
       "targets": [
        {
@@ -1308,10 +1326,10 @@
    "name": "blockers",
    "description": "Combat with an attacker blocked by two creatures (blocks-multi).",
    "fixture": "blocks-multi",
-   "message": 445,
+   "message": 441,
    "game": {
     "type": "game.started",
-    "protocol": 4,
+    "protocol": 5,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -1343,7 +1361,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 87,
+    "seq": 85,
     "running": true,
     "turn": 11,
     "phase": "COMBAT_DAMAGE",
@@ -1856,10 +1874,10 @@
    "name": "defend",
    "description": "The player's creature blocks while Forge asks for blockers (human-5-defend).",
    "fixture": "human-5-defend",
-   "message": 342,
+   "message": 341,
    "game": {
     "type": "game.started",
-    "protocol": 4,
+    "protocol": 5,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -1894,7 +1912,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 64,
+    "seq": 63,
     "running": true,
     "turn": 9,
     "phase": "COMBAT_DECLARE_BLOCKERS",
@@ -2335,7 +2353,7 @@
    "message": 805,
    "game": {
     "type": "game.started",
-    "protocol": 4,
+    "protocol": 5,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -3312,10 +3330,10 @@
    "name": "command-effects",
    "description": "Forge's effect cards in the command zone of a Constructed game (an adventure; human-11).",
    "fixture": "human-11",
-   "message": 223,
+   "message": 213,
    "game": {
     "type": "game.started",
-    "protocol": 4,
+    "protocol": 5,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -3350,7 +3368,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 51,
+    "seq": 44,
     "running": true,
     "turn": 5,
     "phase": "UPKEEP",
@@ -3761,7 +3779,7 @@
    "message": 5,
    "game": {
     "type": "game.started",
-    "protocol": 4,
+    "protocol": 5,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -3897,7 +3915,7 @@
    "message": 260,
    "game": {
     "type": "game.started",
-    "protocol": 4,
+    "protocol": 5,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -4387,7 +4405,7 @@
    "message": 74,
    "game": {
     "type": "game.started",
-    "protocol": 4,
+    "protocol": 5,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -4729,7 +4747,7 @@
    "message": 297,
    "game": {
     "type": "game.started",
-    "protocol": 4,
+    "protocol": 5,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -5075,7 +5093,25 @@
       "id": 16,
       "text": "Wenn der Goblin-Brandstifter aus dem Spiel auf einen Friedhof gelegt wird, kannst du ihn einer Kreatur oder einem Spieler deiner Wahl 1 Schadenspunkt zufügen lassen. (Targeting: [[Riesenspinne (77)]]) [Zone geändert: Goblin-Brandstifter (55)]",
       "source": 55,
+      "card": {
+       "id": 55,
+       "key": "Goblin Arsonist",
+       "name": "Goblin-Brandstifter",
+       "typeLine": "Kreatur — Goblin, Schamane",
+       "cost": "{R}",
+       "set": "J25",
+       "power": 1,
+       "toughness": 1,
+       "text": "Wenn der Goblin-Brandstifter aus dem Spiel auf einen Friedhof gelegt wird, kannst du ihn einer Kreatur oder einem Spieler deiner Wahl 1 Schadenspunkt zufügen lassen.",
+       "tapped": false,
+       "sick": true,
+       "faceDown": false,
+       "damage": 0,
+       "owner": 0,
+       "controller": 0
+      },
       "player": 0,
+      "ability": true,
       "trigger": true,
       "targets": [
        {
@@ -5195,10 +5231,10 @@
    "name": "discard",
    "description": "Two cards to discard from the hand: a selection of more than one, with Forge's prompt for it and no buttons (Forge ends it by itself; human-11).",
    "fixture": "human-11",
-   "message": 519,
+   "message": 497,
    "game": {
     "type": "game.started",
-    "protocol": 4,
+    "protocol": 5,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -5233,7 +5269,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 105,
+    "seq": 92,
     "running": true,
     "turn": 13,
     "phase": "MAIN1",
@@ -5725,7 +5761,23 @@
       "id": 50,
       "text": "Faithless Looting (6) - Player draws two cards. Player discards two cards.",
       "source": 6,
+      "card": {
+       "id": 6,
+       "key": "Faithless Looting",
+       "name": "Faithless Looting",
+       "typeLine": "Sorcery",
+       "cost": "{R}",
+       "set": "SOC",
+       "text": "",
+       "tapped": false,
+       "sick": false,
+       "faceDown": false,
+       "damage": 0,
+       "owner": 0,
+       "controller": 0
+      },
       "player": 0,
+      "ability": false,
       "trigger": false,
       "targets": []
      }
@@ -5897,10 +5949,10 @@
    "name": "choose-mode",
    "description": "A modal spell: choose one of its modes, a blocking question (human-3-de).",
    "fixture": "human-3-de",
-   "message": 347,
+   "message": 345,
    "game": {
     "type": "game.started",
-    "protocol": 4,
+    "protocol": 5,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -5935,7 +5987,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 61,
+    "seq": 60,
     "running": true,
     "turn": 10,
     "phase": "MAIN1",
@@ -6310,12 +6362,14 @@
       {
        "nr": 1,
        "label": "OK",
-       "enabled": true
+       "enabled": true,
+       "meaning": "pass"
       },
       {
        "nr": 2,
        "label": "Zug beenden",
-       "enabled": true
+       "enabled": true,
+       "meaning": "endTurn"
       }
      ],
      "id": 35,
@@ -6413,7 +6467,7 @@
    "message": 280,
    "game": {
     "type": "game.started",
-    "protocol": 4,
+    "protocol": 5,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -6746,7 +6800,23 @@
       "id": 14,
       "text": "Magmastrahl (14) - Magmastrahl (14) deals 2 damage to Goblin-Brandstifter (55). Player scries 2.",
       "source": 14,
+      "card": {
+       "id": 14,
+       "key": "Magma Jet",
+       "name": "Magmastrahl",
+       "typeLine": "Spontanzauber",
+       "cost": "{1}{R}",
+       "set": "JMP",
+       "text": "Der Magmastrahl fügt einer Kreatur oder einem Spieler deiner Wahl 2 Schadenspunkte zu. Hellsicht 2. (Schaue dir die obersten zwei Karten deiner Bibliothek an. Du kannst eine beliebige Anzahl davon unter deine Bibliothek legen und den Rest in beliebiger Reihenfolge oben darauf.)",
+       "tapped": false,
+       "sick": false,
+       "faceDown": false,
+       "damage": 0,
+       "owner": 0,
+       "controller": 0
+      },
       "player": 0,
+      "ability": false,
       "trigger": false,
       "targets": [
        {
@@ -6908,10 +6978,10 @@
    "name": "ability",
    "description": "A card with two ways to play it (an adventure): which one, cancellable (options; human-11).",
    "fixture": "human-11",
-   "message": 129,
+   "message": 119,
    "game": {
     "type": "game.started",
-    "protocol": 4,
+    "protocol": 5,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -6946,7 +7016,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 30,
+    "seq": 23,
     "running": true,
     "turn": 3,
     "phase": "MAIN1",
@@ -7202,12 +7272,14 @@
       {
        "nr": 1,
        "label": "OK",
-       "enabled": true
+       "enabled": true,
+       "meaning": "pass"
       },
       {
        "nr": 2,
        "label": "End Turn",
-       "enabled": true
+       "enabled": true,
+       "meaning": "endTurn"
       }
      ],
      "id": 13,
@@ -7314,10 +7386,10 @@
    "name": "damage",
    "description": "An attacker blocked by two creatures: its combat damage to give out among them (distribute; blocks-double).",
    "fixture": "blocks-double",
-   "message": 424,
+   "message": 422,
    "game": {
     "type": "game.started",
-    "protocol": 4,
+    "protocol": 5,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -7349,7 +7421,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 82,
+    "seq": 81,
     "running": true,
     "turn": 11,
     "phase": "COMBAT_DAMAGE",
@@ -7918,6 +7990,1220 @@
       "question": 3,
       "kind": "buttons",
       "button": 1
+     }
+    }
+   ]
+  },
+  {
+   "name": "opponent-turn",
+   "description": "The player's priority in the AI's turn with the stack empty: Forge asks only because the player holds an answer (priority-respond).",
+   "fixture": "priority-respond",
+   "message": 236,
+   "game": {
+    "type": "game.started",
+    "protocol": 5,
+    "human": "Player",
+    "ai": "Forge AI",
+    "aiProfile": "Default",
+    "format": "constructed",
+    "cardNames": [
+     "Burst Lightning",
+     "Centaur Courser",
+     "Craw Wurm",
+     "Fiery Impulse",
+     "Forest",
+     "Giant Growth",
+     "Giant Spider",
+     "Grizzly Bears",
+     "Kalonian Tusker",
+     "Lightning Bolt",
+     "Lightning Strike",
+     "Llanowar Elves",
+     "Mountain",
+     "Rampant Growth",
+     "Runeclaw Bear",
+     "Searing Spear",
+     "Shock",
+     "Trained Armodon"
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 44,
+    "running": true,
+    "turn": 4,
+    "phase": "UPKEEP",
+    "activePlayer": 1,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 20,
+      "hasPriority": true,
+      "canAct": true,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 16,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "action": "Aktiviere Fähigkeit"
+        },
+        {
+         "id": 24,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "action": "Aktiviere Fähigkeit"
+        }
+       ],
+       "hand": [
+        {
+         "id": 8,
+         "key": "Lightning Strike",
+         "name": "Blitzeinschlag",
+         "typeLine": "Spontanzauber",
+         "cost": "{1}{R}",
+         "set": "MSH",
+         "text": "Der Blitzeinschlag fügt einem Ziel deiner Wahl 3 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "playable": true,
+         "action": "Einen Zauberspruch sprechen"
+        },
+        {
+         "id": 29,
+         "key": "Shock",
+         "name": "Schock",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "MSC",
+         "text": "Der Schock fügt einem Ziel deiner Wahl 2 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "playable": true,
+         "action": "Einen Zauberspruch sprechen"
+        },
+        {
+         "id": 26,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "text": "Bonus {4} (Du kannst zusätzlich {4} bezahlen, sowie du diesen Zauberspruch wirkst.)\r\n\r\nDer Geborstene Blitz fügt einem Ziel deiner Wahl 2 Schadenspunkte zu. Falls die Bonuskosten dieses Zauberspruchs bezahlt wurden, fügt er stattdessen 4 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "playable": true,
+         "action": "Einen Zauberspruch sprechen"
+        },
+        {
+         "id": 33,
+         "key": "Searing Spear",
+         "name": "Sengender Speer",
+         "typeLine": "Spontanzauber",
+         "cost": "{1}{R}",
+         "set": "J22",
+         "text": "Der Sengende Speer fügt einem Ziel deiner Wahl 3 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "playable": true,
+         "action": "Einen Zauberspruch sprechen"
+        }
+       ],
+       "graveyard": [
+        {
+         "id": 28,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 33,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 18,
+      "hasPriority": false,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 95,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 72,
+         "key": "Llanowar Elves",
+         "name": "Llanowarelfen",
+         "typeLine": "Beschwörung von Elfen",
+         "cost": "{G}",
+         "set": "SLZ",
+         "power": 1,
+         "toughness": 1,
+         "text": "{T}: Erhöhe Deinen Manavorrat um G. Spiele diese Eigenschaft wie einen Unterbrechungszauber.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "hand": [
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [],
+       "exile": [],
+       "command": []
+      },
+      "library": 52,
+      "commanders": []
+     }
+    ],
+    "stack": [],
+    "combat": []
+   },
+   "questions": [
+    {
+     "type": "question",
+     "kind": "buttons",
+     "text": "Priorität: Player Zug: 4 (Forge AI) Phase: Versorgungssegment Stapel: Leer",
+     "purpose": "priority",
+     "buttons": [
+      {
+       "nr": 1,
+       "label": "OK",
+       "enabled": true,
+       "meaning": "pass"
+      },
+      {
+       "nr": 2,
+       "label": "Zug beenden",
+       "enabled": true,
+       "meaning": "endTurn"
+      }
+     ],
+     "id": 34,
+     "blocking": false
+    }
+   ],
+   "prompt": "Priorität: Player Zug: 4 (Forge AI) Phase: Versorgungssegment Stapel: Leer",
+   "notices": [
+    {
+     "type": "input.rejected",
+     "seq": 6,
+     "reason": "stale",
+     "detail": "question 9999999 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 6,
+      "question": 9999999,
+      "kind": "buttons",
+      "button": 1
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 7,
+     "reason": "invalid",
+     "detail": "button must be 1 or 2, got 3",
+     "input": {
+      "type": "answer",
+      "seq": 7,
+      "question": 6,
+      "kind": "buttons",
+      "button": 3
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 8,
+     "reason": "unknown-card",
+     "detail": "no visible card with this id",
+     "input": {
+      "type": "card.tap",
+      "seq": 8,
+      "card": -5
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 9,
+     "reason": "stale",
+     "detail": "question 3 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 9,
+      "question": 3,
+      "kind": "buttons",
+      "button": 1
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 26,
+     "reason": "not-active",
+     "detail": "question 20 must be answered first",
+     "input": {
+      "type": "card.tap",
+      "seq": 26,
+      "card": 16
+     }
+    }
+   ]
+  },
+  {
+   "name": "respond",
+   "description": "The player's priority with the AI's spell on top of the stack: answer it or let it resolve (priority-respond).",
+   "fixture": "priority-respond",
+   "message": 249,
+   "game": {
+    "type": "game.started",
+    "protocol": 5,
+    "human": "Player",
+    "ai": "Forge AI",
+    "aiProfile": "Default",
+    "format": "constructed",
+    "cardNames": [
+     "Burst Lightning",
+     "Centaur Courser",
+     "Craw Wurm",
+     "Fiery Impulse",
+     "Forest",
+     "Giant Growth",
+     "Giant Spider",
+     "Grizzly Bears",
+     "Kalonian Tusker",
+     "Lightning Bolt",
+     "Lightning Strike",
+     "Llanowar Elves",
+     "Mountain",
+     "Rampant Growth",
+     "Runeclaw Bear",
+     "Searing Spear",
+     "Shock",
+     "Trained Armodon"
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 46,
+    "running": true,
+    "turn": 4,
+    "phase": "MAIN1",
+    "activePlayer": 1,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 20,
+      "hasPriority": true,
+      "canAct": true,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 16,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "action": "Aktiviere Fähigkeit"
+        },
+        {
+         "id": 24,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "action": "Aktiviere Fähigkeit"
+        }
+       ],
+       "hand": [
+        {
+         "id": 8,
+         "key": "Lightning Strike",
+         "name": "Blitzeinschlag",
+         "typeLine": "Spontanzauber",
+         "cost": "{1}{R}",
+         "set": "MSH",
+         "text": "Der Blitzeinschlag fügt einem Ziel deiner Wahl 3 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "playable": true,
+         "action": "Einen Zauberspruch sprechen"
+        },
+        {
+         "id": 29,
+         "key": "Shock",
+         "name": "Schock",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "MSC",
+         "text": "Der Schock fügt einem Ziel deiner Wahl 2 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "playable": true,
+         "action": "Einen Zauberspruch sprechen"
+        },
+        {
+         "id": 26,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "text": "Bonus {4} (Du kannst zusätzlich {4} bezahlen, sowie du diesen Zauberspruch wirkst.)\r\n\r\nDer Geborstene Blitz fügt einem Ziel deiner Wahl 2 Schadenspunkte zu. Falls die Bonuskosten dieses Zauberspruchs bezahlt wurden, fügt er stattdessen 4 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "playable": true,
+         "action": "Einen Zauberspruch sprechen"
+        },
+        {
+         "id": 33,
+         "key": "Searing Spear",
+         "name": "Sengender Speer",
+         "typeLine": "Spontanzauber",
+         "cost": "{1}{R}",
+         "set": "J22",
+         "text": "Der Sengende Speer fügt einem Ziel deiner Wahl 3 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "playable": true,
+         "action": "Einen Zauberspruch sprechen"
+        }
+       ],
+       "graveyard": [
+        {
+         "id": 28,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 33,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 18,
+      "hasPriority": false,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 1,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 95,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 72,
+         "key": "Llanowar Elves",
+         "name": "Llanowarelfen",
+         "typeLine": "Beschwörung von Elfen",
+         "cost": "{G}",
+         "set": "SLZ",
+         "power": 1,
+         "toughness": 1,
+         "text": "{T}: Erhöhe Deinen Manavorrat um G. Spiele diese Eigenschaft wie einen Unterbrechungszauber.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 81,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "hand": [
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [],
+       "exile": [],
+       "command": []
+      },
+      "library": 51,
+      "commanders": []
+     }
+    ],
+    "stack": [
+     {
+      "id": 7,
+      "text": "Wucherndes Wachstum (68) - Search your library for a basic land card, put that card onto the battlefield tapped, then shuffle.",
+      "source": 68,
+      "card": {
+       "id": 68,
+       "key": "Rampant Growth",
+       "name": "Wucherndes Wachstum",
+       "typeLine": "Hexerei",
+       "cost": "{1}{G}",
+       "set": "FIC",
+       "text": "Durchsuche Deine Bibliothek nach einem Standardland und bringe dieses getappt ins Spiel. Mische Deine Bibliothek danach neu.",
+       "tapped": false,
+       "sick": false,
+       "faceDown": false,
+       "damage": 0,
+       "owner": 1,
+       "controller": 1
+      },
+      "player": 1,
+      "ability": false,
+      "trigger": false,
+      "targets": []
+     }
+    ],
+    "combat": []
+   },
+   "questions": [
+    {
+     "type": "question",
+     "kind": "buttons",
+     "text": "Priorität: Player Zug: 4 (Forge AI) Phase: Erste Hauptphase (Vor-Kampf) Stapel: 1 zur Abwicklung.",
+     "purpose": "priority",
+     "buttons": [
+      {
+       "nr": 1,
+       "label": "OK",
+       "enabled": true,
+       "meaning": "pass"
+      },
+      {
+       "nr": 2,
+       "label": "Zug beenden",
+       "enabled": true,
+       "meaning": "endTurn"
+      }
+     ],
+     "id": 36,
+     "blocking": false
+    }
+   ],
+   "prompt": "Priorität: Player Zug: 4 (Forge AI) Phase: Erste Hauptphase (Vor-Kampf) Stapel: 1 zur Abwicklung.",
+   "notices": [
+    {
+     "type": "input.rejected",
+     "seq": 6,
+     "reason": "stale",
+     "detail": "question 9999999 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 6,
+      "question": 9999999,
+      "kind": "buttons",
+      "button": 1
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 7,
+     "reason": "invalid",
+     "detail": "button must be 1 or 2, got 3",
+     "input": {
+      "type": "answer",
+      "seq": 7,
+      "question": 6,
+      "kind": "buttons",
+      "button": 3
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 8,
+     "reason": "unknown-card",
+     "detail": "no visible card with this id",
+     "input": {
+      "type": "card.tap",
+      "seq": 8,
+      "card": -5
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 9,
+     "reason": "stale",
+     "detail": "question 3 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 9,
+      "question": 3,
+      "kind": "buttons",
+      "button": 1
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 26,
+     "reason": "not-active",
+     "detail": "question 20 must be answered first",
+     "input": {
+      "type": "card.tap",
+      "seq": 26,
+      "card": 16
+     }
+    }
+   ]
+  },
+  {
+   "name": "respond-own",
+   "description": "The player's answer on top of the AI's spell, and the player's priority again (stack depth 2; priority-respond).",
+   "fixture": "priority-respond",
+   "message": 415,
+   "game": {
+    "type": "game.started",
+    "protocol": 5,
+    "human": "Player",
+    "ai": "Forge AI",
+    "aiProfile": "Default",
+    "format": "constructed",
+    "cardNames": [
+     "Burst Lightning",
+     "Centaur Courser",
+     "Craw Wurm",
+     "Fiery Impulse",
+     "Forest",
+     "Giant Growth",
+     "Giant Spider",
+     "Grizzly Bears",
+     "Kalonian Tusker",
+     "Lightning Bolt",
+     "Lightning Strike",
+     "Llanowar Elves",
+     "Mountain",
+     "Rampant Growth",
+     "Runeclaw Bear",
+     "Searing Spear",
+     "Shock",
+     "Trained Armodon"
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 77,
+    "running": true,
+    "turn": 6,
+    "phase": "MAIN2",
+    "activePlayer": 1,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 20,
+      "hasPriority": true,
+      "canAct": true,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 16,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 24,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "action": "Aktiviere Fähigkeit"
+        },
+        {
+         "id": 13,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "action": "Aktiviere Fähigkeit"
+        }
+       ],
+       "hand": [
+        {
+         "id": 26,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "text": "Bonus {4} (Du kannst zusätzlich {4} bezahlen, sowie du diesen Zauberspruch wirkst.)\r\n\r\nDer Geborstene Blitz fügt einem Ziel deiner Wahl 2 Schadenspunkte zu. Falls die Bonuskosten dieses Zauberspruchs bezahlt wurden, fügt er stattdessen 4 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "playable": true,
+         "action": "Einen Zauberspruch sprechen"
+        },
+        {
+         "id": 33,
+         "key": "Searing Spear",
+         "name": "Sengender Speer",
+         "typeLine": "Spontanzauber",
+         "cost": "{1}{R}",
+         "set": "J22",
+         "text": "Der Sengende Speer fügt einem Ziel deiner Wahl 3 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "playable": true,
+         "action": "Einen Zauberspruch sprechen"
+        }
+       ],
+       "graveyard": [
+        {
+         "id": 28,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 8,
+         "key": "Lightning Strike",
+         "name": "Blitzeinschlag",
+         "typeLine": "Spontanzauber",
+         "cost": "{1}{R}",
+         "set": "MSH",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 32,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 18,
+      "hasPriority": false,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 95,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 81,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 80,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "hand": [
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [
+        {
+         "id": 72,
+         "key": "Llanowar Elves",
+         "name": "Llanowarelfen",
+         "typeLine": "Beschwörung von Elfen",
+         "cost": "{G}",
+         "set": "SLZ",
+         "power": 1,
+         "toughness": 1,
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 68,
+         "key": "Rampant Growth",
+         "name": "Wucherndes Wachstum",
+         "typeLine": "Hexerei",
+         "cost": "{1}{G}",
+         "set": "FIC",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 49,
+      "commanders": []
+     }
+    ],
+    "stack": [
+     {
+      "id": 15,
+      "text": "Schock (29) - Schock (29) deals 2 damage to Forge AI.",
+      "source": 29,
+      "card": {
+       "id": 29,
+       "key": "Shock",
+       "name": "Schock",
+       "typeLine": "Spontanzauber",
+       "cost": "{R}",
+       "set": "MSC",
+       "text": "Der Schock fügt einem Ziel deiner Wahl 2 Schadenspunkte zu.",
+       "tapped": false,
+       "sick": false,
+       "faceDown": false,
+       "damage": 0,
+       "owner": 0,
+       "controller": 0
+      },
+      "player": 0,
+      "ability": false,
+      "trigger": false,
+      "targets": [
+       {
+        "kind": "player",
+        "id": 1
+       }
+      ]
+     },
+     {
+      "id": 13,
+      "text": "Kalonischer Keiler - Kreatur 3 / 3",
+      "source": 47,
+      "card": {
+       "id": 47,
+       "key": "Kalonian Tusker",
+       "name": "Kalonischer Keiler",
+       "typeLine": "Kreatur — Bestie",
+       "cost": "{G}{G}",
+       "set": "M14",
+       "power": 3,
+       "toughness": 3,
+       "text": "",
+       "tapped": false,
+       "sick": false,
+       "faceDown": false,
+       "damage": 0,
+       "owner": 1,
+       "controller": 1
+      },
+      "player": 1,
+      "ability": false,
+      "trigger": false,
+      "targets": []
+     }
+    ],
+    "combat": []
+   },
+   "questions": [
+    {
+     "type": "question",
+     "kind": "buttons",
+     "text": "Priorität: Player Zug: 6 (Forge AI) Phase: Zweite Hauptphase (Nach-Kampf) Stapel: 2 zur Abwicklung.",
+     "purpose": "priority",
+     "buttons": [
+      {
+       "nr": 1,
+       "label": "OK",
+       "enabled": true,
+       "meaning": "pass"
+      },
+      {
+       "nr": 2,
+       "label": "Zug beenden",
+       "enabled": true,
+       "meaning": "endTurn"
+      }
+     ],
+     "id": 62,
+     "blocking": false
+    }
+   ],
+   "prompt": "Priorität: Player Zug: 6 (Forge AI) Phase: Zweite Hauptphase (Nach-Kampf) Stapel: 2 zur Abwicklung.",
+   "notices": [
+    {
+     "type": "input.rejected",
+     "seq": 6,
+     "reason": "stale",
+     "detail": "question 9999999 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 6,
+      "question": 9999999,
+      "kind": "buttons",
+      "button": 1
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 7,
+     "reason": "invalid",
+     "detail": "button must be 1 or 2, got 3",
+     "input": {
+      "type": "answer",
+      "seq": 7,
+      "question": 6,
+      "kind": "buttons",
+      "button": 3
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 8,
+     "reason": "unknown-card",
+     "detail": "no visible card with this id",
+     "input": {
+      "type": "card.tap",
+      "seq": 8,
+      "card": -5
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 9,
+     "reason": "stale",
+     "detail": "question 3 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 9,
+      "question": 3,
+      "kind": "buttons",
+      "button": 1
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 26,
+     "reason": "not-active",
+     "detail": "question 20 must be answered first",
+     "input": {
+      "type": "card.tap",
+      "seq": 26,
+      "card": 16
      }
     }
    ]

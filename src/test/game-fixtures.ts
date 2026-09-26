@@ -17,6 +17,7 @@ import { EngineClient, type EngineClientTimers, type EngineWorkerPortFactory, ty
 import {
   inputQueueReader,
   PROTOCOL_VERSION,
+  type Button,
   type EngineMessage,
   type FeatureReport,
   type FeatureScope,
@@ -151,6 +152,12 @@ export function mulligan(id = 1): Question {
 /** Forge's own prompt line for the mulligan (German, verbatim from the engine). */
 export const MULLIGAN_PROMPT = "Forge-KI beginnt.. Spieler, Du startest 2te.  Starthand behalten?"
 
+/** Forge's buttons of the priority step as the real engine sends them (German, protocol 5: with what each does). */
+export const PRIORITY_BUTTONS = [
+  { nr: 1, label: "OK", enabled: true, meaning: "pass" },
+  { nr: 2, label: "Zug beenden", enabled: true, meaning: "endTurn" },
+] as const satisfies readonly Button[]
+
 export function gameEnd(conceded = true): EngineMessage {
   return {
     type: "game.end",
@@ -280,8 +287,10 @@ export class FakeEngineWorker {
   /**
    * Forge after the player kept their hand: the player's first main phase,
    * the first Mountain in hand playable with Forge's words, the priority
-   * buttons, Forge waiting. As the real engine marks it (recorded scene
-   * "main-phase"). `answered`: the seq of the player's answer that kept the
+   * buttons (protocol 5: with what they do), Forge waiting - Forge asks at
+   * priority only when it found something the player can do (`canAct`). As
+   * the real engine marks it (recorded scene "main-phase"). `answered`: the
+   * seq of the player's answer that kept the
    * hand (prompt 15: Forge closes the mulligan question with it); without
    * it the mulligan question is withdrawn (a test that does not answer).
    */
@@ -292,8 +301,8 @@ export class FakeEngineWorker {
     const me = state.players[0]!
     const [first, ...rest] = me.zones.hand
     const playable = { ...(first as VisibleCard), playable: true as const, action: "Spiele ein Land" }
-    this.send({ ...state, players: [{ ...me, hasPriority: true, zones: { ...me.zones, hand: [playable, ...rest] } }, state.players[1]!] })
-    this.send({ type: "question", kind: "buttons", id: 2, blocking: false, text: "", purpose: "priority", buttons: [{ nr: 1, label: "OK", enabled: true }, { nr: 2, label: "Zug beenden", enabled: true }] })
+    this.send({ ...state, players: [{ ...me, hasPriority: true, canAct: true, zones: { ...me.zones, hand: [playable, ...rest] } }, state.players[1]!] })
+    this.send({ type: "question", kind: "buttons", id: 2, blocking: false, text: "", purpose: "priority", buttons: PRIORITY_BUTTONS })
     this.send({ type: "message", kind: "prompt", text: "Priorität: Spieler Zug: 1 (Spieler) Phase: Erste Hauptphase (Vor-Kampf) Stapel: Leer" })
     this.send({ type: "engine.waiting", consumed: options.answered ?? 0 })
   }

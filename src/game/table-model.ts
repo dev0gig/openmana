@@ -23,9 +23,12 @@
  *  - Hidden cards (Forge's mayView said no) are only counted: they have no id
  *    and no name, and nothing here tries to tell them apart.
  * The stack is in Forge's order: the first item is the top (Forge's
- * MagicStack adds to the front), the one that resolves next.
+ * MagicStack adds to the front), the one that resolves next. Each item comes
+ * with its card as Forge shows it (prompt 16): a spell's own card - it lies
+ * on the stack, which is no zone of the players - or an ability's source.
  */
 import type { Card, CombatEntry, GameState, Phase, Player, Question, StackItem, VisibleCard } from "@openmana/engine-protocol"
+import { stackKind, type StackKind } from "./turn-model"
 
 export type Seat = "me" | "opponent"
 
@@ -89,8 +92,14 @@ export interface StackEntryView {
   readonly text: string | null
   /** Who put it there (null: Forge did not say). */
   readonly controller: Seat | null
+  /** A spell, an activated or a triggered ability (Forge's flags). */
+  readonly kind: StackKind
   readonly trigger: boolean
-  /** The source card, if it is visible somewhere on the table (a spell's card is on the stack itself, which is no zone the player gets). */
+  /** The spell's own card or the ability's source, as Forge shows it (prompt 16); null: hidden or none. */
+  readonly card: VisibleCard | null
+  /** Forge names a card the player may not see (a face-down spell): a back, never guessed. */
+  readonly hidden: boolean
+  /** The source card, if the player may see it (a spell's card lies on the stack itself - see `card`). */
   readonly source: CardRef | null
   readonly targets: readonly (PlayerRef | CardRef)[]
 }
@@ -119,34 +128,47 @@ export function isVisible(card: Card): card is VisibleCard {
   return !("hidden" in card)
 }
 
-/** Every visible card of the state by id: all zones of all players and their commanders. */
+/** The card of a stack item the player may see, or null. */
+export function stackCard(item: StackItem): VisibleCard | null {
+  return item.card !== null && isVisible(item.card) ? item.card : null
+}
+
+/** Every visible card of the state by id: all zones of all players, the cards on the stack and the commanders. */
 export function visibleCards(state: GameState): ReadonlyMap<number, VisibleCard> {
   const cards = new Map<number, VisibleCard>()
   for (const player of state.players) {
     const { battlefield, hand, graveyard, exile, command } = player.zones
     for (const card of [...battlefield, ...hand, ...graveyard, ...exile, ...command]) if (isVisible(card)) cards.set(card.id, card)
+  }
+  // A spell's own card lies on the stack; an ability's source is already in its zone.
+  for (const item of state.stack) {
+    const card = stackCard(item)
+    if (card !== null && !cards.has(card.id)) cards.set(card.id, card)
+  }
+  for (const player of state.players) {
     for (const commander of player.commanders) if (isVisible(commander.card) && !cards.has(commander.card.id)) cards.set(commander.card.id, commander.card)
   }
   return cards
 }
 
-/** The zones Forge shows the player (the library only as a number). */
-export type CardZone = "battlefield" | "hand" | "graveyard" | "exile" | "command"
+/** Where Forge shows the player a card: the players' zones (the library only as a number) and the stack. */
+export type CardZone = "battlefield" | "hand" | "graveyard" | "exile" | "command" | "stack"
 
-const ZONES: readonly CardZone[] = ["battlefield", "hand", "graveyard", "exile", "command"]
+const ZONES: readonly Exclude<CardZone, "stack">[] = ["battlefield", "hand", "graveyard", "exile", "command"]
 
 export interface LocatedCard {
   readonly card: VisibleCard
-  /** The zone it lies in now; null: in none the player is shown (a commander on the stack). */
+  /** Where it lies now; null: nowhere the player is shown (a commander between zones). */
   readonly zone: CardZone | null
-  /** Whose zone it is (for a commander outside the zones: whose commander). */
+  /** Whose zone it is (on the stack: who put it there; a commander outside the zones: whose commander). */
   readonly seat: Seat
 }
 
 /**
  * Where a card lies in this state, by its id (prompt 14: the card view keeps
  * only the id and reads the card from every new state - Anvil lesson: no
- * stale card objects). null: Forge shows it nowhere any more.
+ * stale card objects). An ability's source is found in its zone, a spell's
+ * card on the stack (prompt 16). null: Forge shows it nowhere any more.
  */
 export function locateCard(state: GameState, id: number): LocatedCard | null {
   for (const player of state.players) {
@@ -154,10 +176,21 @@ export function locateCard(state: GameState, id: number): LocatedCard | null {
       for (const card of player.zones[zone]) if (isVisible(card) && card.id === id) return { card, zone, seat: player.me ? "me" : "opponent" }
     }
   }
+  for (const item of state.stack) {
+    const card = stackCard(item)
+    if (card === null || card.id !== id) continue
+    const player = state.players.find((candidate) => candidate.id === (item.player ?? card.controller))
+    return { card, zone: "stack", seat: player?.me === true ? "me" : "opponent" }
+  }
   for (const player of state.players) {
     for (const commander of player.commanders) if (isVisible(commander.card) && commander.card.id === id) return { card: commander.card, zone: null, seat: player.me ? "me" : "opponent" }
   }
   return null
+}
+
+/** The stack entries of a card: the spell it is, or abilities it is the source of (top first). */
+export function stackEntriesOf(view: TableView, id: number): readonly StackEntryView[] {
+  return view.stack.filter((entry) => entry.card?.id === id)
 }
 
 /** The pile of identical cards a card lies in on a battlefield (its ids, Forge's order), or null. */
@@ -290,7 +323,10 @@ function stackEntry(state: GameState, cards: ReadonlyMap<number, VisibleCard>, i
     id: item.id,
     text: item.text,
     controller: item.player === null ? null : playerRef(state, item.player).seat,
+    kind: stackKind(item),
     trigger: item.trigger,
+    card: stackCard(item),
+    hidden: item.card !== null && !isVisible(item.card),
     source: item.source === null ? null : cardRef(cards, item.source),
     targets: item.targets.map((target) => (target.kind === "player" ? playerRef(state, target.id) : cardRef(cards, target.id))),
   }

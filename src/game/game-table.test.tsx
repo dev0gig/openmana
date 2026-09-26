@@ -165,13 +165,14 @@ describe("the battlefields", () => {
 })
 
 describe("stack, combat and Forge's decision", () => {
-  it("the stack in Forge's words: the top, who, the target", () => {
+  it("the stack: the card, the top, what it is, whose, the target - and Forge's words (prompt 16)", () => {
     renderScene("stack")
     const center = region("Stapel und Kampf")
     const [entry] = within(center).getAllByRole("listitem")
-    expect(entry).toHaveTextContent("Duoben")
+    expect(entry!.querySelector('[data-slot="item-title"]')).toHaveTextContent("Magmastrahloben")
+    expect(entry).toHaveTextContent("Zauberspruch · von dir · Ziel: Goblin-Brandstifter")
     expect(entry).toHaveTextContent("Magmastrahl (14) - Magmastrahl (14) deals 2 damage to Goblin-Brandstifter (55). Player scries 2.")
-    expect(entry).toHaveTextContent("Ziel: Goblin-Brandstifter")
+    expect(within(entry!).getByRole("button", { name: "Magmastrahl ansehen" })).toHaveAttribute("aria-haspopup", "dialog")
   })
 
   it("combat in words: who attacks whom, who blocks; alike unblocked attackers in one line", () => {

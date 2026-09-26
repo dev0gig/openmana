@@ -221,7 +221,8 @@ describe("choose (a blocking question)", () => {
     const { onAnswer } = table("choose-mode")
     expect(within(decision()).getByText("Player aktivierte Feurige Konfluenz - wähle einen Modus")).toBeInTheDocument()
     // The step's priority buttons wait under the blocking question: not shown.
-    expect(within(decision()).queryByRole("button", { name: "Zug beenden" })).not.toBeInTheDocument()
+    expect(within(decision()).queryByRole("button", { name: "Zug beenden …" })).not.toBeInTheDocument()
+    expect(within(decision()).queryByRole("button", { name: "Weiter" })).not.toBeInTheDocument()
     expect(board()).toHaveAttribute("data-decision", "expanded")
     const confirm = within(decision()).getByRole("button", { name: "Bestätigen" })
     expect(confirm).toBeDisabled()
@@ -462,7 +463,7 @@ describe("withdrawal and the next question", () => {
     const rest = scene.questions.filter((question) => question.kind !== "choose")
     rerender({ questions: rest })
     expect(within(decision()).queryByRole("radio")).not.toBeInTheDocument()
-    expect(within(decision()).getByRole("button", { name: "OK" })).toBeInTheDocument()
+    expect(within(decision()).getByRole("button", { name: "Weiter" })).toBeInTheDocument()
     // The same kind of question again, a new id: no draft carried over.
     const again = scene.questions.map((question) => (question.kind === "choose" ? { ...question, id: 99 } : question))
     rerender({ questions: again })

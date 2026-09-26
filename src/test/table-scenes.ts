@@ -27,6 +27,10 @@ export type TableSceneName =
   | "scry"
   | "ability"
   | "damage"
+  // Priority, stack and phases (prompt 16)
+  | "opponent-turn"
+  | "respond"
+  | "respond-own"
 
 export interface TableScene {
   readonly name: TableSceneName

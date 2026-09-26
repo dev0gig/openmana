@@ -117,6 +117,8 @@ export function cardUse(card: VisibleCard, place: CardPlace, moment: TableMoment
   const step = currentStep(questions)
   const selection = openSelection(questions)
   const chosen = card.highlighted === true
+  // A card on the stack is never tapped (Forge's card.tap takes cards of the players' zones; prompt 16): only looked at.
+  if (place.zone === "stack") return { mark: chosen ? "selected" : null, markLabel: chosen ? "ausgewählt" : null, tap: null, primary: "look", blocked: null }
   const named = selection !== null && selection.cards.includes(card.id)
   // The London mulligan marks nothing and names no action, yet a tap on a hand card chooses it (Anvil lesson).
   const mulligan = step === "mulliganBottom" && place.zone === "hand" && place.mine

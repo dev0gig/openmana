@@ -24,6 +24,10 @@
  * of the library while scrying, a card to choose from a pile - prompt 15)
  * is shown as the question shows it (`snapshot`), as long as the question
  * is open; it is answered in the decision region, never tapped here.
+ * A card on the stack (prompt 16: a spell's own card, or the source of an
+ * ability there) shows what it is there, whose, how far from the top, and
+ * Forge's description with its targets; a card on the stack is only looked
+ * at - it is not tapped, it is resolved.
  * Forge's texts (name, type line, rules text, the tap's words) are shown as
  * Forge sends them; the picture comes from the card catalog, never covered.
  */
@@ -37,9 +41,10 @@ import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHe
 import { Skeleton } from "@/components/ui/skeleton"
 import { useLandscape } from "@/hooks/use-landscape"
 import { cardUse, type CardUse, type TableMoment } from "./card-use"
+import { STACK_KIND_LABELS } from "./game-labels"
 import type { TableCardLookup } from "./table-cards"
-import { captionFacts, cardName, placeLabel, spokenFacts } from "./table-labels"
-import { locateCard, pileOf, visibleCards, type TableView } from "./table-model"
+import { captionFacts, cardName, placeLabel, spokenFacts, stackOwner, stackTargets } from "./table-labels"
+import { locateCard, pileOf, stackEntriesOf, visibleCards, type StackEntryView, type TableView } from "./table-model"
 
 /** How long after the view opened (or its button changed) presses on the button - or outside the view - are ignored. */
 export const ARMING_MS = 500
@@ -144,6 +149,7 @@ function CardView({
   const { card, zone, seat } = located
   const use = cardUse(card, { zone, mine: seat === "me" }, moment)
   const pile = zone === "battlefield" ? pileOf(view, id) : null
+  const onStack = stackEntriesOf(view, id)
   return (
     <>
       <SheetHeader>
@@ -160,7 +166,8 @@ function CardView({
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           {card.text ? <p className="text-sm whitespace-pre-line">{card.text}</p> : null}
           <FactList facts={facts(card, state, pile, pictures)} />
-          <ForgeOffer card={card} use={use} live={onTap !== undefined} />
+          {onStack.length > 0 ? <StackFacts entries={onStack} view={view} /> : null}
+          {zone === "stack" && use.tap === null ? null : <ForgeOffer card={card} use={use} live={onTap !== undefined} />}
         </div>
       </div>
       {/* The buttons stay in view while the card scrolls above them (a phone turned sideways; Bible §6: the action stays easy to reach). */}
@@ -265,6 +272,34 @@ function facts(card: VisibleCard, state: GameState, pile: readonly number[] | nu
   const picture = pictures(card)
   if (picture !== "loading" && picture !== "none") list.push({ label: "Kartenbild", value: picture.lang === "de" ? "deutsch" : picture.lang === "en" ? "englisch" : picture.lang })
   return list
+}
+
+/**
+ * The card on the stack (prompt 16): a spell there, or abilities of it -
+ * what each is, whose, how far from the top (the top resolves next), and
+ * Forge's own description with its targets.
+ */
+function StackFacts({ entries, view }: { entries: readonly StackEntryView[]; view: TableView }) {
+  return (
+    <section aria-label="Auf dem Stapel" className="flex flex-col gap-2 text-sm">
+      {entries.map((entry) => {
+        const above = view.stack.indexOf(entry)
+        const owner = stackOwner(entry.controller)
+        const targets = stackTargets(entry)
+        return (
+          <div key={entry.id} className="flex flex-col gap-0.5">
+            <p className="font-medium">
+              Auf dem Stapel: {STACK_KIND_LABELS[entry.kind]}
+              {owner !== null ? ` ${owner}` : null}
+              {above === 0 ? " – wird als Nächstes verrechnet." : above === 1 ? " – 1 Eintrag liegt darüber." : ` – ${above} Einträge liegen darüber.`}
+            </p>
+            {entry.text !== null && entry.text.trim() !== "" ? <p className="text-muted-foreground">{entry.text}</p> : null}
+            {targets !== null ? <p className="text-muted-foreground">{targets}</p> : null}
+          </div>
+        )
+      })}
+    </section>
+  )
 }
 
 /** What Forge offers for the card now, in words. */

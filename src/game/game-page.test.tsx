@@ -26,7 +26,7 @@ import { saveDeck } from "@/storage/decks"
 import type { DeckRecord } from "@/storage/generated/records"
 import { writeSetting } from "@/storage/settings"
 import { StorageProvider } from "@/storage/storage-context"
-import { MULLIGAN_PROMPT, settle, SUPPORTED, testEngine, type TestEngine } from "@/test/game-fixtures"
+import { MULLIGAN_PROMPT, PRIORITY_BUTTONS, settle, SUPPORTED, testEngine, type TestEngine } from "@/test/game-fixtures"
 import { deck, openTestDatabase } from "@/test/storage-fixtures"
 import { ARMING_MS } from "./card-sheet"
 import { GamePage } from "./game-page"
@@ -285,11 +285,12 @@ describe("the game page: Forge's decisions (prompt 15)", () => {
     expect(await within(screen.getByRole("region", { name: "Spielstand" })).findByText("Forge rechnet")).toBeInTheDocument()
     expect(within(decision).getByRole("button", { name: "Behalten" })).toBeDisabled()
 
-    // Forge took the answer and gives the player priority in the first main phase.
+    // Forge took the answer and gives the player priority in the first main phase (prompt 16: in words instead of Forge's status line).
     act(() => engine.worker().priority({ answered: 1 }))
-    const ok = await within(decision).findByRole("button", { name: "OK" })
-    expect(within(decision).getByRole("button", { name: "Zug beenden" })).toBeInTheDocument()
-    expect(within(decision).getByText("Priorität: Spieler Zug: 1 (Spieler) Phase: Erste Hauptphase (Vor-Kampf) Stapel: Leer")).toBeInTheDocument()
+    const ok = await within(decision).findByRole("button", { name: "Weiter" })
+    expect(within(decision).getByRole("button", { name: "Zug beenden …" })).toBeInTheDocument()
+    expect(within(decision).getByText("Du kannst jetzt eine Karte spielen – oder weitergeben.")).toBeInTheDocument()
+    expect(within(decision).queryByText(/^Priorität: Spieler/)).not.toBeInTheDocument()
 
     // Playing a land is the card's tap (its view's button), not an answer.
     await user.click(within(screen.getByRole("toolbar", { name: "Deine Hand: 7 Karten" })).getByRole("button", { name: "Mountain, spielbar" }))
@@ -299,11 +300,11 @@ describe("the game page: Forge's decisions (prompt 15)", () => {
     expect(engine.worker().inputs()).toEqual([{ type: "card.tap", seq: 2, card: 1 }])
     act(() => {
       engine.worker().send({ type: "question.withdrawn", id: 2 })
-      engine.worker().send({ type: "question", kind: "buttons", id: 3, blocking: false, text: "", purpose: "priority", buttons: [{ nr: 1, label: "OK", enabled: true }, { nr: 2, label: "Zug beenden", enabled: true }] })
+      engine.worker().send({ type: "question", kind: "buttons", id: 3, blocking: false, text: "", purpose: "priority", buttons: PRIORITY_BUTTONS })
       engine.worker().send({ type: "engine.waiting", consumed: 2 })
     })
     // The new priority's buttons are armed afresh: a press right away is dropped.
-    const pass = await within(decision).findByRole("button", { name: "OK" })
+    const pass = await within(decision).findByRole("button", { name: "Weiter" })
     expect(pass).not.toBe(ok)
     await user.click(pass)
     expect(engine.worker().inputs()).toEqual([])
@@ -343,7 +344,7 @@ describe("the game page: Forge's decisions (prompt 15)", () => {
       engine.worker().send({ type: "engine.waiting", consumed: 0 })
     })
     await user.click(await within(decision).findByRole("radio", { name: "• Die Feurige Konfluenz fügt jedem Gegner 2 Schadenspunkte zu." }))
-    expect(within(decision).queryByRole("button", { name: "Zug beenden" })).not.toBeInTheDocument()
+    expect(within(decision).queryByRole("button", { name: "Zug beenden …" })).not.toBeInTheDocument()
     expect(engine.worker().inputs()).toEqual([])
     clock += ARMING_MS
     await user.click(within(decision).getByRole("button", { name: "Bestätigen" }))
@@ -352,9 +353,50 @@ describe("the game page: Forge's decisions (prompt 15)", () => {
       engine.worker().send({ type: "question.answered", id: 3, seq: 1 })
       engine.worker().send({ type: "engine.waiting", consumed: 1 })
     })
-    expect(await within(decision).findByRole("button", { name: "Zug beenden" })).toBeInTheDocument()
+    expect(await within(decision).findByRole("button", { name: "Zug beenden …" })).toBeInTheDocument()
     expect(within(decision).queryByRole("radio")).not.toBeInTheDocument()
     vi.restoreAllMocks()
+  })
+})
+
+describe("the game page: priority, stack and phases (prompt 16)", () => {
+  it("End Turn asks first: playing on sends nothing, confirming sends Forge's End Turn", { timeout: 20_000 }, async () => {
+    const user = userEvent.setup()
+    await store([RED, GREEN])
+    const engine = await runningGame()
+    engine.worker().priority()
+    renderAt("/play/game", engine)
+    const decision = await screen.findByRole("region", { name: "Entscheidung" })
+    await user.click(await within(decision).findByRole("button", { name: "Zug beenden …" }))
+    const dialog = await screen.findByRole("alertdialog", { name: "Zug beenden?" })
+    expect(within(dialog).getByText(/bis dein Zug endet – ein noch ausstehender Angriff fällt damit weg/)).toBeInTheDocument()
+    await user.click(within(dialog).getByRole("button", { name: "Weiterspielen" }))
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument())
+    expect(engine.worker().inputs()).toEqual([])
+    await user.click(within(decision).getByRole("button", { name: "Zug beenden …" }))
+    await user.click(within(await screen.findByRole("alertdialog", { name: "Zug beenden?" })).getByRole("button", { name: "Zug beenden" }))
+    expect(engine.worker().inputs()).toEqual([{ type: "answer", seq: 1, question: 2, kind: "buttons", button: 2 }])
+  })
+
+  it("the header shows the turn's steps, whose turn it is and Forge's step; the priority says what it is about", { timeout: 20_000 }, async () => {
+    await store([RED, GREEN])
+    const engine = await runningGame()
+    engine.worker().priority()
+    renderAt("/play/game", engine)
+    const header = await screen.findByRole("region", { name: "Spielstand" })
+    expect(await within(header).findByText("Zug 1 · Erste Hauptphase")).toBeInTheDocument()
+    expect(within(header).getByText("Du bist am Zug")).toBeInTheDocument()
+    const track = header.querySelector('[data-slot="phase-track"]')
+    expect(track).toHaveAttribute("data-phase", "MAIN1")
+    expect(track).toHaveAttribute("aria-hidden", "true")
+    const steps = [...header.querySelectorAll('[data-slot="phase-track-step"]')]
+    expect(steps.map((step) => step.getAttribute("data-state"))).toEqual(["done", "done", "done", "current", ...Array<string>(9).fill("upcoming")])
+    expect(steps[3]).toHaveAttribute("title", "Erste Hauptphase")
+    const decision = screen.getByRole("region", { name: "Entscheidung" })
+    expect(within(decision).getByText("„Weiter“ gibt die Priorität ab. Tut danach niemand mehr etwas, geht es zum nächsten Schritt.")).toBeInTheDocument()
+    expect(within(decision).getByRole("button", { name: "Weiter" })).toHaveAccessibleDescription(
+      "„Weiter“ gibt die Priorität ab. Tut danach niemand mehr etwas, geht es zum nächsten Schritt.",
+    )
   })
 })
 

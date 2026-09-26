@@ -2087,7 +2087,9 @@ const PLAY_LAND = "Spiele ein Land"
 /**
  * Answering Forge in the real game (prompt 15), only through the table: the
  * first decision with Forge's own buttons (play first, then keep the hand),
- * Forge's priority passed with its "OK" - attacks and blocks declined, a card
+ * Forge's priority passed with its OK ("Weiter" since prompt 16, which also
+ * checks the priority's words and the header's track of the turn's steps in
+ * the real game) - attacks and blocks declined, a card
  * discarded when Forge asks - until a land of the player's hand can be
  * played, the land played through its card view (Forge's card.tap), and the
  * priority passed on once more. Every press waits until the buttons are
@@ -2126,6 +2128,7 @@ async function playRealGame(page: Page, label: string, touch = false): Promise<R
     await page.waitForFunction((before) => document.querySelector('[data-slot="game-decision"]')?.getAttribute("data-question") !== before, question, { timeout: 180_000 })
   }
   const first = ((await answers.textContent()) ?? "").trim()
+  let track: string | null = null
   let land: string | null = null
   let landFrom: number | null = null
   for (let step = 0; step < 120 && land === null && Date.now() - started < 360_000; step++) {
@@ -2156,7 +2159,7 @@ async function playRealGame(page: Page, label: string, touch = false): Promise<R
           await closeCardView(page)
         }
       }
-      if (land === null) await press("OK", question)
+      if (land === null) await press("Weiter", question)
     } else if (kind === "Angreifer wählen" || kind === "Angriff bestätigen" || kind === "Blocker wählen") {
       await press("OK", question)
     } else if (kind === "Auswahl") {
@@ -2188,11 +2191,18 @@ async function playRealGame(page: Page, label: string, touch = false): Promise<R
     permanents = (await tableFacts(page)).me.permanents
     const { kind, question } = await next()
     check(kind === "Priorität", `${label}: after the land Forge asks "${kind}"`)
-    await press("OK", question)
+    // Prompt 16: the priority in words, not Forge's status line; the header's track shows Forge's step.
+    const words = ((await decision.locator('[data-slot="game-decision-header"] p').nth(1).textContent()) ?? "").trim()
+    check(!words.startsWith("Priorität:") && words.endsWith("oder weitergeben."), `${label}: the priority says "${words}"`)
+    track = await tableHeader(page).locator('[data-slot="phase-track"]').getAttribute("data-phase")
+    const current = await tableHeader(page).locator('[data-slot="phase-track-step"][data-state="current"]').getAttribute("title")
+    const line = ((await tableHeader(page).locator("p").first().textContent()) ?? "").trim()
+    check(track !== null && current !== null && line.endsWith(current), `${label}: the header's track (${track}, ${current}) and words (${line}) disagree`)
+    await press("Weiter", question)
   }
   if (touch) for (const height of heights) check(height >= 44, `${label}: one of Forge's buttons ${height}px high`)
   check((await page.locator("[data-sonner-toast]").count()) === 0, `${label}: a notice appeared while playing (${(await page.locator("[data-sonner-toast]").allTextContents()).join(" | ")})`)
-  return { first, presses, land, permanentsBefore: landFrom, permanentsAfter: permanents, buttonHeights: [Math.min(...heights), Math.max(...heights)], ms: Date.now() - started }
+  return { first, presses, land, permanentsBefore: landFrom, permanentsAfter: permanents, track, buttonHeights: [Math.min(...heights), Math.max(...heights)], ms: Date.now() - started }
 }
 
 async function gameSession(browser: Browser, page: Page, pageLog: PageLog, base: string, id: string, decks: readonly SavedDeck[]): Promise<Record<string, unknown>> {
@@ -2697,6 +2707,10 @@ const TABLE_SCENES = [
   "scry",
   "ability",
   "damage",
+  // Priority, stack and phases (prompt 16): the player's priority in the AI's turn, with the AI's spell on top, with the player's answer on top of it.
+  "opponent-turn",
+  "respond",
+  "respond-own",
 ] as const
 
 /** Forge's questions the recorded games do not reach, built after the schema on the recorded "main-phase" state (src/test/built-questions.ts) - marked as built. */
@@ -2715,12 +2729,18 @@ const TABLE_VIEWPORTS: readonly Viewport[] = [
   VIEWPORTS[2]!,
 ]
 
-/** Forge's marks in the recorded scenes (prompt 14): the playable land, the attacker blockers go to, Krenko who can still attack. */
+/**
+ * Forge's marks in the recorded scenes (prompt 14): the playable land, the attacker blockers go to, Krenko who can still
+ * attack; since prompt 16 the answers the player holds in the AI's turn (four red instants, two once it answered).
+ */
 const SCENE_MARKS: Partial<Record<(typeof TABLE_SCENES)[number], { readonly usable: number; readonly selected: number }>> = {
   opening: { usable: 0, selected: 0 },
   "main-phase": { usable: 1, selected: 0 },
   defend: { usable: 0, selected: 1 },
   "commander-late": { usable: 1, selected: 0 },
+  "opponent-turn": { usable: 4, selected: 0 },
+  respond: { usable: 4, selected: 0 },
+  "respond-own": { usable: 2, selected: 0 },
 }
 
 /**
@@ -2834,6 +2854,25 @@ async function tableInteractions(page: Page, base: string, viewport: Viewport): 
     await closeCardView(page)
   }
   results["priority"] = { side, tapHeight, taps: armedTaps }
+
+  // The stack (prompt 16): a card on it opens the card view - where it is, how far from the top -, to look at, never to tap.
+  await openScene(page, base, "respond-own")
+  const lower = page.locator("[data-stack-item]").nth(1).locator("button[data-stack-card]")
+  const lowerName = ((await lower.getAttribute("aria-label")) ?? "").replace(/ ansehen$/, "")
+  if (viewport.touch) await lower.tap()
+  else await lower.click()
+  const stackView = page.getByRole("dialog", { name: lowerName })
+  await stackView.waitFor()
+  const onStack = ((await stackView.getByRole("region", { name: "Auf dem Stapel" }).textContent()) ?? "").trim()
+  check(onStack.startsWith("Auf dem Stapel: Zauberspruch von der Forge-KI – 1 Eintrag liegt darüber."), `${label}: the stack card's view says "${onStack}"`)
+  const stackButtons = await stackView.getByRole("button").allTextContents()
+  check(stackButtons.join() === "Schließen", `${label}: the view of a card on the stack offers ${JSON.stringify(stackButtons)}`)
+  await animationsDone(stackView)
+  results["stackViewAxe"] = await accessibility(page, `${label}: card view of a card on the stack`)
+  await closeCardView(page)
+  check((await harnessTaps(page)).length === 0 && (await harnessAnswers(page)).length === 0, `${label}: looking at a card on the stack sent something`)
+  const stackCard = await layoutHeight(lower)
+  results["stack"] = { card: lowerName, view: onStack, height: stackCard }
 
   // Blocking: a tap acts at once (a double one once); a right click or long press looks.
   await openScene(page, base, "defend")
@@ -3035,6 +3074,28 @@ async function decisionInteractions(page: Page, base: string, viewport: Viewport
   await scene("main-phase", "select-outside")
   await activate(decision.getByRole("toolbar", { name: "Wählbare Karten, die nicht auf dem Tisch liegen" }).getByRole("button").first())
   await expectLast("a card outside the table (built)", { kind: "select", choices: [1] })
+
+  // The player's priority (prompt 16): Forge's OK in words for what passing does, End Turn only after asking.
+  await scene("main-phase")
+  await armed(button("Weiter"))
+  await expectLast("priority: pass", { kind: "buttons", button: 1 })
+
+  await scene("respond")
+  await armed(button("Verrechnen lassen"))
+  await expectLast("priority: let the AI's spell resolve", { kind: "buttons", button: 1 })
+
+  await scene("main-phase")
+  await activate(button("Zug beenden …"))
+  const endTurn = page.getByRole("alertdialog", { name: "Zug beenden?" })
+  await endTurn.waitFor()
+  await animationsDone(endTurn)
+  results["endTurnAxe"] = await accessibility(page, `${label}: End Turn asks`)
+  await activate(endTurn.getByRole("button", { name: "Weiterspielen" }))
+  await endTurn.waitFor({ state: "detached" })
+  check((await harnessAnswers(page)).length === 0, `${label}: playing on after End Turn answered ${JSON.stringify(await harnessAnswers(page))}`)
+  await activate(button("Zug beenden …"))
+  await activate(page.getByRole("alertdialog", { name: "Zug beenden?" }).getByRole("button", { name: "Zug beenden", exact: true }))
+  await expectLast("priority: end the turn (asked first)", { kind: "buttons", button: 2 })
   check((await harnessTaps(page)).length === 0, `${label}: answering tapped a card`)
   return results
 }

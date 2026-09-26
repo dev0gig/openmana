@@ -92,6 +92,8 @@ const me = (state: GameState) => state.players.find((player) => player.me)
 const open = <K extends Question["kind"]>(m: Moment, kind: K) => m.questions.filter((q): q is Extract<Question, { kind: K }> => q.kind === kind)
 /** Forge's buttons without a purpose (play or draw, yes or no, OK/cancel of a selection). */
 const plainButtons = (m: Moment) => open(m, "buttons").filter((q) => q.purpose === undefined)
+/** The player's priority, alone (no blocking question over it). */
+const priority = (m: Moment) => open(m, "buttons").some((q) => q.purpose === "priority") && m.questions.every((q) => !q.blocking)
 
 interface SceneRule {
   readonly name: string
@@ -205,6 +207,25 @@ const RULES: readonly SceneRule[] = [
     description: "An attacker blocked by two creatures: its combat damage to give out among them (distribute; blocks-double).",
     fixture: "blocks-double",
     fits: (m) => open(m, "distribute").length > 0,
+  },
+  // Priority, stack and phases (prompt 16): the player's priority in the AI's turn and with something on the stack.
+  {
+    name: "opponent-turn",
+    description: "The player's priority in the AI's turn with the stack empty: Forge asks only because the player holds an answer (priority-respond).",
+    fixture: "priority-respond",
+    fits: (m) => priority(m) && m.state.activePlayer !== m.state.me && m.state.stack.length === 0 && m.state.turn > 2,
+  },
+  {
+    name: "respond",
+    description: "The player's priority with the AI's spell on top of the stack: answer it or let it resolve (priority-respond).",
+    fixture: "priority-respond",
+    fits: (m) => priority(m) && m.state.stack.length === 1 && m.state.stack[0]!.player !== m.state.me && m.state.turn > 2,
+  },
+  {
+    name: "respond-own",
+    description: "The player's answer on top of the AI's spell, and the player's priority again (stack depth 2; priority-respond).",
+    fixture: "priority-respond",
+    fits: (m) => priority(m) && m.state.stack.length >= 2 && m.state.stack[0]!.player === m.state.me,
   },
 ]
 

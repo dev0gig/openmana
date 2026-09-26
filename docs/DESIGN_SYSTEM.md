@@ -69,7 +69,8 @@ files work under COEP and nothing leaks to third parties (Bible §15).
    database says so: while it loads the page shows a `Skeleton`, and if it
    cannot be read the page shows why, never an empty list.
    Irreversible actions (deleting, replacing, resetting data, conceding a
-   game, ending one without a result) are confirmed in an `AlertDialog` whose
+   game, ending one without a result, Forge's "Zug beenden" - since prompt 16)
+   are confirmed in an `AlertDialog` whose
    destructive button says what happens ("Endgültig entfernen", "Lokale Daten
    ersetzen", "Aufgeben") and whose cancel button keeps things as they are
    ("Weiterspielen").
@@ -175,6 +176,19 @@ expanded decision takes both middle rows of the side column and stack and
 combat step aside. Sending buttons are armed a moment after they appear, like
 the card view's.
 
+**Priority, stack and phases** (prompt 16): the header shows where in its
+turn the game is - Forge's step in words ("Zug 3 · Erste Hauptphase") with a
+`PhaseTrack` beside the turn's owner: one short bar per step, grouped by the
+five phases, Forge's step wide in `--primary`, the steps before it in
+`--muted-foreground`, the ones to come in `--border` (a picture of the words,
+hidden from screen readers; each bar names its step as a tooltip). The stack
+region lists each item top first as an `Item` with its card's picture (it
+opens the card view), its name, what it is, whose it is and Forge's words;
+the top one carries an "oben" badge. The player's priority is a decision like
+the others: words instead of Forge's status line, Forge's OK as "Weiter" or
+"Verrechnen lassen", Forge's End Turn behind an `AlertDialog` (rule 4: it
+gives the rest of the turn away).
+
 Both battlefields share the free height equally; a battlefield shows two rows
 (creatures next to the middle, other permanents outside) from 176 px, one
 below. Cards are sized by their row's height (`GameCard`), so less room means
@@ -198,6 +212,7 @@ the word.
 | `GameCardButton`, `GameCardRow`, `GameCardRowItem`, `GameCardRowButton`; the `mark` of `GameCard`/`GameCardButton` | `src/components/ui/game-card.tsx`, built the shadcn way (prompt 14) on Radix `Toolbar` (from `radix-ui`) | a card as a control: a button with shadcn's focus ring around the whole card, no image menu or text selection on a long press; Forge's state as a frame around the picture in the room every card keeps (`mark`: usable = dashed `--primary`, chosen = solid `--foreground`); a row of such cards as a toolbar (roving focus), else a focusable list |
 | `Checkbox` | shadcn/ui registry (`radix-maia`, prompt 15; `motion-reduce` added) | several choices of one of Forge's questions, inside a `FieldLabel` choice card (the whole card is the touch target) |
 | `GameDecision`, `GameDecisionHeader`, `GameDecisionSource`, `GameDecisionRow`, `GameDecisionNote`, `GameDecisionActions`; `GameBoard`'s `decision` (`compact`/`tall`/`expanded`) | `src/components/ui/game-decision.tsx`, `game-board.tsx`, built the shadcn way (prompt 15) | the decision region's content: what Forge asks (the asking card as a small `GameCardButton`), a row of a question's cards at a hand's height, short lines (how many, why a button is off), the answer buttons sticking to the region's bottom; the region's growth (§4) |
+| `PhaseTrack`, `PhaseTrackGroup`, `PhaseTrackStep` | `src/components/ui/phase-track.tsx`, built the shadcn way (prompt 16) | the turn's steps in the game table's header: a bar per step (`data-state` done/current/upcoming: `--muted-foreground`, wide `--primary`, `--border`), grouped by phase; `aria-hidden` (the header's words say the step), each bar's tooltip names it |
 | `ActionBar` | `src/components/ui/action-bar.tsx`, built the shadcn way (prompt 10) | a page's primary action on phones: sticky right above the tab bar (`bottom-16`), at the end of the content column – on a short page too (since prompt 11 the `Page` column fills the screen and the bar is pushed to its end, `mt-auto`); pages render it only below `md` (`useIsMobile`) and put the same actions into the header above |
 | `CardPicture` | `src/components/ui/card-picture.tsx`, built the shadcn way (prompt 08) | every picture of a Magic card: `AspectRatio` 63 × 88, `Skeleton` while loading, the card's text in place of a missing or failed picture (`data-state` loading/loaded/failed/missing); loads Scryfall's pictures in CORS mode without referrer and never crops them (`object-contain`: Scryfall forbids cutting off artist or copyright) |
 | `BottomNav`, `BottomNavItem` | `src/components/ui/bottom-nav.tsx`, built the shadcn way | phone tab bar |

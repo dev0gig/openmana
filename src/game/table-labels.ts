@@ -144,6 +144,16 @@ export function stackTargets(entry: StackEntryView): string | null {
   return entry.targets.length === 0 ? null : `Ziel: ${entry.targets.map(refName).join(", ")}`
 }
 
+/** Whose a stack entry is ("von dir", "von der Forge-KI"). */
+export function stackOwner(controller: Seat | null): string | null {
+  return controller === "me" ? "von dir" : controller === "opponent" ? "von der Forge-KI" : null
+}
+
+/** A stack entry's card by name ("Schock"); a hidden one as such; none: its kind stands alone. */
+export function stackEntryName(entry: StackEntryView): string | null {
+  return entry.card !== null ? cardName(entry.card) : entry.hidden ? "Verdeckte Karte" : null
+}
+
 /** Whom an attacker attacks, in words ("greift dich an", "greift Forge-KI an", "greift Jace an"). */
 export function attackLine(view: CombatView): string {
   const defender = view.defender === null ? null : refName(view.defender)
@@ -172,9 +182,10 @@ const ZONE_PLACES: Readonly<Record<CardZone, { readonly me: string; readonly opp
   graveyard: { me: "Dein Friedhof", opponent: "Friedhof der Forge-KI" },
   exile: { me: "Dein Exil", opponent: "Exil der Forge-KI" },
   command: { me: "Deine Kommandozone", opponent: "Kommandozone der Forge-KI" },
+  stack: { me: "Auf dem Stapel – von dir", opponent: "Auf dem Stapel – von der Forge-KI" },
 }
 
-/** Where a card lies, for the card view ("Deine Hand", "Spielfeld der Forge-KI" …). */
+/** Where a card lies, for the card view ("Deine Hand", "Spielfeld der Forge-KI", "Auf dem Stapel – von dir" …). */
 export function placeLabel(zone: CardZone | null, seat: Seat): string {
   if (zone === null) return seat === "me" ? "Dein Kommandeur, gerade auf keinem sichtbaren Platz" : "Kommandeur der Forge-KI, gerade auf keinem sichtbaren Platz"
   return ZONE_PLACES[zone][seat]

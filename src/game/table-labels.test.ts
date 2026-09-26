@@ -60,7 +60,10 @@ describe("stack and combat lines", () => {
         id: 1,
         text: "Schock",
         controller: "opponent",
+        kind: "spell",
         trigger: false,
+        card: null,
+        hidden: false,
         source: null,
         targets: [
           { kind: "player", id: 0, seat: "me" },

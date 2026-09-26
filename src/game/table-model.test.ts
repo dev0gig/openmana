@@ -8,7 +8,7 @@ import { checkEngineMessage, checkGameState, type GameState, type Question, type
 import { describe, expect, it } from "vitest"
 import { TABLE_SCENES, tableScene } from "@/test/table-scenes"
 import { gameState } from "@/test/game-fixtures"
-import { namedCardIds, tableView, visibleCards, type BoardEntry } from "./table-model"
+import { locateCard, namedCardIds, stackEntriesOf, tableView, visibleCards, type BoardEntry } from "./table-model"
 
 /** What a row shows: "id" for a single card, "id×n" for a pile, "hidden" for a hidden card, "+id" for attachments. */
 function row(entries: readonly BoardEntry[]): string[] {
@@ -57,6 +57,10 @@ describe("recorded scenes", () => {
       "scry",
       "ability",
       "damage",
+      // Priority, stack and phases (prompt 16)
+      "opponent-turn",
+      "respond",
+      "respond-own",
     ])
     for (const scene of TABLE_SCENES) {
       expect(() => checkGameState(scene.state), scene.name).not.toThrow()
@@ -96,10 +100,12 @@ describe("recorded scenes", () => {
     expect(row(ai.battlefield.creatures)).toEqual(["77×2", "74"])
   })
 
-  it("the stack: Forge's text, who, the target resolved on the table; the spell's own card is on the stack (no zone the player gets)", () => {
+  it("the stack: Forge's text, who, the target resolved on the table; the spell's own card comes with the item (it lies on the stack, no zone the player gets)", () => {
     const { state, questions } = tableScene("stack")
     const [entry] = tableView(state, questions).stack
-    expect(entry).toMatchObject({ id: 14, controller: "me", trigger: false, source: { kind: "card", id: 14, card: null } })
+    // Prompt 16 (protocol 5): the item carries its card, so the source resolves too.
+    expect(entry).toMatchObject({ id: 14, controller: "me", kind: "spell", trigger: false, hidden: false, card: { id: 14, name: "Magmastrahl" }, source: { kind: "card", id: 14, card: { name: "Magmastrahl" } } })
+    expect(state.players.some((player) => Object.values(player.zones).some((zone) => zone.some((card) => "id" in card && card.id === 14)))).toBe(false)
     expect(entry!.text).toBe("Magmastrahl (14) - Magmastrahl (14) deals 2 damage to Goblin-Brandstifter (55). Player scries 2.")
     expect(entry!.targets).toHaveLength(1)
     expect(entry!.targets[0]).toMatchObject({ kind: "card", id: 55, card: { name: "Goblin-Brandstifter", damage: 2 } })
@@ -196,8 +202,8 @@ describe("made for one case", () => {
   it("the stack keeps Forge's order (the first item is the top) and names players by seat", () => {
     const state = withBattlefields([card(1, "Mountain")], [], {
       stack: [
-        { id: 7, text: "Schock fügt dir 2 Schadenspunkte zu.", source: null, player: 1, trigger: false, targets: [{ kind: "player", id: 0 }] },
-        { id: 6, text: "Gebirge", source: 1, player: 0, trigger: true, targets: [] },
+        { id: 7, text: "Schock fügt dir 2 Schadenspunkte zu.", source: null, card: null, player: 1, ability: false, trigger: false, targets: [{ kind: "player", id: 0 }] },
+        { id: 6, text: "Gebirge", source: 1, card: card(1, "Mountain"), player: 0, ability: true, trigger: true, targets: [] },
       ],
     })
     const view = tableView(state)
@@ -207,6 +213,33 @@ describe("made for one case", () => {
     ])
     expect(view.stack[0]!.targets).toEqual([{ kind: "player", id: 0, seat: "me" }])
     expect(view.stack[1]!.source).toMatchObject({ kind: "card", id: 1, card: { key: "Mountain" } })
+  })
+
+  it("stack items carry their card (prompt 16): a spell's own card lies on the stack, an ability's source in its zone, a hidden one stays a back", () => {
+    const shock = card(30, "Shock", { name: "Schock", owner: 1, controller: 1, typeLine: "Spontanzauber" })
+    const state = withBattlefields([card(1, "Mountain")], [], {
+      stack: [
+        { id: 9, text: "Schock (30) deals 2 damage to Player.", source: 30, card: shock, player: 1, ability: false, trigger: false, targets: [{ kind: "player", id: 0 }] },
+        { id: 8, text: "Gebirge", source: 1, card: card(1, "Mountain"), player: 0, ability: true, trigger: false, targets: [] },
+        { id: 7, text: "Morph", source: null, card: { hidden: true }, player: 1, ability: false, trigger: false, targets: [] },
+        { id: 6, text: "Wenn …", source: 1, card: card(1, "Mountain"), player: 0, ability: true, trigger: true, targets: [] },
+      ],
+    })
+    const view = tableView(state)
+    expect(view.stack.map((entry) => [entry.id, entry.kind, entry.card?.id ?? null, entry.hidden])).toEqual([
+      [9, "spell", 30, false],
+      [8, "ability", 1, false],
+      [7, "spell", null, true],
+      [6, "trigger", 1, false],
+    ])
+    // The spell's card is a visible card of the state, found on the stack; the ability's source stays on the battlefield.
+    expect(visibleCards(state).get(30)).toEqual(shock)
+    expect(locateCard(state, 30)).toEqual({ card: shock, zone: "stack", seat: "opponent" })
+    expect(locateCard(state, 1)).toMatchObject({ zone: "battlefield", seat: "me" })
+    expect(stackEntriesOf(view, 1).map((entry) => entry.id)).toEqual([8, 6])
+    expect(stackEntriesOf(view, 30).map((entry) => entry.id)).toEqual([9])
+    // The stack's cards are named elsewhere: never part of a pile.
+    expect([...namedCardIds(state, [])].sort((a, b) => a - b)).toEqual([1, 30])
   })
 
   it("mana and counters without the empty ones; every visible card of every zone by id", () => {
