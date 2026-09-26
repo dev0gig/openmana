@@ -134,6 +134,13 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - `EngineSession.tapCard` sends Forge's `card.tap` only while Forge waits (a tap sent while it computes would be read in a later step), never during a concession; the client's refusals come back in German, Forge's `input.rejected` as a notice. The page hands it to the table (`onTapCard`); without it (the replay of 22) cards can be looked at, never tapped.
 - Evidence: 669 Vitest tests (47 new: card use on the recorded scenes and built selections/mulligan, interactions - look, arming, keyboard, context menu, long press, swipe, live updates -, session, page, mark contrast; the flaky preferences test of prompt 12 fixed), and end to end in Chrome with 0 findings: looking at a card in the live game sends nothing (desktop and phone), and on the recorded scenes at six sizes the harness records every tap - clicks, double clicks, long presses, swipes, keys -, axe 0 everywhere, smallest card target 41 × 79 px. See `prompts/STATUS.md` and `docs/implementation/14-card-hand-interactions.md`.
 
+### Forge's Decisions (Prompt 15)
+- Every kind of question the protocol knows is answered in the table's decision region (`src/game/decision-panel.tsx`, above the hand; beside the player's half in landscape): Forge's two buttons with its own words (`buttons`: keep/mulligan, play/draw, OK/end turn, auto/cancel, OK/call back …; a switched-off button stays visible, off, with the reason), a selection (`select`: cards on the table are tapped there as in prompt 14, cards the table does not show - graveyard, exile, library, hidden - come as a row of cards in the region; how many, how many chosen where Forge's highlight says it), `choose` (radio choice cards for one, checkboxes for several, card rows for cards, players as "Du"/"Forge-KI", a search from 12 entries showing at most 50 matches and saying how many more), `confirm` (Forge's words for yes and no, its suggestion highlighted), `options` (choice cards, cancel where Forge allows; a list Forge only shows - its cards to look at - with Forge's one button), `input` (a field, numeric keyboard for numbers, Forge's suggestions fill it), `order` (Forge's dual list: order all, or pick within Forge's bounds; arrows, add, take out), `arrange` (scrying: each card on top or under the pile, in order; the rest of the pile as a count between) and `distribute` (plus/minus per target from Forge's minimum; what is given out and still open).
+- The rules and checks are pure data (`src/game/decision-model.ts`): which question is answered now (a blocking one alone, else buttons and selection side by side), the first draft (Forge's suggestion or nothing - never sent by itself), whether a draft fits the question's own numbers, the answer as the protocol's `AnswerBody`. No rule, no card name: the engine checks the very same numbers again.
+- Sending: `EngineSession.answer` (only while Forge waits, never during a concession; the client's refusals in German), the page shows a refused answer as a toast and Forge's `input.rejected` as its notice. Sending buttons are armed 500 ms after their question appeared (Forge asks the next one at once, often with a button in the same place), held keys repeat nothing; a withdrawn question takes its controls and its draft with it.
+- The region grows only as far as its content needs (`GameBoard decision`: `tall`/`expanded`, at most 36 % of a portrait screen; in a low landscape window an expanded decision takes the place of an empty or waiting stack), the answer buttons stick to its bottom. A card of a question that lies in no zone of the table opens the card view as the question shows it. New decisions are announced to screen readers.
+- Evidence: see `prompts/STATUS.md` and `docs/implementation/15-forge-decisions.md`.
+
 ### ORYX Cloud Sync (outside the queue, 2026-09-25)
 - dev0gig's direct assignment, not a queue prompt (`prompts/STATUS.md` unchanged): the player's collection syncs through their ORYX account (the launcher's Supabase cloud) with the vendored ORYX SDK 1.0.0 (`src/cloud/oryx-sdk.js` and `.d.ts`, byte-identical copies of `oryx-games/shared`, checksum-tested, excluded from lint only themselves). Active only on `https://openmana.vercel.app/`; locally, in tests and previews inactive (no request, nothing stored). Local stays the source of truth.
 - One slot `collection` = one document (`src/storage/collection.ts`, schema `CollectionDocument`, version = `SCHEMA_VERSION`): valid decks, deletion marks (90 days) and every setting except `display.*`; never caches, recorded matches or `meta`.
@@ -145,7 +152,7 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Evidence: 622 Vitest tests (63 new: merge and check, read/apply on fake-indexeddb, the real SDK against a stand-in ORYX cloud on the real storage session, the card and the return notice in the real app frame, the SDK checksum), `npm run check` with the end-to-end test in Chrome, including the new section 13: the build served as `https://openmana.vercel.app` with a stand-in ORYX cloud - the whole OAuth/PKCE round trip under COOP/COEP, the start's merge, uploads, disconnecting, axe, 360 px; plus the card absent and Web Storage empty off the real address, and the deletion mark in IndexedDB after deleting a deck. Limits: ORYX takes 1 MB per slot by default (≈ 146 Constructed or 48 Commander decks); ORYX needs an OAuth client for `openmana`; effective once deployed. Details: `docs/implementation/oryx-cloud-sync.md`.
 
 ## Currently In Progress
-Nothing. Prompts 00–14 are `COMPLETE`. The next prompt is **15 — Forge decision UI** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
+Nothing. Prompts 00–15 are `COMPLETE`. The next prompt is **16 — Priority, stack and phases** (`PENDING`, not started: each run of `prompts/naechster-schritt.md` executes exactly one prompt).
 
 Any agent entering the repository must first reconcile this statement with the latest `prompts/STATUS.md` and Git state.
 
@@ -168,7 +175,7 @@ Exact order/status is authoritative only in `prompts/STATUS.md`.
 
 ## Not Yet Implemented
 At this review point:
-- the game table shows every state and its cards can be looked at and tapped where Forge offers it, but answering Forge's decisions (its buttons and questions) comes with prompts 15–19 (until then a live game stops at Forge's first decision, can be followed and conceded),
+- the game table shows every state, its cards can be looked at and tapped where Forge offers it and every kind of Forge's questions can be answered, but players as targets (prompt 17) and the finer presentation of priority, stack, targeting and combat (prompts 16–19) follow,
 - no service worker/offline mode, no deployment, no Android artifact yet,
 - the ORYX cloud sync is built but inactive until OpenMana runs at `openmana.vercel.app` and ORYX has an OAuth client for it.
 
@@ -186,7 +193,7 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 ## Workflow Compatibility
 OpenMana predates the generic Dropzone `queue → active → completed` lifecycle and is worked through **its own numbered ledger**, one prompt at a time.
 
-Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 14 complete, 15 next, nothing in progress).
+Therefore the repository is intentionally **not being migrated while the numbered program is running** (at this review point: 15 complete, 16 next, nothing in progress).
 
 Dropzone Master/Standalone must respect:
 - `prompts/STATUS.md` statuses,
