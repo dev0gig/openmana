@@ -36,7 +36,7 @@ import type { LocalDatabase } from "@/storage/database"
 import { StorageError, toStorageError } from "@/storage/errors"
 import { SCHEMA_VERSION } from "@/storage/generated/constants"
 import type { StorageSession } from "@/storage/storage-session"
-import { canonicalJson, createOryx, type Oryx, type OryxOptions, type OryxPullResult, type OryxSlot, type OryxStatus } from "./oryx-sdk.js"
+import { canonicalJson, createOryx, type Oryx, type OryxNotice, type OryxOptions, type OryxPullResult, type OryxSlot, type OryxStatus } from "./oryx-sdk.js"
 
 /** OpenMana's entry in the ORYX cloud (games.id 'openmana'). The publishable key is public by design, no secret. */
 export const ORYX_OPTIONS: OryxOptions = {
@@ -146,6 +146,13 @@ export class CloudSync {
       this.#listeners.delete(listener)
     }
   }
+
+  /**
+   * The SDK's short notices (oryx-sdk 1.1.0): a backup that failed, the cloud out of reach, offline with
+   * changes waiting, and "backed up again" when it is over. OpenMana shows them itself as toasts
+   * (cloud-context.tsx), since its SDK has no built-in UI (ui: false). Returns the unsubscribe.
+   */
+  onNotice = (listener: (notice: OryxNotice) => void): (() => void) => this.#oryx.onNotice(listener)
 
   /** The SDK's one line about the connection ("ORYX-Cloud: verbunden · gesichert vor 2 Min."); "" while inactive. */
   describe(): string {

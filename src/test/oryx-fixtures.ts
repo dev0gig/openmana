@@ -36,6 +36,8 @@ export interface FakeOryxCloud {
   readonly calls: string[]
   /** What each accepted oryx_put_save stored (p_data), in order. */
   readonly uploads: unknown[]
+  /** What the SDK told the cloud about backup problems (oryx_report_sync): start and end. */
+  readonly reports: { ok: boolean; error: string | null }[]
   /** null: ORYX has no OAuth client for OpenMana yet. */
   clientId: string | null
   maxSaveBytes: number
@@ -48,6 +50,7 @@ export function fakeOryxCloud(): FakeOryxCloud {
     rows: new Map(),
     calls: [],
     uploads: [],
+    reports: [],
     clientId: CLIENT_ID,
     maxSaveBytes: 1_048_576,
     syncEnabled: true,
@@ -76,6 +79,12 @@ export function fakeOryxCloud(): FakeOryxCloud {
         return reply(200, row ? [{ ...row }] : [])
       }
       if (address.pathname === "/rest/v1/rpc/oryx_add_playtime") return reply(200, { ok: true })
+      // oryx-sdk 1.1.0: play time as a growing total per device, and the start and end of a backup problem.
+      if (address.pathname === "/rest/v1/rpc/oryx_report_playtime") return reply(200, { ok: true, added_ms: 0 })
+      if (address.pathname === "/rest/v1/rpc/oryx_report_sync") {
+        cloud.reports.push({ ok: body["p_ok"] === true, error: (body["p_error"] as string | null) ?? null })
+        return reply(200, { ok: true })
+      }
       if (address.pathname === "/rest/v1/rpc/oryx_put_save") {
         if (!cloud.syncEnabled) return reply(200, { ok: false, error: "sync_disabled" })
         if (JSON.stringify(body["p_data"]).length > cloud.maxSaveBytes) return reply(200, { ok: false, error: "too_large" })

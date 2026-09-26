@@ -1,4 +1,4 @@
-// Types for oryx-sdk.js v1.0.0 (master copy: oryx-games/shared/oryx-sdk.d.ts). Copy unchanged next to oryx-sdk.js.
+// Types for oryx-sdk.js v1.1.0 (master copy: oryx-games/shared/oryx-sdk.d.ts). Copy unchanged next to oryx-sdk.js.
 
 export declare const ORYX_SDK_VERSION: string
 
@@ -45,6 +45,24 @@ export interface OryxSlotConfig<T> {
   merge?(local: T, cloud: T): T | Promise<T>
 }
 
+/** A save that cannot be backed up right now (1.1.0). The connection itself may be fine. */
+export interface OryxProblem {
+  slot: string
+  /** 'rejected', 'too_large', 'too_many_slots', 'download_failed', 'delete_failed', 'error' or a code of the cloud. */
+  code: string
+  /** Short reason in the game's language, e.g. 'vom Server abgelehnt'. */
+  text: string
+  /** Technical detail (HTTP status and message), for ORYX and diagnosis. */
+  detail: string | null
+  since: number
+}
+
+/** A short notice for the player (1.1.0). The built-in one shows it; with ui: false the game shows it itself. */
+export interface OryxNotice {
+  kind: 'failing' | 'error' | 'offline' | 'conflict' | 'recovered'
+  text: string
+}
+
 export interface OryxSlotState {
   base: number
   hash: string | null
@@ -56,6 +74,8 @@ export interface OryxSlotState {
 export interface OryxSlot {
   readonly name: string
   readonly state: OryxSlotState
+  /** This slot's problem, or null (1.1.0). */
+  readonly problem: OryxProblem | null
   /** Call at start, before the game reads its local save. Never throws. */
   pull(options?: { timeoutMs?: number }): Promise<OryxPullResult>
   /** Call after every local save. Uploads are collected (15–60 s). */
@@ -83,6 +103,8 @@ export interface OryxOptions {
   debounceMs?: number
   maxWaitMs?: number
   requestTimeoutMs?: number
+  /** First retry pause after a failed upload (default 15 s; doubles up to 5 min). */
+  retryFirstMs?: number
   /** Test hook: replace window, fetch, storage, clock … */
   env?: Record<string, unknown>
 }
@@ -92,6 +114,8 @@ export interface Oryx {
   readonly status: OryxStatus
   readonly user: { id: string | null; email: string | null } | null
   readonly lastSyncAt: number | null
+  /** The first save that cannot be backed up right now, or null (1.1.0). `status` stays the connection state. */
+  readonly problem: OryxProblem | null
   /** Call once at start. 'redirecting' = connecting, the page is about to leave: stop booting. */
   ready(): Promise<OryxStatus | 'redirecting'>
   /** Start connecting (menu button). Leaves the page. */
@@ -100,13 +124,23 @@ export interface Oryx {
   disconnect(): Promise<void>
   slot<T>(name: string, config: OryxSlotConfig<T>): OryxSlot
   flush(options?: { keepalive?: boolean }): Promise<unknown>
+  /** Called when the connection or a problem changes: re-render the menu line with describe(). */
   onStatus(listener: (status: OryxStatus) => void): () => void
+  /** Short notices (failing, unreachable, offline, conflict, recovered) – for games with ui: false (1.1.0). */
+  onNotice(listener: (notice: OryxNotice) => void): () => void
   /** One line for the game's menu, '' when inactive. */
   describe(): string
   /** Built-in texts: 'connect', 'disconnect', … */
   text(name: string, values?: Record<string, string | number>): string
-  readonly playtime: { start(): void; pause(): void; resume(): void; report(options?: { keepalive?: boolean }): Promise<void>; readonly pending: number }
+  /** Foreground time as one growing total per device and account (1.1.0); reported by the SDK itself. */
+  readonly playtime: { start(): void; pause(): void; resume(): void; report(options?: { keepalive?: boolean }): Promise<void>; readonly pending: number; readonly total: number }
 }
 
 export declare function createOryx(options: OryxOptions): Oryx
 export declare function canonicalJson(value: unknown): string
+/** The extras sent next to a save, made safe for the database (whole ms, small flat summary, short label). */
+export declare function saveExtras(extras: { summary?: unknown; playtime?: unknown; deviceLabel?: unknown }): {
+  summary: Record<string, string | number | boolean> | null
+  playtime: number | null
+  deviceLabel: string | null
+}

@@ -13,9 +13,9 @@ import { ORYX_SDK_VERSION } from "./oryx-sdk.js"
 const sha256 = (file: string) => createHash("sha256").update(readFileSync(path.join(import.meta.dirname, file))).digest("hex")
 
 describe("the vendored ORYX SDK", () => {
-  it("is oryx-games/shared/oryx-sdk.js 1.0.0, byte for byte, with its types", () => {
-    expect(ORYX_SDK_VERSION).toBe("1.0.0")
-    expect(sha256("oryx-sdk.js")).toBe("ebbc3309bd2ff06d05fe4550209e0e25df3ca1c83dd5c0043702fb17b273776c")
-    expect(sha256("oryx-sdk.d.ts")).toBe("cfb808f4458902759b3c7592d1456fdd1d41fb4a1fc0c9c36b77a27b0d1b3260")
+  it("is oryx-games/shared/oryx-sdk.js 1.1.0, byte for byte, with its types", () => {
+    expect(ORYX_SDK_VERSION).toBe("1.1.0")
+    expect(sha256("oryx-sdk.js")).toBe("7d93919e191461551e942d74aad02fc6d6108cb1d6b856ceb4e09df576986195")
+    expect(sha256("oryx-sdk.d.ts")).toBe("ed722d60159bdd6df82ee95af8ae631fa5367662a99edf4fe91e4736c9ac7781")
   })
 })

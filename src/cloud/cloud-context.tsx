@@ -2,7 +2,8 @@
  * The app's CloudSync in React: CloudProvider (main.tsx, around the router),
  * CloudStorageLink (inside the app shell's StorageProvider: links the cloud
  * to the local database), CloudReturnNotice (the app shell: says once how the
- * return from ORYX's consent page went) and useCloudSync (the settings card).
+ * return from ORYX's consent page went, and every backup problem and its end)
+ * and useCloudSync (the settings card).
  * Without a provider - page and component tests, the table harness - there is
  * no cloud: the link and the notice do nothing and the card is not shown.
  */
@@ -10,6 +11,7 @@ import { createContext, use, useEffect, useSyncExternalStore, type ReactNode } f
 import { toast } from "sonner"
 import { useStorage } from "@/storage/storage-context"
 import type { CloudReturn, CloudSnapshot, CloudSync } from "./cloud-sync"
+import type { OryxNotice } from "./oryx-sdk.js"
 
 const CloudContext = createContext<CloudSync | null>(null)
 
@@ -53,18 +55,32 @@ const RETURN_NOTICES: Readonly<Record<CloudReturn, { readonly kind: "success" | 
   },
 }
 
+/** How each of the SDK's backup notices is shown (oryx-sdk 1.1.0). */
+const SYNC_TOASTS: Readonly<Record<OryxNotice["kind"], "error" | "warning" | "success">> = {
+  failing: "error",
+  error: "warning",
+  offline: "warning",
+  conflict: "warning",
+  recovered: "success",
+}
+
 /**
  * Coming back from ORYX's consent page lands on OpenMana's start page (the
  * address ORYX sends the player to): say how it went, once (Bible §16: no
- * silent outcome), wherever the player is.
+ * silent outcome), wherever the player is. The same holds for backups: a
+ * collection the cloud refuses, the cloud out of reach, offline with changes
+ * waiting - and "backed up again" when it is over (one toast, replaced).
  */
 export function CloudReturnNotice(): null {
-  const returned = useCloudSync()?.snapshot.returned ?? null
+  const sync = useCloudSync()
+  const returned = sync?.snapshot.returned ?? null
+  const cloud = sync?.cloud ?? null
   useEffect(() => {
     if (returned === null) return
     const notice = RETURN_NOTICES[returned]
     // One id: Strict Mode's second run updates the same toast instead of adding one.
     toast[notice.kind](notice.title, { id: "oryx-return", description: notice.description })
   }, [returned])
+  useEffect(() => cloud?.onNotice((notice) => void toast[SYNC_TOASTS[notice.kind]](notice.text, { id: "oryx-sync" })), [cloud])
   return null
 }

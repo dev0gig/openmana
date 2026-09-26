@@ -297,6 +297,24 @@ describe("the start's pull", () => {
     expect(await readRaw("decks")).toEqual([saved])
     expect(cloud.rows.has(COLLECTION_SLOT)).toBe(false)
   })
+
+  it("a backup the cloud cannot take is never silent: a notice for the toast, the settings line, and the cloud hears it", async () => {
+    const cloud = fakeOryxCloud()
+    cloud.maxSaveBytes = 200
+    const { session, db } = await openStorage()
+    await saveDeck(db, deck())
+    const { oryx } = testOryx(cloud, { storage: connectedStorage() })
+    const sync = new CloudSync(oryx, { now: () => NOW })
+    const notices: string[] = []
+    links.push(sync.onNotice((notice) => notices.push(`${notice.kind}: ${notice.text}`)))
+    await sync.start()
+    links.push(sync.attach(session))
+    expect(await pulled(sync)).toBe("too_large")
+    expect(notices).toEqual(["failing: ORYX-Cloud: Sichern fehlgeschlagen (Spielstand zu groß). Dein Stand ist vorerst nur auf diesem Gerät gespeichert."])
+    expect(sync.describe()).toBe("ORYX-Cloud: Sichern fehlgeschlagen (Spielstand zu groß) · nur auf diesem Gerät gespeichert")
+    expect(sync.getSnapshot().status).toBe("connected")
+    await vi.waitFor(() => expect(cloud.reports).toEqual([{ ok: false, error: "too_large" }]))
+  })
 })
 
 describe("applying the cloud's collection", () => {

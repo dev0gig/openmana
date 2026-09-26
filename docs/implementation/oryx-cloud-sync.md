@@ -5,7 +5,7 @@
 > [`docs/BIBLE.md`](../BIBLE.md) §5, §15, die Datenschicht aus
 > [07](07-indexeddb-storage.md) und die ORYX-Planung
 > (`oryx-games/ORYX-SUPABASE-ARCHITEKTUR.md` §0b, §6, §7, §11; SDK
-> `oryx-games/shared/oryx-sdk.js` 1.0.0). Code: `src/cloud/` (Anbindung, Karte),
+> `oryx-games/shared/oryx-sdk.js` 1.1.0). Code: `src/cloud/` (Anbindung, Karte),
 > `src/storage/collection.ts` (das Dokument und die Zusammenführung),
 > Löschmarken in `src/storage/decks.ts`, `backup.ts`, `migrations.ts`.
 
@@ -42,7 +42,7 @@ dem ersten Deployment auf `openmana.vercel.app` wirksam (siehe §11).
 
 ```
 src/cloud/
-├── oryx-sdk.js, oryx-sdk.d.ts   ORYX-SDK 1.0.0, unveränderte Kopie aus oryx-games/shared (Prüfsummen-Test)
+├── oryx-sdk.js, oryx-sdk.d.ts   ORYX-SDK 1.1.0, unveränderte Kopie aus oryx-games/shared (Prüfsummen-Test)
 ├── cloud-sync.ts                CloudSync: Start, Abgleich beim Start, Hochladen nach Änderungen, Verbinden/Trennen
 ├── cloud-context.tsx            CloudProvider (main.tsx), CloudStorageLink und CloudReturnNotice (App-Rahmen), useCloudSync
 ├── oryx-cloud-card.tsx          Karte „ORYX-Cloud“ (Einstellungen)
@@ -151,7 +151,7 @@ zwei Geräten fast gleichzeitig geändert wird.
 | Wann | Was |
 |---|---|
 | Seitenstart (`main.tsx`) | `await cloud.start()` = `oryx.ready()` **vor dem ersten Rendern**: schließt ein Verbinden ab (Rückkehr von ORYX' Zustimmungsseite, `?code=…`: die Adresse ist bereinigt, bevor der Router sie liest) oder beginnt es (`?oryx_sync=1` aus ORYX). `"redirecting"` → die Seite geht, nichts wird gerendert. Inaktiv antwortet es sofort. Scheitert schon das Erzeugen oder Starten der Cloud, startet OpenMana ohne sie (lokal zuerst) |
-| Rückkehr von ORYX' Zustimmungsseite | ORYX schickt den Spieler an OpenManas registrierte Adresse, die **Startseite** (das SDK stellt einen Rückweg nur auf derselben Seite wieder her). `CloudSync` liest ORYX' Antwort aus der Adresse, bevor das SDK sie bereinigt, und der App-Rahmen sagt einmal per Toast, wie es ausging: „Mit ORYX verbunden“, „Nicht mit ORYX verbunden“ (abgelehnt) oder „Verbinden mit ORYX hat nicht geklappt“ – nie ein stilles Ergebnis |
+| Rückkehr von ORYX' Zustimmungsseite | ORYX schickt den Spieler an OpenManas registrierte Adresse, die **Startseite** (das SDK stellt einen Rückweg nur auf derselben Seite wieder her). `CloudSync` liest ORYX' Antwort aus der Adresse, bevor das SDK sie bereinigt, und der App-Rahmen sagt einmal per Toast, wie es ausging: „Mit ORYX verbunden“, „Nicht mit ORYX verbunden“ (abgelehnt) oder „Verbinden mit ORYX hat nicht geklappt“ – nie ein stilles Ergebnis. Seit SDK 1.1.0 ebenso jede Sicherung, die nicht klappt (abgelehnt, zu groß, Cloud nicht erreichbar, offline mit wartenden Änderungen) und ihr Ende („wieder gesichert“): `CloudSync.onNotice` → ein Toast mit der Kennung `oryx-sync` (`cloud-context.tsx`); die Karte zeigt dieselbe Zeile über `describe()` |
 | Datenbank offen (`CloudStorageLink` im App-Rahmen) | **ein** `pull()` je Seitenaufruf: nichts / hochladen / herunterladen / zusammenführen. Die Seiten warten nicht darauf: lokale Daten erscheinen sofort, und was der Abgleich schreibt, lesen sie über die Änderungsmeldungen der Datenbank neu |
 | Herunterladen (`write`) | `applyCollection`: in **einer** Transaktion das Zusammenführen des lokalen Stands mit dem Cloud-Dokument, nie ein Ersetzen – eine Änderung von eben (anderer Tab, der Spieler) geht nicht verloren. Behält das Gerät dabei etwas, das der Cloud fehlt (`keptLocal`), wird es danach hochgeladen |
 | Änderung in diesem Tab (Decks, Marken, Einstellungen) | `markChanged()` – aber nur, wenn sich das Dokument wirklich änderte (Prüfsumme wie im SDK gegen die zuletzt abgeglichene): `display.*` oder dieselben Werte laden nichts hoch. Das SDK sammelt (15–60 s) und lädt beim Verbergen der Seite sofort hoch |
@@ -212,8 +212,9 @@ bleibt mit `ui: false` aus).
 ## 8. Das SDK
 
 - `src/cloud/oryx-sdk.js` und `.d.ts` sind **bytegleiche Kopien** des Masters
-  (`oryx-games/shared`, v1.0.0; SHA-256 `ebbc3309…773776c` bzw.
-  `cfb808f4…d1b3260`, geprüft von `src/cloud/oryx-sdk.test.ts`). Nie hier
+  (`oryx-games/shared`, v1.1.0; SHA-256 `7d93919e…6986195` bzw.
+  `ed722d60…9ac7781`, geprüft von `src/cloud/oryx-sdk.test.ts`). Verteilt
+  wird mit `node scripts/sdk-verteilen.mjs` im ORYX-Repo. Nie hier
   ändern: Master ändern, Version erhöhen, neu kopieren, Prüfsummen nachziehen.
 - oxlint übergeht genau diese eine Datei (`.oxlintrc.json`); für alles andere
   gelten die Regeln unverändert.
