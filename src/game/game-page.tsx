@@ -10,7 +10,9 @@
  * menu holds the way around the app, Forge's notices and conceding (asked
  * first). Cards can be looked at and - where Forge offers it - tapped (prompt
  * 14: the page hands the table the session's tapCard; a tap that cannot be
- * sent says why). Answering Forge's decisions follows (prompts 15-19).
+ * sent says why), and Forge's questions answered (prompt 15: the session's
+ * answer; an answer that cannot be sent says why, one Forge refuses comes as
+ * its notice).
  * Nothing here is invented or computed: who is who comes from the state's
  * `me` flags, the result from game.end.
  *
@@ -21,7 +23,7 @@ import { ImageOff, Menu, OctagonAlert, Swords, TriangleAlert } from "lucide-reac
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { Link, NavLink, useNavigate } from "react-router"
 import { toast } from "sonner"
-import type { GameState } from "@openmana/engine-protocol"
+import type { AnswerBody, GameState } from "@openmana/engine-protocol"
 import { useImmersive } from "@/app/immersive"
 import { DESTINATIONS } from "@/app/navigation"
 import { usePreferences } from "@/app/preferences"
@@ -71,6 +73,7 @@ import {
   resultWord,
   turnsLabel,
 } from "./game-labels"
+import { questionCards } from "./decision-model"
 import { useGameStart, type StartState } from "./game-start"
 import { GameTable } from "./game-table"
 import { useTableCards } from "./table-cards"
@@ -517,10 +520,11 @@ function TableMenu({ match, onConcede }: { match: Of<"playing">; onConcede: () =
 /** The running game: the table on the whole screen, its menu, the confirmation before conceding. */
 function Playing({ match }: { match: Of<"playing"> }) {
   useImmersive(true)
-  const { concede, tapCard } = useEngineSession()
+  const { concede, tapCard, answer } = useEngineSession()
   const { cardLanguage } = usePreferences()
   const [confirming, setConfirming] = useState(false)
-  const cards = useMemo(() => (match.state === null ? [] : [...visibleCards(match.state).values()]), [match.state])
+  // The table's cards and those of Forge's questions (the library's top while scrying …): their pictures are looked up together.
+  const cards = useMemo(() => [...(match.state === null ? [] : visibleCards(match.state).values()), ...questionCards(match.questions)], [match.state, match.questions])
   const pictures = useTableCards(cards, cardLanguage)
   useNoticeToasts(match.notices, match.noticeCount)
   const giveUp = () => {
@@ -534,6 +538,14 @@ function Playing({ match }: { match: Of<"playing"> }) {
       if (!result.ok) toast.error("Die Karte wurde nicht angetippt", { description: result.reason, position: "top-center" })
     },
     [tapCard],
+  )
+  // Likewise an answer (prompt 15): the client's reason at the top; Forge's own refusal comes as its notice.
+  const reply = useCallback(
+    (question: number, body: AnswerBody) => {
+      const result = answer(question, body)
+      if (!result.ok) toast.error("Die Antwort wurde nicht gesendet", { description: result.reason, position: "top-center" })
+    },
+    [answer],
   )
   const menu = <TableMenu match={match} onConcede={() => setConfirming(true)} />
   const alerts = match.stalledMs !== null ? <Stalled silentMs={match.stalledMs} /> : null
@@ -568,6 +580,7 @@ function Playing({ match }: { match: Of<"playing"> }) {
           menu={menu}
           alerts={alerts}
           onTapCard={tap}
+          onAnswer={reply}
         />
       )}
       <AlertDialog open={confirming} onOpenChange={setConfirming}>

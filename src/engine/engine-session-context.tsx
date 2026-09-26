@@ -11,6 +11,7 @@ import { createContext, use, useEffect, useMemo, useRef, useState, useSyncExtern
 import { toast } from "sonner"
 import { engineAssets } from "./engine-assets"
 import { abortTitle } from "./engine-labels"
+import type { AnswerBody } from "@openmana/engine-protocol"
 import { EngineSession, matchInProgress, type ConcedeResult, type EngineBootOptions, type EngineSessionSnapshot, type InputResult, type MatchSetup } from "./engine-session"
 
 const EngineSessionContext = createContext<EngineSession | null>(null)
@@ -35,6 +36,8 @@ export interface EngineSessionHandle {
   readonly concede: () => ConcedeResult
   /** Taps a card for the player (Forge's card.tap); only where Forge offers it (src/game/card-use.ts). */
   readonly tapCard: (card: number) => InputResult
+  /** Answers one of Forge's questions for the player (prompt 15: src/game/decision-panel.tsx builds the answer). */
+  readonly answer: (question: number, body: AnswerBody) => InputResult
   readonly abortMatch: () => void
 }
 
@@ -52,6 +55,7 @@ export function useEngineSession(): EngineSessionHandle {
       cancelMatch: () => session.cancelMatch(),
       concede: () => session.concede(),
       tapCard: (card: number) => session.tapCard(card),
+      answer: (question: number, body: AnswerBody) => session.answer(question, body),
       abortMatch: () => session.abortMatch(),
     }),
     [session],

@@ -1861,13 +1861,23 @@ async function checkTableFits(page: Page, label: string): Promise<Record<string,
   check(frame.tabBar === 0 && frame.sidebar === 0, `${label}: the app's frame is still there ${JSON.stringify(frame)}`)
   const names = ["header", "opponent", "opponent-field", "center", "field", "me", "decision", "hand"]
   check(names.every((name) => name in areas), `${label}: regions ${Object.keys(areas).join(", ")}`)
+  // In a low landscape window a decision that needs room takes the stack's place (prompt 15): stack and combat step aside.
+  const board = await page.locator('[data-slot="game-board"]').getAttribute("data-decision")
+  const aside = board === "expanded" && view.width > view.height && view.height <= 512
   for (const [name, box] of Object.entries(areas)) {
+    if (aside && name === "center") {
+      check(box.height === 0, `${label}: stack and combat did not step aside for the decision ${JSON.stringify(box)}`)
+      continue
+    }
     check(box.top >= 0 && box.left >= 0 && box.top + box.height <= view.height + 1 && box.left + box.width <= view.width + 1, `${label}: region ${name} outside the window ${JSON.stringify(box)}`)
   }
-  // Both battlefields get room for cards, the same in each half; the hand is there.
+  // Both battlefields get room for cards, the same in each half; the hand is there. A decision that needs room
+  // (prompt 15: GameBoard decision="expanded") leaves them at least a row of cards.
   const opponentField = areas["opponent-field"]
   const field = areas["field"]
-  check(opponentField !== undefined && field !== undefined && Math.min(opponentField.height, field.height) >= 80, `${label}: battlefields ${opponentField?.height}/${field?.height}px high`)
+  const expanded = (await page.locator('[data-slot="game-board"]').getAttribute("data-decision")) === "expanded"
+  const least = expanded ? 64 : 80
+  check(opponentField !== undefined && field !== undefined && Math.min(opponentField.height, field.height) >= least, `${label}: battlefields ${opponentField?.height}/${field?.height}px high`)
   check((areas["hand"]?.height ?? 0) >= 80, `${label}: the hand ${areas["hand"]?.height}px high`)
   return layout
 }
@@ -2053,6 +2063,122 @@ async function lookInRealGame(page: Page, label: string, touch = false): Promise
   return { card: name, title, offer, picture, axe, closeHeight }
 }
 
+/** The decision region's buttons are armed this long after they appear (src/game/card-sheet.tsx ARMING_MS), plus a margin. */
+const ARMED_AFTER_MS = 600
+
+/** Forge's words for playing a land (the tap Forge offers for a land in the player's main phase; read by the test only). */
+const PLAY_LAND = "Spiele ein Land"
+
+/**
+ * Answering Forge in the real game (prompt 15), only through the table: the
+ * first decision with Forge's own buttons (play first, then keep the hand),
+ * Forge's priority passed with its "OK" - attacks and blocks declined, a card
+ * discarded when Forge asks - until a land of the player's hand can be
+ * played, the land played through its card view (Forge's card.tap), and the
+ * priority passed on once more. Every press waits until the buttons are
+ * armed, and each one must be taken by Forge: the decision changes (Forge's
+ * next question) - a refusal would leave it and fail the test. Nothing is
+ * answered by the app itself: between the presses the decision stays as it is.
+ */
+async function playRealGame(page: Page, label: string, touch = false): Promise<Record<string, unknown>> {
+  const started = Date.now()
+  const decision = page.getByRole("region", { name: "Entscheidung" })
+  const content = decision.locator('[data-slot="game-decision"]')
+  const answers = decision.getByRole("group", { name: "Antworten, die Forge anbietet" })
+  const hand = page.getByRole("region", { name: "Deine Hand" })
+  const presses: string[] = []
+  const heights: number[] = []
+  const activate = async (locator: Locator) => {
+    if (touch) await locator.tap()
+    else await locator.click()
+  }
+  /** Waits until Forge waits for the player with a decision; returns its kind (the first line of the decision) and its question. */
+  const next = async (): Promise<{ readonly kind: string; readonly question: string | null }> => {
+    await tableHeader(page).getByText("Du bist dran", { exact: true }).waitFor({ timeout: 180_000 })
+    await waitForDecision(page)
+    const kind = ((await decision.locator('[data-slot="game-decision-header"] p').first().textContent()) ?? "").trim()
+    return { kind, question: await content.getAttribute("data-question") }
+  }
+  /** Presses one of Forge's buttons once armed; Forge must take it (its question goes). */
+  const press = async (name: string, question: string | null) => {
+    const button = answers.getByRole("button", { name, exact: true })
+    await button.waitFor()
+    heights.push(await layoutHeight(button))
+    await page.waitForTimeout(ARMED_AFTER_MS)
+    await activate(button)
+    presses.push(name)
+    await page.waitForFunction((before) => document.querySelector('[data-slot="game-decision"]')?.getAttribute("data-question") !== before, question, { timeout: 180_000 })
+  }
+  const first = ((await answers.textContent()) ?? "").trim()
+  let land: string | null = null
+  let landFrom: number | null = null
+  for (let step = 0; step < 120 && land === null && Date.now() - started < 360_000; step++) {
+    const { kind, question } = await next()
+    if (kind === "Entscheidung") {
+      // Play or draw (the player won the coin toss): play first.
+      const labels = await answers.getByRole("button").allTextContents()
+      await press(labels.includes("Spielen") ? "Spielen" : labels.includes("Nein") ? "Nein" : labels[0]!, question)
+    } else if (kind === "Mulligan") {
+      await press("Behalten", question)
+    } else if (kind === "Priorität") {
+      // A land of the hand Forge offers to play: through its card view. None: pass.
+      const playable = hand.locator('button[data-slot="game-card"][aria-label$=", spielbar"]')
+      for (let index = 0; index < (await playable.count()) && land === null; index++) {
+        const card = playable.nth(index)
+        const name = (await card.getAttribute("aria-label")) ?? ""
+        await activate(card)
+        const view = page.getByRole("dialog")
+        await view.waitFor()
+        const offer = view.getByRole("button", { name: PLAY_LAND, exact: true })
+        if ((await offer.count()) === 1) {
+          landFrom = (await tableFacts(page)).me.permanents
+          await page.waitForTimeout(ARMED_AFTER_MS)
+          await activate(offer)
+          await page.waitForFunction(() => document.querySelector('[role="dialog"]') === null)
+          land = name
+        } else {
+          await closeCardView(page)
+        }
+      }
+      if (land === null) await press("OK", question)
+    } else if (kind === "Angreifer wählen" || kind === "Angriff bestätigen" || kind === "Blocker wählen") {
+      await press("OK", question)
+    } else if (kind === "Auswahl") {
+      // Forge asks for cards of the hand (discarding down to the hand size): one at a time, Forge ends it.
+      await activate(hand.locator('button[data-slot="game-card"][data-mark="usable"]').first())
+      presses.push("Handkarte wählen")
+      await page.waitForTimeout(ARMED_AFTER_MS)
+    } else {
+      check(false, `${label}: an unexpected decision "${kind}" (${(await decision.textContent()) ?? ""})`)
+      break
+    }
+  }
+  check(land !== null, `${label}: no land became playable (${presses.length} presses: ${presses.join(", ")})`)
+  let permanents: number | null = null
+  if (land !== null) {
+    // Forge played it: one more permanent on the player's battlefield, then the priority is passed on.
+    await page.waitForFunction(
+      (before) => {
+        const field = document.querySelector('section[aria-label="Dein Spielfeld"]')
+        const count = [...(field?.querySelectorAll('[data-slot="game-card"]') ?? [])].reduce((sum, figure) => {
+          const caption = figure.querySelector('[data-slot="game-card-caption"]')?.getAttribute("title") ?? ""
+          return caption.endsWith("Kommandozone") ? sum : sum + (Number(/(\d+) Karten/.exec(caption)?.[1] ?? 1) || 1)
+        }, 0)
+        return count > (before ?? 0)
+      },
+      landFrom,
+      { timeout: 60_000 },
+    )
+    permanents = (await tableFacts(page)).me.permanents
+    const { kind, question } = await next()
+    check(kind === "Priorität", `${label}: after the land Forge asks "${kind}"`)
+    await press("OK", question)
+  }
+  if (touch) for (const height of heights) check(height >= 44, `${label}: one of Forge's buttons ${height}px high`)
+  check((await page.locator("[data-sonner-toast]").count()) === 0, `${label}: a notice appeared while playing (${(await page.locator("[data-sonner-toast]").allTextContents()).join(" | ")})`)
+  return { first, presses, land, permanentsBefore: landFrom, permanentsAfter: permanents, buttonHeights: [Math.min(...heights), Math.max(...heights)], ms: Date.now() - started }
+}
+
 async function gameSession(browser: Browser, page: Page, pageLog: PageLog, base: string, id: string, decks: readonly SavedDeck[]): Promise<Record<string, unknown>> {
   log("Game session (prewarm, start, running game, concede, result, reload, refusal, failed boot, phone)")
   const results: Record<string, unknown> = {}
@@ -2137,6 +2263,10 @@ async function gameSession(browser: Browser, page: Page, pageLog: PageLog, base:
   await page.waitForFunction(() => document.querySelector('[role="dialog"]') === null)
   results["drawnAiDeck"] = aiDeck
   check(["E2E Deutsch (zufällig gezogen)", "E2E Deutsch (Kopie) (zufällig gezogen)"].includes(aiDeck), `game: the AI's random deck "${aiDeck}"`)
+  // Answering Forge (prompt 15): keep, pass, play a land, pass - in the real game.
+  results["played"] = await playRealGame(page, "game (Constructed, playing)")
+  results["playedAxe"] = await accessibility(page, "game (Constructed, playing)")
+  await page.screenshot({ path: path.join(reportDir, "screens", "desktop-game-played.png") })
 
   // 6. Reloading ends the game: the browser asks first, afterwards the page says there is none.
   let dialogType: string | null = null
@@ -2278,6 +2408,9 @@ async function gamePhone(browser: Browser, base: string, decks: readonly SavedDe
     await page.screenshot({ path: path.join(reportDir, "screens", "phone-landscape-game-table.png") })
     await page.setViewportSize({ width: VIEWPORTS[0]!.width, height: VIEWPORTS[0]!.height })
     await waitForDecision(page)
+    // Answering Forge by touch (prompt 15): keep, pass, play a land, pass; Forge's buttons 44 px or more.
+    results["played"] = await playRealGame(page, "game (phone, playing)", true)
+    await page.screenshot({ path: path.join(reportDir, "screens", "phone-game-played.png") })
     const { result } = await concedeGame(page)
     const bar = page.getByRole("region", { name: "Neue Partie" })
     const tabBar = page.getByRole("navigation", { name: "Hauptnavigation" })
@@ -2530,8 +2663,31 @@ async function preferencesPhone(browser: Browser, base: string): Promise<Record<
 
 // ── 12. Game table (recorded real scenes in the real table, every size) ────
 
-/** The recorded real scenes (src/test/table-scenes.ts, scripts/record-table-scenes.ts). */
-const TABLE_SCENES = ["opening", "main-phase", "stack", "blockers", "defend", "commander-late", "command-effects"] as const
+/** The recorded real scenes (src/test/table-scenes.ts, scripts/record-table-scenes.ts); since prompt 15 also one per kind of Forge's decisions the recorded games reach. */
+const TABLE_SCENES = [
+  "opening",
+  "main-phase",
+  "stack",
+  "blockers",
+  "defend",
+  "commander-late",
+  "command-effects",
+  "play-draw",
+  "target",
+  "target-player",
+  "yes-no",
+  "discard",
+  "choose-mode",
+  "scry",
+  "ability",
+  "damage",
+] as const
+
+/** Forge's questions the recorded games do not reach, built after the schema on the recorded "main-phase" state (src/test/built-questions.ts) - marked as built. */
+const BUILT_SCENES = ["confirm", "input", "order", "reveal", "choose-many", "select-outside"] as const
+
+/** The sizes at which every kind of question is also answered (decisionInteractions); the layout is checked at all. */
+const DECISION_VIEWPORTS: readonly string[] = ["small-phone", "phone-landscape", "desktop"]
 
 /** The sizes the table must fit: phones upright and turned, a small phone, an unfolded foldable upright, a tablet turned, a desktop. */
 const TABLE_VIEWPORTS: readonly Viewport[] = [
@@ -2732,6 +2888,141 @@ async function tableInteractions(page: Page, base: string, viewport: Viewport): 
   return results
 }
 
+/** The answers the harness's table gave so far (window.__openmanaAnswers: question id and answer). */
+function harnessAnswers(page: Page): Promise<[number, Record<string, unknown>][]> {
+  return page.evaluate(() => (window as unknown as { __openmanaAnswers?: [number, Record<string, unknown>][] }).__openmanaAnswers ?? [])
+}
+
+/**
+ * Forge's decision on the table (prompt 15): its answer buttons lie in the
+ * window (they stick to the bottom of the region while a list scrolls above
+ * them), every button of the decision is touch-sized on a touch screen,
+ * nothing leaves the region sideways.
+ */
+async function decisionFits(page: Page, label: string, viewport: Viewport): Promise<Record<string, unknown> | null> {
+  const info = await page.evaluate(() => {
+    const region = document.querySelector<HTMLElement>('[data-area="decision"]')
+    if (region === null) return null
+    const box = (element: Element | null | undefined) => {
+      if (!element) return null
+      const rect = element.getBoundingClientRect()
+      return { top: Math.round(rect.top), bottom: Math.round(rect.bottom), left: Math.round(rect.left), right: Math.round(rect.right) }
+    }
+    const buttons = [...region.querySelectorAll<HTMLElement>('button[data-slot="button"], [role="radio"], [role="checkbox"]')]
+    // A radio or checkbox is operated through its whole choice card (its label).
+    const target = (element: HTMLElement) => (element.getAttribute("role") === "radio" || element.getAttribute("role") === "checkbox" ? (element.closest("label") ?? element) : element)
+    return {
+      board: document.querySelector('[data-slot="game-board"]')?.getAttribute("data-decision") ?? null,
+      region: box(region),
+      scroll: { width: region.scrollWidth, clientWidth: region.clientWidth, height: region.scrollHeight, clientHeight: region.clientHeight },
+      actions: box(region.querySelector('[data-slot="game-decision-actions"]')),
+      smallest: buttons.length === 0 ? null : Math.min(...buttons.map((element) => target(element).offsetHeight)),
+      window: { width: window.innerWidth, height: window.innerHeight },
+    }
+  })
+  if (info === null) return null
+  if (info.actions !== null) check(info.actions.top >= 0 && info.actions.bottom <= info.window.height + 1, `${label}: the decision's buttons outside the window ${JSON.stringify(info.actions)}`)
+  check(info.scroll.width <= info.scroll.clientWidth + 1, `${label}: the decision is wider than its region ${JSON.stringify(info.scroll)}`)
+  if (viewport.touch && info.smallest !== null) check(info.smallest >= 44, `${label}: a control of the decision ${info.smallest}px high`)
+  return info
+}
+
+/**
+ * Answering every kind of Forge's questions in real Chrome (prompt 15), on
+ * the recorded scenes and the built ones, with the harness recording each
+ * answer: the controls a player uses (Forge's buttons, radios, checkboxes,
+ * arrows, plus/minus, a number typed, a card of a selection), each press
+ * after the buttons armed; the answer must be exactly the protocol's.
+ */
+async function decisionInteractions(page: Page, base: string, viewport: Viewport): Promise<Record<string, unknown>> {
+  const label = `game decisions (${viewport.name})`
+  const decision = page.getByRole("region", { name: "Entscheidung" })
+  const activate = async (locator: Locator) => {
+    if (viewport.touch) await locator.tap()
+    else await locator.click()
+  }
+  const armed = async (locator: Locator) => {
+    await page.waitForTimeout(ARMED_AFTER_MS)
+    await activate(locator)
+  }
+  const results: Record<string, unknown> = {}
+  const expectLast = async (name: string, expected: Record<string, unknown>) => {
+    await page.waitForFunction((count) => ((window as unknown as { __openmanaAnswers?: unknown[] }).__openmanaAnswers ?? []).length >= count, 1, { timeout: 5000 }).catch(() => undefined)
+    const answers = await harnessAnswers(page)
+    const body = answers.at(-1)?.[1] ?? null
+    check(answers.length === 1 && JSON.stringify(body) === JSON.stringify(expected), `${label}: ${name} answered ${JSON.stringify(answers)}, expected ${JSON.stringify(expected)}`)
+    results[name] = body
+  }
+  const scene = async (name: string, built?: string) => openScene(page, base, name, built ? `&built=${built}` : "")
+  const button = (name: string) => decision.getByRole("button", { name, exact: true })
+
+  await scene("opening")
+  await armed(button("Behalten"))
+  await expectLast("mulligan", { kind: "buttons", button: 1 })
+
+  await scene("play-draw")
+  await armed(button("Draw"))
+  await expectLast("play or draw", { kind: "buttons", button: 2 })
+
+  await scene("target")
+  await armed(button("Abbrechen"))
+  await expectLast("target: cancel", { kind: "buttons", button: 2 })
+
+  await scene("choose-mode")
+  await activate(decision.getByRole("radio").nth(1))
+  await armed(button("Bestätigen"))
+  await expectLast("mode", { kind: "choose", choices: [2] })
+
+  await scene("scry")
+  await activate(button("Nach unten (Goblin-Brandstifter)"))
+  await armed(button("Bestätigen"))
+  await expectLast("scry", { kind: "arrange", top: [2], bottom: [1] })
+
+  await scene("ability")
+  await activate(decision.getByRole("radio").nth(1))
+  await armed(button("Bestätigen"))
+  await expectLast("ability", { kind: "options", option: 2 })
+
+  await scene("damage")
+  await activate(button("Bei Canyon Minotaur einen mehr"))
+  await activate(button("Bei Raging Goblin einen mehr"))
+  await armed(button("Bestätigen"))
+  await expectLast("combat damage", { kind: "distribute", amounts: [1, 1] })
+
+  await scene("main-phase", "confirm")
+  await armed(button("Nein"))
+  await expectLast("confirm (built)", { kind: "confirm", yes: false })
+
+  await scene("main-phase", "input")
+  const field = decision.getByRole("textbox", { name: "Deine Zahl" })
+  await field.fill("3")
+  await page.waitForTimeout(ARMED_AFTER_MS)
+  await field.press("Enter")
+  await expectLast("input (built)", { kind: "input", value: "3" })
+
+  await scene("main-phase", "order")
+  const third = (await decision.getByRole("region", { name: "Reihenfolge" }).getByRole("listitem").nth(2).locator('[data-slot="item-title"]').textContent())?.replace(/^3\. /, "").trim() ?? ""
+  await activate(button(`${third} nach oben`))
+  await armed(button("Bestätigen"))
+  await expectLast("order (built)", { kind: "order", order: [1, 3, 2] })
+
+  await scene("main-phase", "reveal")
+  await armed(button("OK"))
+  await expectLast("reveal (built)", { kind: "options", option: 1 })
+
+  await scene("main-phase", "choose-many")
+  await activate(decision.getByRole("checkbox", { name: "Blau" }))
+  await activate(decision.getByRole("checkbox", { name: "Rot" }))
+  await armed(button("Bestätigen"))
+  await expectLast("several choices (built)", { kind: "choose", choices: [2, 4] })
+
+  await scene("main-phase", "select-outside")
+  await activate(decision.getByRole("toolbar", { name: "Wählbare Karten, die nicht auf dem Tisch liegen" }).getByRole("button").first())
+  await expectLast("a card outside the table (built)", { kind: "select", choices: [1] })
+  check((await harnessTaps(page)).length === 0, `${label}: answering tapped a card`)
+  return results
+}
+
 /**
  * The live games of 10 can only reach Forge's first decision (answering
  * Forge comes with prompts 14-19), so their battlefields are empty. The
@@ -2755,13 +3046,16 @@ async function tableHarness(browser: Browser): Promise<Record<string, unknown>> 
     for (const viewport of TABLE_VIEWPORTS) {
       log(`  ${viewport.name} (${viewport.width}x${viewport.height}${viewport.touch ? ", touch" : ""})`)
       const context = await newContext(browser, viewport)
-      const page = await context.newPage()
-      const pageLog = watch(page)
       const scenes: Record<string, unknown> = {}
       try {
-        for (const scene of TABLE_SCENES) {
-          const label = `game table (${viewport.name}, ${scene})`
-          await page.goto(new URL(`/scripts/e2e/table-harness.html?scene=${scene}`, base).href, { waitUntil: "domcontentloaded" })
+        const runs = [...TABLE_SCENES.map((scene) => ({ scene: scene as string, built: null as string | null })), ...BUILT_SCENES.map((built) => ({ scene: "main-phase", built: built as string | null }))]
+        for (const { scene, built } of runs) {
+          const name = built === null ? scene : `built:${built}`
+          const label = `game table (${viewport.name}, ${name})`
+          // A fresh page per scene (the profile keeps the catalog): the dev server's many modules, loaded dozens of times in one page, exhausted Chrome on a busy machine.
+          const page = await context.newPage()
+          const pageLog = watch(page)
+          await page.goto(new URL(`/scripts/e2e/table-harness.html?scene=${scene}${built === null ? "" : `&built=${built}`}`, base).href, { waitUntil: "domcontentloaded" })
           // The first scene of a browser profile installs the card catalog, as the app does.
           await page.locator('[data-harness="table"]').waitFor({ timeout: 300_000 })
           const layout = await checkTableFits(page, label)
@@ -2789,13 +3083,27 @@ async function tableHarness(browser: Browser): Promise<Record<string, unknown>> 
             usable: document.querySelectorAll('button[data-mark="usable"]').length,
             selected: document.querySelectorAll('button[data-mark="selected"]').length,
           }))
-          const expected = SCENE_MARKS[scene]
+          const expected = built === null ? SCENE_MARKS[scene as (typeof TABLE_SCENES)[number]] : undefined
           if (expected) check(marks.usable === expected.usable && marks.selected === expected.selected, `${label}: marks ${JSON.stringify(marks)}, expected ${JSON.stringify(expected)}`)
+          const decision = await decisionFits(page, label, viewport)
           const axe = await accessibility(page, label)
-          await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-${scene}.png`) })
-          scenes[scene] = { areas: layout["areas"], pictures, rows, menu, cards, marks, axe }
+          await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-${built === null ? scene : `built-${built}`}.png`) })
+          scenes[name] = { areas: layout["areas"], pictures, rows, menu, cards, marks, decision, axe }
+          for (const error of pageLog.errors) check(false, `${label}: ${error}`)
+          await page.close()
         }
+        const page = await context.newPage()
+        const pageLog = watch(page)
         scenes["interaction"] = await tableInteractions(page, base, viewport)
+        await page.close()
+        // Answering every kind (prompt 15) where it is tightest and on the desktop: a small phone, a phone turned, a mouse.
+        if (DECISION_VIEWPORTS.includes(viewport.name)) {
+          const answers = await context.newPage()
+          const answersLog = watch(answers)
+          scenes["decisions"] = await decisionInteractions(answers, base, viewport)
+          for (const error of answersLog.errors) check(false, `game decisions (${viewport.name}): ${error}`)
+          await answers.close()
+        }
         for (const error of pageLog.errors) check(false, `game table (${viewport.name}): ${error}`)
       } finally {
         await context.close()

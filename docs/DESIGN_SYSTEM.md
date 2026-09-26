@@ -158,6 +158,23 @@ too - in the steps whose taps act at once (paying, attacking, blocking, the
 London mulligan, a selection) the only way to look. The card view's main button
 carries Forge's words for the tap and is armed a moment after it appears.
 
+**Forge's decisions** (prompt 15) are answered in the decision region, right
+above the hand (beside the player's half in landscape): what Forge asks (the
+asking card's picture, the kind of decision, Forge's words), the controls -
+Forge's buttons, choice cards (a `RadioGroup` for one, `Checkbox`es for
+several, like the preference choices), rows of cards the table does not show,
+lists with arrows (order, top/bottom of a pile), plus/minus for amounts, a
+field for a number - and the answer buttons, which stick to the bottom of the
+region while a long list scrolls above them. The region grows only as far as
+its content needs: `GameBoard decision="tall"` (more words than fit) and
+`"expanded"` (a list or form Forge waits on alone, cards outside the table)
+let it take up to 36 % of a portrait screen (expanded: stack and combat keep
+a smaller strip, the battlefields a row of cards); in a low landscape window
+(`short:` = at most 32rem high, a custom variant in `src/index.css`) an
+expanded decision takes both middle rows of the side column and stack and
+combat step aside. Sending buttons are armed a moment after they appear, like
+the card view's.
+
 Both battlefields share the free height equally; a battlefield shows two rows
 (creatures next to the middle, other permanents outside) from 176 px, one
 below. Cards are sized by their row's height (`GameCard`), so less room means
@@ -179,6 +196,8 @@ the word.
 | `GameBoard`, `GameBoardArea` | `src/components/ui/game-board.tsx`, built the shadcn way (prompt 13) | the game table's frame: eight named regions in a grid, portrait and landscape arrangement (§4), never scrolling itself |
 | `GameCard`, `GameCardCaption`, `GameCardBack`, `GameCardGroup` | `src/components/ui/game-card.tsx`, built the shadcn way (prompt 13) | a card on the game table, sized by its row's height (63 × 88): its `CardPicture`, turned a quarter when tapped (square place), its facts in the caption strip **below** the picture (never on it: Scryfall forbids covering card images); OpenMana's own back for cards Forge hides (never Wizards' back); a card with its attachments in one dashed frame |
 | `GameCardButton`, `GameCardRow`, `GameCardRowItem`, `GameCardRowButton`; the `mark` of `GameCard`/`GameCardButton` | `src/components/ui/game-card.tsx`, built the shadcn way (prompt 14) on Radix `Toolbar` (from `radix-ui`) | a card as a control: a button with shadcn's focus ring around the whole card, no image menu or text selection on a long press; Forge's state as a frame around the picture in the room every card keeps (`mark`: usable = dashed `--primary`, chosen = solid `--foreground`); a row of such cards as a toolbar (roving focus), else a focusable list |
+| `Checkbox` | shadcn/ui registry (`radix-maia`, prompt 15; `motion-reduce` added) | several choices of one of Forge's questions, inside a `FieldLabel` choice card (the whole card is the touch target) |
+| `GameDecision`, `GameDecisionHeader`, `GameDecisionSource`, `GameDecisionRow`, `GameDecisionNote`, `GameDecisionActions`; `GameBoard`'s `decision` (`compact`/`tall`/`expanded`) | `src/components/ui/game-decision.tsx`, `game-board.tsx`, built the shadcn way (prompt 15) | the decision region's content: what Forge asks (the asking card as a small `GameCardButton`), a row of a question's cards at a hand's height, short lines (how many, why a button is off), the answer buttons sticking to the region's bottom; the region's growth (§4) |
 | `ActionBar` | `src/components/ui/action-bar.tsx`, built the shadcn way (prompt 10) | a page's primary action on phones: sticky right above the tab bar (`bottom-16`), at the end of the content column – on a short page too (since prompt 11 the `Page` column fills the screen and the bar is pushed to its end, `mt-auto`); pages render it only below `md` (`useIsMobile`) and put the same actions into the header above |
 | `CardPicture` | `src/components/ui/card-picture.tsx`, built the shadcn way (prompt 08) | every picture of a Magic card: `AspectRatio` 63 × 88, `Skeleton` while loading, the card's text in place of a missing or failed picture (`data-state` loading/loaded/failed/missing); loads Scryfall's pictures in CORS mode without referrer and never crops them (`object-contain`: Scryfall forbids cutting off artist or copyright) |
 | `BottomNav`, `BottomNavItem` | `src/components/ui/bottom-nav.tsx`, built the shadcn way | phone tab bar |

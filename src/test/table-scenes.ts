@@ -9,7 +9,24 @@
 import type { GameMessage, GameStarted, GameState, InputRejected, Question } from "@openmana/engine-protocol"
 import recorded from "./fixtures/table-scenes.json"
 
-export type TableSceneName = "opening" | "main-phase" | "stack" | "blockers" | "defend" | "commander-late" | "command-effects"
+export type TableSceneName =
+  | "opening"
+  | "main-phase"
+  | "stack"
+  | "blockers"
+  | "defend"
+  | "commander-late"
+  | "command-effects"
+  // Forge's decisions (prompt 15)
+  | "play-draw"
+  | "target"
+  | "target-player"
+  | "yes-no"
+  | "discard"
+  | "choose-mode"
+  | "scry"
+  | "ability"
+  | "damage"
 
 export interface TableScene {
   readonly name: TableSceneName

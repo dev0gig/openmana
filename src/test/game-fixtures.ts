@@ -278,13 +278,16 @@ export class FakeEngineWorker {
   }
 
   /**
-   * Forge after the player kept their hand (a test's stand-in for answering,
-   * which comes with prompt 15): the player's first main phase, the first
-   * Mountain in hand playable with Forge's words, the priority buttons,
-   * Forge waiting. As the real engine marks it (recorded scene "main-phase").
+   * Forge after the player kept their hand: the player's first main phase,
+   * the first Mountain in hand playable with Forge's words, the priority
+   * buttons, Forge waiting. As the real engine marks it (recorded scene
+   * "main-phase"). `answered`: the seq of the player's answer that kept the
+   * hand (prompt 15: Forge closes the mulligan question with it); without
+   * it the mulligan question is withdrawn (a test that does not answer).
    */
-  priority(): void {
-    this.send({ type: "question.withdrawn", id: 1 })
+  priority(options: { readonly answered?: number } = {}): void {
+    if (options.answered !== undefined) this.send({ type: "question.answered", id: 1, seq: options.answered })
+    else this.send({ type: "question.withdrawn", id: 1 })
     const state = gameState(4, { turn: 1, phase: "MAIN1", activePlayer: 0 })
     const me = state.players[0]!
     const [first, ...rest] = me.zones.hand
@@ -292,7 +295,7 @@ export class FakeEngineWorker {
     this.send({ ...state, players: [{ ...me, hasPriority: true, zones: { ...me.zones, hand: [playable, ...rest] } }, state.players[1]!] })
     this.send({ type: "question", kind: "buttons", id: 2, blocking: false, text: "", purpose: "priority", buttons: [{ nr: 1, label: "OK", enabled: true }, { nr: 2, label: "Zug beenden", enabled: true }] })
     this.send({ type: "message", kind: "prompt", text: "Priorität: Spieler Zug: 1 (Spieler) Phase: Erste Hauptphase (Vor-Kampf) Stapel: Leer" })
-    this.send({ type: "engine.waiting", consumed: 0 })
+    this.send({ type: "engine.waiting", consumed: options.answered ?? 0 })
   }
 
   /** What the real engine sends after the player's concession (input 1). */

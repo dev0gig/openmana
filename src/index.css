@@ -28,6 +28,14 @@
   }
 }
 
+/*
+ * Low windows (prompt 15): short: applies when the window is at most 32rem
+ * high - a phone turned sideways. The game table's side column then gives a
+ * decision that needs room both of its middle rows
+ * (src/components/ui/game-board.tsx).
+ */
+@custom-variant short (@media (max-height: 32rem));
+
 @theme inline {
   --font-heading: "Cinzel Variable", ui-serif, Georgia, serif;
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;

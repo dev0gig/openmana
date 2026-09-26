@@ -34,6 +34,7 @@
  */
 import type { EngineClient, EngineClientEvent } from "@openmana/engine-client"
 import type {
+  AnswerBody,
   BootPhase,
   EngineAbort,
   EngineError,
@@ -206,7 +207,7 @@ export function matchInProgress(match: MatchSnapshot | null): boolean {
 }
 
 /** The part of EngineClient the session uses (tests pass a fake). */
-export type SessionClient = Pick<EngineClient, "start" | "subscribe" | "dispose" | "startMatch" | "concede" | "tapCard" | "abort" | "engineWaiting">
+export type SessionClient = Pick<EngineClient, "start" | "subscribe" | "dispose" | "startMatch" | "concede" | "tapCard" | "answer" | "abort" | "engineWaiting">
 
 /** Where the engine is (the worker script, GraalVM's launcher, the module) and how it boots. */
 export interface EngineLaunch {
@@ -419,6 +420,35 @@ export class EngineSession {
     if (!client.engineWaiting) return { ok: false, reason: "Forge rechnet gerade – antippen geht, sobald Forge wieder auf dich wartet." }
     try {
       client.tapCard(card)
+    } catch (error) {
+      return { ok: false, reason: refusal(error) }
+    }
+    // The input is on its way: Forge no longer waits.
+    this.#set({ ...this.#snapshot, match: { ...match, waiting: client.engineWaiting } })
+    return { ok: true }
+  }
+
+  /**
+   * Answers one of Forge's questions for the player (prompt 15): the answer
+   * to question `question` (its id), shaped by its kind (src/game/decision-model.ts).
+   * Like a tap, only while Forge waits for the player - its questions change
+   * while it computes, and an answer is meant for the question the player
+   * saw - and never for a concession on its way. The client refuses what it
+   * can already tell is wrong (a question no longer open, another one that
+   * must be answered first, the wrong kind) and nothing is sent; what only
+   * the engine can tell (the answer does not fit its question, the question
+   * was withdrawn meanwhile) comes back as Forge's notice (input.rejected).
+   * Nothing is ever answered without the player: the session only sends
+   * what the page hands it.
+   */
+  answer(question: number, body: AnswerBody): InputResult {
+    const match = this.#snapshot.match
+    const client = this.#client
+    if (match?.status !== "playing" || client === null) return { ok: false, reason: "Es läuft keine Partie." }
+    if (match.conceding) return { ok: false, reason: "Die Aufgabe ist unterwegs." }
+    if (!client.engineWaiting) return { ok: false, reason: "Forge rechnet gerade – antworten geht, sobald Forge wieder auf dich wartet." }
+    try {
+      client.answer(question, body)
     } catch (error) {
       return { ok: false, reason: refusal(error) }
     }

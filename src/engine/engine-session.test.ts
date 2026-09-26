@@ -589,3 +589,68 @@ describe("EngineSession: tapping a card (prompt 14)", () => {
     expect(match(engine, "playing").notices.at(-1)).toMatchObject({ type: "input.rejected", reason: "no-effect" })
   })
 })
+
+describe("EngineSession: answering Forge (prompt 15)", () => {
+  it("sends the answer to the question it names while Forge waits; Forge then no longer waits", async () => {
+    const engine = await playing()
+    expect(engine.session.answer(1, { kind: "buttons", button: 1 })).toEqual({ ok: true })
+    expect(engine.worker().inputs()).toEqual([{ type: "answer", seq: 1, question: 1, kind: "buttons", button: 1 }])
+    expect(match(engine, "playing").waiting).toBe(false)
+    // Forge closes the question it took, and asks the next.
+    engine.worker().send({ type: "question.answered", id: 1, seq: 1 })
+    expect(match(engine, "playing").questions).toEqual([])
+  })
+
+  it("never while Forge computes: its questions change meanwhile, and an answer is meant for the one the player saw", async () => {
+    const engine = await playing()
+    engine.session.tapCard(1)
+    engine.worker().inputs()
+    expect(engine.session.answer(1, { kind: "buttons", button: 1 })).toEqual({ ok: false, reason: "Forge rechnet gerade – antworten geht, sobald Forge wieder auf dich wartet." })
+    expect(engine.worker().inputs()).toEqual([])
+  })
+
+  it("says why the client refused an answer (a question no longer open, the wrong kind), in German, and sends nothing", async () => {
+    const engine = await playing()
+    expect(engine.session.answer(1, { kind: "confirm", yes: true })).toEqual({ ok: false, reason: "Die Antwort passt nicht zu Forges Frage." })
+    expect(engine.session.answer(7, { kind: "buttons", button: 1 })).toEqual({ ok: false, reason: "Diese Frage hat Forge nie gestellt." })
+    engine.worker().send({ type: "question.withdrawn", id: 1 })
+    expect(engine.session.answer(1, { kind: "buttons", button: 1 })).toEqual({ ok: false, reason: "Die Frage ist schon beantwortet oder zurückgezogen." })
+    expect(engine.worker().inputs()).toEqual([])
+    expect(match(engine, "playing").waiting).toBe(true)
+  })
+
+  it("only the blocking question can be answered while it is open", async () => {
+    const engine = await playing()
+    engine.worker().send({ type: "question", kind: "confirm", id: 2, blocking: true, text: "Möchtest du den Effekt nutzen?", suggested: true })
+    engine.worker().send({ type: "engine.waiting", consumed: 0 })
+    expect(engine.session.answer(1, { kind: "buttons", button: 1 })).toEqual({ ok: false, reason: "Forge wartet zuerst auf deine Antwort auf seine Frage." })
+    expect(engine.session.answer(2, { kind: "confirm", yes: false })).toEqual({ ok: true })
+    expect(engine.worker().inputs()).toEqual([{ type: "answer", seq: 1, question: 2, kind: "confirm", yes: false }])
+  })
+
+  it("an answer Forge refuses (it does not fit, or came too late) comes back as its notice, and the question stays open", async () => {
+    const engine = await playing()
+    engine.worker().send({ type: "question", kind: "distribute", id: 2, blocking: true, text: "2 Kampfschaden", total: 2, min: 0, items: [{ nr: 1, text: "A" }, { nr: 2, text: "B" }] })
+    engine.worker().send({ type: "engine.waiting", consumed: 0 })
+    expect(engine.session.answer(2, { kind: "distribute", amounts: [2, 1] })).toEqual({ ok: true })
+    engine.worker().send({ type: "input.rejected", seq: 1, reason: "invalid", detail: "amounts sum to 3, expected 2", input: { type: "answer", seq: 1, question: 2, kind: "distribute", amounts: [2, 1] } })
+    engine.worker().send({ type: "engine.waiting", consumed: 1 })
+    const game = match(engine, "playing")
+    expect(game.notices.at(-1)).toMatchObject({ type: "input.rejected", reason: "invalid", detail: "amounts sum to 3, expected 2" })
+    expect(game.questions.map((question) => question.id)).toEqual([1, 2])
+    expect(game.waiting).toBe(true)
+  })
+
+  it("not while a concession is on its way, not without a running game; nothing is ever answered by itself", async () => {
+    const engine = await ready()
+    expect(engine.session.answer(1, { kind: "buttons", button: 1 })).toEqual({ ok: false, reason: "Es läuft keine Partie." })
+    engine.session.startMatch(testSetup())
+    engine.worker().startGame()
+    // Forge asks; the session holds the question and sends nothing on its own.
+    expect(match(engine, "playing").questions).toHaveLength(1)
+    expect(engine.worker().inputs()).toEqual([])
+    engine.session.concede()
+    expect(engine.session.answer(1, { kind: "buttons", button: 1 })).toEqual({ ok: false, reason: "Die Aufgabe ist unterwegs." })
+    expect(engine.worker().inputs()).toEqual([{ type: "concede", seq: 1 }])
+  })
+})

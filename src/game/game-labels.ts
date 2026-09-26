@@ -120,21 +120,6 @@ export function questionLabel(question: Question): string {
   return QUESTION_KIND_LABELS[question.kind]
 }
 
-/** The answers Forge offers, as far as the question names them (its buttons, options or items). */
-export function questionChoices(question: Question): string[] {
-  switch (question.kind) {
-    case "buttons":
-      return question.buttons.filter((button) => button.enabled && button.label).map((button) => button.label!)
-    case "confirm":
-      return [question.yesLabel ?? "Ja", question.noLabel ?? "Nein"]
-    case "options":
-    case "choose":
-      return question.items.flatMap((item) => ("text" in item && item.text ? [item.text] : []))
-    default:
-      return []
-  }
-}
-
 /** Forge's AI profile (res/ai/*.ai) by its German name (ai-profile-table.ts); an unknown one by Forge's name. */
 export function aiProfileLabel(profile: string): string {
   return AI_PROFILE_TABLE.find((info) => info.name === profile)?.label ?? profile

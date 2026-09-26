@@ -268,6 +268,96 @@ describe("the game page: cards (prompt 14)", () => {
   })
 })
 
+describe("the game page: Forge's decisions (prompt 15)", () => {
+  it("keeping the hand, playing a land, passing priority: each only when the player presses; Forge's refusal shows", { timeout: 20_000 }, async () => {
+    let clock = 50_000
+    vi.spyOn(performance, "now").mockImplementation(() => clock)
+    const user = userEvent.setup()
+    await store([RED, GREEN])
+    const engine = await runningGame()
+    renderAt("/play/game", engine)
+    const decision = await screen.findByRole("region", { name: "Entscheidung" })
+    // Forge asks; nothing is answered for the player.
+    expect(engine.worker().inputs()).toEqual([])
+    clock += ARMING_MS
+    await user.click(within(decision).getByRole("button", { name: "Behalten" }))
+    expect(engine.worker().inputs()).toEqual([{ type: "answer", seq: 1, question: 1, kind: "buttons", button: 1 }])
+    expect(await within(screen.getByRole("region", { name: "Spielstand" })).findByText("Forge rechnet")).toBeInTheDocument()
+    expect(within(decision).getByRole("button", { name: "Behalten" })).toBeDisabled()
+
+    // Forge took the answer and gives the player priority in the first main phase.
+    act(() => engine.worker().priority({ answered: 1 }))
+    const ok = await within(decision).findByRole("button", { name: "OK" })
+    expect(within(decision).getByRole("button", { name: "Zug beenden" })).toBeInTheDocument()
+    expect(within(decision).getByText("Priorität: Spieler Zug: 1 (Spieler) Phase: Erste Hauptphase (Vor-Kampf) Stapel: Leer")).toBeInTheDocument()
+
+    // Playing a land is the card's tap (its view's button), not an answer.
+    await user.click(within(screen.getByRole("toolbar", { name: "Deine Hand: 7 Karten" })).getByRole("button", { name: "Mountain, spielbar" }))
+    const view = await screen.findByRole("dialog", { name: "Mountain" })
+    clock += ARMING_MS
+    await user.click(within(view).getByRole("button", { name: "Spiele ein Land" }))
+    expect(engine.worker().inputs()).toEqual([{ type: "card.tap", seq: 2, card: 1 }])
+    act(() => {
+      engine.worker().send({ type: "question.withdrawn", id: 2 })
+      engine.worker().send({ type: "question", kind: "buttons", id: 3, blocking: false, text: "", purpose: "priority", buttons: [{ nr: 1, label: "OK", enabled: true }, { nr: 2, label: "Zug beenden", enabled: true }] })
+      engine.worker().send({ type: "engine.waiting", consumed: 2 })
+    })
+    // The new priority's buttons are armed afresh: a press right away is dropped.
+    const pass = await within(decision).findByRole("button", { name: "OK" })
+    expect(pass).not.toBe(ok)
+    await user.click(pass)
+    expect(engine.worker().inputs()).toEqual([])
+    clock += ARMING_MS
+    await user.click(pass)
+    expect(engine.worker().inputs()).toEqual([{ type: "answer", seq: 3, question: 3, kind: "buttons", button: 1 }])
+
+    // Forge refuses it (the question was withdrawn meanwhile): its notice shows - nothing disappears silently.
+    act(() => engine.worker().send({ type: "input.rejected", seq: 3, reason: "stale", detail: "question 3 is not open", input: { type: "answer", seq: 3, question: 3, kind: "buttons", button: 1 } }))
+    expect(await screen.findByText("Forge hat eine Eingabe nicht ausgeführt: Die Frage war schon beantwortet oder zurückgezogen.")).toBeInTheDocument()
+    vi.restoreAllMocks()
+  })
+
+  it("a blocking question: its answer only with the button; Forge closes it, and the step's buttons come back", { timeout: 20_000 }, async () => {
+    let clock = 50_000
+    vi.spyOn(performance, "now").mockImplementation(() => clock)
+    const user = userEvent.setup()
+    await store([RED, GREEN])
+    const engine = await runningGame()
+    engine.worker().priority()
+    renderAt("/play/game", engine)
+    const decision = await screen.findByRole("region", { name: "Entscheidung" })
+    act(() => {
+      engine.worker().send({
+        type: "question",
+        kind: "choose",
+        id: 3,
+        blocking: true,
+        text: "Spieler aktivierte Feurige Konfluenz - wähle einen Modus",
+        min: 1,
+        max: 1,
+        items: [
+          { nr: 1, text: "• Die Feurige Konfluenz fügt jeder Kreatur 1 Schadenspunkt zu." },
+          { nr: 2, text: "• Die Feurige Konfluenz fügt jedem Gegner 2 Schadenspunkte zu." },
+        ],
+      })
+      engine.worker().send({ type: "engine.waiting", consumed: 0 })
+    })
+    await user.click(await within(decision).findByRole("radio", { name: "• Die Feurige Konfluenz fügt jedem Gegner 2 Schadenspunkte zu." }))
+    expect(within(decision).queryByRole("button", { name: "Zug beenden" })).not.toBeInTheDocument()
+    expect(engine.worker().inputs()).toEqual([])
+    clock += ARMING_MS
+    await user.click(within(decision).getByRole("button", { name: "Bestätigen" }))
+    expect(engine.worker().inputs()).toEqual([{ type: "answer", seq: 1, question: 3, kind: "choose", choices: [2] }])
+    act(() => {
+      engine.worker().send({ type: "question.answered", id: 3, seq: 1 })
+      engine.worker().send({ type: "engine.waiting", consumed: 1 })
+    })
+    expect(await within(decision).findByRole("button", { name: "Zug beenden" })).toBeInTheDocument()
+    expect(within(decision).queryByRole("radio")).not.toBeInTheDocument()
+    vi.restoreAllMocks()
+  })
+})
+
 describe("the game page", () => {
   it("without a game: says so, and that a reload ends a running game", async () => {
     const user = userEvent.setup()

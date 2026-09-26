@@ -196,17 +196,18 @@ describe("stack, combat and Forge's decision", () => {
     expect(within(region("Stapel und Kampf")).getByText("Der Stapel ist leer, niemand kämpft.")).toBeInTheDocument()
   })
 
-  it("the decision: Forge's prompt, the kind, the answers Forge offers - and that they cannot be given here yet", () => {
+  it("the decision: Forge's prompt, the kind, Forge's buttons - a table only looked at sends nothing and says so", () => {
     const scene = renderScene("opening")
     const decision = region("Entscheidung")
+    expect(within(decision).getByRole("heading", { name: "Forge wartet auf deine Entscheidung" })).toBeInTheDocument()
     expect(within(decision).getByText(scene.prompt!.replace(/\s+/g, " "))).toBeInTheDocument()
-    const [question] = within(decision).getAllByRole("listitem")
-    expect(question!.firstChild).toHaveTextContent("Mulligan")
-    expect(within(within(decision).getByLabelText("Antworten, die Forge anbietet")).getAllByText(/./).map((b) => b.textContent)).toEqual(["Behalten", "Mulligan"])
-    expect(
-      within(decision).getByText("Auf Forges Fragen kannst du hier noch nicht antworten. Karten ansehen geht immer, antippen dort, wo Forge es anbietet; aufgeben im Menü."),
-    ).toBeInTheDocument()
-    expect(within(decision).queryByRole("button")).not.toBeInTheDocument()
+    expect(decision.querySelector('[data-slot="game-decision-header"]')).toHaveTextContent(/^Mulligan/)
+    const buttons = within(within(decision).getByRole("group", { name: "Antworten, die Forge anbietet" })).getAllByRole("button")
+    expect(buttons.map((button) => button.textContent)).toEqual(["Behalten", "Mulligan"])
+    for (const button of buttons) {
+      expect(button).toBeDisabled()
+      expect(button).toHaveAccessibleDescription("Nur ansehen – hier wird nichts beantwortet.")
+    }
     // The mulligan's keep-or-not does not tap cards at once: no hint about it.
     expect(within(decision).queryByText(/wirkt hier sofort/)).not.toBeInTheDocument()
   })

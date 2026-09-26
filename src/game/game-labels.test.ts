@@ -14,7 +14,6 @@ import {
   formatDuration,
   PHASE_LABELS,
   phaseLabel,
-  questionChoices,
   questionLabel,
   REFUSAL_ADVICE,
   REFUSAL_TITLES,
@@ -59,7 +58,7 @@ describe("game labels", () => {
     expect(endReason(end({ reason: "SomethingNew" }))).toBe("Forge hat die Partie beendet.")
   })
 
-  it("the mulligan and Forge's offered answers", () => {
+  it("what kind of decision: Forge's purpose where it says one", () => {
     const mulligan: Question = {
       type: "question",
       kind: "buttons",
@@ -73,24 +72,10 @@ describe("game labels", () => {
       ],
     }
     expect(questionLabel(mulligan)).toBe("Mulligan")
-    expect(questionChoices(mulligan)).toEqual(["Behalten", "Mulligan"])
-    const oneDisabled: Question = { ...mulligan, buttons: [{ nr: 1, label: "OK", enabled: true }, { nr: 2, label: null, enabled: false }] }
-    expect(questionChoices(oneDisabled)).toEqual(["OK"])
-    expect(questionChoices({ type: "question", kind: "confirm", id: 2, blocking: true, text: "?", suggested: true })).toEqual(["Ja", "Nein"])
     // The coin toss: Forge's buttons without a purpose (the player won it and plays or draws).
-    const coinToss: Question = {
-      type: "question",
-      kind: "buttons",
-      id: 3,
-      blocking: false,
-      text: "",
-      buttons: [
-        { nr: 1, label: "Spielen", enabled: true },
-        { nr: 2, label: "Ziehen", enabled: true },
-      ],
-    }
+    const { purpose: _purpose, ...coinToss } = mulligan
     expect(questionLabel(coinToss)).toBe("Entscheidung")
-    expect(questionChoices(coinToss)).toEqual(["Spielen", "Ziehen"])
+    expect(questionLabel({ type: "question", kind: "confirm", id: 2, blocking: true, text: "?", suggested: true })).toBe("Ja oder Nein")
   })
 
   it("turns, durations and the AI profile", () => {

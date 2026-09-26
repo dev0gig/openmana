@@ -19,7 +19,11 @@
  *
  * Live, never stale (Anvil lesson): the view keeps only the card's id and
  * reads the card from every new state - its place, facts and Forge's offer
- * change while it is open, and a card Forge no longer shows says so.
+ * change while it is open, and a card Forge no longer shows says so. A card
+ * of one of Forge's questions that lies in no zone the table shows (the top
+ * of the library while scrying, a card to choose from a pile - prompt 15)
+ * is shown as the question shows it (`snapshot`), as long as the question
+ * is open; it is answered in the decision region, never tapped here.
  * Forge's texts (name, type line, rules text, the tap's words) are shown as
  * Forge sends them; the picture comes from the card catalog, never covered.
  */
@@ -45,6 +49,8 @@ export interface CardLook {
   readonly id: number
   readonly open: boolean
   readonly serial: number
+  /** The card as a question of Forge shows it, for a card in no zone of the state (prompt 15). */
+  readonly snapshot?: VisibleCard
 }
 
 export interface CardSheetProps {
@@ -62,6 +68,8 @@ export function CardSheet({ look, onOpenChange, state, view, moment, pictures, o
   const landscape = useLandscape()
   const content = useRef<HTMLDivElement>(null)
   const openedAt = useRef(0)
+  // What had the focus when the view opened: the card on the table, or the same card in Forge's question (the decision region).
+  const opener = useRef<HTMLElement | null>(null)
   const id = look?.id ?? null
   return (
     <Sheet open={look?.open ?? false} onOpenChange={onOpenChange}>
@@ -74,6 +82,7 @@ export function CardSheet({ look, onOpenChange, state, view, moment, pictures, o
           // The view takes the focus itself (its title is read), never its tap button.
           event.preventDefault()
           openedAt.current = performance.now()
+          opener.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null
           content.current?.focus()
         }}
         onPointerDownOutside={(event) => {
@@ -81,20 +90,44 @@ export function CardSheet({ look, onOpenChange, state, view, moment, pictures, o
           if (performance.now() - openedAt.current < ARMING_MS) event.preventDefault()
         }}
         onCloseAutoFocus={(event) => {
-          // Back to the card - also where it moved (hand → battlefield); gone: to Forge's decision.
+          // Back to what opened it; else to the card - also where it moved (hand → battlefield); gone: to Forge's decision.
           event.preventDefault()
+          const from = opener.current
+          const back = from?.isConnected && id !== null && (from.dataset["card"] === String(id) || from.dataset["questionCard"] === String(id)) ? from : null
+          opener.current = null
           const card = id === null ? null : document.querySelector<HTMLElement>(`button[data-card="${id}"]`)
-          ;(card ?? document.querySelector<HTMLElement>('[data-area="decision"]'))?.focus()
+          ;(back ?? card ?? document.querySelector<HTMLElement>('[data-area="decision"]'))?.focus()
         }}
       >
-        {look !== null ? <CardView key={look.serial} id={look.id} state={state} view={view} moment={moment} pictures={pictures} onTap={onTap} onClose={() => onOpenChange(false)} /> : null}
+        {look !== null ? (
+          <CardView key={look.serial} id={look.id} snapshot={look.snapshot} state={state} view={view} moment={moment} pictures={pictures} onTap={onTap} onClose={() => onOpenChange(false)} />
+        ) : null}
       </SheetContent>
     </Sheet>
   )
 }
 
-function CardView({ id, state, view, moment, pictures, onTap, onClose }: { id: number; state: GameState; view: TableView; moment: TableMoment; pictures: TableCardLookup; onTap: ((id: number) => void) | undefined; onClose: () => void }) {
+function CardView({
+  id,
+  snapshot,
+  state,
+  view,
+  moment,
+  pictures,
+  onTap,
+  onClose,
+}: {
+  id: number
+  snapshot: VisibleCard | undefined
+  state: GameState
+  view: TableView
+  moment: TableMoment
+  pictures: TableCardLookup
+  onTap: ((id: number) => void) | undefined
+  onClose: () => void
+}) {
   const located = locateCard(state, id)
+  if (located === null && snapshot !== undefined && questionShows(moment, id)) return <QuestionCardView card={snapshot} state={state} pictures={pictures} />
   if (located === null) {
     return (
       <>
@@ -133,6 +166,41 @@ function CardView({ id, state, view, moment, pictures, onTap, onClose }: { id: n
       {/* The buttons stay in view while the card scrolls above them (a phone turned sideways; Bible §6: the action stays easy to reach). */}
       <SheetFooter className="sticky bottom-0 bg-popover landscape:flex-row landscape:flex-wrap">
         {onTap !== undefined && use.tap !== null ? <TapButton use={use} onTap={() => onTap(pile?.[0] ?? id)} onClose={onClose} /> : null}
+        <CloseButton />
+      </SheetFooter>
+    </>
+  )
+}
+
+/** Whether an open question still shows this card (its asking card or one of its items). */
+function questionShows(moment: TableMoment, id: number): boolean {
+  return moment.questions.some(
+    (question) =>
+      ("card" in question && question.card === id) ||
+      ("items" in question && question.items !== undefined && question.items.some((item) => "card" in item && item.card === id)) ||
+      (question.kind === "options" && (question.revealed ?? []).some((item) => "card" in item && item.card === id)),
+  )
+}
+
+/** A card of Forge's question that lies in no zone the table shows: as the question shows it, answered in the decision region. */
+function QuestionCardView({ card, state, pictures }: { card: VisibleCard; state: GameState; pictures: TableCardLookup }) {
+  return (
+    <>
+      <SheetHeader>
+        <SheetTitle>{cardName(card)}</SheetTitle>
+        <SheetDescription>Aus Forges Frage – diese Karte liegt nicht sichtbar auf dem Tisch.</SheetDescription>
+      </SheetHeader>
+      <div className="flex flex-row gap-4 px-6 landscape:flex-col">
+        <div className="w-32 shrink-0 sm:w-44 landscape:self-center">
+          <LargePicture card={card} pictures={pictures} />
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+          {card.text ? <p className="text-sm whitespace-pre-line">{card.text}</p> : null}
+          <FactList facts={facts(card, state, null, pictures)} />
+          <p className="text-sm text-muted-foreground">Wählen kannst du sie im Entscheidungsbereich, dort, wo Forge fragt.</p>
+        </div>
+      </div>
+      <SheetFooter className="sticky bottom-0 bg-popover landscape:flex-row landscape:flex-wrap">
         <CloseButton />
       </SheetFooter>
     </>

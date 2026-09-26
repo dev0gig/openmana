@@ -34,6 +34,8 @@ const outFile = path.resolve(option("--out", path.join(root, "src/test/fixtures/
 /** What the session holds while a game runs (EngineSession, match status "playing"), at one message. */
 interface Moment {
   readonly index: number
+  /** The message of this moment (the last one folded in). */
+  readonly last: EngineMessage
   readonly game: GameStarted
   readonly state: GameState
   readonly questions: readonly Question[]
@@ -80,13 +82,16 @@ function moments(fixture: string): Moment[] {
       default:
         break
     }
-    if (game !== null && state !== null) out.push({ index, game, state, questions, prompt, notices })
+    if (game !== null && state !== null) out.push({ index, last: message, game, state, questions, prompt, notices })
   })
   return out
 }
 
 const permanents = (state: GameState) => state.players.reduce((sum, player) => sum + player.zones.battlefield.length, 0)
 const me = (state: GameState) => state.players.find((player) => player.me)
+const open = <K extends Question["kind"]>(m: Moment, kind: K) => m.questions.filter((q): q is Extract<Question, { kind: K }> => q.kind === kind)
+/** Forge's buttons without a purpose (play or draw, yes or no, OK/cancel of a selection). */
+const plainButtons = (m: Moment) => open(m, "buttons").filter((q) => q.purpose === undefined)
 
 interface SceneRule {
   readonly name: string
@@ -145,6 +150,61 @@ const RULES: readonly SceneRule[] = [
     description: "Forge's effect cards in the command zone of a Constructed game (an adventure; human-11).",
     fixture: "human-11",
     fits: (m) => m.state.players.some((player) => player.zones.command.length > 0) && m.questions.length > 0,
+  },
+  // Forge's decisions (prompt 15): one real moment per kind of question the recorded games reach.
+  {
+    name: "play-draw",
+    description: "The player won the coin toss: Forge's two buttons without a purpose (play or draw) before the opening hands (blocks-double).",
+    fixture: "blocks-double",
+    fits: (m) => m.state.turn === 0 && plainButtons(m).length > 0 && m.prompt !== null,
+  },
+  {
+    name: "target",
+    description: "A spell's target: Forge names the creatures to choose from (select) and waits with OK off and cancel on (human-3-de).",
+    fixture: "human-3-de",
+    fits: (m) => open(m, "select").some((q) => q.items.length > 0) && plainButtons(m).length > 0 && m.prompt !== null,
+  },
+  {
+    name: "target-player",
+    description: "A spell whose only targets are players: Forge's selection names no card (human-3-de).",
+    fixture: "human-3-de",
+    fits: (m) => open(m, "select").some((q) => q.items.length === 0) && plainButtons(m).length > 0 && m.prompt !== null,
+  },
+  {
+    name: "yes-no",
+    description: "A trigger that may be used: Forge's own yes/no as its two buttons (human-3-de).",
+    fixture: "human-3-de",
+    fits: (m) => m.state.turn > 0 && open(m, "select").length === 0 && plainButtons(m).some((q) => q.buttons.every((button) => button.enabled)) && m.prompt !== null,
+  },
+  {
+    name: "discard",
+    description: "Two cards to discard from the hand: a selection of more than one, with Forge's prompt for it and no buttons (Forge ends it by itself; human-11).",
+    fixture: "human-11",
+    fits: (m) => open(m, "select").some((q) => q.max >= 2) && m.last.type === "message" && m.last.kind === "prompt",
+  },
+  {
+    name: "choose-mode",
+    description: "A modal spell: choose one of its modes, a blocking question (human-3-de).",
+    fixture: "human-3-de",
+    fits: (m) => open(m, "choose").length > 0,
+  },
+  {
+    name: "scry",
+    description: "Scrying: the library's top cards to the top or the bottom (arrange), a blocking question (human-3-de).",
+    fixture: "human-3-de",
+    fits: (m) => open(m, "arrange").length > 0,
+  },
+  {
+    name: "ability",
+    description: "A card with two ways to play it (an adventure): which one, cancellable (options; human-11).",
+    fixture: "human-11",
+    fits: (m) => open(m, "options").length > 0,
+  },
+  {
+    name: "damage",
+    description: "An attacker blocked by two creatures: its combat damage to give out among them (distribute; blocks-double).",
+    fixture: "blocks-double",
+    fits: (m) => open(m, "distribute").length > 0,
   },
 ]
 

@@ -39,7 +39,25 @@ function withBattlefields(mine: VisibleCard[] | GameState["players"][number]["zo
 
 describe("recorded scenes", () => {
   it("are real protocol messages: every state, question and notice passes the protocol's checks", () => {
-    expect(TABLE_SCENES.map((scene) => scene.name)).toEqual(["opening", "main-phase", "stack", "blockers", "defend", "commander-late", "command-effects"])
+    expect(TABLE_SCENES.map((scene) => scene.name)).toEqual([
+      "opening",
+      "main-phase",
+      "stack",
+      "blockers",
+      "defend",
+      "commander-late",
+      "command-effects",
+      // Forge's decisions (prompt 15)
+      "play-draw",
+      "target",
+      "target-player",
+      "yes-no",
+      "discard",
+      "choose-mode",
+      "scry",
+      "ability",
+      "damage",
+    ])
     for (const scene of TABLE_SCENES) {
       expect(() => checkGameState(scene.state), scene.name).not.toThrow()
       expect(() => checkEngineMessage(scene.game), scene.name).not.toThrow()

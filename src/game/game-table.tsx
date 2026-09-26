@@ -24,30 +24,33 @@
  * London mulligan, a selection). Forge's markers show as a frame around the
  * picture (usable, chosen), never on it.
  *
- * Answering Forge's questions follows (prompts 15-19): the decision region
- * shows what Forge asks and offers, and says that it cannot be answered here
- * yet.
+ * Forge's decisions (prompt 15): the decision region above the hand shows
+ * what Forge asks and lets the player answer it (decision-panel.tsx) - the
+ * page sends the answers (onAnswer), like the taps. A decision that needs
+ * room gets it (GameBoard decision="expanded"); a card of a question that
+ * lies in no zone of the table opens the card view as the question shows it.
  */
 import { Ban, Crown, Hand as HandIcon, Heart, Library, Shield, Skull, Swords, type LucideIcon } from "lucide-react"
 import { cn } from "cn"
-import { createContext, use, useMemo, useRef, useState, type ReactNode } from "react"
-import type { Card, GameState, Question, VisibleCard } from "@openmana/engine-protocol"
+import { createContext, use, useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import type { AnswerBody, Card, GameState, Question, VisibleCard } from "@openmana/engine-protocol"
 import { Badge } from "@/components/ui/badge"
-import { CardPicture } from "@/components/ui/card-picture"
-import { GameBoard, GameBoardArea } from "@/components/ui/game-board"
+import { GameBoard, GameBoardArea, type GameBoardDecision } from "@/components/ui/game-board"
 import { GameCard, GameCardBack, GameCardButton, GameCardCaption, GameCardGroup, GameCardRow, GameCardRowButton, GameCardRowItem } from "@/components/ui/game-card"
 import { Item, ItemContent, ItemTitle } from "@/components/ui/item"
 import { Separator } from "@/components/ui/separator"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { useCardPress } from "@/hooks/use-card-press"
 import { useElementHeight } from "@/hooks/use-element-height"
 import { ARMING_MS, CardSheet, type CardLook } from "./card-sheet"
-import { cardUse, directTaps, type CardPlace, type CardUse, type TableMoment } from "./card-use"
-import { aiProfileLabel, phaseLabel, questionChoices, questionLabel } from "./game-labels"
+import { cardUse, type CardPlace, type CardUse, type TableMoment } from "./card-use"
+import { currentDecision } from "./decision-model"
+import { DecisionPanel, decisionNeedsRoom } from "./decision-panel"
+import { aiProfileLabel, phaseLabel } from "./game-labels"
 import type { TableCardLookup } from "./table-cards"
 import { attackLine, blockLine, captionFacts, cardButtonLabel, cardFacts, cardName, counterLabel, MANA_LABELS, seatName, stackTargets } from "./table-labels"
 import { isVisible, tableView, type BoardEntry, type CombatView, type Seat, type TableSide, type TableView } from "./table-model"
+import { TablePicture } from "./table-picture"
 
 /** Below this height a battlefield shows its cards in one row instead of two (px, measured). */
 const TWO_ROWS_MIN_HEIGHT = 176
@@ -76,6 +79,12 @@ export interface GameTableProps {
    * the table is only looked at (a replay): cards can be looked at, never tapped.
    */
   readonly onTapCard?: (id: number) => void
+  /**
+   * Answers one of Forge's questions for the player (the page sends it,
+   * prompt 15). Absent: the table is only looked at - Forge's questions are
+   * shown, never answered.
+   */
+  readonly onAnswer?: (question: number, body: AnswerBody) => void
 }
 
 /** What a card of the table needs to be operated: the moment's questions and Forge's state of waiting, and the two ways to use it. */
@@ -89,11 +98,36 @@ interface CardControls {
 
 const CardControlsContext = createContext<CardControls | null>(null)
 
-export function GameTable({ state, questions, prompt, waiting, aiProfile, profileDrawn = false, pictures, menu, alerts, conceding = false, onTapCard }: GameTableProps) {
+export function GameTable({ state, questions, prompt, waiting, aiProfile, profileDrawn = false, pictures, menu, alerts, conceding = false, onTapCard, onAnswer }: GameTableProps) {
   const view = useMemo(() => tableView(state, questions), [state, questions])
   const profile = profileDrawn ? `${aiProfileLabel(aiProfile)} (zufällig)` : aiProfileLabel(aiProfile)
   const moment = useMemo<TableMoment>(() => ({ questions, waiting, conceding }), [questions, waiting, conceding])
   const [look, setLook] = useState<CardLook | null>(null)
+  // A card of Forge's question: its view as the question shows it goes along (it may lie in no zone of the state).
+  const lookAtQuestionCard = useCallback(
+    (id: number, snapshot?: VisibleCard) => setLook((previous) => ({ id, open: true, serial: (previous?.serial ?? 0) + 1, ...(snapshot !== undefined ? { snapshot } : {}) })),
+    [],
+  )
+  // A decision gets room when it needs it (GameBoard): a question with a list, a form or cards outside the table
+  // (expanded) - or more words than the compact region holds (tall), measured once per set of open questions, so
+  // the region never flips back and forth.
+  const decisionArea = useRef<HTMLElement>(null)
+  const decisionKey = questions.map((question) => question.id).join(",")
+  const [overflowed, setOverflowed] = useState<string | null>(null)
+  // Words that do not fit may take the stack's place too where it has nothing to show (a low landscape window).
+  const quietCenter = state.stack.length === 0 && state.combat.length === 0
+  const room: GameBoardDecision = decisionNeedsRoom(currentDecision(questions), state)
+    ? "expanded"
+    : decisionKey !== "" && overflowed === decisionKey
+      ? quietCenter
+        ? "expanded"
+        : "tall"
+      : "compact"
+  useLayoutEffect(() => {
+    const area = decisionArea.current
+    if (area === null || room !== "compact" || decisionKey === "" || overflowed === decisionKey) return
+    if (area.scrollHeight > area.clientHeight + 1) setOverflowed(decisionKey)
+  }, [room, decisionKey, overflowed, questions, prompt, waiting, conceding, alerts, state])
   // The last card tapped at once and when: the second tap of a double tap counts once.
   const lastTap = useRef<{ readonly id: number; readonly at: number } | null>(null)
   const controls = useMemo<CardControls>(() => {
@@ -117,7 +151,7 @@ export function GameTable({ state, questions, prompt, waiting, aiProfile, profil
   }, [moment, onTapCard])
   return (
     <CardControlsContext value={controls}>
-      <GameBoard>
+      <GameBoard decision={room}>
         <title>Partie · OpenMana</title>
         <GameBoardArea area="header" aria-label="Spielstand" className="flex items-center gap-2 px-2 py-1">
           {menu}
@@ -167,9 +201,18 @@ export function GameTable({ state, questions, prompt, waiting, aiProfile, profil
           {view.me ? <PlayerBar side={view.me} profile={null} pictures={pictures} /> : null}
         </GameBoardArea>
 
-        <GameBoardArea area="decision" aria-label="Entscheidung" tabIndex={0} className="flex flex-col gap-2 px-3 py-2">
-          {alerts}
-          <Decision questions={questions} prompt={prompt} waiting={waiting} />
+        <GameBoardArea ref={decisionArea} area="decision" aria-label="Entscheidung" tabIndex={0}>
+          <DecisionPanel
+            state={state}
+            questions={questions}
+            prompt={prompt}
+            waiting={waiting}
+            conceding={conceding}
+            pictures={pictures}
+            alerts={alerts}
+            onLook={lookAtQuestionCard}
+            {...(onAnswer !== undefined ? { onAnswer } : {})}
+          />
         </GameBoardArea>
 
         <GameBoardArea area="hand" aria-label="Deine Hand">
@@ -316,34 +359,6 @@ function OpponentHand({ cards, pictures }: { cards: readonly Card[]; pictures: T
   )
 }
 
-/** A card's picture from the catalog, a placeholder while it is looked up, or Forge's words for it. */
-function Picture({ card, pictures }: { card: VisibleCard; pictures: TableCardLookup }) {
-  const picture = pictures(card)
-  const name = cardName(card)
-  if (picture === "loading") {
-    return (
-      <Skeleton className="size-full rounded-xl">
-        <span className="sr-only">{name}</span>
-      </Skeleton>
-    )
-  }
-  return (
-    <CardPicture
-      compact
-      src={picture === "none" ? null : picture.src}
-      {...(picture === "none" ? {} : { srcSet: picture.srcSet, sizes: "auto" })}
-      alt={name}
-      draggable={false}
-      fallback={
-        <>
-          <span className="line-clamp-3 text-xs leading-tight font-medium">{name}</span>
-          {card.typeLine ? <span className="line-clamp-2 text-xs leading-tight text-muted-foreground">{card.typeLine}</span> : null}
-        </>
-      }
-    />
-  )
-}
-
 /**
  * A card the player may see, as a control (prompt 14): its primary
  * activation looks at it - or taps it at once where the step allows (see
@@ -371,7 +386,7 @@ function TableCard({ card, place, pictures, count = 1, note, caption }: { card: 
         {...(caption !== undefined ? { caption } : {})}
         {...press}
       >
-        <Picture card={card} pictures={pictures} />
+        <TablePicture card={card} pictures={pictures} />
       </GameCardButton>
     </GameCardRowButton>
   )
@@ -599,58 +614,6 @@ function combatLines(combat: readonly CombatView[]): { readonly key: string; rea
     else lines.push({ key: String(view.attacker.id), view, count: 1, signature })
   }
   return lines
-}
-
-/**
- * What Forge waits for: its prompt line, the question and the answers it
- * offers - shown, not yet answerable here (prompt 15). Where the step taps
- * cards at once (card-use.ts), it says so, and how to look at a card then.
- */
-function Decision({ questions, prompt, waiting }: { questions: readonly Question[]; prompt: string | null; waiting: boolean }) {
-  if (questions.length === 0) {
-    return waiting ? (
-      <p className="text-sm">{prompt ?? "Forge wartet auf dich."}</p>
-    ) : (
-      <p className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Spinner aria-hidden />
-        Forge rechnet …
-      </p>
-    )
-  }
-  return (
-    <div className="flex flex-col gap-2">
-      <h2 className="sr-only">Forge wartet auf deine Entscheidung</h2>
-      {prompt !== null ? <p className="text-sm font-medium">{prompt}</p> : null}
-      <ul className="flex flex-col gap-1.5">
-        {questions.map((question) => {
-          const choices = questionChoices(question)
-          return (
-            <li key={question.id} className="flex flex-col gap-1 text-sm">
-              <span>
-                <span className="text-xs text-muted-foreground">{questionLabel(question)}</span>
-                {question.text && question.text !== prompt ? <span className="block">{question.text}</span> : null}
-              </span>
-              {choices.length > 0 ? (
-                <span className="flex flex-wrap gap-1" aria-label="Antworten, die Forge anbietet">
-                  {choices.map((choice) => (
-                    <Badge key={choice} variant="outline">
-                      {choice}
-                    </Badge>
-                  ))}
-                </span>
-              ) : null}
-            </li>
-          )
-        })}
-      </ul>
-      {waiting && directTaps(questions) ? (
-        <p className="text-xs">Karten antippen wirkt hier sofort, ein zweiter Tipp nimmt es zurück. Lange drücken oder Rechtsklick zeigt eine Karte groß.</p>
-      ) : null}
-      <p className="text-xs text-muted-foreground">
-        Auf Forges Fragen kannst du hier noch nicht antworten. Karten ansehen geht immer, antippen dort, wo Forge es anbietet; aufgeben im Menü.
-      </p>
-    </div>
-  )
 }
 
 /** Your hand, always at the bottom and fully visible - side by side, scrolling sideways, never fanned (Anvil lesson). */
