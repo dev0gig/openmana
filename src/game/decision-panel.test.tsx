@@ -133,6 +133,30 @@ describe("Forge's buttons (a running step)", () => {
     expect(onAnswer).not.toHaveBeenCalled()
   })
 
+  it("the London mulligan (built on the opening): how many hand cards Forge marks, Forge's OK off until they match", () => {
+    const scene = tableScene("opening")
+    const me = scene.state.players.find((player) => player.me)!
+    const [first, ...rest] = me.zones.hand
+    const marked = { ...(first as VisibleCard), highlighted: true as const }
+    const state = { ...scene.state, players: nonEmpty(scene.state.players.map((player) => (player.me ? { ...player, zones: { ...player.zones, hand: [marked, ...rest] } } : player))) }
+    const bottom: Question = {
+      type: "question",
+      kind: "buttons",
+      id: 7,
+      blocking: false,
+      text: "",
+      purpose: "mulliganBottom",
+      buttons: [
+        { nr: 1, label: "OK", enabled: false },
+        { nr: 2, label: "Auto", enabled: true },
+      ],
+    }
+    table("opening", { state, questions: [bottom], prompt: "Lege 2 Karten unter die Bibliothek" })
+    expect(within(decision()).getByText("1 Karte ausgewählt (durchgezogener Rahmen).")).toBeInTheDocument()
+    expect(within(decision()).getByRole("button", { name: "OK" })).toBeDisabled()
+    expect(within(decision()).getByText(/wirkt hier sofort/)).toBeInTheDocument()
+  })
+
   it("not while a concession is on its way; a table only looked at shows Forge's buttons off", () => {
     table("opening", { conceding: true })
     expect(within(decision()).getByRole("button", { name: "Behalten" })).toHaveAccessibleDescription("Die Aufgabe ist unterwegs.")

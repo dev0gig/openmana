@@ -1957,9 +1957,15 @@ async function checkFirstDecision(page: Page, label: string, expect: { readonly 
   return { decision: text, answers, players: facts }
 }
 
-/** Waits until Forge asks the player on the running game's table. */
+/** Waits until Forge asks the player on the running game's table; if it does not, says what the page shows instead (a refusal, an abort, a silent engine …). */
 async function waitForDecision(page: Page): Promise<void> {
-  await page.getByRole("region", { name: "Entscheidung" }).getByRole("heading", { name: "Forge wartet auf deine Entscheidung" }).waitFor({ timeout: 180_000 })
+  try {
+    await page.getByRole("region", { name: "Entscheidung" }).getByRole("heading", { name: "Forge wartet auf deine Entscheidung" }).waitFor({ timeout: 180_000 })
+  } catch (error) {
+    const shown = ((await page.locator("body").innerText().catch(() => "")) || "").replace(/\s+/g, " ").slice(0, 800)
+    await page.screenshot({ path: path.join(reportDir, "screens", "no-decision.png") }).catch(() => undefined)
+    throw new Error(`no decision of Forge's within 180 s at ${page.url()}; the page shows: ${shown}`, { cause: error })
+  }
 }
 
 /** Starts a game from the play page and waits for Forge's first decision; returns the milliseconds from the click. */
@@ -2096,8 +2102,9 @@ async function playRealGame(page: Page, label: string, touch = false): Promise<R
   const next = async (): Promise<{ readonly kind: string; readonly question: string | null }> => {
     await tableHeader(page).getByText("Du bist dran", { exact: true }).waitFor({ timeout: 180_000 })
     await waitForDecision(page)
-    const kind = ((await decision.locator('[data-slot="game-decision-header"] p').first().textContent()) ?? "").trim()
-    return { kind, question: await content.getAttribute("data-question") }
+    // The first line is the kind, then - after " · " - the asking card's name, if Forge names one.
+    const line = ((await decision.locator('[data-slot="game-decision-header"] p').first().textContent()) ?? "").trim()
+    return { kind: line.split(" · ")[0]!.trim(), question: await content.getAttribute("data-question") }
   }
   /** Presses one of Forge's buttons once armed; Forge must take it (its question goes). */
   const press = async (name: string, question: string | null) => {

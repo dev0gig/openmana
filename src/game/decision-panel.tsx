@@ -456,11 +456,24 @@ function StepDecision({ buttons, select, prompt }: { buttons: ButtonsQuestion | 
     <>
       <DecisionHeading label={label} text={text} source={sourceOf(buttons) ?? sourceOf(select)} />
       {select !== null && selection !== null ? <SelectPart question={select} view={selection} /> : null}
+      {buttons?.purpose === "mulliganBottom" ? <MulliganChosen /> : null}
       {directTaps(open) ? <GameDecisionNote>Karten antippen wirkt hier sofort, ein zweiter Tipp nimmt es zurück. Lange drücken oder Rechtsklick zeigt eine Karte groß.</GameDecisionNote> : null}
       <BlockedNote />
       {buttons !== null ? <ForgeButtons question={buttons} /> : null}
     </>
   )
+}
+
+/**
+ * The London mulligan: how many hand cards Forge marks for the bottom (its
+ * highlight - the solid frame). How many it wants says Forge's prompt line;
+ * its OK stays off until they match.
+ */
+function MulliganChosen() {
+  const { state } = useDecision()
+  const hand = state.players.find((player) => player.me)?.zones.hand ?? []
+  const chosen = hand.filter((card) => !("hidden" in card) && card.highlighted === true).length
+  return <GameDecisionNote>{chosen === 1 ? "1 Karte ausgewählt" : `${chosen} Karten ausgewählt`} (durchgezogener Rahmen).</GameDecisionNote>
 }
 
 /** Forge's two buttons with Forge's words; one Forge switched off stays visible, off, with the reason (above them: the buttons alone stick to the bottom). */
@@ -794,7 +807,7 @@ function InputBody({ question }: { question: InputQuestion }) {
           {question.items.map((item) => {
             const text = itemLabel(item, state)
             return (
-              <Button key={item.nr} type="button" variant="outline" size="sm" aria-pressed={value === text} onClick={() => setValue(text)}>
+              <Button key={item.nr} type="button" variant="outline" aria-pressed={value === text} onClick={() => setValue(text)}>
                 {text}
               </Button>
             )
