@@ -30,9 +30,9 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | **15 — Forge decision UI** |
-| Nächster Prompt | 16 — Priority, stack and phases (erst nach 15 = COMPLETE) |
-| Zuletzt abgeschlossen | 14 — Cards, hand and safe interaction (`1b3e3b6`) |
+| Aktuell ausgeführt | – (keiner; nach 15 wie vorgesehen gestoppt) |
+| Nächster Prompt | **16 — Priority, stack and phases** (PENDING, nicht begonnen) |
+| Zuletzt abgeschlossen | 15 — Forge decision UI (`cf4d2ad`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-26 (Dropzone-Standalone-Lauf, Regeln aus `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-26 |
 
@@ -55,7 +55,7 @@
 | 12 | [AI profiles and settings](queue/12-ai-profiles-settings.md) | COMPLETE | `e618079` |
 | 13 | [Battlefield foundation](queue/13-battlefield-foundation.md) | COMPLETE | `eb8e0ab` |
 | 14 | [Cards, hand and safe interaction](queue/14-card-hand-interactions.md) | COMPLETE | `1b3e3b6` |
-| 15 | [Forge decision UI](queue/15-forge-decisions.md) | IN_PROGRESS | – |
+| 15 | [Forge decision UI](queue/15-forge-decisions.md) | COMPLETE | `cf4d2ad` |
 | 16 | [Priority, stack and phases](queue/16-priority-stack-phases.md) | PENDING | – |
 | 17 | [Targeting and cost payment](queue/17-targeting-cost-payment.md) | PENDING | – |
 | 18 | [Combat: attackers](queue/18-combat-attackers.md) | PENDING | – |
@@ -1563,12 +1563,130 @@
 - **Weiter mit:** Prompt 15 (Forge decision UI). Nicht begonnen:
   `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
 
-### 15 — Forge decision UI — IN_PROGRESS
+### 15 — Forge decision UI — COMPLETE
 
-- Begonnen am 2026-09-26 von Claude Code (Claude Opus 5.5), Auftrag „Bitte
-  führe das Standalone in Drop Zone für Open Mana aus“ (Dropzone
+- **Commits:** `cf4d2ad` Implementierung, `322e027` README/Übersicht/Bible,
+  `7af8623` Nachbesserungen (Mulligan-Zähler, Touch-Größe der Vorschläge,
+  E2E-Diagnose), `6e5b34a` (Text-Wachstum 28 %, ORYX-Attrappe im E2E),
+  `3a0d80e` (E2E wartet auf die Zahlen nach dem Löschen) – Engine unverändert;
+  alle Nachweise liefen auf `3a0d80e` (sauberer Arbeitsbaum), danach Doku und
+  dieser Eintrag (2026-09-26). Agent: Claude Code (Claude Opus 5.5), Auftrag
+  „Bitte führe das Standalone in Drop Zone für Open Mana aus“ (Dropzone
   `fixed/standalone.md` mit den Regeln aus `naechster-schritt.md`: genau ein
-  Prompt, danach Stopp).
+  Prompt, danach Stopp). Status-Commit zu Beginn: `a874aa5`. Parallel hat eine
+  ORYX-Sitzung im selben Arbeitsbaum committet (`4d92b2a`, `18ad0df`,
+  `c32da8c`: Cloud-Datei 1.1.x) – getrennt gehalten.
+- **Zusammenfassung:** Jede Frage, die Forge dem Spieler stellt, lässt sich im
+  **Entscheidungsbereich über der Hand** beantworten (im Querformat neben der
+  eigenen Tischhälfte) – alle neun Fragearten des Protokolls: Forges zwei
+  Knöpfe (Forges Worte; abgeschaltete sichtbar mit Grund; beim
+  London-Mulligan die Zahl der markierten Karten), Auswahl (Karten auf dem
+  Tisch dort antippen, Karten außerhalb des Tisches als Reihe im Bereich; wie
+  viele, wie viele gewählt), Wahl aus einer Liste (Kreis/Kästchen/Kartenreihe,
+  Suche ab 12 Einträgen, höchstens 50 Treffer zugleich, Rest genannt),
+  Ja/Nein, Möglichkeiten (auch gezeigte Listen mit einer Taste), Zahl/Text,
+  Reihenfolge (Forges Doppelliste), Hellsicht (oben/unten, Reihenfolge je
+  Seite, Rest als Zahl), Verteilen (±, verteilt/offen). **Nichts wird für den
+  Spieler entschieden:** Forges Vorschlag ist nur der erste Entwurf; ein
+  Entwurf, der nicht zu Forges Zahlen passt, wird nie gesendet (Knopf aus,
+  Grund dabei); Absendeknöpfe 500 ms nach Erscheinen ihrer Frage scharf,
+  gehaltene Tasten wiederholen nichts; nichts, während Forge rechnet oder die
+  Aufgabe unterwegs ist. **Rücknahmen und Ablehnungen:** eine zurückgezogene
+  Frage nimmt Bedienung und Entwurf mit; die Ablehnung des Clients erscheint
+  als Hinweis („Die Antwort wurde nicht gesendet“), Forges `input.rejected`
+  als seine Meldung, die Frage bleibt offen. **Platz:** der Bereich wächst
+  nur so weit nötig (`GameBoard decision`: `tall` für Text bis 28 %,
+  `expanded` für Listen/Formulare bis 36 % hochkant; ein quer gehaltenes
+  Handy gibt einer großen Frage die ganze Seitenspalte), die Antwortknöpfe
+  kleben unten. Die echte Partie im Browser läuft jetzt über die erste
+  Entscheidung hinaus. Kein Blocker, keine Regel im Client.
+- **Wichtige Komponenten:**
+  - `src/game/decision-model.ts` (rein: welche Frage, Entwürfe, Prüfungen
+    gegen die Zahlen der Frage, Antworten), `decision-panel.tsx` (Bedienung
+    aller Arten, `SendButton`), `game-table.tsx` (`onAnswer`, gemessenes
+    Wachsen, Kartenansicht für Karten aus Fragen), `card-sheet.tsx`
+    (`snapshot`, Fokus zurück zum Auslöser), `table-picture.tsx`,
+    `game-page.tsx` (Antworten, Bilder der Fragekarten)
+  - `src/engine/engine-session.ts` (`answer`), `engine-session-context.tsx`
+  - `src/components/ui/game-decision.tsx`, `game-board.tsx` (`decision`),
+    `checkbox.tsx` (Registry, `motion-reduce`), `src/index.css` (`short:`)
+  - Tests/Prüfstand: `src/test/built-questions.ts`, `table-harness.tsx`
+    (`window.__openmanaAnswers`, `&built=`), neue Szenen in
+    `scripts/record-table-scenes.ts`; E2E `playRealGame`, `decisionFits`,
+    `decisionInteractions`, Diagnose bei fehlender Entscheidung
+  - Doku: `docs/implementation/15-forge-decisions.md`, `AGENTS.md` (Decision
+    Rules), `docs/DESIGN_SYSTEM.md` (§4, §5), Bible §9 (Verweis),
+    `README.md`, `STATUS.md`
+- **Tests (alle bestanden, auf `3a0d80e`):**
+  - Erzeugte Dateien = Schemas, `tsc -b`, `oxlint` ohne Befund.
+  - **729 Vitest-Tests in 60 Dateien** (669 nach Prompt 14; 59 neue aus diesem
+    Prompt, einer der ORYX-Sitzung): Entscheidungsmodell 22 (echte Szenen:
+    Modus, Hellsicht, Fähigkeit, Kampfschaden, Ziel, Ziel = Spieler, zwei
+    abwerfen, Spielen/Ziehen, Ja/Nein; gebaut: Ja/Nein-Frage, Zahl,
+    Reihenfolge, Mehrfachwahl, Karten außerhalb; jede Antwort gegen den
+    Protokoll-Prüfer), Bedienung 29 (jede Art im echten Tischcode,
+    Scharfschalten, Gründe, Rücknahme samt Entwurf, nichts ohne den Spieler,
+    Ansage, London-Mulligan), Sitzung +6 (`answer`), Seite +2 (mit dem
+    echten Client: behalten → Priorität → Land über die Kartenansicht → neue
+    Priorität neu scharf → weitergeben → Forges Ablehnung sichtbar; eine
+    blockierende Wahl bis zu Forges Bestätigung); angepasst: Tisch,
+    Beschriftungen, Szenenliste.
+  - **Neue echte Szenen** (9, aus den vorhandenen Aufzeichnungen der
+    Testpartien; die 7 alten Byte für Byte gleich): `play-draw`, `target`,
+    `target-player`, `yes-no`, `discard`, `choose-mode`, `scry`, `ability`,
+    `damage`.
+  - **End-to-End** (`node scripts/e2e/run.ts` 11 min 14 s, Chrome
+    153.0.8010.12, echte Engine `42f3bf1c7706cec5`, echter Katalog, echte
+    Scryfall-API, **0 Befunde**): alle bisherigen Abschnitte; neu in 10:
+    **die echte Partie wird gespielt** – Desktop (Maus, Constructed) und
+    Handy (Touch): „Spielen“ → „Behalten“ → Land „Gebirge“ über seine
+    Kartenansicht → „OK“, bleibende Karten 0 → 1, je 3,2–3,3 s, keine
+    Meldung, Forges Knöpfe 40 px (Maus)/48 px (Touch), axe 0; neu in 12:
+    **16 echte + 6 gebaute Szenen in sechs Größen** (132 Kombinationen, axe 0
+    überall, Antwortknöpfe im Fenster, Touch-Kontrollen ≥ 44 px, Spielfelder
+    bei großen Fragen ≥ 74 px) und **jede Art beantwortet** in drei Größen
+    (kleines Handy, Handy quer, Desktop), jede Antwort exakt die des
+    Protokolls.
+- **Messwerte (odin):** Start-JavaScript unverändert 246,1 KB gzip -9
+  (`4d92b2a` → `cf4d2ad` gleich gebaut; +3,2 KB gegenüber Prompt 14 stammen von
+  der ORYX-Cloud-Datei 1.1.x); Partie-Seite (nachgeladen) 16,7 → 25,7 KB
+  (25,8 KB auf `3a0d80e`). Partiestart mit vorgewärmter Engine 0,86–0,88 s.
+- **Erkenntnisse/Abweichungen:**
+  - **Texte der laufenden Schritte sind oft die vorigen:** Forges Zielauswahl
+    nennt ihre Karten im Konstruktor, vor ihrer Anweisung; die Mulligan-Frage
+    trägt den Text der vorigen Frage → der Bereich zeigt Forges aktuelle
+    Anweisungszeile, nie den Fragetext (Anvil-Lehre vom 28.8.2026).
+  - **Forges Knöpfe bleiben unter einer blockierenden Frage offen** (Modus
+    während der Priorität, Hellsicht beim Bezahlen, Kampfschaden beim
+    Angriff), sind dann aber nicht beantwortbar → nur die blockierende Frage
+    wird gezeigt.
+  - **Forges deutsche Übersetzung hat Fehler:** `lblNCombatDamage` =
+    „{0} Commander-Schaden“ (Kampfschaden), `lblArrangeCardsToBePutOnTopOf
+    YourLibrary` sagt „unter“ statt „oben“, `lblPayFirst` englisch → upstream
+    bzw. Prompt 26.
+  - **`select.cards` nennt auch Ids verdeckter Karten** (die Einträge verbergen
+    sie richtig; die App nutzt nur die Einträge) → mit dem Engine-Neubau in 16.
+  - **Auswahl ohne Karte = Spieler als Ziel:** Forge prüft Spieler erst beim
+    Tipp → der Bereich sagt ehrlich „noch nicht wählbar“, „Abbrechen“ führt
+    weiter; Spieler als Ziele: 17.
+  - **Abwerfen einer genauen Zahl kommt ohne Knöpfe** (Forge beendet selbst).
+  - **`toAnywhere` beim Anordnen setzt der gepinnte Forge nie** (nur
+    `arrangeForMove` ruft, mit `false`) – die Lücke aus 02 ist damit keine.
+  - Bewusst: Wahl/Möglichkeiten/Reihenfolge/Hellsicht/Verteilen erst markieren,
+    dann bestätigen (Anvil 28.8.); Forges „OK“/„Zug beenden“ unverändert (16);
+    abgeschaltete Knöpfe sichtbar (19 prüft das Blocken); Verteilen beginnt bei
+    Forges Minimum (tödlichen Schaden rechnet die App nicht aus).
+  - **E2E und odin:** `earlyoom` beendete zwei Läufe (SIGTERM, Exit 143), als
+    andere Sitzungen schwere node-Jobs fuhren und der Swap voll war; ein
+    erster Lauf sah die Commander-Partie 180 s lang ohne Entscheidung (danach
+    dreimal in 0,87 s, nachgestellt in 0,3 s) – der Test sagt bei so einem
+    Hänger jetzt, was die Seite zeigt. Der Prüfstand bekommt je Szene eine
+    frische Seite (ein Lauf mit allem in einer Seite erschöpfte Chrome). Die
+    ORYX-Attrappe beantwortet die neue Spielzeit-Meldung der Cloud-Datei 1.1.x;
+    eine Prüfung nach dem Löschen der Website-Daten wartet jetzt auf die
+    Zahlen. Details: `docs/implementation/15-forge-decisions.md` §9.6, §10.
+- **Weiter mit:** Prompt 16 (Priority, stack and phases). Nicht begonnen:
+  `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
 
 ## Hinweise für spätere Prompts
 
@@ -1647,7 +1765,7 @@ Seit Prompt 13 ist die laufende Partie der Spieltisch
   rollt sie), bis ihre Karten selbst fokussierbar sind – dann die Reihe
   weiter per Tastatur rollbar halten. Mehrdeutige Spielsteine zeigen Forges
   Worte (Befund 11.5): Kandidat für ein eindeutiges Bild.
-- **15 (Entscheidungen):** Der Bereich `decision` (`Decision` in
+- **15 (Entscheidungen) – erledigt, siehe „Entscheidungen“ unten.** Der Bereich `decision` (`Decision` in
   `game-table.tsx`) zeigt Anweisung, Frageart und Forges Antworten als
   Marken mit dem Satz „Hier kannst du noch nicht antworten …“ – den ersetzen
   die Bedienelemente; die Sitzung braucht `answer`. Forges Knöpfe sind teils
@@ -1691,7 +1809,7 @@ Seit Prompt 14 ist jede sichtbare Karte bedienbar
 `docs/implementation/14-card-hand-interactions.md`, Regeln in `AGENTS.md`
 „Card Interaction Rules“):
 
-- **15 (Entscheidungen):** Die Sitzung hat `tapCard` (nur solange Forge
+- **15 (Entscheidungen) – erledigt, siehe „Entscheidungen“ unten.** Die Sitzung hat `tapCard` (nur solange Forge
   wartet, deutsche Gründe, `InputResult`); `answer` gehört genauso daneben
   (`EngineSession`, `useEngineSession`, an den Tisch wie `onTapCard`). Was 14
   schon abdeckt und 15 nur ergänzen muss:
@@ -1741,6 +1859,51 @@ Seit Prompt 14 ist jede sichtbare Karte bedienbar
 - ⚠️ **E2E nachts:** Um ca. 01:00 stoppt `restic-backup-system.sh`
   Datenbank-Container; Chrome meldet dann `net::ERR_NETWORK_CHANGED` für
   laufende Scryfall-Bilder → Lauf wiederholen, kein App-Fehler.
+
+### Entscheidungen (Stand 2026-09-26, für 16 ff.)
+
+Seit Prompt 15 beantwortet der Spieler jede Frage Forges im
+Entscheidungsbereich (`src/game/decision-panel.tsx`, Regeln in
+`decision-model.ts`, Doku `docs/implementation/15-forge-decisions.md`, Regeln in
+`AGENTS.md` „Decision Rules“):
+
+- **16 (Priorität, Stapel):** Forges Knöpfe stehen wie gesendet („OK“ =
+  Priorität abgeben, „Zug beenden“); die Anweisungszeile der Priorität ist
+  Forges Lagebericht („Priorität: Player Zug: 8 (Player) Phase: … Stapel:
+  Leer“) – Anvil ersetzte ihn durch eine Phasenleiste. Ort: `StepDecision`/
+  `ForgeButtons` (Kopfzeile = `questionLabel`). Mit dem Engine-Neubau
+  (Protokoll 5): `select.cards` nur mit Ids sichtbarer Karten senden (Befund
+  15 §10.4). Unter einer blockierenden Frage bleiben die Knöpfe des Schritts
+  offen (§10.2) – `currentDecision` zeigt nur die blockierende.
+- **17 (Ziele, Kosten):** Eine Auswahl ohne Karte heißt „Spieler als Ziel“;
+  der Bereich sagt heute ehrlich, dass Spieler noch nicht wählbar sind
+  (`SelectPart`). Forge prüft Spieler erst beim Tipp
+  (`InputSelectTargets.onPlayerSelected`; bei `InputSelectEntitiesFromList`
+  stehen sie in `getValidChoices`) → gültige Spieler ins Protokoll, dann
+  `player.tap` an der Spielerleiste. Die fragende Karte steht schon im Kopf
+  des Bereichs (beim Bezahlen der Zauber).
+- **18/19 (Kampf):** Kampfschaden verteilen (`distribute`) ohne den
+  verteidigenden Spieler (Trampelschaden, Lücke seit 02); die Knöpfe des
+  erklärten Angriffs bleiben unter der Verteilfrage offen. Forges „OK“ beim
+  Angreifen/Blocken heißt je nach Lage „kein Angriff“/„so angreifen“ (Anvil).
+- **20 (Zonen):** Karten aus Friedhof/Exil einer Auswahl stehen heute als
+  Reihe im Entscheidungsbereich; die Kartenansicht zeigt Karten aus Fragen
+  (`CardLook.snapshot`).
+- **22 (Wiedergabe):** `GameTable` ohne `onAnswer` zeigt Fragen, Knöpfe aus
+  („Nur ansehen“); `data-question` am Bereich nennt die Frage.
+- **24 (Größen):** kleinstes Handy mit großer Frage und Stapel: Spielfelder
+  ≥ 74 px (E2E-Grenze bei `expanded` 64 px); Querformat-Handy: der Stapel
+  weicht einer großen Frage.
+- **26 (Forge-Update):** Forges deutsche Übersetzungsfehler
+  (`lblNCombatDamage` = „Commander-Schaden“, `lblArrangeCardsToBePutOnTopOf
+  YourLibrary` = „unter“, `lblPayFirst` englisch); `toAnywhere` beim Anordnen
+  wird im gepinnten Forge nie gesetzt.
+- ⚠️ **Tests:** Absendeknöpfe sind erst `ARMING_MS` nach ihrer Frage scharf –
+  in Vitest `performance.now` mocken und vorrücken, im E2E `ARMED_AFTER_MS`
+  warten. Die Szenen sind echte Momente der Testpartien; Fragearten, die sie
+  nicht erreichen, baut `src/test/built-questions.ts` (als gebaut markiert).
+- ⚠️ **E2E-Prüfstand:** je Szene eine frische Seite (sonst erschöpfte Chrome
+  auf dem vollen odin die Ressourcen); keine Protokoll-Prüfer im Prüfstand.
 
 ### Vercel und Android (Stand 2026-09-25, für 28 und 31)
 
