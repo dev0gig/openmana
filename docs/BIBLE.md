@@ -144,7 +144,7 @@ The implemented database (stores, schema, migrations) and backup format are desc
 
 ### ORYX cloud (optional sync)
 
-Decided by dev0gig on 2026-09-25 (outside the numbered queue): the player may connect OpenMana to their ORYX account (the ORYX launcher's cloud, Supabase) to keep their collection in sync across devices. Local stays the source of truth and works without it; OpenMana has no account of its own.
+Decided by the project owner on 2026-09-25 (outside the numbered queue): the player may connect OpenMana to their ORYX account (the ORYX launcher's cloud, Supabase) to keep their collection in sync across devices. Local stays the source of truth and works without it; OpenMana has no account of its own.
 
 - Synced, as one document: decks, deletion marks of deleted decks (kept 90 days) and the settings shared between devices (every setting except `display.*`, which belongs to the device). Never caches (card catalog, engine), recorded matches or the database's metadata.
 - Two versions are merged, never chosen: per deck the newer change wins, a deletion mark removes a deck last changed before it, nothing disappears without a mark. Deleting a deck leaves such a mark.

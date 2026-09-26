@@ -374,8 +374,8 @@ Lauf nach der Sicherung wiederholen.
 ## 12. Entscheidungen und Abweichungen
 
 - **Ansehen zuerst, außer wo Forge zurücknehmen lässt** (§2) – die
-  Anvil-Fassung nach dev0gigs Rückmeldungen, nicht „ein Tipp spielt“ und nicht
-  „jede Karte bestätigen“.
+  Anvil-Fassung nach den Rückmeldungen des Projektbesitzers, nicht „ein Tipp
+  spielt“ und nicht „jede Karte bestätigen“.
 - **Kein Mauszeiger-Vorschau-Fenster (Hover).** Die Ansicht deckt „ansehen“
   auf allen Geräten gleich ab; eine Vorschau beim Überfahren wäre reine
   Bequemlichkeit am Desktop (Kandidat für 20/24).

@@ -125,7 +125,7 @@ The player's preferences are settings in the local database, read and applied by
 - Less motion: every animation and transition in `src/components/ui` carries `motion-reduce:animate-none!`/`motion-reduce:transition-none!` (checked by `src/app/motion.test.ts`); the variant means the device's `prefers-reduced-motion` or the player's setting. Motion made in code asks `src/app/motion.ts`.
 
 ## ORYX Cloud Rules
-The optional sync of the player's collection through their ORYX account (dev0gig, 2026-09-25, outside the queue; `src/cloud/`, `src/storage/collection.ts`, `docs/implementation/oryx-cloud-sync.md`):
+The optional sync of the player's collection through their ORYX account (project owner, 2026-09-25, outside the queue; `src/cloud/`, `src/storage/collection.ts`, `docs/implementation/oryx-cloud-sync.md`):
 - `src/cloud/oryx-sdk.js` / `.d.ts` are unchanged copies of `oryx-games/shared` (checksums in `src/cloud/oryx-sdk.test.ts`): never edit them; to update, copy the new master and change the checksums. Only `src/cloud` talks to the cloud, and only through the SDK; the storage layer stays network-free.
 - No SDK dialog (`ui: false`): the collection is merged (`mergeCollections`: per deck the newer `updatedAt`, deletion marks, `display.*` never), never chosen; any UI is shadcn in `src/cloud/oryx-cloud-card.tsx`.
 - Synced: decks, deletion marks, settings except `display.*`. A new device-specific setting belongs under `display.*`; caches, matches and `meta` are never synced. The slot's version is `SCHEMA_VERSION`: a schema bump also changes the synced collection (older ones are upgraded with the migrations, like backups) and needs the card catalog rebuilt (`npm run cards:build -- --offline`).
@@ -170,6 +170,6 @@ Before declaring a task complete:
 
 Do not duplicate detailed per-prompt history into root `STATUS.md`.
 
-## Publishing and Android (dev0gig, 2026-09-25)
-- **Commit, never push.** Every push to `main` triggers a Vercel deployment and uses up dev0gig's Vercel deployment quota. Commit finished work right away; push only when dev0gig explicitly asks for it. This replaces the former "committed and pushed" completion rule of the numbered program.
-- **No APKs.** On Android, OpenMana runs only inside the global ORYX app (Trusted Web Activity `net.tsnet.oryx`, which already lists `openmana.vercel.app` as trusted). Do not build an own TWA, APK or Warehouse package. Prompt 28 must be re-scoped with dev0gig before it starts; what likely remains is `/.well-known/assetlinks.json` for ORYX and proof that the Forge WASM engine runs inside ORYX (`crossOriginIsolated`).
+## Publishing and Android (project owner, 2026-09-25)
+- **Commit, never push.** Every push to `main` triggers a Vercel deployment and uses up the project owner's Vercel deployment quota. Commit finished work right away; push only when the project owner explicitly asks for it. This replaces the former "committed and pushed" completion rule of the numbered program.
+- **No APKs.** On Android, OpenMana runs only inside the global ORYX app (Trusted Web Activity `net.tsnet.oryx`, which already lists `openmana.vercel.app` as trusted). Do not build an own TWA, APK or Warehouse package. Prompt 28 must be re-scoped with the project owner before it starts; what likely remains is `/.well-known/assetlinks.json` for ORYX and proof that the Forge WASM engine runs inside ORYX (`crossOriginIsolated`).

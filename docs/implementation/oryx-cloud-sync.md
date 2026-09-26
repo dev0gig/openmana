@@ -1,6 +1,6 @@
 # ORYX-Cloud – Decks über Geräte hinweg (außerhalb der Queue)
 
-> Direkter Auftrag von dev0gig vom **2026-09-25**, ausgeführt von Claude Code (Claude Opus 5.5) –
+> Direkter Auftrag des Projektbesitzers vom **2026-09-25**, ausgeführt von Claude Code (Claude Opus 5.5) –
 > **kein Prompt der nummerierten Queue** (`prompts/STATUS.md` bleibt unverändert). Grundlage:
 > [`docs/BIBLE.md`](../BIBLE.md) §5, §15, die Datenschicht aus
 > [07](07-indexeddb-storage.md) und die ORYX-Planung
@@ -342,7 +342,7 @@ Engine, echter Kartenkatalog).
   Weiterleitung `https://openmana.vercel.app/` registriert und in `games`
   eingetragen sein; bis dahin bleibt der Spieler Gast und „Mit ORYX verbinden“
   meldet, dass es nicht geht.
-- **Erst mit dem Deployment wirksam** (nicht pushen ohne dev0gigs Wunsch; im
+- **Erst mit dem Deployment wirksam** (nicht pushen ohne Wunsch des Projektbesitzers; im
   ORYX-TWA zusätzlich `/.well-known/assetlinks.json`, Prompt 28).
 - Ein Gerät, das länger als **90 Tage** nicht abgeglichen hat, kann ein
   inzwischen gelöschtes Deck zurückbringen (die Marke ist dann verfallen).

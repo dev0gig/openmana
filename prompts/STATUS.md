@@ -15,9 +15,9 @@
   2. die verlangten Tests erfolgreich gelaufen sind,
   3. die betroffene Dokumentation aktualisiert ist,
   4. diese Datei aktualisiert ist,
-  5. alles committed ist. **Nicht pushen** (dev0gig, 2026-09-25): Jeder Push auf
-     `main` löst ein Vercel-Deployment aus und verbraucht sein Kontingent;
-     gepusht wird nur auf seinen ausdrücklichen Wunsch.
+  5. alles committed ist. **Nicht pushen** (Projektbesitzer, 2026-09-25): Jeder
+     Push auf `main` löst ein Vercel-Deployment aus und verbraucht das Kontingent
+     des Projektbesitzers; gepusht wird nur auf ausdrücklichen Wunsch.
 - Prompts laufen **strikt nacheinander**, nie parallel. Ein Prompt beginnt erst,
   wenn sein Vorgänger COMPLETE ist.
 - **BLOCKED** heißt: stoppen. Ursache, technische Evidenz und das, was zur
@@ -2112,10 +2112,10 @@ nichts neu recherchiert werden muss:
   begrenzten GitHub-Lesetoken (nur dieses Repo, Inhalte lesen) als
   Vercel-Umgebungsvariable. Vercels eigener Dateispeicher (Blob) ginge auch,
   kostet aber je Build ~80 MB Kontingent.
-- ⚠️ **Überholt am 2026-09-25 (dev0gig): keine eigene APK und kein
+- ⚠️ **Überholt am 2026-09-25 (Projektbesitzer): keine eigene APK und kein
   Warehouse-Eintrag.** OpenMana läuft auf Android nur in der globalen ORYX-App
   (TWA `net.tsnet.oryx`, OpenMana steht dort schon in der Vertrauensliste).
-  Prompt 28 vor Beginn mit dev0gig neu fassen; übrig bleiben voraussichtlich
+  Prompt 28 vor Beginn mit dem Projektbesitzer neu fassen; übrig bleiben voraussichtlich
   `/.well-known/assetlinks.json` für ORYX und der Nachweis, dass die Engine in
   ORYX läuft. Die beiden folgenden Punkte sind damit Geschichte.
 - **Android (28): nicht per Capacitor/WebView** (kein `SharedArrayBuffer`, die

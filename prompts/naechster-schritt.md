@@ -96,8 +96,8 @@ Keine Architektur eigenmächtig umgehen. Keinen späteren Queue-Prompt beginnen.
 ## 8. Abschluss
 
 Committe den fertigen Stand einschließlich `prompts/STATUS.md`. **Nicht pushen**:
-jeder Push auf `main` löst ein Vercel-Deployment aus und verbraucht dev0gigs
-Kontingent. Gepusht wird nur auf seinen ausdrücklichen Wunsch.
+jeder Push auf `main` löst ein Vercel-Deployment aus und verbraucht das Kontingent
+des Projektbesitzers. Gepusht wird nur auf ausdrücklichen Wunsch.
 
 Danach STOPPEN. Nicht automatisch mit dem nächsten Queue-Prompt fortfahren.
 
