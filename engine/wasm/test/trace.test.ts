@@ -159,6 +159,26 @@ describe("coverage", () => {
     assert.equal(c["spell"], 1, "only the player's own spells count as its spells");
   });
 
+  test("priority in the opponent's turn and an answer on the stack (prompt 16)", () => {
+    const Q = (id: number, purpose: string) => ({ id, kind: "buttons" as const, blocking: false, purpose: purpose as "priority", buttons: [true, true] });
+    const shock = { card: 41, key: "Shock", player: 1, api: "DealDamage", spell: true, trigger: false, targets: ["p0"] };
+    const trace: TraceEntry[] = [
+      // The opponent's turn (active 1): Forge asks the player at priority, nothing on the stack yet - the player passes.
+      entry(1, [q(1, "priority")], { active: 1, questions: [Q(1, "priority")] }),
+      entry(2, [input(1, { type: "answer", question: 1, kind: "buttons", button: 1 }), { e: "answered", id: 1, seq: 1 },
+        { e: "cast", card: 41, player: 1, spell: true, trigger: false, stack: 0, targets: ["p0"] }, q(2, "priority")], { active: 1, stack: [shock], questions: [Q(2, "priority")] }),
+      // With the opponent's spell on the stack the player taps a card: an answer.
+      entry(3, [input(2, { type: "card.tap", card: 7 }), { e: "cast", card: 7, player: 0, spell: true, trigger: false, stack: 1, targets: ["p1"] }], { active: 1, stack: [], questions: [] }),
+      // In the player's own turn, with an empty stack: a play, no answer.
+      entry(4, [q(3, "priority")], { active: 0, questions: [Q(3, "priority")] }),
+      entry(5, [input(3, { type: "card.tap", card: 30 })], { active: 0, questions: [] }),
+    ];
+    const c = traceCoverage(trace);
+    assert.equal(c["priority-opponent-turn"], 2, "two priorities in the opponent's turn, none counted in the player's own");
+    assert.equal(c["priority-response"], 1, "only the tap with something on the stack answers");
+    assert.equal(c["priority-play"], 2);
+  });
+
   test("a trace without a human seat still shows zones, stack and the end", () => {
     const trace = [entry(1, [{ e: "cast", card: 1, player: 1, spell: true, trigger: true, stack: 1, targets: [] }, { e: "move", card: 1, from: "Library:1", to: "Hand:1" }], { human: null }, "end")];
     const c = traceCoverage(trace);

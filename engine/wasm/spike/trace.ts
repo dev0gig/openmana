@@ -238,6 +238,8 @@ export const COVERAGE: Readonly<Record<string, string>> = {
   spell: "the player cast a spell",
   "priority-pass": "the player passed priority (OK on a priority question)",
   "priority-play": "the player played a card by tapping it at priority",
+  "priority-response": "the player played a card at priority while the stack was not empty (an answer on top of it; prompt 16)",
+  "priority-opponent-turn": "Forge gave the player priority in the opponent's turn (prompt 16)",
   "payment-auto": "a cost paid with Forge's automatic payment",
   "payment-manual": "a cost paid by tapping mana sources",
   "target-card": "a spell or ability of the player targeted a card",
@@ -275,9 +277,10 @@ export const COVERAGE: Readonly<Record<string, string>> = {
 /**
  * What prompt 05 asks the differential fixtures to cover together: mulligan,
  * land/spell play, priority, mana/cost payment, targeting, stack, combat,
- * block assignment, zone movement, game end, and Commander. The fixtures
- * (engine/fixtures/differential) name what each covers; the union must
- * contain all of these.
+ * block assignment, zone movement, game end, and Commander - and since
+ * prompt 16 the player's priority in the opponent's turn and answers on the
+ * stack. The fixtures (engine/fixtures/differential) name what each covers;
+ * the union must contain all of these.
  */
 export const REQUIRED_COVERAGE: readonly string[] = [
   "mulligan",
@@ -285,6 +288,8 @@ export const REQUIRED_COVERAGE: readonly string[] = [
   "spell",
   "priority-pass",
   "priority-play",
+  "priority-response",
+  "priority-opponent-turn",
   "payment-auto",
   "payment-manual",
   "target-card",
@@ -335,7 +340,7 @@ export function traceCoverage(entries: readonly TraceEntry[]): Record<string, nu
   const questions = new Map<number, TraceQuestion | TraceEvent>();
   let open = new Map<number, TraceQuestion | TraceEvent>();
   /** Card taps by input seq and what they were for; a rejected tap does not count. */
-  const taps = new Map<number, string>();
+  const taps = new Map<number, readonly string[]>();
   let previous: TraceSnapshot | null = null;
 
   const openPurposes = () => new Set([...open.values()].filter((q) => q["kind"] === "buttons").map((q) => String(q["purpose"] ?? "")));
@@ -349,6 +354,10 @@ export function traceCoverage(entries: readonly TraceEntry[]): Record<string, nu
           if (id !== undefined) {
             open.set(id, e);
             questions.set(id, e);
+          }
+          // Asked at this entry's checkpoint (the one before the next input): whose turn it is then.
+          if (e["kind"] === "buttons" && e["purpose"] === "priority" && human !== null && entry.snapshot.active !== null && entry.snapshot.active !== human) {
+            hit("priority-opponent-turn");
           }
           break;
         }
@@ -379,8 +388,9 @@ export function traceCoverage(entries: readonly TraceEntry[]): Record<string, nu
           } else if (input["type"] === "card.tap") {
             // Forge accepted the tap unless a rejection with this seq follows
             const seq = num(input["seq"]) ?? -1;
-            if (purposes.has("priority")) taps.set(seq, "priority-play");
-            else if (purposes.has("payment")) taps.set(seq, "payment-manual");
+            // The stack at the input: the previous checkpoint's (one comes before every input).
+            if (purposes.has("priority")) taps.set(seq, (previous?.stack.length ?? 0) > 0 ? ["priority-play", "priority-response"] : ["priority-play"]);
+            else if (purposes.has("payment")) taps.set(seq, ["payment-manual"]);
           } else if (input["type"] === "state.request") {
             hit("state-request");
           }
@@ -445,7 +455,7 @@ export function traceCoverage(entries: readonly TraceEntry[]): Record<string, nu
       }
     }
   }
-  for (const category of taps.values()) hit(category);
+  for (const categories of taps.values()) for (const category of categories) hit(category);
   const last = entries.at(-1)?.snapshot;
   for (const p of last?.players ?? []) {
     if (!p.lost) continue;

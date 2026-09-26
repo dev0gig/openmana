@@ -3,6 +3,7 @@ package org.openmana.engine.smoke;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import forge.util.Localizer;
 import org.openmana.engine.bridge.EngineHost;
 import org.openmana.engine.bridge.Protocol;
 
@@ -52,6 +53,12 @@ import java.util.TreeMap;
  * offers more; {@link Attack#ALTERNATE} attacks in every second own combat,
  * so creatures stay back to block in between. Commanders are cast from the
  * command zone like cards from the hand: when Forge marks them playable.
+ * {@link Play#RESPOND} (prompt 16) holds its spells for answers: with the
+ * stack empty it only plays lands (Forge's own words for the tap, "play a
+ * land", compared like the bridge compares Forge's labels), with something
+ * on the stack it taps every card Forge marks playable, once per stack depth
+ * - so it gets priority in the opponent's turn and answers the opponent's
+ * spells.
  */
 public final class ScriptedHuman implements EngineHost {
 
@@ -94,8 +101,12 @@ public final class ScriptedHuman implements EngineHost {
     /** How the player blocks (see class comment). */
     public enum Block { NONE, ONE, ASSIGN }
 
+    /** How the player plays cards at priority (see class comment). */
+    public enum Play { ALL, RESPOND }
+
     private Attack attack = Attack.ALL;
     private Block block = Block.NONE;
+    private Play play = Play.ALL;
     /** ALTERNATE: whether the player attacks in a turn, decided at its first attack question of that turn. */
     private final Map<Integer, Boolean> attacksInTurn = new TreeMap<>();
     /** Turn from which on the player concedes; 0 = never. */
@@ -112,31 +123,38 @@ public final class ScriptedHuman implements EngineHost {
 
     /** A scripted player with the given attack and block policy that concedes in the given turn (0 = never). */
     public static ScriptedHuman withPolicy(final Attack attack, final Block block, final int concedeInTurn) {
+        return withPolicy(attack, block, Play.ALL, concedeInTurn);
+    }
+
+    /** A scripted player with the given attack, block and play policy that concedes in the given turn (0 = never). */
+    public static ScriptedHuman withPolicy(final Attack attack, final Block block, final Play play, final int concedeInTurn) {
         final ScriptedHuman human = new ScriptedHuman();
         human.attack = attack;
         human.block = block;
+        human.play = play;
         human.concedeInTurn = concedeInTurn;
         return human;
     }
 
     /**
      * The policy of a differential test fixture:
-     * {@code {"attack": "all"|"none"|"alternate", "block": "none"|"one"|"assign", "concedeInTurn": 0}},
-     * every field optional (defaults: all, none, 0). Anything else is refused.
+     * {@code {"attack": "all"|"none"|"alternate", "block": "none"|"one"|"assign", "play": "all"|"respond", "concedeInTurn": 0}},
+     * every field optional (defaults: all, none, all, 0). Anything else is refused.
      */
     public static ScriptedHuman fromPolicy(final JsonObject policy) {
         for (final String field : policy.keySet()) {
-            if (!Set.of("attack", "block", "concedeInTurn").contains(field)) {
+            if (!Set.of("attack", "block", "play", "concedeInTurn").contains(field)) {
                 throw new IllegalArgumentException("unknown player policy field '" + field + "'");
             }
         }
         final Attack attack = policy.has("attack") ? Attack.valueOf(policy.get("attack").getAsString().toUpperCase(java.util.Locale.ROOT)) : Attack.ALL;
         final Block block = policy.has("block") ? Block.valueOf(policy.get("block").getAsString().toUpperCase(java.util.Locale.ROOT)) : Block.NONE;
+        final Play play = policy.has("play") ? Play.valueOf(policy.get("play").getAsString().toUpperCase(java.util.Locale.ROOT)) : Play.ALL;
         final int concede = policy.has("concedeInTurn") ? policy.get("concedeInTurn").getAsInt() : 0;
         if (concede < 0) {
             throw new IllegalArgumentException("concedeInTurn must not be negative");
         }
-        return withPolicy(attack, block, concede);
+        return withPolicy(attack, block, play, concede);
     }
 
     /** A scripted player that concedes at its first input in or after the given turn. */
@@ -644,9 +662,16 @@ public final class ScriptedHuman implements EngineHost {
         }
         manualPayment = null;
         if (Protocol.PURPOSE_PRIORITY.equals(purpose)) {
-            final JsonObject card = firstPlayable("priority:" + step());
+            final boolean stackEmpty = state == null || state.getAsJsonArray("stack").isEmpty();
+            count(stackEmpty ? "priority:stack-empty" : "priority:stack");
+            final JsonObject card = play == Play.RESPOND && stackEmpty
+                    ? firstCard(true, "hand", c -> c.has("playable") && isLandPlay(c), "priority:" + step())
+                    : firstPlayable("priority:" + step());
             if (card != null) {
                 count("tap:priority");
+                if (!stackEmpty) {
+                    count("tap:priority-response");
+                }
                 return cardTap(card);
             }
             count("pass");
@@ -831,6 +856,11 @@ public final class ScriptedHuman implements EngineHost {
 
     private interface CardFilter {
         boolean test(JsonObject card);
+    }
+
+    /** Forge's words for the tap are its own "play a land" (the label key the input takes them from). */
+    private static boolean isLandPlay(final JsonObject card) {
+        return card.has("action") && card.get("action").getAsString().equals(Localizer.getInstance().getMessage("lblPlayLand"));
     }
 
     private JsonObject firstCard(final boolean mine, final String zone, final CardFilter filter, final String key) {

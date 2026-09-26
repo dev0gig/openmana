@@ -21,7 +21,7 @@ public final class Protocol {
      * ProtocolVersion). UI, worker host and engine must speak exactly the same
      * version; change it together with the schema.
      */
-    public static final int VERSION = 4;
+    public static final int VERSION = 5;
 
     // --- engine -> UI ---------------------------------------------------------
     public static final String GAME_STARTED = "game.started";
@@ -77,6 +77,14 @@ public final class Protocol {
     public static final String PURPOSE_ATTACK = "attack";
     public static final String PURPOSE_ATTACK_DECLARED = "attackDeclared";
     public static final String PURPOSE_BLOCK = "block";
+
+    // --- what a button of the priority step does (Button.meaning, protocol 5) ---
+    /** Forge's OK at priority: pass priority. */
+    public static final String MEANING_PASS = "pass";
+    /** Forge's End Turn: pass priority until the end of this turn (Forge's auto-pass until end of turn). */
+    public static final String MEANING_END_TURN = "endTurn";
+    /** Forge's Undo (n): take back the last action (e.g. a land tapped for mana). */
+    public static final String MEANING_UNDO = "undo";
 
     // --- reasons of input.rejected ----------------------------------------------
     /** The question was withdrawn or already answered. Normal, not an error. */

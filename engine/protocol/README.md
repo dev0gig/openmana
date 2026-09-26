@@ -1,4 +1,4 @@
-# OpenMana-Protokoll (Version 4)
+# OpenMana-Protokoll (Version 5)
 
 Der **einzige Vertrag** zwischen der OpenMana-Oberfläche und der Engine (Forge
 im Dedicated Worker). Die Oberfläche sieht keine Forge-Klassen und rechnet
@@ -7,7 +7,8 @@ prüft nur. Eingeführt mit Prompt 03, Nachweise in
 [`docs/implementation/03-worker-transport-protocol.md`](../../docs/implementation/03-worker-transport-protocol.md);
 Version 2 mit Prompt 04 (siehe [unten](#änderungen-in-version-2-prompt-04)),
 Version 3 mit Prompt 05 (siehe [unten](#änderungen-in-version-3-prompt-05)),
-Version 4 mit Prompt 12 (siehe [unten](#änderungen-in-version-4-prompt-12)).
+Version 4 mit Prompt 12 (siehe [unten](#änderungen-in-version-4-prompt-12)),
+Version 5 mit Prompt 16 (siehe [unten](#änderungen-in-version-5-prompt-16)).
 
 ```
  UI ──ruft──▶ EngineClient (Main Thread) ──WorkerCommand (postMessage, nur wenn der Worker frei ist)──▶ Worker-Host
@@ -28,7 +29,7 @@ Version 4 mit Prompt 12 (siehe [unten](#änderungen-in-version-4-prompt-12)).
 
 ## Versionen
 
-- `ProtocolVersion` ist eine ganze Zahl (jetzt **4**). UI, Worker-Host und
+- `ProtocolVersion` ist eine ganze Zahl (jetzt **5**). UI, Worker-Host und
   Engine müssen **genau dieselbe** Version sprechen; es gibt keine
   Aushandlung. Eine App liefert UI und Engine immer zusammen aus
   (`engine.lock.json`, Prompt 25/26); eine Abweichung heißt „alter Cache“ oder
@@ -107,7 +108,7 @@ Start ab (`engine.abort`, `boot-failed`):
 | `kind` | `blocking` | Antwort |
 |---|---|---|
 | `select` | nein | `choices` (1..max Nummern, wirken wie Klicks); die Frage bleibt offen, bis Forge die Auswahl ändert |
-| `buttons` | nein | `button` 1 oder 2 (muss aktiv sein); `purpose` sagt wofür |
+| `buttons` | nein | `button` 1 oder 2 (muss aktiv sein); `purpose` sagt wofür, bei der Priorität `meaning` je Knopf, was er tut |
 | `choose` | ja | `choices` (min..max, verschieden) |
 | `confirm` | ja | `yes` |
 | `options` | ja | `option` (0 = abbrechen, nur wenn `cancellable`) |
@@ -250,6 +251,41 @@ die Hand der KI).
 
 Vergleich, Prüfsumme und Abdeckung: [`engine/wasm/spike/trace.ts`](../wasm/spike/trace.ts);
 die Testpartien: [`engine/fixtures`](../fixtures/README.md).
+
+## Änderungen in Version 5 (Prompt 16)
+
+- **Stapel mit Karte:** `StackItem.card` ist die Karte des Eintrags, wie Forge
+  sie dem Spieler zeigt – bei einem Zauberspruch seine eigene Karte (sie liegt
+  auf dem Stapel, in keiner Zone des Zustands; vorher gab es für sie nur
+  Forges Text), bei einer Fähigkeit ihre Quelle; verdeckt nur `{hidden: true}`
+  (ein verdeckt gewirkter Zauber), `null`, wenn Forge keine nennt. Eine Karte
+  auf dem Stapel trägt nie `playable`, `action` oder `ways`: Die Bridge tippt
+  nur Karten in den Zonen der Spieler an. `StackItem.ability` sagt mit Forges
+  `isAbility()`, ob es eine Fähigkeit ist (`trigger`: ausgelöst). `source`
+  nennt die Id nur noch für eine Karte, die der Spieler sehen darf.
+- **Knöpfe der Priorität sagen, was sie tun:** `Button.meaning` = `pass`
+  (Forges OK: Priorität abgeben), `endTurn` (Forges „Zug beenden“: Forges
+  automatisches Weitergeben bis zum Ende des Zuges) oder `undo` (Forges
+  „Rückgängig (n)“: die letzte Aktion zurücknehmen, etwa ein für Mana
+  getapptes Land). Die Bridge erkennt es wie `purpose` an Forges eigenen
+  Textschlüsseln (`lblOK`, `lblEndTurn`, `lblUndo`); die Oberfläche liest
+  keine Beschriftung. Andere Knöpfe tragen keine Bedeutung.
+- **Auswahl nur mit sichtbaren Ids:** `SelectQuestion.cards` nennt nur noch
+  Karten, die der Spieler sehen darf (Befund 15 §10.4: Ids folgen den
+  Decklisten); eine verdeckte bleibt ein verdeckter Eintrag ohne Id.
+- **Ansehen verändert das Spiel nicht mehr:** Was ein Antippen bewirkte
+  (`action`), fragt die Bridge während der Priorität und des Bezahlens nur
+  noch für die eigenen Karten des Spielers und für Karten, die Forge als
+  spielbar markiert. Forge beantwortet die Frage dort, indem es den Spieler
+  als aktivierenden Spieler aller Fähigkeiten der Karte **einträgt** (Befund
+  05 §7.2) – bei den Karten der KI eine Veränderung, die die KI später sieht.
+  In allen anderen Schritten (Angriff, Blocken, Ziele …) bleibt die Frage für
+  jede sichtbare Karte (der Angreifer, für den man Blocker erklärt, ein
+  Planeswalker als Angriffsziel).
+- Nachweise: `PriorityStackTest` (JVM, echte Partien) und die Testpartie
+  `priority-respond` ([`engine/fixtures`](../fixtures/README.md)): Forge fragt
+  bei der Priorität nur, wo es etwas für den Spieler findet (APINA), auch im
+  Zug der KI; der Spieler antwortet auf ihre Zaubersprüche auf dem Stapel.
 
 ## Änderungen in Version 4 (Prompt 12)
 

@@ -27,10 +27,11 @@ import static org.testng.Assert.fail;
 /**
  * The bridge and the protocol schema (engine/protocol/schema/protocol.schema.json)
  * name the same things: version, message types, question kinds, purposes,
- * reject reasons, message kinds, and every phase Forge knows. A Forge update
- * that adds a phase, or a bridge change that forgets the schema, fails here
- * instead of in a player's game. (The full shape of every message is checked
- * against the schema by the Node tests on JVM and Wasm output.)
+ * button meanings, reject reasons, message kinds, and every phase Forge
+ * knows. A Forge update that adds a phase, or a bridge change that forgets
+ * the schema, fails here instead of in a player's game. (The full shape of
+ * every message is checked against the schema by the Node tests on JVM and
+ * Wasm output.)
  */
 public class ProtocolContractTest {
 
@@ -85,6 +86,7 @@ public class ProtocolContractTest {
         assertEquals(branchConsts("Question", "kind"), enumOf("QuestionKind"));
         assertEquals(branchConsts("AnswerInput", "kind"), enumOf("QuestionKind"));
         assertEquals(constants("PURPOSE_"), enumOf("ButtonsPurpose"));
+        assertEquals(constants("MEANING_"), enumOf("ButtonMeaning"));
         assertEquals(constants("REJECT_"), enumOf("RejectReason"));
         assertEquals(constants("MESSAGE_"), enumOf("MessageKind"), "MESSAGE is the message type, MESSAGE_* are its kinds");
     }

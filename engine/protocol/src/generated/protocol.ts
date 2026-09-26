@@ -5,9 +5,9 @@
  */
 
 /**
- * Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace). 4: card language (boot argument --card-language, BootReport.cardLanguage) and Forge's AI profiles (BootReport.aiProfiles; match.start with any other profile is refused).
+ * Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace). 4: card language (boot argument --card-language, BootReport.cardLanguage) and Forge's AI profiles (BootReport.aiProfiles; match.start with any other profile is refused). 5: priority, stack and phases (prompt 16): a stack item carries its card as Forge shows it (StackItem.card) and says whether it is an ability (StackItem.ability), its source id only for a card the player may see; Forge's buttons of the priority step say what they do (Button.meaning); a selection's cards are only those the player may see.
  */
-export type ProtocolVersion = 4;
+export type ProtocolVersion = 5;
 /**
  * Everything the worker posts to the page: lifecycle messages of the worker host (engine.*, match.finished, diagnostics.*) and the game messages of the bridge.
  */
@@ -212,6 +212,10 @@ export type Question =
  */
 export type Item = VisibleItem | HiddenItem;
 export type ItemNr = number;
+/**
+ * What one of Forge's buttons does, where the bridge knows it from Forge's own label keys (the priority step): pass = pass priority (Forge's OK), endTurn = pass priority until the end of this turn (Forge's End Turn), undo = take back the last action (Forge's Undo). Absent elsewhere.
+ */
+export type ButtonMeaning = "pass" | "endTurn" | "undo";
 /**
  * Number of an input within the match, from 1, without gaps.
  */
@@ -842,11 +846,25 @@ export interface Commander {
     amount: number;
   }[];
 }
+/**
+ * A spell or ability on the stack (the state's stack is top first: the first item resolves next). text is Forge's own description of it.
+ */
 export interface StackItem {
   id: number;
   text: string | null;
+  /**
+   * The id of the spell's card or of the ability's source; null if Forge names none or the player may not see it.
+   */
   source: CardId | null;
+  /**
+   * That card as Forge shows it to the player: a spell's own card (it lies on the stack, which is no zone of the state), an ability's source; hidden if the player may not see it (a face-down spell); null if Forge names no card. Never marked as usable: a card on the stack is not tapped.
+   */
+  card: Card | null;
   player: PlayerId | null;
+  /**
+   * Forge: an activated or triggered ability (trigger says which), not a spell.
+   */
+  ability: boolean;
   trigger: boolean;
   targets: {
     kind: "card" | "player";
@@ -909,6 +927,9 @@ export interface SelectQuestion {
   text: string;
   min: number;
   max: number;
+  /**
+   * The ids of the selectable cards the player may see; a hidden one is only a hidden item (ids follow the deck lists).
+   */
   cards: CardId[];
   items: Item[];
   card?: CardId;
@@ -961,6 +982,7 @@ export interface Button {
   nr: 1 | 2;
   label: string | null;
   enabled: boolean;
+  meaning?: ButtonMeaning;
 }
 export interface ConfirmQuestion {
   type: "question";

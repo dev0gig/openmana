@@ -642,8 +642,8 @@ final class BridgeGuiGame extends AbstractGuiGame {
             q.addProperty("purpose", purpose);
         }
         final JsonArray buttons = new JsonArray();
-        buttons.add(button(1, label1, enable1));
-        buttons.add(button(2, label2, enable2));
+        buttons.add(button(1, label1, enable1, meaningOf(purpose, 1, label1)));
+        buttons.add(button(2, label2, enable2, meaningOf(purpose, 2, label2)));
         q.add("buttons", buttons);
         attachSourceCard(q);
 
@@ -677,9 +677,13 @@ final class BridgeGuiGame extends AbstractGuiGame {
         final JsonObject q = question(Protocol.KIND_SELECT, lastMessage);
         q.addProperty("min", lower);
         q.addProperty("max", upper);
+        // Only the ids of cards the player may see: a hidden card is a hidden
+        // item without id (ids follow the deck lists and would reveal it).
         final JsonArray ids = new JsonArray();
         for (final CardView c : selectable) {
-            ids.add(c.getId());
+            if (mayViewSafely(c)) {
+                ids.add(c.getId());
+            }
         }
         q.add("cards", ids);
         q.add("items", items(selectable, null));
@@ -1209,11 +1213,14 @@ final class BridgeGuiGame extends AbstractGuiGame {
         return result;
     }
 
-    private static JsonObject button(final int nr, final String label, final boolean enabled) {
+    private static JsonObject button(final int nr, final String label, final boolean enabled, final String meaning) {
         final JsonObject o = new JsonObject();
         o.addProperty("nr", nr);
         o.addProperty("label", label);
         o.addProperty("enabled", enabled);
+        if (meaning != null) {
+            o.addProperty("meaning", meaning);
+        }
         return o;
     }
 
@@ -1256,6 +1263,31 @@ final class BridgeGuiGame extends AbstractGuiGame {
         }
         if (label1.equals(ok) && label2.equals(l.getMessage("lblCallBack"))) {
             return Protocol.PURPOSE_ATTACK_DECLARED;
+        }
+        return null;
+    }
+
+    /**
+     * What a button of the priority step does (protocol 5), by Forge's own
+     * label keys like {@link #purposeFromLabels}: InputPassPriority shows OK
+     * (pass priority) and as its second button Undo (n) while the last action
+     * can be taken back (tryUndoLastAction), otherwise End Turn (pass until
+     * the end of the turn: autoPassUntilEndOfTurn). Null elsewhere: the UI
+     * then shows Forge's own words.
+     */
+    static String meaningOf(final String purpose, final int nr, final String label) {
+        if (!Protocol.PURPOSE_PRIORITY.equals(purpose) || label == null) {
+            return null;
+        }
+        final Localizer l = Localizer.getInstance();
+        if (nr == 1) {
+            return label.equals(l.getMessage("lblOK")) ? Protocol.MEANING_PASS : null;
+        }
+        if (label.equals(l.getMessage("lblEndTurn"))) {
+            return Protocol.MEANING_END_TURN;
+        }
+        if (label.startsWith(l.getMessage("lblUndo"))) {
+            return Protocol.MEANING_UNDO;
         }
         return null;
     }

@@ -2,6 +2,7 @@ package org.openmana.engine.bridge;
 
 import com.google.common.collect.Multiset;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import forge.card.ColorSet;
 import forge.card.MagicColor;
@@ -17,6 +18,10 @@ import forge.game.spellability.SpellAbility;
 import forge.game.spellability.StackItemView;
 import forge.game.zone.ZoneType;
 import forge.gamemodes.match.AbstractGuiGame;
+import forge.gamemodes.match.input.Input;
+import forge.gamemodes.match.input.InputPassPriority;
+import forge.gamemodes.match.input.InputPayMana;
+import forge.gamemodes.match.input.InputQueue;
 import forge.interfaces.IGameController;
 import forge.player.PlayerControllerHuman;
 import forge.util.CardTranslation;
@@ -35,7 +40,12 @@ import java.util.Set;
  * <p>Nothing here evaluates a card name, a mechanic or a rule. It copies what
  * Forge says: visibility comes from {@code mayView}, playability from Forge's
  * actionable highlights, what a tap would do from the running input, combat
- * pairings from {@link CombatView}.
+ * pairings from {@link CombatView}, the stack from Forge's stack views.
+ *
+ * <p>Looking must not change the game: the only query here with a side effect
+ * on Forge's objects (what a tap would do, during priority and payment) is
+ * asked only where Forge's own highlights or the player's own cards need it
+ * (see {@link #asksChangeTheGame()}).
  */
 final class StateBuilder {
 
@@ -182,6 +192,15 @@ final class StateBuilder {
      * texts in the engine's language.
      */
     JsonObject card(final CardView c, final boolean withText) {
+        return card(c, withText, true);
+    }
+
+    /**
+     * One card; {@code usable}: with Forge's markers of what can be done with
+     * it now (playable, action, ways). Off for a card on the stack: the bridge
+     * never taps one there (only cards in the player's zones).
+     */
+    private JsonObject card(final CardView c, final boolean withText, final boolean usable) {
         final JsonObject o = new JsonObject();
         if (c == null) {
             return o;
@@ -237,14 +256,14 @@ final class StateBuilder {
         }
         // Forge's own marker: something can be done with this card now
         // (AvailableActions.collectActionable -> setWeaklySelectable).
-        final boolean playable = gui.isWeaklySelectable(c);
+        final boolean playable = usable && gui.isWeaklySelectable(c);
         if (playable) {
             o.addProperty("playable", true);
         }
         // What a tap on this card would do, in Forge's words, from the input
         // that is running right now. Absent = a tap would do nothing, except
         // in the two mulligan inputs, which never answer (Anvil lesson).
-        final String action = action(c);
+        final String action = usable && mayAskAction(c, playable) ? action(c) : null;
         if (action != null) {
             o.addProperty("action", action);
         }
@@ -309,6 +328,38 @@ final class StateBuilder {
         return sb.toString();
     }
 
+    /**
+     * Whether asking what a tap on this card would do leaves Forge's game
+     * alone. During priority and payment Forge answers by checking the card's
+     * abilities for the player (InputPassPriority.getActivateAction ->
+     * Card.getAllPossibleAbilities, InputPayMana -> getAllManaAbilities), and
+     * both SET the player as the activating player of every ability they look
+     * at - on the opponent's cards a change the AI later sees (prompt 05,
+     * §7.2: a game changed that way). There only the player's own cards and
+     * the cards Forge itself marks usable (e.g. a card the player may cast
+     * from the opponent's exile) are asked. Every other input answers without
+     * touching the game - there the opponent's cards must be asked (the
+     * attacker a blocker is declared for, a planeswalker to attack).
+     */
+    private boolean mayAskAction(final CardView c, final boolean playable) {
+        if (playable || !asksChangeTheGame()) {
+            return true;
+        }
+        final PlayerView me = gui.getCurrentPlayer();
+        return me != null && me.equals(c.getController());
+    }
+
+    /** The running input answers "what would a tap do" with a side effect on Forge's game (see mayAskAction). */
+    private boolean asksChangeTheGame() {
+        final IGameController controller = gui.getGameController();
+        if (!(controller instanceof PlayerControllerHuman human)) {
+            return false;
+        }
+        final InputQueue queue = human.getInputQueue();
+        final Input input = queue == null ? null : queue.getInput();
+        return input instanceof InputPassPriority || input instanceof InputPayMana;
+    }
+
     private String action(final CardView c) {
         final IGameController controller = gui.getGameController();
         if (controller == null) {
@@ -355,17 +406,26 @@ final class StateBuilder {
         }
     }
 
-    private static JsonArray stack(final GameView game) {
+    /**
+     * The stack, top first (Forge's order). Each item with its card as the
+     * player may see it: a spell's own card lies on the stack, which is no
+     * zone of the state, so without it the UI would have only Forge's words
+     * (prompt 16). A hidden card leaves the engine without its id.
+     */
+    private JsonArray stack(final GameView game) {
         final JsonArray a = new JsonArray();
         if (game.getStack() == null) {
             return a;
         }
         for (final StackItemView s : game.getStack()) {
             final JsonObject o = new JsonObject();
+            final CardView source = s.getSourceCard();
             o.addProperty("id", s.getId());
             o.addProperty("text", s.getText());
-            o.addProperty("source", id(s.getSourceCard()));
+            o.addProperty("source", source != null && mayView(source) ? source.getId() : null);
+            o.add("card", source == null ? JsonNull.INSTANCE : card(source, true, false));
             o.addProperty("player", id(s.getActivatingPlayer()));
+            o.addProperty("ability", s.isAbility());
             o.addProperty("trigger", s.isTrigger());
             final JsonArray targets = new JsonArray();
             if (s.getTargetCards() != null) {

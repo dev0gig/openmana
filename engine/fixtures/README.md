@@ -26,7 +26,7 @@ fixtures/
   "match":  { "seed": 7, "format": "constructed",
               "human": { "name": "Player", "deck": "smoke-green" },
               "ai":    { "name": "Forge AI", "profile": "Default", "deck": "smoke-red" } },
-  "player": { "attack": "alternate", "block": "assign", "concedeInTurn": 0 },
+  "player": { "attack": "alternate", "block": "assign", "play": "all", "concedeInTurn": 0 },
   "engine": { "language": "en-US", "cardLoading": "eager" },
   "wasm":   { "node": ["lazy", "eager"], "browser": ["lazy"] },
   "covers": ["block", "block-multi", "…"]
@@ -42,7 +42,12 @@ fixtures/
   eigenen Kampf). `block`: `none`, `one` (ein Blocker je Kampf, Forge wählt den
   Angreifer), `assign` (Angreifer antippen, dann einen von Forge angebotenen
   Blocker; erst einer je Angreifer, dann ein zweiter für den ersten).
-  `concedeInTurn`: aufgeben ab diesem Zug (0 = nie).
+  `play` (Prompt 16): `all` (bei der Priorität jede Karte, die Forge als
+  spielbar markiert, einmal je Schritt), `respond` (hält seine Karten für
+  Antworten zurück: bei leerem Stapel nur Länder – Forges eigene Worte „Spiele
+  ein Land“ –, liegt etwas auf dem Stapel, jede spielbare Karte einmal je
+  Stapeltiefe; so bekommt er Priorität im Zug der KI und antwortet auf ihre
+  Zaubersprüche). `concedeInTurn`: aufgeben ab diesem Zug (0 = nie).
 - `engine`: Sprache (`en-US`, `de-DE`), Kartensprache (`cardLanguage`, Standard:
   die Sprache; die Karten in Forges Texten, seit Prompt 12) und Kartenladen
   (`eager`, `lazy`).
@@ -81,6 +86,7 @@ Unit-Test bei jedem Build).
 | `blocks-multi` | Grün gegen Rot, Seed 7 | greift jeden zweiten Kampf an, ordnet Blocker zu | zwei Angreifer in einem Kampf geblockt, Kampfschaden verteilen |
 | `blocks-double` | dieselben, Seed 12 | wie oben, gibt in Zug 13 auf | ein Angreifer von zwei Kreaturen geblockt |
 | `stack-response` | Grün gegen rote Instants, Seed 3 | greift an | die KI antwortet auf einen Zauber (Stapeltiefe 2, LIFO), Sieg |
+| `priority-respond` | rote Instants gegen Grün, Seed 3, deutsch | hält Instants zurück (`play: respond`), blockt nie | Priorität im Zug der KI (nur wo Forge etwas für den Spieler findet), Antwort des Spielers auf den Zauber der KI (Stapeltiefe 2), Niederlage (Prompt 16) |
 | `commander` | Krenko gegen Fynn (je 100 Karten, regelkonform), Seed 5 | greift an | Kommandant aus der Kommandozone, zurück dorthin, erneut mit Kommandantensteuer, Kommandantenschaden, 40 Leben, Sieg |
 
 ## Eine Partie hinzufügen

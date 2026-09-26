@@ -1,0 +1,13 @@
+{
+  "description": "The player holds red instants for answers (play: respond): lands only while the stack is empty, whatever Forge marks playable while something is on it. Forge gives the player priority in the AI's turn only while it can answer (APINA passes every other priority), and the player answers the AI's creature spells on the stack. In German, like the app: its moments are the priority scenes of the game table's tests (prompt 16: priority, stack and phases).",
+  "match": {
+    "seed": 3,
+    "format": "constructed",
+    "human": { "name": "Player", "deck": "smoke-red-instants" },
+    "ai": { "name": "Forge AI", "profile": "Default", "deck": "smoke-green" }
+  },
+  "player": { "attack": "all", "block": "none", "play": "respond" },
+  "engine": { "language": "de-DE" },
+  "wasm": { "node": ["lazy"], "browser": ["lazy"] },
+  "covers": ["priority-opponent-turn", "priority-response", "priority-pass", "stack-response", "stack-resolve", "land", "spell", "target-card", "end-loss"]
+}

@@ -11,8 +11,8 @@
   "$defs": {
     "ProtocolVersion": {
       "title": "ProtocolVersion",
-      "description": "Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace). 4: card language (boot argument --card-language, BootReport.cardLanguage) and Forge's AI profiles (BootReport.aiProfiles; match.start with any other profile is refused).",
-      "const": 4
+      "description": "Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace). 4: card language (boot argument --card-language, BootReport.cardLanguage) and Forge's AI profiles (BootReport.aiProfiles; match.start with any other profile is refused). 5: priority, stack and phases (prompt 16): a stack item carries its card as Forge shows it (StackItem.card) and says whether it is an ability (StackItem.ability), its source id only for a card the player may see; Forge's buttons of the priority step say what they do (Button.meaning); a selection's cards are only those the player may see.",
+      "const": 5
     },
 
     "EngineMessage": {
@@ -860,14 +860,23 @@
     },
     "StackItem": {
       "title": "StackItem",
+      "description": "A spell or ability on the stack (the state's stack is top first: the first item resolves next). text is Forge's own description of it.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "text", "source", "player", "trigger", "targets"],
+      "required": ["id", "text", "source", "card", "player", "ability", "trigger", "targets"],
       "properties": {
         "id": { "type": "integer" },
         "text": { "type": ["string", "null"] },
-        "source": { "anyOf": [{ "$ref": "#/$defs/CardId" }, { "type": "null" }] },
+        "source": {
+          "anyOf": [{ "$ref": "#/$defs/CardId" }, { "type": "null" }],
+          "description": "The id of the spell's card or of the ability's source; null if Forge names none or the player may not see it."
+        },
+        "card": {
+          "anyOf": [{ "$ref": "#/$defs/Card" }, { "type": "null" }],
+          "description": "That card as Forge shows it to the player: a spell's own card (it lies on the stack, which is no zone of the state), an ability's source; hidden if the player may not see it (a face-down spell); null if Forge names no card. Never marked as usable: a card on the stack is not tapped."
+        },
         "player": { "anyOf": [{ "$ref": "#/$defs/PlayerId" }, { "type": "null" }] },
+        "ability": { "type": "boolean", "description": "Forge: an activated or triggered ability (trigger says which), not a spell." },
         "trigger": { "type": "boolean" },
         "targets": {
           "type": "array",
@@ -988,7 +997,11 @@
         "text": { "type": "string" },
         "min": { "type": "integer", "minimum": 0 },
         "max": { "type": "integer", "minimum": 0 },
-        "cards": { "type": "array", "items": { "$ref": "#/$defs/CardId" } },
+        "cards": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/CardId" },
+          "description": "The ids of the selectable cards the player may see; a hidden one is only a hidden item (ids follow the deck lists)."
+        },
         "items": { "type": "array", "items": { "$ref": "#/$defs/Item" } },
         "card": { "$ref": "#/$defs/CardId" },
         "cardView": { "$ref": "#/$defs/VisibleCard" }
@@ -1041,8 +1054,14 @@
       "properties": {
         "nr": { "enum": [1, 2] },
         "label": { "type": ["string", "null"] },
-        "enabled": { "type": "boolean" }
+        "enabled": { "type": "boolean" },
+        "meaning": { "$ref": "#/$defs/ButtonMeaning" }
       }
+    },
+    "ButtonMeaning": {
+      "title": "ButtonMeaning",
+      "description": "What one of Forge's buttons does, where the bridge knows it from Forge's own label keys (the priority step): pass = pass priority (Forge's OK), endTurn = pass priority until the end of this turn (Forge's End Turn), undo = take back the last action (Forge's Undo). Absent elsewhere.",
+      "enum": ["pass", "endTurn", "undo"]
     },
     "ConfirmQuestion": {
       "title": "ConfirmQuestion",

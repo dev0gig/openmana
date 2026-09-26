@@ -18,7 +18,7 @@
  *     "match":   { "seed": 3, "format": "constructed"|"commander",
  *                  "human": { "name": "Player", "deck": "<deck file>" },
  *                  "ai":    { "name": "Forge AI", "profile": "Default", "deck": "<deck file>" } },
- *     "player":  { "attack": "all"|"none"|"alternate", "block": "none"|"one"|"assign", "concedeInTurn": 0 },
+ *     "player":  { "attack": "all"|"none"|"alternate", "block": "none"|"one"|"assign", "play": "all"|"respond", "concedeInTurn": 0 },
  *     "engine":  { "language": "en-US"|"de-DE", "cardLanguage": "en-US"|"de-DE",       (optional; cardLanguage:
  *                  "cardLoading": "eager"|"lazy" },                                    the cards in Forge's texts, default language)
  *     "wasm":    { "node": ["lazy", "eager"], "browser": ["lazy"] },                   (input feedings of the replays)
@@ -43,6 +43,8 @@ type Feeding = (typeof FEEDINGS)[number];
 export interface PlayerPolicy {
   attack: "all" | "none" | "alternate";
   block: "none" | "one" | "assign";
+  /** all: every card Forge marks playable at priority; respond: lands only while the stack is empty, answers while it is not (prompt 16). */
+  play: "all" | "respond";
   concedeInTurn: number;
 }
 
@@ -138,14 +140,16 @@ export function loadFixtures(dir = FIXTURES_DIR): Fixture[] {
 
     const player = base["player"] ?? {};
     if (!isObject(player)) throw new Error(`${where}: player must be an object`);
-    onlyKeys(`${where} player`, player, ["attack", "block", "concedeInTurn"]);
+    onlyKeys(`${where} player`, player, ["attack", "block", "play", "concedeInTurn"]);
     const policy: PlayerPolicy = {
       attack: (player["attack"] ?? "all") as PlayerPolicy["attack"],
       block: (player["block"] ?? "none") as PlayerPolicy["block"],
+      play: (player["play"] ?? "all") as PlayerPolicy["play"],
       concedeInTurn: (player["concedeInTurn"] ?? 0) as number,
     };
     if (!["all", "none", "alternate"].includes(policy.attack)) throw new Error(`${where}: player.attack is all, none or alternate`);
     if (!["none", "one", "assign"].includes(policy.block)) throw new Error(`${where}: player.block is none, one or assign`);
+    if (!["all", "respond"].includes(policy.play)) throw new Error(`${where}: player.play is all or respond`);
     if (!Number.isInteger(policy.concedeInTurn) || policy.concedeInTurn < 0) throw new Error(`${where}: player.concedeInTurn is a turn number or 0`);
 
     const engine = value["engine"] ?? {};
