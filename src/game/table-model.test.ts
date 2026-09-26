@@ -105,7 +105,8 @@ describe("recorded scenes", () => {
     const [entry] = tableView(state, questions).stack
     // Prompt 16 (protocol 5): the item carries its card, so the source resolves too.
     expect(entry).toMatchObject({ id: 14, controller: "me", kind: "spell", trigger: false, hidden: false, card: { id: 14, name: "Magmastrahl" }, source: { kind: "card", id: 14, card: { name: "Magmastrahl" } } })
-    expect(state.players.some((player) => Object.values(player.zones).some((zone) => zone.some((card) => "id" in card && card.id === 14)))).toBe(false)
+    const zones = ["battlefield", "hand", "graveyard", "exile", "command"] as const
+    expect(state.players.some((player) => zones.some((zone) => player.zones[zone].some((card) => "id" in card && card.id === 14)))).toBe(false)
     expect(entry!.text).toBe("Magmastrahl (14) - Magmastrahl (14) deals 2 damage to Goblin-Brandstifter (55). Player scries 2.")
     expect(entry!.targets).toHaveLength(1)
     expect(entry!.targets[0]).toMatchObject({ kind: "card", id: 55, card: { name: "Goblin-Brandstifter", damage: 2 } })
