@@ -762,7 +762,13 @@ async function localData(browser: Browser, base: string): Promise<void> {
     await card.getByText("Der Browser hat die lokale Datenbank geschlossen").waitFor()
     await card.getByRole("button", { name: "Neu laden" }).click()
     await card.getByText("Bereit", { exact: true }).waitFor()
-    check((await cardFacts(card))["Decks"] === "0", "local data: data left after clearing site data")
+    // The counts follow the reopened database a moment after "Bereit" (on a busy machine a noticeable one): wait for them.
+    await card
+      .locator("dl > div", { hasText: "Decks" })
+      .locator("dd", { hasText: /^0$/ })
+      .waitFor({ timeout: 10_000 })
+      .catch(() => undefined)
+    check((await cardFacts(card))["Decks"] === "0", `local data: data left after clearing site data (${JSON.stringify(await cardFacts(card))})`)
 
     for (const error of pageLog.errors) check(false, `local data: ${error}`)
     results["requests"] = pageLog.requests.filter((p) => !p.startsWith("/assets/") && !p.startsWith("/engine/")).length
