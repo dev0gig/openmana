@@ -111,6 +111,9 @@ import type { AddressInfo } from "node:net"
 import path from "node:path"
 import { gunzipSync, gzipSync } from "node:zlib"
 import { chromium, type Browser, type BrowserContext, type Locator, type Page, type Route } from "playwright-core"
+// The real ORYX cloud and *.vercel.app resolve to nowhere in every browser this run starts: requests sent while a page
+// is left (keepalive) bypass page.route and would otherwise reach Supabase (2026-09-26, refused there with 401).
+const NO_REAL_CLOUD = "--host-resolver-rules=MAP fellumrfugohnnvtxxye.supabase.co 0.0.0.0, MAP *.vercel.app 0.0.0.0"
 import { build, createServer, preview } from "vite"
 import { PROTOCOL_VERSION } from "../../engine/protocol/src/generated/constants.ts"
 import { SCHEMA_VERSION } from "../../src/storage/generated/constants.ts"
@@ -440,7 +443,7 @@ async function pwa(base: string, executablePath: string): Promise<void> {
   log("PWA manifest and installability")
   // Chrome does not judge installability in incognito contexts: use a real (temporary) profile.
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), "openmana-e2e-profile-"))
-  const context = await chromium.launchPersistentContext(profile, { executablePath, headless: true, args: ["--no-sandbox", "--disable-gpu"] })
+  const context = await chromium.launchPersistentContext(profile, { executablePath, headless: true, args: ["--no-sandbox", "--disable-gpu", NO_REAL_CLOUD] })
   try {
     const page = context.pages()[0] ?? (await context.newPage())
     await page.goto(base, { waitUntil: "networkidle" })
@@ -787,7 +790,7 @@ async function localDataQuota(executablePath: string, base: string): Promise<voi
   const browser = await chromium.launch({
     executablePath,
     headless: true,
-    args: ["--no-sandbox", "--disable-gpu", "--disable-features=StaticStorageQuota,IncognitoStaticStorageQuota"],
+    args: ["--no-sandbox", "--disable-gpu", "--disable-features=StaticStorageQuota,IncognitoStaticStorageQuota", NO_REAL_CLOUD],
   })
   const context = await newContext(browser, VIEWPORTS[2]!)
   const page = await context.newPage()
@@ -3406,7 +3409,7 @@ async function main(): Promise<void> {
   const base = server.resolvedUrls?.local[0]
   if (!base) throw new Error("vite preview did not report its URL")
   const executablePath = process.env["OPENMANA_CHROME"] || chromium.executablePath()
-  const browser = await chromium.launch({ executablePath, headless: true, args: ["--no-sandbox", "--disable-gpu"] })
+  const browser = await chromium.launch({ executablePath, headless: true, args: ["--no-sandbox", "--disable-gpu", NO_REAL_CLOUD] })
   report["browser"] = `${path.basename(executablePath)} ${browser.version()}`
   log(`Chrome ${browser.version()}, app at ${base}`)
   try {
