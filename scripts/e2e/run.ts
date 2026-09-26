@@ -347,6 +347,21 @@ interface AxeResult {
 }
 
 async function accessibility(page: Page, label: string): Promise<number> {
+  // Colours in the middle of a transition are not what the player reads: a badge or button changing its variant when
+  // Forge starts waiting (transition-all; prompt 16: "Du bist dran" and "Weiter" caught blending into gold failed the
+  // contrast check). Wait for running animations and transitions to end first - not for endless ones (spinners keep
+  // turning), at most 3 s.
+  await page.evaluate(() =>
+    Promise.race([
+      Promise.all(
+        document
+          .getAnimations()
+          .filter((animation) => animation.effect?.getTiming().iterations !== Infinity)
+          .map((animation) => animation.finished.catch(() => undefined)),
+      ),
+      new Promise((resolve) => setTimeout(resolve, 3000)),
+    ]),
+  )
   await page.addScriptTag({ path: require.resolve("axe-core/axe.min.js") })
   const result = await page.evaluate(async () => {
     const axe = (window as unknown as { axe: { run: (context: Document, options: object) => Promise<unknown> } }).axe
@@ -2317,6 +2332,8 @@ async function gameSession(browser: Browser, page: Page, pageLog: PageLog, base:
   check(["E2E Deutsch (zufällig gezogen)", "E2E Deutsch (Kopie) (zufällig gezogen)"].includes(aiDeck), `game: the AI's random deck "${aiDeck}"`)
   // Answering Forge (prompt 15): keep, pass, play a land, pass - in the real game.
   results["played"] = await playRealGame(page, "game (Constructed, playing)")
+  // Forge plays on after the last press: measure once it waits for the player again (the table stands still).
+  await tableHeader(page).getByText("Du bist dran", { exact: true }).waitFor({ timeout: 180_000 })
   results["playedAxe"] = await accessibility(page, "game (Constructed, playing)")
   await page.screenshot({ path: path.join(reportDir, "screens", "desktop-game-played.png") })
 
