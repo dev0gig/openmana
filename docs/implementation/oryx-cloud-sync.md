@@ -5,7 +5,7 @@
 > [`docs/BIBLE.md`](../BIBLE.md) §5, §15, die Datenschicht aus
 > [07](07-indexeddb-storage.md) und die ORYX-Planung
 > (`oryx-games/ORYX-SUPABASE-ARCHITEKTUR.md` §0b, §6, §7, §11; SDK
-> `oryx-games/shared/oryx-sdk.js` 1.1.0). Code: `src/cloud/` (Anbindung, Karte),
+> `oryx-games/shared/oryx-sdk.js` 1.1.1). Code: `src/cloud/` (Anbindung, Karte),
 > `src/storage/collection.ts` (das Dokument und die Zusammenführung),
 > Löschmarken in `src/storage/decks.ts`, `backup.ts`, `migrations.ts`.
 
@@ -42,7 +42,7 @@ dem ersten Deployment auf `openmana.vercel.app` wirksam (siehe §11).
 
 ```
 src/cloud/
-├── oryx-sdk.js, oryx-sdk.d.ts   ORYX-SDK 1.1.0, unveränderte Kopie aus oryx-games/shared (Prüfsummen-Test)
+├── oryx-sdk.js, oryx-sdk.d.ts   ORYX-SDK 1.1.1, unveränderte Kopie aus oryx-games/shared (Prüfsummen-Test)
 ├── cloud-sync.ts                CloudSync: Start, Abgleich beim Start, Hochladen nach Änderungen, Verbinden/Trennen
 ├── cloud-context.tsx            CloudProvider (main.tsx), CloudStorageLink und CloudReturnNotice (App-Rahmen), useCloudSync
 ├── oryx-cloud-card.tsx          Karte „ORYX-Cloud“ (Einstellungen)
@@ -212,8 +212,8 @@ bleibt mit `ui: false` aus).
 ## 8. Das SDK
 
 - `src/cloud/oryx-sdk.js` und `.d.ts` sind **bytegleiche Kopien** des Masters
-  (`oryx-games/shared`, v1.1.0; SHA-256 `7d93919e…6986195` bzw.
-  `ed722d60…9ac7781`, geprüft von `src/cloud/oryx-sdk.test.ts`). Verteilt
+  (`oryx-games/shared`, v1.1.1; SHA-256 `49d079fd…7130b9a` bzw.
+  `5f88da06…d6ea54e`, geprüft von `src/cloud/oryx-sdk.test.ts`). Verteilt
   wird mit `node scripts/sdk-verteilen.mjs` im ORYX-Repo. Nie hier
   ändern: Master ändern, Version erhöhen, neu kopieren, Prüfsummen nachziehen.
 - oxlint übergeht genau diese eine Datei (`.oxlintrc.json`); für alles andere

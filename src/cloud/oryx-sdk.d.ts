@@ -1,4 +1,4 @@
-// Types for oryx-sdk.js v1.1.0 (master copy: oryx-games/shared/oryx-sdk.d.ts). Copy unchanged next to oryx-sdk.js.
+// Types for oryx-sdk.js v1.1.1 (master copy: oryx-games/shared/oryx-sdk.d.ts). Copy unchanged next to oryx-sdk.js.
 
 export declare const ORYX_SDK_VERSION: string
 

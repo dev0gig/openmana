@@ -1,4 +1,4 @@
-/* oryx-sdk.js · v1.1.0 · master copy: oryx-games/shared/oryx-sdk.js
+/* oryx-sdk.js · v1.1.1 · master copy: oryx-games/shared/oryx-sdk.js
  *
  * Connects a game to the player's ORYX account and keeps its saves in the ORYX cloud (Supabase),
  * next to the game's own local storage. Local stays the source of truth: the cloud is an addition,
@@ -31,12 +31,14 @@
  * failed). Failed uploads are retried with growing pauses (15 s … 5 min), never given up.
  * Play time (1.1.0): foreground time counts up in this browser as one growing total per device and
  * account, kept in localStorage; the cloud only adds what grew. Nothing is lost when a page closes
- * before a report arrives, and a report that arrives twice never counts twice.
+ * before a report arrives, and a report that arrives twice never counts twice. The first report goes
+ * after 10 s, then every minute (1.1.1): Chrome sends the report on leaving the page (keepalive) only
+ * when it already knows the cloud's CORS answer for it (kept 1 h), which an earlier report provides.
  * Only active on the game's real address (redirectUri's origin): locally, in tests and previews it stays
  * 'inactive' and does nothing.
  */
 
-export const ORYX_SDK_VERSION = '1.1.0'
+export const ORYX_SDK_VERSION = '1.1.1'
 
 const TEXT = {
   de: {
@@ -982,7 +984,9 @@ export function createOryx(options = {}) {
         env.setInterval(() => {
           take()
           ticks += 1
-          if (ticks % PLAYTIME_REPORT_EVERY === 0) api.report()
+          // The first report early (1.1.1): it teaches Chrome the cloud's CORS answer, so the report on
+          // leaving – back to ORYX – can go out at once instead of waiting for the next start.
+          if (ticks === 1 || ticks % PLAYTIME_REPORT_EVERY === 0) api.report()
         }, PLAYTIME_TICK_MS)
         // What an earlier visit could not deliver goes now.
         api.report()
