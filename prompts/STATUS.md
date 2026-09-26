@@ -30,8 +30,8 @@
 
 | | |
 |---|---|
-| Aktuell ausgeführt | – (keiner; nach 14 wie vorgesehen gestoppt) |
-| Nächster Prompt | **15 — Forge decision UI** (PENDING, nicht begonnen) |
+| Aktuell ausgeführt | **15 — Forge decision UI** |
+| Nächster Prompt | 16 — Priority, stack and phases (erst nach 15 = COMPLETE) |
 | Zuletzt abgeschlossen | 14 — Cards, hand and safe interaction (`1b3e3b6`) |
 | Ausführender Agent | Claude Code (Claude Opus 5.5), Sitzung vom 2026-09-26 (Dropzone-Standalone-Lauf, Regeln aus `prompts/naechster-schritt.md`) |
 | Letzte Aktualisierung | 2026-09-26 |
@@ -55,7 +55,7 @@
 | 12 | [AI profiles and settings](queue/12-ai-profiles-settings.md) | COMPLETE | `e618079` |
 | 13 | [Battlefield foundation](queue/13-battlefield-foundation.md) | COMPLETE | `eb8e0ab` |
 | 14 | [Cards, hand and safe interaction](queue/14-card-hand-interactions.md) | COMPLETE | `1b3e3b6` |
-| 15 | [Forge decision UI](queue/15-forge-decisions.md) | PENDING | – |
+| 15 | [Forge decision UI](queue/15-forge-decisions.md) | IN_PROGRESS | – |
 | 16 | [Priority, stack and phases](queue/16-priority-stack-phases.md) | PENDING | – |
 | 17 | [Targeting and cost payment](queue/17-targeting-cost-payment.md) | PENDING | – |
 | 18 | [Combat: attackers](queue/18-combat-attackers.md) | PENDING | – |
@@ -1562,6 +1562,13 @@
     weiter ohne geratenes Bild.
 - **Weiter mit:** Prompt 15 (Forge decision UI). Nicht begonnen:
   `naechster-schritt.md` führt genau einen Prompt je Lauf aus.
+
+### 15 — Forge decision UI — IN_PROGRESS
+
+- Begonnen am 2026-09-26 von Claude Code (Claude Opus 5.5), Auftrag „Bitte
+  führe das Standalone in Drop Zone für Open Mana aus“ (Dropzone
+  `fixed/standalone.md` mit den Regeln aus `naechster-schritt.md`: genau ein
+  Prompt, danach Stopp).
 
 ## Hinweise für spätere Prompts
 
