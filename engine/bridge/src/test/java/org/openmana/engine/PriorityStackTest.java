@@ -41,7 +41,8 @@ import static org.testng.Assert.fail;
  *   <li>the buttons of the priority step say what they do (pass, end turn,
  *       undo), and Forge's two second buttons do what they say: End Turn
  *       passes priority until the end of the turn (the attack of that turn
- *       is left out), Undo takes a mana ability back;</li>
+ *       is left out) but still stops for the opponent's spell or attack,
+ *       Undo takes a mana ability back;</li>
  *   <li>stack items carry their card (a spell's own card, an ability's
  *       source), never marked usable, and say whether they are abilities;</li>
  *   <li>asking what a tap would do never touches the opponent's cards during
@@ -342,6 +343,97 @@ public class PriorityStackTest {
         }
         assertTrue(askedLater > 0, "the game went on with priorities in later turns");
         assertNotNull(ended.player.end(), "the game ended");
+    }
+
+    /**
+     * End Turn gives the rest of the turn away, but not the answer to the
+     * opponent: Forge's End Turn yields until the end of the turn and stops
+     * for an opponent's spell or attack (Forge's interrupts, on by default -
+     * what the app's dialog promises). Pressed at a quiet priority of an AI
+     * turn in which the unchanged game went on to see the AI cast a spell -
+     * and of one in which it attacked -, Forge asks again exactly there, not
+     * at another quiet moment of that turn.
+     */
+    @Test
+    public void endTurnStillStopsForTheOpponentsSpellOrAttack() throws IOException {
+        final JsonObject fixture = fixture("priority-respond");
+        for (final String interrupt : List.of("spell", "attack")) {
+            final int turn = firstOpponentTurnWithAQuietPriorityBefore(respond, interrupt);
+            final int[] pressedAt = {-1};
+            final Recorder ended = new Recorder(ScriptedHuman.fromPolicy(fixture.getAsJsonObject("player"))) {
+                @Override
+                JsonObject override() {
+                    final JsonObject q = openPriority();
+                    if (pressedAt[0] >= 0 || q == null || state == null || state.get("turn").getAsInt() != turn || myTurn(state)
+                            || !quiet(state) || !Protocol.MEANING_END_TURN.equals(meaning(q, 2))) {
+                        return null;
+                    }
+                    pressedAt[0] = messages.size();
+                    return pressButton(q, 2);
+                }
+            }.play(request(fixture));
+
+            assertTrue(pressedAt[0] >= 0, "End Turn was never pressed in the AI's turn " + turn);
+            JsonObject state = null;
+            JsonObject asked = null;
+            for (int i = pressedAt[0]; i < ended.messages.size() && asked == null; i++) {
+                final JsonObject m = ended.messages.get(i);
+                if (Protocol.STATE.equals(type(m))) {
+                    state = m;
+                } else if (isPriority(m) && state != null && state.get("turn").getAsInt() == turn) {
+                    asked = state;
+                }
+            }
+            assertNotNull(asked, "Forge never asked again in the AI's turn " + turn + " (" + interrupt + ")");
+            assertEquals(interruptOf(asked), interrupt, "the first priority after End Turn: " + where(asked));
+            assertNotNull(ended.player.end(), "the game ended");
+        }
+    }
+
+    /** Nothing on the stack, nobody attacking: a priority Forge gives only because the player could act. */
+    private static boolean quiet(final JsonObject state) {
+        return state.getAsJsonArray("stack").isEmpty() && state.getAsJsonArray("combat").isEmpty();
+    }
+
+    /** What a priority in the AI's turn answers: the AI's spell on top ("spell"), its attack ("attack"), or nothing ("quiet"). */
+    private static String interruptOf(final JsonObject state) {
+        final JsonArray stack = state.getAsJsonArray("stack");
+        if (!stack.isEmpty()) {
+            return stack.get(0).getAsJsonObject().get("player").equals(state.get("me")) ? "own" : "spell";
+        }
+        return state.getAsJsonArray("combat").isEmpty() ? "quiet" : "attack";
+    }
+
+    /** The first AI turn with a quiet priority of the player whose first other priority answers the given interrupt. */
+    private static int firstOpponentTurnWithAQuietPriorityBefore(final Recorder game, final String interrupt) {
+        JsonObject state = null;
+        final Set<Integer> quiet = new TreeSet<>();
+        final Set<Integer> decided = new TreeSet<>();
+        for (final JsonObject m : game.messages) {
+            if (Protocol.STATE.equals(type(m))) {
+                state = m;
+                continue;
+            }
+            if (!isPriority(m) || state == null || myTurn(state) || state.get("turn").getAsInt() < 3) {
+                continue;
+            }
+            final int turn = state.get("turn").getAsInt();
+            if (decided.contains(turn)) {
+                continue;
+            }
+            final String now = interruptOf(state);
+            if ("quiet".equals(now)) {
+                if (Protocol.MEANING_END_TURN.equals(meaning(m, 2))) {
+                    quiet.add(turn);
+                }
+                continue;
+            }
+            decided.add(turn);
+            if (now.equals(interrupt) && quiet.contains(turn)) {
+                return turn;
+            }
+        }
+        throw new AssertionError("no AI turn with a quiet priority before its " + interrupt);
     }
 
     /** The first turn of the player in which Forge asked at priority in the first main phase and later for attackers. */
