@@ -2,7 +2,7 @@ import { PROTOCOL_VERSION, type FeatureReport } from "@openmana/engine-protocol"
 import { act, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { createMemoryRouter, RouterProvider } from "react-router"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { EnginePanel } from "@/engine/engine-panel"
 import { EngineSessionProvider } from "@/engine/engine-session-context"
 import { READY, settle, SUPPORTED, testEngine } from "@/test/game-fixtures"
@@ -25,6 +25,21 @@ const TITLES: Record<string, string> = {
 }
 
 describe("surfaces", () => {
+  it.each(["/", "/?launcher=oryx"])("%s offers the explicit ORYX return on Start", async (path) => {
+    const assign = vi.fn()
+    const router = renderAt(path)
+    const button = await screen.findByRole("button", { name: "Zurück zu ORYX" })
+    vi.stubGlobal("location", { assign })
+    try {
+      await userEvent.click(button)
+      expect(assign).toHaveBeenCalledExactlyOnceWith("https://oryx-games.vercel.app/")
+      // External navigation is delegated to the browser; no internal route or cloud action.
+      expect(router.state.location.pathname).toBe("/")
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
   it.each(DESTINATIONS.map((d) => d.path))("%s renders inside the app frame", async (path) => {
     renderAt(path)
     expect(await screen.findByRole("heading", { level: 1, name: TITLES[path] ?? path })).toBeInTheDocument()

@@ -2131,3 +2131,7 @@ nichts neu recherchiert werden muss:
   Icon und ein neuer Warehouse-Build, und im Toride-Compose der Ordner-Mount
   samt Neustart in derselben Runde (sonst liefert der Download 404).
 
+
+## Repoübergreifend: ORYX-Rücknavigation (2026-09-27, Codex)
+
+Außerhalb der nummerierten Queue: sichtbarer Rückweg auf Start, Same-Tab-Navigation, bestehender Forge-Verlassensschutz. Die nummerierte Queue bleibt unverändert. Die Änderung wird auf den veröffentlichten Prompt-15-Stand übertragen; die elf lokalen Prompt-16-Commits bleiben auf ausdrücklichen Wunsch des Projektbesitzers unveröffentlicht. Prüfung und Commit werden im ORYX-Nachweis `docs/RETURN-NAVIGATION.md` im Repository `oryx-games` festgehalten.
