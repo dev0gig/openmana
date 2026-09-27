@@ -171,5 +171,6 @@ Before declaring a task complete:
 Do not duplicate detailed per-prompt history into root `STATUS.md`.
 
 ## Publishing and Android (project owner, 2026-09-25)
+- **Publication held until Prompt 31** (project owner, 2026-09-27). Keep the existing local Prompt-16 work and the ORYX return-navigation change committed locally. Do not push or deploy OpenMana as part of the cross-repository ORYX task. Prompt 31 still requires an explicit publication instruction under the global Vercel rule.
 - **Commit, never push.** Every push to `main` triggers a Vercel deployment and uses up the project owner's Vercel deployment quota. Commit finished work right away; push only when the project owner explicitly asks for it. This replaces the former "committed and pushed" completion rule of the numbered program.
 - **No APKs.** On Android, OpenMana runs only inside the global ORYX app (Trusted Web Activity `net.tsnet.oryx`, which already lists `openmana.vercel.app` as trusted). Do not build an own TWA, APK or Warehouse package. Prompt 28 must be re-scoped with the project owner before it starts; what likely remains is `/.well-known/assetlinks.json` for ORYX and proof that the Forge WASM engine runs inside ORYX (`crossOriginIsolated`).

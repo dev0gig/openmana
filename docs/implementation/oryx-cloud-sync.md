@@ -371,3 +371,30 @@ npm run cards:build -- --offline        # Katalog nach einer Schema-Änderung ne
 npx vitest run src/storage/collection.test.ts src/cloud
 npm run check
 ```
+
+## 13. ORYX-Rücknavigation: Nachweis vom 27.9.2026
+
+Der Startseiten-Button „Zurück zu ORYX“ ist mit `57a5dbf` auf dem lokalen
+Prompt-16-Stand integriert. Die elf vorherigen lokalen Commits bleiben erhalten;
+die nummerierte Queue bleibt unverändert. OpenMana wird auf ausdrückliche
+Anweisung des Projektbesitzers bis Prompt 31 weder gepusht noch deployt.
+
+- 761 Unit-Tests in 62 Dateien einschließlich beider Navigationstests bestanden;
+  TypeScript, Lint und Produktionsbuild bestanden.
+- Das gemeinsame ORYX-Testkit besteht alle vier OpenMana-Navigationsprofile:
+  Desktop, kleines Querformat, Fold und Portrait. Direkt- und Launcher-Start,
+  Rückkehr im selben Tab, normale Browser-History, interne Rückwege und
+  erhaltene Sitzungs-/Spielstandswerte sind geprüft.
+- Alle 21 OpenMana-Cloud-Prüfungen gegen die lokale Datenbank bestanden.
+  Das gemeinsame SDK bleibt unverändert; die echte Cloud war für Testbrowser
+  per DNS gesperrt.
+- Der allgemeine Browser-Gesamtcheck ist nicht vollständig abgeschlossen:
+  Nach den Prüfungen der laufenden Partie und der ORYX-Anbindung lief eine
+  separate Tisch-Prüfseite in ein Zeitlimit. Den zusätzlichen Gesamtlauf hat
+  der Projektbesitzer zugunsten des gezielten Navigationsnachweises beendet.
+  Die versuchsweise Änderung am Tisch-Prüfstand wurde zurückgenommen.
+
+Repoübergreifender Nachweis: `oryx-games/docs/RETURN-NAVIGATION.md`.
+Einzelergebnisse im dortigen Testkit: Navigation
+`results/2026-09-27T11-07-44-482Z-navigation/report.json`, Cloud
+`results/2026-09-27T11-11-56/bericht.md`.
