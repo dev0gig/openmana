@@ -1,2 +1,0 @@
-# 25 — PWA, engine caching and lifecycle
-Finish installable PWA behaviour. Cache versioned engine artifacts safely; activate only after complete download/hash verification. Preserve COOP/COEP through service-worker responses and feature-check before engine start. Request persistent storage appropriately. Handle updates without corrupting a running match. Be explicit that reload/background discard may end a live match unless recovery is proven. Do not claim offline play until tested.

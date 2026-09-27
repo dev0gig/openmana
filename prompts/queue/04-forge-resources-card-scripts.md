@@ -1,2 +1,0 @@
-# 04 — Forge resources and card scripts
-Bundle the required Forge resources from the same pinned revision: cardsfolder, token scripts, editions, blockdata, lists, formats, defaults, effects, AI and required language files. Preserve upstream paths. Generate an engine manifest with Forge SHA, patch hash, toolchain versions, resource inventory, sizes and SHA-256. Verify representative normal, DFC, token and newer-set cards load. Ensure unnecessary network-play/jupnp code is unreachable/excluded. Test and document.

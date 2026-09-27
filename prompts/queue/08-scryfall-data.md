@@ -1,2 +1,0 @@
-# 08 — Scryfall card data
-Implement Scryfall integration for display/search metadata and imagery. Prefer bulk data/cache rather than per-interaction API calls. Resolve a stable English/Oracle identity for Forge while displaying German printing/name/text/image when available, with clean English fallback. Handle DFCs and print variants. Respect current Scryfall rate/use/attribution requirements and COEP/CORS constraints. Never let Scryfall decide game rules. Add update/version metadata, cache strategy, tests and clear missing-data states.

@@ -1,2 +1,0 @@
-# 27 — Credits, licenses and notices
-Implement visible Credits/Open Source surfaces. Clearly credit Forge/Card-Forge, ManaBrew as technical inspiration/reference (and code source only where actually incorporated), Scryfall, OpenAI ChatGPT and Anthropic Claude. Add the repository license/source obligations indicated by research and generated THIRD-PARTY-NOTICES from actual shipped components. Verify jupnp/CDDL is absent. Do not pretend unresolved GraalVM/GFTC questions are settled; preserve the public-release gate.

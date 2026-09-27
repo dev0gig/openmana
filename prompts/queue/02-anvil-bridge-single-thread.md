@@ -1,2 +1,0 @@
-# 02 — Anvil bridge single-thread spike
-Using dev0gig/anvil PROTOKOLL.md and forge-anvil as behavioural reference, implement the browser-local bridge spike from the research plan. Preserve Forge as sole rules authority. Prove PlayerControllerHuman/input flows can work in the single-thread WASM model, including priority card activation outside questions, question IDs/withdrawal, mulligan and cost-payment paths. Reuse/adapt owner's Anvil code where sensible; remove server/files/process/thread assumptions. JVM-test bridge logic. Document deviations. No polished UI.

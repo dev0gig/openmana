@@ -1,2 +1,0 @@
-# 31 — Production/Vercel readiness
-Prepare Vercel config/headers, immutable versioned engine assets, manifest/hash validation, caching, PWA update behaviour, error reporting without hidden telemetry, performance budgets and browser compatibility messaging. Validate an actual deployment with Forge WASM, Scryfall CORS under COEP and a complete match. Document deployment/rollback. Do not publicly distribute while the license/release gate remains unresolved; protected/private validation is acceptable.

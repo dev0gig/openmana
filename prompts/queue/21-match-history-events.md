@@ -1,2 +1,0 @@
-# 21 — In-game history
-Implement readable game history from Forge GameLog/events, not invented UI narration. Preserve actor/source structured data and event ordering before the snapshot it explains. Allow relevant cards to be inspected from history when resolvable. Provide compact mobile and richer desktop presentation. Never parse localized prose to infer rules or actors. Add tests.

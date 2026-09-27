@@ -1,2 +1,0 @@
-# 11 — Game session foundation
-Connect saved decks to Forge WASM and start a real human-vs-Forge-AI match. Prewarm the worker from the play/deck-selection flow. Implement explicit loading/ready/error/technical-abort/game-end states. Pass decks into Forge without Odin/filesystem assumptions. A failed start must never look like a frozen UI. Do not add mock fallbacks that hide engine failures.

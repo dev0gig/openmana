@@ -1,2 +1,0 @@
-# 15 — Forge decision UI
-Implement every required Anvil-style decision family through the protocol: selectable/card choices, buttons, yes/no, options, numeric input, ordering and distribution, including question withdrawal. Meaningful choices are never auto-answered. Invalid/stale submissions fail visibly. Decision controls remain close to the action context/hand and usable on small screens. Add regression tests for each family.

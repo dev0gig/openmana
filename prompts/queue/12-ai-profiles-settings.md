@@ -1,2 +1,0 @@
-# 12 — AI profiles and settings
-Expose Forge AI profiles supported by the pinned engine and persist preference. Verify what profiles actually mean before presenting friendly labels; do not invent difficulty claims. Add card display language preference (German preferred/default, English fallback), accessibility/reduced-motion basics and relevant engine/app version diagnostics. Keep one-time preferences out of repeated game-start friction.

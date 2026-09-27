@@ -1,2 +1,0 @@
-# 14 — Cards, hand and safe interaction
-Implement card tiles/hand interactions and full visual states driven by Forge: playable/actionable/highlighted/selected/tapped etc. Looking at a card must be safe and distinct from committing play/activation. Support mouse, keyboard and touch without accidental actions. Use Scryfall imagery/display data while Forge identity/state remains authoritative. Provide clear loading/fallback card rendering.
