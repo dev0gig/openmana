@@ -2246,6 +2246,16 @@ async function gameSession(browser: Browser, page: Page, pageLog: PageLog, base:
   await menu.getByRole("link", { name: "Decks" }).click()
   await page.getByRole("heading", { level: 1, name: "Decks" }).waitFor()
   check((await page.locator('[data-slot="sidebar"]').count()) > 0, "game: the app's frame did not come back outside the game")
+  // The explicit launcher exit on Start must retain the provider's protection of a running match.
+  await page.locator('[data-slot="sidebar"]').getByRole("link", { name: "Start", exact: true }).click()
+  const leaveQuestion = page.waitForEvent("dialog", { timeout: 10_000 })
+  const leaving = page.getByRole("button", { name: "Zurück zu ORYX", exact: true }).click()
+  const question = await leaveQuestion
+  results["oryxLeaveDialog"] = question.type()
+  check(question.type() === "beforeunload", `game: ORYX exit did not protect the running match (${question.type()})`)
+  await question.dismiss()
+  await leaving
+  check(new URL(page.url()).origin === new URL(base).origin, "game: cancelling ORYX exit left OpenMana")
   await page.locator('[data-slot="sidebar"] a', { hasText: "Spielen" }).click()
   await page.getByText("Eine Partie läuft", { exact: true }).waitFor()
   check(((await enginePanel(page).locator('[data-slot="badge"]').first().textContent()) ?? "") === "Spielt", "game: the engine panel does not say it plays")
@@ -2376,7 +2386,10 @@ async function gameFailures(browser: Browser, base: string, id: string, decks: r
     await screenshots(page, "desktop-game-refused")
     await refused.getByRole("link", { name: "Zur Deckwahl" }).click()
     await page.getByRole("heading", { level: 1, name: "Spielen" }).waitFor()
-    check((await startNote(page)) === "Forge ist bereit.", `game failures: after the refusal "${await startNote(page)}"`)
+    // The heading mounts before IndexedDB has restored the selected decks and their start note.
+    await page.getByText("Forge ist bereit.", { exact: true }).waitFor()
+    const afterRefusal = await startNote(page)
+    check(afterRefusal === "Forge ist bereit.", `game failures: after the refusal "${afterRefusal}"`)
     await chooseDeck(page, "Dein Deck wählen", "E2E Deutsch")
     await startAndWait(page)
     check(engineWorkerRequests(pageLog, id) === workerScripts, "game failures: the refused game's engine was not used for the next game")

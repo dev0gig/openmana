@@ -358,9 +358,10 @@ Engine, echter Kartenkatalog).
   Karte und 48 px hoch (End-to-End-Test bei 360 px). shadcn-Knöpfe brechen
   nicht um; ob sie es dürfen, ist eine Frage an das ganze Design-System
   (Prompt 24), nicht an diese Karte.
-- Das SDK liest `sessionStorage['oryx:launcher']` für das Geräte-Label „ORYX-App“;
-  das setzt ORYX' `oryx-back.js`, das OpenMana (noch) nicht einbindet – das
-  Label lautet dann „· Browser“.
+- Das SDK berücksichtigt einen noch vorhandenen Altwert in `sessionStorage['oryx:launcher']`
+  für das Geräte-Label „ORYX-App“. Die Navigation setzt diesen Altwert nicht mehr voraus.
+- Seit 27.9.2026 führt der explizite Startseiten-Button im selben Tab zu ORYX.
+  Es gibt keine ORYX-History-Sperre; der Schutz laufender Partien bleibt erhalten.
 
 ## 12. Reproduzieren
 

@@ -54,3 +54,7 @@ npm run generate                     # after changing a schema (src/storage/sche
 ## Credits
 
 OpenMana will visibly credit Forge, ManaBrew, Scryfall, OpenAI ChatGPT and Anthropic Claude. Exact license and attribution obligations must be verified before distribution.
+
+## ORYX return navigation (2026-09-27)
+
+ORYX and its games switch through explicit UI navigation in the same tab/TWA. System/browser Back belongs to the platform or the game’s own internal navigation. **Zurück zu ORYX** sits beside Spielen and Decks on Start, using `location.assign("https://oryx-games.vercel.app/")` even after a direct start. It is not on the immersive game table. The existing provider-level beforeunload guard still asks before leaving a starting/running Forge match, including after navigating internally to Start. Cloud sessions and IndexedDB are retained.
