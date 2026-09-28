@@ -1,6 +1,6 @@
 # OpenMana — Current Status
 
-Last repository review: 2026-09-26
+Last repository review: 2026-09-28
 
 Compact implementation map. This file deliberately does **not** replace the active queue ledger in `dev0gig/dropzone/workflow/tasks/INDEX.md`.
 
@@ -149,6 +149,14 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Engine, protocol 5: `StackItem.card`/`ability`, `Button.meaning`, `select.cards` only visible ids, `action` during priority and payment only for the player's own and Forge-marked cards (Forge's answer there set the player as activating player of the AI's abilities - prompt 05 §7.2). New differential test game `priority-respond` (the player holds instants and answers the AI's spells; coverage `priority-opponent-turn`, `priority-response`); JVM test `PriorityStackTest`.
 - Evidence: see `docs/implementation/16-priority-stack-phases.md`.
 
+### Targets and Cost Payment (Prompt 17)
+- Players as targets: the state marks the players Forge's running input would take (`Player.selectable`) and Forge's highlight (`highlighted`); the bridge asks the input with the very checks its click runs (Forge patch 0007, read-only answers; `RunningInput`). Name and life on the seat and in the decision region are then buttons (`GamePlayerButton`, the cards' marks as an inset outline) that tap at once (`player.tap`); a tap Forge would not take is refused as `no-effect` instead of being swallowed.
+- A selection's bounds are Forge's own for cards and players together ("Wähle genau 1 · 0 gewählt · 2 Karten davon liegen auf dem Tisch").
+- The payment in progress (`GameState.payment`): what is still to pay exactly as Forge's prompt shows it (spoken as words), the pool colours Forge would take (one button each, new input `mana.use` = Forge's click on its mana pool), life for Phyrexian mana through the player's own seat; mana sources stay direct taps on the table, Forge's Auto/Cancel stay Forge's.
+- The step's source (the spell being cast, an ability's source) in the decision heading and as "Quelle" below its picture on the table; nested inputs while casting (X, modes, kicker, sacrifice) come one by one, a blocking one alone.
+- Engine, protocol 6; new differential game `targets-payment` (Rakdos: Shock, Arc Trail, Dark Ritual, Gitaxian Probe, Dismember, Kolaghan's Command, Blaze, Burst Lightning, Village Rites) with required coverage `target-player-tap`, `target-multi`, `payment-pool`, `payment-life`, `cast-nested`; JVM test `TargetPaymentTest`, including the proof that asking Forge's input changes nothing (the same inputs replayed without asking give Forge's identical game log).
+- Evidence: see `docs/implementation/17-targeting-cost-payment.md`.
+
 ### ORYX Cloud Sync (outside the queue, 2026-09-25)
 - The project owner's direct assignment, not a queue prompt (outside the numbered program): the player's collection syncs through their ORYX account (the launcher's Supabase cloud) with the vendored ORYX SDK 1.0.0 (`src/cloud/oryx-sdk.js` and `.d.ts`, byte-identical copies of `oryx-games/shared`, checksum-tested, excluded from lint only themselves). Active only on `https://openmana.vercel.app/`; locally, in tests and previews inactive (no request, nothing stored). Local stays the source of truth.
 - One slot `collection` = one document (`src/storage/collection.ts`, schema `CollectionDocument`, version = `SCHEMA_VERSION`): valid decks, deletion marks (90 days) and every setting except `display.*`; never caches, recorded matches or `meta`.
@@ -160,7 +168,7 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Evidence: 622 Vitest tests (63 new: merge and check, read/apply on fake-indexeddb, the real SDK against a stand-in ORYX cloud on the real storage session, the card and the return notice in the real app frame, the SDK checksum), `npm run check` with the end-to-end test in Chrome, including the new section 13: the build served as `https://openmana.vercel.app` with a stand-in ORYX cloud - the whole OAuth/PKCE round trip under COOP/COEP, the start's merge, uploads, disconnecting, axe, 360 px; plus the card absent and Web Storage empty off the real address, and the deletion mark in IndexedDB after deleting a deck. Limits: ORYX takes 1 MB per slot by default (≈ 146 Constructed or 48 Commander decks); ORYX needs an OAuth client for `openmana`; effective once deployed. Details: `docs/implementation/oryx-cloud-sync.md`.
 
 ## Currently In Progress
-Nothing. Prompts 00–16 are `COMPLETE`. The next prompt is **17 — Targeting and cost payment** (`PENDING`, not started; execute one explicitly assigned central task at a time).
+Nothing. Prompts 00–17 are `COMPLETE`. The next prompt is **18 — Combat: attackers** (`PENDING`, not started; execute one explicitly assigned central task at a time).
 
 Any agent entering the repository must first reconcile this statement with the central Dropzone task state and Git state.
 
@@ -179,11 +187,11 @@ The existing queue covers the path from bridge/Worker/resource/differential engi
 - Android via the global ORYX app (no own APK),
 - regression/parity/production/readiness audits.
 
-The central Dropzone queue defines execution order; reconcile it with the locally committed Prompt 16 evidence before starting Prompt 17.
+The central Dropzone queue defines execution order; reconcile it with the Prompt 17 evidence before starting Prompt 18.
 
 ## Not Yet Implemented
 At this review point:
-- the game table shows every state, its cards can be looked at and tapped where Forge offers it, every kind of Forge's questions can be answered and priority, stack and phases are presented, but players as targets (prompt 17) and the finer presentation of targeting and combat (prompts 17–19) follow,
+- the game table shows every state, its cards can be looked at and tapped where Forge offers it, every kind of Forge's questions can be answered, priority, stack and phases are presented, and targets and cost payment come from Forge's data (players as targets, the pool, life for mana); the finer presentation of combat (prompts 18–19) follows,
 - no service worker/offline mode or deployment yet; no individual Android artifact is planned,
 - the ORYX cloud sync is built but inactive until OpenMana runs at `openmana.vercel.app` and ORYX has an OAuth client for it.
 
@@ -201,7 +209,7 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 ## Workflow Compatibility
 The legacy local prompt workflow was removed upstream on 2026-09-28. The current checkout incorporates that deletion while preserving all previously local Prompt 16 and ORYX-return commits. Central tasks live in `dev0gig/dropzone/workflow/tasks/`; detailed implementation evidence remains in `docs/implementation/` and Git history.
 
-Preserve sequential execution and any active work. Prompt 16 is complete locally, Prompt 17 is next, and the publication hold through Prompt 31 remains. The cross-repository wrapper cleanup does not execute Prompt 28: its remaining scope is ORYX web integration and real-device Forge verification.
+Preserve sequential execution and any active work. Prompt 17 is complete (committed locally, not pushed), Prompt 18 is next, and the publication hold through Prompt 31 remains. The cross-repository wrapper cleanup does not execute Prompt 28: its remaining scope is ORYX web integration and real-device Forge verification.
 
 ## Maintenance
 Update this file only when the broad implementation state changes. Keep detailed prompt evidence, commit hashes, measurements and blockers in the central Dropzone task and implementation/research docs.
