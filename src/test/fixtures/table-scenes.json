@@ -1,19 +1,19 @@
 {
  "source": "Protocol messages of the fixture games of engine/scripts/test-engine.sh (JVM run, scripted rule-free test player), folded like EngineSession folds them; see scripts/record-table-scenes.ts.",
  "engine": {
-  "builtAt": "2026-09-26T08:15:26.896Z",
+  "builtAt": "2026-09-28T20:26:38.058Z",
   "forgeCommit": "ed0333fecb1fea0671b3e50cadc1da4f71db5798",
-  "protocol": 5
+  "protocol": 6
  },
  "scenes": [
   {
    "name": "opening",
    "description": "The mulligan: seven cards in the player's hand, the AI's hand hidden, Forge's German prompt (human-3-de).",
    "fixture": "human-3-de",
-   "message": 5,
+   "message": 6,
    "game": {
     "type": "game.started",
-    "protocol": 5,
+    "protocol": 6,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -48,7 +48,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 3,
+    "seq": 4,
     "running": true,
     "turn": 0,
     "phase": null,
@@ -280,10 +280,10 @@
    "name": "main-phase",
    "description": "The player's own main phase with priority, lands and creatures on both sides, the most permanents of such moments (human-3-de).",
    "fixture": "human-3-de",
-   "message": 479,
+   "message": 489,
    "game": {
     "type": "game.started",
-    "protocol": 5,
+    "protocol": 6,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -318,7 +318,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 82,
+    "seq": 88,
     "running": true,
     "turn": 14,
     "phase": "MAIN1",
@@ -866,10 +866,10 @@
    "name": "stack",
    "description": "A spell on the stack while Forge asks the player (human-3-de).",
    "fixture": "human-3-de",
-   "message": 279,
+   "message": 283,
    "game": {
     "type": "game.started",
-    "protocol": 5,
+    "protocol": 6,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -904,7 +904,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 51,
+    "seq": 54,
     "running": true,
     "turn": 8,
     "phase": "DRAW",
@@ -1326,10 +1326,10 @@
    "name": "blockers",
    "description": "Combat with an attacker blocked by two creatures (blocks-multi).",
    "fixture": "blocks-multi",
-   "message": 441,
+   "message": 454,
    "game": {
     "type": "game.started",
-    "protocol": 5,
+    "protocol": 6,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -1361,7 +1361,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 85,
+    "seq": 92,
     "running": true,
     "turn": 11,
     "phase": "COMBAT_DAMAGE",
@@ -1874,10 +1874,10 @@
    "name": "defend",
    "description": "The player's creature blocks while Forge asks for blockers (human-5-defend).",
    "fixture": "human-5-defend",
-   "message": 341,
+   "message": 348,
    "game": {
     "type": "game.started",
-    "protocol": 5,
+    "protocol": 6,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -1912,7 +1912,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 63,
+    "seq": 68,
     "running": true,
     "turn": 9,
     "phase": "COMBAT_DECLARE_BLOCKERS",
@@ -2348,12 +2348,12 @@
   },
   {
    "name": "commander-late",
-   "description": "A late Commander turn while Forge asks the player: the most permanents with the most attackers (tokens, counters, poison, commander tax and damage) (commander).",
+   "description": "A late Commander turn while the player declares attackers: the most permanents with the most attackers (tokens, counters, poison, commander tax and damage) (commander).",
    "fixture": "commander",
-   "message": 805,
+   "message": 827,
    "game": {
     "type": "game.started",
-    "protocol": 5,
+    "protocol": 6,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -2387,7 +2387,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 172,
+    "seq": 185,
     "running": true,
     "turn": 17,
     "phase": "COMBAT_DECLARE_ATTACKERS",
@@ -2933,6 +2933,7 @@
       "life": 9,
       "hasPriority": true,
       "canAct": false,
+      "highlighted": true,
       "lost": false,
       "maxHandSize": 7,
       "landsPlayed": 0,
@@ -3330,10 +3331,10 @@
    "name": "command-effects",
    "description": "Forge's effect cards in the command zone of a Constructed game (an adventure; human-11).",
    "fixture": "human-11",
-   "message": 213,
+   "message": 216,
    "game": {
     "type": "game.started",
-    "protocol": 5,
+    "protocol": 6,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -3368,7 +3369,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 44,
+    "seq": 46,
     "running": true,
     "turn": 5,
     "phase": "UPKEEP",
@@ -3779,7 +3780,7 @@
    "message": 5,
    "game": {
     "type": "game.started",
-    "protocol": 5,
+    "protocol": 6,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -3910,49 +3911,49 @@
   },
   {
    "name": "target",
-   "description": "A spell's target: Forge names the creatures to choose from (select) and waits with OK off and cancel on (human-3-de).",
-   "fixture": "human-3-de",
-   "message": 260,
+   "description": "A spell's target: Forge names the creatures to choose from (select), no player (Dismember), and waits with OK off and cancel on (targets-payment).",
+   "fixture": "targets-payment",
+   "message": 391,
    "game": {
     "type": "game.started",
-    "protocol": 5,
+    "protocol": 6,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
     "format": "constructed",
     "cardNames": [
-     "Abrade",
-     "Bonecrusher Giant",
-     "Canyon Minotaur",
+     "Arc Trail",
+     "Blaze",
+     "Burst Lightning",
      "Centaur Courser",
      "Craw Wurm",
-     "Faithless Looting",
-     "Fiery Confluence",
+     "Dark Ritual",
+     "Dismember",
      "Forest",
      "Giant Growth",
      "Giant Spider",
-     "Goblin Arsonist",
+     "Gitaxian Probe",
      "Goblin Piker",
-     "Goblin Raider",
      "Grizzly Bears",
      "Hill Giant",
      "Kalonian Tusker",
-     "Lightning Bolt",
+     "Kolaghan's Command",
      "Llanowar Elves",
-     "Magma Jet",
      "Mountain",
      "Raging Goblin",
      "Rampant Growth",
      "Runeclaw Bear",
      "Shock",
-     "Trained Armodon"
+     "Swamp",
+     "Trained Armodon",
+     "Village Rites"
     ]
    },
    "state": {
     "type": "state",
-    "seq": 45,
+    "seq": 73,
     "running": true,
-    "turn": 8,
+    "turn": 10,
     "phase": "DRAW",
     "activePlayer": 0,
     "me": 0,
@@ -3962,7 +3963,7 @@
       "name": "Player",
       "ai": false,
       "me": true,
-      "life": 20,
+      "life": 10,
       "hasPriority": true,
       "canAct": true,
       "lost": false,
@@ -3981,7 +3982,7 @@
       "zones": {
        "battlefield": [
         {
-         "id": 28,
+         "id": 39,
          "key": "Mountain",
          "name": "Gebirge",
          "typeLine": "Land",
@@ -3995,7 +3996,21 @@
          "controller": 0
         },
         {
-         "id": 26,
+         "id": 21,
+         "key": "Swamp",
+         "name": "Sumpf",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 46,
          "key": "Mountain",
          "name": "Gebirge",
          "typeLine": "Land",
@@ -4009,15 +4024,29 @@
          "controller": 0
         },
         {
-         "id": 55,
-         "key": "Goblin Arsonist",
-         "name": "Goblin-Brandstifter",
-         "typeLine": "Kreatur — Goblin, Schamane",
-         "cost": "{R}",
-         "set": "J25",
-         "power": 1,
-         "toughness": 1,
-         "text": "Wenn der Goblin-Brandstifter aus dem Spiel auf einen Friedhof gelegt wird, kannst du ihn einer Kreatur oder einem Spieler deiner Wahl 1 Schadenspunkt zufügen lassen.",
+         "id": 13,
+         "key": "Swamp",
+         "name": "Sumpf",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 23,
+         "key": "Hill Giant",
+         "name": "Hügelriese",
+         "typeLine": "Beschwörung eines Riesen",
+         "cost": "{3}{R}",
+         "set": "30A",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
          "tapped": false,
          "sick": false,
          "faceDown": false,
@@ -4025,59 +4054,17 @@
          "owner": 0,
          "controller": 0,
          "action": "select card as target"
-        },
-        {
-         "id": 33,
-         "key": "Mountain",
-         "name": "Gebirge",
-         "typeLine": "Land",
-         "set": "TRK",
-         "text": "",
-         "tapped": false,
-         "sick": false,
-         "faceDown": false,
-         "damage": 0,
-         "owner": 0,
-         "controller": 0
         }
        ],
        "hand": [
         {
-         "id": 24,
-         "key": "Fiery Confluence",
-         "name": "Feurige Konfluenz",
+         "id": 2,
+         "key": "Blaze",
+         "name": "Heiße Glut",
          "typeLine": "Hexerei",
-         "cost": "{2}{R}{R}",
-         "set": "TLE",
-         "text": "Bestimme drei. Du kannst denselben Modus mehr als einmal bestimmen.\r\n\r\n• Die Feurige Konfluenz fügt jeder Kreatur 1 Schadenspunkt zu.\r\n\r\n• Die Feurige Konfluenz fügt jedem Gegner 2 Schadenspunkte zu.\r\n\r\n• Zerstöre ein Artefakt deiner Wahl.",
-         "tapped": false,
-         "sick": false,
-         "faceDown": false,
-         "damage": 0,
-         "owner": 0,
-         "controller": 0
-        },
-        {
-         "id": 36,
-         "key": "Mountain",
-         "name": "Gebirge",
-         "typeLine": "Land",
-         "set": "TRK",
-         "text": "",
-         "tapped": false,
-         "sick": false,
-         "faceDown": false,
-         "damage": 0,
-         "owner": 0,
-         "controller": 0
-        },
-        {
-         "id": 27,
-         "key": "Mountain",
-         "name": "Gebirge",
-         "typeLine": "Land",
-         "set": "TRK",
-         "text": "",
+         "cost": "{X}{R}",
+         "set": "J22",
+         "text": "Die Heiße Glut fügt einem Spieler oder einer Kreatur Deiner Wahl X Schadenspunkte zu.",
          "tapped": false,
          "sick": false,
          "faceDown": false,
@@ -4102,11 +4089,39 @@
          "controller": 0
         },
         {
-         "id": 4,
-         "key": "Lightning Bolt",
-         "name": "Blitzschlag",
-         "typeLine": "Spontanzauber",
-         "cost": "{R}",
+         "id": 54,
+         "key": "Dark Ritual",
+         "name": "Schwarzer Ritus",
+         "typeLine": "Manaquelle",
+         "cost": "{B}",
+         "set": "SLZ",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 7,
+         "key": "Arc Trail",
+         "name": "Lichtbogen-Spur",
+         "typeLine": "Hexerei",
+         "cost": "{1}{R}",
+         "set": "PLST",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 53,
+         "key": "Dark Ritual",
+         "name": "Schwarzer Ritus",
+         "typeLine": "Manaquelle",
+         "cost": "{B}",
          "set": "SLZ",
          "tapped": false,
          "sick": false,
@@ -4119,7 +4134,7 @@
        "exile": [],
        "command": []
       },
-      "library": 50,
+      "library": 49,
       "commanders": []
      },
      {
@@ -4127,7 +4142,7 @@
       "name": "Forge AI",
       "ai": true,
       "me": false,
-      "life": 14,
+      "life": 16,
       "hasPriority": false,
       "canAct": false,
       "lost": false,
@@ -4146,7 +4161,7 @@
       "zones": {
        "battlefield": [
         {
-         "id": 116,
+         "id": 111,
          "key": "Forest",
          "name": "Forest",
          "typeLine": "Basic Land — Forest",
@@ -4188,7 +4203,7 @@
          "controller": 1
         },
         {
-         "id": 118,
+         "id": 101,
          "key": "Forest",
          "name": "Forest",
          "typeLine": "Basic Land — Forest",
@@ -4202,15 +4217,83 @@
          "controller": 1
         },
         {
-         "id": 77,
-         "key": "Giant Spider",
-         "name": "Riesenspinne",
-         "typeLine": "Beschwörung einer Spinne",
-         "cost": "{3}{G}",
+         "id": 75,
+         "key": "Trained Armodon",
+         "name": "Gezähmtes Armodon",
+         "typeLine": "Beschwörung eines Elefanten",
+         "cost": "{1}{G}{G}",
+         "set": "TPR",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "action": "select card as target"
+        },
+        {
+         "id": 96,
+         "key": "Centaur Courser",
+         "name": "Zentauren-Renner",
+         "typeLine": "Kreatur — Zentaur, Krieger",
+         "cost": "{2}{G}",
+         "set": "PLST",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "action": "select card as target"
+        },
+        {
+         "id": 120,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 65,
+         "key": "Kalonian Tusker",
+         "name": "Kalonischer Keiler",
+         "typeLine": "Kreatur — Bestie",
+         "cost": "{G}{G}",
+         "set": "M14",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
+         "tapped": false,
+         "sick": true,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "action": "select card as target"
+        },
+        {
+         "id": 64,
+         "key": "Grizzly Bears",
+         "name": "Grizzlybären",
+         "typeLine": "Beschwörung von Bären",
+         "cost": "{1}{G}",
          "set": "SLZ",
          "power": 2,
-         "toughness": 4,
-         "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+         "toughness": 2,
+         "text": "",
          "tapped": false,
          "sick": true,
          "faceDown": false,
@@ -4223,25 +4306,28 @@
        "hand": [
         {
          "hidden": true
-        },
-        {
-         "hidden": true
-        },
-        {
-         "hidden": true
-        },
-        {
-         "hidden": true
-        },
-        {
-         "hidden": true
         }
        ],
-       "graveyard": [],
+       "graveyard": [
+        {
+         "id": 87,
+         "key": "Rampant Growth",
+         "name": "Wucherndes Wachstum",
+         "typeLine": "Hexerei",
+         "cost": "{1}{G}",
+         "set": "FIC",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
        "exile": [],
        "command": []
       },
-      "library": 50,
+      "library": 49,
       "commanders": []
      }
     ],
@@ -4252,28 +4338,31 @@
     {
      "type": "question",
      "kind": "select",
-     "text": "Priorität: Player Zug: 8 (Player) Phase: Ziehsegment Stapel: Leer",
+     "text": "Priorität: Player Zug: 10 (Player) Phase: Ziehsegment Stapel: Leer",
      "min": 1,
      "max": 1,
      "cards": [
-      55,
-      77
+      23,
+      75,
+      96,
+      65,
+      64
      ],
      "items": [
       {
        "nr": 1,
-       "text": "Goblin-Brandstifter (55)",
-       "card": 55,
+       "text": "Hügelriese (23)",
+       "card": 23,
        "cardView": {
-        "id": 55,
-        "key": "Goblin Arsonist",
-        "name": "Goblin-Brandstifter",
-        "typeLine": "Kreatur — Goblin, Schamane",
-        "cost": "{R}",
-        "set": "J25",
-        "power": 1,
-        "toughness": 1,
-        "text": "Wenn der Goblin-Brandstifter aus dem Spiel auf einen Friedhof gelegt wird, kannst du ihn einer Kreatur oder einem Spieler deiner Wahl 1 Schadenspunkt zufügen lassen.",
+        "id": 23,
+        "key": "Hill Giant",
+        "name": "Hügelriese",
+        "typeLine": "Beschwörung eines Riesen",
+        "cost": "{3}{R}",
+        "set": "30A",
+        "power": 3,
+        "toughness": 3,
+        "text": "",
         "tapped": false,
         "sick": false,
         "faceDown": false,
@@ -4284,18 +4373,84 @@
       },
       {
        "nr": 2,
-       "text": "Riesenspinne (77)",
-       "card": 77,
+       "text": "Gezähmtes Armodon (75)",
+       "card": 75,
        "cardView": {
-        "id": 77,
-        "key": "Giant Spider",
-        "name": "Riesenspinne",
-        "typeLine": "Beschwörung einer Spinne",
-        "cost": "{3}{G}",
+        "id": 75,
+        "key": "Trained Armodon",
+        "name": "Gezähmtes Armodon",
+        "typeLine": "Beschwörung eines Elefanten",
+        "cost": "{1}{G}{G}",
+        "set": "TPR",
+        "power": 3,
+        "toughness": 3,
+        "text": "",
+        "tapped": true,
+        "sick": false,
+        "faceDown": false,
+        "damage": 0,
+        "owner": 1,
+        "controller": 1
+       }
+      },
+      {
+       "nr": 3,
+       "text": "Zentauren-Renner (96)",
+       "card": 96,
+       "cardView": {
+        "id": 96,
+        "key": "Centaur Courser",
+        "name": "Zentauren-Renner",
+        "typeLine": "Kreatur — Zentaur, Krieger",
+        "cost": "{2}{G}",
+        "set": "PLST",
+        "power": 3,
+        "toughness": 3,
+        "text": "",
+        "tapped": true,
+        "sick": false,
+        "faceDown": false,
+        "damage": 0,
+        "owner": 1,
+        "controller": 1
+       }
+      },
+      {
+       "nr": 4,
+       "text": "Kalonischer Keiler (65)",
+       "card": 65,
+       "cardView": {
+        "id": 65,
+        "key": "Kalonian Tusker",
+        "name": "Kalonischer Keiler",
+        "typeLine": "Kreatur — Bestie",
+        "cost": "{G}{G}",
+        "set": "M14",
+        "power": 3,
+        "toughness": 3,
+        "text": "",
+        "tapped": false,
+        "sick": true,
+        "faceDown": false,
+        "damage": 0,
+        "owner": 1,
+        "controller": 1
+       }
+      },
+      {
+       "nr": 5,
+       "text": "Grizzlybären (64)",
+       "card": 64,
+       "cardView": {
+        "id": 64,
+        "key": "Grizzly Bears",
+        "name": "Grizzlybären",
+        "typeLine": "Beschwörung von Bären",
+        "cost": "{1}{G}",
         "set": "SLZ",
         "power": 2,
-        "toughness": 4,
-        "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+        "toughness": 2,
+        "text": "",
         "tapped": false,
         "sick": true,
         "faceDown": false,
@@ -4305,13 +4460,13 @@
        }
       }
      ],
-     "id": 26,
+     "id": 45,
      "blocking": false
     },
     {
      "type": "question",
      "kind": "buttons",
-     "text": "Magmastrahl (14) - Der Magmastrahl fügt einer Kreatur oder einem Spieler deiner Wahl 2 Schadenspunkte zu. Hellsicht 2. (Schaue dir die obersten zwei Karten deiner Bibliothek an. Du kannst eine beliebige Anzahl davon unter deine Bibliothek legen und den Rest in beliebiger Reihenfolge oben darauf.)   Select any target",
+     "text": "Zergliedern (31) - Target creature gets -5/-5 until end of turn.  Select target creature",
      "buttons": [
       {
        "nr": 1,
@@ -4324,15 +4479,15 @@
        "enabled": true
       }
      ],
-     "card": 14,
+     "card": 31,
      "cardView": {
-      "id": 14,
-      "key": "Magma Jet",
-      "name": "Magmastrahl",
+      "id": 31,
+      "key": "Dismember",
+      "name": "Zergliedern",
       "typeLine": "Spontanzauber",
-      "cost": "{1}{R}",
-      "set": "JMP",
-      "text": "Der Magmastrahl fügt einer Kreatur oder einem Spieler deiner Wahl 2 Schadenspunkte zu. Hellsicht 2. (Schaue dir die obersten zwei Karten deiner Bibliothek an. Du kannst eine beliebige Anzahl davon unter deine Bibliothek legen und den Rest in beliebiger Reihenfolge oben darauf.)",
+      "cost": "{1}{B/P}{B/P}",
+      "set": "SOA",
+      "text": "({B/P} kann entweder mit {B} oder 2 Lebenspunkten bezahlt werden.)\r\n\r\nEine Kreatur deiner Wahl erhält -5/-5 bis zum Ende des Zuges.",
       "tapped": false,
       "sick": false,
       "faceDown": false,
@@ -4340,11 +4495,11 @@
       "owner": 0,
       "controller": 0
      },
-     "id": 27,
+     "id": 46,
      "blocking": false
     }
    ],
-   "prompt": "Magmastrahl (14) - Der Magmastrahl fügt einer Kreatur oder einem Spieler deiner Wahl 2 Schadenspunkte zu. Hellsicht 2. (Schaue dir die obersten zwei Karten deiner Bibliothek an. Du kannst eine beliebige Anzahl davon unter deine Bibliothek legen und den Rest in beliebiger Reihenfolge oben darauf.)   Select any target",
+   "prompt": "Zergliedern (31) - Target creature gets -5/-5 until end of turn.  Select target creature",
    "notices": [
     {
      "type": "input.rejected",
@@ -4395,17 +4550,28 @@
       "kind": "buttons",
       "button": 1
      }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 17,
+     "reason": "not-active",
+     "detail": "question 13 must be answered first",
+     "input": {
+      "type": "card.tap",
+      "seq": 17,
+      "card": 39
+     }
     }
    ]
   },
   {
    "name": "target-player",
-   "description": "A spell whose only targets are players: Forge's selection names no card (human-3-de).",
+   "description": "A spell whose only targets are players: Forge's selection names no card, the state marks the players Forge takes (human-3-de).",
    "fixture": "human-3-de",
-   "message": 74,
+   "message": 76,
    "game": {
     "type": "game.started",
-    "protocol": 5,
+    "protocol": 6,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -4440,7 +4606,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 15,
+    "seq": 17,
     "running": true,
     "turn": 2,
     "phase": "MAIN1",
@@ -4455,6 +4621,7 @@
       "life": 20,
       "hasPriority": true,
       "canAct": true,
+      "selectable": true,
       "lost": false,
       "maxHandSize": 7,
       "landsPlayed": 1,
@@ -4577,6 +4744,7 @@
       "life": 20,
       "hasPriority": false,
       "canAct": false,
+      "selectable": true,
       "lost": false,
       "maxHandSize": 7,
       "landsPlayed": 0,
@@ -4643,8 +4811,8 @@
      "type": "question",
      "kind": "select",
      "text": "Priorität: Player Zug: 2 (Player) Phase: Erste Hauptphase (Vor-Kampf) Stapel: Leer",
-     "min": 0,
-     "max": 0,
+     "min": 1,
+     "max": 1,
      "cards": [],
      "items": [],
      "id": 7,
@@ -4744,10 +4912,10 @@
    "name": "yes-no",
    "description": "A trigger that may be used: Forge's own yes/no as its two buttons (human-3-de).",
    "fixture": "human-3-de",
-   "message": 297,
+   "message": 301,
    "game": {
     "type": "game.started",
-    "protocol": 5,
+    "protocol": 6,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -4782,7 +4950,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 55,
+    "seq": 58,
     "running": true,
     "turn": 8,
     "phase": "DRAW",
@@ -5231,10 +5399,10 @@
    "name": "discard",
    "description": "Two cards to discard from the hand: a selection of more than one, with Forge's prompt for it and no buttons (Forge ends it by itself; human-11).",
    "fixture": "human-11",
-   "message": 497,
+   "message": 508,
    "game": {
     "type": "game.started",
-    "protocol": 5,
+    "protocol": 6,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -5269,7 +5437,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 92,
+    "seq": 98,
     "running": true,
     "turn": 13,
     "phase": "MAIN1",
@@ -5949,10 +6117,10 @@
    "name": "choose-mode",
    "description": "A modal spell: choose one of its modes, a blocking question (human-3-de).",
    "fixture": "human-3-de",
-   "message": 345,
+   "message": 351,
    "game": {
     "type": "game.started",
-    "protocol": 5,
+    "protocol": 6,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -5987,7 +6155,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 60,
+    "seq": 64,
     "running": true,
     "turn": 10,
     "phase": "MAIN1",
@@ -6464,10 +6632,10 @@
    "name": "scry",
    "description": "Scrying: the library's top cards to the top or the bottom (arrange), a blocking question (human-3-de).",
    "fixture": "human-3-de",
-   "message": 280,
+   "message": 284,
    "game": {
     "type": "game.started",
-    "protocol": 5,
+    "protocol": 6,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -6502,7 +6670,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 51,
+    "seq": 54,
     "running": true,
     "turn": 8,
     "phase": "DRAW",
@@ -6978,10 +7146,10 @@
    "name": "ability",
    "description": "A card with two ways to play it (an adventure): which one, cancellable (options; human-11).",
    "fixture": "human-11",
-   "message": 119,
+   "message": 122,
    "game": {
     "type": "game.started",
-    "protocol": 5,
+    "protocol": 6,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -7016,7 +7184,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 23,
+    "seq": 25,
     "running": true,
     "turn": 3,
     "phase": "MAIN1",
@@ -7386,10 +7554,10 @@
    "name": "damage",
    "description": "An attacker blocked by two creatures: its combat damage to give out among them (distribute; blocks-double).",
    "fixture": "blocks-double",
-   "message": 422,
+   "message": 436,
    "game": {
     "type": "game.started",
-    "protocol": 5,
+    "protocol": 6,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -7421,7 +7589,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 81,
+    "seq": 89,
     "running": true,
     "turn": 11,
     "phase": "COMBAT_DAMAGE",
@@ -7998,10 +8166,10 @@
    "name": "opponent-turn",
    "description": "The player's priority in the AI's turn with the stack empty: Forge asks only because the player holds an answer (priority-respond).",
    "fixture": "priority-respond",
-   "message": 236,
+   "message": 237,
    "game": {
     "type": "game.started",
-    "protocol": 5,
+    "protocol": 6,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -8029,7 +8197,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 44,
+    "seq": 45,
     "running": true,
     "turn": 4,
     "phase": "UPKEEP",
@@ -8361,10 +8529,10 @@
    "name": "respond",
    "description": "The player's priority with the AI's spell on top of the stack: answer it or let it resolve (priority-respond).",
    "fixture": "priority-respond",
-   "message": 249,
+   "message": 250,
    "game": {
     "type": "game.started",
-    "protocol": 5,
+    "protocol": 6,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -8392,7 +8560,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 46,
+    "seq": 47,
     "running": true,
     "turn": 4,
     "phase": "MAIN1",
@@ -8760,10 +8928,10 @@
    "name": "respond-own",
    "description": "The player's answer on top of the AI's spell, and the player's priority again (stack depth 2; priority-respond).",
    "fixture": "priority-respond",
-   "message": 415,
+   "message": 416,
    "game": {
     "type": "game.started",
-    "protocol": 5,
+    "protocol": 6,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -8791,7 +8959,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 77,
+    "seq": 78,
     "running": true,
     "turn": 6,
     "phase": "MAIN2",
@@ -9204,6 +9372,2184 @@
       "type": "card.tap",
       "seq": 26,
       "card": 16
+     }
+    }
+   ]
+  },
+  {
+   "name": "target-both",
+   "description": "A spell with any target: Forge names the creatures and marks the players it would take (human-3-de).",
+   "fixture": "human-3-de",
+   "message": 264,
+   "game": {
+    "type": "game.started",
+    "protocol": 6,
+    "human": "Player",
+    "ai": "Forge AI",
+    "aiProfile": "Default",
+    "format": "constructed",
+    "cardNames": [
+     "Abrade",
+     "Bonecrusher Giant",
+     "Canyon Minotaur",
+     "Centaur Courser",
+     "Craw Wurm",
+     "Faithless Looting",
+     "Fiery Confluence",
+     "Forest",
+     "Giant Growth",
+     "Giant Spider",
+     "Goblin Arsonist",
+     "Goblin Piker",
+     "Goblin Raider",
+     "Grizzly Bears",
+     "Hill Giant",
+     "Kalonian Tusker",
+     "Lightning Bolt",
+     "Llanowar Elves",
+     "Magma Jet",
+     "Mountain",
+     "Raging Goblin",
+     "Rampant Growth",
+     "Runeclaw Bear",
+     "Shock",
+     "Trained Armodon"
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 48,
+    "running": true,
+    "turn": 8,
+    "phase": "DRAW",
+    "activePlayer": 0,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 20,
+      "hasPriority": true,
+      "canAct": true,
+      "selectable": true,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 28,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 26,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 55,
+         "key": "Goblin Arsonist",
+         "name": "Goblin-Brandstifter",
+         "typeLine": "Kreatur — Goblin, Schamane",
+         "cost": "{R}",
+         "set": "J25",
+         "power": 1,
+         "toughness": 1,
+         "text": "Wenn der Goblin-Brandstifter aus dem Spiel auf einen Friedhof gelegt wird, kannst du ihn einer Kreatur oder einem Spieler deiner Wahl 1 Schadenspunkt zufügen lassen.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "action": "select card as target"
+        },
+        {
+         "id": 33,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "hand": [
+        {
+         "id": 24,
+         "key": "Fiery Confluence",
+         "name": "Feurige Konfluenz",
+         "typeLine": "Hexerei",
+         "cost": "{2}{R}{R}",
+         "set": "TLE",
+         "text": "Bestimme drei. Du kannst denselben Modus mehr als einmal bestimmen.\r\n\r\n• Die Feurige Konfluenz fügt jeder Kreatur 1 Schadenspunkt zu.\r\n\r\n• Die Feurige Konfluenz fügt jedem Gegner 2 Schadenspunkte zu.\r\n\r\n• Zerstöre ein Artefakt deiner Wahl.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 36,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 27,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "graveyard": [
+        {
+         "id": 49,
+         "key": "Shock",
+         "name": "Schock",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "MSC",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 4,
+         "key": "Lightning Bolt",
+         "name": "Blitzschlag",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SLZ",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 50,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 14,
+      "hasPriority": false,
+      "canAct": false,
+      "selectable": true,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 116,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 113,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 104,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 118,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 77,
+         "key": "Giant Spider",
+         "name": "Riesenspinne",
+         "typeLine": "Beschwörung einer Spinne",
+         "cost": "{3}{G}",
+         "set": "SLZ",
+         "power": 2,
+         "toughness": 4,
+         "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+         "tapped": false,
+         "sick": true,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "action": "select card as target"
+        }
+       ],
+       "hand": [
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [],
+       "exile": [],
+       "command": []
+      },
+      "library": 50,
+      "commanders": []
+     }
+    ],
+    "stack": [],
+    "combat": []
+   },
+   "questions": [
+    {
+     "type": "question",
+     "kind": "select",
+     "text": "Priorität: Player Zug: 8 (Player) Phase: Ziehsegment Stapel: Leer",
+     "min": 1,
+     "max": 1,
+     "cards": [
+      55,
+      77
+     ],
+     "items": [
+      {
+       "nr": 1,
+       "text": "Goblin-Brandstifter (55)",
+       "card": 55,
+       "cardView": {
+        "id": 55,
+        "key": "Goblin Arsonist",
+        "name": "Goblin-Brandstifter",
+        "typeLine": "Kreatur — Goblin, Schamane",
+        "cost": "{R}",
+        "set": "J25",
+        "power": 1,
+        "toughness": 1,
+        "text": "Wenn der Goblin-Brandstifter aus dem Spiel auf einen Friedhof gelegt wird, kannst du ihn einer Kreatur oder einem Spieler deiner Wahl 1 Schadenspunkt zufügen lassen.",
+        "tapped": false,
+        "sick": false,
+        "faceDown": false,
+        "damage": 0,
+        "owner": 0,
+        "controller": 0
+       }
+      },
+      {
+       "nr": 2,
+       "text": "Riesenspinne (77)",
+       "card": 77,
+       "cardView": {
+        "id": 77,
+        "key": "Giant Spider",
+        "name": "Riesenspinne",
+        "typeLine": "Beschwörung einer Spinne",
+        "cost": "{3}{G}",
+        "set": "SLZ",
+        "power": 2,
+        "toughness": 4,
+        "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+        "tapped": false,
+        "sick": true,
+        "faceDown": false,
+        "damage": 0,
+        "owner": 1,
+        "controller": 1
+       }
+      }
+     ],
+     "id": 26,
+     "blocking": false
+    },
+    {
+     "type": "question",
+     "kind": "buttons",
+     "text": "Magmastrahl (14) - Der Magmastrahl fügt einer Kreatur oder einem Spieler deiner Wahl 2 Schadenspunkte zu. Hellsicht 2. (Schaue dir die obersten zwei Karten deiner Bibliothek an. Du kannst eine beliebige Anzahl davon unter deine Bibliothek legen und den Rest in beliebiger Reihenfolge oben darauf.)   Select any target",
+     "buttons": [
+      {
+       "nr": 1,
+       "label": "OK",
+       "enabled": false
+      },
+      {
+       "nr": 2,
+       "label": "Abbrechen",
+       "enabled": true
+      }
+     ],
+     "card": 14,
+     "cardView": {
+      "id": 14,
+      "key": "Magma Jet",
+      "name": "Magmastrahl",
+      "typeLine": "Spontanzauber",
+      "cost": "{1}{R}",
+      "set": "JMP",
+      "text": "Der Magmastrahl fügt einer Kreatur oder einem Spieler deiner Wahl 2 Schadenspunkte zu. Hellsicht 2. (Schaue dir die obersten zwei Karten deiner Bibliothek an. Du kannst eine beliebige Anzahl davon unter deine Bibliothek legen und den Rest in beliebiger Reihenfolge oben darauf.)",
+      "tapped": false,
+      "sick": false,
+      "faceDown": false,
+      "damage": 0,
+      "owner": 0,
+      "controller": 0
+     },
+     "id": 27,
+     "blocking": false
+    }
+   ],
+   "prompt": "Magmastrahl (14) - Der Magmastrahl fügt einer Kreatur oder einem Spieler deiner Wahl 2 Schadenspunkte zu. Hellsicht 2. (Schaue dir die obersten zwei Karten deiner Bibliothek an. Du kannst eine beliebige Anzahl davon unter deine Bibliothek legen und den Rest in beliebiger Reihenfolge oben darauf.)   Select any target",
+   "notices": [
+    {
+     "type": "input.rejected",
+     "seq": 5,
+     "reason": "stale",
+     "detail": "question 9999999 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 5,
+      "question": 9999999,
+      "kind": "buttons",
+      "button": 1
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 6,
+     "reason": "invalid",
+     "detail": "button must be 1 or 2, got 3",
+     "input": {
+      "type": "answer",
+      "seq": 6,
+      "question": 5,
+      "kind": "buttons",
+      "button": 3
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 7,
+     "reason": "unknown-card",
+     "detail": "no visible card with this id",
+     "input": {
+      "type": "card.tap",
+      "seq": 7,
+      "card": -5
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 8,
+     "reason": "stale",
+     "detail": "question 2 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 8,
+      "question": 2,
+      "kind": "buttons",
+      "button": 1
+     }
+    }
+   ]
+  },
+  {
+   "name": "payment",
+   "description": "Paying a spell's cost by hand: Forge's payment with what is still to pay, the mana sources Forge marks, Auto and Cancel (targets-payment).",
+   "fixture": "targets-payment",
+   "message": 86,
+   "game": {
+    "type": "game.started",
+    "protocol": 6,
+    "human": "Player",
+    "ai": "Forge AI",
+    "aiProfile": "Default",
+    "format": "constructed",
+    "cardNames": [
+     "Arc Trail",
+     "Blaze",
+     "Burst Lightning",
+     "Centaur Courser",
+     "Craw Wurm",
+     "Dark Ritual",
+     "Dismember",
+     "Forest",
+     "Giant Growth",
+     "Giant Spider",
+     "Gitaxian Probe",
+     "Goblin Piker",
+     "Grizzly Bears",
+     "Hill Giant",
+     "Kalonian Tusker",
+     "Kolaghan's Command",
+     "Llanowar Elves",
+     "Mountain",
+     "Raging Goblin",
+     "Rampant Growth",
+     "Runeclaw Bear",
+     "Shock",
+     "Swamp",
+     "Trained Armodon",
+     "Village Rites"
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 19,
+    "running": true,
+    "turn": 2,
+    "phase": "MAIN1",
+    "activePlayer": 0,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 20,
+      "hasPriority": true,
+      "canAct": true,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 1,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 39,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "playable": true,
+         "action": "Bezahle Mana mit Karte"
+        }
+       ],
+       "hand": [
+        {
+         "id": 21,
+         "key": "Swamp",
+         "name": "Sumpf",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 46,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 2,
+         "key": "Blaze",
+         "name": "Heiße Glut",
+         "typeLine": "Hexerei",
+         "cost": "{X}{R}",
+         "set": "J22",
+         "text": "Die Heiße Glut fügt einem Spieler oder einer Kreatur Deiner Wahl X Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 54,
+         "key": "Dark Ritual",
+         "name": "Schwarzer Ritus",
+         "typeLine": "Manaquelle",
+         "cost": "{B}",
+         "set": "SLZ",
+         "text": "Erhöhe Deinen Manavorrat um BBB.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 7,
+         "key": "Arc Trail",
+         "name": "Lichtbogen-Spur",
+         "typeLine": "Hexerei",
+         "cost": "{1}{R}",
+         "set": "PLST",
+         "text": "Die Lichtbogen-Spur fügt einer Kreatur oder einem Spieler deiner Wahl 2 Schadenspunkte und einer anderen Kreatur oder einem anderen Spieler deiner Wahl 1 Schadenspunkt zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "graveyard": [],
+       "exile": [],
+       "command": []
+      },
+      "library": 53,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 20,
+      "hasPriority": false,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 111,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "hand": [
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [],
+       "exile": [],
+       "command": []
+      },
+      "library": 54,
+      "commanders": []
+     }
+    ],
+    "stack": [],
+    "combat": [],
+    "payment": {
+     "cost": "{R}",
+     "pool": ""
+    }
+   },
+   "questions": [
+    {
+     "type": "question",
+     "kind": "buttons",
+     "text": "Schock (49) - Der Schock fügt einem Ziel deiner Wahl 2 Schadenspunkte zu.  Select any target",
+     "purpose": "payment",
+     "buttons": [
+      {
+       "nr": 1,
+       "label": "Auto",
+       "enabled": true
+      },
+      {
+       "nr": 2,
+       "label": "Abbrechen",
+       "enabled": true
+      }
+     ],
+     "card": 49,
+     "cardView": {
+      "id": 49,
+      "key": "Shock",
+      "name": "Schock",
+      "typeLine": "Spontanzauber",
+      "cost": "{R}",
+      "set": "MSC",
+      "text": "Der Schock fügt einem Ziel deiner Wahl 2 Schadenspunkte zu.",
+      "tapped": false,
+      "sick": false,
+      "faceDown": false,
+      "damage": 0,
+      "owner": 0,
+      "controller": 0
+     },
+     "id": 10,
+     "blocking": false
+    }
+   ],
+   "prompt": "Schock (49) - Schock (49) deals 2 damage to Forge AI.  Zahle die Spruchkosten: {R}",
+   "notices": [
+    {
+     "type": "input.rejected",
+     "seq": 5,
+     "reason": "stale",
+     "detail": "question 9999999 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 5,
+      "question": 9999999,
+      "kind": "buttons",
+      "button": 1
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 6,
+     "reason": "invalid",
+     "detail": "button must be 1 or 2, got 3",
+     "input": {
+      "type": "answer",
+      "seq": 6,
+      "question": 5,
+      "kind": "buttons",
+      "button": 3
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 7,
+     "reason": "unknown-card",
+     "detail": "no visible card with this id",
+     "input": {
+      "type": "card.tap",
+      "seq": 7,
+      "card": -5
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 8,
+     "reason": "stale",
+     "detail": "question 2 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 8,
+      "question": 2,
+      "kind": "buttons",
+      "button": 1
+     }
+    }
+   ]
+  },
+  {
+   "name": "payment-pool",
+   "description": "Floating mana from Dark Ritual while a spell is paid: Forge would take it from the pool (targets-payment).",
+   "fixture": "targets-payment",
+   "message": 180,
+   "game": {
+    "type": "game.started",
+    "protocol": 6,
+    "human": "Player",
+    "ai": "Forge AI",
+    "aiProfile": "Default",
+    "format": "constructed",
+    "cardNames": [
+     "Arc Trail",
+     "Blaze",
+     "Burst Lightning",
+     "Centaur Courser",
+     "Craw Wurm",
+     "Dark Ritual",
+     "Dismember",
+     "Forest",
+     "Giant Growth",
+     "Giant Spider",
+     "Gitaxian Probe",
+     "Goblin Piker",
+     "Grizzly Bears",
+     "Hill Giant",
+     "Kalonian Tusker",
+     "Kolaghan's Command",
+     "Llanowar Elves",
+     "Mountain",
+     "Raging Goblin",
+     "Rampant Growth",
+     "Runeclaw Bear",
+     "Shock",
+     "Swamp",
+     "Trained Armodon",
+     "Village Rites"
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 37,
+    "running": true,
+    "turn": 4,
+    "phase": "MAIN1",
+    "activePlayer": 0,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 20,
+      "hasPriority": true,
+      "canAct": true,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 1,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 3,
+       "R": 1,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 39,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 21,
+         "key": "Swamp",
+         "name": "Sumpf",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "hand": [
+        {
+         "id": 46,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 2,
+         "key": "Blaze",
+         "name": "Heiße Glut",
+         "typeLine": "Hexerei",
+         "cost": "{X}{R}",
+         "set": "J22",
+         "text": "Die Heiße Glut fügt einem Spieler oder einer Kreatur Deiner Wahl X Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 13,
+         "key": "Swamp",
+         "name": "Sumpf",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "graveyard": [
+        {
+         "id": 49,
+         "key": "Shock",
+         "name": "Schock",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "MSC",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 54,
+         "key": "Dark Ritual",
+         "name": "Schwarzer Ritus",
+         "typeLine": "Manaquelle",
+         "cost": "{B}",
+         "set": "SLZ",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 52,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 18,
+      "hasPriority": false,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 111,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 113,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 104,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "hand": [
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [
+        {
+         "id": 87,
+         "key": "Rampant Growth",
+         "name": "Wucherndes Wachstum",
+         "typeLine": "Hexerei",
+         "cost": "{1}{G}",
+         "set": "FIC",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 52,
+      "commanders": []
+     }
+    ],
+    "stack": [],
+    "combat": [],
+    "payment": {
+     "cost": "{1}{R}",
+     "pool": "BR"
+    }
+   },
+   "questions": [
+    {
+     "type": "question",
+     "kind": "buttons",
+     "text": "Lichtbogen-Spur (7) - Die Lichtbogen-Spur fügt einer Kreatur oder einem Spieler deiner Wahl 2 Schadenspunkte und einer anderen Kreatur oder einem anderen Spieler deiner Wahl 1 Schadenspunkt zu.    Select any target (2 damage)",
+     "purpose": "payment",
+     "buttons": [
+      {
+       "nr": 1,
+       "label": "Auto",
+       "enabled": true
+      },
+      {
+       "nr": 2,
+       "label": "Abbrechen",
+       "enabled": true
+      }
+     ],
+     "card": 7,
+     "cardView": {
+      "id": 7,
+      "key": "Arc Trail",
+      "name": "Lichtbogen-Spur",
+      "typeLine": "Hexerei",
+      "cost": "{1}{R}",
+      "set": "PLST",
+      "text": "Die Lichtbogen-Spur fügt einer Kreatur oder einem Spieler deiner Wahl 2 Schadenspunkte und einer anderen Kreatur oder einem anderen Spieler deiner Wahl 1 Schadenspunkt zu.",
+      "tapped": false,
+      "sick": false,
+      "faceDown": false,
+      "damage": 0,
+      "owner": 0,
+      "controller": 0
+     },
+     "id": 22,
+     "blocking": false
+    }
+   ],
+   "prompt": "Lichtbogen-Spur (7) - Lichtbogen-Spur (7) deals 2 damage to Forge AI. Lichtbogen-Spur (7) deals 1 damage to Player.   Zahle die Spruchkosten: {1}{R}",
+   "notices": [
+    {
+     "type": "input.rejected",
+     "seq": 5,
+     "reason": "stale",
+     "detail": "question 9999999 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 5,
+      "question": 9999999,
+      "kind": "buttons",
+      "button": 1
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 6,
+     "reason": "invalid",
+     "detail": "button must be 1 or 2, got 3",
+     "input": {
+      "type": "answer",
+      "seq": 6,
+      "question": 5,
+      "kind": "buttons",
+      "button": 3
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 7,
+     "reason": "unknown-card",
+     "detail": "no visible card with this id",
+     "input": {
+      "type": "card.tap",
+      "seq": 7,
+      "card": -5
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 8,
+     "reason": "stale",
+     "detail": "question 2 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 8,
+      "question": 2,
+      "kind": "buttons",
+      "button": 1
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 17,
+     "reason": "not-active",
+     "detail": "question 13 must be answered first",
+     "input": {
+      "type": "card.tap",
+      "seq": 17,
+      "card": 39
+     }
+    }
+   ]
+  },
+  {
+   "name": "payment-life",
+   "description": "Phyrexian mana: Forge's payment takes the player's life - their seat is marked (Gitaxian Probe, Dismember; targets-payment).",
+   "fixture": "targets-payment",
+   "message": 400,
+   "game": {
+    "type": "game.started",
+    "protocol": 6,
+    "human": "Player",
+    "ai": "Forge AI",
+    "aiProfile": "Default",
+    "format": "constructed",
+    "cardNames": [
+     "Arc Trail",
+     "Blaze",
+     "Burst Lightning",
+     "Centaur Courser",
+     "Craw Wurm",
+     "Dark Ritual",
+     "Dismember",
+     "Forest",
+     "Giant Growth",
+     "Giant Spider",
+     "Gitaxian Probe",
+     "Goblin Piker",
+     "Grizzly Bears",
+     "Hill Giant",
+     "Kalonian Tusker",
+     "Kolaghan's Command",
+     "Llanowar Elves",
+     "Mountain",
+     "Raging Goblin",
+     "Rampant Growth",
+     "Runeclaw Bear",
+     "Shock",
+     "Swamp",
+     "Trained Armodon",
+     "Village Rites"
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 75,
+    "running": true,
+    "turn": 10,
+    "phase": "DRAW",
+    "activePlayer": 0,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 10,
+      "hasPriority": true,
+      "canAct": true,
+      "selectable": true,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 39,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "playable": true,
+         "action": "Bezahle Mana mit Karte"
+        },
+        {
+         "id": 21,
+         "key": "Swamp",
+         "name": "Sumpf",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "playable": true,
+         "action": "Bezahle Mana mit Karte"
+        },
+        {
+         "id": 46,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "playable": true,
+         "action": "Bezahle Mana mit Karte"
+        },
+        {
+         "id": 13,
+         "key": "Swamp",
+         "name": "Sumpf",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "playable": true,
+         "action": "Bezahle Mana mit Karte"
+        },
+        {
+         "id": 23,
+         "key": "Hill Giant",
+         "name": "Hügelriese",
+         "typeLine": "Beschwörung eines Riesen",
+         "cost": "{3}{R}",
+         "set": "30A",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "hand": [
+        {
+         "id": 2,
+         "key": "Blaze",
+         "name": "Heiße Glut",
+         "typeLine": "Hexerei",
+         "cost": "{X}{R}",
+         "set": "J22",
+         "text": "Die Heiße Glut fügt einem Spieler oder einer Kreatur Deiner Wahl X Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "graveyard": [
+        {
+         "id": 49,
+         "key": "Shock",
+         "name": "Schock",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "MSC",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 54,
+         "key": "Dark Ritual",
+         "name": "Schwarzer Ritus",
+         "typeLine": "Manaquelle",
+         "cost": "{B}",
+         "set": "SLZ",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 7,
+         "key": "Arc Trail",
+         "name": "Lichtbogen-Spur",
+         "typeLine": "Hexerei",
+         "cost": "{1}{R}",
+         "set": "PLST",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 53,
+         "key": "Dark Ritual",
+         "name": "Schwarzer Ritus",
+         "typeLine": "Manaquelle",
+         "cost": "{B}",
+         "set": "SLZ",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 49,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 16,
+      "hasPriority": false,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 111,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 113,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 104,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 101,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 75,
+         "key": "Trained Armodon",
+         "name": "Gezähmtes Armodon",
+         "typeLine": "Beschwörung eines Elefanten",
+         "cost": "{1}{G}{G}",
+         "set": "TPR",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 96,
+         "key": "Centaur Courser",
+         "name": "Zentauren-Renner",
+         "typeLine": "Kreatur — Zentaur, Krieger",
+         "cost": "{2}{G}",
+         "set": "PLST",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 120,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 65,
+         "key": "Kalonian Tusker",
+         "name": "Kalonischer Keiler",
+         "typeLine": "Kreatur — Bestie",
+         "cost": "{G}{G}",
+         "set": "M14",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
+         "tapped": false,
+         "sick": true,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 64,
+         "key": "Grizzly Bears",
+         "name": "Grizzlybären",
+         "typeLine": "Beschwörung von Bären",
+         "cost": "{1}{G}",
+         "set": "SLZ",
+         "power": 2,
+         "toughness": 2,
+         "text": "",
+         "tapped": false,
+         "sick": true,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "hand": [
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [
+        {
+         "id": 87,
+         "key": "Rampant Growth",
+         "name": "Wucherndes Wachstum",
+         "typeLine": "Hexerei",
+         "cost": "{1}{G}",
+         "set": "FIC",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 49,
+      "commanders": []
+     }
+    ],
+    "stack": [],
+    "combat": [],
+    "payment": {
+     "cost": "{1}{B/P}{B/P}",
+     "pool": ""
+    }
+   },
+   "questions": [
+    {
+     "type": "question",
+     "kind": "buttons",
+     "text": "Zergliedern (31) - Target creature gets -5/-5 until end of turn.  Select target creature",
+     "purpose": "payment",
+     "buttons": [
+      {
+       "nr": 1,
+       "label": "Auto",
+       "enabled": true
+      },
+      {
+       "nr": 2,
+       "label": "Abbrechen",
+       "enabled": true
+      }
+     ],
+     "card": 31,
+     "cardView": {
+      "id": 31,
+      "key": "Dismember",
+      "name": "Zergliedern",
+      "typeLine": "Spontanzauber",
+      "cost": "{1}{B/P}{B/P}",
+      "set": "SOA",
+      "text": "({B/P} kann entweder mit {B} oder 2 Lebenspunkten bezahlt werden.)\r\n\r\nEine Kreatur deiner Wahl erhält -5/-5 bis zum Ende des Zuges.",
+      "tapped": false,
+      "sick": false,
+      "faceDown": false,
+      "damage": 0,
+      "owner": 0,
+      "controller": 0
+     },
+     "id": 48,
+     "blocking": false
+    }
+   ],
+   "prompt": "Zergliedern (31) - Hügelriese (23) gets -5/-5  until end of turn.  Zahle die Spruchkosten: {1}{B/P}{B/P} (Klicke auf deine Lebenspunkte um phyrexianisches Mana zu bezahlen.)",
+   "notices": [
+    {
+     "type": "input.rejected",
+     "seq": 5,
+     "reason": "stale",
+     "detail": "question 9999999 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 5,
+      "question": 9999999,
+      "kind": "buttons",
+      "button": 1
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 6,
+     "reason": "invalid",
+     "detail": "button must be 1 or 2, got 3",
+     "input": {
+      "type": "answer",
+      "seq": 6,
+      "question": 5,
+      "kind": "buttons",
+      "button": 3
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 7,
+     "reason": "unknown-card",
+     "detail": "no visible card with this id",
+     "input": {
+      "type": "card.tap",
+      "seq": 7,
+      "card": -5
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 8,
+     "reason": "stale",
+     "detail": "question 2 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 8,
+      "question": 2,
+      "kind": "buttons",
+      "button": 1
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 17,
+     "reason": "not-active",
+     "detail": "question 13 must be answered first",
+     "input": {
+      "type": "card.tap",
+      "seq": 17,
+      "card": 39
+     }
+    }
+   ]
+  },
+  {
+   "name": "cast-x",
+   "description": "A decision while a spell is cast: the value of X for Blaze, a blocking choice before its target and payment (targets-payment).",
+   "fixture": "targets-payment",
+   "message": 133,
+   "game": {
+    "type": "game.started",
+    "protocol": 6,
+    "human": "Player",
+    "ai": "Forge AI",
+    "aiProfile": "Default",
+    "format": "constructed",
+    "cardNames": [
+     "Arc Trail",
+     "Blaze",
+     "Burst Lightning",
+     "Centaur Courser",
+     "Craw Wurm",
+     "Dark Ritual",
+     "Dismember",
+     "Forest",
+     "Giant Growth",
+     "Giant Spider",
+     "Gitaxian Probe",
+     "Goblin Piker",
+     "Grizzly Bears",
+     "Hill Giant",
+     "Kalonian Tusker",
+     "Kolaghan's Command",
+     "Llanowar Elves",
+     "Mountain",
+     "Raging Goblin",
+     "Rampant Growth",
+     "Runeclaw Bear",
+     "Shock",
+     "Swamp",
+     "Trained Armodon",
+     "Village Rites"
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 25,
+    "running": true,
+    "turn": 4,
+    "phase": "MAIN1",
+    "activePlayer": 0,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 20,
+      "hasPriority": true,
+      "canAct": true,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 1,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 39,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 21,
+         "key": "Swamp",
+         "name": "Sumpf",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "hand": [
+        {
+         "id": 46,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 54,
+         "key": "Dark Ritual",
+         "name": "Schwarzer Ritus",
+         "typeLine": "Manaquelle",
+         "cost": "{B}",
+         "set": "SLZ",
+         "text": "Erhöhe Deinen Manavorrat um BBB.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 7,
+         "key": "Arc Trail",
+         "name": "Lichtbogen-Spur",
+         "typeLine": "Hexerei",
+         "cost": "{1}{R}",
+         "set": "PLST",
+         "text": "Die Lichtbogen-Spur fügt einer Kreatur oder einem Spieler deiner Wahl 2 Schadenspunkte und einer anderen Kreatur oder einem anderen Spieler deiner Wahl 1 Schadenspunkt zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 13,
+         "key": "Swamp",
+         "name": "Sumpf",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "graveyard": [
+        {
+         "id": 49,
+         "key": "Shock",
+         "name": "Schock",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "MSC",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 52,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 18,
+      "hasPriority": false,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 111,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 113,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 104,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "hand": [
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [
+        {
+         "id": 87,
+         "key": "Rampant Growth",
+         "name": "Wucherndes Wachstum",
+         "typeLine": "Hexerei",
+         "cost": "{1}{G}",
+         "set": "FIC",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 52,
+      "commanders": []
+     }
+    ],
+    "stack": [],
+    "combat": []
+   },
+   "questions": [
+    {
+     "type": "question",
+     "kind": "buttons",
+     "text": "Priorität: Player Zug: 4 (Player) Phase: Erste Hauptphase (Vor-Kampf) Stapel: Leer",
+     "purpose": "priority",
+     "buttons": [
+      {
+       "nr": 1,
+       "label": "OK",
+       "enabled": true,
+       "meaning": "pass"
+      },
+      {
+       "nr": 2,
+       "label": "Zug beenden",
+       "enabled": true,
+       "meaning": "endTurn"
+      }
+     ],
+     "id": 12,
+     "blocking": false
+    },
+    {
+     "type": "question",
+     "kind": "choose",
+     "text": "Wähle X für Heiße Glut",
+     "min": 0,
+     "max": 1,
+     "items": [
+      {
+       "nr": 1,
+       "text": "0"
+      },
+      {
+       "nr": 2,
+       "text": "1"
+      },
+      {
+       "nr": 3,
+       "text": "2"
+      },
+      {
+       "nr": 4,
+       "text": "3"
+      },
+      {
+       "nr": 5,
+       "text": "4"
+      },
+      {
+       "nr": 6,
+       "text": "5"
+      },
+      {
+       "nr": 7,
+       "text": "6"
+      },
+      {
+       "nr": 8,
+       "text": "7"
+      },
+      {
+       "nr": 9,
+       "text": "8"
+      },
+      {
+       "nr": 10,
+       "text": "9"
+      },
+      {
+       "nr": 11,
+       "text": "Andere..."
+      }
+     ],
+     "id": 13,
+     "blocking": true
+    }
+   ],
+   "prompt": "Priorität: Player Zug: 4 (Player) Phase: Erste Hauptphase (Vor-Kampf) Stapel: Leer",
+   "notices": [
+    {
+     "type": "input.rejected",
+     "seq": 5,
+     "reason": "stale",
+     "detail": "question 9999999 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 5,
+      "question": 9999999,
+      "kind": "buttons",
+      "button": 1
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 6,
+     "reason": "invalid",
+     "detail": "button must be 1 or 2, got 3",
+     "input": {
+      "type": "answer",
+      "seq": 6,
+      "question": 5,
+      "kind": "buttons",
+      "button": 3
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 7,
+     "reason": "unknown-card",
+     "detail": "no visible card with this id",
+     "input": {
+      "type": "card.tap",
+      "seq": 7,
+      "card": -5
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 8,
+     "reason": "stale",
+     "detail": "question 2 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 8,
+      "question": 2,
+      "kind": "buttons",
+      "button": 1
      }
     }
    ]

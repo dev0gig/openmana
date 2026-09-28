@@ -2767,6 +2767,12 @@ const TABLE_SCENES = [
   "opponent-turn",
   "respond",
   "respond-own",
+  // Targets and payment (prompt 17): players Forge takes, two targets, the payment with the pool and with life, X while casting.
+  "target-both",
+  "payment",
+  "payment-pool",
+  "payment-life",
+  "cast-x",
 ] as const
 
 /** Forge's questions the recorded games do not reach, built after the schema on the recorded "main-phase" state (src/test/built-questions.ts) - marked as built. */
@@ -2787,16 +2793,26 @@ const TABLE_VIEWPORTS: readonly Viewport[] = [
 
 /**
  * Forge's marks in the recorded scenes (prompt 14): the playable land, the attacker blockers go to, Krenko who can still
- * attack; since prompt 16 the answers the player holds in the AI's turn (four red instants, two once it answered).
+ * attack; since prompt 16 the answers the player holds in the AI's turn (four red instants, two once it answered); since
+ * prompt 17 the players Forge takes or highlights (their seats).
  */
-const SCENE_MARKS: Partial<Record<(typeof TABLE_SCENES)[number], { readonly usable: number; readonly selected: number }>> = {
+const SCENE_MARKS: Partial<Record<(typeof TABLE_SCENES)[number], { readonly usable: number; readonly selected: number; readonly players?: number }>> = {
   opening: { usable: 0, selected: 0 },
   "main-phase": { usable: 1, selected: 0 },
   defend: { usable: 0, selected: 1 },
-  "commander-late": { usable: 1, selected: 0 },
+  // Krenko can still attack; Forge highlights the player attacked (prompt 17 shows players' marks).
+  "commander-late": { usable: 1, selected: 0, players: 1 },
   "opponent-turn": { usable: 4, selected: 0 },
   respond: { usable: 4, selected: 0 },
   "respond-own": { usable: 2, selected: 0 },
+  // Prompt 17: the creatures Dismember may target; both players for Shock; creatures and players for Magma Jet; the mana
+  // source Forge marks; none while floating mana pays; the sources and the player's life for Phyrexian mana.
+  target: { usable: 5, selected: 0 },
+  "target-player": { usable: 0, selected: 0, players: 2 },
+  "target-both": { usable: 2, selected: 0, players: 2 },
+  payment: { usable: 1, selected: 0 },
+  "payment-pool": { usable: 0, selected: 0 },
+  "payment-life": { usable: 2, selected: 0, players: 1 },
 }
 
 /**
@@ -2826,6 +2842,16 @@ async function cardTargets(page: Page, label: string): Promise<{ readonly count:
 /** The cards the harness's table tapped so far (window.__openmanaTaps). */
 function harnessTaps(page: Page): Promise<number[]> {
   return page.evaluate(() => (window as unknown as { __openmanaTaps?: number[] }).__openmanaTaps ?? [])
+}
+
+/** The players the harness's table tapped (prompt 17). */
+function harnessPlayerTaps(page: Page): Promise<number[]> {
+  return page.evaluate(() => (window as unknown as { __openmanaPlayerTaps?: number[] }).__openmanaPlayerTaps ?? [])
+}
+
+/** The floating mana the harness's table paid with (prompt 17). */
+function harnessMana(page: Page): Promise<string[]> {
+  return page.evaluate(() => (window as unknown as { __openmanaMana?: string[] }).__openmanaMana ?? [])
 }
 
 async function openScene(page: Page, base: string, scene: string, query = ""): Promise<void> {
@@ -3135,6 +3161,31 @@ async function decisionInteractions(page: Page, base: string, viewport: Viewport
   await activate(decision.getByRole("toolbar", { name: "Wählbare Karten, die nicht auf dem Tisch liegen" }).getByRole("button").first())
   await expectLast("a card outside the table (built)", { kind: "select", choices: [1] })
 
+  // Targets and payment (prompt 17): the players Forge takes - in the region and on their seat -, floating mana, life for mana; each at once, a double tap once.
+  const playerTaps = async (name: string, element: Locator, times = 1) => {
+    const id = Number(await element.getAttribute("data-player-choice") ?? await element.getAttribute("data-player"))
+    for (let i = 0; i < times; i++) await activate(element)
+    await page.waitForFunction(() => ((window as unknown as { __openmanaPlayerTaps?: unknown[] }).__openmanaPlayerTaps ?? []).length > 0, null, { timeout: 5000 }).catch(() => undefined)
+    const taps = await harnessPlayerTaps(page)
+    check(taps.length === 1 && taps[0] === id, `${label}: ${name} tapped ${JSON.stringify(taps)}, expected [${id}]`)
+    check((await harnessAnswers(page)).length === 0 && (await harnessTaps(page)).length === 0, `${label}: ${name} sent an answer or a card tap`)
+    results[name] = taps
+  }
+  await scene("target-player")
+  await playerTaps("a player as target (region)", decision.locator("[data-player-choice]").first())
+  await scene("target-both")
+  await playerTaps("a player as target (seat, double tap once)", page.locator('button[data-slot="game-player"][data-player]').first(), 2)
+  await scene("payment-life")
+  await playerTaps("life for Phyrexian mana", decision.locator("[data-player-choice]").first())
+  await scene("payment-pool")
+  const pool = decision.locator("[data-mana]").first()
+  const color = await pool.getAttribute("data-mana")
+  await activate(pool)
+  await page.waitForFunction(() => ((window as unknown as { __openmanaMana?: unknown[] }).__openmanaMana ?? []).length > 0, null, { timeout: 5000 }).catch(() => undefined)
+  const mana = await harnessMana(page)
+  check(mana.length === 1 && mana[0] === color, `${label}: floating mana paid ${JSON.stringify(mana)}, expected [${color}]`)
+  results["floating mana"] = mana
+
   // The player's priority (prompt 16): Forge's OK in words for what passing does, End Turn only after asking.
   await scene("main-phase")
   await armed(button("Weiter"))
@@ -3217,11 +3268,18 @@ async function tableHarness(browser: Browser): Promise<Record<string, unknown>> 
           if (menu !== null) check(menu >= 44, `${label}: the menu button ${menu}px high`)
           const cards = await cardTargets(page, label)
           const marks = await page.evaluate(() => ({
-            usable: document.querySelectorAll('button[data-mark="usable"]').length,
-            selected: document.querySelectorAll('button[data-mark="selected"]').length,
+            usable: document.querySelectorAll('button[data-slot="game-card"][data-mark="usable"]').length,
+            selected: document.querySelectorAll('button[data-slot="game-card"][data-mark="selected"]').length,
+            // Players Forge takes (prompt 17): their seats on the table (the region repeats them).
+            players: document.querySelectorAll('[data-slot="game-player"][data-player][data-mark]').length,
           }))
           const expected = built === null ? SCENE_MARKS[scene as (typeof TABLE_SCENES)[number]] : undefined
-          if (expected) check(marks.usable === expected.usable && marks.selected === expected.selected, `${label}: marks ${JSON.stringify(marks)}, expected ${JSON.stringify(expected)}`)
+          if (expected) {
+            check(
+              marks.usable === expected.usable && marks.selected === expected.selected && marks.players === (expected.players ?? 0),
+              `${label}: marks ${JSON.stringify(marks)}, expected ${JSON.stringify(expected)}`,
+            )
+          }
           const decision = await decisionFits(page, label, viewport)
           const axe = await accessibility(page, label)
           await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-${built === null ? scene : `built-${built}`}.png`) })

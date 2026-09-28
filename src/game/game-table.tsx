@@ -38,14 +38,23 @@
  * region's (decision-panel.tsx): what it is about in words, Forge's OK as
  * "Weiter" or "Verrechnen lassen". Cards are played by tapping them, as
  * always - never through a question the app makes up.
+ *
+ * Targets and payment (prompt 17): a player Forge's running input would take
+ * - a target, a choice, the one paying life for Phyrexian mana - is a control
+ * too: their name and life total carry Forge's mark and tap at once
+ * (onTapPlayer, Forge's player.tap), like the cards of a selection. The card
+ * the running step is about (the spell being cast, an ability's source) says
+ * so below its picture ("Quelle"). The decision region shows the payment:
+ * what is still to pay, floating mana to pay with (onUseMana).
  */
 import { Ban, Crown, Hand as HandIcon, Heart, Library, Shield, Skull, Swords, type LucideIcon } from "lucide-react"
 import { cn } from "cn"
 import { createContext, use, useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
-import type { AnswerBody, Card, GameState, Question, VisibleCard } from "@openmana/engine-protocol"
+import type { AnswerBody, Card, GameState, ManaColor, Question, VisibleCard } from "@openmana/engine-protocol"
 import { Badge } from "@/components/ui/badge"
 import { GameBoard, GameBoardArea, type GameBoardDecision } from "@/components/ui/game-board"
 import { GameCard, GameCardBack, GameCardButton, GameCardCaption, GameCardGroup, GameCardRow, GameCardRowButton, GameCardRowItem } from "@/components/ui/game-card"
+import { GamePlayer, GamePlayerButton } from "@/components/ui/game-player"
 import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item"
 import { PhaseTrack, PhaseTrackGroup, PhaseTrackStep } from "@/components/ui/phase-track"
 import { Separator } from "@/components/ui/separator"
@@ -53,13 +62,28 @@ import { Spinner } from "@/components/ui/spinner"
 import { useCardPress } from "@/hooks/use-card-press"
 import { useElementHeight } from "@/hooks/use-element-height"
 import { ARMING_MS, CardSheet, type CardLook } from "./card-sheet"
-import { cardUse, type CardPlace, type CardUse, type TableMoment } from "./card-use"
+import { cardUse, playerUse, stepSource, type CardPlace, type CardUse, type TableMoment } from "./card-use"
 import { currentDecision } from "./decision-model"
 import { DecisionPanel, decisionNeedsRoom } from "./decision-panel"
 import { aiProfileLabel, PHASE_LABELS, phaseLabel } from "./game-labels"
 import { STACK_KIND_LABELS, TURN_PHASE_LABELS, turnOwnerLabel } from "./priority-labels"
 import type { TableCardLookup } from "./table-cards"
-import { attackLine, blockLine, captionFacts, cardButtonLabel, cardFacts, cardName, counterLabel, MANA_LABELS, seatName, stackEntryName, stackOwner, stackTargets } from "./table-labels"
+import {
+  attackLine,
+  blockLine,
+  captionFacts,
+  cardButtonLabel,
+  cardFacts,
+  cardName,
+  counterLabel,
+  MANA_LABELS,
+  playerButtonLabel,
+  seatName,
+  SOURCE_LABEL,
+  stackEntryName,
+  stackOwner,
+  stackTargets,
+} from "./table-labels"
 import { isVisible, tableView, type BoardEntry, type CombatView, type Seat, type StackEntryView, type TableSide, type TableView } from "./table-model"
 import { TablePicture } from "./table-picture"
 import { TURN_PHASES, turnSteps } from "./turn-model"
@@ -97,6 +121,13 @@ export interface GameTableProps {
    * shown, never answered.
    */
   readonly onAnswer?: (question: number, body: AnswerBody) => void
+  /**
+   * Taps a player for the player (Forge's player.tap - the page sends it,
+   * prompt 17): a target, a choice, life for mana. Absent: only looked at.
+   */
+  readonly onTapPlayer?: (player: number) => void
+  /** Pays with floating mana of a colour during Forge's payment (mana.use - the page sends it, prompt 17). Absent: only looked at. */
+  readonly onUseMana?: (color: ManaColor) => void
 }
 
 /** What a card of the table needs to be operated: the moment's questions and Forge's state of waiting, and the two ways to use it. */
@@ -106,11 +137,28 @@ interface CardControls {
   readonly live: boolean
   readonly look: (id: number) => void
   readonly primary: (card: VisibleCard, use: CardUse) => void
+  /** Taps a player (prompt 17); null: the table is only looked at. */
+  readonly tapPlayer: ((player: number) => void) | null
 }
 
 const CardControlsContext = createContext<CardControls | null>(null)
 
-export function GameTable({ state, questions, prompt, waiting, aiProfile, profileDrawn = false, pictures, menu, alerts, conceding = false, onTapCard, onAnswer }: GameTableProps) {
+export function GameTable({
+  state,
+  questions,
+  prompt,
+  waiting,
+  aiProfile,
+  profileDrawn = false,
+  pictures,
+  menu,
+  alerts,
+  conceding = false,
+  onTapCard,
+  onAnswer,
+  onTapPlayer,
+  onUseMana,
+}: GameTableProps) {
   const view = useMemo(() => tableView(state, questions), [state, questions])
   const profile = profileDrawn ? `${aiProfileLabel(aiProfile)} (zufällig)` : aiProfileLabel(aiProfile)
   const moment = useMemo<TableMoment>(() => ({ questions, waiting, conceding }), [questions, waiting, conceding])
@@ -142,6 +190,18 @@ export function GameTable({ state, questions, prompt, waiting, aiProfile, profil
   }, [room, decisionKey, overflowed, questions, prompt, waiting, conceding, alerts, state])
   // The last card tapped at once and when: the second tap of a double tap counts once.
   const lastTap = useRef<{ readonly id: number; readonly at: number } | null>(null)
+  // Likewise the last player tapped: a double tap would choose and take back again.
+  const lastPlayerTap = useRef<{ readonly id: number; readonly at: number } | null>(null)
+  const tapPlayer = useCallback(
+    (player: number) => {
+      const now = performance.now()
+      const last = lastPlayerTap.current
+      if (onTapPlayer === undefined || (last !== null && last.id === player && now - last.at < ARMING_MS)) return
+      lastPlayerTap.current = { id: player, at: now }
+      onTapPlayer(player)
+    },
+    [onTapPlayer],
+  )
   const controls = useMemo<CardControls>(() => {
     const open = (id: number) => setLook((previous) => ({ id, open: true, serial: (previous?.serial ?? 0) + 1 }))
     return {
@@ -159,8 +219,9 @@ export function GameTable({ state, questions, prompt, waiting, aiProfile, profil
         lastTap.current = { id: card.id, at: now }
         onTapCard(card.id)
       },
+      tapPlayer: onTapPlayer === undefined ? null : tapPlayer,
     }
-  }, [moment, onTapCard])
+  }, [moment, onTapCard, onTapPlayer, tapPlayer])
   return (
     <CardControlsContext value={controls}>
       <GameBoard decision={room}>
@@ -227,6 +288,8 @@ export function GameTable({ state, questions, prompt, waiting, aiProfile, profil
             alerts={alerts}
             onLook={lookAtQuestionCard}
             {...(onAnswer !== undefined ? { onAnswer } : {})}
+            {...(onTapPlayer !== undefined ? { onTapPlayer: tapPlayer } : {})}
+            {...(onUseMana !== undefined ? { onUseMana } : {})}
           />
         </GameBoardArea>
 
@@ -297,18 +360,15 @@ function PlayerBar({ side, profile, pictures }: { side: TableSide; profile: stri
   const me = side.seat === "me"
   return (
     <div className="@container flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 text-xs text-muted-foreground">
-      <span className="flex items-center gap-1.5">
-        <span className="font-heading text-sm font-semibold text-foreground">{me ? "Du" : seatName(side.seat)}</span>
-        {profile !== null ? <Badge variant="secondary">{profile}</Badge> : null}
-        {side.active ? <Badge variant="outline">am Zug</Badge> : null}
-        {player.hasPriority ? <Badge variant="outline">Priorität</Badge> : null}
-        {player.lost ? <Badge variant="destructive">verloren</Badge> : null}
-      </span>
-      <span className="flex items-center gap-1 text-foreground" title="Lebenspunkte">
-        <Heart aria-hidden className="size-4" />
-        <span className="text-base font-semibold tabular-nums">{player.life}</span>
-        <span className="sr-only">Lebenspunkte</span>
-      </span>
+      <SeatPlayer side={side} />
+      {profile !== null || side.active || player.hasPriority || player.lost ? (
+        <span className="flex items-center gap-1.5">
+          {profile !== null ? <Badge variant="secondary">{profile}</Badge> : null}
+          {side.active ? <Badge variant="outline">am Zug</Badge> : null}
+          {player.hasPriority ? <Badge variant="outline">Priorität</Badge> : null}
+          {player.lost ? <Badge variant="destructive">verloren</Badge> : null}
+        </span>
+      ) : null}
       <Count label="Hand" value={counts.hand} icon={HandIcon} />
       <Count label="Bibliothek" value={counts.library} icon={Library} />
       <Count label="Friedhof" value={counts.graveyard} icon={Skull} />
@@ -340,6 +400,56 @@ function PlayerBar({ side, profile, pictures }: { side: TableSide; profile: stri
       ))}
       {me ? null : <OpponentHand cards={side.hand} pictures={pictures} />}
     </div>
+  )
+}
+
+/**
+ * Who a seat is and their life total - and, where Forge's running input
+ * would take the player (a target, a choice, life for mana; card-use.ts
+ * playerUse), the button for it with Forge's mark: it taps at once, like the
+ * cards of a selection. Without a tap it is only read, with Forge's
+ * highlight (chosen) if any.
+ */
+function SeatPlayer({ side }: { side: TableSide }) {
+  const controls = use(CardControlsContext)
+  if (controls === null) throw new Error("SeatPlayer outside GameTable")
+  const { player } = side
+  const usage = playerUse(player, controls.moment)
+  const name = side.seat === "me" ? "Du" : seatName(side.seat)
+  const content = (
+    <>
+      <span className="font-heading text-sm font-semibold text-foreground">{name}</span>
+      <span className="flex items-center gap-1 text-foreground" title="Lebenspunkte">
+        <Heart aria-hidden className="size-4" />
+        <span className="text-base font-semibold tabular-nums">{player.life}</span>
+        <span className="sr-only">Lebenspunkte</span>
+      </span>
+    </>
+  )
+  const tapPlayer = controls.tapPlayer
+  if (usage.tap === null || tapPlayer === null) {
+    return (
+      <GamePlayer data-player={player.id} mark={usage.mark} {...(usage.markLabel !== null ? { title: `${name}: ${usage.markLabel}` } : {})}>
+        {content}
+        {usage.markLabel !== null ? <span className="sr-only">, {usage.markLabel}</span> : null}
+      </GamePlayer>
+    )
+  }
+  const label = playerButtonLabel(name, player.life, usage)
+  return (
+    <GamePlayerButton
+      data-player={player.id}
+      mark={usage.mark}
+      aria-label={label}
+      title={usage.blocked ?? label}
+      disabled={usage.blocked !== null}
+      onKeyDown={(event) => {
+        if (event.repeat) event.preventDefault()
+      }}
+      onClick={() => tapPlayer(player.id)}
+    >
+      {content}
+    </GamePlayerButton>
   )
 }
 
@@ -433,7 +543,10 @@ function TableCard({ card, place, pictures, count = 1, note, caption }: { card: 
  * of it in the card's name for screen readers.
  */
 function FieldCard({ card, count, pictures, seat, note }: { card: VisibleCard; count: number; pictures: TableCardLookup; seat: Seat; note?: string }) {
-  const title = [cardName(card), ...cardFacts(card, count), ...(note ? [note] : [])].join(" · ")
+  const controls = use(CardControlsContext)
+  // The card the running step is about (an ability's source while its targets or costs are chosen - prompt 17).
+  const source = controls !== null && stepSource(controls.moment.questions) === card.id
+  const title = [cardName(card), ...cardFacts(card, count), ...(note ? [note] : []), ...(source ? [SOURCE_LABEL] : [])].join(" · ")
   return (
     <TableCard
       card={card}
@@ -446,6 +559,7 @@ function FieldCard({ card, count, pictures, seat, note }: { card: VisibleCard; c
           {count > 1 ? <span className="font-medium text-foreground">{count}×</span> : null}
           {card.attacking === true ? <Swords aria-hidden /> : null}
           {card.blocking === true ? <Shield aria-hidden /> : null}
+          {source ? <span className="font-medium text-foreground">{SOURCE_LABEL}</span> : null}
           <span className="truncate">{captionFacts(card).join(" · ")}</span>
         </GameCardCaption>
       }

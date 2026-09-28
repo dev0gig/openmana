@@ -61,6 +61,12 @@ describe("recorded scenes", () => {
       "opponent-turn",
       "respond",
       "respond-own",
+      // Targets and payment (prompt 17)
+      "target-both",
+      "payment",
+      "payment-pool",
+      "payment-life",
+      "cast-x",
     ])
     for (const scene of TABLE_SCENES) {
       expect(() => checkGameState(scene.state), scene.name).not.toThrow()

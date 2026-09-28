@@ -38,6 +38,8 @@ function table(name: TableSceneName, overrides: Partial<GameTableProps> = {}) {
   const scene = tableScene(name)
   const onAnswer = vi.fn<(question: number, body: AnswerBody) => void>()
   const onTapCard = vi.fn()
+  const onTapPlayer = vi.fn<(player: number) => void>()
+  const onUseMana = vi.fn<(color: string) => void>()
   const props: GameTableProps = {
     state: scene.state,
     questions: scene.questions,
@@ -48,10 +50,12 @@ function table(name: TableSceneName, overrides: Partial<GameTableProps> = {}) {
     menu: <button type="button">Menü</button>,
     onTapCard,
     onAnswer,
+    onTapPlayer,
+    onUseMana,
     ...overrides,
   }
   const view = render(<GameTable {...props} />)
-  return { scene, onAnswer, onTapCard, rerender: (next: Partial<GameTableProps>) => view.rerender(<GameTable {...props} {...next} />) }
+  return { scene, onAnswer, onTapCard, onTapPlayer, onUseMana, rerender: (next: Partial<GameTableProps>) => view.rerender(<GameTable {...props} {...next} />) }
 }
 
 /** A list with at least one entry, as the schema wants some lists (items of choose, options, distribute). */
@@ -167,24 +171,68 @@ describe("select (Forge's selectable cards)", () => {
   it("a target on the table (recorded): how many, where they are, Forge's prompt - not the step's stale text", () => {
     table("target")
     const note = within(decision()).getByText(/^Wähle genau 1/)
-    expect(note).toHaveTextContent("Wähle genau 1 · 0 gewählt · 2 davon liegen auf dem Tisch (gold gestrichelt).")
-    expect(within(decision()).getByText(/^Magmastrahl \(14\) - Der Magmastrahl/)).toBeInTheDocument()
-    expect(within(decision()).queryByText(/Priorität: Player Zug: 8/)).not.toBeInTheDocument()
-    // The cards lie on the table: no second row of them here.
+    expect(note).toHaveTextContent("Wähle genau 1 · 0 gewählt · 5 Karten davon liegen auf dem Tisch (gold gestrichelt).")
+    expect(within(decision()).getByText(/^Zergliedern \(31\) - Target creature gets -5\/-5/)).toBeInTheDocument()
+    // The cards lie on the table: no second row of them here; no player is taken.
     expect(decision().querySelector('[data-slot="game-decision-row"]')).toBeNull()
+    expect(within(decision()).queryByRole("group", { name: "Spieler, die Forge hier nimmt" })).not.toBeInTheDocument()
     expect(board()).toHaveAttribute("data-decision", "compact")
   })
 
-  it("a target that is a player (recorded): Forge names no card - said honestly, cancel stays", () => {
-    table("target-player")
-    expect(within(decision()).getByText(/^Forge bietet keine Karte zur Wahl an – gewählt wird hier ein Spieler\./)).toBeInTheDocument()
+  it("a target that is a player (recorded, prompt 17): the players Forge takes are buttons - here and on their seats -, a tap chooses at once, a double tap once", async () => {
+    const user = userEvent.setup()
+    const { scene, onTapPlayer, onAnswer, onTapCard } = table("target-player")
+    const [ai, me] = [scene.state.players.find((player) => !player.me)!, scene.state.players.find((player) => player.me)!]
+    expect(within(decision()).getByText("Wähle genau 1 · 0 gewählt.")).toBeInTheDocument()
+    const players = within(decision()).getByRole("group", { name: "Spieler, die Forge hier nimmt" })
+    const choices = within(players).getAllByRole("button")
+    expect(choices.map((button) => button.getAttribute("aria-label"))).toEqual([
+      `Forge-KI, ${ai.life} Lebenspunkte, wählbar – Antippen: Wählen`,
+      `Du, ${me.life} Lebenspunkte, wählbar – Antippen: Wählen`,
+    ])
+    expect(choices.every((button) => button.getAttribute("data-mark") === "usable")).toBe(true)
+    await user.dblClick(choices[0]!)
+    expect(onTapPlayer.mock.calls).toEqual([[ai.id]])
+    // The seats on the table are the same controls (Forge's "click on the player").
+    const seat = document.querySelector<HTMLButtonElement>(`button[data-slot="game-player"][data-player="${me.id}"]`)!
+    expect(seat).toHaveAccessibleName(`Du, ${me.life} Lebenspunkte, wählbar – Antippen: Wählen`)
+    wait()
+    await user.click(seat)
+    expect(onTapPlayer.mock.calls).toEqual([[ai.id], [me.id]])
+    expect(onAnswer).not.toHaveBeenCalled()
+    expect(onTapCard).not.toHaveBeenCalled()
     expect(within(decision()).getByRole("button", { name: "Abbrechen" })).toBeEnabled()
+  })
+
+  it("any target (recorded): the creatures on the table and the players, counted together in Forge's numbers", () => {
+    const { scene } = table("target-both")
+    expect(within(decision()).getByText("Wähle genau 1 · 0 gewählt · 2 Karten davon liegen auf dem Tisch (gold gestrichelt).")).toBeInTheDocument()
+    expect(within(within(decision()).getByRole("group", { name: "Spieler, die Forge hier nimmt" })).getAllByRole("button")).toHaveLength(2)
+    expect(document.querySelectorAll('button[data-slot="game-player"][data-player][data-mark="usable"]')).toHaveLength(scene.state.players.length)
   })
 
   it("two cards to discard (recorded): no buttons - Forge ends the step itself", () => {
     table("discard")
-    expect(within(decision()).getByText("Wähle genau 2 · 0 gewählt · 3 davon liegen auf dem Tisch (gold gestrichelt).")).toBeInTheDocument()
+    expect(within(decision()).getByText("Wähle genau 2 · 0 gewählt · 3 Karten davon liegen auf dem Tisch (gold gestrichelt).")).toBeInTheDocument()
     expect(within(decision()).queryByRole("group", { name: "Antworten, die Forge anbietet" })).not.toBeInTheDocument()
+  })
+
+  it("a chosen player carries Forge's highlight (solid frame); one Forge would not take back is only shown", () => {
+    const scene = tableScene("target-player")
+    const [ai, me] = [scene.state.players.find((player) => !player.me)!, scene.state.players.find((player) => player.me)!]
+    // Forge chose the AI (its highlight, a tap takes it back); the player is no longer taken.
+    const state: GameState = {
+      ...scene.state,
+      players: scene.state.players.map(({ selectable, ...player }) => (player.id === ai.id ? { ...player, selectable: selectable!, highlighted: true as const } : player)) as GameState["players"],
+    }
+    table("target-player", { state })
+    expect(within(decision()).getByText("Wähle genau 1 · 1 gewählt.")).toBeInTheDocument()
+    const choice = within(within(decision()).getByRole("group", { name: "Spieler, die Forge hier nimmt" })).getByRole("button", { name: /^Forge-KI/ })
+    expect(choice).toHaveAttribute("data-mark", "selected")
+    expect(choice).toHaveAccessibleName(`Forge-KI, ${ai.life} Lebenspunkte, gewählt – Antippen: Auswahl aufheben`)
+    expect(choice).toHaveAttribute("aria-pressed", "true")
+    // The player who is neither chosen nor taken: no control.
+    expect(document.querySelector(`button[data-slot="game-player"][data-player="${me.id}"]`)).toBeNull()
   })
 
   it("cards the table does not show come as a row here: a tap selects at once (counted once), a long press only looks", async () => {
@@ -192,7 +240,10 @@ describe("select (Forge's selectable cards)", () => {
     const scene = tableScene("target")
     const select = scene.questions.find((question): question is SelectQuestion => question.kind === "select")!
     const library: VisibleCard = { id: 999, key: "Mountain", name: "Gebirge", typeLine: "Standardland — Gebirge", tapped: false, sick: false, faceDown: false, damage: 0, owner: 0, controller: 0 }
-    const questions = scene.questions.map((question) => (question === select ? { ...select, max: 2, items: [...select.items, { nr: 3, text: "Gebirge (999)", card: 999, cardView: library }, { nr: 4, hidden: true as const }] } : question))
+    const next = select.items.length + 1
+    const questions = scene.questions.map((question) =>
+      question === select ? { ...select, max: 2, items: [...select.items, { nr: next, text: "Gebirge (999)", card: 999, cardView: library }, { nr: next + 1, hidden: true as const }] } : question,
+    )
     const { onAnswer } = table("target", { questions })
     const row = within(decision()).getByRole("toolbar", { name: "Wählbare Karten, die nicht auf dem Tisch liegen" })
     const [mountain, hidden] = within(row).getAllByRole("button")
@@ -200,7 +251,7 @@ describe("select (Forge's selectable cards)", () => {
     expect(hidden).toHaveAccessibleName("verdeckte Karte, wählbar")
     expect(board()).toHaveAttribute("data-decision", "expanded")
     await user.dblClick(mountain!)
-    expect(answers(onAnswer)).toEqual([[select.id, { kind: "select", choices: [3] }]])
+    expect(answers(onAnswer)).toEqual([[select.id, { kind: "select", choices: [next] }]])
     // Looking at it (right click): the card view shows it as the question does, and nothing is sent.
     wait()
     fireEvent.contextMenu(mountain!)
@@ -211,7 +262,78 @@ describe("select (Forge's selectable cards)", () => {
     await user.click(within(view).getByRole("button", { name: "Schließen" }))
     wait()
     await user.click(hidden!)
-    expect(answers(onAnswer).at(-1)).toEqual([select.id, { kind: "select", choices: [4] }])
+    expect(answers(onAnswer).at(-1)).toEqual([select.id, { kind: "select", choices: [next + 1] }])
+  })
+})
+
+describe("paying a cost (prompt 17)", () => {
+  it("by hand (recorded): what is still to pay in Forge's symbols (words for screen readers), the source, the mana sources on the table tap at once", async () => {
+    const user = userEvent.setup()
+    const { scene, onTapCard } = table("payment")
+    expect(within(decision()).getByText(/^Noch zu zahlen:/)).toHaveTextContent("Noch zu zahlen: {R}Rot. Manaquellen auf dem Tisch (gold gestrichelt) bezahlen beim Antippen.")
+    expect(within(decision()).getByText("Kosten bezahlen · Schock")).toBeInTheDocument()
+    expect(within(decision()).queryByRole("group", { name: "Aus deinem Manavorrat bezahlen" })).not.toBeInTheDocument()
+    expect(within(decision()).queryByRole("group", { name: "Mit Leben statt Mana bezahlen" })).not.toBeInTheDocument()
+    const me = scene.state.players.find((player) => player.me)!
+    const land = me.zones.battlefield.find((card) => "playable" in card && card.playable === true)!
+    const button = document.querySelector<HTMLButtonElement>(`[data-card="${"id" in land ? land.id : -1}"]`)!
+    expect(button).toHaveAttribute("data-mark", "usable")
+    await user.click(button)
+    expect(onTapCard).toHaveBeenCalledWith("id" in land ? land.id : -1)
+  })
+
+  it("with floating mana (recorded: Dark Ritual): a button per colour Forge takes, paying at once, a double press once", async () => {
+    const user = userEvent.setup()
+    const { onUseMana, onAnswer } = table("payment-pool")
+    // Forge marks no mana source here (the pool pays): no word about sources on the table.
+    expect(within(decision()).getByText(/^Noch zu zahlen:/)).toHaveTextContent(/^Noch zu zahlen: \{1\}\{R\}1 beliebig, Rot\.$/)
+    const pool = within(decision()).getByRole("group", { name: "Aus deinem Manavorrat bezahlen" })
+    expect(within(pool).getAllByRole("button").map((button) => button.textContent)).toEqual(["Schwarz aus dem Vorrat (3)", "Rot aus dem Vorrat (1)"])
+    await user.dblClick(within(pool).getByRole("button", { name: "Rot aus dem Vorrat (1)" }))
+    expect(onUseMana.mock.calls).toEqual([["R"]])
+    expect(onAnswer).not.toHaveBeenCalled()
+  })
+
+  it("Phyrexian mana (recorded: Dismember): Forge takes the player's life - their seat and a button here", async () => {
+    const user = userEvent.setup()
+    const { scene, onTapPlayer } = table("payment-life")
+    const me = scene.state.players.find((player) => player.me)!
+    const life = within(within(decision()).getByRole("group", { name: "Mit Leben statt Mana bezahlen" })).getByRole("button")
+    expect(life).toHaveAccessibleName(`Du, ${me.life} Lebenspunkte, kann mit Leben bezahlen – Antippen: Mit Leben bezahlen`)
+    expect(within(decision()).getByText(/^Noch zu zahlen:/)).toHaveTextContent("{1}{B/P}{B/P}1 beliebig, Schwarz oder Leben, Schwarz oder Leben")
+    await user.click(life)
+    expect(onTapPlayer.mock.calls).toEqual([[me.id]])
+    // Only the paying player: the opponent's seat is no control.
+    const ai = scene.state.players.find((player) => !player.me)!
+    expect(document.querySelector(`button[data-slot="game-player"][data-player="${ai.id}"]`)).toBeNull()
+  })
+
+  it("while Forge computes nothing is tapped or paid - the controls stay, off, with the reason; a table only looked at has none on its seats", () => {
+    const { rerender } = table("payment-life", { waiting: false })
+    const life = within(within(decision()).getByRole("group", { name: "Mit Leben statt Mana bezahlen" })).getByRole("button")
+    expect(life).toBeDisabled()
+    expect(life).toHaveAccessibleDescription(/Forge rechnet gerade/)
+    rerender({ waiting: true, onTapPlayer: undefined as never, onUseMana: undefined as never })
+    expect(document.querySelector('button[data-slot="game-player"][data-player]')).toBeNull()
+  })
+
+  it("a decision while a spell is cast (recorded: X for Blaze) is answered alone, the priority's buttons wait under it", () => {
+    table("cast-x")
+    expect(within(decision()).getByText("Wähle X für Heiße Glut")).toBeInTheDocument()
+    expect(within(decision()).queryByRole("button", { name: "Weiter" })).not.toBeInTheDocument()
+    expect(board()).toHaveAttribute("data-decision", "expanded")
+  })
+
+  it("the card a step is about is its source: 'Quelle' below its picture on the table (an ability's source; built on a recorded state)", () => {
+    const scene = tableScene("main-phase")
+    const me = scene.state.players.find((player) => player.me)!
+    const land = me.zones.battlefield.find((card) => "id" in card)!
+    const id = "id" in land ? land.id : -1
+    const select: Question = { type: "question", kind: "select", id: 950, blocking: false, text: "", min: 1, max: 1, cards: [], items: [], card: id, cardView: land as VisibleCard }
+    table("main-phase", { questions: [select], prompt: null })
+    const card = document.querySelector<HTMLButtonElement>(`[data-card="${id}"]`)!
+    expect(card.getAttribute("aria-label")).toMatch(/, Quelle/)
+    expect(within(card).getByText("Quelle")).toBeInTheDocument()
   })
 })
 

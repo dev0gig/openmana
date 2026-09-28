@@ -30,8 +30,10 @@ import type {
   GameState,
   InputQuestion,
   Item,
+  ManaColor,
   OptionsQuestion,
   OrderQuestion,
+  Player,
   Question,
   SelectQuestion,
   VisibleCard,
@@ -174,16 +176,23 @@ export function tableCardIds(state: GameState): ReadonlySet<number> {
 }
 
 export interface SelectView {
-  /** Forge names no card to select (then the target is a player, prompt 17). */
+  /** Forge names no card to select (then only players can be chosen, if any - prompt 17). */
   readonly noCard: boolean
-  /** How many to pick ("genau 1" …); null when Forge names no card. */
+  /** How many to pick ("genau 1" …) - Forge's own numbers for cards and players together; null when Forge offers nothing to pick. */
   readonly rule: string | null
   /** Items the table does not show as cards (graveyard, exile, library, hidden): the decision region shows them. */
   readonly offTable: readonly Item[]
   /** How many of the named cards lie on the table (marked there, "wählbar"). */
   readonly onTable: number
-  /** How many are chosen (Forge's highlight), if that can be known for every item (null: not for all). */
+  /** How many are chosen (Forge's highlight on cards and players), if that can be known for every item (null: not for all). */
   readonly chosen: number | null
+  /** The players Forge's running input would take (selectable) or has chosen (highlighted), the opponent first (prompt 17). */
+  readonly players: readonly Player[]
+}
+
+/** The players a selection is about (prompt 17): Forge takes them now or has chosen them; the opponent first. */
+export function selectionPlayers(state: GameState): Player[] {
+  return state.players.filter((player) => player.selectable === true || player.highlighted === true).sort((a, b) => Number(a.me) - Number(b.me))
 }
 
 /**
@@ -210,8 +219,31 @@ export function selectView(question: SelectQuestion, state: GameState): SelectVi
     if (card === undefined) chosen = null
     else if (chosen !== null && card.highlighted === true) chosen++
   }
+  const players = selectionPlayers(state)
+  if (chosen !== null) chosen += players.filter((player) => player.highlighted === true).length
   const noCard = question.items.length === 0
-  return { noCard, rule: noCard ? null : countRule(question.min, question.max, question.items.length), offTable, onTable, chosen }
+  const count = question.items.length + players.length
+  return { noCard, rule: count === 0 ? null : countRule(question.min, question.max, count), offTable, onTable, chosen, players }
+}
+
+// ── The payment (prompt 17) ────────────────────────────────────────────────
+
+export interface PaymentView {
+  /** The mana still to pay, in Forge's mana symbols ("{1}{R}"; "0" = nothing left). */
+  readonly cost: string
+  /** Floating mana Forge would pay with now (mana.use): colour and how much of it floats. */
+  readonly pool: readonly { readonly color: ManaColor; readonly amount: number }[]
+  /** Forge's payment takes the player's own life now (Phyrexian mana: their seat is selectable). */
+  readonly life: Player | null
+}
+
+/** Forge's payment in progress as the decision region shows it, or null when none runs. */
+export function paymentView(state: GameState): PaymentView | null {
+  const payment = state.payment
+  if (payment === undefined) return null
+  const me = state.players.find((player) => player.me) ?? null
+  const pool = [...payment.pool].map((color) => color as ManaColor).map((color) => ({ color, amount: me?.mana[color] ?? 0 }))
+  return { cost: payment.cost, pool, life: me !== null && me.selectable === true ? me : null }
 }
 
 /** Selecting an item: Forge's click on it (it toggles; the question stays open until Forge is done). */

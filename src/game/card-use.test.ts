@@ -6,10 +6,10 @@
  * bottom cards, a blocking question). Everything from Forge's markers and
  * questions; no rule.
  */
-import type { Question, VisibleCard } from "@openmana/engine-protocol"
+import type { Player, Question, VisibleCard } from "@openmana/engine-protocol"
 import { describe, expect, it } from "vitest"
 import { tableScene, type TableSceneName } from "@/test/table-scenes"
-import { cardUse, currentStep, directTaps, openSelection, tapBlocked, type CardPlace, type TableMoment } from "./card-use"
+import { cardUse, currentStep, directTaps, openSelection, playerUse, stepSource, tapBlocked, type CardPlace, type TableMoment } from "./card-use"
 import { isVisible, locateCard } from "./table-model"
 
 function moment(name: TableSceneName, overrides: Partial<TableMoment> = {}): TableMoment {
@@ -32,36 +32,36 @@ function useOf(name: TableSceneName, id: number, overrides: Partial<TableMoment>
 describe("marks and taps from Forge's markers (real scenes)", () => {
   it("priority: the playable land in hand is marked and looked at first; Forge's words name the tap", () => {
     expect(currentStep(tableScene("main-phase").questions)).toBe("priority")
-    expect(useOf("main-phase", 25)).toEqual({ mark: "usable", markLabel: "spielbar", tap: { label: "Spiele ein Land", marked: true }, primary: "look", blocked: null })
+    expect(useOf("main-phase", 25)).toEqual({ mark: "usable", markLabel: "spielbar", source: false, tap: { label: "Spiele ein Land", marked: true }, primary: "look", blocked: null })
   })
 
   it("priority: a land on the battlefield Forge only names an action for (its mana ability) is not marked, its tap is offered in the card view", () => {
-    expect(useOf("main-phase", 28)).toEqual({ mark: null, markLabel: null, tap: { label: "Aktiviere Fähigkeit", marked: false }, primary: "look", blocked: null })
+    expect(useOf("main-phase", 28)).toEqual({ mark: null, markLabel: null, source: false, tap: { label: "Aktiviere Fähigkeit", marked: false }, primary: "look", blocked: null })
   })
 
   it("the mulligan: Forge offers nothing for the hand's cards - no mark, no tap, a look", () => {
     const scene = tableScene("opening")
     const me = scene.state.players.find((player) => player.me)!
     for (const hand of me.zones.hand.filter(isVisible)) {
-      expect(cardUse(hand, { zone: "hand", mine: true }, moment("opening"))).toEqual({ mark: null, markLabel: null, tap: null, primary: "look", blocked: null })
+      expect(cardUse(hand, { zone: "hand", mine: true }, moment("opening"))).toEqual({ mark: null, markLabel: null, source: false, tap: null, primary: "look", blocked: null })
     }
   })
 
   it("blocking: Forge's taps act at once - the blocker taken back, the attacker to assign blockers to (Forge's highlight: chosen)", () => {
     expect(currentStep(tableScene("defend").questions)).toBe("block")
-    expect(useOf("defend", 58)).toEqual({ mark: null, markLabel: null, tap: { label: "Remove card from combat", marked: false }, primary: "tap", blocked: null })
-    expect(useOf("defend", 80)).toEqual({ mark: "selected", markLabel: "ausgewählt", tap: { label: "Declare blockers for card", marked: false }, primary: "tap", blocked: null })
+    expect(useOf("defend", 58)).toEqual({ mark: null, markLabel: null, source: false, tap: { label: "Remove card from combat", marked: false }, primary: "tap", blocked: null })
+    expect(useOf("defend", 80)).toEqual({ mark: "selected", markLabel: "ausgewählt", source: false, tap: { label: "Declare blockers for card", marked: false }, primary: "tap", blocked: null })
   })
 
   it("a declared attack: Forge's marker reads 'kann angreifen', every declared attacker can be taken back at once", () => {
     expect(currentStep(tableScene("commander-late").questions)).toBe("attackDeclared")
-    expect(useOf("commander-late", 100)).toEqual({ mark: "usable", markLabel: "kann angreifen", tap: { label: "Remove card from combat", marked: true }, primary: "tap", blocked: null })
+    expect(useOf("commander-late", 100)).toEqual({ mark: "usable", markLabel: "kann angreifen", source: false, tap: { label: "Remove card from combat", marked: true }, primary: "tap", blocked: null })
     expect(useOf("commander-late", 205)).toMatchObject({ mark: null, tap: { label: "Remove card from combat" }, primary: "tap" })
   })
 
   it("payment: cards Forge names nothing for stay a look", () => {
     expect(currentStep(tableScene("stack").questions)).toBe("payment")
-    expect(useOf("stack", 24)).toEqual({ mark: null, markLabel: null, tap: null, primary: "look", blocked: null })
+    expect(useOf("stack", 24)).toEqual({ mark: null, markLabel: null, source: false, tap: null, primary: "look", blocked: null })
   })
 })
 
@@ -81,6 +81,7 @@ describe("the steps that tap at once", () => {
     expect(cardUse(land, { zone: "battlefield", mine: true }, moment("stack"))).toEqual({
       mark: "usable",
       markLabel: "kann bezahlen",
+      source: false,
       tap: { label: "Karte antippen", marked: true },
       primary: "tap",
       blocked: null,
@@ -100,6 +101,7 @@ describe("a selection (built: the recordings have none open at their moments)", 
     expect(cardUse(blocker, { zone: "battlefield", mine: true }, { questions, waiting: true, conceding: false })).toEqual({
       mark: "usable",
       markLabel: "wählbar",
+      source: false,
       tap: { label: "Auswählen", marked: true },
       primary: "tap",
       blocked: null,
@@ -128,6 +130,7 @@ describe("the London mulligan's bottom cards (built)", () => {
     expect(cardUse(hand, { zone: "hand", mine: true }, { questions, waiting: true, conceding: false })).toEqual({
       mark: "usable",
       markLabel: "wählbar",
+      source: false,
       tap: { label: "Unter die Bibliothek legen", marked: true },
       primary: "tap",
       blocked: null,
@@ -135,6 +138,7 @@ describe("the London mulligan's bottom cards (built)", () => {
     expect(cardUse({ ...hand, highlighted: true }, { zone: "hand", mine: true }, { questions, waiting: true, conceding: false })).toMatchObject({
       mark: "selected",
       markLabel: "ausgewählt",
+      source: false,
       tap: { label: "Doch behalten" },
       primary: "tap",
     })
@@ -148,7 +152,7 @@ describe("the London mulligan's bottom cards (built)", () => {
 
 describe("when no tap can be sent", () => {
   it("while Forge computes: the tap stays named, the card is looked at, the reason given", () => {
-    expect(useOf("defend", 58, { waiting: false })).toEqual({ mark: null, markLabel: null, tap: { label: "Remove card from combat", marked: false }, primary: "look", blocked: "Forge rechnet gerade." })
+    expect(useOf("defend", 58, { waiting: false })).toEqual({ mark: null, markLabel: null, source: false, tap: { label: "Remove card from combat", marked: false }, primary: "look", blocked: "Forge rechnet gerade." })
   })
 
   it("while a blocking question waits (the client would refuse the tap) and while the concession is on its way", () => {
@@ -160,5 +164,53 @@ describe("when no tap can be sent", () => {
 
   it("a card without a tap has nothing to block", () => {
     expect(useOf("opening", 53, { waiting: false }).blocked).toBeNull()
+  })
+})
+
+describe("the running step's source (prompt 17)", () => {
+  it("the card Forge sends with a selection or a payment is the source; the priority names none", () => {
+    const withCard = { ...select([58]), card: 80 } as Question
+    expect(stepSource([withCard])).toBe(80)
+    const payment: Question = { type: "question", kind: "buttons", id: 4, blocking: false, text: "", purpose: "payment", card: 36, buttons: [{ nr: 1, label: "Auto", enabled: true }, { nr: 2, label: "Abbrechen", enabled: true }] }
+    expect(stepSource([payment])).toBe(36)
+    expect(stepSource(tableScene("main-phase").questions)).toBeNull()
+    expect(cardUse(card("defend", 80).card, { zone: "battlefield", mine: false }, { questions: [withCard], waiting: true, conceding: false }).source).toBe(true)
+    expect(cardUse(card("defend", 58).card, { zone: "battlefield", mine: true }, { questions: [withCard], waiting: true, conceding: false }).source).toBe(false)
+  })
+})
+
+describe("players (prompt 17)", () => {
+  const opponent = (extra: Partial<Player> = {}): Player => ({ ...tableScene("main-phase").state.players.find((player) => !player.me)!, ...extra })
+  const selecting: TableMoment = { questions: [select([])], waiting: true, conceding: false }
+
+  it("only a player Forge's running input takes has a tap: chosen by a tap at once, taken back by another", () => {
+    expect(playerUse(opponent(), selecting)).toEqual({ mark: null, markLabel: null, tap: null, blocked: null })
+    expect(playerUse(opponent({ selectable: true }), selecting)).toEqual({ mark: "usable", markLabel: "wählbar", tap: { label: "Wählen" }, blocked: null })
+    expect(playerUse(opponent({ selectable: true, highlighted: true }), selecting)).toEqual({ mark: "selected", markLabel: "gewählt", tap: { label: "Auswahl aufheben" }, blocked: null })
+    // Chosen, but Forge would not take it back (it is done choosing): the mark alone.
+    expect(playerUse(opponent({ highlighted: true }), selecting)).toEqual({ mark: "selected", markLabel: "gewählt", tap: null, blocked: null })
+  })
+
+  it("in a payment Forge takes the player's life: the words say so", () => {
+    const payment: Question = { type: "question", kind: "buttons", id: 4, blocking: false, text: "", purpose: "payment", buttons: [{ nr: 1, label: "Auto", enabled: false }, { nr: 2, label: "Abbrechen", enabled: true }] }
+    expect(playerUse(opponent({ selectable: true }), { questions: [payment], waiting: true, conceding: false })).toEqual({
+      mark: "usable",
+      markLabel: "kann mit Leben bezahlen",
+      tap: { label: "Mit Leben bezahlen" },
+      blocked: null,
+    })
+  })
+
+  it("while attackers are declared, Forge's highlight is the player they attack (recorded)", () => {
+    const scene = tableScene("commander-late")
+    const defender = scene.state.players.find((player) => player.highlighted === true)!
+    expect(defender.me).toBe(false)
+    expect(playerUse(defender, { questions: scene.questions, waiting: true, conceding: false })).toEqual({ mark: "selected", markLabel: "wird angegriffen", tap: null, blocked: null })
+  })
+
+  it("the reasons why nothing can be sent are the cards'", () => {
+    expect(playerUse(opponent({ selectable: true }), { ...selecting, waiting: false }).blocked).toBe("Forge rechnet gerade.")
+    expect(playerUse(opponent({ selectable: true }), { ...selecting, conceding: true }).blocked).toBe("Die Aufgabe ist unterwegs.")
+    expect(playerUse(opponent(), { ...selecting, waiting: false }).blocked).toBeNull()
   })
 })

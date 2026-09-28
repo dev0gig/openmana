@@ -548,6 +548,32 @@ describe("EngineSession: a game", () => {
   })
 })
 
+describe("EngineSession: players and floating mana (prompt 17)", () => {
+  it("sends Forge's player.tap and mana.use while Forge waits; Forge then no longer waits", async () => {
+    const engine = await playing()
+    expect(engine.session.tapPlayer(1)).toEqual({ ok: true })
+    expect(engine.worker().inputs()).toEqual([{ type: "player.tap", seq: 1, player: 1 }])
+    expect(match(engine, "playing").waiting).toBe(false)
+    engine.worker().send({ type: "engine.waiting", consumed: 1 })
+    expect(engine.session.useMana("B")).toEqual({ ok: true })
+    expect(engine.worker().inputs()).toEqual([{ type: "mana.use", seq: 2, color: "B" }])
+  })
+
+  it("never while Forge computes, never for a player that is not there, not during a concession", async () => {
+    const engine = await playing()
+    expect(engine.session.tapPlayer(7)).toEqual({ ok: false, reason: "Diesen Spieler gibt es nicht." })
+    engine.session.tapPlayer(1)
+    engine.worker().inputs()
+    expect(engine.session.tapPlayer(0)).toEqual({ ok: false, reason: "Forge rechnet gerade – antippen geht, sobald Forge wieder auf dich wartet." })
+    expect(engine.session.useMana("R")).toEqual({ ok: false, reason: "Forge rechnet gerade – bezahlen geht, sobald Forge wieder auf dich wartet." })
+    engine.worker().send({ type: "engine.waiting", consumed: 1 })
+    engine.session.concede()
+    expect(engine.session.tapPlayer(0)).toEqual({ ok: false, reason: "Die Aufgabe ist unterwegs." })
+    expect(engine.session.useMana("R")).toEqual({ ok: false, reason: "Die Aufgabe ist unterwegs." })
+    expect(engine.worker().inputs()).toEqual([{ type: "concede", seq: 2 }])
+  })
+})
+
 describe("EngineSession: tapping a card (prompt 14)", () => {
   it("sends Forge's card.tap while Forge waits; Forge then no longer waits", async () => {
     const engine = await playing()

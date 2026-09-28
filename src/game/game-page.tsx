@@ -23,7 +23,7 @@ import { ImageOff, Menu, OctagonAlert, Swords, TriangleAlert } from "lucide-reac
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { Link, NavLink, useNavigate } from "react-router"
 import { toast } from "sonner"
-import type { AnswerBody, GameState } from "@openmana/engine-protocol"
+import type { AnswerBody, GameState, ManaColor } from "@openmana/engine-protocol"
 import { useImmersive } from "@/app/immersive"
 import { DESTINATIONS } from "@/app/navigation"
 import { usePreferences } from "@/app/preferences"
@@ -520,7 +520,7 @@ function TableMenu({ match, onConcede }: { match: Of<"playing">; onConcede: () =
 /** The running game: the table on the whole screen, its menu, the confirmation before conceding. */
 function Playing({ match }: { match: Of<"playing"> }) {
   useImmersive(true)
-  const { concede, tapCard, answer } = useEngineSession()
+  const { concede, tapCard, tapPlayer, useMana: payWithMana, answer } = useEngineSession()
   const { cardLanguage } = usePreferences()
   const [confirming, setConfirming] = useState(false)
   // The table's cards and those of Forge's questions (the library's top while scrying …): their pictures are looked up together.
@@ -538,6 +538,21 @@ function Playing({ match }: { match: Of<"playing"> }) {
       if (!result.ok) toast.error("Die Karte wurde nicht angetippt", { description: result.reason, position: "top-center" })
     },
     [tapCard],
+  )
+  // Likewise a player's tap and floating mana (prompt 17).
+  const tapSeat = useCallback(
+    (player: number) => {
+      const result = tapPlayer(player)
+      if (!result.ok) toast.error("Der Spieler wurde nicht angetippt", { description: result.reason, position: "top-center" })
+    },
+    [tapPlayer],
+  )
+  const payFromPool = useCallback(
+    (color: ManaColor) => {
+      const result = payWithMana(color)
+      if (!result.ok) toast.error("Das Mana wurde nicht verwendet", { description: result.reason, position: "top-center" })
+    },
+    [payWithMana],
   )
   // Likewise an answer (prompt 15): the client's reason at the top; Forge's own refusal comes as its notice.
   const reply = useCallback(
@@ -581,6 +596,8 @@ function Playing({ match }: { match: Of<"playing"> }) {
           alerts={alerts}
           onTapCard={tap}
           onAnswer={reply}
+          onTapPlayer={tapSeat}
+          onUseMana={payFromPool}
         />
       )}
       <AlertDialog open={confirming} onOpenChange={setConfirming}>

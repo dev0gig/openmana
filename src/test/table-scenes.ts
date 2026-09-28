@@ -31,6 +31,12 @@ export type TableSceneName =
   | "opponent-turn"
   | "respond"
   | "respond-own"
+  // Targets and payment (prompt 17)
+  | "target-both"
+  | "payment"
+  | "payment-pool"
+  | "payment-life"
+  | "cast-x"
 
 export interface TableScene {
   readonly name: TableSceneName

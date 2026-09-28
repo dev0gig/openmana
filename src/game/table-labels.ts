@@ -6,7 +6,7 @@
  * are shown as Forge sends them.
  */
 import type { VisibleCard } from "@openmana/engine-protocol"
-import type { CardUse } from "./card-use"
+import type { CardUse, PlayerUse } from "./card-use"
 import type { CardRef, CardZone, CombatView, ManaColor, PlayerRef, Seat, StackEntryView } from "./table-model"
 
 export const MANA_LABELS: Readonly<Record<ManaColor, string>> = {
@@ -171,9 +171,49 @@ export function blockLine(view: CombatView): string {
  * the button taps at once, what the tap does.
  */
 export function cardButtonLabel(card: VisibleCard, use: CardUse, options: { readonly count?: number; readonly note?: string } = {}): string {
-  const parts = [cardName(card), ...cardFacts(card, options.count ?? 1), ...(options.note ? [options.note] : []), ...(use.markLabel ? [use.markLabel] : [])]
+  const parts = [
+    cardName(card),
+    ...cardFacts(card, options.count ?? 1),
+    ...(options.note ? [options.note] : []),
+    ...(use.markLabel ? [use.markLabel] : []),
+    ...(use.source ? [SOURCE_LABEL] : []),
+  ]
   const label = parts.join(", ")
   return use.primary === "tap" && use.tap !== null ? `${label} – Antippen: ${use.tap.label}` : label
+}
+
+/**
+ * Forge's mana symbols in words for screen readers ("{1}{R}" → "1 beliebig,
+ * Rot"; "{B/P}" → "Schwarz oder Leben"; prompt 17). Only the notation is
+ * read, symbol by symbol; a symbol it does not know stays as Forge wrote it.
+ */
+export function manaSymbolsText(cost: string): string {
+  const symbols = cost.match(/\{[^{}]+\}/g)
+  if (symbols === null) return cost === "0" ? "nichts" : cost
+  return symbols.map((symbol) => manaSymbolWord(symbol.slice(1, -1))).join(", ")
+}
+
+function manaSymbolWord(symbol: string): string {
+  if (/^\d+$/.test(symbol)) return `${symbol} beliebig`
+  if (symbol in MANA_LABELS) return MANA_LABELS[symbol as ManaColor]
+  if (symbol === "X") return "X"
+  if (symbol === "S") return "Schnee"
+  const parts = symbol.split("/")
+  if (parts.length === 2) {
+    const [a, b] = parts as [string, string]
+    const side = (part: string) => (part === "P" ? "Leben" : /^\d+$/.test(part) ? `${part} beliebig` : part in MANA_LABELS ? MANA_LABELS[part as ManaColor] : part)
+    return `${side(a)} oder ${side(b)}`
+  }
+  return `{${symbol}}`
+}
+
+/** Below a card the running step is about: the spell being cast, an ability's source (prompt 17). */
+export const SOURCE_LABEL = "Quelle"
+
+/** A player's button (prompt 17): who, their life, Forge's mark and what the tap does ("Forge-KI, 18 Lebenspunkte, wählbar – Antippen: Wählen"). */
+export function playerButtonLabel(name: string, life: number, use: PlayerUse): string {
+  const parts = [name, `${life} Lebenspunkte`, ...(use.markLabel ? [use.markLabel] : [])]
+  return use.tap === null ? parts.join(", ") : `${parts.join(", ")} – Antippen: ${use.tap.label}`
 }
 
 const ZONE_PLACES: Readonly<Record<CardZone, { readonly me: string; readonly opponent: string }>> = {

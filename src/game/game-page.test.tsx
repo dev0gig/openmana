@@ -26,7 +26,7 @@ import { saveDeck } from "@/storage/decks"
 import type { DeckRecord } from "@/storage/generated/records"
 import { writeSetting } from "@/storage/settings"
 import { StorageProvider } from "@/storage/storage-context"
-import { MULLIGAN_PROMPT, PRIORITY_BUTTONS, settle, SUPPORTED, testEngine, type TestEngine } from "@/test/game-fixtures"
+import { gameState, MULLIGAN_PROMPT, PRIORITY_BUTTONS, settle, SUPPORTED, testEngine, type TestEngine } from "@/test/game-fixtures"
 import { deck, openTestDatabase } from "@/test/storage-fixtures"
 import { ARMING_MS } from "./card-sheet"
 import { GamePage } from "./game-page"
@@ -316,6 +316,30 @@ describe("the game page: Forge's decisions (prompt 15)", () => {
     act(() => engine.worker().send({ type: "input.rejected", seq: 3, reason: "stale", detail: "question 3 is not open", input: { type: "answer", seq: 3, question: 3, kind: "buttons", button: 1 } }))
     expect(await screen.findByText("Forge hat eine Eingabe nicht ausgeführt: Die Frage war schon beantwortet oder zurückgezogen.")).toBeInTheDocument()
     vi.restoreAllMocks()
+  })
+
+  it("a player as target (prompt 17): Forge marks the players it takes, a tap on one sends Forge's player.tap through the client; Forge's refusal shows", { timeout: 20_000 }, async () => {
+    const user = userEvent.setup()
+    await store([RED, GREEN])
+    const engine = await runningGame()
+    renderAt("/play/game", engine)
+    const decision = await screen.findByRole("region", { name: "Entscheidung" })
+    // Shock at a player: Forge names no card, the state marks both players (the bridge asked Forge's target selection).
+    act(() => {
+      engine.worker().send({ type: "question.withdrawn", id: 1 })
+      const state = gameState(10, { turn: 1, phase: "MAIN1", activePlayer: 0 })
+      engine.worker().send({ ...state, players: state.players.map((player) => ({ ...player, selectable: true as const })) })
+      engine.worker().send({ type: "question", kind: "select", id: 2, blocking: false, text: "", min: 1, max: 1, cards: [], items: [] })
+      engine.worker().send({ type: "question", kind: "buttons", id: 3, blocking: false, text: "", buttons: [{ nr: 1, label: "OK", enabled: false }, { nr: 2, label: "Abbrechen", enabled: true }] })
+      engine.worker().send({ type: "message", kind: "prompt", text: "Schock (5) - Wähle ein Ziel deiner Wahl" })
+      engine.worker().send({ type: "engine.waiting", consumed: 0 })
+    })
+    const players = await within(decision).findByRole("group", { name: "Spieler, die Forge hier nimmt" })
+    await user.click(within(players).getByRole("button", { name: /^Forge-KI/ }))
+    expect(engine.worker().inputs()).toEqual([{ type: "player.tap", seq: 1, player: 1 }])
+    expect(await within(screen.getByRole("region", { name: "Spielstand" })).findByText("Forge rechnet")).toBeInTheDocument()
+    act(() => engine.worker().send({ type: "input.rejected", seq: 1, reason: "no-effect", detail: "Forge's running input does not take this player now", input: { type: "player.tap", seq: 1, player: 1 } }))
+    expect(await screen.findByText("Forge hat eine Eingabe nicht ausgeführt: Forge hat das in diesem Schritt nicht angenommen.")).toBeInTheDocument()
   })
 
   it("a blocking question: its answer only with the button; Forge closes it, and the step's buttons come back", { timeout: 20_000 }, async () => {

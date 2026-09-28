@@ -27,7 +27,7 @@
  * counts). A tap that provably does nothing is never offered: the primary
  * activation then looks at the card.
  */
-import type { ButtonsPurpose, Question, SelectQuestion, VisibleCard } from "@openmana/engine-protocol"
+import type { ButtonsPurpose, Player, Question, SelectQuestion, VisibleCard } from "@openmana/engine-protocol"
 import type { CardZone } from "./table-model"
 
 /** How the table marks a card: chosen (Forge's highlight) or usable now (Forge's marker, or named by a selection). */
@@ -55,6 +55,8 @@ export interface CardTap {
 
 export interface CardUse {
   readonly mark: CardMark | null
+  /** The card Forge's running step is about (the spell being cast, the ability's source - prompt 17). */
+  readonly source: boolean
   /** The mark in words for the player ("spielbar", "kann angreifen", "ausgewählt" …); null without a mark. */
   readonly markLabel: string | null
   /** The tap Forge offers now; null: a tap would do nothing. */
@@ -118,7 +120,8 @@ export function cardUse(card: VisibleCard, place: CardPlace, moment: TableMoment
   const selection = openSelection(questions)
   const chosen = card.highlighted === true
   // A card on the stack is never tapped (Forge's card.tap takes cards of the players' zones; prompt 16): only looked at.
-  if (place.zone === "stack") return { mark: chosen ? "selected" : null, markLabel: chosen ? "ausgewählt" : null, tap: null, primary: "look", blocked: null }
+  const source = stepSource(questions) === card.id
+  if (place.zone === "stack") return { mark: chosen ? "selected" : null, markLabel: chosen ? "ausgewählt" : null, source, tap: null, primary: "look", blocked: null }
   const named = selection !== null && selection.cards.includes(card.id)
   // The London mulligan marks nothing and names no action, yet a tap on a hand card chooses it (Anvil lesson).
   const mulligan = step === "mulliganBottom" && place.zone === "hand" && place.mine
@@ -136,8 +139,68 @@ export function cardUse(card: VisibleCard, place: CardPlace, moment: TableMoment
   return {
     mark,
     markLabel: mark === "selected" ? "ausgewählt" : mark === "usable" ? (named || mulligan ? "wählbar" : usableLabel(step)) : null,
+    source,
     tap,
     primary: direct && blocked === null ? "tap" : "look",
     blocked,
+  }
+}
+
+/**
+ * The card Forge's running step is about (prompt 17): the spell being cast
+ * or the ability's source, which Forge sends with the selection of its
+ * targets and the payment of its cost. Forge's priority names no such card
+ * (its line is about the whole game), so there is none then.
+ */
+export function stepSource(questions: readonly Question[]): number | null {
+  for (const question of questions) {
+    if (question.kind === "select" && question.card !== undefined) return question.card
+    if (question.kind === "buttons" && question.purpose !== "priority" && question.card !== undefined) return question.card
+  }
+  return null
+}
+
+// ── Players (prompt 17) ────────────────────────────────────────────────────
+
+export interface PlayerTap {
+  /** The button's words (German). */
+  readonly label: string
+}
+
+export interface PlayerUse {
+  /** Forge's highlight (chosen) or its running input would take the player (usable); null: neither. */
+  readonly mark: CardMark | null
+  /** The mark in words ("wählbar", "gewählt", "kann mit Leben bezahlen"). */
+  readonly markLabel: string | null
+  /** The tap Forge's running input would take now; null: a tap would do nothing. */
+  readonly tap: PlayerTap | null
+  /** Why no tap can be sent right now (German), or null. */
+  readonly blocked: string | null
+}
+
+/**
+ * What the player can do with a player of the game table right now: only
+ * what Forge's running input would take (the state's `selectable` - asked of
+ * that input with the same checks its click runs) and Forge's highlight
+ * (`highlighted`: chosen as a target so far). A player is chosen as a
+ * target, taken back, or - while a cost is paid - pays life for mana (Forge's
+ * Phyrexian mana: its prompt says so). Both steps tap at once and are taken
+ * back the way Forge offers (a second tap, its Cancel), like the cards of a
+ * selection or a payment. No rule, no guess: without Forge's mark no tap.
+ */
+export function playerUse(player: Player, moment: TableMoment): PlayerUse {
+  const chosen = player.highlighted === true
+  const step = currentStep(moment.questions)
+  const payment = step === "payment" && openSelection(moment.questions) === null
+  // While attackers are declared Forge highlights the player they attack (its current defender; the attack itself is prompt 18).
+  const attack = (step === "attack" || step === "attackDeclared") && openSelection(moment.questions) === null
+  let tap: PlayerTap | null = null
+  if (player.selectable === true) tap = { label: payment ? "Mit Leben bezahlen" : chosen ? "Auswahl aufheben" : "Wählen" }
+  const mark: CardMark | null = chosen ? "selected" : tap !== null ? "usable" : null
+  return {
+    mark,
+    markLabel: mark === "selected" ? (attack ? "wird angegriffen" : "gewählt") : mark === "usable" ? (payment ? "kann mit Leben bezahlen" : "wählbar") : null,
+    tap,
+    blocked: tap === null ? null : tapBlocked(moment),
   }
 }

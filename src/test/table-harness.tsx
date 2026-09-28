@@ -19,6 +19,10 @@
  * puts a question the recorded games do not reach (src/test/built-questions.ts,
  * marked as built) on the scene's state.
  *
+ * Targets and payment (prompt 17): the players it taps and the floating mana
+ * it pays with go to recorders as well (window.__openmanaPlayerTaps: player
+ * ids; window.__openmanaMana: colours).
+ *
  * Not part of the app: only the test's dev server serves it,
  * /scripts/e2e/table-harness.html?scene=<name>[&built=<question>][&language=en][&waiting=0].
  */
@@ -34,7 +38,7 @@ import { useTableCards } from "@/game/table-cards"
 import { questionCards } from "@/game/decision-model"
 import { visibleCards } from "@/game/table-model"
 import { StorageProvider } from "@/storage/storage-context"
-import type { AnswerBody, Question } from "@openmana/engine-protocol"
+import type { AnswerBody, ManaColor, Question } from "@openmana/engine-protocol"
 import { BUILT_QUESTIONS, builtQuestion, type BuiltQuestionName } from "./built-questions"
 import { tableScene, type TableScene, type TableSceneName } from "./table-scenes"
 
@@ -44,6 +48,10 @@ declare global {
     __openmanaTaps?: number[]
     /** The answers the table gave, in order: [question id, answer] (read by the end-to-end test). */
     __openmanaAnswers?: [number, AnswerBody][]
+    /** The players the table tapped, in order (prompt 17). */
+    __openmanaPlayerTaps?: number[]
+    /** The floating mana the table paid with, in order (prompt 17). */
+    __openmanaMana?: ManaColor[]
   }
 }
 
@@ -53,6 +61,14 @@ function recordTap(id: number): void {
 
 function recordAnswer(question: number, body: AnswerBody): void {
   window.__openmanaAnswers = [...(window.__openmanaAnswers ?? []), [question, body]]
+}
+
+function recordPlayerTap(id: number): void {
+  window.__openmanaPlayerTaps = [...(window.__openmanaPlayerTaps ?? []), id]
+}
+
+function recordMana(color: ManaColor): void {
+  window.__openmanaMana = [...(window.__openmanaMana ?? []), color]
 }
 
 function SceneTable({ scene, questions, prompt, language, waiting }: { scene: TableScene; questions: readonly Question[]; prompt: string | null; language: "de" | "en"; waiting: boolean }) {
@@ -68,6 +84,8 @@ function SceneTable({ scene, questions, prompt, language, waiting }: { scene: Ta
         waiting={waiting && questions.length > 0}
         onTapCard={recordTap}
         onAnswer={recordAnswer}
+        onTapPlayer={recordPlayerTap}
+        onUseMana={recordMana}
         aiProfile={scene.game.aiProfile}
         pictures={pictures}
         menu={

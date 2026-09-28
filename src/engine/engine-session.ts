@@ -47,6 +47,7 @@ import type {
   GameStarted,
   GameState,
   InputRejected,
+  ManaColor,
   MatchRequest,
   MatchSummary,
   Question,
@@ -207,7 +208,7 @@ export function matchInProgress(match: MatchSnapshot | null): boolean {
 }
 
 /** The part of EngineClient the session uses (tests pass a fake). */
-export type SessionClient = Pick<EngineClient, "start" | "subscribe" | "dispose" | "startMatch" | "concede" | "tapCard" | "answer" | "abort" | "engineWaiting">
+export type SessionClient = Pick<EngineClient, "start" | "subscribe" | "dispose" | "startMatch" | "concede" | "tapCard" | "tapPlayer" | "useMana" | "answer" | "abort" | "engineWaiting">
 
 /** Where the engine is (the worker script, GraalVM's launcher, the module) and how it boots. */
 export interface EngineLaunch {
@@ -420,6 +421,43 @@ export class EngineSession {
     if (!client.engineWaiting) return { ok: false, reason: "Forge rechnet gerade – antippen geht, sobald Forge wieder auf dich wartet." }
     try {
       client.tapCard(card)
+    } catch (error) {
+      return { ok: false, reason: refusal(error) }
+    }
+    // The input is on its way: Forge no longer waits.
+    this.#set({ ...this.#snapshot, match: { ...match, waiting: client.engineWaiting } })
+    return { ok: true }
+  }
+
+  /**
+   * Taps a player for the player (prompt 17): Forge's player.tap - a target,
+   * a choice, life for Phyrexian mana. Like a card tap only while Forge waits
+   * and never for a concession on its way; the UI offers it only where
+   * Forge's running input takes the player (the state's `selectable`), and a
+   * tap the engine refuses anyway comes back as Forge's notice.
+   */
+  tapPlayer(player: number): InputResult {
+    return this.#input((client) => client.tapPlayer(player), "antippen")
+  }
+
+  /**
+   * Pays with floating mana of this colour during Forge's payment (prompt
+   * 17: mana.use, Forge's click on its mana pool). Only while Forge waits;
+   * the UI offers only the colours Forge's payment would take.
+   */
+  useMana(color: ManaColor): InputResult {
+    return this.#input((client) => client.useMana(color), "bezahlen")
+  }
+
+  /** Sends one input for the player while Forge waits (see tapCard); `verb` finishes the sentence while it computes. */
+  #input(send: (client: SessionClient) => number, verb: string): InputResult {
+    const match = this.#snapshot.match
+    const client = this.#client
+    if (match?.status !== "playing" || client === null) return { ok: false, reason: "Es läuft keine Partie." }
+    if (match.conceding) return { ok: false, reason: "Die Aufgabe ist unterwegs." }
+    if (!client.engineWaiting) return { ok: false, reason: `Forge rechnet gerade – ${verb} geht, sobald Forge wieder auf dich wartet.` }
+    try {
+      send(client)
     } catch (error) {
       return { ok: false, reason: refusal(error) }
     }

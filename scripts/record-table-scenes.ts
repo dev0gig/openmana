@@ -92,6 +92,8 @@ const me = (state: GameState) => state.players.find((player) => player.me)
 const open = <K extends Question["kind"]>(m: Moment, kind: K) => m.questions.filter((q): q is Extract<Question, { kind: K }> => q.kind === kind)
 /** Forge's buttons without a purpose (play or draw, yes or no, OK/cancel of a selection). */
 const plainButtons = (m: Moment) => open(m, "buttons").filter((q) => q.purpose === undefined)
+/** Forge's payment is open and its own prompt line for it has come (it follows the question - Anvil lesson). */
+const paying = (m: Moment) => open(m, "buttons").some((q) => q.purpose === "payment") && m.state.payment !== undefined && m.last.type === "message" && m.last.kind === "prompt"
 /** The player's priority, alone (no blocking question over it). */
 const priority = (m: Moment) => open(m, "buttons").some((q) => q.purpose === "priority") && m.questions.every((q) => !q.blocking)
 
@@ -142,9 +144,9 @@ const RULES: readonly SceneRule[] = [
   },
   {
     name: "commander-late",
-    description: "A late Commander turn while Forge asks the player: the most permanents with the most attackers (tokens, counters, poison, commander tax and damage) (commander).",
+    description: "A late Commander turn while the player declares attackers: the most permanents with the most attackers (tokens, counters, poison, commander tax and damage) (commander).",
     fixture: "commander",
-    fits: (m) => m.state.running && m.state.combat.length > 0 && m.questions.length > 0,
+    fits: (m) => m.state.running && m.state.phase === "COMBAT_DECLARE_ATTACKERS" && m.state.combat.length > 0 && m.questions.length > 0,
     best: (a, b) => permanents(b.state) - permanents(a.state) || b.state.combat.length - a.state.combat.length,
   },
   {
@@ -162,13 +164,14 @@ const RULES: readonly SceneRule[] = [
   },
   {
     name: "target",
-    description: "A spell's target: Forge names the creatures to choose from (select) and waits with OK off and cancel on (human-3-de).",
-    fixture: "human-3-de",
-    fits: (m) => open(m, "select").some((q) => q.items.length > 0) && plainButtons(m).length > 0 && m.prompt !== null,
+    description: "A spell's target: Forge names the creatures to choose from (select), no player (Dismember), and waits with OK off and cancel on (targets-payment).",
+    fixture: "targets-payment",
+    fits: (m) =>
+      open(m, "select").some((q) => q.items.length > 0) && m.state.players.every((player) => player.selectable !== true) && plainButtons(m).length > 0 && m.prompt !== null,
   },
   {
     name: "target-player",
-    description: "A spell whose only targets are players: Forge's selection names no card (human-3-de).",
+    description: "A spell whose only targets are players: Forge's selection names no card, the state marks the players Forge takes (human-3-de).",
     fixture: "human-3-de",
     fits: (m) => open(m, "select").some((q) => q.items.length === 0) && plainButtons(m).length > 0 && m.prompt !== null,
   },
@@ -226,6 +229,38 @@ const RULES: readonly SceneRule[] = [
     description: "The player's answer on top of the AI's spell, and the player's priority again (stack depth 2; priority-respond).",
     fixture: "priority-respond",
     fits: (m) => priority(m) && m.state.stack.length >= 2 && m.state.stack[0]!.player === m.state.me,
+  },
+  // Targets and payment (prompt 17): players as targets, two targets, the payment with the pool and life, a decision while casting.
+  {
+    name: "target-both",
+    description: "A spell with any target: Forge names the creatures and marks the players it would take (human-3-de).",
+    fixture: "human-3-de",
+    fits: (m) =>
+      open(m, "select").some((q) => q.items.length > 0) && m.state.players.some((player) => player.selectable === true) && plainButtons(m).length > 0 && m.prompt !== null,
+  },
+  {
+    name: "payment",
+    description: "Paying a spell's cost by hand: Forge's payment with what is still to pay, the mana sources Forge marks, Auto and Cancel (targets-payment).",
+    fixture: "targets-payment",
+    fits: (m) => paying(m) && m.state.payment!.cost !== "0" && (me(m.state)?.zones.battlefield.some((card) => "playable" in card && card.playable === true) ?? false),
+  },
+  {
+    name: "payment-pool",
+    description: "Floating mana from Dark Ritual while a spell is paid: Forge would take it from the pool (targets-payment).",
+    fixture: "targets-payment",
+    fits: (m) => paying(m) && m.state.payment!.pool !== "",
+  },
+  {
+    name: "payment-life",
+    description: "Phyrexian mana: Forge's payment takes the player's life - their seat is marked (Gitaxian Probe, Dismember; targets-payment).",
+    fixture: "targets-payment",
+    fits: (m) => paying(m) && me(m.state)?.selectable === true,
+  },
+  {
+    name: "cast-x",
+    description: "A decision while a spell is cast: the value of X for Blaze, a blocking choice before its target and payment (targets-payment).",
+    fixture: "targets-payment",
+    fits: (m) => open(m, "choose").length > 0 && m.state.turn > 0,
   },
 ]
 

@@ -44,7 +44,8 @@ const CAPTION = "h-[calc(100%-1.375rem)]"
 
 export type GameCardMark = "usable" | "selected"
 
-const MARKS: Readonly<Record<GameCardMark, string>> = {
+/** The frames of Forge's marks (shared with GamePlayerButton, prompt 17). */
+export const GAME_MARK_FRAMES: Readonly<Record<GameCardMark, string>> = {
   usable: "border-dashed border-primary",
   selected: "border-solid border-foreground",
 }
@@ -58,7 +59,7 @@ function GameCardFace({ tapped, mark, caption, children }: { tapped: boolean; ma
     <span
       data-slot="game-card-face"
       data-mark={mark ?? undefined}
-      className={cn("relative block rounded-2xl border-2 border-transparent", caption ? CAPTION : "h-full", tapped ? "aspect-square" : "aspect-63/88", mark ? MARKS[mark] : null)}
+      className={cn("relative block rounded-2xl border-2 border-transparent", caption ? CAPTION : "h-full", tapped ? "aspect-square" : "aspect-63/88", mark ? GAME_MARK_FRAMES[mark] : null)}
     >
       <span className={cn("block", tapped ? "absolute top-1/2 left-1/2 aspect-63/88 h-full -translate-x-1/2 -translate-y-1/2 rotate-90" : "size-full")}>{children}</span>
     </span>

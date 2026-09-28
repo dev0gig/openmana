@@ -43,6 +43,15 @@
  * players' names) that the header and the stack already show, so the region
  * says what the moment is about instead - from Forge's structured state -
  * and Forge's OK says what passing does now (see PriorityDecision).
+ *
+ * Targets and payment (prompt 17): a selection says how many Forge wants in
+ * its own numbers - cards and players together - and how many are chosen;
+ * the players Forge would take are buttons here as on the table (Forge's
+ * player.tap: choose, take back). While a cost is paid the region shows what
+ * is still to pay (Forge's mana symbols, from its payment), floating mana
+ * Forge would take from the pool (mana.use) and - for Phyrexian mana - life
+ * (the player's own seat). All of it taps at once, like the mana sources on
+ * the table; Forge's Cancel takes the whole payment back.
  */
 import { ArrowDown, ArrowUp, Minus, Plus, Search, X } from "lucide-react"
 import { createContext, use, useEffect, useId, useMemo, useRef, useState, type ComponentProps, type ReactNode } from "react"
@@ -57,6 +66,7 @@ import type {
   GameState,
   InputQuestion,
   Item,
+  ManaColor,
   OptionsQuestion,
   OrderQuestion,
   Question,
@@ -80,13 +90,14 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Field, FieldContent, FieldDescription, FieldLabel, FieldTitle } from "@/components/ui/field"
 import { GameCardBack, GameCardButton, GameCardRow, GameCardRowButton, GameCardRowItem, type GameCardMark } from "@/components/ui/game-card"
 import { GameDecision, GameDecisionActions, GameDecisionHeader, GameDecisionNote, GameDecisionRow, GameDecisionSource } from "@/components/ui/game-decision"
+import { GamePlayerButton } from "@/components/ui/game-player"
 import { Input } from "@/components/ui/input"
 import { Item as ItemRow, ItemActions, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Spinner } from "@/components/ui/spinner"
 import { useCardPress } from "@/hooks/use-card-press"
 import { ARMING_MS } from "./card-sheet"
-import { directTaps } from "./card-use"
+import { directTaps, playerUse, tapBlocked, type TableMoment } from "./card-use"
 import {
   arrangeAnswer,
   buttonsAnswer,
@@ -119,19 +130,21 @@ import {
   optionsAnswer,
   orderAnswer,
   orderRule,
+  paymentView,
   selectAnswer,
   selectView,
   toggleChoice,
   type Arrangement,
   type BlockingQuestion,
   type Decision,
+  type PaymentView,
   type PileSide,
   type SelectView,
 } from "./decision-model"
 import { questionLabel } from "./game-labels"
 import { endTurnText, PASS_LABELS, PASS_NOTES, priorityText } from "./priority-labels"
 import type { TableCardLookup } from "./table-cards"
-import { cardName } from "./table-labels"
+import { cardName, MANA_LABELS, manaSymbolsText, playerButtonLabel, seatName } from "./table-labels"
 import { TablePicture } from "./table-picture"
 import { priorityHolder, priorityMoment, type PriorityMoment } from "./turn-model"
 
@@ -157,6 +170,10 @@ export interface DecisionPanelProps {
   readonly onAnswer?: (question: number, body: AnswerBody) => void
   /** Opens the card view for a card of a question (with the question's view of it, for a card in no zone of the state). */
   readonly onLook: (id: number, snapshot?: VisibleCard) => void
+  /** Taps a player (Forge's player.tap, prompt 17 - the page sends it). Absent: nothing is tapped. */
+  readonly onTapPlayer?: (player: number) => void
+  /** Pays with floating mana (mana.use, prompt 17 - the page sends it). Absent: nothing is paid. */
+  readonly onUseMana?: (color: ManaColor) => void
 }
 
 interface DecisionContextValue {
@@ -168,6 +185,12 @@ interface DecisionContextValue {
   readonly blockedId: string
   readonly answer: (question: number, body: AnswerBody) => void
   readonly look: (id: number, snapshot?: VisibleCard) => void
+  /** The moment as the table's cards see it (card-use.ts): the questions, whether Forge waits, a concession. */
+  readonly moment: TableMoment
+  /** Why no tap can be sent (a player, mana), or null - the table's reasons, or that it is only looked at. */
+  readonly tapBlocked: string | null
+  readonly tapPlayer: (player: number) => void
+  readonly payWithMana: (color: ManaColor) => void
 }
 
 const DecisionContext = createContext<DecisionContextValue | null>(null)
@@ -198,13 +221,26 @@ export function decisionNeedsRoom(decision: Decision, state: GameState | null): 
   return false
 }
 
-export function DecisionPanel({ state, questions, prompt, waiting, conceding, pictures, alerts, onAnswer, onLook }: DecisionPanelProps) {
+export function DecisionPanel({ state, questions, prompt, waiting, conceding, pictures, alerts, onAnswer, onLook, onTapPlayer, onUseMana }: DecisionPanelProps) {
   const decision = currentDecision(questions)
   const blocked = answerBlocked({ live: onAnswer !== undefined, conceding, waiting })
   const blockedId = useId()
+  const moment = useMemo<TableMoment>(() => ({ questions, waiting, conceding }), [questions, waiting, conceding])
+  const tapReason = onTapPlayer === undefined ? "Nur ansehen – hier wird nichts angetippt." : tapBlocked(moment)
   const context = useMemo<DecisionContextValue>(
-    () => ({ state, pictures, blocked, blockedId, answer: onAnswer ?? (() => undefined), look: onLook }),
-    [state, pictures, blocked, blockedId, onAnswer, onLook],
+    () => ({
+      state,
+      pictures,
+      blocked,
+      blockedId,
+      answer: onAnswer ?? (() => undefined),
+      look: onLook,
+      moment,
+      tapBlocked: tapReason,
+      tapPlayer: onTapPlayer ?? (() => undefined),
+      payWithMana: onUseMana ?? (() => undefined),
+    }),
+    [state, pictures, blocked, blockedId, onAnswer, onLook, moment, tapReason, onTapPlayer, onUseMana],
   )
   const question = decisionQuestion(decision)
   return (
@@ -502,6 +538,7 @@ function StepDecision({ buttons, select, prompt }: { buttons: ButtonsQuestion | 
     <>
       <DecisionHeading label={label} text={text} source={sourceOf(buttons) ?? sourceOf(select)} />
       {select !== null && selection !== null ? <SelectPart question={select} view={selection} /> : null}
+      {buttons?.purpose === "payment" && select === null ? <PaymentPart /> : null}
       {buttons?.purpose === "mulliganBottom" ? <MulliganChosen /> : null}
       {directTaps(open) ? <GameDecisionNote>Karten antippen wirkt hier sofort, ein zweiter Tipp nimmt es zurück. Lange drücken oder Rechtsklick zeigt eine Karte groß.</GameDecisionNote> : null}
       <BlockedNote />
@@ -652,19 +689,20 @@ function ForgeButtons({ question }: { question: ButtonsQuestion }) {
   )
 }
 
-/** The cards Forge names to select: how many, which lie on the table, and a row of those the table does not show. */
+/**
+ * The cards and players Forge names to select: how many in Forge's own
+ * numbers (cards and players together), how many are chosen, which cards lie
+ * on the table, a row of those the table does not show, and the players
+ * Forge would take (prompt 17) - buttons like their seats on the table.
+ */
 function SelectPart({ question, view }: { question: SelectQuestion; view: SelectView }) {
   const { answer, state } = useDecision()
-  if (view.noCard) {
-    return (
-      <GameDecisionNote>
-        Forge bietet keine Karte zur Wahl an – gewählt wird hier ein Spieler. Einen Spieler zu wählen geht in OpenMana noch nicht; mit „Abbrechen“ geht es weiter.
-      </GameDecisionNote>
-    )
+  if (view.rule === null) {
+    return <GameDecisionNote>Forge bietet gerade weder eine Karte noch einen Spieler zur Wahl an – Forges Knöpfe führen weiter.</GameDecisionNote>
   }
   const parts = [`Wähle ${view.rule}`]
   if (view.chosen !== null) parts.push(`${view.chosen} gewählt`)
-  if (view.onTable > 0) parts.push(view.onTable === 1 ? "1 davon liegt auf dem Tisch (gold gestrichelt)" : `${view.onTable} davon liegen auf dem Tisch (gold gestrichelt)`)
+  if (view.onTable > 0) parts.push(view.onTable === 1 ? "1 Karte davon liegt auf dem Tisch (gold gestrichelt)" : `${view.onTable} Karten davon liegen auf dem Tisch (gold gestrichelt)`)
   const cards = visibleCardsById(state)
   return (
     <>
@@ -679,7 +717,101 @@ function SelectPart({ question, view }: { question: SelectQuestion; view: Select
           onPrimary={(nr) => answer(question.id, selectAnswer(nr))}
         />
       ) : null}
+      {view.players.length > 0 ? <PlayerChoices players={view.players} label="Spieler, die Forge hier nimmt" /> : null}
     </>
+  )
+}
+
+/**
+ * Players as buttons (prompt 17): name and life with Forge's mark, a tap
+ * sends Forge's player.tap at once (a second tap takes a chosen target back).
+ * A player Forge has chosen but would not take back shows only the mark.
+ */
+function PlayerChoices({ players, label }: { players: readonly GameState["players"][number][]; label: string }) {
+  const { moment, tapBlocked: blocked, blockedId, tapPlayer } = useDecision()
+  return (
+    <GameDecisionActions role="group" aria-label={label} className="justify-start">
+      {players.map((player) => {
+        const usage = { ...playerUse(player, moment), blocked }
+        const name = seatName(player.me ? "me" : "opponent")
+        return (
+          <GamePlayerButton
+            key={player.id}
+            data-player-choice={player.id}
+            mark={usage.mark}
+            aria-label={playerButtonLabel(name, player.life, usage)}
+            aria-pressed={player.highlighted === true}
+            {...(blocked !== null ? { "aria-describedby": blockedId, title: blocked } : {})}
+            disabled={usage.tap === null || blocked !== null}
+            onKeyDown={(event) => {
+              if (event.repeat) event.preventDefault()
+            }}
+            onClick={() => tapPlayer(player.id)}
+          >
+            <span className="font-heading text-sm font-semibold">{name}</span>
+            <span className="text-xs text-muted-foreground tabular-nums">{player.life} Leben</span>
+          </GamePlayerButton>
+        )
+      })}
+    </GameDecisionActions>
+  )
+}
+
+/**
+ * Forge's payment in progress (prompt 17): what is still to pay in Forge's
+ * mana symbols (spoken as words), the floating mana Forge would take from the
+ * pool - a button per colour, it pays at once (mana.use) - and, for
+ * Phyrexian mana, the player's life (their seat, Forge's player.tap). Mana
+ * sources on the table are tapped there (gold dashed). Forge's Cancel takes
+ * the whole payment back.
+ */
+function PaymentPart() {
+  const { state } = useDecision()
+  const view = paymentView(state)
+  if (view === null) return null
+  // Only where Forge marks mana sources of the player's (its payment's highlight).
+  const sources = state.players.some((player) => player.me && player.zones.battlefield.some((card) => !("hidden" in card) && card.playable === true))
+  return (
+    <>
+      <GameDecisionNote>
+        Noch zu zahlen: <span className="font-medium text-foreground tabular-nums" aria-hidden>{view.cost}</span>
+        <span className="sr-only">{manaSymbolsText(view.cost)}</span>.{sources ? " Manaquellen auf dem Tisch (gold gestrichelt) bezahlen beim Antippen." : null}
+      </GameDecisionNote>
+      {view.pool.length > 0 ? <PoolChoices view={view} /> : null}
+      {view.life !== null ? <PlayerChoices players={[view.life]} label="Mit Leben statt Mana bezahlen" /> : null}
+    </>
+  )
+}
+
+/** Floating mana Forge would pay with now: one button per colour (mana.use), guarded against a double press. */
+function PoolChoices({ view }: { view: PaymentView }) {
+  const { tapBlocked: blocked, blockedId, payWithMana } = useDecision()
+  const last = useRef<{ readonly color: ManaColor; readonly at: number } | null>(null)
+  return (
+    <GameDecisionActions role="group" aria-label="Aus deinem Manavorrat bezahlen" className="justify-start">
+      {view.pool.map(({ color, amount }) => (
+        <Button
+          key={color}
+          size="lg"
+          variant="outline"
+          data-mana={color}
+          disabled={blocked !== null}
+          {...(blocked !== null ? { "aria-describedby": blockedId, title: blocked } : {})}
+          onKeyDown={(event) => {
+            if (event.repeat) event.preventDefault()
+          }}
+          onClick={() => {
+            const now = performance.now()
+            const previous = last.current
+            if (previous !== null && previous.color === color && now - previous.at < ARMING_MS) return
+            last.current = { color, at: now }
+            payWithMana(color)
+          }}
+        >
+          {MANA_LABELS[color]} aus dem Vorrat{amount > 0 ? ` (${amount})` : ""}
+        </Button>
+      ))}
+    </GameDecisionActions>
   )
 }
 

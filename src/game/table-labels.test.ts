@@ -4,7 +4,7 @@
  */
 import type { VisibleCard } from "@openmana/engine-protocol"
 import { describe, expect, it } from "vitest"
-import { attackLine, blockLine, captionFacts, cardFacts, cardName, counterLabel, seatName, spokenFacts, stackTargets } from "./table-labels"
+import { attackLine, blockLine, captionFacts, cardFacts, cardName, counterLabel, manaSymbolsText, playerButtonLabel, seatName, spokenFacts, stackTargets } from "./table-labels"
 import type { CombatView } from "./table-model"
 
 function card(id: number, key: string, overrides: Partial<VisibleCard> = {}): VisibleCard {
@@ -79,5 +79,20 @@ describe("stack and combat lines", () => {
     const atJace: CombatView = { ...atYou, defender: { kind: "card", id: 20, card: jace }, blockers: [{ kind: "card", id: 30, card: card(30, "Wall", { name: "Mauer" }) }] }
     expect(`${attackLine(atJace)} – ${blockLine(atJace)}`).toBe("greift Jace an – geblockt von Mauer")
     expect(attackLine({ ...atYou, defender: null })).toBe("greift an")
+  })
+})
+
+describe("the payment in words (prompt 17)", () => {
+  it("Forge's mana symbols are read symbol by symbol; unknown ones stay as Forge wrote them", () => {
+    expect(manaSymbolsText("{1}{R}")).toBe("1 beliebig, Rot")
+    expect(manaSymbolsText("{2}{B/P}{B/P}")).toBe("2 beliebig, Schwarz oder Leben, Schwarz oder Leben")
+    expect(manaSymbolsText("{R/G}{2/W}{C}{X}{S}")).toBe("Rot oder Grün, 2 beliebig oder Weiß, Farblos, X, Schnee")
+    expect(manaSymbolsText("{H}")).toBe("{H}")
+    expect(manaSymbolsText("0")).toBe("nichts")
+  })
+
+  it("a player's button says who, their life, Forge's mark and what the tap does", () => {
+    expect(playerButtonLabel("Forge-KI", 18, { mark: "usable", markLabel: "wählbar", tap: { label: "Wählen" }, blocked: null })).toBe("Forge-KI, 18 Lebenspunkte, wählbar – Antippen: Wählen")
+    expect(playerButtonLabel("Du", 20, { mark: "selected", markLabel: "gewählt", tap: null, blocked: null })).toBe("Du, 20 Lebenspunkte, gewählt")
   })
 })

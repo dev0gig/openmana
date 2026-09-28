@@ -9,7 +9,7 @@
  * order), on questions built after the protocol's schema. Every answer is
  * checked against the protocol's own validator.
  */
-import { checkEngineMessage, inputProblems, type AnswerBody, type ArrangeQuestion, type DistributeQuestion, type OrderQuestion, type Question } from "@openmana/engine-protocol"
+import { checkEngineMessage, inputProblems, type AnswerBody, type ArrangeQuestion, type DistributeQuestion, type GameState, type OrderQuestion, type Question } from "@openmana/engine-protocol"
 import { describe, expect, it } from "vitest"
 import { BUILT_QUESTIONS, builtQuestion } from "@/test/built-questions"
 import { tableScene, type TableSceneName } from "@/test/table-scenes"
@@ -40,6 +40,7 @@ import {
   moveToSide,
   orderAnswer,
   orderRule,
+  paymentView,
   questionCards,
   selectAnswer,
   selectView,
@@ -133,17 +134,34 @@ describe("select (Forge's selectable cards)", () => {
     const scene = tableScene("target")
     const select = kindOf(scene.questions.find((question) => question.kind === "select")!, "select")
     const view = selectView(select, scene.state)
-    expect(view).toMatchObject({ noCard: false, rule: "genau 1", onTable: 2, chosen: 0 })
+    expect(view).toMatchObject({ noCard: false, rule: "genau 1", onTable: 5, chosen: 0, players: [] })
     expect(view.offTable).toEqual([])
     const answer = selectAnswer(2)
     expect(answer).toEqual({ kind: "select", choices: [2] })
     expect(valid(select.id, answer)).toBe(true)
   })
 
-  it("a target that is a player: Forge names no card (recorded)", () => {
+  it("a target that is a player: Forge names no card, the state marks the players it takes - the opponent first (recorded, prompt 17)", () => {
     const scene = tableScene("target-player")
     const select = kindOf(scene.questions.find((question) => question.kind === "select")!, "select")
-    expect(selectView(select, scene.state)).toMatchObject({ noCard: true, rule: null, onTable: 0, offTable: [] })
+    const view = selectView(select, scene.state)
+    expect(view).toMatchObject({ noCard: true, rule: "genau 1", onTable: 0, offTable: [], chosen: 0 })
+    expect(view.players.map((player) => player.me)).toEqual([false, true])
+  })
+
+  it("any target: cards and players count together in Forge's numbers; a chosen player counts as chosen (recorded)", () => {
+    const scene = tableScene("target-both")
+    const select = kindOf(scene.questions.find((question) => question.kind === "select")!, "select")
+    expect(selectView(select, scene.state)).toMatchObject({ rule: "genau 1", onTable: 2, chosen: 0 })
+    const chosen = { ...scene.state, players: scene.state.players.map((player) => (player.me ? player : { ...player, highlighted: true as const })) as GameState["players"] }
+    expect(selectView({ ...select, max: 2 }, chosen)).toMatchObject({ rule: "1 bis 2", chosen: 1 })
+  })
+
+  it("nothing to pick: neither a card nor a player", () => {
+    const scene = tableScene("target-player")
+    const select = kindOf(scene.questions.find((question) => question.kind === "select")!, "select")
+    const none = { ...scene.state, players: scene.state.players.map(({ selectable: _selectable, ...player }) => player) as GameState["players"] }
+    expect(selectView(select, none)).toMatchObject({ noCard: true, rule: null, players: [] })
   })
 
   it("two cards to discard from the hand (recorded)", () => {
@@ -155,13 +173,41 @@ describe("select (Forge's selectable cards)", () => {
   it("cards the table does not show (a library, a hidden card) are listed; whether they are chosen is not claimed", () => {
     const scene = tableScene("target")
     const select = kindOf(scene.questions.find((question) => question.kind === "select")!, "select")
-    const library = { nr: 3, text: "Gebirge (999)", card: 999, cardView: { id: 999, key: "Mountain", name: "Gebirge", tapped: false, sick: false, faceDown: false, damage: 0, owner: 0, controller: 0 } }
-    const extended = { ...select, max: 2, items: [...select.items, library, { nr: 4, hidden: true as const }] }
+    // Dismember names five creatures on the table; a card of the library and a hidden one come after them.
+    expect(select.items).toHaveLength(5)
+    const library = { nr: 6, text: "Gebirge (999)", card: 999, cardView: { id: 999, key: "Mountain", name: "Gebirge", tapped: false, sick: false, faceDown: false, damage: 0, owner: 0, controller: 0 } }
+    const extended = { ...select, max: 2, items: [...select.items, library, { nr: 7, hidden: true as const }] }
     const view = selectView(extended, scene.state)
-    expect(view.offTable.map((item) => item.nr)).toEqual([3, 4])
-    expect(view.onTable).toBe(2)
+    expect(view.offTable.map((item) => item.nr)).toEqual([6, 7])
+    expect(view.onTable).toBe(5)
     expect(view.chosen).toBeNull()
     expect(view.rule).toBe("1 bis 2")
+  })
+})
+
+describe("the payment (prompt 17)", () => {
+  it("by hand (recorded): what is still to pay, nothing floating, no life", () => {
+    expect(paymentView(tableScene("payment").state)).toEqual({ cost: "{R}", pool: [], life: null })
+  })
+
+  it("floating mana (recorded: Dark Ritual): the colours Forge takes, with how much of each floats", () => {
+    expect(paymentView(tableScene("payment-pool").state)).toEqual({
+      cost: "{1}{R}",
+      pool: [
+        { color: "B", amount: 3 },
+        { color: "R", amount: 1 },
+      ],
+      life: null,
+    })
+  })
+
+  it("Phyrexian mana (recorded: Dismember): Forge takes the player's life", () => {
+    const state = tableScene("payment-life").state
+    expect(paymentView(state)).toMatchObject({ cost: "{1}{B/P}{B/P}", pool: [], life: { me: true } })
+  })
+
+  it("no payment runs: nothing", () => {
+    expect(paymentView(tableScene("main-phase").state)).toBeNull()
   })
 })
 
