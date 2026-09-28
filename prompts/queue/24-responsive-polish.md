@@ -1,2 +1,0 @@
-# 24 — Responsive phone/fold/tablet/desktop pass
-Audit every screen at small phone, Fold-like portrait/landscape, tablet and desktop sizes. Fix overflow, hidden hand/actions, excessive vertical scrolling, gesture conflicts and mouse/keyboard gaps. Fold resize must not affect engine state. Add representative viewport e2e/visual coverage. Focus on usability, not final cosmetic perfection.

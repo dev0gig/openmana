@@ -1,2 +1,0 @@
-# 29 — Full regression and E2E suite
-Complete automated coverage across storage, Scryfall, Arena import, protocol, Forge bridge/WASM, real game flows, decisions, combat, targeting, zones, recording/replay, PWA and browser feature detection. Include representative complete games and failure paths. Tests fail loudly rather than hide unsupported engine behaviour. Produce docs/QUALITY.md with commands and a coverage matrix.

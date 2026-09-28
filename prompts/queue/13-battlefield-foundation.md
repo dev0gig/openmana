@@ -1,2 +1,0 @@
-# 13 — Battlefield foundation
-Implement the real game table from authoritative snapshots. Stable responsive regions: opponent hand/summary, opponent battlefield, stack/combat context, player battlefield, decision area, player hand. Avoid one vertically endless table; use horizontal rows/zone views where needed. Support phone, foldable/tablet and desktop. Render hidden information only as Forge permits. No client-side legality calculations.

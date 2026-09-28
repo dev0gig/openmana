@@ -1,2 +1,0 @@
-# 07 — IndexedDB local data layer
-Implement versioned IndexedDB storage with migrations for decks, settings, match recordings/replays, Scryfall metadata/cache indexes and app schema metadata. No localStorage as primary DB. Add robust transactions, corruption/error reporting, quota awareness, export-all/import-all backup format and tests. Imported decks remain local by default; no account/cloud sync.

@@ -1,2 +1,0 @@
-# 09 — Arena deck import
-Implement paste/file import of Magic Arena deck-list format. Parse Deck/Sideboard, quantities, optional set/collector annotations and localized/English names. Resolve through the Scryfall data layer to stable identities and Forge-compatible English names/front faces. Never silently discard unresolved entries. Show an import report and allow naming/saving only after clear validation. Support format/Commander metadata where possible without hard-coding Standard-only assumptions. Add parser fixtures/tests.

@@ -1,5 +1,0 @@
-# 28 — Android TWA / Warehouse packaging
-
-> ⚠️ **Stand 2026-09-25 (Projektbesitzer): keine eigene APK, keine Warehouse-Paketierung.** OpenMana läuft auf Android nur in der globalen ORYX-App (TWA `net.tsnet.oryx`). Vor Beginn diesen Auftrag mit dem Projektbesitzer neu fassen, siehe `AGENTS.md` (Publishing and Android).
-
-Package OpenMana as an installable Android app without a WebView/Capacitor route that breaks SharedArrayBuffer/crossOriginIsolated. Use a Trusted Web Activity/WebAPK-compatible approach, Digital Asset Links, fullscreen app identity, stable package ID, versioning and signing suitable for Warehouse updates. Use the existing Anvil app icon as the temporary OpenMana app icon/favicon. Produce reproducible release APK output and scripts/docs so Warehouse can ingest it like the owner's other apps. Verify Forge WASM actually runs inside the installed Android path before success.
