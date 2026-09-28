@@ -100,7 +100,7 @@ public class ProtocolContractTest {
             assertTrue(engineTypes.contains(type), type + " is missing in EngineMessage");
         }
         assertEquals(branchConsts("EngineInput", "type"),
-                new TreeSet<>(Set.of(Protocol.ANSWER, Protocol.CARD_TAP, Protocol.PLAYER_TAP, Protocol.STATE_REQUEST, Protocol.CONCEDE)));
+                new TreeSet<>(Set.of(Protocol.ANSWER, Protocol.CARD_TAP, Protocol.PLAYER_TAP, Protocol.MANA_USE, Protocol.STATE_REQUEST, Protocol.CONCEDE)));
     }
 
     /** The bridge sends Forge's phase names; the schema must know every one this Forge has. */

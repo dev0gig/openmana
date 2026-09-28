@@ -1,0 +1,13 @@
+{
+  "description": "Targets and cost payment (prompt 17): the player chooses players first where Forge offers them (target: players) - Shock, Arc Trail with two targets, Gitaxian Probe on a player -, pays from the pool after Dark Ritual (mana.use), pays life for Phyrexian mana by tapping itself (Gitaxian Probe, Dismember) and answers Forge's decisions while a spell is cast (Kolaghan's Command's modes, Blaze's X, Burst Lightning's kicker, Village Rites' sacrifice). In German, like the app: its moments are the targeting and payment scenes of the game table's tests.",
+  "match": {
+    "seed": 6,
+    "format": "constructed",
+    "human": { "name": "Player", "deck": "smoke-rakdos-targets" },
+    "ai": { "name": "Forge AI", "profile": "Default", "deck": "smoke-green" }
+  },
+  "player": { "attack": "alternate", "block": "none", "play": "all", "target": "players" },
+  "engine": { "language": "de-DE" },
+  "wasm": { "node": ["lazy"], "browser": ["lazy"] },
+  "covers": ["target-player-tap", "target-multi", "payment-pool", "payment-life", "cast-nested", "target-player", "target-card", "payment-manual", "payment-auto", "spell", "land"]
+}

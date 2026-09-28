@@ -13,11 +13,13 @@ import forge.game.card.CounterType;
 import forge.game.combat.Combat;
 import forge.game.phase.PhaseHandler;
 import forge.game.player.Player;
+import forge.game.player.PlayerView;
 import forge.game.spellability.SpellAbility;
 import forge.game.spellability.SpellAbilityStackInstance;
 import forge.game.spellability.TargetChoices;
 import forge.game.zone.ZoneType;
 import forge.gamemodes.match.AbstractGuiGame;
+import org.openmana.engine.bridge.RunningInput;
 
 import java.util.Collection;
 import java.util.Map;
@@ -261,10 +263,30 @@ final class TraceSnapshot {
                 }
             }
         }
+        // Protocol 6: the players the running input would take, Forge's
+        // highlighted players and the payment in progress - the same
+        // questions to the running input the state asks (RunningInput).
+        final JsonArray players = new JsonArray();
+        final JsonArray highlightedPlayers = new JsonArray();
+        for (final Player p : game.getRegisteredPlayers()) {
+            final PlayerView v = p.getView();
+            if (RunningInput.selectable(gui.getGameController(), v)) {
+                players.add(p.getId());
+            }
+            if (gui.isHighlighted(v)) {
+                highlightedPlayers.add(p.getId());
+            }
+        }
         final JsonObject o = new JsonObject();
         o.add("playable", playable);
         o.add("highlighted", highlighted);
         o.add("selectable", selectable);
+        o.add("players", players);
+        o.add("highlightedPlayers", highlightedPlayers);
+        final JsonObject payment = RunningInput.payment(gui.getGameController());
+        if (payment != null) {
+            o.add("payment", payment);
+        }
         return o;
     }
 

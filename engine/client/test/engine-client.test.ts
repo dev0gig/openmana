@@ -357,14 +357,19 @@ describe("questions", () => {
     assert.throws(() => client.answer(1, { kind: "buttons", button: 1 }), inputError("not-active"));
     assert.throws(() => client.tapCard(54), inputError("not-active"));
     assert.throws(() => client.tapPlayer(1), inputError("not-active"));
+    assert.throws(() => client.useMana("R"), inputError("not-active"));
     assert.throws(() => client.answer(2, { kind: "buttons", button: 1 }), inputError("wrong-kind"));
     client.requestState();
     client.answer(2, { kind: "confirm", yes: true });
     worker.send({ type: "question.answered", id: 2, seq: 2 });
     assert.equal(client.blockingQuestion, null);
     client.tapCard(54);
+    // Whether Forge's payment takes the mana is the engine's to say (protocol 6): the client only forwards it.
+    client.useMana("R");
     client.concede();
-    assert.deepEqual(worker.inputs().map((i) => [i["type"], i["seq"]]), [["state.request", 1], ["answer", 2], ["card.tap", 3], ["concede", 4]]);
+    const inputs = worker.inputs();
+    assert.deepEqual(inputs.map((i) => [i["type"], i["seq"]]), [["state.request", 1], ["answer", 2], ["card.tap", 3], ["mana.use", 4], ["concede", 5]]);
+    assert.deepEqual(inputs[3], { type: "mana.use", seq: 4, color: "R" });
   });
 
   test("taps are checked against the latest full snapshot", () => {

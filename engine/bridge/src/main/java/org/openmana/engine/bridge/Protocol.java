@@ -21,7 +21,7 @@ public final class Protocol {
      * ProtocolVersion). UI, worker host and engine must speak exactly the same
      * version; change it together with the schema.
      */
-    public static final int VERSION = 5;
+    public static final int VERSION = 6;
 
     // --- engine -> UI ---------------------------------------------------------
     public static final String GAME_STARTED = "game.started";
@@ -44,6 +44,8 @@ public final class Protocol {
     public static final String ANSWER = "answer";
     public static final String CARD_TAP = "card.tap";
     public static final String PLAYER_TAP = "player.tap";
+    /** Pay with floating mana of a colour during Forge's payment (protocol 6). */
+    public static final String MANA_USE = "mana.use";
     public static final String STATE_REQUEST = "state.request";
     public static final String CONCEDE = "concede";
 

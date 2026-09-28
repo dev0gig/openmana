@@ -90,6 +90,11 @@ final class StateBuilder {
         o.add("players", players);
         o.add("stack", stack(game));
         o.add("combat", combat(game.getCombat()));
+        // The payment in progress, asked of Forge's payment input (protocol 6).
+        final JsonObject payment = RunningInput.payment(gui.getGameController());
+        if (payment != null) {
+            o.add("payment", payment);
+        }
         return o;
     }
 
@@ -104,6 +109,15 @@ final class StateBuilder {
         // Whether anything can be done at all is computed by FORGE
         // (AvailableActions); needs YIELD_AUTO_PASS_NO_ACTIONS (Anvil lesson).
         o.addProperty("canAct", p.hasAvailableActions());
+        // Whether a tap on this player would do something now: asked of
+        // Forge's running input (protocol 6, RunningInput), like a card's action.
+        if (RunningInput.selectable(gui.getGameController(), p)) {
+            o.addProperty("selectable", true);
+        }
+        // Forge's highlight on a player: a target chosen so far.
+        if (gui.isHighlighted(p)) {
+            o.addProperty("highlighted", true);
+        }
         o.addProperty("lost", p.getHasLost());
         o.addProperty("maxHandSize", p.getMaxHandSize());
         o.addProperty("landsPlayed", p.getNumLandThisTurn());

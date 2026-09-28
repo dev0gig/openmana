@@ -6,7 +6,7 @@
 // @ts-nocheck
 /* eslint-disable */
 "use strict";
-export const validateEngineMessage = validate427;
+export const validateEngineMessage = validate437;
 const schema20 = {"title":"EngineMessage","description":"Everything the worker posts to the page: lifecycle messages of the worker host (engine.*, match.finished, diagnostics.*) and the game messages of the bridge.","type":"object","discriminator":{"propertyName":"type"},"oneOf":[{"$ref":"#/$defs/EngineBoot"},{"$ref":"#/$defs/EngineReady"},{"$ref":"#/$defs/EngineWaiting"},{"$ref":"#/$defs/EngineError"},{"$ref":"#/$defs/EngineAbort"},{"$ref":"#/$defs/MatchFinished"},{"$ref":"#/$defs/DiagnosticsResult"},{"$ref":"#/$defs/DiagnosticsCards"},{"$ref":"#/$defs/DiagnosticsTrace"},{"$ref":"#/$defs/GameStarted"},{"$ref":"#/$defs/GameState"},{"$ref":"#/$defs/GameEvents"},{"$ref":"#/$defs/GameMessage"},{"$ref":"#/$defs/Question"},{"$ref":"#/$defs/QuestionWithdrawn"},{"$ref":"#/$defs/QuestionAnswered"},{"$ref":"#/$defs/InputRejected"},{"$ref":"#/$defs/GameEnd"}]};
 const schema21 = {"title":"EngineBoot","description":"Progress while the engine starts (for a loading indicator and start-up timings).","type":"object","additionalProperties":false,"required":["type","phase","t"],"properties":{"type":{"const":"engine.boot"},"phase":{"$ref":"#/$defs/BootPhase"},"t":{"$ref":"#/$defs/WorkerTime"},"features":{"$ref":"#/$defs/FeatureReport"}}};
 const schema22 = {"title":"BootPhase","description":"worker-features: the worker checked the browser; launcher-load: the engine launcher script is loading; wasm-fetch-compile: the ~70 MB module is fetched and compiled; java-main: Forge unpacks its data and initialises.","enum":["worker-features","launcher-load","wasm-fetch-compile","java-main"]};
@@ -455,7 +455,7 @@ return errors === 0;
 validate54.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
 const schema25 = {"title":"EngineReady","description":"Forge is initialised and waits for match.start. Carries the protocol version (checked before anything else) and which engine build this is.","type":"object","additionalProperties":false,"required":["type","protocol","engine","boot","t"],"properties":{"type":{"const":"engine.ready"},"protocol":{"$ref":"#/$defs/ProtocolVersion"},"engine":{"$ref":"#/$defs/EngineBuild"},"boot":{"$ref":"#/$defs/BootReport"},"t":{"$ref":"#/$defs/WorkerTime"}}};
-const schema26 = {"title":"ProtocolVersion","description":"Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace). 4: card language (boot argument --card-language, BootReport.cardLanguage) and Forge's AI profiles (BootReport.aiProfiles; match.start with any other profile is refused). 5: priority, stack and phases (prompt 16): a stack item carries its card as Forge shows it (StackItem.card) and says whether it is an ability (StackItem.ability), its source id only for a card the player may see; Forge's buttons of the priority step say what they do (Button.meaning); a selection's cards are only those the player may see.","const":5};
+const schema26 = {"title":"ProtocolVersion","description":"Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace). 4: card language (boot argument --card-language, BootReport.cardLanguage) and Forge's AI profiles (BootReport.aiProfiles; match.start with any other profile is refused). 5: priority, stack and phases (prompt 16): a stack item carries its card as Forge shows it (StackItem.card) and says whether it is an ability (StackItem.ability), its source id only for a card the player may see; Forge's buttons of the priority step say what they do (Button.meaning); a selection's cards are only those the player may see. 6: targets and cost payment (prompt 17): Forge's players a player.tap would take now (Player.selectable) and its highlight on chosen players (Player.highlighted); the payment in progress (GameState.payment: the mana still to pay, the pool's colours Forge would take now) and paying from the mana pool (mana.use); a player.tap or mana.use Forge would not take is refused (no-effect).","const":6};
 
 function validate62(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
@@ -467,8 +467,8 @@ evaluated0.props = undefined;
 if(evaluated0.dynamicItems){
 evaluated0.items = undefined;
 }
-if(5 !== data){
-const err0 = {instancePath,schemaPath:"#/const",keyword:"const",params:{allowedValue: 5},message:"must be equal to constant"};
+if(6 !== data){
+const err0 = {instancePath,schemaPath:"#/const",keyword:"const",params:{allowedValue: 6},message:"must be equal to constant"};
 if(vErrors === null){
 vErrors = [err0];
 }
@@ -6639,7 +6639,120 @@ return errors === 0;
 }
 validate163.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema66 = {"title":"TraceMarkers","description":"What Forge marked for the human seat's GUI (look-ups in the GUI's own sets): playable (weakly selectable), highlighted, selectable.","type":"object","additionalProperties":false,"required":["playable","highlighted","selectable"],"properties":{"playable":{"type":"array","items":{"$ref":"#/$defs/CardId"}},"highlighted":{"type":"array","items":{"$ref":"#/$defs/CardId"}},"selectable":{"type":"array","items":{"$ref":"#/$defs/CardId"}}}};
+const schema66 = {"title":"TraceMarkers","description":"What Forge marked for the human seat's GUI (look-ups in the GUI's own sets): playable (weakly selectable), highlighted, selectable; the players the running input would take, the highlighted players, and the payment in progress (as in the state).","type":"object","additionalProperties":false,"required":["playable","highlighted","selectable","players","highlightedPlayers"],"properties":{"playable":{"type":"array","items":{"$ref":"#/$defs/CardId"}},"highlighted":{"type":"array","items":{"$ref":"#/$defs/CardId"}},"selectable":{"type":"array","items":{"$ref":"#/$defs/CardId"}},"players":{"type":"array","items":{"$ref":"#/$defs/PlayerId"},"description":"Players a click would take in the running input (protocol 6: Player.selectable)."},"highlightedPlayers":{"type":"array","items":{"$ref":"#/$defs/PlayerId"}},"payment":{"$ref":"#/$defs/Payment"}}};
+const schema67 = {"title":"Payment","description":"Forge's mana payment in progress (its payment input runs; absent otherwise). cost: the mana still to pay in Forge's mana symbols, as Forge's prompt shows it (like Card.cost; \"0\" = nothing left, an X already announced is included as its amount). pool: the colours of floating mana Forge would pay with now (mana.use), WUBRG then C for colourless; empty = none.","type":"object","additionalProperties":false,"required":["cost","pool"],"properties":{"cost":{"type":"string","pattern":"^(0|(\\{[^{}]+\\})+)$"},"pool":{"type":"string","pattern":"^W?U?B?R?G?C?$"}}};
+const pattern8 = new RegExp("^(0|(\\{[^{}]+\\})+)$", "u");
+const pattern9 = new RegExp("^W?U?B?R?G?C?$", "u");
+
+function validate174(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+let vErrors = null;
+let errors = 0;
+const evaluated0 = validate174.evaluated;
+if(evaluated0.dynamicProps){
+evaluated0.props = undefined;
+}
+if(evaluated0.dynamicItems){
+evaluated0.items = undefined;
+}
+if(data && typeof data == "object" && !Array.isArray(data)){
+if(data.cost === undefined){
+const err0 = {instancePath,schemaPath:"#/required",keyword:"required",params:{missingProperty: "cost"},message:"must have required property '"+"cost"+"'"};
+if(vErrors === null){
+vErrors = [err0];
+}
+else {
+vErrors.push(err0);
+}
+errors++;
+}
+if(data.pool === undefined){
+const err1 = {instancePath,schemaPath:"#/required",keyword:"required",params:{missingProperty: "pool"},message:"must have required property '"+"pool"+"'"};
+if(vErrors === null){
+vErrors = [err1];
+}
+else {
+vErrors.push(err1);
+}
+errors++;
+}
+for(const key0 in data){
+if(!((key0 === "cost") || (key0 === "pool"))){
+const err2 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
+if(vErrors === null){
+vErrors = [err2];
+}
+else {
+vErrors.push(err2);
+}
+errors++;
+}
+}
+if(data.cost !== undefined){
+let data0 = data.cost;
+if(typeof data0 === "string"){
+if(!pattern8.test(data0)){
+const err3 = {instancePath:instancePath+"/cost",schemaPath:"#/properties/cost/pattern",keyword:"pattern",params:{pattern: "^(0|(\\{[^{}]+\\})+)$"},message:"must match pattern \""+"^(0|(\\{[^{}]+\\})+)$"+"\""};
+if(vErrors === null){
+vErrors = [err3];
+}
+else {
+vErrors.push(err3);
+}
+errors++;
+}
+}
+else {
+const err4 = {instancePath:instancePath+"/cost",schemaPath:"#/properties/cost/type",keyword:"type",params:{type: "string"},message:"must be string"};
+if(vErrors === null){
+vErrors = [err4];
+}
+else {
+vErrors.push(err4);
+}
+errors++;
+}
+}
+if(data.pool !== undefined){
+let data1 = data.pool;
+if(typeof data1 === "string"){
+if(!pattern9.test(data1)){
+const err5 = {instancePath:instancePath+"/pool",schemaPath:"#/properties/pool/pattern",keyword:"pattern",params:{pattern: "^W?U?B?R?G?C?$"},message:"must match pattern \""+"^W?U?B?R?G?C?$"+"\""};
+if(vErrors === null){
+vErrors = [err5];
+}
+else {
+vErrors.push(err5);
+}
+errors++;
+}
+}
+else {
+const err6 = {instancePath:instancePath+"/pool",schemaPath:"#/properties/pool/type",keyword:"type",params:{type: "string"},message:"must be string"};
+if(vErrors === null){
+vErrors = [err6];
+}
+else {
+vErrors.push(err6);
+}
+errors++;
+}
+}
+}
+else {
+const err7 = {instancePath,schemaPath:"#/type",keyword:"type",params:{type: "object"},message:"must be object"};
+if(vErrors === null){
+vErrors = [err7];
+}
+else {
+vErrors.push(err7);
+}
+errors++;
+}
+validate174.errors = vErrors;
+return errors === 0;
+}
+validate174.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+
 
 function validate168(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
@@ -6682,14 +6795,34 @@ vErrors.push(err2);
 }
 errors++;
 }
-for(const key0 in data){
-if(!(((key0 === "playable") || (key0 === "highlighted")) || (key0 === "selectable"))){
-const err3 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
+if(data.players === undefined){
+const err3 = {instancePath,schemaPath:"#/required",keyword:"required",params:{missingProperty: "players"},message:"must have required property '"+"players"+"'"};
 if(vErrors === null){
 vErrors = [err3];
 }
 else {
 vErrors.push(err3);
+}
+errors++;
+}
+if(data.highlightedPlayers === undefined){
+const err4 = {instancePath,schemaPath:"#/required",keyword:"required",params:{missingProperty: "highlightedPlayers"},message:"must have required property '"+"highlightedPlayers"+"'"};
+if(vErrors === null){
+vErrors = [err4];
+}
+else {
+vErrors.push(err4);
+}
+errors++;
+}
+for(const key0 in data){
+if(!((((((key0 === "playable") || (key0 === "highlighted")) || (key0 === "selectable")) || (key0 === "players")) || (key0 === "highlightedPlayers")) || (key0 === "payment"))){
+const err5 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
+if(vErrors === null){
+vErrors = [err5];
+}
+else {
+vErrors.push(err5);
 }
 errors++;
 }
@@ -6706,12 +6839,12 @@ errors = vErrors.length;
 }
 }
 else {
-const err4 = {instancePath:instancePath+"/playable",schemaPath:"#/properties/playable/type",keyword:"type",params:{type: "array"},message:"must be array"};
+const err6 = {instancePath:instancePath+"/playable",schemaPath:"#/properties/playable/type",keyword:"type",params:{type: "array"},message:"must be array"};
 if(vErrors === null){
-vErrors = [err4];
+vErrors = [err6];
 }
 else {
-vErrors.push(err4);
+vErrors.push(err6);
 }
 errors++;
 }
@@ -6728,12 +6861,12 @@ errors = vErrors.length;
 }
 }
 else {
-const err5 = {instancePath:instancePath+"/highlighted",schemaPath:"#/properties/highlighted/type",keyword:"type",params:{type: "array"},message:"must be array"};
+const err7 = {instancePath:instancePath+"/highlighted",schemaPath:"#/properties/highlighted/type",keyword:"type",params:{type: "array"},message:"must be array"};
 if(vErrors === null){
-vErrors = [err5];
+vErrors = [err7];
 }
 else {
-vErrors.push(err5);
+vErrors.push(err7);
 }
 errors++;
 }
@@ -6750,24 +6883,74 @@ errors = vErrors.length;
 }
 }
 else {
-const err6 = {instancePath:instancePath+"/selectable",schemaPath:"#/properties/selectable/type",keyword:"type",params:{type: "array"},message:"must be array"};
+const err8 = {instancePath:instancePath+"/selectable",schemaPath:"#/properties/selectable/type",keyword:"type",params:{type: "array"},message:"must be array"};
 if(vErrors === null){
-vErrors = [err6];
+vErrors = [err8];
 }
 else {
-vErrors.push(err6);
+vErrors.push(err8);
 }
 errors++;
 }
 }
+if(data.players !== undefined){
+let data6 = data.players;
+if(Array.isArray(data6)){
+const len3 = data6.length;
+for(let i3=0; i3<len3; i3++){
+if(!(validate96(data6[i3], {instancePath:instancePath+"/players/" + i3,parentData:data6,parentDataProperty:i3,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate96.errors : vErrors.concat(validate96.errors);
+errors = vErrors.length;
+}
+}
 }
 else {
-const err7 = {instancePath,schemaPath:"#/type",keyword:"type",params:{type: "object"},message:"must be object"};
+const err9 = {instancePath:instancePath+"/players",schemaPath:"#/properties/players/type",keyword:"type",params:{type: "array"},message:"must be array"};
 if(vErrors === null){
-vErrors = [err7];
+vErrors = [err9];
 }
 else {
-vErrors.push(err7);
+vErrors.push(err9);
+}
+errors++;
+}
+}
+if(data.highlightedPlayers !== undefined){
+let data8 = data.highlightedPlayers;
+if(Array.isArray(data8)){
+const len4 = data8.length;
+for(let i4=0; i4<len4; i4++){
+if(!(validate96(data8[i4], {instancePath:instancePath+"/highlightedPlayers/" + i4,parentData:data8,parentDataProperty:i4,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate96.errors : vErrors.concat(validate96.errors);
+errors = vErrors.length;
+}
+}
+}
+else {
+const err10 = {instancePath:instancePath+"/highlightedPlayers",schemaPath:"#/properties/highlightedPlayers/type",keyword:"type",params:{type: "array"},message:"must be array"};
+if(vErrors === null){
+vErrors = [err10];
+}
+else {
+vErrors.push(err10);
+}
+errors++;
+}
+}
+if(data.payment !== undefined){
+if(!(validate174(data.payment, {instancePath:instancePath+"/payment",parentData:data,parentDataProperty:"payment",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate174.errors : vErrors.concat(validate174.errors);
+errors = vErrors.length;
+}
+}
+}
+else {
+const err11 = {instancePath,schemaPath:"#/type",keyword:"type",params:{type: "object"},message:"must be object"};
+if(vErrors === null){
+vErrors = [err11];
+}
+else {
+vErrors.push(err11);
 }
 errors++;
 }
@@ -6776,13 +6959,13 @@ return errors === 0;
 }
 validate168.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema67 = {"title":"TraceQuestion","description":"A question without its words (text, button labels, card views): kind, limits, flags and what its items refer to.","type":"object","additionalProperties":false,"required":["id","kind","blocking"],"properties":{"id":{"$ref":"#/$defs/QuestionId"},"kind":{"$ref":"#/$defs/QuestionKind"},"blocking":{"type":"boolean"},"purpose":{"$ref":"#/$defs/ButtonsPurpose"},"card":{"$ref":"#/$defs/CardId"},"cards":{"type":"array","items":{"$ref":"#/$defs/CardId"}},"min":{"type":"integer"},"max":{"type":"integer"},"total":{"type":"integer"},"others":{"type":"integer"},"remainingMin":{"type":"integer"},"remainingMax":{"type":"integer"},"numeric":{"type":"boolean"},"cancellable":{"type":"boolean"},"toTop":{"type":"boolean"},"toBottom":{"type":"boolean"},"toAnywhere":{"type":"boolean"},"suggested":{"description":"Forge's suggestion unless it is text: a boolean (confirm), a number (options) or item numbers (choose, order).","anyOf":[{"type":"boolean"},{"type":"integer"},{"type":"array","items":{"type":"integer"}}]},"buttons":{"type":"array","items":{"type":"boolean"},"description":"Whether button 1 and 2 are enabled."},"items":{"type":"array","items":{"$ref":"#/$defs/TraceItemRef"}},"revealed":{"type":"array","items":{"$ref":"#/$defs/TraceItemRef"}}}};
-const schema68 = {"title":"QuestionId","description":"Strictly increasing within a match, never reused.","type":"integer","minimum":1};
+const schema68 = {"title":"TraceQuestion","description":"A question without its words (text, button labels, card views): kind, limits, flags and what its items refer to.","type":"object","additionalProperties":false,"required":["id","kind","blocking"],"properties":{"id":{"$ref":"#/$defs/QuestionId"},"kind":{"$ref":"#/$defs/QuestionKind"},"blocking":{"type":"boolean"},"purpose":{"$ref":"#/$defs/ButtonsPurpose"},"card":{"$ref":"#/$defs/CardId"},"cards":{"type":"array","items":{"$ref":"#/$defs/CardId"}},"min":{"type":"integer"},"max":{"type":"integer"},"total":{"type":"integer"},"others":{"type":"integer"},"remainingMin":{"type":"integer"},"remainingMax":{"type":"integer"},"numeric":{"type":"boolean"},"cancellable":{"type":"boolean"},"toTop":{"type":"boolean"},"toBottom":{"type":"boolean"},"toAnywhere":{"type":"boolean"},"suggested":{"description":"Forge's suggestion unless it is text: a boolean (confirm), a number (options) or item numbers (choose, order).","anyOf":[{"type":"boolean"},{"type":"integer"},{"type":"array","items":{"type":"integer"}}]},"buttons":{"type":"array","items":{"type":"boolean"},"description":"Whether button 1 and 2 are enabled."},"items":{"type":"array","items":{"$ref":"#/$defs/TraceItemRef"}},"revealed":{"type":"array","items":{"$ref":"#/$defs/TraceItemRef"}}}};
+const schema69 = {"title":"QuestionId","description":"Strictly increasing within a match, never reused.","type":"integer","minimum":1};
 
-function validate174(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate178(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate174.evaluated;
+const evaluated0 = validate178.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -6811,17 +6994,17 @@ vErrors.push(err1);
 errors++;
 }
 }
-validate174.errors = vErrors;
+validate178.errors = vErrors;
 return errors === 0;
 }
-validate174.evaluated = {"dynamicProps":false,"dynamicItems":false};
+validate178.evaluated = {"dynamicProps":false,"dynamicItems":false};
 
-const schema69 = {"title":"QuestionKind","enum":["select","choose","buttons","confirm","options","input","order","arrange","distribute"]};
+const schema70 = {"title":"QuestionKind","enum":["select","choose","buttons","confirm","options","input","order","arrange","distribute"]};
 
-function validate176(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate180(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate176.evaluated;
+const evaluated0 = validate180.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -6829,33 +7012,6 @@ if(evaluated0.dynamicItems){
 evaluated0.items = undefined;
 }
 if(!(((((((((data === "select") || (data === "choose")) || (data === "buttons")) || (data === "confirm")) || (data === "options")) || (data === "input")) || (data === "order")) || (data === "arrange")) || (data === "distribute"))){
-const err0 = {instancePath,schemaPath:"#/enum",keyword:"enum",params:{allowedValues: schema69.enum},message:"must be equal to one of the allowed values"};
-if(vErrors === null){
-vErrors = [err0];
-}
-else {
-vErrors.push(err0);
-}
-errors++;
-}
-validate176.errors = vErrors;
-return errors === 0;
-}
-validate176.evaluated = {"dynamicProps":false,"dynamicItems":false};
-
-const schema70 = {"title":"ButtonsPurpose","enum":["priority","mulligan","mulliganBottom","payment","attack","attackDeclared","block"]};
-
-function validate178(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
-let vErrors = null;
-let errors = 0;
-const evaluated0 = validate178.evaluated;
-if(evaluated0.dynamicProps){
-evaluated0.props = undefined;
-}
-if(evaluated0.dynamicItems){
-evaluated0.items = undefined;
-}
-if(!(((((((data === "priority") || (data === "mulligan")) || (data === "mulliganBottom")) || (data === "payment")) || (data === "attack")) || (data === "attackDeclared")) || (data === "block"))){
 const err0 = {instancePath,schemaPath:"#/enum",keyword:"enum",params:{allowedValues: schema70.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err0];
@@ -6865,13 +7021,12 @@ vErrors.push(err0);
 }
 errors++;
 }
-validate178.errors = vErrors;
+validate180.errors = vErrors;
 return errors === 0;
 }
-validate178.evaluated = {"dynamicProps":false,"dynamicItems":false};
+validate180.evaluated = {"dynamicProps":false,"dynamicItems":false};
 
-const schema71 = {"title":"TraceItemRef","description":"What an item stands for: c<card id>, p<player id>, hidden (a card the player may not see) or #<item number> (only words).","type":"string","pattern":"^(c-?[0-9]+|p-?[0-9]+|hidden|#[0-9]+)$"};
-const pattern8 = new RegExp("^(c-?[0-9]+|p-?[0-9]+|hidden|#[0-9]+)$", "u");
+const schema71 = {"title":"ButtonsPurpose","enum":["priority","mulligan","mulliganBottom","payment","attack","attackDeclared","block"]};
 
 function validate182(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
@@ -6883,8 +7038,36 @@ evaluated0.props = undefined;
 if(evaluated0.dynamicItems){
 evaluated0.items = undefined;
 }
+if(!(((((((data === "priority") || (data === "mulligan")) || (data === "mulliganBottom")) || (data === "payment")) || (data === "attack")) || (data === "attackDeclared")) || (data === "block"))){
+const err0 = {instancePath,schemaPath:"#/enum",keyword:"enum",params:{allowedValues: schema71.enum},message:"must be equal to one of the allowed values"};
+if(vErrors === null){
+vErrors = [err0];
+}
+else {
+vErrors.push(err0);
+}
+errors++;
+}
+validate182.errors = vErrors;
+return errors === 0;
+}
+validate182.evaluated = {"dynamicProps":false,"dynamicItems":false};
+
+const schema72 = {"title":"TraceItemRef","description":"What an item stands for: c<card id>, p<player id>, hidden (a card the player may not see) or #<item number> (only words).","type":"string","pattern":"^(c-?[0-9]+|p-?[0-9]+|hidden|#[0-9]+)$"};
+const pattern10 = new RegExp("^(c-?[0-9]+|p-?[0-9]+|hidden|#[0-9]+)$", "u");
+
+function validate186(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+let vErrors = null;
+let errors = 0;
+const evaluated0 = validate186.evaluated;
+if(evaluated0.dynamicProps){
+evaluated0.props = undefined;
+}
+if(evaluated0.dynamicItems){
+evaluated0.items = undefined;
+}
 if(typeof data === "string"){
-if(!pattern8.test(data)){
+if(!pattern10.test(data)){
 const err0 = {instancePath,schemaPath:"#/pattern",keyword:"pattern",params:{pattern: "^(c-?[0-9]+|p-?[0-9]+|hidden|#[0-9]+)$"},message:"must match pattern \""+"^(c-?[0-9]+|p-?[0-9]+|hidden|#[0-9]+)$"+"\""};
 if(vErrors === null){
 vErrors = [err0];
@@ -6905,16 +7088,16 @@ vErrors.push(err1);
 }
 errors++;
 }
-validate182.errors = vErrors;
+validate186.errors = vErrors;
 return errors === 0;
 }
-validate182.evaluated = {"dynamicProps":false,"dynamicItems":false};
+validate186.evaluated = {"dynamicProps":false,"dynamicItems":false};
 
 
-function validate173(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate177(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate173.evaluated;
+const evaluated0 = validate177.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -6953,7 +7136,7 @@ vErrors.push(err2);
 errors++;
 }
 for(const key0 in data){
-if(!(func1.call(schema67.properties, key0))){
+if(!(func1.call(schema68.properties, key0))){
 const err3 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
 if(vErrors === null){
 vErrors = [err3];
@@ -6965,14 +7148,14 @@ errors++;
 }
 }
 if(data.id !== undefined){
-if(!(validate174(data.id, {instancePath:instancePath+"/id",parentData:data,parentDataProperty:"id",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate174.errors : vErrors.concat(validate174.errors);
+if(!(validate178(data.id, {instancePath:instancePath+"/id",parentData:data,parentDataProperty:"id",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate178.errors : vErrors.concat(validate178.errors);
 errors = vErrors.length;
 }
 }
 if(data.kind !== undefined){
-if(!(validate176(data.kind, {instancePath:instancePath+"/kind",parentData:data,parentDataProperty:"kind",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate176.errors : vErrors.concat(validate176.errors);
+if(!(validate180(data.kind, {instancePath:instancePath+"/kind",parentData:data,parentDataProperty:"kind",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate180.errors : vErrors.concat(validate180.errors);
 errors = vErrors.length;
 }
 }
@@ -6989,8 +7172,8 @@ errors++;
 }
 }
 if(data.purpose !== undefined){
-if(!(validate178(data.purpose, {instancePath:instancePath+"/purpose",parentData:data,parentDataProperty:"purpose",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate178.errors : vErrors.concat(validate178.errors);
+if(!(validate182(data.purpose, {instancePath:instancePath+"/purpose",parentData:data,parentDataProperty:"purpose",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate182.errors : vErrors.concat(validate182.errors);
 errors = vErrors.length;
 }
 }
@@ -7274,8 +7457,8 @@ let data22 = data.items;
 if(Array.isArray(data22)){
 const len3 = data22.length;
 for(let i3=0; i3<len3; i3++){
-if(!(validate182(data22[i3], {instancePath:instancePath+"/items/" + i3,parentData:data22,parentDataProperty:i3,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate182.errors : vErrors.concat(validate182.errors);
+if(!(validate186(data22[i3], {instancePath:instancePath+"/items/" + i3,parentData:data22,parentDataProperty:i3,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate186.errors : vErrors.concat(validate186.errors);
 errors = vErrors.length;
 }
 }
@@ -7296,8 +7479,8 @@ let data24 = data.revealed;
 if(Array.isArray(data24)){
 const len4 = data24.length;
 for(let i4=0; i4<len4; i4++){
-if(!(validate182(data24[i4], {instancePath:instancePath+"/revealed/" + i4,parentData:data24,parentDataProperty:i4,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate182.errors : vErrors.concat(validate182.errors);
+if(!(validate186(data24[i4], {instancePath:instancePath+"/revealed/" + i4,parentData:data24,parentDataProperty:i4,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate186.errors : vErrors.concat(validate186.errors);
 errors = vErrors.length;
 }
 }
@@ -7324,10 +7507,10 @@ vErrors.push(err26);
 }
 errors++;
 }
-validate173.errors = vErrors;
+validate177.errors = vErrors;
 return errors === 0;
 }
-validate173.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate177.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
 
 function validate130(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
@@ -7709,8 +7892,8 @@ let data12 = data.questions;
 if(Array.isArray(data12)){
 const len3 = data12.length;
 for(let i3=0; i3<len3; i3++){
-if(!(validate173(data12[i3], {instancePath:instancePath+"/questions/" + i3,parentData:data12,parentDataProperty:i3,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate173.errors : vErrors.concat(validate173.errors);
+if(!(validate177(data12[i3], {instancePath:instancePath+"/questions/" + i3,parentData:data12,parentDataProperty:i3,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate177.errors : vErrors.concat(validate177.errors);
 errors = vErrors.length;
 }
 }
@@ -7938,13 +8121,13 @@ return errors === 0;
 }
 validate123.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema72 = {"title":"GameStarted","type":"object","additionalProperties":false,"required":["type","protocol","human","ai","aiProfile","format","cardNames"],"properties":{"type":{"const":"game.started"},"protocol":{"$ref":"#/$defs/ProtocolVersion"},"human":{"type":"string"},"ai":{"type":"string"},"aiProfile":{"type":"string"},"format":{"$ref":"#/$defs/MatchFormat"},"cardNames":{"type":"array","items":{"type":"string"},"description":"The card names of BOTH decks in one sorted list without owner (image prefetch without revealing the AI's deck)."}}};
-const schema73 = {"title":"MatchFormat","enum":["constructed","commander"]};
+const schema73 = {"title":"GameStarted","type":"object","additionalProperties":false,"required":["type","protocol","human","ai","aiProfile","format","cardNames"],"properties":{"type":{"const":"game.started"},"protocol":{"$ref":"#/$defs/ProtocolVersion"},"human":{"type":"string"},"ai":{"type":"string"},"aiProfile":{"type":"string"},"format":{"$ref":"#/$defs/MatchFormat"},"cardNames":{"type":"array","items":{"type":"string"},"description":"The card names of BOTH decks in one sorted list without owner (image prefetch without revealing the AI's deck)."}}};
+const schema74 = {"title":"MatchFormat","enum":["constructed","commander"]};
 
-function validate189(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate193(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate189.evaluated;
+const evaluated0 = validate193.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -7952,7 +8135,7 @@ if(evaluated0.dynamicItems){
 evaluated0.items = undefined;
 }
 if(!((data === "constructed") || (data === "commander"))){
-const err0 = {instancePath,schemaPath:"#/enum",keyword:"enum",params:{allowedValues: schema73.enum},message:"must be equal to one of the allowed values"};
+const err0 = {instancePath,schemaPath:"#/enum",keyword:"enum",params:{allowedValues: schema74.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err0];
 }
@@ -7961,16 +8144,16 @@ vErrors.push(err0);
 }
 errors++;
 }
-validate189.errors = vErrors;
+validate193.errors = vErrors;
 return errors === 0;
 }
-validate189.evaluated = {"dynamicProps":false,"dynamicItems":false};
+validate193.evaluated = {"dynamicProps":false,"dynamicItems":false};
 
 
-function validate187(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate191(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate187.evaluated;
+const evaluated0 = validate191.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -8115,8 +8298,8 @@ errors++;
 }
 }
 if(data.format !== undefined){
-if(!(validate189(data.format, {instancePath:instancePath+"/format",parentData:data,parentDataProperty:"format",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate189.errors : vErrors.concat(validate189.errors);
+if(!(validate193(data.format, {instancePath:instancePath+"/format",parentData:data,parentDataProperty:"format",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate193.errors : vErrors.concat(validate193.errors);
 errors = vErrors.length;
 }
 }
@@ -8159,19 +8342,19 @@ vErrors.push(err14);
 }
 errors++;
 }
-validate187.errors = vErrors;
+validate191.errors = vErrors;
 return errors === 0;
 }
-validate187.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate191.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema74 = {"title":"GameState","description":"The complete game as the player may see it: always a full snapshot, never a delta. The UI replaces its previous state with it.","type":"object","additionalProperties":false,"required":["type","seq","running","turn","phase","activePlayer","me","players","stack","combat"],"properties":{"type":{"const":"state"},"seq":{"type":"integer","minimum":1,"description":"Strictly increasing within a match."},"running":{"type":"boolean"},"turn":{"type":"integer","minimum":0},"phase":{"anyOf":[{"$ref":"#/$defs/Phase"},{"type":"null"}]},"activePlayer":{"anyOf":[{"$ref":"#/$defs/PlayerId"},{"type":"null"}]},"me":{"anyOf":[{"$ref":"#/$defs/PlayerId"},{"type":"null"}]},"players":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/Player"}},"stack":{"type":"array","items":{"$ref":"#/$defs/StackItem"}},"combat":{"type":"array","items":{"$ref":"#/$defs/CombatEntry"}}}};
-const schema75 = {"title":"Player","type":"object","additionalProperties":false,"required":["id","name","ai","me","life","hasPriority","canAct","lost","maxHandSize","landsPlayed","landsAllowed","counters","mana","zones","library","commanders"],"properties":{"id":{"$ref":"#/$defs/PlayerId"},"name":{"type":["string","null"]},"ai":{"type":"boolean"},"me":{"type":"boolean"},"life":{"type":"integer"},"hasPriority":{"type":"boolean"},"canAct":{"type":"boolean","description":"Forge: the player has anything to do at all right now."},"lost":{"type":"boolean"},"maxHandSize":{"type":"integer"},"landsPlayed":{"type":"integer","minimum":0},"landsAllowed":{"type":"integer","minimum":0},"counters":{"$ref":"#/$defs/Counters"},"mana":{"$ref":"#/$defs/ManaPool"},"zones":{"$ref":"#/$defs/Zones"},"library":{"type":"integer","minimum":0,"description":"Only the size; the library never leaves the engine."},"commanders":{"type":"array","items":{"$ref":"#/$defs/Commander"}}}};
-const schema76 = {"title":"ManaPool","type":"object","additionalProperties":false,"required":["W","U","B","R","G","C"],"properties":{"W":{"type":"integer","minimum":0},"U":{"type":"integer","minimum":0},"B":{"type":"integer","minimum":0},"R":{"type":"integer","minimum":0},"G":{"type":"integer","minimum":0},"C":{"type":"integer","minimum":0}}};
+const schema75 = {"title":"GameState","description":"The complete game as the player may see it: always a full snapshot, never a delta. The UI replaces its previous state with it.","type":"object","additionalProperties":false,"required":["type","seq","running","turn","phase","activePlayer","me","players","stack","combat"],"properties":{"type":{"const":"state"},"seq":{"type":"integer","minimum":1,"description":"Strictly increasing within a match."},"running":{"type":"boolean"},"turn":{"type":"integer","minimum":0},"phase":{"anyOf":[{"$ref":"#/$defs/Phase"},{"type":"null"}]},"activePlayer":{"anyOf":[{"$ref":"#/$defs/PlayerId"},{"type":"null"}]},"me":{"anyOf":[{"$ref":"#/$defs/PlayerId"},{"type":"null"}]},"players":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/Player"}},"stack":{"type":"array","items":{"$ref":"#/$defs/StackItem"}},"combat":{"type":"array","items":{"$ref":"#/$defs/CombatEntry"}},"payment":{"$ref":"#/$defs/Payment"}}};
+const schema76 = {"title":"Player","type":"object","additionalProperties":false,"required":["id","name","ai","me","life","hasPriority","canAct","lost","maxHandSize","landsPlayed","landsAllowed","counters","mana","zones","library","commanders"],"properties":{"id":{"$ref":"#/$defs/PlayerId"},"name":{"type":["string","null"]},"ai":{"type":"boolean"},"me":{"type":"boolean"},"life":{"type":"integer"},"hasPriority":{"type":"boolean"},"canAct":{"type":"boolean","description":"Forge: the player has anything to do at all right now."},"selectable":{"const":true,"description":"Forge: a player.tap on this player would do something in the running step now - choose or un-choose them as a target, choose them, pay life for mana. Asked of Forge's running input (the same checks its click runs), never computed by the UI."},"highlighted":{"const":true,"description":"Forge's highlight on the player: chosen (a target so far)."},"lost":{"type":"boolean"},"maxHandSize":{"type":"integer"},"landsPlayed":{"type":"integer","minimum":0},"landsAllowed":{"type":"integer","minimum":0},"counters":{"$ref":"#/$defs/Counters"},"mana":{"$ref":"#/$defs/ManaPool"},"zones":{"$ref":"#/$defs/Zones"},"library":{"type":"integer","minimum":0,"description":"Only the size; the library never leaves the engine."},"commanders":{"type":"array","items":{"$ref":"#/$defs/Commander"}}}};
+const schema77 = {"title":"ManaPool","type":"object","additionalProperties":false,"required":["W","U","B","R","G","C"],"properties":{"W":{"type":"integer","minimum":0},"U":{"type":"integer","minimum":0},"B":{"type":"integer","minimum":0},"R":{"type":"integer","minimum":0},"G":{"type":"integer","minimum":0},"C":{"type":"integer","minimum":0}}};
 
-function validate198(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate202(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate198.evaluated;
+const evaluated0 = validate202.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -8412,21 +8595,21 @@ vErrors.push(err19);
 }
 errors++;
 }
-validate198.errors = vErrors;
+validate202.errors = vErrors;
 return errors === 0;
 }
-validate198.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate202.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema77 = {"title":"Zones","type":"object","additionalProperties":false,"required":["battlefield","hand","graveyard","exile","command"],"properties":{"battlefield":{"type":"array","items":{"$ref":"#/$defs/Card"}},"hand":{"type":"array","items":{"$ref":"#/$defs/Card"}},"graveyard":{"type":"array","items":{"$ref":"#/$defs/Card"}},"exile":{"type":"array","items":{"$ref":"#/$defs/Card"}},"command":{"type":"array","items":{"$ref":"#/$defs/Card"}}}};
-const schema78 = {"title":"Card","description":"A card the player may see (VisibleCard) or only knows exists (HiddenCard). Forge decides visibility (mayView).","anyOf":[{"$ref":"#/$defs/VisibleCard"},{"$ref":"#/$defs/HiddenCard"}]};
-const schema79 = {"title":"VisibleCard","description":"A card as Forge shows it to the player. key is the English oracle name (stable identity for Scryfall); name, typeLine and text are Forge's display texts. colors/printedColors only if the current colours differ from the printed ones. playable, action, ways and highlighted are Forge's own markers; the UI never computes them.","type":"object","additionalProperties":false,"required":["id","tapped","sick","faceDown","damage","owner","controller"],"properties":{"id":{"$ref":"#/$defs/CardId"},"key":{"type":["string","null"]},"name":{"type":["string","null"]},"typeLine":{"type":["string","null"]},"cost":{"type":"string"},"set":{"type":["string","null"]},"power":{"type":"integer"},"toughness":{"type":"integer"},"loyalty":{"type":["string","null"]},"text":{"type":["string","null"],"description":"Rules text; only on the battlefield, in the command zone, in the player's own hand and in card views of questions."},"colors":{"$ref":"#/$defs/ColorLetters"},"printedColors":{"type":"string","pattern":"^W?U?B?R?G?$","description":"Printed colours (empty = colourless), only together with colors."},"tapped":{"type":"boolean"},"sick":{"type":"boolean"},"faceDown":{"type":"boolean"},"damage":{"type":"integer"},"owner":{"anyOf":[{"$ref":"#/$defs/PlayerId"},{"type":"null"}]},"controller":{"anyOf":[{"$ref":"#/$defs/PlayerId"},{"type":"null"}]},"attacking":{"const":true},"blocking":{"const":true},"token":{"const":true},"phasedOut":{"const":true},"playable":{"const":true,"description":"Forge: something can be done with this card now."},"action":{"type":"string","description":"Forge: what tapping the card would do now, in Forge's words."},"ways":{"type":"array","minItems":2,"items":{"type":"string"},"description":"Forge: all ways to use this playable card (e.g. cast or an alternative cost)."},"highlighted":{"const":true,"description":"Forge's highlight (e.g. cards chosen for the bottom during the London mulligan)."},"counters":{"$ref":"#/$defs/Counters"},"attachedTo":{"$ref":"#/$defs/CardId"},"attached":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/CardId"}}}};
-const schema80 = {"title":"ColorLetters","description":"Colours as WUBRG letters in this order, at least one.","type":"string","pattern":"^(?=[WUBRG])W?U?B?R?G?$"};
-const pattern9 = new RegExp("^(?=[WUBRG])W?U?B?R?G?$", "u");
+const schema78 = {"title":"Zones","type":"object","additionalProperties":false,"required":["battlefield","hand","graveyard","exile","command"],"properties":{"battlefield":{"type":"array","items":{"$ref":"#/$defs/Card"}},"hand":{"type":"array","items":{"$ref":"#/$defs/Card"}},"graveyard":{"type":"array","items":{"$ref":"#/$defs/Card"}},"exile":{"type":"array","items":{"$ref":"#/$defs/Card"}},"command":{"type":"array","items":{"$ref":"#/$defs/Card"}}}};
+const schema79 = {"title":"Card","description":"A card the player may see (VisibleCard) or only knows exists (HiddenCard). Forge decides visibility (mayView).","anyOf":[{"$ref":"#/$defs/VisibleCard"},{"$ref":"#/$defs/HiddenCard"}]};
+const schema80 = {"title":"VisibleCard","description":"A card as Forge shows it to the player. key is the English oracle name (stable identity for Scryfall); name, typeLine and text are Forge's display texts. colors/printedColors only if the current colours differ from the printed ones. playable, action, ways and highlighted are Forge's own markers; the UI never computes them.","type":"object","additionalProperties":false,"required":["id","tapped","sick","faceDown","damage","owner","controller"],"properties":{"id":{"$ref":"#/$defs/CardId"},"key":{"type":["string","null"]},"name":{"type":["string","null"]},"typeLine":{"type":["string","null"]},"cost":{"type":"string"},"set":{"type":["string","null"]},"power":{"type":"integer"},"toughness":{"type":"integer"},"loyalty":{"type":["string","null"]},"text":{"type":["string","null"],"description":"Rules text; only on the battlefield, in the command zone, in the player's own hand and in card views of questions."},"colors":{"$ref":"#/$defs/ColorLetters"},"printedColors":{"type":"string","pattern":"^W?U?B?R?G?$","description":"Printed colours (empty = colourless), only together with colors."},"tapped":{"type":"boolean"},"sick":{"type":"boolean"},"faceDown":{"type":"boolean"},"damage":{"type":"integer"},"owner":{"anyOf":[{"$ref":"#/$defs/PlayerId"},{"type":"null"}]},"controller":{"anyOf":[{"$ref":"#/$defs/PlayerId"},{"type":"null"}]},"attacking":{"const":true},"blocking":{"const":true},"token":{"const":true},"phasedOut":{"const":true},"playable":{"const":true,"description":"Forge: something can be done with this card now."},"action":{"type":"string","description":"Forge: what tapping the card would do now, in Forge's words."},"ways":{"type":"array","minItems":2,"items":{"type":"string"},"description":"Forge: all ways to use this playable card (e.g. cast or an alternative cost)."},"highlighted":{"const":true,"description":"Forge's highlight (e.g. cards chosen for the bottom during the London mulligan)."},"counters":{"$ref":"#/$defs/Counters"},"attachedTo":{"$ref":"#/$defs/CardId"},"attached":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/CardId"}}}};
+const schema81 = {"title":"ColorLetters","description":"Colours as WUBRG letters in this order, at least one.","type":"string","pattern":"^(?=[WUBRG])W?U?B?R?G?$"};
+const pattern11 = new RegExp("^(?=[WUBRG])W?U?B?R?G?$", "u");
 
-function validate204(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate208(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate204.evaluated;
+const evaluated0 = validate208.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -8434,7 +8617,7 @@ if(evaluated0.dynamicItems){
 evaluated0.items = undefined;
 }
 if(typeof data === "string"){
-if(!pattern9.test(data)){
+if(!pattern11.test(data)){
 const err0 = {instancePath,schemaPath:"#/pattern",keyword:"pattern",params:{pattern: "^(?=[WUBRG])W?U?B?R?G?$"},message:"must match pattern \""+"^(?=[WUBRG])W?U?B?R?G?$"+"\""};
 if(vErrors === null){
 vErrors = [err0];
@@ -8455,17 +8638,17 @@ vErrors.push(err1);
 }
 errors++;
 }
-validate204.errors = vErrors;
+validate208.errors = vErrors;
 return errors === 0;
 }
-validate204.evaluated = {"dynamicProps":false,"dynamicItems":false};
+validate208.evaluated = {"dynamicProps":false,"dynamicItems":false};
 
-const pattern10 = new RegExp("^W?U?B?R?G?$", "u");
+const pattern12 = new RegExp("^W?U?B?R?G?$", "u");
 
-function validate202(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate206(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate202.evaluated;
+const evaluated0 = validate206.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -8544,7 +8727,7 @@ vErrors.push(err6);
 errors++;
 }
 for(const key0 in data){
-if(!(func1.call(schema79.properties, key0))){
+if(!(func1.call(schema80.properties, key0))){
 const err7 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
 if(vErrors === null){
 vErrors = [err7];
@@ -8564,7 +8747,7 @@ errors = vErrors.length;
 if(data.key !== undefined){
 let data1 = data.key;
 if((typeof data1 !== "string") && (data1 !== null)){
-const err8 = {instancePath:instancePath+"/key",schemaPath:"#/properties/key/type",keyword:"type",params:{type: schema79.properties.key.type},message:"must be string,null"};
+const err8 = {instancePath:instancePath+"/key",schemaPath:"#/properties/key/type",keyword:"type",params:{type: schema80.properties.key.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err8];
 }
@@ -8577,7 +8760,7 @@ errors++;
 if(data.name !== undefined){
 let data2 = data.name;
 if((typeof data2 !== "string") && (data2 !== null)){
-const err9 = {instancePath:instancePath+"/name",schemaPath:"#/properties/name/type",keyword:"type",params:{type: schema79.properties.name.type},message:"must be string,null"};
+const err9 = {instancePath:instancePath+"/name",schemaPath:"#/properties/name/type",keyword:"type",params:{type: schema80.properties.name.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err9];
 }
@@ -8590,7 +8773,7 @@ errors++;
 if(data.typeLine !== undefined){
 let data3 = data.typeLine;
 if((typeof data3 !== "string") && (data3 !== null)){
-const err10 = {instancePath:instancePath+"/typeLine",schemaPath:"#/properties/typeLine/type",keyword:"type",params:{type: schema79.properties.typeLine.type},message:"must be string,null"};
+const err10 = {instancePath:instancePath+"/typeLine",schemaPath:"#/properties/typeLine/type",keyword:"type",params:{type: schema80.properties.typeLine.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err10];
 }
@@ -8615,7 +8798,7 @@ errors++;
 if(data.set !== undefined){
 let data5 = data.set;
 if((typeof data5 !== "string") && (data5 !== null)){
-const err12 = {instancePath:instancePath+"/set",schemaPath:"#/properties/set/type",keyword:"type",params:{type: schema79.properties.set.type},message:"must be string,null"};
+const err12 = {instancePath:instancePath+"/set",schemaPath:"#/properties/set/type",keyword:"type",params:{type: schema80.properties.set.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err12];
 }
@@ -8654,7 +8837,7 @@ errors++;
 if(data.loyalty !== undefined){
 let data8 = data.loyalty;
 if((typeof data8 !== "string") && (data8 !== null)){
-const err15 = {instancePath:instancePath+"/loyalty",schemaPath:"#/properties/loyalty/type",keyword:"type",params:{type: schema79.properties.loyalty.type},message:"must be string,null"};
+const err15 = {instancePath:instancePath+"/loyalty",schemaPath:"#/properties/loyalty/type",keyword:"type",params:{type: schema80.properties.loyalty.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err15];
 }
@@ -8667,7 +8850,7 @@ errors++;
 if(data.text !== undefined){
 let data9 = data.text;
 if((typeof data9 !== "string") && (data9 !== null)){
-const err16 = {instancePath:instancePath+"/text",schemaPath:"#/properties/text/type",keyword:"type",params:{type: schema79.properties.text.type},message:"must be string,null"};
+const err16 = {instancePath:instancePath+"/text",schemaPath:"#/properties/text/type",keyword:"type",params:{type: schema80.properties.text.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err16];
 }
@@ -8678,15 +8861,15 @@ errors++;
 }
 }
 if(data.colors !== undefined){
-if(!(validate204(data.colors, {instancePath:instancePath+"/colors",parentData:data,parentDataProperty:"colors",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate204.errors : vErrors.concat(validate204.errors);
+if(!(validate208(data.colors, {instancePath:instancePath+"/colors",parentData:data,parentDataProperty:"colors",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate208.errors : vErrors.concat(validate208.errors);
 errors = vErrors.length;
 }
 }
 if(data.printedColors !== undefined){
 let data11 = data.printedColors;
 if(typeof data11 === "string"){
-if(!pattern10.test(data11)){
+if(!pattern12.test(data11)){
 const err17 = {instancePath:instancePath+"/printedColors",schemaPath:"#/properties/printedColors/pattern",keyword:"pattern",params:{pattern: "^W?U?B?R?G?$"},message:"must match pattern \""+"^W?U?B?R?G?$"+"\""};
 if(vErrors === null){
 vErrors = [err17];
@@ -9026,17 +9209,17 @@ vErrors.push(err39);
 }
 errors++;
 }
-validate202.errors = vErrors;
+validate206.errors = vErrors;
 return errors === 0;
 }
-validate202.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate206.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema81 = {"title":"HiddenCard","description":"Only that there is a card: no id (ids follow the deck list and would reveal the card), no name.","type":"object","additionalProperties":false,"required":["hidden"],"properties":{"hidden":{"const":true}}};
+const schema82 = {"title":"HiddenCard","description":"Only that there is a card: no id (ids follow the deck list and would reveal the card), no name.","type":"object","additionalProperties":false,"required":["hidden"],"properties":{"hidden":{"const":true}}};
 
-function validate212(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate216(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate212.evaluated;
+const evaluated0 = validate216.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -9089,16 +9272,16 @@ vErrors.push(err3);
 }
 errors++;
 }
-validate212.errors = vErrors;
+validate216.errors = vErrors;
 return errors === 0;
 }
-validate212.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate216.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
 
-function validate201(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate205(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate201.evaluated;
+const evaluated0 = validate205.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -9108,8 +9291,8 @@ evaluated0.items = undefined;
 const _errs0 = errors;
 let valid0 = false;
 const _errs1 = errors;
-if(!(validate202(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate202.errors : vErrors.concat(validate202.errors);
+if(!(validate206(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate206.errors : vErrors.concat(validate206.errors);
 errors = vErrors.length;
 }
 var _valid0 = _errs1 === errors;
@@ -9118,8 +9301,8 @@ if(_valid0){
 var props0 = true;
 }
 const _errs2 = errors;
-if(!(validate212(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate212.errors : vErrors.concat(validate212.errors);
+if(!(validate216(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate216.errors : vErrors.concat(validate216.errors);
 errors = vErrors.length;
 }
 var _valid0 = _errs2 === errors;
@@ -9150,17 +9333,17 @@ vErrors = null;
 }
 }
 }
-validate201.errors = vErrors;
+validate205.errors = vErrors;
 evaluated0.props = props0;
 return errors === 0;
 }
-validate201.evaluated = {"dynamicProps":true,"dynamicItems":false};
+validate205.evaluated = {"dynamicProps":true,"dynamicItems":false};
 
 
-function validate200(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate204(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate200.evaluated;
+const evaluated0 = validate204.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -9235,8 +9418,8 @@ let data0 = data.battlefield;
 if(Array.isArray(data0)){
 const len0 = data0.length;
 for(let i0=0; i0<len0; i0++){
-if(!(validate201(data0[i0], {instancePath:instancePath+"/battlefield/" + i0,parentData:data0,parentDataProperty:i0,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate201.errors : vErrors.concat(validate201.errors);
+if(!(validate205(data0[i0], {instancePath:instancePath+"/battlefield/" + i0,parentData:data0,parentDataProperty:i0,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate205.errors : vErrors.concat(validate205.errors);
 errors = vErrors.length;
 }
 }
@@ -9257,8 +9440,8 @@ let data2 = data.hand;
 if(Array.isArray(data2)){
 const len1 = data2.length;
 for(let i1=0; i1<len1; i1++){
-if(!(validate201(data2[i1], {instancePath:instancePath+"/hand/" + i1,parentData:data2,parentDataProperty:i1,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate201.errors : vErrors.concat(validate201.errors);
+if(!(validate205(data2[i1], {instancePath:instancePath+"/hand/" + i1,parentData:data2,parentDataProperty:i1,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate205.errors : vErrors.concat(validate205.errors);
 errors = vErrors.length;
 }
 }
@@ -9279,8 +9462,8 @@ let data4 = data.graveyard;
 if(Array.isArray(data4)){
 const len2 = data4.length;
 for(let i2=0; i2<len2; i2++){
-if(!(validate201(data4[i2], {instancePath:instancePath+"/graveyard/" + i2,parentData:data4,parentDataProperty:i2,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate201.errors : vErrors.concat(validate201.errors);
+if(!(validate205(data4[i2], {instancePath:instancePath+"/graveyard/" + i2,parentData:data4,parentDataProperty:i2,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate205.errors : vErrors.concat(validate205.errors);
 errors = vErrors.length;
 }
 }
@@ -9301,8 +9484,8 @@ let data6 = data.exile;
 if(Array.isArray(data6)){
 const len3 = data6.length;
 for(let i3=0; i3<len3; i3++){
-if(!(validate201(data6[i3], {instancePath:instancePath+"/exile/" + i3,parentData:data6,parentDataProperty:i3,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate201.errors : vErrors.concat(validate201.errors);
+if(!(validate205(data6[i3], {instancePath:instancePath+"/exile/" + i3,parentData:data6,parentDataProperty:i3,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate205.errors : vErrors.concat(validate205.errors);
 errors = vErrors.length;
 }
 }
@@ -9323,8 +9506,8 @@ let data8 = data.command;
 if(Array.isArray(data8)){
 const len4 = data8.length;
 for(let i4=0; i4<len4; i4++){
-if(!(validate201(data8[i4], {instancePath:instancePath+"/command/" + i4,parentData:data8,parentDataProperty:i4,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate201.errors : vErrors.concat(validate201.errors);
+if(!(validate205(data8[i4], {instancePath:instancePath+"/command/" + i4,parentData:data8,parentDataProperty:i4,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate205.errors : vErrors.concat(validate205.errors);
 errors = vErrors.length;
 }
 }
@@ -9351,17 +9534,17 @@ vErrors.push(err11);
 }
 errors++;
 }
-validate200.errors = vErrors;
+validate204.errors = vErrors;
 return errors === 0;
 }
-validate200.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate204.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema82 = {"title":"Commander","type":"object","additionalProperties":false,"required":["card","cast","tax","damage"],"properties":{"card":{"$ref":"#/$defs/Card"},"cast":{"type":"integer","minimum":0},"tax":{"type":"integer","minimum":0},"damage":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["player","amount"],"properties":{"player":{"$ref":"#/$defs/PlayerId"},"amount":{"type":"integer","minimum":1}}}}}};
+const schema83 = {"title":"Commander","type":"object","additionalProperties":false,"required":["card","cast","tax","damage"],"properties":{"card":{"$ref":"#/$defs/Card"},"cast":{"type":"integer","minimum":0},"tax":{"type":"integer","minimum":0},"damage":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["player","amount"],"properties":{"player":{"$ref":"#/$defs/PlayerId"},"amount":{"type":"integer","minimum":1}}}}}};
 
-function validate220(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate224(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate220.evaluated;
+const evaluated0 = validate224.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -9422,8 +9605,8 @@ errors++;
 }
 }
 if(data.card !== undefined){
-if(!(validate201(data.card, {instancePath:instancePath+"/card",parentData:data,parentDataProperty:"card",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate201.errors : vErrors.concat(validate201.errors);
+if(!(validate205(data.card, {instancePath:instancePath+"/card",parentData:data,parentDataProperty:"card",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate205.errors : vErrors.concat(validate205.errors);
 errors = vErrors.length;
 }
 }
@@ -9582,16 +9765,16 @@ vErrors.push(err16);
 }
 errors++;
 }
-validate220.errors = vErrors;
+validate224.errors = vErrors;
 return errors === 0;
 }
-validate220.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate224.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
 
-function validate195(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate199(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate195.evaluated;
+const evaluated0 = validate199.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -9760,7 +9943,7 @@ vErrors.push(err15);
 errors++;
 }
 for(const key0 in data){
-if(!(func1.call(schema75.properties, key0))){
+if(!(func1.call(schema76.properties, key0))){
 const err16 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
 if(vErrors === null){
 vErrors = [err16];
@@ -9780,7 +9963,7 @@ errors = vErrors.length;
 if(data.name !== undefined){
 let data1 = data.name;
 if((typeof data1 !== "string") && (data1 !== null)){
-const err17 = {instancePath:instancePath+"/name",schemaPath:"#/properties/name/type",keyword:"type",params:{type: schema75.properties.name.type},message:"must be string,null"};
+const err17 = {instancePath:instancePath+"/name",schemaPath:"#/properties/name/type",keyword:"type",params:{type: schema76.properties.name.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err17];
 }
@@ -9851,9 +10034,9 @@ vErrors.push(err22);
 errors++;
 }
 }
-if(data.lost !== undefined){
-if(typeof data.lost !== "boolean"){
-const err23 = {instancePath:instancePath+"/lost",schemaPath:"#/properties/lost/type",keyword:"type",params:{type: "boolean"},message:"must be boolean"};
+if(data.selectable !== undefined){
+if(true !== data.selectable){
+const err23 = {instancePath:instancePath+"/selectable",schemaPath:"#/properties/selectable/const",keyword:"const",params:{allowedValue: true},message:"must be equal to constant"};
 if(vErrors === null){
 vErrors = [err23];
 }
@@ -9863,10 +10046,9 @@ vErrors.push(err23);
 errors++;
 }
 }
-if(data.maxHandSize !== undefined){
-let data8 = data.maxHandSize;
-if(!(((typeof data8 == "number") && (!(data8 % 1) && !isNaN(data8))) && (isFinite(data8)))){
-const err24 = {instancePath:instancePath+"/maxHandSize",schemaPath:"#/properties/maxHandSize/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
+if(data.highlighted !== undefined){
+if(true !== data.highlighted){
+const err24 = {instancePath:instancePath+"/highlighted",schemaPath:"#/properties/highlighted/const",keyword:"const",params:{allowedValue: true},message:"must be equal to constant"};
 if(vErrors === null){
 vErrors = [err24];
 }
@@ -9876,10 +10058,9 @@ vErrors.push(err24);
 errors++;
 }
 }
-if(data.landsPlayed !== undefined){
-let data9 = data.landsPlayed;
-if(!(((typeof data9 == "number") && (!(data9 % 1) && !isNaN(data9))) && (isFinite(data9)))){
-const err25 = {instancePath:instancePath+"/landsPlayed",schemaPath:"#/properties/landsPlayed/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
+if(data.lost !== undefined){
+if(typeof data.lost !== "boolean"){
+const err25 = {instancePath:instancePath+"/lost",schemaPath:"#/properties/lost/type",keyword:"type",params:{type: "boolean"},message:"must be boolean"};
 if(vErrors === null){
 vErrors = [err25];
 }
@@ -9888,9 +10069,11 @@ vErrors.push(err25);
 }
 errors++;
 }
-if((typeof data9 == "number") && (isFinite(data9))){
-if(data9 < 0 || isNaN(data9)){
-const err26 = {instancePath:instancePath+"/landsPlayed",schemaPath:"#/properties/landsPlayed/minimum",keyword:"minimum",params:{comparison: ">=", limit: 0},message:"must be >= 0"};
+}
+if(data.maxHandSize !== undefined){
+let data10 = data.maxHandSize;
+if(!(((typeof data10 == "number") && (!(data10 % 1) && !isNaN(data10))) && (isFinite(data10)))){
+const err26 = {instancePath:instancePath+"/maxHandSize",schemaPath:"#/properties/maxHandSize/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
 if(vErrors === null){
 vErrors = [err26];
 }
@@ -9900,11 +10083,10 @@ vErrors.push(err26);
 errors++;
 }
 }
-}
-if(data.landsAllowed !== undefined){
-let data10 = data.landsAllowed;
-if(!(((typeof data10 == "number") && (!(data10 % 1) && !isNaN(data10))) && (isFinite(data10)))){
-const err27 = {instancePath:instancePath+"/landsAllowed",schemaPath:"#/properties/landsAllowed/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
+if(data.landsPlayed !== undefined){
+let data11 = data.landsPlayed;
+if(!(((typeof data11 == "number") && (!(data11 % 1) && !isNaN(data11))) && (isFinite(data11)))){
+const err27 = {instancePath:instancePath+"/landsPlayed",schemaPath:"#/properties/landsPlayed/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
 if(vErrors === null){
 vErrors = [err27];
 }
@@ -9913,14 +10095,39 @@ vErrors.push(err27);
 }
 errors++;
 }
-if((typeof data10 == "number") && (isFinite(data10))){
-if(data10 < 0 || isNaN(data10)){
-const err28 = {instancePath:instancePath+"/landsAllowed",schemaPath:"#/properties/landsAllowed/minimum",keyword:"minimum",params:{comparison: ">=", limit: 0},message:"must be >= 0"};
+if((typeof data11 == "number") && (isFinite(data11))){
+if(data11 < 0 || isNaN(data11)){
+const err28 = {instancePath:instancePath+"/landsPlayed",schemaPath:"#/properties/landsPlayed/minimum",keyword:"minimum",params:{comparison: ">=", limit: 0},message:"must be >= 0"};
 if(vErrors === null){
 vErrors = [err28];
 }
 else {
 vErrors.push(err28);
+}
+errors++;
+}
+}
+}
+if(data.landsAllowed !== undefined){
+let data12 = data.landsAllowed;
+if(!(((typeof data12 == "number") && (!(data12 % 1) && !isNaN(data12))) && (isFinite(data12)))){
+const err29 = {instancePath:instancePath+"/landsAllowed",schemaPath:"#/properties/landsAllowed/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
+if(vErrors === null){
+vErrors = [err29];
+}
+else {
+vErrors.push(err29);
+}
+errors++;
+}
+if((typeof data12 == "number") && (isFinite(data12))){
+if(data12 < 0 || isNaN(data12)){
+const err30 = {instancePath:instancePath+"/landsAllowed",schemaPath:"#/properties/landsAllowed/minimum",keyword:"minimum",params:{comparison: ">=", limit: 0},message:"must be >= 0"};
+if(vErrors === null){
+vErrors = [err30];
+}
+else {
+vErrors.push(err30);
 }
 errors++;
 }
@@ -9933,55 +10140,21 @@ errors = vErrors.length;
 }
 }
 if(data.mana !== undefined){
-if(!(validate198(data.mana, {instancePath:instancePath+"/mana",parentData:data,parentDataProperty:"mana",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate198.errors : vErrors.concat(validate198.errors);
+if(!(validate202(data.mana, {instancePath:instancePath+"/mana",parentData:data,parentDataProperty:"mana",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate202.errors : vErrors.concat(validate202.errors);
 errors = vErrors.length;
 }
 }
 if(data.zones !== undefined){
-if(!(validate200(data.zones, {instancePath:instancePath+"/zones",parentData:data,parentDataProperty:"zones",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate200.errors : vErrors.concat(validate200.errors);
+if(!(validate204(data.zones, {instancePath:instancePath+"/zones",parentData:data,parentDataProperty:"zones",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate204.errors : vErrors.concat(validate204.errors);
 errors = vErrors.length;
 }
 }
 if(data.library !== undefined){
-let data14 = data.library;
-if(!(((typeof data14 == "number") && (!(data14 % 1) && !isNaN(data14))) && (isFinite(data14)))){
-const err29 = {instancePath:instancePath+"/library",schemaPath:"#/properties/library/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
-if(vErrors === null){
-vErrors = [err29];
-}
-else {
-vErrors.push(err29);
-}
-errors++;
-}
-if((typeof data14 == "number") && (isFinite(data14))){
-if(data14 < 0 || isNaN(data14)){
-const err30 = {instancePath:instancePath+"/library",schemaPath:"#/properties/library/minimum",keyword:"minimum",params:{comparison: ">=", limit: 0},message:"must be >= 0"};
-if(vErrors === null){
-vErrors = [err30];
-}
-else {
-vErrors.push(err30);
-}
-errors++;
-}
-}
-}
-if(data.commanders !== undefined){
-let data15 = data.commanders;
-if(Array.isArray(data15)){
-const len0 = data15.length;
-for(let i0=0; i0<len0; i0++){
-if(!(validate220(data15[i0], {instancePath:instancePath+"/commanders/" + i0,parentData:data15,parentDataProperty:i0,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate220.errors : vErrors.concat(validate220.errors);
-errors = vErrors.length;
-}
-}
-}
-else {
-const err31 = {instancePath:instancePath+"/commanders",schemaPath:"#/properties/commanders/type",keyword:"type",params:{type: "array"},message:"must be array"};
+let data16 = data.library;
+if(!(((typeof data16 == "number") && (!(data16 % 1) && !isNaN(data16))) && (isFinite(data16)))){
+const err31 = {instancePath:instancePath+"/library",schemaPath:"#/properties/library/type",keyword:"type",params:{type: "integer"},message:"must be integer"};
 if(vErrors === null){
 vErrors = [err31];
 }
@@ -9990,10 +10163,9 @@ vErrors.push(err31);
 }
 errors++;
 }
-}
-}
-else {
-const err32 = {instancePath,schemaPath:"#/type",keyword:"type",params:{type: "object"},message:"must be object"};
+if((typeof data16 == "number") && (isFinite(data16))){
+if(data16 < 0 || isNaN(data16)){
+const err32 = {instancePath:instancePath+"/library",schemaPath:"#/properties/library/minimum",keyword:"minimum",params:{comparison: ">=", limit: 0},message:"must be >= 0"};
 if(vErrors === null){
 vErrors = [err32];
 }
@@ -10002,17 +10174,52 @@ vErrors.push(err32);
 }
 errors++;
 }
-validate195.errors = vErrors;
+}
+}
+if(data.commanders !== undefined){
+let data17 = data.commanders;
+if(Array.isArray(data17)){
+const len0 = data17.length;
+for(let i0=0; i0<len0; i0++){
+if(!(validate224(data17[i0], {instancePath:instancePath+"/commanders/" + i0,parentData:data17,parentDataProperty:i0,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate224.errors : vErrors.concat(validate224.errors);
+errors = vErrors.length;
+}
+}
+}
+else {
+const err33 = {instancePath:instancePath+"/commanders",schemaPath:"#/properties/commanders/type",keyword:"type",params:{type: "array"},message:"must be array"};
+if(vErrors === null){
+vErrors = [err33];
+}
+else {
+vErrors.push(err33);
+}
+errors++;
+}
+}
+}
+else {
+const err34 = {instancePath,schemaPath:"#/type",keyword:"type",params:{type: "object"},message:"must be object"};
+if(vErrors === null){
+vErrors = [err34];
+}
+else {
+vErrors.push(err34);
+}
+errors++;
+}
+validate199.errors = vErrors;
 return errors === 0;
 }
-validate195.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate199.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema83 = {"title":"StackItem","description":"A spell or ability on the stack (the state's stack is top first: the first item resolves next). text is Forge's own description of it.","type":"object","additionalProperties":false,"required":["id","text","source","card","player","ability","trigger","targets"],"properties":{"id":{"type":"integer"},"text":{"type":["string","null"]},"source":{"anyOf":[{"$ref":"#/$defs/CardId"},{"type":"null"}],"description":"The id of the spell's card or of the ability's source; null if Forge names none or the player may not see it."},"card":{"anyOf":[{"$ref":"#/$defs/Card"},{"type":"null"}],"description":"That card as Forge shows it to the player: a spell's own card (it lies on the stack, which is no zone of the state), an ability's source; hidden if the player may not see it (a face-down spell); null if Forge names no card. Never marked as usable: a card on the stack is not tapped."},"player":{"anyOf":[{"$ref":"#/$defs/PlayerId"},{"type":"null"}]},"ability":{"type":"boolean","description":"Forge: an activated or triggered ability (trigger says which), not a spell."},"trigger":{"type":"boolean"},"targets":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["kind","id"],"properties":{"kind":{"enum":["card","player"]},"id":{"type":"integer"}}}}}};
+const schema84 = {"title":"StackItem","description":"A spell or ability on the stack (the state's stack is top first: the first item resolves next). text is Forge's own description of it.","type":"object","additionalProperties":false,"required":["id","text","source","card","player","ability","trigger","targets"],"properties":{"id":{"type":"integer"},"text":{"type":["string","null"]},"source":{"anyOf":[{"$ref":"#/$defs/CardId"},{"type":"null"}],"description":"The id of the spell's card or of the ability's source; null if Forge names none or the player may not see it."},"card":{"anyOf":[{"$ref":"#/$defs/Card"},{"type":"null"}],"description":"That card as Forge shows it to the player: a spell's own card (it lies on the stack, which is no zone of the state), an ability's source; hidden if the player may not see it (a face-down spell); null if Forge names no card. Never marked as usable: a card on the stack is not tapped."},"player":{"anyOf":[{"$ref":"#/$defs/PlayerId"},{"type":"null"}]},"ability":{"type":"boolean","description":"Forge: an activated or triggered ability (trigger says which), not a spell."},"trigger":{"type":"boolean"},"targets":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["kind","id"],"properties":{"kind":{"enum":["card","player"]},"id":{"type":"integer"}}}}}};
 
-function validate225(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate229(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate225.evaluated;
+const evaluated0 = validate229.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -10128,7 +10335,7 @@ errors++;
 if(data.text !== undefined){
 let data1 = data.text;
 if((typeof data1 !== "string") && (data1 !== null)){
-const err10 = {instancePath:instancePath+"/text",schemaPath:"#/properties/text/type",keyword:"type",params:{type: schema83.properties.text.type},message:"must be string,null"};
+const err10 = {instancePath:instancePath+"/text",schemaPath:"#/properties/text/type",keyword:"type",params:{type: schema84.properties.text.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err10];
 }
@@ -10189,8 +10396,8 @@ let data3 = data.card;
 const _errs12 = errors;
 let valid2 = false;
 const _errs13 = errors;
-if(!(validate201(data3, {instancePath:instancePath+"/card",parentData:data,parentDataProperty:"card",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate201.errors : vErrors.concat(validate201.errors);
+if(!(validate205(data3, {instancePath:instancePath+"/card",parentData:data,parentDataProperty:"card",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate205.errors : vErrors.concat(validate205.errors);
 errors = vErrors.length;
 }
 var _valid1 = _errs13 === errors;
@@ -10342,7 +10549,7 @@ errors++;
 if(data8.kind !== undefined){
 let data9 = data8.kind;
 if(!((data9 === "card") || (data9 === "player"))){
-const err22 = {instancePath:instancePath+"/targets/" + i0+"/kind",schemaPath:"#/properties/targets/items/properties/kind/enum",keyword:"enum",params:{allowedValues: schema83.properties.targets.items.properties.kind.enum},message:"must be equal to one of the allowed values"};
+const err22 = {instancePath:instancePath+"/targets/" + i0+"/kind",schemaPath:"#/properties/targets/items/properties/kind/enum",keyword:"enum",params:{allowedValues: schema84.properties.targets.items.properties.kind.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err22];
 }
@@ -10400,17 +10607,17 @@ vErrors.push(err26);
 }
 errors++;
 }
-validate225.errors = vErrors;
+validate229.errors = vErrors;
 return errors === 0;
 }
-validate225.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate229.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema84 = {"title":"CombatEntry","description":"An attacker, whom it attacks and its blockers (while blockers are declared: Forge's planned blockers). Player and card ids are separate ranges, hence defenderKind.","type":"object","additionalProperties":false,"required":["attacker","defender","defenderKind","blockers"],"properties":{"attacker":{"$ref":"#/$defs/CardId"},"defender":{"type":["integer","null"]},"defenderKind":{"enum":["player","card",null]},"blockers":{"type":"array","items":{"$ref":"#/$defs/CardId"}}}};
+const schema85 = {"title":"CombatEntry","description":"An attacker, whom it attacks and its blockers (while blockers are declared: Forge's planned blockers). Player and card ids are separate ranges, hence defenderKind.","type":"object","additionalProperties":false,"required":["attacker","defender","defenderKind","blockers"],"properties":{"attacker":{"$ref":"#/$defs/CardId"},"defender":{"type":["integer","null"]},"defenderKind":{"enum":["player","card",null]},"blockers":{"type":"array","items":{"$ref":"#/$defs/CardId"}}}};
 
-function validate230(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate234(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate230.evaluated;
+const evaluated0 = validate234.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -10479,7 +10686,7 @@ errors = vErrors.length;
 if(data.defender !== undefined){
 let data1 = data.defender;
 if((!(((typeof data1 == "number") && (!(data1 % 1) && !isNaN(data1))) && (isFinite(data1)))) && (data1 !== null)){
-const err5 = {instancePath:instancePath+"/defender",schemaPath:"#/properties/defender/type",keyword:"type",params:{type: schema84.properties.defender.type},message:"must be integer,null"};
+const err5 = {instancePath:instancePath+"/defender",schemaPath:"#/properties/defender/type",keyword:"type",params:{type: schema85.properties.defender.type},message:"must be integer,null"};
 if(vErrors === null){
 vErrors = [err5];
 }
@@ -10492,7 +10699,7 @@ errors++;
 if(data.defenderKind !== undefined){
 let data2 = data.defenderKind;
 if(!(((data2 === "player") || (data2 === "card")) || (data2 === null))){
-const err6 = {instancePath:instancePath+"/defenderKind",schemaPath:"#/properties/defenderKind/enum",keyword:"enum",params:{allowedValues: schema84.properties.defenderKind.enum},message:"must be equal to one of the allowed values"};
+const err6 = {instancePath:instancePath+"/defenderKind",schemaPath:"#/properties/defenderKind/enum",keyword:"enum",params:{allowedValues: schema85.properties.defenderKind.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err6];
 }
@@ -10535,16 +10742,16 @@ vErrors.push(err8);
 }
 errors++;
 }
-validate230.errors = vErrors;
+validate234.errors = vErrors;
 return errors === 0;
 }
-validate230.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate234.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
 
-function validate191(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate195(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate191.evaluated;
+const evaluated0 = validate195.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -10653,7 +10860,7 @@ vErrors.push(err9);
 errors++;
 }
 for(const key0 in data){
-if(!(func1.call(schema74.properties, key0))){
+if(!(func1.call(schema75.properties, key0))){
 const err10 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
 if(vErrors === null){
 vErrors = [err10];
@@ -10891,8 +11098,8 @@ errors++;
 }
 const len0 = data7.length;
 for(let i0=0; i0<len0; i0++){
-if(!(validate195(data7[i0], {instancePath:instancePath+"/players/" + i0,parentData:data7,parentDataProperty:i0,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate195.errors : vErrors.concat(validate195.errors);
+if(!(validate199(data7[i0], {instancePath:instancePath+"/players/" + i0,parentData:data7,parentDataProperty:i0,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate199.errors : vErrors.concat(validate199.errors);
 errors = vErrors.length;
 }
 }
@@ -10913,8 +11120,8 @@ let data9 = data.stack;
 if(Array.isArray(data9)){
 const len1 = data9.length;
 for(let i1=0; i1<len1; i1++){
-if(!(validate225(data9[i1], {instancePath:instancePath+"/stack/" + i1,parentData:data9,parentDataProperty:i1,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate225.errors : vErrors.concat(validate225.errors);
+if(!(validate229(data9[i1], {instancePath:instancePath+"/stack/" + i1,parentData:data9,parentDataProperty:i1,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate229.errors : vErrors.concat(validate229.errors);
 errors = vErrors.length;
 }
 }
@@ -10935,8 +11142,8 @@ let data11 = data.combat;
 if(Array.isArray(data11)){
 const len2 = data11.length;
 for(let i2=0; i2<len2; i2++){
-if(!(validate230(data11[i2], {instancePath:instancePath+"/combat/" + i2,parentData:data11,parentDataProperty:i2,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate230.errors : vErrors.concat(validate230.errors);
+if(!(validate234(data11[i2], {instancePath:instancePath+"/combat/" + i2,parentData:data11,parentDataProperty:i2,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate234.errors : vErrors.concat(validate234.errors);
 errors = vErrors.length;
 }
 }
@@ -10952,6 +11159,12 @@ vErrors.push(err26);
 errors++;
 }
 }
+if(data.payment !== undefined){
+if(!(validate174(data.payment, {instancePath:instancePath+"/payment",parentData:data,parentDataProperty:"payment",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate174.errors : vErrors.concat(validate174.errors);
+errors = vErrors.length;
+}
+}
 }
 else {
 const err27 = {instancePath,schemaPath:"#/type",keyword:"type",params:{type: "object"},message:"must be object"};
@@ -10963,19 +11176,19 @@ vErrors.push(err27);
 }
 errors++;
 }
-validate191.errors = vErrors;
+validate195.errors = vErrors;
 return errors === 0;
 }
-validate191.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate195.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema85 = {"title":"GameEvents","description":"New entries of Forge's game log (verbosity MEDIUM), sent BEFORE the state they explain.","type":"object","additionalProperties":false,"required":["type","entries"],"properties":{"type":{"const":"events"},"entries":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/GameEvent"}}}};
-const schema86 = {"title":"GameEvent","description":"One log entry. card: the source card, only if the player may see it.","type":"object","additionalProperties":false,"required":["kind","text"],"properties":{"kind":{"type":"string","pattern":"^[A-Z][A-Z0-9_]*$","description":"Forge's log entry type (e.g. LAND, STACK_ADD, DAMAGE)."},"text":{"type":["string","null"]},"card":{"$ref":"#/$defs/CardId"},"actor":{"enum":["me","opponent"],"description":"Who did it, from structured data; absent if unknown."}}};
-const pattern11 = new RegExp("^[A-Z][A-Z0-9_]*$", "u");
+const schema86 = {"title":"GameEvents","description":"New entries of Forge's game log (verbosity MEDIUM), sent BEFORE the state they explain.","type":"object","additionalProperties":false,"required":["type","entries"],"properties":{"type":{"const":"events"},"entries":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/GameEvent"}}}};
+const schema87 = {"title":"GameEvent","description":"One log entry. card: the source card, only if the player may see it.","type":"object","additionalProperties":false,"required":["kind","text"],"properties":{"kind":{"type":"string","pattern":"^[A-Z][A-Z0-9_]*$","description":"Forge's log entry type (e.g. LAND, STACK_ADD, DAMAGE)."},"text":{"type":["string","null"]},"card":{"$ref":"#/$defs/CardId"},"actor":{"enum":["me","opponent"],"description":"Who did it, from structured data; absent if unknown."}}};
+const pattern13 = new RegExp("^[A-Z][A-Z0-9_]*$", "u");
 
-function validate235(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate240(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate235.evaluated;
+const evaluated0 = validate240.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -11018,7 +11231,7 @@ errors++;
 if(data.kind !== undefined){
 let data0 = data.kind;
 if(typeof data0 === "string"){
-if(!pattern11.test(data0)){
+if(!pattern13.test(data0)){
 const err3 = {instancePath:instancePath+"/kind",schemaPath:"#/properties/kind/pattern",keyword:"pattern",params:{pattern: "^[A-Z][A-Z0-9_]*$"},message:"must match pattern \""+"^[A-Z][A-Z0-9_]*$"+"\""};
 if(vErrors === null){
 vErrors = [err3];
@@ -11043,7 +11256,7 @@ errors++;
 if(data.text !== undefined){
 let data1 = data.text;
 if((typeof data1 !== "string") && (data1 !== null)){
-const err5 = {instancePath:instancePath+"/text",schemaPath:"#/properties/text/type",keyword:"type",params:{type: schema86.properties.text.type},message:"must be string,null"};
+const err5 = {instancePath:instancePath+"/text",schemaPath:"#/properties/text/type",keyword:"type",params:{type: schema87.properties.text.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err5];
 }
@@ -11062,7 +11275,7 @@ errors = vErrors.length;
 if(data.actor !== undefined){
 let data3 = data.actor;
 if(!((data3 === "me") || (data3 === "opponent"))){
-const err6 = {instancePath:instancePath+"/actor",schemaPath:"#/properties/actor/enum",keyword:"enum",params:{allowedValues: schema86.properties.actor.enum},message:"must be equal to one of the allowed values"};
+const err6 = {instancePath:instancePath+"/actor",schemaPath:"#/properties/actor/enum",keyword:"enum",params:{allowedValues: schema87.properties.actor.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err6];
 }
@@ -11083,16 +11296,16 @@ vErrors.push(err7);
 }
 errors++;
 }
-validate235.errors = vErrors;
+validate240.errors = vErrors;
 return errors === 0;
 }
-validate235.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate240.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
 
-function validate234(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate239(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate234.evaluated;
+const evaluated0 = validate239.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -11159,8 +11372,8 @@ errors++;
 }
 const len0 = data1.length;
 for(let i0=0; i0<len0; i0++){
-if(!(validate235(data1[i0], {instancePath:instancePath+"/entries/" + i0,parentData:data1,parentDataProperty:i0,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate235.errors : vErrors.concat(validate235.errors);
+if(!(validate240(data1[i0], {instancePath:instancePath+"/entries/" + i0,parentData:data1,parentDataProperty:i0,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate240.errors : vErrors.concat(validate240.errors);
 errors = vErrors.length;
 }
 }
@@ -11187,18 +11400,18 @@ vErrors.push(err6);
 }
 errors++;
 }
-validate234.errors = vErrors;
+validate239.errors = vErrors;
 return errors === 0;
 }
-validate234.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate239.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema87 = {"title":"GameMessage","description":"Text Forge shows the player. prompt: the instruction line of the current decision; notice: a message dialog; error: an error dialog; incorrect-action: Forge refused an action (flash, empty text). cardView: the full card, because while a spell is being paid for it is in no zone.","type":"object","additionalProperties":false,"required":["type","kind","text"],"properties":{"type":{"const":"message"},"kind":{"$ref":"#/$defs/MessageKind"},"text":{"type":"string"},"title":{"type":"string"},"card":{"$ref":"#/$defs/CardId"},"cardView":{"$ref":"#/$defs/VisibleCard"}}};
-const schema88 = {"title":"MessageKind","enum":["prompt","notice","error","incorrect-action"]};
+const schema88 = {"title":"GameMessage","description":"Text Forge shows the player. prompt: the instruction line of the current decision; notice: a message dialog; error: an error dialog; incorrect-action: Forge refused an action (flash, empty text). cardView: the full card, because while a spell is being paid for it is in no zone.","type":"object","additionalProperties":false,"required":["type","kind","text"],"properties":{"type":{"const":"message"},"kind":{"$ref":"#/$defs/MessageKind"},"text":{"type":"string"},"title":{"type":"string"},"card":{"$ref":"#/$defs/CardId"},"cardView":{"$ref":"#/$defs/VisibleCard"}}};
+const schema89 = {"title":"MessageKind","enum":["prompt","notice","error","incorrect-action"]};
 
-function validate239(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate244(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate239.evaluated;
+const evaluated0 = validate244.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -11206,7 +11419,7 @@ if(evaluated0.dynamicItems){
 evaluated0.items = undefined;
 }
 if(!((((data === "prompt") || (data === "notice")) || (data === "error")) || (data === "incorrect-action"))){
-const err0 = {instancePath,schemaPath:"#/enum",keyword:"enum",params:{allowedValues: schema88.enum},message:"must be equal to one of the allowed values"};
+const err0 = {instancePath,schemaPath:"#/enum",keyword:"enum",params:{allowedValues: schema89.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err0];
 }
@@ -11215,16 +11428,16 @@ vErrors.push(err0);
 }
 errors++;
 }
-validate239.errors = vErrors;
+validate244.errors = vErrors;
 return errors === 0;
 }
-validate239.evaluated = {"dynamicProps":false,"dynamicItems":false};
+validate244.evaluated = {"dynamicProps":false,"dynamicItems":false};
 
 
-function validate238(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate243(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate238.evaluated;
+const evaluated0 = validate243.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -11287,8 +11500,8 @@ errors++;
 }
 }
 if(data.kind !== undefined){
-if(!(validate239(data.kind, {instancePath:instancePath+"/kind",parentData:data,parentDataProperty:"kind",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate239.errors : vErrors.concat(validate239.errors);
+if(!(validate244(data.kind, {instancePath:instancePath+"/kind",parentData:data,parentDataProperty:"kind",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate244.errors : vErrors.concat(validate244.errors);
 errors = vErrors.length;
 }
 }
@@ -11323,8 +11536,8 @@ errors = vErrors.length;
 }
 }
 if(data.cardView !== undefined){
-if(!(validate202(data.cardView, {instancePath:instancePath+"/cardView",parentData:data,parentDataProperty:"cardView",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate202.errors : vErrors.concat(validate202.errors);
+if(!(validate206(data.cardView, {instancePath:instancePath+"/cardView",parentData:data,parentDataProperty:"cardView",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate206.errors : vErrors.concat(validate206.errors);
 errors = vErrors.length;
 }
 }
@@ -11339,21 +11552,21 @@ vErrors.push(err7);
 }
 errors++;
 }
-validate238.errors = vErrors;
+validate243.errors = vErrors;
 return errors === 0;
 }
-validate238.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate243.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema89 = {"title":"Question","description":"A decision Forge asks for. Every question is closed by exactly one question.withdrawn or question.answered. blocking: while it is open, only it can be answered (taps and other answers are rejected as not-active); state.request and concede still work.","type":"object","required":["type","kind"],"properties":{"type":{"const":"question"},"kind":{"$ref":"#/$defs/QuestionKind"}},"discriminator":{"propertyName":"kind"},"oneOf":[{"$ref":"#/$defs/SelectQuestion"},{"$ref":"#/$defs/ChooseQuestion"},{"$ref":"#/$defs/ButtonsQuestion"},{"$ref":"#/$defs/ConfirmQuestion"},{"$ref":"#/$defs/OptionsQuestion"},{"$ref":"#/$defs/InputQuestion"},{"$ref":"#/$defs/OrderQuestion"},{"$ref":"#/$defs/ArrangeQuestion"},{"$ref":"#/$defs/DistributeQuestion"}]};
-const schema90 = {"title":"SelectQuestion","description":"Forge names cards that may be selected now (targets, cards to discard ...). Answering taps the chosen items like clicks; the question stays open until Forge changes or clears the selection. No card = the target is a player (player.tap).","type":"object","additionalProperties":false,"required":["type","kind","id","blocking","text","min","max","cards","items"],"properties":{"type":{"const":"question"},"kind":{"const":"select"},"id":{"$ref":"#/$defs/QuestionId"},"blocking":{"const":false},"text":{"type":"string"},"min":{"type":"integer","minimum":0},"max":{"type":"integer","minimum":0},"cards":{"type":"array","items":{"$ref":"#/$defs/CardId"},"description":"The ids of the selectable cards the player may see; a hidden one is only a hidden item (ids follow the deck lists)."},"items":{"type":"array","items":{"$ref":"#/$defs/Item"}},"card":{"$ref":"#/$defs/CardId"},"cardView":{"$ref":"#/$defs/VisibleCard"}}};
-const schema91 = {"title":"Item","description":"One entry of a question's list, numbered from 1. A card the player may not see is only {nr, hidden: true}.","anyOf":[{"$ref":"#/$defs/VisibleItem"},{"$ref":"#/$defs/HiddenItem"}]};
-const schema92 = {"title":"VisibleItem","type":"object","additionalProperties":false,"required":["nr","text"],"properties":{"nr":{"$ref":"#/$defs/ItemNr"},"text":{"type":["string","null"]},"card":{"type":"integer"},"cardView":{"$ref":"#/$defs/VisibleCard"},"player":{"$ref":"#/$defs/PlayerId"}}};
-const schema93 = {"title":"ItemNr","type":"integer","minimum":1};
+const schema90 = {"title":"Question","description":"A decision Forge asks for. Every question is closed by exactly one question.withdrawn or question.answered. blocking: while it is open, only it can be answered (taps and other answers are rejected as not-active); state.request and concede still work.","type":"object","required":["type","kind"],"properties":{"type":{"const":"question"},"kind":{"$ref":"#/$defs/QuestionKind"}},"discriminator":{"propertyName":"kind"},"oneOf":[{"$ref":"#/$defs/SelectQuestion"},{"$ref":"#/$defs/ChooseQuestion"},{"$ref":"#/$defs/ButtonsQuestion"},{"$ref":"#/$defs/ConfirmQuestion"},{"$ref":"#/$defs/OptionsQuestion"},{"$ref":"#/$defs/InputQuestion"},{"$ref":"#/$defs/OrderQuestion"},{"$ref":"#/$defs/ArrangeQuestion"},{"$ref":"#/$defs/DistributeQuestion"}]};
+const schema91 = {"title":"SelectQuestion","description":"Forge names cards that may be selected now (targets, cards to discard ...). Answering taps the chosen items like clicks; the question stays open until Forge changes or clears the selection. Players to choose are not items: the state marks the players Forge would take (Player.selectable), chosen with player.tap.","type":"object","additionalProperties":false,"required":["type","kind","id","blocking","text","min","max","cards","items"],"properties":{"type":{"const":"question"},"kind":{"const":"select"},"id":{"$ref":"#/$defs/QuestionId"},"blocking":{"const":false},"text":{"type":"string"},"min":{"type":"integer","minimum":0,"description":"Forge's own bounds for the whole selection (protocol 6): cards and the players Forge takes together, not cut down to the cards listed."},"max":{"type":"integer","minimum":0,"description":"See min; one answer taps at most as many of the listed cards."},"cards":{"type":"array","items":{"$ref":"#/$defs/CardId"},"description":"The ids of the selectable cards the player may see; a hidden one is only a hidden item (ids follow the deck lists)."},"items":{"type":"array","items":{"$ref":"#/$defs/Item"}},"card":{"$ref":"#/$defs/CardId"},"cardView":{"$ref":"#/$defs/VisibleCard"}}};
+const schema92 = {"title":"Item","description":"One entry of a question's list, numbered from 1. A card the player may not see is only {nr, hidden: true}.","anyOf":[{"$ref":"#/$defs/VisibleItem"},{"$ref":"#/$defs/HiddenItem"}]};
+const schema93 = {"title":"VisibleItem","type":"object","additionalProperties":false,"required":["nr","text"],"properties":{"nr":{"$ref":"#/$defs/ItemNr"},"text":{"type":["string","null"]},"card":{"type":"integer"},"cardView":{"$ref":"#/$defs/VisibleCard"},"player":{"$ref":"#/$defs/PlayerId"}}};
+const schema94 = {"title":"ItemNr","type":"integer","minimum":1};
 
-function validate250(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate255(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate250.evaluated;
+const evaluated0 = validate255.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -11382,16 +11595,16 @@ vErrors.push(err1);
 errors++;
 }
 }
-validate250.errors = vErrors;
+validate255.errors = vErrors;
 return errors === 0;
 }
-validate250.evaluated = {"dynamicProps":false,"dynamicItems":false};
+validate255.evaluated = {"dynamicProps":false,"dynamicItems":false};
 
 
-function validate249(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate254(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate249.evaluated;
+const evaluated0 = validate254.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -11432,15 +11645,15 @@ errors++;
 }
 }
 if(data.nr !== undefined){
-if(!(validate250(data.nr, {instancePath:instancePath+"/nr",parentData:data,parentDataProperty:"nr",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate250.errors : vErrors.concat(validate250.errors);
+if(!(validate255(data.nr, {instancePath:instancePath+"/nr",parentData:data,parentDataProperty:"nr",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate255.errors : vErrors.concat(validate255.errors);
 errors = vErrors.length;
 }
 }
 if(data.text !== undefined){
 let data1 = data.text;
 if((typeof data1 !== "string") && (data1 !== null)){
-const err3 = {instancePath:instancePath+"/text",schemaPath:"#/properties/text/type",keyword:"type",params:{type: schema92.properties.text.type},message:"must be string,null"};
+const err3 = {instancePath:instancePath+"/text",schemaPath:"#/properties/text/type",keyword:"type",params:{type: schema93.properties.text.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err3];
 }
@@ -11464,8 +11677,8 @@ errors++;
 }
 }
 if(data.cardView !== undefined){
-if(!(validate202(data.cardView, {instancePath:instancePath+"/cardView",parentData:data,parentDataProperty:"cardView",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate202.errors : vErrors.concat(validate202.errors);
+if(!(validate206(data.cardView, {instancePath:instancePath+"/cardView",parentData:data,parentDataProperty:"cardView",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate206.errors : vErrors.concat(validate206.errors);
 errors = vErrors.length;
 }
 }
@@ -11486,17 +11699,17 @@ vErrors.push(err5);
 }
 errors++;
 }
-validate249.errors = vErrors;
+validate254.errors = vErrors;
 return errors === 0;
 }
-validate249.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate254.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema94 = {"title":"HiddenItem","type":"object","additionalProperties":false,"required":["nr","hidden"],"properties":{"nr":{"$ref":"#/$defs/ItemNr"},"hidden":{"const":true}}};
+const schema95 = {"title":"HiddenItem","type":"object","additionalProperties":false,"required":["nr","hidden"],"properties":{"nr":{"$ref":"#/$defs/ItemNr"},"hidden":{"const":true}}};
 
-function validate255(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate260(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate255.evaluated;
+const evaluated0 = validate260.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -11537,8 +11750,8 @@ errors++;
 }
 }
 if(data.nr !== undefined){
-if(!(validate250(data.nr, {instancePath:instancePath+"/nr",parentData:data,parentDataProperty:"nr",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate250.errors : vErrors.concat(validate250.errors);
+if(!(validate255(data.nr, {instancePath:instancePath+"/nr",parentData:data,parentDataProperty:"nr",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate255.errors : vErrors.concat(validate255.errors);
 errors = vErrors.length;
 }
 }
@@ -11565,16 +11778,16 @@ vErrors.push(err4);
 }
 errors++;
 }
-validate255.errors = vErrors;
+validate260.errors = vErrors;
 return errors === 0;
 }
-validate255.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate260.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
 
-function validate248(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate253(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate248.evaluated;
+const evaluated0 = validate253.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -11584,8 +11797,8 @@ evaluated0.items = undefined;
 const _errs0 = errors;
 let valid0 = false;
 const _errs1 = errors;
-if(!(validate249(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate249.errors : vErrors.concat(validate249.errors);
+if(!(validate254(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate254.errors : vErrors.concat(validate254.errors);
 errors = vErrors.length;
 }
 var _valid0 = _errs1 === errors;
@@ -11594,8 +11807,8 @@ if(_valid0){
 var props0 = true;
 }
 const _errs2 = errors;
-if(!(validate255(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate255.errors : vErrors.concat(validate255.errors);
+if(!(validate260(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate260.errors : vErrors.concat(validate260.errors);
 errors = vErrors.length;
 }
 var _valid0 = _errs2 === errors;
@@ -11626,17 +11839,17 @@ vErrors = null;
 }
 }
 }
-validate248.errors = vErrors;
+validate253.errors = vErrors;
 evaluated0.props = props0;
 return errors === 0;
 }
-validate248.evaluated = {"dynamicProps":true,"dynamicItems":false};
+validate253.evaluated = {"dynamicProps":true,"dynamicItems":false};
 
 
-function validate245(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate250(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate245.evaluated;
+const evaluated0 = validate250.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -11735,7 +11948,7 @@ vErrors.push(err8);
 errors++;
 }
 for(const key0 in data){
-if(!(func1.call(schema90.properties, key0))){
+if(!(func1.call(schema91.properties, key0))){
 const err9 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
 if(vErrors === null){
 vErrors = [err9];
@@ -11771,8 +11984,8 @@ errors++;
 }
 }
 if(data.id !== undefined){
-if(!(validate174(data.id, {instancePath:instancePath+"/id",parentData:data,parentDataProperty:"id",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate174.errors : vErrors.concat(validate174.errors);
+if(!(validate178(data.id, {instancePath:instancePath+"/id",parentData:data,parentDataProperty:"id",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate178.errors : vErrors.concat(validate178.errors);
 errors = vErrors.length;
 }
 }
@@ -11877,8 +12090,8 @@ let data9 = data.items;
 if(Array.isArray(data9)){
 const len1 = data9.length;
 for(let i1=0; i1<len1; i1++){
-if(!(validate248(data9[i1], {instancePath:instancePath+"/items/" + i1,parentData:data9,parentDataProperty:i1,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate248.errors : vErrors.concat(validate248.errors);
+if(!(validate253(data9[i1], {instancePath:instancePath+"/items/" + i1,parentData:data9,parentDataProperty:i1,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate253.errors : vErrors.concat(validate253.errors);
 errors = vErrors.length;
 }
 }
@@ -11901,8 +12114,8 @@ errors = vErrors.length;
 }
 }
 if(data.cardView !== undefined){
-if(!(validate202(data.cardView, {instancePath:instancePath+"/cardView",parentData:data,parentDataProperty:"cardView",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate202.errors : vErrors.concat(validate202.errors);
+if(!(validate206(data.cardView, {instancePath:instancePath+"/cardView",parentData:data,parentDataProperty:"cardView",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate206.errors : vErrors.concat(validate206.errors);
 errors = vErrors.length;
 }
 }
@@ -11917,17 +12130,17 @@ vErrors.push(err20);
 }
 errors++;
 }
-validate245.errors = vErrors;
+validate250.errors = vErrors;
 return errors === 0;
 }
-validate245.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate250.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema95 = {"title":"ChooseQuestion","type":"object","additionalProperties":false,"required":["type","kind","id","blocking","text","min","max","items"],"properties":{"type":{"const":"question"},"kind":{"const":"choose"},"id":{"$ref":"#/$defs/QuestionId"},"blocking":{"const":true},"text":{"type":"string"},"min":{"type":"integer","minimum":0},"max":{"type":"integer","minimum":0},"items":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/Item"}},"suggested":{"type":"array","items":{"$ref":"#/$defs/ItemNr"}}}};
+const schema96 = {"title":"ChooseQuestion","type":"object","additionalProperties":false,"required":["type","kind","id","blocking","text","min","max","items"],"properties":{"type":{"const":"question"},"kind":{"const":"choose"},"id":{"$ref":"#/$defs/QuestionId"},"blocking":{"const":true},"text":{"type":"string"},"min":{"type":"integer","minimum":0},"max":{"type":"integer","minimum":0},"items":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/Item"}},"suggested":{"type":"array","items":{"$ref":"#/$defs/ItemNr"}}}};
 
-function validate261(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate266(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate261.evaluated;
+const evaluated0 = validate266.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -12016,7 +12229,7 @@ vErrors.push(err7);
 errors++;
 }
 for(const key0 in data){
-if(!(func1.call(schema95.properties, key0))){
+if(!(func1.call(schema96.properties, key0))){
 const err8 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
 if(vErrors === null){
 vErrors = [err8];
@@ -12052,8 +12265,8 @@ errors++;
 }
 }
 if(data.id !== undefined){
-if(!(validate174(data.id, {instancePath:instancePath+"/id",parentData:data,parentDataProperty:"id",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate174.errors : vErrors.concat(validate174.errors);
+if(!(validate178(data.id, {instancePath:instancePath+"/id",parentData:data,parentDataProperty:"id",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate178.errors : vErrors.concat(validate178.errors);
 errors = vErrors.length;
 }
 }
@@ -12146,8 +12359,8 @@ errors++;
 }
 const len0 = data7.length;
 for(let i0=0; i0<len0; i0++){
-if(!(validate248(data7[i0], {instancePath:instancePath+"/items/" + i0,parentData:data7,parentDataProperty:i0,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate248.errors : vErrors.concat(validate248.errors);
+if(!(validate253(data7[i0], {instancePath:instancePath+"/items/" + i0,parentData:data7,parentDataProperty:i0,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate253.errors : vErrors.concat(validate253.errors);
 errors = vErrors.length;
 }
 }
@@ -12168,8 +12381,8 @@ let data9 = data.suggested;
 if(Array.isArray(data9)){
 const len1 = data9.length;
 for(let i1=0; i1<len1; i1++){
-if(!(validate250(data9[i1], {instancePath:instancePath+"/suggested/" + i1,parentData:data9,parentDataProperty:i1,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate250.errors : vErrors.concat(validate250.errors);
+if(!(validate255(data9[i1], {instancePath:instancePath+"/suggested/" + i1,parentData:data9,parentDataProperty:i1,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate255.errors : vErrors.concat(validate255.errors);
 errors = vErrors.length;
 }
 }
@@ -12196,19 +12409,19 @@ vErrors.push(err20);
 }
 errors++;
 }
-validate261.errors = vErrors;
+validate266.errors = vErrors;
 return errors === 0;
 }
-validate261.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate266.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema96 = {"title":"ButtonsQuestion","description":"Forge's two prompt buttons (OK/Cancel, Keep/Mulligan ...). purpose says what they are for, from Forge's own labels and running input.","type":"object","additionalProperties":false,"required":["type","kind","id","blocking","text","buttons"],"properties":{"type":{"const":"question"},"kind":{"const":"buttons"},"id":{"$ref":"#/$defs/QuestionId"},"blocking":{"const":false},"text":{"type":"string"},"purpose":{"$ref":"#/$defs/ButtonsPurpose"},"buttons":{"type":"array","minItems":2,"maxItems":2,"items":{"$ref":"#/$defs/Button"}},"card":{"$ref":"#/$defs/CardId"},"cardView":{"$ref":"#/$defs/VisibleCard"}}};
-const schema97 = {"title":"Button","type":"object","additionalProperties":false,"required":["nr","label","enabled"],"properties":{"nr":{"enum":[1,2]},"label":{"type":["string","null"]},"enabled":{"type":"boolean"},"meaning":{"$ref":"#/$defs/ButtonMeaning"}}};
-const schema98 = {"title":"ButtonMeaning","description":"What one of Forge's buttons does, where the bridge knows it from Forge's own label keys (the priority step): pass = pass priority (Forge's OK), endTurn = pass priority until the end of this turn (Forge's End Turn), undo = take back the last action (Forge's Undo). Absent elsewhere.","enum":["pass","endTurn","undo"]};
+const schema97 = {"title":"ButtonsQuestion","description":"Forge's two prompt buttons (OK/Cancel, Keep/Mulligan ...). purpose says what they are for, from Forge's own labels and running input.","type":"object","additionalProperties":false,"required":["type","kind","id","blocking","text","buttons"],"properties":{"type":{"const":"question"},"kind":{"const":"buttons"},"id":{"$ref":"#/$defs/QuestionId"},"blocking":{"const":false},"text":{"type":"string"},"purpose":{"$ref":"#/$defs/ButtonsPurpose"},"buttons":{"type":"array","minItems":2,"maxItems":2,"items":{"$ref":"#/$defs/Button"}},"card":{"$ref":"#/$defs/CardId"},"cardView":{"$ref":"#/$defs/VisibleCard"}}};
+const schema98 = {"title":"Button","type":"object","additionalProperties":false,"required":["nr","label","enabled"],"properties":{"nr":{"enum":[1,2]},"label":{"type":["string","null"]},"enabled":{"type":"boolean"},"meaning":{"$ref":"#/$defs/ButtonMeaning"}}};
+const schema99 = {"title":"ButtonMeaning","description":"What one of Forge's buttons does, where the bridge knows it from Forge's own label keys (the priority step): pass = pass priority (Forge's OK), endTurn = pass priority until the end of this turn (Forge's End Turn), undo = take back the last action (Forge's Undo). Absent elsewhere.","enum":["pass","endTurn","undo"]};
 
-function validate269(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate274(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate269.evaluated;
+const evaluated0 = validate274.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -12216,7 +12429,7 @@ if(evaluated0.dynamicItems){
 evaluated0.items = undefined;
 }
 if(!(((data === "pass") || (data === "endTurn")) || (data === "undo"))){
-const err0 = {instancePath,schemaPath:"#/enum",keyword:"enum",params:{allowedValues: schema98.enum},message:"must be equal to one of the allowed values"};
+const err0 = {instancePath,schemaPath:"#/enum",keyword:"enum",params:{allowedValues: schema99.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err0];
 }
@@ -12225,16 +12438,16 @@ vErrors.push(err0);
 }
 errors++;
 }
-validate269.errors = vErrors;
+validate274.errors = vErrors;
 return errors === 0;
 }
-validate269.evaluated = {"dynamicProps":false,"dynamicItems":false};
+validate274.evaluated = {"dynamicProps":false,"dynamicItems":false};
 
 
-function validate268(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate273(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate268.evaluated;
+const evaluated0 = validate273.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -12287,7 +12500,7 @@ errors++;
 if(data.nr !== undefined){
 let data0 = data.nr;
 if(!((data0 === 1) || (data0 === 2))){
-const err4 = {instancePath:instancePath+"/nr",schemaPath:"#/properties/nr/enum",keyword:"enum",params:{allowedValues: schema97.properties.nr.enum},message:"must be equal to one of the allowed values"};
+const err4 = {instancePath:instancePath+"/nr",schemaPath:"#/properties/nr/enum",keyword:"enum",params:{allowedValues: schema98.properties.nr.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err4];
 }
@@ -12300,7 +12513,7 @@ errors++;
 if(data.label !== undefined){
 let data1 = data.label;
 if((typeof data1 !== "string") && (data1 !== null)){
-const err5 = {instancePath:instancePath+"/label",schemaPath:"#/properties/label/type",keyword:"type",params:{type: schema97.properties.label.type},message:"must be string,null"};
+const err5 = {instancePath:instancePath+"/label",schemaPath:"#/properties/label/type",keyword:"type",params:{type: schema98.properties.label.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err5];
 }
@@ -12323,8 +12536,8 @@ errors++;
 }
 }
 if(data.meaning !== undefined){
-if(!(validate269(data.meaning, {instancePath:instancePath+"/meaning",parentData:data,parentDataProperty:"meaning",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate269.errors : vErrors.concat(validate269.errors);
+if(!(validate274(data.meaning, {instancePath:instancePath+"/meaning",parentData:data,parentDataProperty:"meaning",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate274.errors : vErrors.concat(validate274.errors);
 errors = vErrors.length;
 }
 }
@@ -12339,16 +12552,16 @@ vErrors.push(err7);
 }
 errors++;
 }
-validate268.errors = vErrors;
+validate273.errors = vErrors;
 return errors === 0;
 }
-validate268.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate273.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
 
-function validate265(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate270(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate265.evaluated;
+const evaluated0 = validate270.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -12417,7 +12630,7 @@ vErrors.push(err5);
 errors++;
 }
 for(const key0 in data){
-if(!(func1.call(schema96.properties, key0))){
+if(!(func1.call(schema97.properties, key0))){
 const err6 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
 if(vErrors === null){
 vErrors = [err6];
@@ -12453,8 +12666,8 @@ errors++;
 }
 }
 if(data.id !== undefined){
-if(!(validate174(data.id, {instancePath:instancePath+"/id",parentData:data,parentDataProperty:"id",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate174.errors : vErrors.concat(validate174.errors);
+if(!(validate178(data.id, {instancePath:instancePath+"/id",parentData:data,parentDataProperty:"id",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate178.errors : vErrors.concat(validate178.errors);
 errors = vErrors.length;
 }
 }
@@ -12483,8 +12696,8 @@ errors++;
 }
 }
 if(data.purpose !== undefined){
-if(!(validate178(data.purpose, {instancePath:instancePath+"/purpose",parentData:data,parentDataProperty:"purpose",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate178.errors : vErrors.concat(validate178.errors);
+if(!(validate182(data.purpose, {instancePath:instancePath+"/purpose",parentData:data,parentDataProperty:"purpose",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate182.errors : vErrors.concat(validate182.errors);
 errors = vErrors.length;
 }
 }
@@ -12513,8 +12726,8 @@ errors++;
 }
 const len0 = data6.length;
 for(let i0=0; i0<len0; i0++){
-if(!(validate268(data6[i0], {instancePath:instancePath+"/buttons/" + i0,parentData:data6,parentDataProperty:i0,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate268.errors : vErrors.concat(validate268.errors);
+if(!(validate273(data6[i0], {instancePath:instancePath+"/buttons/" + i0,parentData:data6,parentDataProperty:i0,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate273.errors : vErrors.concat(validate273.errors);
 errors = vErrors.length;
 }
 }
@@ -12537,8 +12750,8 @@ errors = vErrors.length;
 }
 }
 if(data.cardView !== undefined){
-if(!(validate202(data.cardView, {instancePath:instancePath+"/cardView",parentData:data,parentDataProperty:"cardView",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate202.errors : vErrors.concat(validate202.errors);
+if(!(validate206(data.cardView, {instancePath:instancePath+"/cardView",parentData:data,parentDataProperty:"cardView",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate206.errors : vErrors.concat(validate206.errors);
 errors = vErrors.length;
 }
 }
@@ -12553,17 +12766,17 @@ vErrors.push(err14);
 }
 errors++;
 }
-validate265.errors = vErrors;
+validate270.errors = vErrors;
 return errors === 0;
 }
-validate265.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate270.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema99 = {"title":"ConfirmQuestion","type":"object","additionalProperties":false,"required":["type","kind","id","blocking","text","suggested"],"properties":{"type":{"const":"question"},"kind":{"const":"confirm"},"id":{"$ref":"#/$defs/QuestionId"},"blocking":{"const":true},"text":{"type":"string"},"suggested":{"type":"boolean"},"yesLabel":{"type":["string","null"]},"noLabel":{"type":["string","null"]},"card":{"$ref":"#/$defs/CardId"},"cardView":{"$ref":"#/$defs/VisibleCard"}}};
+const schema100 = {"title":"ConfirmQuestion","type":"object","additionalProperties":false,"required":["type","kind","id","blocking","text","suggested"],"properties":{"type":{"const":"question"},"kind":{"const":"confirm"},"id":{"$ref":"#/$defs/QuestionId"},"blocking":{"const":true},"text":{"type":"string"},"suggested":{"type":"boolean"},"yesLabel":{"type":["string","null"]},"noLabel":{"type":["string","null"]},"card":{"$ref":"#/$defs/CardId"},"cardView":{"$ref":"#/$defs/VisibleCard"}}};
 
-function validate274(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate279(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate274.evaluated;
+const evaluated0 = validate279.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -12632,7 +12845,7 @@ vErrors.push(err5);
 errors++;
 }
 for(const key0 in data){
-if(!(func1.call(schema99.properties, key0))){
+if(!(func1.call(schema100.properties, key0))){
 const err6 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
 if(vErrors === null){
 vErrors = [err6];
@@ -12668,8 +12881,8 @@ errors++;
 }
 }
 if(data.id !== undefined){
-if(!(validate174(data.id, {instancePath:instancePath+"/id",parentData:data,parentDataProperty:"id",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate174.errors : vErrors.concat(validate174.errors);
+if(!(validate178(data.id, {instancePath:instancePath+"/id",parentData:data,parentDataProperty:"id",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate178.errors : vErrors.concat(validate178.errors);
 errors = vErrors.length;
 }
 }
@@ -12712,7 +12925,7 @@ errors++;
 if(data.yesLabel !== undefined){
 let data6 = data.yesLabel;
 if((typeof data6 !== "string") && (data6 !== null)){
-const err12 = {instancePath:instancePath+"/yesLabel",schemaPath:"#/properties/yesLabel/type",keyword:"type",params:{type: schema99.properties.yesLabel.type},message:"must be string,null"};
+const err12 = {instancePath:instancePath+"/yesLabel",schemaPath:"#/properties/yesLabel/type",keyword:"type",params:{type: schema100.properties.yesLabel.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err12];
 }
@@ -12725,7 +12938,7 @@ errors++;
 if(data.noLabel !== undefined){
 let data7 = data.noLabel;
 if((typeof data7 !== "string") && (data7 !== null)){
-const err13 = {instancePath:instancePath+"/noLabel",schemaPath:"#/properties/noLabel/type",keyword:"type",params:{type: schema99.properties.noLabel.type},message:"must be string,null"};
+const err13 = {instancePath:instancePath+"/noLabel",schemaPath:"#/properties/noLabel/type",keyword:"type",params:{type: schema100.properties.noLabel.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err13];
 }
@@ -12742,8 +12955,8 @@ errors = vErrors.length;
 }
 }
 if(data.cardView !== undefined){
-if(!(validate202(data.cardView, {instancePath:instancePath+"/cardView",parentData:data,parentDataProperty:"cardView",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate202.errors : vErrors.concat(validate202.errors);
+if(!(validate206(data.cardView, {instancePath:instancePath+"/cardView",parentData:data,parentDataProperty:"cardView",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate206.errors : vErrors.concat(validate206.errors);
 errors = vErrors.length;
 }
 }
@@ -12758,17 +12971,17 @@ vErrors.push(err14);
 }
 errors++;
 }
-validate274.errors = vErrors;
+validate279.errors = vErrors;
 return errors === 0;
 }
-validate274.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate279.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema100 = {"title":"OptionsQuestion","description":"One option out of a list. With revealed it is a list to look at with a single OK. option 0 cancels, only if cancellable.","type":"object","additionalProperties":false,"required":["type","kind","id","blocking","text","items"],"properties":{"type":{"const":"question"},"kind":{"const":"options"},"id":{"$ref":"#/$defs/QuestionId"},"blocking":{"const":true},"text":{"type":"string"},"items":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/Item"}},"suggested":{"$ref":"#/$defs/ItemNr"},"cancellable":{"type":"boolean"},"revealed":{"type":"array","items":{"$ref":"#/$defs/Item"}},"card":{"$ref":"#/$defs/CardId"},"cardView":{"$ref":"#/$defs/VisibleCard"}}};
+const schema101 = {"title":"OptionsQuestion","description":"One option out of a list. With revealed it is a list to look at with a single OK. option 0 cancels, only if cancellable.","type":"object","additionalProperties":false,"required":["type","kind","id","blocking","text","items"],"properties":{"type":{"const":"question"},"kind":{"const":"options"},"id":{"$ref":"#/$defs/QuestionId"},"blocking":{"const":true},"text":{"type":"string"},"items":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/Item"}},"suggested":{"$ref":"#/$defs/ItemNr"},"cancellable":{"type":"boolean"},"revealed":{"type":"array","items":{"$ref":"#/$defs/Item"}},"card":{"$ref":"#/$defs/CardId"},"cardView":{"$ref":"#/$defs/VisibleCard"}}};
 
-function validate278(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate283(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate278.evaluated;
+const evaluated0 = validate283.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -12837,7 +13050,7 @@ vErrors.push(err5);
 errors++;
 }
 for(const key0 in data){
-if(!(func1.call(schema100.properties, key0))){
+if(!(func1.call(schema101.properties, key0))){
 const err6 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
 if(vErrors === null){
 vErrors = [err6];
@@ -12873,8 +13086,8 @@ errors++;
 }
 }
 if(data.id !== undefined){
-if(!(validate174(data.id, {instancePath:instancePath+"/id",parentData:data,parentDataProperty:"id",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate174.errors : vErrors.concat(validate174.errors);
+if(!(validate178(data.id, {instancePath:instancePath+"/id",parentData:data,parentDataProperty:"id",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate178.errors : vErrors.concat(validate178.errors);
 errors = vErrors.length;
 }
 }
@@ -12917,8 +13130,8 @@ errors++;
 }
 const len0 = data5.length;
 for(let i0=0; i0<len0; i0++){
-if(!(validate248(data5[i0], {instancePath:instancePath+"/items/" + i0,parentData:data5,parentDataProperty:i0,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate248.errors : vErrors.concat(validate248.errors);
+if(!(validate253(data5[i0], {instancePath:instancePath+"/items/" + i0,parentData:data5,parentDataProperty:i0,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate253.errors : vErrors.concat(validate253.errors);
 errors = vErrors.length;
 }
 }
@@ -12935,8 +13148,8 @@ errors++;
 }
 }
 if(data.suggested !== undefined){
-if(!(validate250(data.suggested, {instancePath:instancePath+"/suggested",parentData:data,parentDataProperty:"suggested",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate250.errors : vErrors.concat(validate250.errors);
+if(!(validate255(data.suggested, {instancePath:instancePath+"/suggested",parentData:data,parentDataProperty:"suggested",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate255.errors : vErrors.concat(validate255.errors);
 errors = vErrors.length;
 }
 }
@@ -12957,8 +13170,8 @@ let data9 = data.revealed;
 if(Array.isArray(data9)){
 const len1 = data9.length;
 for(let i1=0; i1<len1; i1++){
-if(!(validate248(data9[i1], {instancePath:instancePath+"/revealed/" + i1,parentData:data9,parentDataProperty:i1,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate248.errors : vErrors.concat(validate248.errors);
+if(!(validate253(data9[i1], {instancePath:instancePath+"/revealed/" + i1,parentData:data9,parentDataProperty:i1,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate253.errors : vErrors.concat(validate253.errors);
 errors = vErrors.length;
 }
 }
@@ -12981,8 +13194,8 @@ errors = vErrors.length;
 }
 }
 if(data.cardView !== undefined){
-if(!(validate202(data.cardView, {instancePath:instancePath+"/cardView",parentData:data,parentDataProperty:"cardView",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate202.errors : vErrors.concat(validate202.errors);
+if(!(validate206(data.cardView, {instancePath:instancePath+"/cardView",parentData:data,parentDataProperty:"cardView",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate206.errors : vErrors.concat(validate206.errors);
 errors = vErrors.length;
 }
 }
@@ -12997,17 +13210,17 @@ vErrors.push(err15);
 }
 errors++;
 }
-validate278.errors = vErrors;
+validate283.errors = vErrors;
 return errors === 0;
 }
-validate278.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate283.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema101 = {"title":"InputQuestion","type":"object","additionalProperties":false,"required":["type","kind","id","blocking","text","numeric","suggested"],"properties":{"type":{"const":"question"},"kind":{"const":"input"},"id":{"$ref":"#/$defs/QuestionId"},"blocking":{"const":true},"text":{"type":"string"},"numeric":{"type":"boolean"},"suggested":{"type":["string","null"]},"items":{"type":"array","items":{"$ref":"#/$defs/Item"}}}};
+const schema102 = {"title":"InputQuestion","type":"object","additionalProperties":false,"required":["type","kind","id","blocking","text","numeric","suggested"],"properties":{"type":{"const":"question"},"kind":{"const":"input"},"id":{"$ref":"#/$defs/QuestionId"},"blocking":{"const":true},"text":{"type":"string"},"numeric":{"type":"boolean"},"suggested":{"type":["string","null"]},"items":{"type":"array","items":{"$ref":"#/$defs/Item"}}}};
 
-function validate285(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate290(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate285.evaluated;
+const evaluated0 = validate290.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -13122,8 +13335,8 @@ errors++;
 }
 }
 if(data.id !== undefined){
-if(!(validate174(data.id, {instancePath:instancePath+"/id",parentData:data,parentDataProperty:"id",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate174.errors : vErrors.concat(validate174.errors);
+if(!(validate178(data.id, {instancePath:instancePath+"/id",parentData:data,parentDataProperty:"id",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate178.errors : vErrors.concat(validate178.errors);
 errors = vErrors.length;
 }
 }
@@ -13166,7 +13379,7 @@ errors++;
 if(data.suggested !== undefined){
 let data6 = data.suggested;
 if((typeof data6 !== "string") && (data6 !== null)){
-const err13 = {instancePath:instancePath+"/suggested",schemaPath:"#/properties/suggested/type",keyword:"type",params:{type: schema101.properties.suggested.type},message:"must be string,null"};
+const err13 = {instancePath:instancePath+"/suggested",schemaPath:"#/properties/suggested/type",keyword:"type",params:{type: schema102.properties.suggested.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err13];
 }
@@ -13181,8 +13394,8 @@ let data7 = data.items;
 if(Array.isArray(data7)){
 const len0 = data7.length;
 for(let i0=0; i0<len0; i0++){
-if(!(validate248(data7[i0], {instancePath:instancePath+"/items/" + i0,parentData:data7,parentDataProperty:i0,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate248.errors : vErrors.concat(validate248.errors);
+if(!(validate253(data7[i0], {instancePath:instancePath+"/items/" + i0,parentData:data7,parentDataProperty:i0,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate253.errors : vErrors.concat(validate253.errors);
 errors = vErrors.length;
 }
 }
@@ -13209,17 +13422,17 @@ vErrors.push(err15);
 }
 errors++;
 }
-validate285.errors = vErrors;
+validate290.errors = vErrors;
 return errors === 0;
 }
-validate285.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate290.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema102 = {"title":"OrderQuestion","description":"Forge's dual list: the answer lists the chosen items in order, the rest remains. How many must remain: remainingMin..remainingMax (negative maximum = any number; both 0 = order all).","type":"object","additionalProperties":false,"required":["type","kind","id","blocking","text","top","remainingMin","remainingMax","items"],"properties":{"type":{"const":"question"},"kind":{"const":"order"},"id":{"$ref":"#/$defs/QuestionId"},"blocking":{"const":true},"text":{"type":"string"},"top":{"type":["string","null"]},"remainingMin":{"type":"integer"},"remainingMax":{"type":"integer"},"suggested":{"type":"array","items":{"$ref":"#/$defs/ItemNr"}},"items":{"type":"array","items":{"$ref":"#/$defs/Item"}},"card":{"$ref":"#/$defs/CardId"},"cardView":{"$ref":"#/$defs/VisibleCard"}}};
+const schema103 = {"title":"OrderQuestion","description":"Forge's dual list: the answer lists the chosen items in order, the rest remains. How many must remain: remainingMin..remainingMax (negative maximum = any number; both 0 = order all).","type":"object","additionalProperties":false,"required":["type","kind","id","blocking","text","top","remainingMin","remainingMax","items"],"properties":{"type":{"const":"question"},"kind":{"const":"order"},"id":{"$ref":"#/$defs/QuestionId"},"blocking":{"const":true},"text":{"type":"string"},"top":{"type":["string","null"]},"remainingMin":{"type":"integer"},"remainingMax":{"type":"integer"},"suggested":{"type":"array","items":{"$ref":"#/$defs/ItemNr"}},"items":{"type":"array","items":{"$ref":"#/$defs/Item"}},"card":{"$ref":"#/$defs/CardId"},"cardView":{"$ref":"#/$defs/VisibleCard"}}};
 
-function validate288(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate293(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate288.evaluated;
+const evaluated0 = validate293.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -13318,7 +13531,7 @@ vErrors.push(err8);
 errors++;
 }
 for(const key0 in data){
-if(!(func1.call(schema102.properties, key0))){
+if(!(func1.call(schema103.properties, key0))){
 const err9 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
 if(vErrors === null){
 vErrors = [err9];
@@ -13354,8 +13567,8 @@ errors++;
 }
 }
 if(data.id !== undefined){
-if(!(validate174(data.id, {instancePath:instancePath+"/id",parentData:data,parentDataProperty:"id",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate174.errors : vErrors.concat(validate174.errors);
+if(!(validate178(data.id, {instancePath:instancePath+"/id",parentData:data,parentDataProperty:"id",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate178.errors : vErrors.concat(validate178.errors);
 errors = vErrors.length;
 }
 }
@@ -13386,7 +13599,7 @@ errors++;
 if(data.top !== undefined){
 let data5 = data.top;
 if((typeof data5 !== "string") && (data5 !== null)){
-const err14 = {instancePath:instancePath+"/top",schemaPath:"#/properties/top/type",keyword:"type",params:{type: schema102.properties.top.type},message:"must be string,null"};
+const err14 = {instancePath:instancePath+"/top",schemaPath:"#/properties/top/type",keyword:"type",params:{type: schema103.properties.top.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err14];
 }
@@ -13427,8 +13640,8 @@ let data8 = data.suggested;
 if(Array.isArray(data8)){
 const len0 = data8.length;
 for(let i0=0; i0<len0; i0++){
-if(!(validate250(data8[i0], {instancePath:instancePath+"/suggested/" + i0,parentData:data8,parentDataProperty:i0,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate250.errors : vErrors.concat(validate250.errors);
+if(!(validate255(data8[i0], {instancePath:instancePath+"/suggested/" + i0,parentData:data8,parentDataProperty:i0,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate255.errors : vErrors.concat(validate255.errors);
 errors = vErrors.length;
 }
 }
@@ -13449,8 +13662,8 @@ let data10 = data.items;
 if(Array.isArray(data10)){
 const len1 = data10.length;
 for(let i1=0; i1<len1; i1++){
-if(!(validate248(data10[i1], {instancePath:instancePath+"/items/" + i1,parentData:data10,parentDataProperty:i1,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate248.errors : vErrors.concat(validate248.errors);
+if(!(validate253(data10[i1], {instancePath:instancePath+"/items/" + i1,parentData:data10,parentDataProperty:i1,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate253.errors : vErrors.concat(validate253.errors);
 errors = vErrors.length;
 }
 }
@@ -13473,8 +13686,8 @@ errors = vErrors.length;
 }
 }
 if(data.cardView !== undefined){
-if(!(validate202(data.cardView, {instancePath:instancePath+"/cardView",parentData:data,parentDataProperty:"cardView",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate202.errors : vErrors.concat(validate202.errors);
+if(!(validate206(data.cardView, {instancePath:instancePath+"/cardView",parentData:data,parentDataProperty:"cardView",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate206.errors : vErrors.concat(validate206.errors);
 errors = vErrors.length;
 }
 }
@@ -13489,17 +13702,17 @@ vErrors.push(err19);
 }
 errors++;
 }
-validate288.errors = vErrors;
+validate293.errors = vErrors;
 return errors === 0;
 }
-validate288.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate293.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema103 = {"title":"ArrangeQuestion","description":"Move cards of a hidden pile to its top or bottom (scry and similar). Only the movable cards are sent; others is the number of the rest.","type":"object","additionalProperties":false,"required":["type","kind","id","blocking","text","toTop","toBottom","toAnywhere","others","items"],"properties":{"type":{"const":"question"},"kind":{"const":"arrange"},"id":{"$ref":"#/$defs/QuestionId"},"blocking":{"const":true},"text":{"type":"string"},"toTop":{"type":"boolean"},"toBottom":{"type":"boolean"},"toAnywhere":{"type":"boolean","description":"Forge would allow any position; not offered yet (prompt 15)."},"others":{"type":"integer","minimum":0},"items":{"type":"array","items":{"$ref":"#/$defs/Item"}}}};
+const schema104 = {"title":"ArrangeQuestion","description":"Move cards of a hidden pile to its top or bottom (scry and similar). Only the movable cards are sent; others is the number of the rest.","type":"object","additionalProperties":false,"required":["type","kind","id","blocking","text","toTop","toBottom","toAnywhere","others","items"],"properties":{"type":{"const":"question"},"kind":{"const":"arrange"},"id":{"$ref":"#/$defs/QuestionId"},"blocking":{"const":true},"text":{"type":"string"},"toTop":{"type":"boolean"},"toBottom":{"type":"boolean"},"toAnywhere":{"type":"boolean","description":"Forge would allow any position; not offered yet (prompt 15)."},"others":{"type":"integer","minimum":0},"items":{"type":"array","items":{"$ref":"#/$defs/Item"}}}};
 
-function validate294(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate299(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate294.evaluated;
+const evaluated0 = validate299.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -13608,7 +13821,7 @@ vErrors.push(err9);
 errors++;
 }
 for(const key0 in data){
-if(!(func1.call(schema103.properties, key0))){
+if(!(func1.call(schema104.properties, key0))){
 const err10 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
 if(vErrors === null){
 vErrors = [err10];
@@ -13644,8 +13857,8 @@ errors++;
 }
 }
 if(data.id !== undefined){
-if(!(validate174(data.id, {instancePath:instancePath+"/id",parentData:data,parentDataProperty:"id",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate174.errors : vErrors.concat(validate174.errors);
+if(!(validate178(data.id, {instancePath:instancePath+"/id",parentData:data,parentDataProperty:"id",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate178.errors : vErrors.concat(validate178.errors);
 errors = vErrors.length;
 }
 }
@@ -13739,8 +13952,8 @@ let data9 = data.items;
 if(Array.isArray(data9)){
 const len0 = data9.length;
 for(let i0=0; i0<len0; i0++){
-if(!(validate248(data9[i0], {instancePath:instancePath+"/items/" + i0,parentData:data9,parentDataProperty:i0,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate248.errors : vErrors.concat(validate248.errors);
+if(!(validate253(data9[i0], {instancePath:instancePath+"/items/" + i0,parentData:data9,parentDataProperty:i0,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate253.errors : vErrors.concat(validate253.errors);
 errors = vErrors.length;
 }
 }
@@ -13767,17 +13980,17 @@ vErrors.push(err21);
 }
 errors++;
 }
-validate294.errors = vErrors;
+validate299.errors = vErrors;
 return errors === 0;
 }
-validate294.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate299.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema104 = {"title":"DistributeQuestion","type":"object","additionalProperties":false,"required":["type","kind","id","blocking","text","total","min","items"],"properties":{"type":{"const":"question"},"kind":{"const":"distribute"},"id":{"$ref":"#/$defs/QuestionId"},"blocking":{"const":true},"text":{"type":"string"},"total":{"type":"integer","minimum":0},"min":{"type":"integer","minimum":0},"items":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/Item"}},"card":{"$ref":"#/$defs/CardId"},"cardView":{"$ref":"#/$defs/VisibleCard"}}};
+const schema105 = {"title":"DistributeQuestion","type":"object","additionalProperties":false,"required":["type","kind","id","blocking","text","total","min","items"],"properties":{"type":{"const":"question"},"kind":{"const":"distribute"},"id":{"$ref":"#/$defs/QuestionId"},"blocking":{"const":true},"text":{"type":"string"},"total":{"type":"integer","minimum":0},"min":{"type":"integer","minimum":0},"items":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/Item"}},"card":{"$ref":"#/$defs/CardId"},"cardView":{"$ref":"#/$defs/VisibleCard"}}};
 
-function validate297(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate302(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate297.evaluated;
+const evaluated0 = validate302.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -13866,7 +14079,7 @@ vErrors.push(err7);
 errors++;
 }
 for(const key0 in data){
-if(!(func1.call(schema104.properties, key0))){
+if(!(func1.call(schema105.properties, key0))){
 const err8 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
 if(vErrors === null){
 vErrors = [err8];
@@ -13902,8 +14115,8 @@ errors++;
 }
 }
 if(data.id !== undefined){
-if(!(validate174(data.id, {instancePath:instancePath+"/id",parentData:data,parentDataProperty:"id",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate174.errors : vErrors.concat(validate174.errors);
+if(!(validate178(data.id, {instancePath:instancePath+"/id",parentData:data,parentDataProperty:"id",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate178.errors : vErrors.concat(validate178.errors);
 errors = vErrors.length;
 }
 }
@@ -13996,8 +14209,8 @@ errors++;
 }
 const len0 = data7.length;
 for(let i0=0; i0<len0; i0++){
-if(!(validate248(data7[i0], {instancePath:instancePath+"/items/" + i0,parentData:data7,parentDataProperty:i0,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate248.errors : vErrors.concat(validate248.errors);
+if(!(validate253(data7[i0], {instancePath:instancePath+"/items/" + i0,parentData:data7,parentDataProperty:i0,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate253.errors : vErrors.concat(validate253.errors);
 errors = vErrors.length;
 }
 }
@@ -14020,8 +14233,8 @@ errors = vErrors.length;
 }
 }
 if(data.cardView !== undefined){
-if(!(validate202(data.cardView, {instancePath:instancePath+"/cardView",parentData:data,parentDataProperty:"cardView",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate202.errors : vErrors.concat(validate202.errors);
+if(!(validate206(data.cardView, {instancePath:instancePath+"/cardView",parentData:data,parentDataProperty:"cardView",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate206.errors : vErrors.concat(validate206.errors);
 errors = vErrors.length;
 }
 }
@@ -14036,16 +14249,16 @@ vErrors.push(err19);
 }
 errors++;
 }
-validate297.errors = vErrors;
+validate302.errors = vErrors;
 return errors === 0;
 }
-validate297.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate302.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
 
-function validate243(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate248(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate243.evaluated;
+const evaluated0 = validate248.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -14086,23 +14299,23 @@ errors++;
 }
 }
 if(data.kind !== undefined){
-if(!(validate176(data.kind, {instancePath:instancePath+"/kind",parentData:data,parentDataProperty:"kind",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate176.errors : vErrors.concat(validate176.errors);
+if(!(validate180(data.kind, {instancePath:instancePath+"/kind",parentData:data,parentDataProperty:"kind",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate180.errors : vErrors.concat(validate180.errors);
 errors = vErrors.length;
 }
 }
 const tag0 = data.kind;
 if(typeof tag0 == "string"){
 if(tag0 === "select"){
-if(!(validate245(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate245.errors : vErrors.concat(validate245.errors);
+if(!(validate250(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate250.errors : vErrors.concat(validate250.errors);
 errors = vErrors.length;
 }
 var props0 = true;
 }
 else if(tag0 === "choose"){
-if(!(validate261(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate261.errors : vErrors.concat(validate261.errors);
+if(!(validate266(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate266.errors : vErrors.concat(validate266.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -14110,8 +14323,8 @@ props0 = true;
 }
 }
 else if(tag0 === "buttons"){
-if(!(validate265(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate265.errors : vErrors.concat(validate265.errors);
+if(!(validate270(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate270.errors : vErrors.concat(validate270.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -14119,8 +14332,8 @@ props0 = true;
 }
 }
 else if(tag0 === "confirm"){
-if(!(validate274(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate274.errors : vErrors.concat(validate274.errors);
+if(!(validate279(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate279.errors : vErrors.concat(validate279.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -14128,8 +14341,8 @@ props0 = true;
 }
 }
 else if(tag0 === "options"){
-if(!(validate278(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate278.errors : vErrors.concat(validate278.errors);
+if(!(validate283(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate283.errors : vErrors.concat(validate283.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -14137,8 +14350,8 @@ props0 = true;
 }
 }
 else if(tag0 === "input"){
-if(!(validate285(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate285.errors : vErrors.concat(validate285.errors);
+if(!(validate290(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate290.errors : vErrors.concat(validate290.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -14146,8 +14359,8 @@ props0 = true;
 }
 }
 else if(tag0 === "order"){
-if(!(validate288(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate288.errors : vErrors.concat(validate288.errors);
+if(!(validate293(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate293.errors : vErrors.concat(validate293.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -14155,8 +14368,8 @@ props0 = true;
 }
 }
 else if(tag0 === "arrange"){
-if(!(validate294(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate294.errors : vErrors.concat(validate294.errors);
+if(!(validate299(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate299.errors : vErrors.concat(validate299.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -14164,8 +14377,8 @@ props0 = true;
 }
 }
 else if(tag0 === "distribute"){
-if(!(validate297(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate297.errors : vErrors.concat(validate297.errors);
+if(!(validate302(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate302.errors : vErrors.concat(validate302.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -14204,18 +14417,18 @@ vErrors.push(err5);
 }
 errors++;
 }
-validate243.errors = vErrors;
+validate248.errors = vErrors;
 evaluated0.props = props0;
 return errors === 0;
 }
-validate243.evaluated = {"dynamicProps":true,"dynamicItems":false};
+validate248.evaluated = {"dynamicProps":true,"dynamicItems":false};
 
-const schema105 = {"title":"QuestionWithdrawn","description":"Forge no longer asks this question (it changed the buttons or selection, the input ended, the game is over). Normal, not an error; an answer to it is rejected as stale.","type":"object","additionalProperties":false,"required":["type","id"],"properties":{"type":{"const":"question.withdrawn"},"id":{"$ref":"#/$defs/QuestionId"}}};
+const schema106 = {"title":"QuestionWithdrawn","description":"Forge no longer asks this question (it changed the buttons or selection, the input ended, the game is over). Normal, not an error; an answer to it is rejected as stale.","type":"object","additionalProperties":false,"required":["type","id"],"properties":{"type":{"const":"question.withdrawn"},"id":{"$ref":"#/$defs/QuestionId"}}};
 
-function validate311(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate316(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate311.evaluated;
+const evaluated0 = validate316.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -14268,8 +14481,8 @@ errors++;
 }
 }
 if(data.id !== undefined){
-if(!(validate174(data.id, {instancePath:instancePath+"/id",parentData:data,parentDataProperty:"id",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate174.errors : vErrors.concat(validate174.errors);
+if(!(validate178(data.id, {instancePath:instancePath+"/id",parentData:data,parentDataProperty:"id",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate178.errors : vErrors.concat(validate178.errors);
 errors = vErrors.length;
 }
 }
@@ -14284,18 +14497,18 @@ vErrors.push(err4);
 }
 errors++;
 }
-validate311.errors = vErrors;
+validate316.errors = vErrors;
 return errors === 0;
 }
-validate311.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate316.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema106 = {"title":"QuestionAnswered","description":"The answer with this seq was accepted and closed the question. (Answers to a select question never close it; Forge withdraws it when the selection is complete.)","type":"object","additionalProperties":false,"required":["type","id","seq"],"properties":{"type":{"const":"question.answered"},"id":{"$ref":"#/$defs/QuestionId"},"seq":{"$ref":"#/$defs/Seq"}}};
-const schema107 = {"title":"Seq","description":"Number of an input within the match, from 1, without gaps.","type":"integer","minimum":1};
+const schema107 = {"title":"QuestionAnswered","description":"The answer with this seq was accepted and closed the question. (Answers to a select question never close it; Forge withdraws it when the selection is complete.)","type":"object","additionalProperties":false,"required":["type","id","seq"],"properties":{"type":{"const":"question.answered"},"id":{"$ref":"#/$defs/QuestionId"},"seq":{"$ref":"#/$defs/Seq"}}};
+const schema108 = {"title":"Seq","description":"Number of an input within the match, from 1, without gaps.","type":"integer","minimum":1};
 
-function validate315(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate320(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate315.evaluated;
+const evaluated0 = validate320.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -14324,16 +14537,16 @@ vErrors.push(err1);
 errors++;
 }
 }
-validate315.errors = vErrors;
+validate320.errors = vErrors;
 return errors === 0;
 }
-validate315.evaluated = {"dynamicProps":false,"dynamicItems":false};
+validate320.evaluated = {"dynamicProps":false,"dynamicItems":false};
 
 
-function validate313(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate318(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate313.evaluated;
+const evaluated0 = validate318.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -14396,14 +14609,14 @@ errors++;
 }
 }
 if(data.id !== undefined){
-if(!(validate174(data.id, {instancePath:instancePath+"/id",parentData:data,parentDataProperty:"id",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate174.errors : vErrors.concat(validate174.errors);
+if(!(validate178(data.id, {instancePath:instancePath+"/id",parentData:data,parentDataProperty:"id",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate178.errors : vErrors.concat(validate178.errors);
 errors = vErrors.length;
 }
 }
 if(data.seq !== undefined){
-if(!(validate315(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate315.errors : vErrors.concat(validate315.errors);
+if(!(validate320(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate320.errors : vErrors.concat(validate320.errors);
 errors = vErrors.length;
 }
 }
@@ -14418,18 +14631,18 @@ vErrors.push(err5);
 }
 errors++;
 }
-validate313.errors = vErrors;
+validate318.errors = vErrors;
 return errors === 0;
 }
-validate313.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate318.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema108 = {"title":"InputRejected","description":"An input was NOT carried out. Nothing disappears silently: the UI must show it.","type":"object","additionalProperties":false,"required":["type","seq","reason","detail","input"],"properties":{"type":{"const":"input.rejected"},"seq":{"$ref":"#/$defs/Seq"},"reason":{"$ref":"#/$defs/RejectReason"},"detail":{"type":"string"},"input":{"type":"object","description":"The rejected input as received."}}};
-const schema109 = {"title":"RejectReason","description":"stale: the question is not open (withdrawn, answered or unknown); not-active: a blocking question must be answered first; invalid: the answer does not fit its question (kind, range, count, sum, disabled button); malformed: unknown input type; unknown-card: no card with this id is visible to the player; unknown-player: no such player; no-effect: Forge did not accept the tap in the current step.","enum":["stale","not-active","invalid","malformed","unknown-card","unknown-player","no-effect"]};
+const schema109 = {"title":"InputRejected","description":"An input was NOT carried out. Nothing disappears silently: the UI must show it.","type":"object","additionalProperties":false,"required":["type","seq","reason","detail","input"],"properties":{"type":{"const":"input.rejected"},"seq":{"$ref":"#/$defs/Seq"},"reason":{"$ref":"#/$defs/RejectReason"},"detail":{"type":"string"},"input":{"type":"object","description":"The rejected input as received."}}};
+const schema110 = {"title":"RejectReason","description":"stale: the question is not open (withdrawn, answered or unknown); not-active: a blocking question must be answered first; invalid: the answer does not fit its question (kind, range, count, sum, disabled button); malformed: unknown input type; unknown-card: no card with this id is visible to the player; unknown-player: no such player; no-effect: Forge did not accept the tap in the current step (a card tap Forge ignored, a player or mana Forge's running input would not take).","enum":["stale","not-active","invalid","malformed","unknown-card","unknown-player","no-effect"]};
 
-function validate319(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate324(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate319.evaluated;
+const evaluated0 = validate324.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -14437,7 +14650,7 @@ if(evaluated0.dynamicItems){
 evaluated0.items = undefined;
 }
 if(!(((((((data === "stale") || (data === "not-active")) || (data === "invalid")) || (data === "malformed")) || (data === "unknown-card")) || (data === "unknown-player")) || (data === "no-effect"))){
-const err0 = {instancePath,schemaPath:"#/enum",keyword:"enum",params:{allowedValues: schema109.enum},message:"must be equal to one of the allowed values"};
+const err0 = {instancePath,schemaPath:"#/enum",keyword:"enum",params:{allowedValues: schema110.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err0];
 }
@@ -14446,16 +14659,16 @@ vErrors.push(err0);
 }
 errors++;
 }
-validate319.errors = vErrors;
+validate324.errors = vErrors;
 return errors === 0;
 }
-validate319.evaluated = {"dynamicProps":false,"dynamicItems":false};
+validate324.evaluated = {"dynamicProps":false,"dynamicItems":false};
 
 
-function validate317(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate322(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate317.evaluated;
+const evaluated0 = validate322.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -14538,14 +14751,14 @@ errors++;
 }
 }
 if(data.seq !== undefined){
-if(!(validate315(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate315.errors : vErrors.concat(validate315.errors);
+if(!(validate320(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate320.errors : vErrors.concat(validate320.errors);
 errors = vErrors.length;
 }
 }
 if(data.reason !== undefined){
-if(!(validate319(data.reason, {instancePath:instancePath+"/reason",parentData:data,parentDataProperty:"reason",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate319.errors : vErrors.concat(validate319.errors);
+if(!(validate324(data.reason, {instancePath:instancePath+"/reason",parentData:data,parentDataProperty:"reason",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate324.errors : vErrors.concat(validate324.errors);
 errors = vErrors.length;
 }
 }
@@ -14585,17 +14798,17 @@ vErrors.push(err9);
 }
 errors++;
 }
-validate317.errors = vErrors;
+validate322.errors = vErrors;
 return errors === 0;
 }
-validate317.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate322.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema110 = {"title":"GameEnd","description":"The game is over. result is from the player's point of view. All questions are closed before this message.","type":"object","additionalProperties":false,"required":["type","winner","reason","turns","result","players","conceded"],"properties":{"type":{"const":"game.end"},"winner":{"type":["string","null"]},"reason":{"type":["string","null"],"description":"Forge's win condition (e.g. AllOpponentsLost, Concede)."},"turns":{"type":["integer","null"],"minimum":0},"result":{"anyOf":[{"$ref":"#/$defs/GameResult"},{"type":"null"}]},"players":{"type":"array","items":{"$ref":"#/$defs/EndPlayer"}},"conceded":{"type":"boolean"}}};
+const schema111 = {"title":"GameEnd","description":"The game is over. result is from the player's point of view. All questions are closed before this message.","type":"object","additionalProperties":false,"required":["type","winner","reason","turns","result","players","conceded"],"properties":{"type":{"const":"game.end"},"winner":{"type":["string","null"]},"reason":{"type":["string","null"],"description":"Forge's win condition (e.g. AllOpponentsLost, Concede)."},"turns":{"type":["integer","null"],"minimum":0},"result":{"anyOf":[{"$ref":"#/$defs/GameResult"},{"type":"null"}]},"players":{"type":"array","items":{"$ref":"#/$defs/EndPlayer"}},"conceded":{"type":"boolean"}}};
 
-function validate321(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate326(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate321.evaluated;
+const evaluated0 = validate326.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -14700,7 +14913,7 @@ errors++;
 if(data.winner !== undefined){
 let data1 = data.winner;
 if((typeof data1 !== "string") && (data1 !== null)){
-const err9 = {instancePath:instancePath+"/winner",schemaPath:"#/properties/winner/type",keyword:"type",params:{type: schema110.properties.winner.type},message:"must be string,null"};
+const err9 = {instancePath:instancePath+"/winner",schemaPath:"#/properties/winner/type",keyword:"type",params:{type: schema111.properties.winner.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err9];
 }
@@ -14713,7 +14926,7 @@ errors++;
 if(data.reason !== undefined){
 let data2 = data.reason;
 if((typeof data2 !== "string") && (data2 !== null)){
-const err10 = {instancePath:instancePath+"/reason",schemaPath:"#/properties/reason/type",keyword:"type",params:{type: schema110.properties.reason.type},message:"must be string,null"};
+const err10 = {instancePath:instancePath+"/reason",schemaPath:"#/properties/reason/type",keyword:"type",params:{type: schema111.properties.reason.type},message:"must be string,null"};
 if(vErrors === null){
 vErrors = [err10];
 }
@@ -14726,7 +14939,7 @@ errors++;
 if(data.turns !== undefined){
 let data3 = data.turns;
 if((!(((typeof data3 == "number") && (!(data3 % 1) && !isNaN(data3))) && (isFinite(data3)))) && (data3 !== null)){
-const err11 = {instancePath:instancePath+"/turns",schemaPath:"#/properties/turns/type",keyword:"type",params:{type: schema110.properties.turns.type},message:"must be integer,null"};
+const err11 = {instancePath:instancePath+"/turns",schemaPath:"#/properties/turns/type",keyword:"type",params:{type: schema111.properties.turns.type},message:"must be integer,null"};
 if(vErrors === null){
 vErrors = [err11];
 }
@@ -14839,16 +15052,16 @@ vErrors.push(err17);
 }
 errors++;
 }
-validate321.errors = vErrors;
+validate326.errors = vErrors;
 return errors === 0;
 }
-validate321.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate326.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
 
-function validate427(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate437(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate427.evaluated;
+const evaluated0 = validate437.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -14938,15 +15151,6 @@ props0 = true;
 }
 }
 else if(tag0 === "game.started"){
-if(!(validate187(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate187.errors : vErrors.concat(validate187.errors);
-errors = vErrors.length;
-}
-if(props0 !== true){
-props0 = true;
-}
-}
-else if(tag0 === "state"){
 if(!(validate191(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
 vErrors = vErrors === null ? validate191.errors : vErrors.concat(validate191.errors);
 errors = vErrors.length;
@@ -14955,9 +15159,18 @@ if(props0 !== true){
 props0 = true;
 }
 }
+else if(tag0 === "state"){
+if(!(validate195(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate195.errors : vErrors.concat(validate195.errors);
+errors = vErrors.length;
+}
+if(props0 !== true){
+props0 = true;
+}
+}
 else if(tag0 === "events"){
-if(!(validate234(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate234.errors : vErrors.concat(validate234.errors);
+if(!(validate239(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate239.errors : vErrors.concat(validate239.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -14965,8 +15178,8 @@ props0 = true;
 }
 }
 else if(tag0 === "message"){
-if(!(validate238(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate238.errors : vErrors.concat(validate238.errors);
+if(!(validate243(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate243.errors : vErrors.concat(validate243.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -14974,12 +15187,12 @@ props0 = true;
 }
 }
 else if(tag0 === "question"){
-if(!(validate243(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate243.errors : vErrors.concat(validate243.errors);
+if(!(validate248(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate248.errors : vErrors.concat(validate248.errors);
 errors = vErrors.length;
 }
 else {
-var props1 = validate243.evaluated.props;
+var props1 = validate248.evaluated.props;
 }
 if(props0 !== true && props1 !== undefined){
 if(props1 === true){
@@ -14992,8 +15205,8 @@ Object.assign(props0, props1);
 }
 }
 else if(tag0 === "question.withdrawn"){
-if(!(validate311(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate311.errors : vErrors.concat(validate311.errors);
+if(!(validate316(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate316.errors : vErrors.concat(validate316.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -15001,8 +15214,8 @@ props0 = true;
 }
 }
 else if(tag0 === "question.answered"){
-if(!(validate313(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate313.errors : vErrors.concat(validate313.errors);
+if(!(validate318(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate318.errors : vErrors.concat(validate318.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -15010,8 +15223,8 @@ props0 = true;
 }
 }
 else if(tag0 === "input.rejected"){
-if(!(validate317(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate317.errors : vErrors.concat(validate317.errors);
+if(!(validate322(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate322.errors : vErrors.concat(validate322.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -15019,8 +15232,8 @@ props0 = true;
 }
 }
 else if(tag0 === "game.end"){
-if(!(validate321(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate321.errors : vErrors.concat(validate321.errors);
+if(!(validate326(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate326.errors : vErrors.concat(validate326.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -15059,21 +15272,21 @@ vErrors.push(err2);
 }
 errors++;
 }
-validate427.errors = vErrors;
+validate437.errors = vErrors;
 evaluated0.props = props0;
 return errors === 0;
 }
-validate427.evaluated = {"dynamicProps":true,"dynamicItems":false};
+validate437.evaluated = {"dynamicProps":true,"dynamicItems":false};
 
-export const validateEngineInput = validate446;
-const schema111 = {"title":"EngineInput","description":"What the player does, written into the SharedArrayBuffer input queue. Forge reads one input whenever it waits for the player. `seq` numbers the inputs of a match from 1 without gaps; the bridge refuses to continue if the sequence breaks (technical abort).","type":"object","discriminator":{"propertyName":"type"},"oneOf":[{"$ref":"#/$defs/AnswerInput"},{"$ref":"#/$defs/CardTapInput"},{"$ref":"#/$defs/PlayerTapInput"},{"$ref":"#/$defs/StateRequestInput"},{"$ref":"#/$defs/ConcedeInput"}]};
-const schema112 = {"title":"AnswerInput","description":"Answer to an open question. kind must be the question's kind.","type":"object","required":["type","kind"],"properties":{"type":{"const":"answer"},"kind":{"$ref":"#/$defs/QuestionKind"}},"discriminator":{"propertyName":"kind"},"oneOf":[{"$ref":"#/$defs/SelectAnswer"},{"$ref":"#/$defs/ChooseAnswer"},{"$ref":"#/$defs/ButtonsAnswer"},{"$ref":"#/$defs/ConfirmAnswer"},{"$ref":"#/$defs/OptionsAnswer"},{"$ref":"#/$defs/InputAnswer"},{"$ref":"#/$defs/OrderAnswer"},{"$ref":"#/$defs/ArrangeAnswer"},{"$ref":"#/$defs/DistributeAnswer"}]};
-const schema113 = {"title":"SelectAnswer","description":"Item numbers to tap, 1..max of them.","type":"object","additionalProperties":false,"required":["type","seq","question","kind","choices"],"properties":{"type":{"const":"answer"},"seq":{"$ref":"#/$defs/Seq"},"question":{"$ref":"#/$defs/QuestionId"},"kind":{"const":"select"},"choices":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/ItemNr"}}}};
+export const validateEngineInput = validate456;
+const schema112 = {"title":"EngineInput","description":"What the player does, written into the SharedArrayBuffer input queue. Forge reads one input whenever it waits for the player. `seq` numbers the inputs of a match from 1 without gaps; the bridge refuses to continue if the sequence breaks (technical abort).","type":"object","discriminator":{"propertyName":"type"},"oneOf":[{"$ref":"#/$defs/AnswerInput"},{"$ref":"#/$defs/CardTapInput"},{"$ref":"#/$defs/PlayerTapInput"},{"$ref":"#/$defs/ManaUseInput"},{"$ref":"#/$defs/StateRequestInput"},{"$ref":"#/$defs/ConcedeInput"}]};
+const schema113 = {"title":"AnswerInput","description":"Answer to an open question. kind must be the question's kind.","type":"object","required":["type","kind"],"properties":{"type":{"const":"answer"},"kind":{"$ref":"#/$defs/QuestionKind"}},"discriminator":{"propertyName":"kind"},"oneOf":[{"$ref":"#/$defs/SelectAnswer"},{"$ref":"#/$defs/ChooseAnswer"},{"$ref":"#/$defs/ButtonsAnswer"},{"$ref":"#/$defs/ConfirmAnswer"},{"$ref":"#/$defs/OptionsAnswer"},{"$ref":"#/$defs/InputAnswer"},{"$ref":"#/$defs/OrderAnswer"},{"$ref":"#/$defs/ArrangeAnswer"},{"$ref":"#/$defs/DistributeAnswer"}]};
+const schema114 = {"title":"SelectAnswer","description":"Item numbers to tap, 1..max of them.","type":"object","additionalProperties":false,"required":["type","seq","question","kind","choices"],"properties":{"type":{"const":"answer"},"seq":{"$ref":"#/$defs/Seq"},"question":{"$ref":"#/$defs/QuestionId"},"kind":{"const":"select"},"choices":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/ItemNr"}}}};
 
-function validate346(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate351(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate346.evaluated;
+const evaluated0 = validate351.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -15156,14 +15369,14 @@ errors++;
 }
 }
 if(data.seq !== undefined){
-if(!(validate315(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate315.errors : vErrors.concat(validate315.errors);
+if(!(validate320(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate320.errors : vErrors.concat(validate320.errors);
 errors = vErrors.length;
 }
 }
 if(data.question !== undefined){
-if(!(validate174(data.question, {instancePath:instancePath+"/question",parentData:data,parentDataProperty:"question",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate174.errors : vErrors.concat(validate174.errors);
+if(!(validate178(data.question, {instancePath:instancePath+"/question",parentData:data,parentDataProperty:"question",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate178.errors : vErrors.concat(validate178.errors);
 errors = vErrors.length;
 }
 }
@@ -15194,8 +15407,8 @@ errors++;
 }
 const len0 = data4.length;
 for(let i0=0; i0<len0; i0++){
-if(!(validate250(data4[i0], {instancePath:instancePath+"/choices/" + i0,parentData:data4,parentDataProperty:i0,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate250.errors : vErrors.concat(validate250.errors);
+if(!(validate255(data4[i0], {instancePath:instancePath+"/choices/" + i0,parentData:data4,parentDataProperty:i0,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate255.errors : vErrors.concat(validate255.errors);
 errors = vErrors.length;
 }
 }
@@ -15222,17 +15435,17 @@ vErrors.push(err10);
 }
 errors++;
 }
-validate346.errors = vErrors;
+validate351.errors = vErrors;
 return errors === 0;
 }
-validate346.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate351.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema114 = {"title":"ChooseAnswer","description":"Distinct item numbers, min..max of them.","type":"object","additionalProperties":false,"required":["type","seq","question","kind","choices"],"properties":{"type":{"const":"answer"},"seq":{"$ref":"#/$defs/Seq"},"question":{"$ref":"#/$defs/QuestionId"},"kind":{"const":"choose"},"choices":{"type":"array","items":{"$ref":"#/$defs/ItemNr"}}}};
+const schema115 = {"title":"ChooseAnswer","description":"Distinct item numbers, min..max of them.","type":"object","additionalProperties":false,"required":["type","seq","question","kind","choices"],"properties":{"type":{"const":"answer"},"seq":{"$ref":"#/$defs/Seq"},"question":{"$ref":"#/$defs/QuestionId"},"kind":{"const":"choose"},"choices":{"type":"array","items":{"$ref":"#/$defs/ItemNr"}}}};
 
-function validate350(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate355(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate350.evaluated;
+const evaluated0 = validate355.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -15315,14 +15528,14 @@ errors++;
 }
 }
 if(data.seq !== undefined){
-if(!(validate315(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate315.errors : vErrors.concat(validate315.errors);
+if(!(validate320(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate320.errors : vErrors.concat(validate320.errors);
 errors = vErrors.length;
 }
 }
 if(data.question !== undefined){
-if(!(validate174(data.question, {instancePath:instancePath+"/question",parentData:data,parentDataProperty:"question",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate174.errors : vErrors.concat(validate174.errors);
+if(!(validate178(data.question, {instancePath:instancePath+"/question",parentData:data,parentDataProperty:"question",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate178.errors : vErrors.concat(validate178.errors);
 errors = vErrors.length;
 }
 }
@@ -15343,8 +15556,8 @@ let data4 = data.choices;
 if(Array.isArray(data4)){
 const len0 = data4.length;
 for(let i0=0; i0<len0; i0++){
-if(!(validate250(data4[i0], {instancePath:instancePath+"/choices/" + i0,parentData:data4,parentDataProperty:i0,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate250.errors : vErrors.concat(validate250.errors);
+if(!(validate255(data4[i0], {instancePath:instancePath+"/choices/" + i0,parentData:data4,parentDataProperty:i0,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate255.errors : vErrors.concat(validate255.errors);
 errors = vErrors.length;
 }
 }
@@ -15371,17 +15584,17 @@ vErrors.push(err9);
 }
 errors++;
 }
-validate350.errors = vErrors;
+validate355.errors = vErrors;
 return errors === 0;
 }
-validate350.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate355.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema115 = {"title":"ButtonsAnswer","type":"object","additionalProperties":false,"required":["type","seq","question","kind","button"],"properties":{"type":{"const":"answer"},"seq":{"$ref":"#/$defs/Seq"},"question":{"$ref":"#/$defs/QuestionId"},"kind":{"const":"buttons"},"button":{"enum":[1,2]}}};
+const schema116 = {"title":"ButtonsAnswer","type":"object","additionalProperties":false,"required":["type","seq","question","kind","button"],"properties":{"type":{"const":"answer"},"seq":{"$ref":"#/$defs/Seq"},"question":{"$ref":"#/$defs/QuestionId"},"kind":{"const":"buttons"},"button":{"enum":[1,2]}}};
 
-function validate354(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate359(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate354.evaluated;
+const evaluated0 = validate359.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -15464,14 +15677,14 @@ errors++;
 }
 }
 if(data.seq !== undefined){
-if(!(validate315(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate315.errors : vErrors.concat(validate315.errors);
+if(!(validate320(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate320.errors : vErrors.concat(validate320.errors);
 errors = vErrors.length;
 }
 }
 if(data.question !== undefined){
-if(!(validate174(data.question, {instancePath:instancePath+"/question",parentData:data,parentDataProperty:"question",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate174.errors : vErrors.concat(validate174.errors);
+if(!(validate178(data.question, {instancePath:instancePath+"/question",parentData:data,parentDataProperty:"question",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate178.errors : vErrors.concat(validate178.errors);
 errors = vErrors.length;
 }
 }
@@ -15490,7 +15703,7 @@ errors++;
 if(data.button !== undefined){
 let data4 = data.button;
 if(!((data4 === 1) || (data4 === 2))){
-const err8 = {instancePath:instancePath+"/button",schemaPath:"#/properties/button/enum",keyword:"enum",params:{allowedValues: schema115.properties.button.enum},message:"must be equal to one of the allowed values"};
+const err8 = {instancePath:instancePath+"/button",schemaPath:"#/properties/button/enum",keyword:"enum",params:{allowedValues: schema116.properties.button.enum},message:"must be equal to one of the allowed values"};
 if(vErrors === null){
 vErrors = [err8];
 }
@@ -15511,17 +15724,17 @@ vErrors.push(err9);
 }
 errors++;
 }
-validate354.errors = vErrors;
+validate359.errors = vErrors;
 return errors === 0;
 }
-validate354.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate359.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema116 = {"title":"ConfirmAnswer","type":"object","additionalProperties":false,"required":["type","seq","question","kind","yes"],"properties":{"type":{"const":"answer"},"seq":{"$ref":"#/$defs/Seq"},"question":{"$ref":"#/$defs/QuestionId"},"kind":{"const":"confirm"},"yes":{"type":"boolean"}}};
+const schema117 = {"title":"ConfirmAnswer","type":"object","additionalProperties":false,"required":["type","seq","question","kind","yes"],"properties":{"type":{"const":"answer"},"seq":{"$ref":"#/$defs/Seq"},"question":{"$ref":"#/$defs/QuestionId"},"kind":{"const":"confirm"},"yes":{"type":"boolean"}}};
 
-function validate357(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate362(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate357.evaluated;
+const evaluated0 = validate362.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -15604,14 +15817,14 @@ errors++;
 }
 }
 if(data.seq !== undefined){
-if(!(validate315(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate315.errors : vErrors.concat(validate315.errors);
+if(!(validate320(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate320.errors : vErrors.concat(validate320.errors);
 errors = vErrors.length;
 }
 }
 if(data.question !== undefined){
-if(!(validate174(data.question, {instancePath:instancePath+"/question",parentData:data,parentDataProperty:"question",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate174.errors : vErrors.concat(validate174.errors);
+if(!(validate178(data.question, {instancePath:instancePath+"/question",parentData:data,parentDataProperty:"question",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate178.errors : vErrors.concat(validate178.errors);
 errors = vErrors.length;
 }
 }
@@ -15650,17 +15863,17 @@ vErrors.push(err9);
 }
 errors++;
 }
-validate357.errors = vErrors;
+validate362.errors = vErrors;
 return errors === 0;
 }
-validate357.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate362.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema117 = {"title":"OptionsAnswer","description":"Item number, or 0 to cancel a cancellable question.","type":"object","additionalProperties":false,"required":["type","seq","question","kind","option"],"properties":{"type":{"const":"answer"},"seq":{"$ref":"#/$defs/Seq"},"question":{"$ref":"#/$defs/QuestionId"},"kind":{"const":"options"},"option":{"type":"integer","minimum":0}}};
+const schema118 = {"title":"OptionsAnswer","description":"Item number, or 0 to cancel a cancellable question.","type":"object","additionalProperties":false,"required":["type","seq","question","kind","option"],"properties":{"type":{"const":"answer"},"seq":{"$ref":"#/$defs/Seq"},"question":{"$ref":"#/$defs/QuestionId"},"kind":{"const":"options"},"option":{"type":"integer","minimum":0}}};
 
-function validate360(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate365(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate360.evaluated;
+const evaluated0 = validate365.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -15743,14 +15956,14 @@ errors++;
 }
 }
 if(data.seq !== undefined){
-if(!(validate315(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate315.errors : vErrors.concat(validate315.errors);
+if(!(validate320(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate320.errors : vErrors.concat(validate320.errors);
 errors = vErrors.length;
 }
 }
 if(data.question !== undefined){
-if(!(validate174(data.question, {instancePath:instancePath+"/question",parentData:data,parentDataProperty:"question",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate174.errors : vErrors.concat(validate174.errors);
+if(!(validate178(data.question, {instancePath:instancePath+"/question",parentData:data,parentDataProperty:"question",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate178.errors : vErrors.concat(validate178.errors);
 errors = vErrors.length;
 }
 }
@@ -15802,17 +16015,17 @@ vErrors.push(err10);
 }
 errors++;
 }
-validate360.errors = vErrors;
+validate365.errors = vErrors;
 return errors === 0;
 }
-validate360.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate365.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema118 = {"title":"InputAnswer","description":"Text; a whole number if the question is numeric.","type":"object","additionalProperties":false,"required":["type","seq","question","kind","value"],"properties":{"type":{"const":"answer"},"seq":{"$ref":"#/$defs/Seq"},"question":{"$ref":"#/$defs/QuestionId"},"kind":{"const":"input"},"value":{"type":"string"}}};
+const schema119 = {"title":"InputAnswer","description":"Text; a whole number if the question is numeric.","type":"object","additionalProperties":false,"required":["type","seq","question","kind","value"],"properties":{"type":{"const":"answer"},"seq":{"$ref":"#/$defs/Seq"},"question":{"$ref":"#/$defs/QuestionId"},"kind":{"const":"input"},"value":{"type":"string"}}};
 
-function validate363(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate368(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate363.evaluated;
+const evaluated0 = validate368.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -15895,14 +16108,14 @@ errors++;
 }
 }
 if(data.seq !== undefined){
-if(!(validate315(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate315.errors : vErrors.concat(validate315.errors);
+if(!(validate320(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate320.errors : vErrors.concat(validate320.errors);
 errors = vErrors.length;
 }
 }
 if(data.question !== undefined){
-if(!(validate174(data.question, {instancePath:instancePath+"/question",parentData:data,parentDataProperty:"question",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate174.errors : vErrors.concat(validate174.errors);
+if(!(validate178(data.question, {instancePath:instancePath+"/question",parentData:data,parentDataProperty:"question",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate178.errors : vErrors.concat(validate178.errors);
 errors = vErrors.length;
 }
 }
@@ -15941,17 +16154,17 @@ vErrors.push(err9);
 }
 errors++;
 }
-validate363.errors = vErrors;
+validate368.errors = vErrors;
 return errors === 0;
 }
-validate363.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate368.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema119 = {"title":"OrderAnswer","description":"Chosen item numbers in order; the rest remains (see OrderQuestion).","type":"object","additionalProperties":false,"required":["type","seq","question","kind","order"],"properties":{"type":{"const":"answer"},"seq":{"$ref":"#/$defs/Seq"},"question":{"$ref":"#/$defs/QuestionId"},"kind":{"const":"order"},"order":{"type":"array","items":{"$ref":"#/$defs/ItemNr"}}}};
+const schema120 = {"title":"OrderAnswer","description":"Chosen item numbers in order; the rest remains (see OrderQuestion).","type":"object","additionalProperties":false,"required":["type","seq","question","kind","order"],"properties":{"type":{"const":"answer"},"seq":{"$ref":"#/$defs/Seq"},"question":{"$ref":"#/$defs/QuestionId"},"kind":{"const":"order"},"order":{"type":"array","items":{"$ref":"#/$defs/ItemNr"}}}};
 
-function validate366(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate371(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate366.evaluated;
+const evaluated0 = validate371.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -16034,14 +16247,14 @@ errors++;
 }
 }
 if(data.seq !== undefined){
-if(!(validate315(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate315.errors : vErrors.concat(validate315.errors);
+if(!(validate320(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate320.errors : vErrors.concat(validate320.errors);
 errors = vErrors.length;
 }
 }
 if(data.question !== undefined){
-if(!(validate174(data.question, {instancePath:instancePath+"/question",parentData:data,parentDataProperty:"question",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate174.errors : vErrors.concat(validate174.errors);
+if(!(validate178(data.question, {instancePath:instancePath+"/question",parentData:data,parentDataProperty:"question",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate178.errors : vErrors.concat(validate178.errors);
 errors = vErrors.length;
 }
 }
@@ -16062,8 +16275,8 @@ let data4 = data.order;
 if(Array.isArray(data4)){
 const len0 = data4.length;
 for(let i0=0; i0<len0; i0++){
-if(!(validate250(data4[i0], {instancePath:instancePath+"/order/" + i0,parentData:data4,parentDataProperty:i0,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate250.errors : vErrors.concat(validate250.errors);
+if(!(validate255(data4[i0], {instancePath:instancePath+"/order/" + i0,parentData:data4,parentDataProperty:i0,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate255.errors : vErrors.concat(validate255.errors);
 errors = vErrors.length;
 }
 }
@@ -16090,17 +16303,17 @@ vErrors.push(err9);
 }
 errors++;
 }
-validate366.errors = vErrors;
+validate371.errors = vErrors;
 return errors === 0;
 }
-validate366.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate371.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema120 = {"title":"ArrangeAnswer","description":"Every item exactly once, either to the top or to the bottom, each list in order.","type":"object","additionalProperties":false,"required":["type","seq","question","kind","top","bottom"],"properties":{"type":{"const":"answer"},"seq":{"$ref":"#/$defs/Seq"},"question":{"$ref":"#/$defs/QuestionId"},"kind":{"const":"arrange"},"top":{"type":"array","items":{"$ref":"#/$defs/ItemNr"}},"bottom":{"type":"array","items":{"$ref":"#/$defs/ItemNr"}}}};
+const schema121 = {"title":"ArrangeAnswer","description":"Every item exactly once, either to the top or to the bottom, each list in order.","type":"object","additionalProperties":false,"required":["type","seq","question","kind","top","bottom"],"properties":{"type":{"const":"answer"},"seq":{"$ref":"#/$defs/Seq"},"question":{"$ref":"#/$defs/QuestionId"},"kind":{"const":"arrange"},"top":{"type":"array","items":{"$ref":"#/$defs/ItemNr"}},"bottom":{"type":"array","items":{"$ref":"#/$defs/ItemNr"}}}};
 
-function validate370(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate375(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate370.evaluated;
+const evaluated0 = validate375.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -16193,14 +16406,14 @@ errors++;
 }
 }
 if(data.seq !== undefined){
-if(!(validate315(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate315.errors : vErrors.concat(validate315.errors);
+if(!(validate320(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate320.errors : vErrors.concat(validate320.errors);
 errors = vErrors.length;
 }
 }
 if(data.question !== undefined){
-if(!(validate174(data.question, {instancePath:instancePath+"/question",parentData:data,parentDataProperty:"question",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate174.errors : vErrors.concat(validate174.errors);
+if(!(validate178(data.question, {instancePath:instancePath+"/question",parentData:data,parentDataProperty:"question",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate178.errors : vErrors.concat(validate178.errors);
 errors = vErrors.length;
 }
 }
@@ -16221,8 +16434,8 @@ let data4 = data.top;
 if(Array.isArray(data4)){
 const len0 = data4.length;
 for(let i0=0; i0<len0; i0++){
-if(!(validate250(data4[i0], {instancePath:instancePath+"/top/" + i0,parentData:data4,parentDataProperty:i0,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate250.errors : vErrors.concat(validate250.errors);
+if(!(validate255(data4[i0], {instancePath:instancePath+"/top/" + i0,parentData:data4,parentDataProperty:i0,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate255.errors : vErrors.concat(validate255.errors);
 errors = vErrors.length;
 }
 }
@@ -16243,8 +16456,8 @@ let data6 = data.bottom;
 if(Array.isArray(data6)){
 const len1 = data6.length;
 for(let i1=0; i1<len1; i1++){
-if(!(validate250(data6[i1], {instancePath:instancePath+"/bottom/" + i1,parentData:data6,parentDataProperty:i1,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate250.errors : vErrors.concat(validate250.errors);
+if(!(validate255(data6[i1], {instancePath:instancePath+"/bottom/" + i1,parentData:data6,parentDataProperty:i1,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate255.errors : vErrors.concat(validate255.errors);
 errors = vErrors.length;
 }
 }
@@ -16271,17 +16484,17 @@ vErrors.push(err11);
 }
 errors++;
 }
-validate370.errors = vErrors;
+validate375.errors = vErrors;
 return errors === 0;
 }
-validate370.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate375.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema121 = {"title":"DistributeAnswer","description":"One amount per item (parallel to items), each at least min, summing to total.","type":"object","additionalProperties":false,"required":["type","seq","question","kind","amounts"],"properties":{"type":{"const":"answer"},"seq":{"$ref":"#/$defs/Seq"},"question":{"$ref":"#/$defs/QuestionId"},"kind":{"const":"distribute"},"amounts":{"type":"array","items":{"type":"integer","minimum":0}}}};
+const schema122 = {"title":"DistributeAnswer","description":"One amount per item (parallel to items), each at least min, summing to total.","type":"object","additionalProperties":false,"required":["type","seq","question","kind","amounts"],"properties":{"type":{"const":"answer"},"seq":{"$ref":"#/$defs/Seq"},"question":{"$ref":"#/$defs/QuestionId"},"kind":{"const":"distribute"},"amounts":{"type":"array","items":{"type":"integer","minimum":0}}}};
 
-function validate375(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate380(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate375.evaluated;
+const evaluated0 = validate380.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -16364,14 +16577,14 @@ errors++;
 }
 }
 if(data.seq !== undefined){
-if(!(validate315(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate315.errors : vErrors.concat(validate315.errors);
+if(!(validate320(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate320.errors : vErrors.concat(validate320.errors);
 errors = vErrors.length;
 }
 }
 if(data.question !== undefined){
-if(!(validate174(data.question, {instancePath:instancePath+"/question",parentData:data,parentDataProperty:"question",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate174.errors : vErrors.concat(validate174.errors);
+if(!(validate178(data.question, {instancePath:instancePath+"/question",parentData:data,parentDataProperty:"question",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate178.errors : vErrors.concat(validate178.errors);
 errors = vErrors.length;
 }
 }
@@ -16439,16 +16652,16 @@ vErrors.push(err11);
 }
 errors++;
 }
-validate375.errors = vErrors;
+validate380.errors = vErrors;
 return errors === 0;
 }
-validate375.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate380.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
 
-function validate344(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate349(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate344.evaluated;
+const evaluated0 = validate349.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -16489,23 +16702,23 @@ errors++;
 }
 }
 if(data.kind !== undefined){
-if(!(validate176(data.kind, {instancePath:instancePath+"/kind",parentData:data,parentDataProperty:"kind",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate176.errors : vErrors.concat(validate176.errors);
+if(!(validate180(data.kind, {instancePath:instancePath+"/kind",parentData:data,parentDataProperty:"kind",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate180.errors : vErrors.concat(validate180.errors);
 errors = vErrors.length;
 }
 }
 const tag0 = data.kind;
 if(typeof tag0 == "string"){
 if(tag0 === "select"){
-if(!(validate346(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate346.errors : vErrors.concat(validate346.errors);
+if(!(validate351(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate351.errors : vErrors.concat(validate351.errors);
 errors = vErrors.length;
 }
 var props0 = true;
 }
 else if(tag0 === "choose"){
-if(!(validate350(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate350.errors : vErrors.concat(validate350.errors);
+if(!(validate355(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate355.errors : vErrors.concat(validate355.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -16513,8 +16726,8 @@ props0 = true;
 }
 }
 else if(tag0 === "buttons"){
-if(!(validate354(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate354.errors : vErrors.concat(validate354.errors);
+if(!(validate359(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate359.errors : vErrors.concat(validate359.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -16522,8 +16735,8 @@ props0 = true;
 }
 }
 else if(tag0 === "confirm"){
-if(!(validate357(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate357.errors : vErrors.concat(validate357.errors);
+if(!(validate362(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate362.errors : vErrors.concat(validate362.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -16531,8 +16744,8 @@ props0 = true;
 }
 }
 else if(tag0 === "options"){
-if(!(validate360(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate360.errors : vErrors.concat(validate360.errors);
+if(!(validate365(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate365.errors : vErrors.concat(validate365.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -16540,8 +16753,8 @@ props0 = true;
 }
 }
 else if(tag0 === "input"){
-if(!(validate363(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate363.errors : vErrors.concat(validate363.errors);
+if(!(validate368(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate368.errors : vErrors.concat(validate368.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -16549,8 +16762,8 @@ props0 = true;
 }
 }
 else if(tag0 === "order"){
-if(!(validate366(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate366.errors : vErrors.concat(validate366.errors);
+if(!(validate371(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate371.errors : vErrors.concat(validate371.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -16558,8 +16771,8 @@ props0 = true;
 }
 }
 else if(tag0 === "arrange"){
-if(!(validate370(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate370.errors : vErrors.concat(validate370.errors);
+if(!(validate375(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate375.errors : vErrors.concat(validate375.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -16567,8 +16780,8 @@ props0 = true;
 }
 }
 else if(tag0 === "distribute"){
-if(!(validate375(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate375.errors : vErrors.concat(validate375.errors);
+if(!(validate380(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate380.errors : vErrors.concat(validate380.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -16607,18 +16820,18 @@ vErrors.push(err5);
 }
 errors++;
 }
-validate344.errors = vErrors;
+validate349.errors = vErrors;
 evaluated0.props = props0;
 return errors === 0;
 }
-validate344.evaluated = {"dynamicProps":true,"dynamicItems":false};
+validate349.evaluated = {"dynamicProps":true,"dynamicItems":false};
 
-const schema122 = {"title":"CardTapInput","description":"Tap a card without being asked: this is how cards are played at priority, paid with, declared as attackers or blockers. Forge decides what the tap means.","type":"object","additionalProperties":false,"required":["type","seq","card"],"properties":{"type":{"const":"card.tap"},"seq":{"$ref":"#/$defs/Seq"},"card":{"type":"integer"}}};
+const schema123 = {"title":"CardTapInput","description":"Tap a card without being asked: this is how cards are played at priority, paid with, declared as attackers or blockers. Forge decides what the tap means.","type":"object","additionalProperties":false,"required":["type","seq","card"],"properties":{"type":{"const":"card.tap"},"seq":{"$ref":"#/$defs/Seq"},"card":{"type":"integer"}}};
 
-function validate387(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate392(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate387.evaluated;
+const evaluated0 = validate392.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -16681,8 +16894,8 @@ errors++;
 }
 }
 if(data.seq !== undefined){
-if(!(validate315(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate315.errors : vErrors.concat(validate315.errors);
+if(!(validate320(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate320.errors : vErrors.concat(validate320.errors);
 errors = vErrors.length;
 }
 }
@@ -16710,17 +16923,17 @@ vErrors.push(err6);
 }
 errors++;
 }
-validate387.errors = vErrors;
+validate392.errors = vErrors;
 return errors === 0;
 }
-validate387.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate392.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema123 = {"title":"PlayerTapInput","description":"Tap a player (e.g. a player as target).","type":"object","additionalProperties":false,"required":["type","seq","player"],"properties":{"type":{"const":"player.tap"},"seq":{"$ref":"#/$defs/Seq"},"player":{"type":"integer"}}};
+const schema124 = {"title":"PlayerTapInput","description":"Tap a player: choose or un-choose them as a target, pay life for mana (where the state marks the player selectable). Refused as no-effect where Forge's running input would not take the player.","type":"object","additionalProperties":false,"required":["type","seq","player"],"properties":{"type":{"const":"player.tap"},"seq":{"$ref":"#/$defs/Seq"},"player":{"type":"integer"}}};
 
-function validate389(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate394(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate389.evaluated;
+const evaluated0 = validate394.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -16783,8 +16996,8 @@ errors++;
 }
 }
 if(data.seq !== undefined){
-if(!(validate315(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate315.errors : vErrors.concat(validate315.errors);
+if(!(validate320(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate320.errors : vErrors.concat(validate320.errors);
 errors = vErrors.length;
 }
 }
@@ -16812,17 +17025,139 @@ vErrors.push(err6);
 }
 errors++;
 }
-validate389.errors = vErrors;
+validate394.errors = vErrors;
 return errors === 0;
 }
-validate389.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate394.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema124 = {"title":"StateRequestInput","description":"Ask for a fresh full state; served at once, even while a blocking question waits.","type":"object","additionalProperties":false,"required":["type","seq"],"properties":{"type":{"const":"state.request"},"seq":{"$ref":"#/$defs/Seq"}}};
+const schema125 = {"title":"ManaUseInput","description":"Pay with floating mana of this colour during Forge's mana payment (Forge's click on its mana pool; where the state's payment lists the colour). Refused as no-effect where Forge would not pay with it.","type":"object","additionalProperties":false,"required":["type","seq","color"],"properties":{"type":{"const":"mana.use"},"seq":{"$ref":"#/$defs/Seq"},"color":{"$ref":"#/$defs/ManaColor"}}};
+const schema126 = {"title":"ManaColor","description":"A colour of mana: W, U, B, R, G, or C for colourless.","enum":["W","U","B","R","G","C"]};
 
-function validate391(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate398(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate391.evaluated;
+const evaluated0 = validate398.evaluated;
+if(evaluated0.dynamicProps){
+evaluated0.props = undefined;
+}
+if(evaluated0.dynamicItems){
+evaluated0.items = undefined;
+}
+if(!((((((data === "W") || (data === "U")) || (data === "B")) || (data === "R")) || (data === "G")) || (data === "C"))){
+const err0 = {instancePath,schemaPath:"#/enum",keyword:"enum",params:{allowedValues: schema126.enum},message:"must be equal to one of the allowed values"};
+if(vErrors === null){
+vErrors = [err0];
+}
+else {
+vErrors.push(err0);
+}
+errors++;
+}
+validate398.errors = vErrors;
+return errors === 0;
+}
+validate398.evaluated = {"dynamicProps":false,"dynamicItems":false};
+
+
+function validate396(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+let vErrors = null;
+let errors = 0;
+const evaluated0 = validate396.evaluated;
+if(evaluated0.dynamicProps){
+evaluated0.props = undefined;
+}
+if(evaluated0.dynamicItems){
+evaluated0.items = undefined;
+}
+if(data && typeof data == "object" && !Array.isArray(data)){
+if(data.type === undefined){
+const err0 = {instancePath,schemaPath:"#/required",keyword:"required",params:{missingProperty: "type"},message:"must have required property '"+"type"+"'"};
+if(vErrors === null){
+vErrors = [err0];
+}
+else {
+vErrors.push(err0);
+}
+errors++;
+}
+if(data.seq === undefined){
+const err1 = {instancePath,schemaPath:"#/required",keyword:"required",params:{missingProperty: "seq"},message:"must have required property '"+"seq"+"'"};
+if(vErrors === null){
+vErrors = [err1];
+}
+else {
+vErrors.push(err1);
+}
+errors++;
+}
+if(data.color === undefined){
+const err2 = {instancePath,schemaPath:"#/required",keyword:"required",params:{missingProperty: "color"},message:"must have required property '"+"color"+"'"};
+if(vErrors === null){
+vErrors = [err2];
+}
+else {
+vErrors.push(err2);
+}
+errors++;
+}
+for(const key0 in data){
+if(!(((key0 === "type") || (key0 === "seq")) || (key0 === "color"))){
+const err3 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
+if(vErrors === null){
+vErrors = [err3];
+}
+else {
+vErrors.push(err3);
+}
+errors++;
+}
+}
+if(data.type !== undefined){
+if("mana.use" !== data.type){
+const err4 = {instancePath:instancePath+"/type",schemaPath:"#/properties/type/const",keyword:"const",params:{allowedValue: "mana.use"},message:"must be equal to constant"};
+if(vErrors === null){
+vErrors = [err4];
+}
+else {
+vErrors.push(err4);
+}
+errors++;
+}
+}
+if(data.seq !== undefined){
+if(!(validate320(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate320.errors : vErrors.concat(validate320.errors);
+errors = vErrors.length;
+}
+}
+if(data.color !== undefined){
+if(!(validate398(data.color, {instancePath:instancePath+"/color",parentData:data,parentDataProperty:"color",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate398.errors : vErrors.concat(validate398.errors);
+errors = vErrors.length;
+}
+}
+}
+else {
+const err5 = {instancePath,schemaPath:"#/type",keyword:"type",params:{type: "object"},message:"must be object"};
+if(vErrors === null){
+vErrors = [err5];
+}
+else {
+vErrors.push(err5);
+}
+errors++;
+}
+validate396.errors = vErrors;
+return errors === 0;
+}
+validate396.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+
+const schema127 = {"title":"StateRequestInput","description":"Ask for a fresh full state; served at once, even while a blocking question waits.","type":"object","additionalProperties":false,"required":["type","seq"],"properties":{"type":{"const":"state.request"},"seq":{"$ref":"#/$defs/Seq"}}};
+
+function validate400(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+let vErrors = null;
+let errors = 0;
+const evaluated0 = validate400.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -16875,8 +17210,8 @@ errors++;
 }
 }
 if(data.seq !== undefined){
-if(!(validate315(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate315.errors : vErrors.concat(validate315.errors);
+if(!(validate320(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate320.errors : vErrors.concat(validate320.errors);
 errors = vErrors.length;
 }
 }
@@ -16891,17 +17226,17 @@ vErrors.push(err4);
 }
 errors++;
 }
-validate391.errors = vErrors;
+validate400.errors = vErrors;
 return errors === 0;
 }
-validate391.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate400.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema125 = {"title":"ConcedeInput","description":"Concede the game. Is the decision itself: no second confirmation from the engine (the UI confirms before sending).","type":"object","additionalProperties":false,"required":["type","seq"],"properties":{"type":{"const":"concede"},"seq":{"$ref":"#/$defs/Seq"}}};
+const schema128 = {"title":"ConcedeInput","description":"Concede the game. Is the decision itself: no second confirmation from the engine (the UI confirms before sending).","type":"object","additionalProperties":false,"required":["type","seq"],"properties":{"type":{"const":"concede"},"seq":{"$ref":"#/$defs/Seq"}}};
 
-function validate393(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate402(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate393.evaluated;
+const evaluated0 = validate402.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -16954,8 +17289,8 @@ errors++;
 }
 }
 if(data.seq !== undefined){
-if(!(validate315(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate315.errors : vErrors.concat(validate315.errors);
+if(!(validate320(data.seq, {instancePath:instancePath+"/seq",parentData:data,parentDataProperty:"seq",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate320.errors : vErrors.concat(validate320.errors);
 errors = vErrors.length;
 }
 }
@@ -16970,16 +17305,16 @@ vErrors.push(err4);
 }
 errors++;
 }
-validate393.errors = vErrors;
+validate402.errors = vErrors;
 return errors === 0;
 }
-validate393.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate402.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
 
-function validate446(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate456(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate446.evaluated;
+const evaluated0 = validate456.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -16990,17 +17325,17 @@ if(data && typeof data == "object" && !Array.isArray(data)){
 const tag0 = data.type;
 if(typeof tag0 == "string"){
 if(tag0 === "answer"){
-if(!(validate344(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate344.errors : vErrors.concat(validate344.errors);
+if(!(validate349(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate349.errors : vErrors.concat(validate349.errors);
 errors = vErrors.length;
 }
 else {
-var props0 = validate344.evaluated.props;
+var props0 = validate349.evaluated.props;
 }
 }
 else if(tag0 === "card.tap"){
-if(!(validate387(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate387.errors : vErrors.concat(validate387.errors);
+if(!(validate392(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate392.errors : vErrors.concat(validate392.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -17008,8 +17343,17 @@ props0 = true;
 }
 }
 else if(tag0 === "player.tap"){
-if(!(validate389(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate389.errors : vErrors.concat(validate389.errors);
+if(!(validate394(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate394.errors : vErrors.concat(validate394.errors);
+errors = vErrors.length;
+}
+if(props0 !== true){
+props0 = true;
+}
+}
+else if(tag0 === "mana.use"){
+if(!(validate396(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate396.errors : vErrors.concat(validate396.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -17017,8 +17361,8 @@ props0 = true;
 }
 }
 else if(tag0 === "state.request"){
-if(!(validate391(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate391.errors : vErrors.concat(validate391.errors);
+if(!(validate400(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate400.errors : vErrors.concat(validate400.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -17026,8 +17370,8 @@ props0 = true;
 }
 }
 else if(tag0 === "concede"){
-if(!(validate393(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate393.errors : vErrors.concat(validate393.errors);
+if(!(validate402(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate402.errors : vErrors.concat(validate402.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -17066,20 +17410,20 @@ vErrors.push(err2);
 }
 errors++;
 }
-validate446.errors = vErrors;
+validate456.errors = vErrors;
 evaluated0.props = props0;
 return errors === 0;
 }
-validate446.evaluated = {"dynamicProps":true,"dynamicItems":false};
+validate456.evaluated = {"dynamicProps":true,"dynamicItems":false};
 
-export const validateWorkerCommand = validate452;
-const schema126 = {"title":"WorkerCommand","description":"Commands the page posts to the worker. The worker handles them only while it is idle (before and between Forge calls); during a match everything goes through the input queue.","type":"object","discriminator":{"propertyName":"type"},"oneOf":[{"$ref":"#/$defs/EngineStartCommand"},{"$ref":"#/$defs/MatchStartCommand"},{"$ref":"#/$defs/DiagnosticsAiMatchCommand"},{"$ref":"#/$defs/DiagnosticsCardProbeCommand"}]};
-const schema127 = {"title":"EngineStartCommand","description":"Start the engine in this (fresh) worker. The worker checks the protocol version first, then the runtime features, then the input queue, and only then loads the ~70 MB engine.","type":"object","additionalProperties":false,"required":["type","protocol","engineScriptUrl","wasmUrl","args","queue","requireIsolation"],"properties":{"type":{"const":"engine.start"},"protocol":{"$ref":"#/$defs/ProtocolVersion"},"engineScriptUrl":{"type":"string","pattern":"\\S"},"wasmUrl":{"type":"string","pattern":"\\S"},"args":{"type":"array","items":{"type":"string"},"description":"Boot arguments of the engine: --card-loading=eager|lazy (default eager), --language=en-US|de-DE (default en-US), --card-language=en-US|de-DE (default: the language). Anything else stops the boot (engine.abort boot-failed)."},"queue":{"tsType":"SharedArrayBuffer","description":"The SharedArrayBuffer of the input queue (see input-queue.ts for its layout)."},"requireIsolation":{"type":"boolean","description":"Require crossOriginIsolated (browsers: yes; Node tests: no)."}}};
+export const validateWorkerCommand = validate463;
+const schema129 = {"title":"WorkerCommand","description":"Commands the page posts to the worker. The worker handles them only while it is idle (before and between Forge calls); during a match everything goes through the input queue.","type":"object","discriminator":{"propertyName":"type"},"oneOf":[{"$ref":"#/$defs/EngineStartCommand"},{"$ref":"#/$defs/MatchStartCommand"},{"$ref":"#/$defs/DiagnosticsAiMatchCommand"},{"$ref":"#/$defs/DiagnosticsCardProbeCommand"}]};
+const schema130 = {"title":"EngineStartCommand","description":"Start the engine in this (fresh) worker. The worker checks the protocol version first, then the runtime features, then the input queue, and only then loads the ~70 MB engine.","type":"object","additionalProperties":false,"required":["type","protocol","engineScriptUrl","wasmUrl","args","queue","requireIsolation"],"properties":{"type":{"const":"engine.start"},"protocol":{"$ref":"#/$defs/ProtocolVersion"},"engineScriptUrl":{"type":"string","pattern":"\\S"},"wasmUrl":{"type":"string","pattern":"\\S"},"args":{"type":"array","items":{"type":"string"},"description":"Boot arguments of the engine: --card-loading=eager|lazy (default eager), --language=en-US|de-DE (default en-US), --card-language=en-US|de-DE (default: the language). Anything else stops the boot (engine.abort boot-failed)."},"queue":{"tsType":"SharedArrayBuffer","description":"The SharedArrayBuffer of the input queue (see input-queue.ts for its layout)."},"requireIsolation":{"type":"boolean","description":"Require crossOriginIsolated (browsers: yes; Node tests: no)."}}};
 
-function validate402(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate412(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate402.evaluated;
+const evaluated0 = validate412.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -17288,20 +17632,20 @@ vErrors.push(err16);
 }
 errors++;
 }
-validate402.errors = vErrors;
+validate412.errors = vErrors;
 return errors === 0;
 }
-validate402.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate412.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema128 = {"title":"MatchStartCommand","type":"object","additionalProperties":false,"required":["type","match"],"properties":{"type":{"const":"match.start"},"match":{"$ref":"#/$defs/MatchRequest"}}};
-const schema129 = {"title":"MatchRequest","description":"A game human (through this protocol) against Forge's AI. Decks come from the UI (IndexedDB later), card names in English (front face of double-faced cards). ai.profile: one of the engine's AI profiles (BootReport.aiProfiles, Forge's res/ai/*.ai), e.g. Default; any other is refused (engine.error invalid-request) instead of Forge silently playing its built-in defaults.","type":"object","additionalProperties":false,"required":["format","human","ai"],"properties":{"seed":{"type":["integer","null"],"description":"Fixed seed for reproducible games (tests); absent or null = random."},"trace":{"type":"boolean","description":"Engine tests only (differential tests, prompt 05): the engine also sends its trace (diagnostics.trace), which contains hidden information. The UI never sets it."},"format":{"$ref":"#/$defs/MatchFormat"},"human":{"type":"object","additionalProperties":false,"required":["name","deck"],"properties":{"name":{"$ref":"#/$defs/NonEmptyString"},"deck":{"$ref":"#/$defs/Deck"}}},"ai":{"type":"object","additionalProperties":false,"required":["name","profile","deck"],"properties":{"name":{"$ref":"#/$defs/NonEmptyString"},"profile":{"$ref":"#/$defs/NonEmptyString"},"deck":{"$ref":"#/$defs/Deck"}}}}};
-const schema130 = {"title":"Deck","type":"object","additionalProperties":false,"required":["name","main"],"properties":{"name":{"$ref":"#/$defs/NonEmptyString"},"main":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/DeckEntry"}},"sideboard":{"type":"array","items":{"$ref":"#/$defs/DeckEntry"}},"commander":{"type":"array","items":{"$ref":"#/$defs/DeckEntry"}}}};
-const schema131 = {"title":"DeckEntry","type":"object","additionalProperties":false,"required":["card","count"],"properties":{"card":{"$ref":"#/$defs/NonEmptyString"},"count":{"type":"integer","minimum":1}}};
+const schema131 = {"title":"MatchStartCommand","type":"object","additionalProperties":false,"required":["type","match"],"properties":{"type":{"const":"match.start"},"match":{"$ref":"#/$defs/MatchRequest"}}};
+const schema132 = {"title":"MatchRequest","description":"A game human (through this protocol) against Forge's AI. Decks come from the UI (IndexedDB later), card names in English (front face of double-faced cards). ai.profile: one of the engine's AI profiles (BootReport.aiProfiles, Forge's res/ai/*.ai), e.g. Default; any other is refused (engine.error invalid-request) instead of Forge silently playing its built-in defaults.","type":"object","additionalProperties":false,"required":["format","human","ai"],"properties":{"seed":{"type":["integer","null"],"description":"Fixed seed for reproducible games (tests); absent or null = random."},"trace":{"type":"boolean","description":"Engine tests only (differential tests, prompt 05): the engine also sends its trace (diagnostics.trace), which contains hidden information. The UI never sets it."},"format":{"$ref":"#/$defs/MatchFormat"},"human":{"type":"object","additionalProperties":false,"required":["name","deck"],"properties":{"name":{"$ref":"#/$defs/NonEmptyString"},"deck":{"$ref":"#/$defs/Deck"}}},"ai":{"type":"object","additionalProperties":false,"required":["name","profile","deck"],"properties":{"name":{"$ref":"#/$defs/NonEmptyString"},"profile":{"$ref":"#/$defs/NonEmptyString"},"deck":{"$ref":"#/$defs/Deck"}}}}};
+const schema133 = {"title":"Deck","type":"object","additionalProperties":false,"required":["name","main"],"properties":{"name":{"$ref":"#/$defs/NonEmptyString"},"main":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/DeckEntry"}},"sideboard":{"type":"array","items":{"$ref":"#/$defs/DeckEntry"}},"commander":{"type":"array","items":{"$ref":"#/$defs/DeckEntry"}}}};
+const schema134 = {"title":"DeckEntry","type":"object","additionalProperties":false,"required":["card","count"],"properties":{"card":{"$ref":"#/$defs/NonEmptyString"},"count":{"type":"integer","minimum":1}}};
 
-function validate410(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate420(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate410.evaluated;
+const evaluated0 = validate420.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -17383,16 +17727,16 @@ vErrors.push(err5);
 }
 errors++;
 }
-validate410.errors = vErrors;
+validate420.errors = vErrors;
 return errors === 0;
 }
-validate410.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate420.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
 
-function validate408(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate418(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate408.evaluated;
+const evaluated0 = validate418.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -17453,8 +17797,8 @@ errors++;
 }
 const len0 = data1.length;
 for(let i0=0; i0<len0; i0++){
-if(!(validate410(data1[i0], {instancePath:instancePath+"/main/" + i0,parentData:data1,parentDataProperty:i0,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate410.errors : vErrors.concat(validate410.errors);
+if(!(validate420(data1[i0], {instancePath:instancePath+"/main/" + i0,parentData:data1,parentDataProperty:i0,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate420.errors : vErrors.concat(validate420.errors);
 errors = vErrors.length;
 }
 }
@@ -17475,8 +17819,8 @@ let data3 = data.sideboard;
 if(Array.isArray(data3)){
 const len1 = data3.length;
 for(let i1=0; i1<len1; i1++){
-if(!(validate410(data3[i1], {instancePath:instancePath+"/sideboard/" + i1,parentData:data3,parentDataProperty:i1,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate410.errors : vErrors.concat(validate410.errors);
+if(!(validate420(data3[i1], {instancePath:instancePath+"/sideboard/" + i1,parentData:data3,parentDataProperty:i1,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate420.errors : vErrors.concat(validate420.errors);
 errors = vErrors.length;
 }
 }
@@ -17497,8 +17841,8 @@ let data5 = data.commander;
 if(Array.isArray(data5)){
 const len2 = data5.length;
 for(let i2=0; i2<len2; i2++){
-if(!(validate410(data5[i2], {instancePath:instancePath+"/commander/" + i2,parentData:data5,parentDataProperty:i2,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate410.errors : vErrors.concat(validate410.errors);
+if(!(validate420(data5[i2], {instancePath:instancePath+"/commander/" + i2,parentData:data5,parentDataProperty:i2,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate420.errors : vErrors.concat(validate420.errors);
 errors = vErrors.length;
 }
 }
@@ -17525,16 +17869,16 @@ vErrors.push(err7);
 }
 errors++;
 }
-validate408.errors = vErrors;
+validate418.errors = vErrors;
 return errors === 0;
 }
-validate408.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate418.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
 
-function validate405(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate415(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate405.evaluated;
+const evaluated0 = validate415.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -17587,7 +17931,7 @@ errors++;
 if(data.seed !== undefined){
 let data0 = data.seed;
 if((!(((typeof data0 == "number") && (!(data0 % 1) && !isNaN(data0))) && (isFinite(data0)))) && (data0 !== null)){
-const err4 = {instancePath:instancePath+"/seed",schemaPath:"#/properties/seed/type",keyword:"type",params:{type: schema129.properties.seed.type},message:"must be integer,null"};
+const err4 = {instancePath:instancePath+"/seed",schemaPath:"#/properties/seed/type",keyword:"type",params:{type: schema132.properties.seed.type},message:"must be integer,null"};
 if(vErrors === null){
 vErrors = [err4];
 }
@@ -17610,8 +17954,8 @@ errors++;
 }
 }
 if(data.format !== undefined){
-if(!(validate189(data.format, {instancePath:instancePath+"/format",parentData:data,parentDataProperty:"format",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate189.errors : vErrors.concat(validate189.errors);
+if(!(validate193(data.format, {instancePath:instancePath+"/format",parentData:data,parentDataProperty:"format",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate193.errors : vErrors.concat(validate193.errors);
 errors = vErrors.length;
 }
 }
@@ -17657,8 +18001,8 @@ errors = vErrors.length;
 }
 }
 if(data3.deck !== undefined){
-if(!(validate408(data3.deck, {instancePath:instancePath+"/human/deck",parentData:data3,parentDataProperty:"deck",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate408.errors : vErrors.concat(validate408.errors);
+if(!(validate418(data3.deck, {instancePath:instancePath+"/human/deck",parentData:data3,parentDataProperty:"deck",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate418.errors : vErrors.concat(validate418.errors);
 errors = vErrors.length;
 }
 }
@@ -17732,8 +18076,8 @@ errors = vErrors.length;
 }
 }
 if(data6.deck !== undefined){
-if(!(validate408(data6.deck, {instancePath:instancePath+"/ai/deck",parentData:data6,parentDataProperty:"deck",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate408.errors : vErrors.concat(validate408.errors);
+if(!(validate418(data6.deck, {instancePath:instancePath+"/ai/deck",parentData:data6,parentDataProperty:"deck",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate418.errors : vErrors.concat(validate418.errors);
 errors = vErrors.length;
 }
 }
@@ -17760,16 +18104,16 @@ vErrors.push(err15);
 }
 errors++;
 }
-validate405.errors = vErrors;
+validate415.errors = vErrors;
 return errors === 0;
 }
-validate405.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate415.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
 
-function validate404(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate414(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate404.evaluated;
+const evaluated0 = validate414.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -17822,8 +18166,8 @@ errors++;
 }
 }
 if(data.match !== undefined){
-if(!(validate405(data.match, {instancePath:instancePath+"/match",parentData:data,parentDataProperty:"match",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate405.errors : vErrors.concat(validate405.errors);
+if(!(validate415(data.match, {instancePath:instancePath+"/match",parentData:data,parentDataProperty:"match",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate415.errors : vErrors.concat(validate415.errors);
 errors = vErrors.length;
 }
 }
@@ -17838,17 +18182,17 @@ vErrors.push(err4);
 }
 errors++;
 }
-validate404.errors = vErrors;
+validate414.errors = vErrors;
 return errors === 0;
 }
-validate404.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate414.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema132 = {"title":"DiagnosticsAiMatchCommand","description":"Engine tests only: Forge's AI plays itself with fixed smoke decks. trace: the engine also sends its trace (diagnostics.trace) during the game.","type":"object","additionalProperties":false,"required":["type","seed","includeLog"],"properties":{"type":{"const":"diagnostics.ai-match"},"seed":{"type":"integer"},"includeLog":{"type":"boolean"},"trace":{"type":"boolean"}}};
+const schema135 = {"title":"DiagnosticsAiMatchCommand","description":"Engine tests only: Forge's AI plays itself with fixed smoke decks. trace: the engine also sends its trace (diagnostics.trace) during the game.","type":"object","additionalProperties":false,"required":["type","seed","includeLog"],"properties":{"type":{"const":"diagnostics.ai-match"},"seed":{"type":"integer"},"includeLog":{"type":"boolean"},"trace":{"type":"boolean"}}};
 
-function validate420(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate430(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate420.evaluated;
+const evaluated0 = validate430.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -17958,17 +18302,17 @@ vErrors.push(err8);
 }
 errors++;
 }
-validate420.errors = vErrors;
+validate430.errors = vErrors;
 return errors === 0;
 }
-validate420.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate430.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-const schema133 = {"title":"DiagnosticsCardProbeCommand","description":"Engine tests only: check that Forge's card scripts load and become game cards (answered with diagnostics.cards).","type":"object","additionalProperties":false,"required":["type"],"properties":{"type":{"const":"diagnostics.card-probe"}}};
+const schema136 = {"title":"DiagnosticsCardProbeCommand","description":"Engine tests only: check that Forge's card scripts load and become game cards (answered with diagnostics.cards).","type":"object","additionalProperties":false,"required":["type"],"properties":{"type":{"const":"diagnostics.card-probe"}}};
 
-function validate421(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate431(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate421.evaluated;
+const evaluated0 = validate431.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -18021,16 +18365,16 @@ vErrors.push(err3);
 }
 errors++;
 }
-validate421.errors = vErrors;
+validate431.errors = vErrors;
 return errors === 0;
 }
-validate421.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate431.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
 
-function validate452(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate463(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate452.evaluated;
+const evaluated0 = validate463.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -18041,15 +18385,15 @@ if(data && typeof data == "object" && !Array.isArray(data)){
 const tag0 = data.type;
 if(typeof tag0 == "string"){
 if(tag0 === "engine.start"){
-if(!(validate402(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate402.errors : vErrors.concat(validate402.errors);
+if(!(validate412(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate412.errors : vErrors.concat(validate412.errors);
 errors = vErrors.length;
 }
 var props0 = true;
 }
 else if(tag0 === "match.start"){
-if(!(validate404(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate404.errors : vErrors.concat(validate404.errors);
+if(!(validate414(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate414.errors : vErrors.concat(validate414.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -18057,8 +18401,8 @@ props0 = true;
 }
 }
 else if(tag0 === "diagnostics.ai-match"){
-if(!(validate420(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate420.errors : vErrors.concat(validate420.errors);
+if(!(validate430(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate430.errors : vErrors.concat(validate430.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -18066,8 +18410,8 @@ props0 = true;
 }
 }
 else if(tag0 === "diagnostics.card-probe"){
-if(!(validate421(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate421.errors : vErrors.concat(validate421.errors);
+if(!(validate431(data, {instancePath,parentData,parentDataProperty,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate431.errors : vErrors.concat(validate431.errors);
 errors = vErrors.length;
 }
 if(props0 !== true){
@@ -18106,18 +18450,18 @@ vErrors.push(err2);
 }
 errors++;
 }
-validate452.errors = vErrors;
+validate463.errors = vErrors;
 evaluated0.props = props0;
 return errors === 0;
 }
-validate452.evaluated = {"dynamicProps":true,"dynamicItems":false};
+validate463.evaluated = {"dynamicProps":true,"dynamicItems":false};
 
-export const validateMatchRequest = validate457;
+export const validateMatchRequest = validate468;
 
-function validate457(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate468(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate457.evaluated;
+const evaluated0 = validate468.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -18170,7 +18514,7 @@ errors++;
 if(data.seed !== undefined){
 let data0 = data.seed;
 if((!(((typeof data0 == "number") && (!(data0 % 1) && !isNaN(data0))) && (isFinite(data0)))) && (data0 !== null)){
-const err4 = {instancePath:instancePath+"/seed",schemaPath:"#/properties/seed/type",keyword:"type",params:{type: schema129.properties.seed.type},message:"must be integer,null"};
+const err4 = {instancePath:instancePath+"/seed",schemaPath:"#/properties/seed/type",keyword:"type",params:{type: schema132.properties.seed.type},message:"must be integer,null"};
 if(vErrors === null){
 vErrors = [err4];
 }
@@ -18193,8 +18537,8 @@ errors++;
 }
 }
 if(data.format !== undefined){
-if(!(validate189(data.format, {instancePath:instancePath+"/format",parentData:data,parentDataProperty:"format",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate189.errors : vErrors.concat(validate189.errors);
+if(!(validate193(data.format, {instancePath:instancePath+"/format",parentData:data,parentDataProperty:"format",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate193.errors : vErrors.concat(validate193.errors);
 errors = vErrors.length;
 }
 }
@@ -18240,8 +18584,8 @@ errors = vErrors.length;
 }
 }
 if(data3.deck !== undefined){
-if(!(validate408(data3.deck, {instancePath:instancePath+"/human/deck",parentData:data3,parentDataProperty:"deck",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate408.errors : vErrors.concat(validate408.errors);
+if(!(validate418(data3.deck, {instancePath:instancePath+"/human/deck",parentData:data3,parentDataProperty:"deck",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate418.errors : vErrors.concat(validate418.errors);
 errors = vErrors.length;
 }
 }
@@ -18315,8 +18659,8 @@ errors = vErrors.length;
 }
 }
 if(data6.deck !== undefined){
-if(!(validate408(data6.deck, {instancePath:instancePath+"/ai/deck",parentData:data6,parentDataProperty:"deck",rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate408.errors : vErrors.concat(validate408.errors);
+if(!(validate418(data6.deck, {instancePath:instancePath+"/ai/deck",parentData:data6,parentDataProperty:"deck",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate418.errors : vErrors.concat(validate418.errors);
 errors = vErrors.length;
 }
 }
@@ -18343,17 +18687,17 @@ vErrors.push(err15);
 }
 errors++;
 }
-validate457.errors = vErrors;
+validate468.errors = vErrors;
 return errors === 0;
 }
-validate457.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate468.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 
-export const validateGameState = validate464;
+export const validateGameState = validate475;
 
-function validate464(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
+function validate475(data, {instancePath="", parentData, parentDataProperty, rootData=data, dynamicAnchors={}}={}){
 let vErrors = null;
 let errors = 0;
-const evaluated0 = validate464.evaluated;
+const evaluated0 = validate475.evaluated;
 if(evaluated0.dynamicProps){
 evaluated0.props = undefined;
 }
@@ -18462,7 +18806,7 @@ vErrors.push(err9);
 errors++;
 }
 for(const key0 in data){
-if(!(func1.call(schema74.properties, key0))){
+if(!(func1.call(schema75.properties, key0))){
 const err10 = {instancePath,schemaPath:"#/additionalProperties",keyword:"additionalProperties",params:{additionalProperty: key0},message:"must NOT have additional properties"};
 if(vErrors === null){
 vErrors = [err10];
@@ -18700,8 +19044,8 @@ errors++;
 }
 const len0 = data7.length;
 for(let i0=0; i0<len0; i0++){
-if(!(validate195(data7[i0], {instancePath:instancePath+"/players/" + i0,parentData:data7,parentDataProperty:i0,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate195.errors : vErrors.concat(validate195.errors);
+if(!(validate199(data7[i0], {instancePath:instancePath+"/players/" + i0,parentData:data7,parentDataProperty:i0,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate199.errors : vErrors.concat(validate199.errors);
 errors = vErrors.length;
 }
 }
@@ -18722,8 +19066,8 @@ let data9 = data.stack;
 if(Array.isArray(data9)){
 const len1 = data9.length;
 for(let i1=0; i1<len1; i1++){
-if(!(validate225(data9[i1], {instancePath:instancePath+"/stack/" + i1,parentData:data9,parentDataProperty:i1,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate225.errors : vErrors.concat(validate225.errors);
+if(!(validate229(data9[i1], {instancePath:instancePath+"/stack/" + i1,parentData:data9,parentDataProperty:i1,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate229.errors : vErrors.concat(validate229.errors);
 errors = vErrors.length;
 }
 }
@@ -18744,8 +19088,8 @@ let data11 = data.combat;
 if(Array.isArray(data11)){
 const len2 = data11.length;
 for(let i2=0; i2<len2; i2++){
-if(!(validate230(data11[i2], {instancePath:instancePath+"/combat/" + i2,parentData:data11,parentDataProperty:i2,rootData,dynamicAnchors}))){
-vErrors = vErrors === null ? validate230.errors : vErrors.concat(validate230.errors);
+if(!(validate234(data11[i2], {instancePath:instancePath+"/combat/" + i2,parentData:data11,parentDataProperty:i2,rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate234.errors : vErrors.concat(validate234.errors);
 errors = vErrors.length;
 }
 }
@@ -18761,6 +19105,12 @@ vErrors.push(err26);
 errors++;
 }
 }
+if(data.payment !== undefined){
+if(!(validate174(data.payment, {instancePath:instancePath+"/payment",parentData:data,parentDataProperty:"payment",rootData,dynamicAnchors}))){
+vErrors = vErrors === null ? validate174.errors : vErrors.concat(validate174.errors);
+errors = vErrors.length;
+}
+}
 }
 else {
 const err27 = {instancePath,schemaPath:"#/type",keyword:"type",params:{type: "object"},message:"must be object"};
@@ -18772,8 +19122,8 @@ vErrors.push(err27);
 }
 errors++;
 }
-validate464.errors = vErrors;
+validate475.errors = vErrors;
 return errors === 0;
 }
-validate464.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
+validate475.evaluated = {"props":true,"dynamicProps":false,"dynamicItems":false};
 

@@ -145,7 +145,7 @@ export const engineMessages: EngineMessage[] = [
       ],
       stack: [{ card: 49, key: "Shock", player: 0, api: "DealDamage", spell: true, trigger: false, targets: ["p1", "c80", "s12"] }],
       combat: [{ attacker: 80, defender: "p0", blockers: [] }],
-      gui: { playable: [], highlighted: [], selectable: [] },
+      gui: { playable: [], highlighted: [], selectable: [], players: [1], highlightedPlayers: [], payment: { cost: "{1}{B/P}", pool: "BC" } },
       questions: [{ id: 2, kind: "buttons", blocking: false, purpose: "mulliganBottom", buttons: [false, true] }, { id: 5, kind: "choose", blocking: true, min: 1, max: 1, suggested: [1], items: ["c53", "p1", "hidden", "#4"] }],
     },
   },
@@ -156,7 +156,7 @@ export const engineMessages: EngineMessage[] = [
       { id: 0, name: "Player", ai: false, me: true, life: 20, hasPriority: true, canAct: true, lost: false, maxHandSize: 7,
         landsPlayed: 1, landsAllowed: 1, counters: {}, mana: { W: 0, U: 0, B: 0, R: 1, G: 0, C: 0 },
         zones: { battlefield: [], hand: [card], graveyard: [], exile: [], command: [] }, library: 50, commanders: [] },
-      { id: 1, name: "Forge AI", ai: true, me: false, life: 18, hasPriority: false, canAct: false, lost: false, maxHandSize: 7,
+      { id: 1, name: "Forge AI", ai: true, me: false, life: 18, hasPriority: false, canAct: false, selectable: true, highlighted: true, lost: false, maxHandSize: 7,
         landsPlayed: 0, landsAllowed: 1, counters: { POISON: 1 }, mana: { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 },
         zones: { battlefield: [], hand: [{ hidden: true }, { hidden: true }], graveyard: [], exile: [], command: [] }, library: 49,
         commanders: [{ card, cast: 1, tax: 2, damage: [{ player: 0, amount: 5 }] }] },
@@ -166,6 +166,7 @@ export const engineMessages: EngineMessage[] = [
       { id: 17, text: "Morph", source: null, card: { hidden: true }, player: 1, ability: false, trigger: false, targets: [] },
     ],
     combat: [{ attacker: 19, defender: 1, defenderKind: "player", blockers: [] }],
+    payment: { cost: "{2}{R}", pool: "R" },
   },
   { type: "events", entries: [{ kind: "LAND", text: "Player played Mountain (35)", card: 35, actor: "me" }, { kind: "TURN", text: "Turn 2 (Forge AI)" }] },
   { type: "message", kind: "prompt", text: "Priority: Player Turn: 1 (Player)", card: 54, cardView: card },
@@ -197,8 +198,9 @@ export const engineInputs: EngineInput[] = [
   { type: "answer", seq: 9, question: 9, kind: "distribute", amounts: [3] },
   { type: "card.tap", seq: 10, card: 35 },
   { type: "player.tap", seq: 11, player: 1 },
-  { type: "state.request", seq: 12 },
-  { type: "concede", seq: 13 },
+  { type: "mana.use", seq: 12, color: "C" },
+  { type: "state.request", seq: 13 },
+  { type: "concede", seq: 14 },
 ];
 
 export const workerCommands: WorkerCommand[] = [

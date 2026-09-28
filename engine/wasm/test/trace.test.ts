@@ -30,7 +30,7 @@ const player = (id: number, extra: Partial<TraceSnapshot["players"][number]> = {
 function entry(n: number, events: TraceEntry["events"], snapshot: Partial<TraceSnapshot> = {}, at: TraceEntry["at"] = "input", inputs = n - 1): TraceEntry {
   return {
     type: "diagnostics.trace", n, at, inputs, events,
-    snapshot: { turn: 1, phase: "MAIN1", active: 0, priority: 0, human: 0, players: [player(0), player(1)], stack: [], combat: [], gui: { playable: [], highlighted: [], selectable: [] }, questions: [], ...snapshot },
+    snapshot: { turn: 1, phase: "MAIN1", active: 0, priority: 0, human: 0, players: [player(0), player(1)], stack: [], combat: [], gui: { playable: [], highlighted: [], selectable: [], players: [], highlightedPlayers: [] }, questions: [], ...snapshot },
   };
 }
 
@@ -177,6 +177,38 @@ describe("coverage", () => {
     assert.equal(c["priority-opponent-turn"], 2, "two priorities in the opponent's turn, none counted in the player's own");
     assert.equal(c["priority-response"], 1, "only the tap with something on the stack answers");
     assert.equal(c["priority-play"], 2);
+  });
+
+  test("players as targets, several targets, the pool, life for mana and decisions while casting (prompt 17)", () => {
+    const P = { id: 1, kind: "buttons" as const, blocking: false, purpose: "priority" as const, buttons: [true, true] };
+    const mode = { id: 2, kind: "choose" as const, blocking: true, min: 1, max: 1 };
+    const select = { id: 3, kind: "select" as const, blocking: false, min: 2, max: 2, cards: [9] };
+    const pay = { id: 4, kind: "buttons" as const, blocking: false, purpose: "payment" as const, buttons: [true, true] };
+    const trace: TraceEntry[] = [
+      entry(1, [q(1, "priority")], { questions: [P] }),
+      // The player taps a card at priority; Forge asks for a mode (blocking) before targets and payment.
+      entry(2, [input(1, { type: "card.tap", card: 30 }), { e: "question", ...mode }], { questions: [mode] }),
+      entry(3, [input(2, { type: "answer", question: 2, kind: "choose", choices: [1] }), { e: "answered", id: 2, seq: 2 }, { e: "question", ...select }], { questions: [select] }),
+      // A player chosen by tapping them; a second tap on a player Forge refuses does not count.
+      entry(4, [input(3, { type: "player.tap", player: 1 })], { questions: [select] }),
+      entry(5, [input(4, { type: "player.tap", player: 0 }), { e: "rejected", seq: 4, reason: "no-effect" }], { questions: [select] }),
+      entry(6, [input(5, { type: "card.tap", card: 9 }), { e: "withdrawn", id: 3 }, { e: "question", ...pay }], { questions: [pay] }),
+      // Floating mana, then life for Phyrexian mana, then the spell with both targets on the stack.
+      entry(7, [input(6, { type: "mana.use", color: "B" })], { questions: [pay] }),
+      entry(8, [input(7, { type: "player.tap", player: 0 }), { e: "withdrawn", id: 4 },
+        { e: "cast", card: 30, player: 0, spell: true, trigger: false, stack: 0, targets: ["p1", "c9"] }]),
+      // A blocking decision after the cast is not one of casting.
+      entry(9, [{ e: "question", ...mode, id: 5 }], { questions: [{ ...mode, id: 5 }] }),
+      entry(10, [input(8, { type: "answer", question: 5, kind: "choose", choices: [1] }), { e: "answered", id: 5, seq: 8 }]),
+    ];
+    const c = traceCoverage(trace);
+    assert.equal(c["target-player-tap"], 1, "the refused player tap does not count");
+    assert.equal(c["payment-pool"], 1);
+    assert.equal(c["payment-life"], 1);
+    assert.equal(c["target-multi"], 1);
+    assert.equal(c["cast-nested"], 1, "only the mode chosen while the spell was being cast");
+    assert.equal(c["target-player"], 1);
+    assert.equal(c["target-card"], 1);
   });
 
   test("a trace without a human seat still shows zones, stack and the end", () => {

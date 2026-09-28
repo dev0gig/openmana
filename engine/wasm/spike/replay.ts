@@ -193,6 +193,8 @@ export function replay(client: EngineClient, transcript: Transcript, feeding: Fe
         return client.tapCard(draft.card);
       case "player.tap":
         return client.tapPlayer(draft.player);
+      case "mana.use":
+        return client.useMana(draft.color);
       case "state.request":
         return client.requestState();
       case "concede":

@@ -45,6 +45,8 @@ export interface PlayerPolicy {
   block: "none" | "one" | "assign";
   /** all: every card Forge marks playable at priority; respond: lands only while the stack is empty, answers while it is not (prompt 16). */
   play: "all" | "respond";
+  /** cards: cards first where Forge offers cards and players; players: the opponent first (prompt 17). */
+  target: "cards" | "players";
   concedeInTurn: number;
 }
 
@@ -140,16 +142,18 @@ export function loadFixtures(dir = FIXTURES_DIR): Fixture[] {
 
     const player = base["player"] ?? {};
     if (!isObject(player)) throw new Error(`${where}: player must be an object`);
-    onlyKeys(`${where} player`, player, ["attack", "block", "play", "concedeInTurn"]);
+    onlyKeys(`${where} player`, player, ["attack", "block", "play", "target", "concedeInTurn"]);
     const policy: PlayerPolicy = {
       attack: (player["attack"] ?? "all") as PlayerPolicy["attack"],
       block: (player["block"] ?? "none") as PlayerPolicy["block"],
       play: (player["play"] ?? "all") as PlayerPolicy["play"],
+      target: (player["target"] ?? "cards") as PlayerPolicy["target"],
       concedeInTurn: (player["concedeInTurn"] ?? 0) as number,
     };
     if (!["all", "none", "alternate"].includes(policy.attack)) throw new Error(`${where}: player.attack is all, none or alternate`);
     if (!["none", "one", "assign"].includes(policy.block)) throw new Error(`${where}: player.block is none, one or assign`);
     if (!["all", "respond"].includes(policy.play)) throw new Error(`${where}: player.play is all or respond`);
+    if (!["cards", "players"].includes(policy.target)) throw new Error(`${where}: player.target is cards or players`);
     if (!Number.isInteger(policy.concedeInTurn) || policy.concedeInTurn < 0) throw new Error(`${where}: player.concedeInTurn is a turn number or 0`);
 
     const engine = value["engine"] ?? {};

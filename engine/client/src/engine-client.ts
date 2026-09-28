@@ -42,6 +42,7 @@ import {
   type GameEnd,
   type GameStarted,
   type GameState,
+  type ManaColor,
   type InputQueueWriter,
   type MatchRequest,
   type MatchSummary,
@@ -397,6 +398,9 @@ export class EngineClient {
           return new EngineInputError("not-active", `question ${this.#blocking.id} must be answered first`);
         }
         return this.#players.has(draft.player) ? null : new EngineInputError("unknown-player", `there is no player ${draft.player}`);
+      case "mana.use":
+        // Whether Forge's payment takes this mana is the engine's to say (no-effect).
+        return this.#blocking ? new EngineInputError("not-active", `question ${this.#blocking.id} must be answered first`) : null;
       case "state.request":
       case "concede":
         return null;
@@ -414,8 +418,14 @@ export class EngineClient {
     return this.#send({ type: "card.tap", card });
   }
 
+  /** Taps a player (a target, life for mana … where the state marks them selectable). */
   tapPlayer(player: number): number {
     return this.#send({ type: "player.tap", player });
+  }
+
+  /** Pays with floating mana of this colour during Forge's payment (where the state's payment lists it). */
+  useMana(color: ManaColor): number {
+    return this.#send({ type: "mana.use", color });
   }
 
   /** Asks for a fresh full state (served at once, also during a blocking question). */

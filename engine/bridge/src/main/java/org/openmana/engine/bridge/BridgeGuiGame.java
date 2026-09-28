@@ -21,13 +21,11 @@ import forge.game.zone.ZoneType;
 import forge.gamemodes.match.AbstractGuiGame;
 import forge.gamemodes.match.input.Input;
 import forge.gamemodes.match.input.InputBlock;
-import forge.gamemodes.match.input.InputQueue;
 import forge.gamemodes.match.input.InputSyncronizedBase;
 import forge.gui.interfaces.IGuiGame;
 import forge.interfaces.IGameController;
 import forge.item.PaperCard;
 import forge.localinstance.skin.FSkinProp;
-import forge.player.PlayerControllerHuman;
 import forge.player.PlayerZoneUpdate;
 import forge.player.PlayerZoneUpdates;
 import forge.trackable.TrackableCollection;
@@ -170,6 +168,7 @@ final class BridgeGuiGame extends AbstractGuiGame {
             case Protocol.ANSWER -> answerOpenQuestion(input);
             case Protocol.CARD_TAP -> tapCard(input);
             case Protocol.PLAYER_TAP -> tapPlayer(input);
+            case Protocol.MANA_USE -> useMana(input);
             case Protocol.STATE_REQUEST -> sendStateNow();
             case Protocol.CONCEDE -> concedeNow();
             default -> reject(input, Protocol.REJECT_MALFORMED, "unknown input type");
@@ -239,14 +238,46 @@ final class BridgeGuiGame extends AbstractGuiGame {
         }
     }
 
-    /** A player tapped: Forge's selectPlayer, e.g. to choose a player as a target. */
+    /**
+     * A player tapped: Forge's selectPlayer, e.g. to choose a player as a
+     * target or to pay life for Phyrexian mana. Forge's selectPlayer says
+     * nothing about the result, so the running input is asked first (the same
+     * checks its click runs, RunningInput): a player it would not take is
+     * refused, never swallowed. The declaration of attackers still takes any
+     * tap (its defender: prompt 18).
+     */
     private void tapPlayer(final JsonObject input) {
         final PlayerView player = findPlayer(intField(input, "player"));
         if (player == null) {
             reject(input, Protocol.REJECT_UNKNOWN_PLAYER, "no player with this id");
             return;
         }
-        getGameController().selectPlayer(player, null);
+        final IGameController controller = getGameController();
+        if (Boolean.FALSE.equals(RunningInput.takesPlayer(controller, player))) {
+            reject(input, Protocol.REJECT_NO_EFFECT, "Forge's running input does not take this player now");
+            return;
+        }
+        controller.selectPlayer(player, null);
+    }
+
+    /**
+     * Floating mana used for the payment in progress: Forge's click on its
+     * mana pool (IGameController.useMana). Only where the running payment
+     * would pay with that colour (RunningInput), else refused.
+     */
+    private void useMana(final JsonObject input) {
+        final JsonElement color = input.get("color");
+        final byte mana = RunningInput.poolColor(color != null && color.isJsonPrimitive() ? color.getAsString() : null);
+        if (mana < 0) {
+            reject(input, Protocol.REJECT_MALFORMED, "unknown mana colour");
+            return;
+        }
+        final IGameController controller = getGameController();
+        if (!RunningInput.takesMana(controller, mana)) {
+            reject(input, Protocol.REJECT_NO_EFFECT, "Forge's payment does not take this mana from the pool now");
+            return;
+        }
+        controller.useMana(mana);
     }
 
     /**
@@ -304,7 +335,7 @@ final class BridgeGuiGame extends AbstractGuiGame {
                     } else {
                         reject(input, Protocol.REJECT_STALE, "question " + answered + " is not open");
                     }
-                } else if (Protocol.CARD_TAP.equals(type) || Protocol.PLAYER_TAP.equals(type)) {
+                } else if (Protocol.CARD_TAP.equals(type) || Protocol.PLAYER_TAP.equals(type) || Protocol.MANA_USE.equals(type)) {
                     reject(input, Protocol.REJECT_NOT_ACTIVE, "question " + id + " must be answered first");
                 } else if (Protocol.STATE_REQUEST.equals(type)) {
                     sendStateNow();
@@ -671,7 +702,9 @@ final class BridgeGuiGame extends AbstractGuiGame {
         }
         final List<CardView> selectable = new ArrayList<>();
         cards.forEach(selectable::add);
-        final int upper = max <= 0 ? selectable.size() : Math.min(max, selectable.size());
+        // Forge's own bounds for the whole selection: players Forge takes
+        // count too (protocol 6), so they are not cut down to the cards.
+        final int upper = max <= 0 ? selectable.size() : max;
         final int lower = Math.min(Math.max(min, 0), upper);
 
         final JsonObject q = question(Protocol.KIND_SELECT, lastMessage);
@@ -691,7 +724,8 @@ final class BridgeGuiGame extends AbstractGuiGame {
 
         final OpenQuestion oq = register(q, Protocol.KIND_SELECT);
         oq.cards = selectable;
-        oq.max = Math.max(upper, 1);
+        // One answer taps at most as many cards as there are and Forge takes.
+        oq.max = Math.max(Math.min(upper, selectable.size()), 1);
         selectQuestion = oq;
         sendStateNow();
         host.emit(q);
@@ -1131,12 +1165,7 @@ final class BridgeGuiGame extends AbstractGuiGame {
     }
 
     private Input currentInput() {
-        final IGameController controller = getGameController();
-        if (controller instanceof PlayerControllerHuman human) {
-            final InputQueue queue = human.getInputQueue();
-            return queue == null ? null : queue.getInput();
-        }
-        return null;
+        return RunningInput.current(getGameController());
     }
 
     /** Attaches the card Forge sent with the current prompt: which ability is asking (Anvil lesson). */

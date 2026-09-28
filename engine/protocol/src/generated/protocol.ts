@@ -5,9 +5,9 @@
  */
 
 /**
- * Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace). 4: card language (boot argument --card-language, BootReport.cardLanguage) and Forge's AI profiles (BootReport.aiProfiles; match.start with any other profile is refused). 5: priority, stack and phases (prompt 16): a stack item carries its card as Forge shows it (StackItem.card) and says whether it is an ability (StackItem.ability), its source id only for a card the player may see; Forge's buttons of the priority step say what they do (Button.meaning); a selection's cards are only those the player may see.
+ * Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace). 4: card language (boot argument --card-language, BootReport.cardLanguage) and Forge's AI profiles (BootReport.aiProfiles; match.start with any other profile is refused). 5: priority, stack and phases (prompt 16): a stack item carries its card as Forge shows it (StackItem.card) and says whether it is an ability (StackItem.ability), its source id only for a card the player may see; Forge's buttons of the priority step say what they do (Button.meaning); a selection's cards are only those the player may see. 6: targets and cost payment (prompt 17): Forge's players a player.tap would take now (Player.selectable) and its highlight on chosen players (Player.highlighted); the payment in progress (GameState.payment: the mana still to pay, the pool's colours Forge would take now) and paying from the mana pool (mana.use); a player.tap or mana.use Forge would not take is refused (no-effect).
  */
-export type ProtocolVersion = 5;
+export type ProtocolVersion = 6;
 /**
  * Everything the worker posts to the page: lifecycle messages of the worker host (engine.*, match.finished, diagnostics.*) and the game messages of the bridge.
  */
@@ -221,14 +221,14 @@ export type ButtonMeaning = "pass" | "endTurn" | "undo";
  */
 export type Seq = number;
 /**
- * stale: the question is not open (withdrawn, answered or unknown); not-active: a blocking question must be answered first; invalid: the answer does not fit its question (kind, range, count, sum, disabled button); malformed: unknown input type; unknown-card: no card with this id is visible to the player; unknown-player: no such player; no-effect: Forge did not accept the tap in the current step.
+ * stale: the question is not open (withdrawn, answered or unknown); not-active: a blocking question must be answered first; invalid: the answer does not fit its question (kind, range, count, sum, disabled button); malformed: unknown input type; unknown-card: no card with this id is visible to the player; unknown-player: no such player; no-effect: Forge did not accept the tap in the current step (a card tap Forge ignored, a player or mana Forge's running input would not take).
  */
 export type RejectReason =
   "stale" | "not-active" | "invalid" | "malformed" | "unknown-card" | "unknown-player" | "no-effect";
 /**
  * What the player does, written into the SharedArrayBuffer input queue. Forge reads one input whenever it waits for the player. `seq` numbers the inputs of a match from 1 without gaps; the bridge refuses to continue if the sequence breaks (technical abort).
  */
-export type EngineInput = AnswerInput | CardTapInput | PlayerTapInput | StateRequestInput | ConcedeInput;
+export type EngineInput = AnswerInput | CardTapInput | PlayerTapInput | ManaUseInput | StateRequestInput | ConcedeInput;
 /**
  * Answer to an open question. kind must be the question's kind.
  */
@@ -242,6 +242,10 @@ export type AnswerInput =
   | OrderAnswer
   | ArrangeAnswer
   | DistributeAnswer;
+/**
+ * A colour of mana: W, U, B, R, G, or C for colourless.
+ */
+export type ManaColor = "W" | "U" | "B" | "R" | "G" | "C";
 /**
  * Commands the page posts to the worker. The worker handles them only while it is idle (before and between Forge calls); during a match everything goes through the input queue.
  */
@@ -663,12 +667,25 @@ export interface TraceCombatEntry {
   blockers: CardId[];
 }
 /**
- * What Forge marked for the human seat's GUI (look-ups in the GUI's own sets): playable (weakly selectable), highlighted, selectable.
+ * What Forge marked for the human seat's GUI (look-ups in the GUI's own sets): playable (weakly selectable), highlighted, selectable; the players the running input would take, the highlighted players, and the payment in progress (as in the state).
  */
 export interface TraceMarkers {
   playable: CardId[];
   highlighted: CardId[];
   selectable: CardId[];
+  /**
+   * Players a click would take in the running input (protocol 6: Player.selectable).
+   */
+  players: PlayerId[];
+  highlightedPlayers: PlayerId[];
+  payment?: Payment;
+}
+/**
+ * Forge's mana payment in progress (its payment input runs; absent otherwise). cost: the mana still to pay in Forge's mana symbols, as Forge's prompt shows it (like Card.cost; "0" = nothing left, an X already announced is included as its amount). pool: the colours of floating mana Forge would pay with now (mana.use), WUBRG then C for colourless; empty = none.
+ */
+export interface Payment {
+  cost: string;
+  pool: string;
 }
 /**
  * A question without its words (text, button labels, card views): kind, limits, flags and what its items refer to.
@@ -734,6 +751,7 @@ export interface GameState {
   players: [Player, ...Player[]];
   stack: StackItem[];
   combat: CombatEntry[];
+  payment?: Payment;
 }
 export interface Player {
   id: PlayerId;
@@ -746,6 +764,14 @@ export interface Player {
    * Forge: the player has anything to do at all right now.
    */
   canAct: boolean;
+  /**
+   * Forge: a player.tap on this player would do something in the running step now - choose or un-choose them as a target, choose them, pay life for mana. Asked of Forge's running input (the same checks its click runs), never computed by the UI.
+   */
+  selectable?: true;
+  /**
+   * Forge's highlight on the player: chosen (a target so far).
+   */
+  highlighted?: true;
   lost: boolean;
   maxHandSize: number;
   landsPlayed: number;
@@ -917,7 +943,7 @@ export interface GameMessage {
   cardView?: VisibleCard;
 }
 /**
- * Forge names cards that may be selected now (targets, cards to discard ...). Answering taps the chosen items like clicks; the question stays open until Forge changes or clears the selection. No card = the target is a player (player.tap).
+ * Forge names cards that may be selected now (targets, cards to discard ...). Answering taps the chosen items like clicks; the question stays open until Forge changes or clears the selection. Players to choose are not items: the state marks the players Forge would take (Player.selectable), chosen with player.tap.
  */
 export interface SelectQuestion {
   type: "question";
@@ -925,7 +951,13 @@ export interface SelectQuestion {
   id: QuestionId;
   blocking: false;
   text: string;
+  /**
+   * Forge's own bounds for the whole selection (protocol 6): cards and the players Forge takes together, not cut down to the cards listed.
+   */
   min: number;
+  /**
+   * See min; one answer taps at most as many of the listed cards.
+   */
   max: number;
   /**
    * The ids of the selectable cards the player may see; a hidden one is only a hidden item (ids follow the deck lists).
@@ -1215,12 +1247,20 @@ export interface CardTapInput {
   card: number;
 }
 /**
- * Tap a player (e.g. a player as target).
+ * Tap a player: choose or un-choose them as a target, pay life for mana (where the state marks the player selectable). Refused as no-effect where Forge's running input would not take the player.
  */
 export interface PlayerTapInput {
   type: "player.tap";
   seq: Seq;
   player: number;
+}
+/**
+ * Pay with floating mana of this colour during Forge's mana payment (Forge's click on its mana pool; where the state's payment lists the colour). Refused as no-effect where Forge would not pay with it.
+ */
+export interface ManaUseInput {
+  type: "mana.use";
+  seq: Seq;
+  color: ManaColor;
 }
 /**
  * Ask for a fresh full state; served at once, even while a blocking question waits.

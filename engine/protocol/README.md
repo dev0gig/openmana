@@ -1,4 +1,4 @@
-# OpenMana-Protokoll (Version 5)
+# OpenMana-Protokoll (Version 6)
 
 Der **einzige Vertrag** zwischen der OpenMana-Oberfläche und der Engine (Forge
 im Dedicated Worker). Die Oberfläche sieht keine Forge-Klassen und rechnet
@@ -8,7 +8,8 @@ prüft nur. Eingeführt mit Prompt 03, Nachweise in
 Version 2 mit Prompt 04 (siehe [unten](#änderungen-in-version-2-prompt-04)),
 Version 3 mit Prompt 05 (siehe [unten](#änderungen-in-version-3-prompt-05)),
 Version 4 mit Prompt 12 (siehe [unten](#änderungen-in-version-4-prompt-12)),
-Version 5 mit Prompt 16 (siehe [unten](#änderungen-in-version-5-prompt-16)).
+Version 5 mit Prompt 16 (siehe [unten](#änderungen-in-version-5-prompt-16)),
+Version 6 mit Prompt 17 (siehe [unten](#änderungen-in-version-6-prompt-17)).
 
 ```
  UI ──ruft──▶ EngineClient (Main Thread) ──WorkerCommand (postMessage, nur wenn der Worker frei ist)──▶ Worker-Host
@@ -29,7 +30,7 @@ Version 5 mit Prompt 16 (siehe [unten](#änderungen-in-version-5-prompt-16)).
 
 ## Versionen
 
-- `ProtocolVersion` ist eine ganze Zahl (jetzt **5**). UI, Worker-Host und
+- `ProtocolVersion` ist eine ganze Zahl (jetzt **6**). UI, Worker-Host und
   Engine müssen **genau dieselbe** Version sprechen; es gibt keine
   Aushandlung. Eine App liefert UI und Engine immer zusammen aus
   (`engine.lock.json`, Prompt 25/26); eine Abweichung heißt „alter Cache“ oder
@@ -79,7 +80,7 @@ Version 5 mit Prompt 16 (siehe [unten](#änderungen-in-version-5-prompt-16)).
 ### UI → Engine (`EngineInput`, Warteschlange)
 
 `answer` (mit `question`, `kind` und den Feldern seiner Art), `card.tap`,
-`player.tap`, `state.request`, `concede`. Jede Eingabe trägt `seq` = 1, 2, 3 …
+`player.tap`, `mana.use` (Protokoll 6), `state.request`, `concede`. Jede Eingabe trägt `seq` = 1, 2, 3 …
 ohne Lücken; der Client vergibt sie, die Bridge prüft sie. Eine Lücke, eine
 Wiederholung oder eine fehlende Nummer heißt, dass der Transport kaputt ist:
 **technischer Abbruch** statt eines Spiels auf falscher Grundlage.
@@ -251,6 +252,38 @@ die Hand der KI).
 
 Vergleich, Prüfsumme und Abdeckung: [`engine/wasm/spike/trace.ts`](../wasm/spike/trace.ts);
 die Testpartien: [`engine/fixtures`](../fixtures/README.md).
+
+## Änderungen in Version 6 (Prompt 17)
+
+- **Spieler als Ziel:** `Player.selectable` sagt, dass ein `player.tap` auf
+  diesen Spieler im laufenden Schritt jetzt etwas bewirkt – ihn als Ziel
+  wählen oder zurücknehmen, ihn aus einer Liste wählen, mit seinem Leben
+  bezahlen (Phyrexia-Mana). Die Bridge fragt es Forges laufende Eingabe mit
+  denselben Prüfungen, die Forges Klick ausführt (Forge-Patch 0007,
+  `RunningInput`); die Oberfläche rechnet nichts. `Player.highlighted` ist
+  Forges Hervorhebung (bisher gewählte Ziele). Ein `player.tap`, den die
+  laufende Eingabe nicht nähme, lehnt die Bridge als `no-effect` ab, statt ihn
+  still zu schlucken (Lücke aus Prompt 02); nur das Angreifen nimmt weiter
+  jeden Tipp (der Verteidiger – Prompt 18).
+- **Grenzen einer Auswahl:** `SelectQuestion.min`/`max` sind Forges eigene
+  Zahlen für die ganze Auswahl – Karten und Spieler zusammen –, nicht mehr auf
+  die Zahl der aufgeführten Karten gekürzt (Arc Trail: zwei Ziele, auch mit
+  nur einer Kreatur). Eine Antwort tippt weiter höchstens so viele Karten an,
+  wie es gibt.
+- **Bezahlen:** `GameState.payment` gibt es genau, solange Forges Bezahlen
+  läuft: `cost` = das noch zu Zahlende in Forges Manasymbolen, genau wie
+  Forges Anweisung es zeigt (`"{1}{R}"`, `"0"` = nichts mehr), `pool` = die
+  Farben schwebenden Manas, mit denen Forge jetzt bezahlen würde (WUBRG, dann
+  C). Neue Eingabe `mana.use` (`color`): mit schwebendem Mana dieser Farbe
+  bezahlen (Forges Klick auf seinen Manavorrat); eine Farbe, die Forge nicht
+  nähme, wird als `no-effect` abgelehnt.
+- Engine-Spur: `TraceMarkers.players`, `highlightedPlayers`, `payment`
+  (dieselben Fragen wie der Zustand) – so vergleichen die Differenztests sie
+  auf JVM, Node und Chrome.
+- Nachweise: `TargetPaymentTest` (JVM) und die Testpartie `targets-payment`
+  ([`engine/fixtures`](../fixtures/README.md)): Spieler als Ziele und zwei
+  Ziele, Dark Ritual und Mana aus dem Vorrat, Leben für Phyrexia-Mana, Modi,
+  X und Kicker während des Wirkens.
 
 ## Änderungen in Version 5 (Prompt 16)
 

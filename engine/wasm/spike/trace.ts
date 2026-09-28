@@ -244,6 +244,11 @@ export const COVERAGE: Readonly<Record<string, string>> = {
   "payment-manual": "a cost paid by tapping mana sources",
   "target-card": "a spell or ability of the player targeted a card",
   "target-player": "a spell or ability of the player targeted a player",
+  "target-player-tap": "the player chose a player by tapping them (a player.tap Forge took in a selection; prompt 17)",
+  "target-multi": "a spell or ability of the player went on the stack with two or more targets (prompt 17)",
+  "payment-pool": "a cost paid with floating mana from the pool (a mana.use Forge took; prompt 17)",
+  "payment-life": "life paid for mana by tapping the player during a payment (Phyrexian mana; prompt 17)",
+  "cast-nested": "a blocking decision answered while the player's spell or ability was being put on the stack (mode, X, optional cost …; prompt 17)",
   trigger: "a triggered ability went on the stack",
   "stack-resolve": "a spell or ability resolved from the stack",
   "stack-response": "a spell or ability went on top of another one (stack depth 2 and more, resolved last in, first out)",
@@ -279,7 +284,9 @@ export const COVERAGE: Readonly<Record<string, string>> = {
  * land/spell play, priority, mana/cost payment, targeting, stack, combat,
  * block assignment, zone movement, game end, and Commander - and since
  * prompt 16 the player's priority in the opponent's turn and answers on the
- * stack. The fixtures (engine/fixtures/differential) name what each covers;
+ * stack, since prompt 17 players chosen by tapping them, several targets,
+ * mana from the pool, life for mana and decisions while a spell is cast. The
+ * fixtures (engine/fixtures/differential) name what each covers;
  * the union must contain all of these.
  */
 export const REQUIRED_COVERAGE: readonly string[] = [
@@ -294,6 +301,11 @@ export const REQUIRED_COVERAGE: readonly string[] = [
   "payment-manual",
   "target-card",
   "target-player",
+  "target-player-tap",
+  "target-multi",
+  "payment-pool",
+  "payment-life",
+  "cast-nested",
   "trigger",
   "stack-resolve",
   "stack-response",
@@ -339,8 +351,10 @@ export function traceCoverage(entries: readonly TraceEntry[]): Record<string, nu
   const human = entries.find((e) => e.snapshot.human !== undefined && e.snapshot.human !== null)?.snapshot.human ?? null;
   const questions = new Map<number, TraceQuestion | TraceEvent>();
   let open = new Map<number, TraceQuestion | TraceEvent>();
-  /** Card taps by input seq and what they were for; a rejected tap does not count. */
+  /** Card, player and mana taps by input seq and what they were for; a rejected tap does not count. */
   const taps = new Map<number, readonly string[]>();
+  /** The player tapped a card at priority and its spell or ability is not on the stack yet (the seq of that tap), else null. */
+  let casting: number | null = null;
   let previous: TraceSnapshot | null = null;
 
   const openPurposes = () => new Set([...open.values()].filter((q) => q["kind"] === "buttons").map((q) => String(q["purpose"] ?? "")));
@@ -368,12 +382,14 @@ export function traceCoverage(entries: readonly TraceEntry[]): Record<string, nu
         case "answered": {
           const q = questions.get(num(e["id"]) ?? -1);
           if (q && q["blocking"] === true) hit(`decision-${String(q["kind"])}`);
+          if (q && q["blocking"] === true && casting !== null) hit("cast-nested");
           open.delete(num(e["id"]) ?? -1);
           break;
         }
         case "rejected":
           hit("input-rejected");
           taps.delete(num(e["seq"]) ?? -1);
+          if (casting === num(e["seq"])) casting = null;
           break;
         case "input": {
           const input = isObject(e["input"]) ? e["input"] : {};
@@ -389,8 +405,16 @@ export function traceCoverage(entries: readonly TraceEntry[]): Record<string, nu
             // Forge accepted the tap unless a rejection with this seq follows
             const seq = num(input["seq"]) ?? -1;
             // The stack at the input: the previous checkpoint's (one comes before every input).
-            if (purposes.has("priority")) taps.set(seq, (previous?.stack.length ?? 0) > 0 ? ["priority-play", "priority-response"] : ["priority-play"]);
-            else if (purposes.has("payment")) taps.set(seq, ["payment-manual"]);
+            if (purposes.has("priority")) {
+              taps.set(seq, (previous?.stack.length ?? 0) > 0 ? ["priority-play", "priority-response"] : ["priority-play"]);
+              casting = seq;
+            } else if (purposes.has("payment")) taps.set(seq, ["payment-manual"]);
+          } else if (input["type"] === "player.tap") {
+            const seq = num(input["seq"]) ?? -1;
+            if ([...open.values()].some((q) => q["kind"] === "select")) taps.set(seq, ["target-player-tap"]);
+            else if (purposes.has("payment")) taps.set(seq, ["payment-life"]);
+          } else if (input["type"] === "mana.use") {
+            taps.set(num(input["seq"]) ?? -1, ["payment-pool"]);
           } else if (input["type"] === "state.request") {
             hit("state-request");
           }
@@ -410,6 +434,8 @@ export function traceCoverage(entries: readonly TraceEntry[]): Record<string, nu
             const targets = Array.isArray(e["targets"]) ? (e["targets"] as unknown[]).map(String) : [];
             if (targets.some((t) => t.startsWith("c"))) hit("target-card");
             if (targets.some((t) => t.startsWith("p"))) hit("target-player");
+            if (targets.length >= 2) hit("target-multi");
+            casting = null;
           }
           break;
         }

@@ -59,6 +59,14 @@ import java.util.TreeMap;
  * on the stack it taps every card Forge marks playable, once per stack depth
  * - so it gets priority in the opponent's turn and answers the opponent's
  * spells.
+ *
+ * <p>Targets and payment (prompt 17, protocol 6): a player is only ever
+ * tapped where the state marks them selectable (Forge's running input would
+ * take them) and not yet chosen, the opponent first; {@link Target#PLAYERS}
+ * chooses such a player before any card. While paying, floating mana Forge
+ * would take from the pool (the state's payment) is used first, then life
+ * where Forge takes the player (Phyrexian mana), then the sources or Forge's
+ * auto payment as above.
  */
 public final class ScriptedHuman implements EngineHost {
 
@@ -104,9 +112,13 @@ public final class ScriptedHuman implements EngineHost {
     /** How the player plays cards at priority (see class comment). */
     public enum Play { ALL, RESPOND }
 
+    /** What the player chooses first where Forge offers cards and players (see class comment). */
+    public enum Target { CARDS, PLAYERS }
+
     private Attack attack = Attack.ALL;
     private Block block = Block.NONE;
     private Play play = Play.ALL;
+    private Target target = Target.CARDS;
     /** ALTERNATE: whether the player attacks in a turn, decided at its first attack question of that turn. */
     private final Map<Integer, Boolean> attacksInTurn = new TreeMap<>();
     /** Turn from which on the player concedes; 0 = never. */
@@ -138,12 +150,13 @@ public final class ScriptedHuman implements EngineHost {
 
     /**
      * The policy of a differential test fixture:
-     * {@code {"attack": "all"|"none"|"alternate", "block": "none"|"one"|"assign", "play": "all"|"respond", "concedeInTurn": 0}},
-     * every field optional (defaults: all, none, all, 0). Anything else is refused.
+     * {@code {"attack": "all"|"none"|"alternate", "block": "none"|"one"|"assign", "play": "all"|"respond",
+     * "target": "cards"|"players", "concedeInTurn": 0}},
+     * every field optional (defaults: all, none, all, cards, 0). Anything else is refused.
      */
     public static ScriptedHuman fromPolicy(final JsonObject policy) {
         for (final String field : policy.keySet()) {
-            if (!Set.of("attack", "block", "play", "concedeInTurn").contains(field)) {
+            if (!Set.of("attack", "block", "play", "target", "concedeInTurn").contains(field)) {
                 throw new IllegalArgumentException("unknown player policy field '" + field + "'");
             }
         }
@@ -154,7 +167,11 @@ public final class ScriptedHuman implements EngineHost {
         if (concede < 0) {
             throw new IllegalArgumentException("concedeInTurn must not be negative");
         }
-        return withPolicy(attack, block, play, concede);
+        final ScriptedHuman human = withPolicy(attack, block, play, concede);
+        if (policy.has("target")) {
+            human.target = Target.valueOf(policy.get("target").getAsString().toUpperCase(java.util.Locale.ROOT));
+        }
+        return human;
     }
 
     /** A scripted player that concedes at its first input in or after the given turn. */
@@ -578,13 +595,20 @@ public final class ScriptedHuman implements EngineHost {
 
     /**
      * Targets, cards to discard and similar: tap the offered cards one by one
-     * up to Forge's maximum, then confirm with OK if Forge offers it. When
-     * Forge offers no card, the target is a player.
+     * up to Forge's maximum, then confirm with OK if Forge offers it. Players
+     * Forge would take (marked selectable in the state) are tapped too -
+     * after the cards, or first with {@link Target#PLAYERS}.
      */
     private JsonObject answerSelect(final JsonObject q) {
         final long id = q.get("id").getAsLong();
         final JsonArray cards = q.getAsJsonArray("cards");
         final Set<Integer> chosen = selected.computeIfAbsent(id, k -> new HashSet<>());
+        if (target == Target.PLAYERS) {
+            final JsonObject player = playerToChoose("player-target:" + id, false);
+            if (player != null) {
+                return player;
+            }
+        }
         if (!cards.isEmpty() && chosen.size() < q.get("max").getAsInt()) {
             for (int nr = 1; nr <= cards.size(); nr++) {
                 if (chosen.add(nr)) {
@@ -597,19 +621,10 @@ public final class ScriptedHuman implements EngineHost {
                 }
             }
         }
-        if (cards.isEmpty()) {
-            // No card qualifies: Forge's players are the targets (player.tap).
-            final String key = "player-target:" + id;
-            final Integer opponent = playerId(false);
-            if (opponent != null && tried.add(key + ":opponent")) {
-                count("tap:player");
-                return playerTap(opponent);
-            }
-            final Integer me = playerId(true);
-            if (me != null && tried.add(key + ":me")) {
-                count("tap:player");
-                return playerTap(me);
-            }
+        // Players Forge would take (player.tap), the opponent first.
+        final JsonObject player = playerToChoose("player-target:" + id, true);
+        if (player != null) {
+            return player;
         }
         final JsonObject buttons = latestOpen(Protocol.KIND_BUTTONS);
         if (buttons != null) {
@@ -647,6 +662,15 @@ public final class ScriptedHuman implements EngineHost {
             if (manualPayment == null) {
                 manualPayment = paymentsStarted++ % 2 == 1;
                 count(manualPayment ? "payment:manual" : "payment:auto");
+            }
+            // Floating mana Forge takes from the pool, then life for mana (protocol 6).
+            final JsonObject fromPool = manaFromPool(id);
+            if (fromPool != null) {
+                return fromPool;
+            }
+            final JsonObject life = lifeForMana(id);
+            if (life != null) {
+                return life;
             }
             if (manualPayment) {
                 final JsonObject source = firstPlayable("pay:" + id);
@@ -837,6 +861,65 @@ public final class ScriptedHuman implements EngineHost {
         return o;
     }
 
+    /**
+     * A player the state marks selectable (Forge's running input would take
+     * them) and not yet chosen, the opponent first (the player themself only
+     * with {@code withMe}), each once per key.
+     */
+    private JsonObject playerToChoose(final String key, final boolean withMe) {
+        for (final boolean me : withMe ? new boolean[]{false, true} : new boolean[]{false}) {
+            final JsonObject player = player(me);
+            if (player != null && player.has("selectable") && !player.has("highlighted")
+                    && tried.add(key + ":" + player.get("id").getAsInt())) {
+                count(me ? "tap:player-me" : "tap:player-opponent");
+                count("tap:player");
+                return playerTap(player.get("id").getAsInt());
+            }
+        }
+        return null;
+    }
+
+    /** Floating mana the running payment takes (the state's payment.pool), once per remaining cost. */
+    private JsonObject manaFromPool(final long question) {
+        final JsonObject payment = state == null || !state.has("payment") ? null : state.getAsJsonObject("payment");
+        if (payment == null || payment.get("pool").getAsString().isEmpty()) {
+            return null;
+        }
+        final String color = payment.get("pool").getAsString().substring(0, 1);
+        if (!tried.add("pool:" + question + ":" + payment.get("cost").getAsString() + ":" + payment.get("pool").getAsString())) {
+            return null;
+        }
+        count("mana:pool");
+        final JsonObject o = new JsonObject();
+        o.addProperty("type", Protocol.MANA_USE);
+        o.addProperty("color", color);
+        return o;
+    }
+
+    /** Life for mana where Forge's payment takes the player (Phyrexian mana), once per remaining cost. */
+    private JsonObject lifeForMana(final long question) {
+        final JsonObject me = player(true);
+        final JsonObject payment = state == null || !state.has("payment") ? null : state.getAsJsonObject("payment");
+        if (me == null || payment == null || !me.has("selectable")
+                || !tried.add("life:" + question + ":" + payment.get("cost").getAsString())) {
+            return null;
+        }
+        count("tap:player-life");
+        return playerTap(me.get("id").getAsInt());
+    }
+
+    private JsonObject player(final boolean me) {
+        if (state == null) {
+            return null;
+        }
+        for (final JsonElement p : state.getAsJsonArray("players")) {
+            if (p.getAsJsonObject().get("me").getAsBoolean() == me) {
+                return p.getAsJsonObject();
+            }
+        }
+        return null;
+    }
+
     private static JsonObject playerTap(final int player) {
         final JsonObject o = new JsonObject();
         o.addProperty("type", Protocol.PLAYER_TAP);
@@ -901,19 +984,6 @@ public final class ScriptedHuman implements EngineHost {
             }
         }
         return blockers;
-    }
-
-    private Integer playerId(final boolean me) {
-        if (state == null) {
-            return null;
-        }
-        for (final JsonElement p : state.getAsJsonArray("players")) {
-            final JsonObject player = p.getAsJsonObject();
-            if (player.get("me").getAsBoolean() == me) {
-                return player.get("id").getAsInt();
-            }
-        }
-        return null;
     }
 
     private String step() {

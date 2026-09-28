@@ -1,0 +1,220 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: dev0gig <115336867+dev0gig@users.noreply.github.com>
+Date: Mon, 28 Sep 2026 22:00:00 +0200
+Subject: [PATCH 7/7] Read-only answers for GUIs: players a click would take, the
+ payment
+
+Forge's own GUIs make every player avatar and every mana-pool symbol
+clickable and let the running input refuse a useless click afterwards
+(InputSelectTargets.onPlayerSelected shows "Cannot target this player",
+InputPayMana.useManaFromPool does nothing). A GUI that offers only what
+the input would accept, and shows the payment structured instead of
+reading the prompt, needs the same answers beforehand:
+
+- InputSelectTargets.isSelectablePlayer(Player): a chosen target (a click
+  takes it back) or a player onPlayerSelected would take. Its checks moved
+  unchanged, in the same order, into playerRefusal, which both use.
+- InputPayMana.getRemainingManaCost(): the mana still to pay, exactly as
+  getMessage shows it.
+- InputPayMana.canUseManaFromPool(byte) with ManaPool.canPayCostWithColor:
+  whether useManaFromPool would pay part of the cost. The search for the
+  mana moved unchanged into ManaPool.manaToPayWithColor, which
+  tryPayCostWithColor and the new check both use.
+- InputPayMana.isSelectablePlayer(Player), in InputPayManaOfCostPayment the
+  condition under which onPlayerSelected pays 2 life (Phyrexian mana,
+  black mana payable with life).
+
+No rule, card or AI behaviour changes: every new method only asks, and
+the moved code runs as before.
+
+Written for OpenMana on 2026-09-28.
+---
+ .../main/java/forge/game/mana/ManaPool.java   | 36 ++++++++++----
+ .../gamemodes/match/input/InputPayMana.java   | 24 +++++++++
+ .../input/InputPayManaOfCostPayment.java      | 12 +++++
+ .../match/input/InputSelectTargets.java       | 49 +++++++++++++------
+ 4 files changed, 95 insertions(+), 26 deletions(-)
+
+diff --git a/forge-game/src/main/java/forge/game/mana/ManaPool.java b/forge-game/src/main/java/forge/game/mana/ManaPool.java
+index 79d59b9..57eff01 100644
+--- a/forge-game/src/main/java/forge/game/mana/ManaPool.java
++++ b/forge-game/src/main/java/forge/game/mana/ManaPool.java
+@@ -226,8 +226,30 @@ public class ManaPool extends ManaConversionMatrix implements Iterable<Mana> {
+     }
+ 
+     public boolean tryPayCostWithColor(byte colorCode, SpellAbility saPaidFor, ManaCostBeingPaid manaCost, List<Mana> manaSpentToPay) {
+-        Mana manaFound = null;
+-        Collection<Mana> cm = floatingMana.get(colorCode);
++        // OpenMana patch 0007 (2026-09-28): the search moved unchanged into manaToPayWithColor.
++        final Mana manaFound = manaToPayWithColor(colorCode, saPaidFor);
++
++        if (manaFound != null && tryPayCostWithMana(saPaidFor, manaCost, manaFound, false)) {
++            manaSpentToPay.add(manaFound);
++            return true;
++        }
++        return false;
++    }
++
++    /**
++     * OpenMana patch 0007 (2026-09-28): whether tryPayCostWithColor would pay
++     * part of the cost now - the same mana it would pick and the same check
++     * (isNeeded; removing floating mana from the pool never fails), without
++     * paying anything.
++     */
++    public boolean canPayCostWithColor(final byte colorCode, final SpellAbility saPaidFor, final ManaCostBeingPaid manaCost) {
++        final Mana manaFound = manaToPayWithColor(colorCode, saPaidFor);
++        return manaFound != null && manaCost.isNeeded(manaFound, this);
++    }
++
++    /** OpenMana patch 0007 (2026-09-28): the floating mana of this colour tryPayCostWithColor pays with, or null. */
++    private Mana manaToPayWithColor(final byte colorCode, final SpellAbility saPaidFor) {
++        final Collection<Mana> cm = floatingMana.get(colorCode);
+ 
+         for (final Mana mana : cm) {
+             if (!mana.meetsManaRestrictions(saPaidFor)) {
+@@ -238,15 +260,9 @@ public class ManaPool extends ManaConversionMatrix implements Iterable<Mana> {
+                 continue;
+             }
+ 
+-            manaFound = mana;
+-            break;
++            return mana;
+         }
+-
+-        if (manaFound != null && tryPayCostWithMana(saPaidFor, manaCost, manaFound, false)) {
+-            manaSpentToPay.add(manaFound);
+-            return true;
+-        }
+-        return false;
++        return null;
+     }
+ 
+     public boolean tryPayCostWithMana(final SpellAbility sa, ManaCostBeingPaid manaCost, final Mana mana, boolean test) {
+diff --git a/forge-gui/src/main/java/forge/gamemodes/match/input/InputPayMana.java b/forge-gui/src/main/java/forge/gamemodes/match/input/InputPayMana.java
+index 7350155..1dbf136 100644
+--- a/forge-gui/src/main/java/forge/gamemodes/match/input/InputPayMana.java
++++ b/forge-gui/src/main/java/forge/gamemodes/match/input/InputPayMana.java
+@@ -194,6 +194,30 @@ public abstract class InputPayMana extends InputSyncronizedBase {
+         return abilities;
+     }
+ 
++    /**
++     * OpenMana patch 0007 (2026-09-28): the mana still to pay, exactly as
++     * getMessage shows it after "Pay Mana Cost:" ("{1}{R}"; "0" when nothing
++     * is left) - for GUIs that show the payment structured instead of reading
++     * the prompt.
++     */
++    public String getRemainingManaCost() {
++        return manaCost.toString(false, player.getManaPool());
++    }
++
++    /** OpenMana patch 0007 (2026-09-28): whether useManaFromPool(colorCode) would pay part of the cost now, without paying. */
++    public boolean canUseManaFromPool(final byte colorCode) {
++        return player.getManaPool().canPayCostWithColor(colorCode, saPaidFor, manaCost);
++    }
++
++    /**
++     * OpenMana patch 0007 (2026-09-28): whether a click on this player would
++     * pay anything in this payment (onPlayerSelected). Here never; subclasses
++     * that take a player say when.
++     */
++    public boolean isSelectablePlayer(final Player selected) {
++        return false;
++    }
++
+     public void useManaFromPool(byte colorCode) {
+         // find the matching mana in pool.
+         if (player.getManaPool().tryPayCostWithColor(colorCode, saPaidFor, manaCost, saPaidFor.getPayingMana())) {
+diff --git a/forge-gui/src/main/java/forge/gamemodes/match/input/InputPayManaOfCostPayment.java b/forge-gui/src/main/java/forge/gamemodes/match/input/InputPayManaOfCostPayment.java
+index 73926b4..a016302 100644
+--- a/forge-gui/src/main/java/forge/gamemodes/match/input/InputPayManaOfCostPayment.java
++++ b/forge-gui/src/main/java/forge/gamemodes/match/input/InputPayManaOfCostPayment.java
+@@ -40,6 +40,18 @@ public class InputPayManaOfCostPayment extends InputPayMana {
+     private static final long serialVersionUID = 3467312982164195091L;
+     private ManaConversionMatrix extraMatrix;
+ 
++    /**
++     * OpenMana patch 0007 (2026-09-28): whether a click on this player pays 2
++     * life now (onPlayerSelected below): the paying player, who can pay the
++     * life, for a Phyrexian shard (payPhyrexian finds one exactly when
++     * containsPhyrexianMana) or black mana they may pay with life.
++     */
++    @Override
++    public boolean isSelectablePlayer(final Player selected) {
++        return player == selected && player.canPayLife(this.phyLifeToLose + 2, this.effect, saPaidFor)
++                && (manaCost.containsPhyrexianMana() || player.hasKeyword("PayLifeInsteadOf:B") && manaCost.hasAnyKind(ManaAtom.BLACK));
++    }
++
+     @Override
+     protected final void onPlayerSelected(Player selected, final ITriggerEvent triggerEvent) {
+         if (player == selected) {
+diff --git a/forge-gui/src/main/java/forge/gamemodes/match/input/InputSelectTargets.java b/forge-gui/src/main/java/forge/gamemodes/match/input/InputSelectTargets.java
+index ca15220..351193d 100644
+--- a/forge-gui/src/main/java/forge/gamemodes/match/input/InputSelectTargets.java
++++ b/forge-gui/src/main/java/forge/gamemodes/match/input/InputSelectTargets.java
+@@ -337,22 +337,10 @@ public final class InputSelectTargets extends InputSyncronizedBase {
+             return;
+         }
+ 
+-        if (player.hasLost()) {
+-            showMessage(sa.getHostCard() + " - Cannot target this player - already lost.");
+-            return;
+-        }
+-
+-        //TODO return the correct reason to display
+-        if (sa.isSpell() && sa.getHostCard().isAura() && !player.canBeAttached(sa.getHostCard(), sa)) {
+-            showMessage(sa.getHostCard() + " - Cannot enchant this player (Hexproof? Protection? Restrictions?).");
+-            return;
+-        }
+-        if (!sa.canTarget(player) || mustTargetFiltered) {
+-            showMessage(sa.getHostCard() + " - Cannot target this player (Hexproof? Protection? Restrictions?).");
+-            return;
+-        }
+-        if (filter != null && !filter.test(player)) {
+-            showMessage(sa.getHostCard() + " - Cannot target this player (Hexproof? Protection? Restrictions?).");
++        // OpenMana patch 0007 (2026-09-28): the checks moved unchanged into playerRefusal.
++        final String refusal = playerRefusal(player);
++        if (refusal != null) {
++            showMessage(refusal);
+             return;
+         }
+ 
+@@ -365,6 +353,35 @@ public final class InputSelectTargets extends InputSyncronizedBase {
+         addTarget(player);
+     }
+ 
++    /**
++     * OpenMana patch 0007 (2026-09-28): whether a click on this player would
++     * change the selection now - it is a chosen target (a click takes it back)
++     * or onPlayerSelected would take it. Asks nothing new: the same checks in
++     * the same order, without a side effect.
++     */
++    public boolean isSelectablePlayer(final Player player) {
++        return targets.contains(player) || playerRefusal(player) == null;
++    }
++
++    /** OpenMana patch 0007 (2026-09-28): why onPlayerSelected refuses this player (Forge's message), or null. */
++    private String playerRefusal(final Player player) {
++        if (player.hasLost()) {
++            return sa.getHostCard() + " - Cannot target this player - already lost.";
++        }
++
++        //TODO return the correct reason to display
++        if (sa.isSpell() && sa.getHostCard().isAura() && !player.canBeAttached(sa.getHostCard(), sa)) {
++            return sa.getHostCard() + " - Cannot enchant this player (Hexproof? Protection? Restrictions?).";
++        }
++        if (!sa.canTarget(player) || mustTargetFiltered) {
++            return sa.getHostCard() + " - Cannot target this player (Hexproof? Protection? Restrictions?).";
++        }
++        if (filter != null && !filter.test(player)) {
++            return sa.getHostCard() + " - Cannot target this player (Hexproof? Protection? Restrictions?).";
++        }
++        return null;
++    }
++
+     public boolean selectPlayerForMacro(final Player player, final ITriggerEvent triggerEvent) {
+         final int oldTargetCount = targets.size();
+         onPlayerSelected(player, triggerEvent);
+-- 
+2.47.3
+

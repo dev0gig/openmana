@@ -47,7 +47,12 @@ fixtures/
   Antworten zurück: bei leerem Stapel nur Länder – Forges eigene Worte „Spiele
   ein Land“ –, liegt etwas auf dem Stapel, jede spielbare Karte einmal je
   Stapeltiefe; so bekommt er Priorität im Zug der KI und antwortet auf ihre
-  Zaubersprüche). `concedeInTurn`: aufgeben ab diesem Zug (0 = nie).
+  Zaubersprüche). `target` (Prompt 17): `cards` (wo Forge Karten und Spieler
+  anbietet, zuerst die Karten), `players` (zuerst den Gegner). Einen Spieler
+  tippt er nur an, wo der Zustand ihn als wählbar markiert (`selectable`);
+  beim Bezahlen nutzt er zuerst schwebendes Mana, das Forge nähme
+  (`mana.use`), dann Leben, wo Forge es nimmt (Phyrexia-Mana).
+  `concedeInTurn`: aufgeben ab diesem Zug (0 = nie).
 - `engine`: Sprache (`en-US`, `de-DE`), Kartensprache (`cardLanguage`, Standard:
   die Sprache; die Karten in Forges Texten, seit Prompt 12) und Kartenladen
   (`eager`, `lazy`).

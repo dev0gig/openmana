@@ -1,0 +1,19 @@
+{
+  "name": "OpenMana Smoke Rakdos Targets",
+  "main": [
+    { "card": "Mountain", "count": 12 },
+    { "card": "Swamp", "count": 12 },
+    { "card": "Raging Goblin", "count": 4 },
+    { "card": "Goblin Piker", "count": 3 },
+    { "card": "Hill Giant", "count": 3 },
+    { "card": "Dark Ritual", "count": 4 },
+    { "card": "Gitaxian Probe", "count": 4 },
+    { "card": "Dismember", "count": 3 },
+    { "card": "Arc Trail", "count": 4 },
+    { "card": "Shock", "count": 2 },
+    { "card": "Kolaghan's Command", "count": 3 },
+    { "card": "Blaze", "count": 2 },
+    { "card": "Village Rites", "count": 2 },
+    { "card": "Burst Lightning", "count": 2 }
+  ]
+}
