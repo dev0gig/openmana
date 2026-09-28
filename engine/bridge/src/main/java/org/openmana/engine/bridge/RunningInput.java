@@ -35,7 +35,20 @@ public final class RunningInput {
     };
     private static final String POOL_LETTERS = "WUBRGC";
 
+    /**
+     * Engine tests only: whether the running input is asked at all. Off, the
+     * state carries none of these answers and taps go to Forge unasked - so a
+     * test can replay a game both ways and prove that asking changes nothing
+     * (TargetPaymentTest).
+     */
+    private static volatile boolean asking = true;
+
     private RunningInput() {
+    }
+
+    /** Engine tests only (see {@link #asking}). */
+    public static void setAskingForTests(final boolean on) {
+        asking = on;
     }
 
     /** The input Forge waits on for the human seat, or null. */
@@ -55,7 +68,7 @@ public final class RunningInput {
      */
     public static Boolean takesPlayer(final IGameController controller, final PlayerView view) {
         final Input input = current(controller);
-        if (input == null || input instanceof InputAttack || !(controller instanceof PlayerControllerHuman human)) {
+        if (!asking || input == null || input instanceof InputAttack || !(controller instanceof PlayerControllerHuman human)) {
             return null;
         }
         final Game game = human.getGame();
@@ -92,7 +105,7 @@ public final class RunningInput {
      * the pool's colours Forge would pay with now.
      */
     public static JsonObject payment(final IGameController controller) {
-        if (!(current(controller) instanceof InputPayMana payment)) {
+        if (!asking || !(current(controller) instanceof InputPayMana payment)) {
             return null;
         }
         try {
@@ -119,6 +132,10 @@ public final class RunningInput {
 
     /** Whether the running payment would pay with floating mana of this colour now. */
     static boolean takesMana(final IGameController controller, final byte color) {
+        if (!asking) {
+            // Unasked: Forge's own useMana ignores what it cannot take.
+            return color >= 0;
+        }
         if (color < 0 || !(current(controller) instanceof InputPayMana payment)) {
             return false;
         }

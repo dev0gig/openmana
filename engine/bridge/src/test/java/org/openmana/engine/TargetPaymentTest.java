@@ -6,6 +6,8 @@ import com.google.gson.JsonParser;
 import org.openmana.engine.bridge.EngineHost;
 import org.openmana.engine.bridge.HumanMatch;
 import org.openmana.engine.bridge.Protocol;
+import org.openmana.engine.bridge.RunningInput;
+import org.openmana.engine.smoke.ReplayHost;
 import org.openmana.engine.smoke.ScriptedHuman;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -381,6 +383,37 @@ public class TargetPaymentTest {
         assertTrue(payments > 3, payments + " states during payments");
         assertTrue(poolUses >= 1, "floating mana was never used");
         assertTrue(count(game, "tap:player-life") >= 1, game.player.counters().toString());
+    }
+
+    // ── Asking changes nothing ────────────────────────────────────────────────────
+
+    /**
+     * Asking Forge's running input (which player a click would take, what is
+     * still to pay, which floating mana it would take) must not change the
+     * game - like looking at a card (prompt 16). The very inputs of the
+     * recorded games are replayed without asking: Forge's game log is the
+     * same, entry for entry (its hash), in the game of this prompt and in the
+     * long Commander game.
+     */
+    @Test
+    public void askingForgesRunningInputChangesNothing() throws Exception {
+        final JsonObject commanderFixture = fixture("commander");
+        final Recorder commander = new Recorder(ScriptedHuman.fromPolicy(commanderFixture.getAsJsonObject("player"))).play(request(commanderFixture));
+        for (final Recorder recorded : List.of(game, commander)) {
+            final JsonObject request = recorded == game ? request(fixture("targets-payment")) : request(commanderFixture);
+            final com.google.gson.JsonArray inputs = new com.google.gson.JsonArray();
+            recorded.inputs.forEach(inputs::add);
+            final JsonObject unasked;
+            RunningInput.setAskingForTests(false);
+            try {
+                unasked = HumanMatch.play(new ReplayHost(inputs), request);
+            } finally {
+                RunningInput.setAskingForTests(true);
+            }
+            assertEquals(unasked.get("logSha256"), recorded.result.get("logSha256"), "Forge's game log differs without asking");
+            assertEquals(unasked.get("turns"), recorded.result.get("turns"));
+            assertEquals(unasked.get("inputs"), recorded.result.get("inputs"));
+        }
     }
 
     // ── Selections ────────────────────────────────────────────────────────────────
