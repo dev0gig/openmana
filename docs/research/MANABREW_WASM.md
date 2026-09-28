@@ -122,7 +122,7 @@ Beide Sitze spielte die Forge-KI (`forgeAiSeats: [0,1]`). Als Decks dienten Mana
 | Engine-Anbindung | Anvil-Protokoll als Ausgangspunkt (§2, §9) | eigener `PlayerController`, eigenes Protokoll, weicht bewusst von `PlayerControllerHuman` ab (z. B. `chooseCardName`, siehe [`forge-harness/.../AGENTS.md`](https://github.com/witchesofthehill/manabrew/blob/eb70d0cdc48dd18267420ef0cb871264b242815b/forge-harness/src/main/java/forge/harness/AGENTS.md)) | zuerst den Anvil-Weg prüfen ([Plan](OPENMANA_ENGINE_PLAN.md) §3) |
 | KI | Forge-KI, Profile wählbar (§7) | Standard „Manabot“, Forge-KI nur mit `forgeAi: true`, kein Profil | Forge-KI fest, Profil durch die Bridge |
 | Ausfälle | niemals still (§16) | zu große Nachrichten werden still verworfen; ohne Isolation hängt der Worker | laute Fehler, Feature-Erkennung vor dem Start |
-| Android-Wrapper | „preferably Capacitor“ (§12) | Die Tauri-Android-App bündelt weder Forge-Harness noch Forge-Räume (Kommentar in `publish.yml`: „Android hosts no Forge rooms and skips the GraalVM harness“) | siehe Plan §8: `SharedArrayBuffer` fehlt in der Android-WebView |
+| Android-Verteilung | ORYX-TWA (§12; die damalige Capacitor-Präferenz ist seit 28.9.2026 ersetzt) | Die Tauri-Android-App bündelt weder Forge-Harness noch Forge-Räume (Kommentar in `publish.yml`: „Android hosts no Forge rooms and skips the GraalVM harness“) | siehe Plan §8: `SharedArrayBuffer` fehlt in der Android-WebView |
 | Server | kein Odin, kein Server (§2) | Server-Fallback, wenn der Browser nicht reicht | nicht unterstützte Geräte brauchen eine klare Meldung statt eines Fallbacks |
 
 ## 8. Was OpenMana davon übernimmt

@@ -216,7 +216,7 @@ Seed 7 (24 Züge): JVM 2 484 ms, Node 4 929 ms, Chrome 3 959 ms.
 | 5 | Fold7 (Start, Speicher, Tab-Verwerfen) | offen, braucht das Gerät. Die Spike-Seite ist dafür nutzbar (`engine/wasm/test/serve.mjs`) |
 | 6 | Vercel-Auslieferung | offen → Prompt 31 |
 | 7 | Web Image ohne Oracle-Enterprise-Teile | offen (nur bei Lizenz-Entscheid nötig) |
-| 8 | TWA/WebAPK mit `SharedArrayBuffer` | offen → Prompt 28 |
+| 8 | ORYX-TWA mit `SharedArrayBuffer` und echter Forge-Engine | offen → Prompt 28; seit 28.9.2026 verbindlich über die gemeinsame ORYX-App, kein eigenes Spielpaket |
 
 **Simulation Frage 4:** `build-wasm.sh` in einer cgroup mit 200 % CPU-Kontingent,
 `MemoryMax=8G`, **ohne Swap** und `--parallelism=2`

@@ -11,14 +11,14 @@ OpenMana succeeds Anvil, but is a clean web-first implementation rather than a K
 - Target: Forge runs locally in the browser through WebAssembly; no Odin or Tailscale runtime dependency.
 - Scryfall supplies card metadata and imagery, preferring German with English fallback.
 - Arena-format decklists are imported and stored locally in IndexedDB (optionally kept in sync across devices through the player's ORYX account).
-- One web codebase for browser/PWA and later an Android wrapper.
+- One web codebase for browser/PWA and the shared ORYX TWA on Android; no individual game wrapper or APK.
 - Forge updates are isolated from the UI.
 
 Start with [docs/BIBLE.md](docs/BIBLE.md).
 
 ## Status
 
-Implementation has started; progress per queue prompt is tracked in [prompts/STATUS.md](prompts/STATUS.md).
+Implementation has started; current implementation is tracked in [STATUS.md](STATUS.md), with executable tasks and their lifecycle in `dev0gig/dropzone/workflow/tasks/`. The former local prompt ledger remains available in Git history.
 
 - **Engine spike done (prompt 01):** pinned upstream Forge plus a small GPL patch queue runs as WebAssembly (GraalVM Web Image) in a Dedicated Worker and plays a complete Forge-AI game in Chrome; JVM, Node and Chrome produce the identical Forge game log. See [engine/README.md](engine/README.md) and [docs/implementation/01-engine-spike.md](docs/implementation/01-engine-spike.md).
 - **Bridge spike done (prompt 02):** Forge's own human path (`PlayerControllerHuman` and its inputs) runs on a single thread through an Anvil-style bridge: numbered questions with withdrawal, card taps outside questions, mulligan, cost payment, targets, attacking, blocking, conceding. In the browser the worker waits for the player's input with `Atomics.wait` on a SharedArrayBuffer. Recorded human-vs-AI games replay identically on the JVM, in Node and in Chrome. See [docs/implementation/02-anvil-bridge.md](docs/implementation/02-anvil-bridge.md).

@@ -1,13 +1,13 @@
 # OpenMana Agent Instructions
 
 ## Current Work Safety
-OpenMana may be under active implementation by another agent. Before any change, read `prompts/STATUS.md` and inspect the actual Git/repository state. **Never reset, move, rename, rewrite or reclassify an `IN_PROGRESS` prompt or its work unless explicitly assigned to that task.** Preserve concurrent/later work.
+OpenMana may be under active implementation by another agent. Before any change, read `STATUS.md`, the central Dropzone task state and inspect the actual Git/repository state. **Never reset, move, rename, rewrite or reclassify an `IN_PROGRESS` prompt or its work unless explicitly assigned to that task.** Preserve concurrent/later work.
 
 ## Agent Startup Contract
 Before implementation:
 1. Read this file.
 2. Read `STATUS.md` for the compact project map.
-3. Read `prompts/STATUS.md` for the authoritative queue execution state.
+3. Read `dev0gig/dropzone/workflow/tasks/INDEX.md` and the assigned central task for the queue execution state.
 4. Read the complete assigned prompt.
 5. Read relevant `docs/BIBLE.md`, `docs/ANVIL_LESSONS.md`, research and implementation documentation.
 6. Inspect actual code/tests/Git state before planning.
@@ -28,7 +28,7 @@ OpenMana UI must not implement a parallel Magic rules engine or hard-code card/m
 - Adapt Forge API changes at the bridge boundary rather than leaking internals through UI.
 - Forge revisions/toolchain/patches must remain pinned/reproducible and updated deliberately.
 - Imported decks/local user data remain local-first; IndexedDB is the planned durable store.
-- Do not create a second Android UI; later Android packaging wraps the same web application.
+- Android uses the shared ORYX TWA and the same web application. Do not create an individual Android UI, wrapper or APK pipeline.
 
 ## User Interface Rules
 The web app (repository root, `src/`) follows `docs/DESIGN_SYSTEM.md`:
@@ -132,16 +132,12 @@ The optional sync of the player's collection through their ORYX account (project
 - Applying the cloud's collection must never mark a change (no round between devices); only this tab's own writes upload (`subscribeChanges` origin `this-tab`).
 
 ## Queue and Execution
-OpenMana currently has its own detailed queue ledger at `prompts/STATUS.md`. It remains authoritative while the numbered 00–32 implementation program is running.
+The legacy local prompt workflow was removed upstream on 2026-09-28. Executable tasks and their lifecycle now live in `dev0gig/dropzone/workflow/tasks/`; implementation evidence remains in `docs/implementation/` and Git history.
 
-- Prompts run strictly sequentially.
-- `IN_PROGRESS` must be resumed/finished, never skipped.
-- `BLOCKED` stops later work.
-- A prompt becomes `COMPLETE` only under the completion rules in `prompts/STATUS.md`.
-- Do not migrate the active queue to another lifecycle while an agent is working through it.
-- `prompts/naechster-schritt.md` remains the one-prompt-at-a-time direct-run helper.
-
-The generic Dropzone `queue/active/completed` lifecycle may be adopted later, after the current program is safely paused/completed and explicitly migrated. Until then, compatibility means respecting this repository's existing queue model.
+- Numbered prompts run strictly sequentially; resume `IN_PROGRESS` work and never skip a `BLOCKED` predecessor. Mark a task complete only after its requirements and verification pass.
+- Reconcile the central status with code and `STATUS.md` before selecting work. The locally committed Prompt 16 implementation is complete; Prompt 17 is next.
+- Run only the task explicitly assigned by the user; this cross-repository cleanup does not start a numbered implementation prompt.
+- Update the central task and `STATUS.md` with verified evidence; do not recreate the removed local queue.
 
 ## Verification
 Use the exact verification required by the current prompt and affected subsystem. Never weaken/remove tests to obtain a green result and never present fake/mock results as real evidence.
@@ -155,7 +151,7 @@ Before declaring a task complete:
 3. Run all prompt-required and relevant regression tests.
 4. Update required research/implementation/product documentation.
 5. Update `STATUS.md` if the broad project implementation state changed.
-6. Update `prompts/STATUS.md` with evidence, findings, agent and commit according to its rules.
+6. Update the assigned central Dropzone task with evidence, findings and commit.
 7. Leave no known critical regression introduced by the task.
 8. Commit the work, but never push (see Publishing and Android).
 
@@ -165,12 +161,11 @@ Before declaring a task complete:
 - `docs/implementation/`: implemented milestone records.
 - `README.md`: concise current public/developer overview.
 - `STATUS.md`: compact implementation map.
-- `prompts/STATUS.md`: detailed numbered-program execution ledger.
-- `prompts/queue/`: task specifications.
+- `dev0gig/dropzone/workflow/tasks/`: central task specifications and execution ledger.
 
 Do not duplicate detailed per-prompt history into root `STATUS.md`.
 
 ## Publishing and Android (project owner, 2026-09-25)
 - **Publication held until Prompt 31** (project owner, 2026-09-27). Keep the existing local Prompt-16 work and the ORYX return-navigation change committed locally. Do not push or deploy OpenMana as part of the cross-repository ORYX task. Prompt 31 still requires an explicit publication instruction under the global Vercel rule.
 - **Commit, never push.** Every push to `main` triggers a Vercel deployment and uses up the project owner's Vercel deployment quota. Commit finished work right away; push only when the project owner explicitly asks for it. This replaces the former "committed and pushed" completion rule of the numbered program.
-- **No APKs.** On Android, OpenMana runs only inside the global ORYX app (Trusted Web Activity `net.tsnet.oryx`, which already lists `openmana.vercel.app` as trusted). Do not build an own TWA, APK or Warehouse package. Prompt 28 must be re-scoped with the project owner before it starts; what likely remains is `/.well-known/assetlinks.json` for ORYX and proof that the Forge WASM engine runs inside ORYX (`crossOriginIsolated`).
+- **No APKs.** On Android, OpenMana runs only inside the global ORYX app (Trusted Web Activity `net.tsnet.oryx`, which already lists `openmana.vercel.app` as trusted). Do not build an own TWA, APK or Warehouse package. Prompt 28 verifies ORYX Digital Asset Links, isolation headers and real Forge WASM operation inside ORYX (`crossOriginIsolated`); it must not create a separate game package. The central cleanup task makes this scope authoritative.

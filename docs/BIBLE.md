@@ -265,7 +265,7 @@ Support modern Android phones, foldables, tablets, desktop browsers, mouse/keybo
 
 Primary artifact: web application/PWA.
 
-Later Android artifact: thin wrapper around the same web app, preferably Capacitor unless research identifies a better fit. There must not be a second Android UI implementation.
+Android distribution uses the shared ORYX Trusted Web Activity (`net.tsnet.oryx`), which opens the same deployed web application. OpenMana remains independently runnable in the browser/PWA. No individual Capacitor shell, TWA wrapper, APK build or Warehouse package is supported (architecture decision, 2026-09-28). Preserve the PWA manifest/icons, responsive controls, isolation headers and ORYX Digital Asset Links; verify the Forge WASM engine inside ORYX as well as Chrome.
 
 ## 13. Visual identity
 
@@ -376,7 +376,7 @@ The ORYX cloud sync (§5, since 2026-09-25) follows this: nothing leaves the dev
 
 ### Phase 5 — packaging
 - production PWA and Vercel deployment
-- Android wrapper
+- ORYX TWA integration and real-device Forge WASM verification
 - storage backup/restore
 - update/version diagnostics
 
@@ -391,7 +391,7 @@ A user can:
 6. Understand legal actions, targets, attacks and blocks from the UI.
 7. See German card presentation where available and English fallback otherwise.
 8. Update Forge independently from OpenMana UI.
-9. Use the same application as PWA and later Android wrapper.
+9. Use the same web application as PWA and through ORYX on Android.
 10. Access clear credits/licenses for the projects/tools enabling OpenMana.
 
 ## 20. Initially out of scope

@@ -158,7 +158,7 @@ Die App zeigt Engine- und Forge-Version an (Bible Phase 5). GraalVM-Updates lauf
   - **Empfehlung v1:** Reload beendet die Partie, mit Warnung vor dem Verlassen und sichtbarer Meldung.
   - Forges `GameState` (`initFromGame`/`applyToGame`, Puzzle-Format) wäre später eine **näherungsweise** Wiederaufnahme; Stapel, Trigger und laufende Effekte deckt sie nicht sicher ab.
 - **Foldable:** Im Browser löst Falten nur ein Resize aus, die Engine merkt davon nichts. Das Layout-Risiko gehört der UI (Lehre aus ManaStokkr).
-- **Wrapper:** Die Android System WebView hat **keinen** `SharedArrayBuffer` (MDN BCD `webview_android: false`; [Chromium-Issue 40914606](https://issues.chromium.org/issues/40914606), „SharedArrayBuffer is unavailable in Android WebView because crossOriginIsolated is false“). Ein Capacitor-Wrapper (Bible §12) kann diese Bridge deshalb **nicht** tragen. Passend wären eine Trusted Web Activity (Bubblewrap) oder eine installierte PWA (WebAPK); beide laufen in Chrome selbst (Frage 8).
+- **Wrapper:** Die Android System WebView hat **keinen** `SharedArrayBuffer` (MDN BCD `webview_android: false`; [Chromium-Issue 40914606](https://issues.chromium.org/issues/40914606), „SharedArrayBuffer is unavailable in Android WebView because crossOriginIsolated is false“). Ein Capacitor-Wrapper kann diese Bridge deshalb **nicht** tragen. Die verbindliche Architektur (Bible §12, 28.9.2026) nutzt die gemeinsame ORYX-TWA und die Browser/PWA-Fassung in Chrome; kein eigener Spiel-Wrapper (Frage 8).
 
 ## 9. Bekannte Risiken
 
@@ -174,7 +174,7 @@ Die App zeigt Engine- und Forge-Version an (Bible Phase 5). GraalVM-Updates lauf
 | R8 | Kein Server-Rückfall: nicht unterstützte Browser können nicht spielen | Feature-Erkennung mit klarer Meldung |
 | R9 | COEP erzwingt CORS für jede fremde Ressource | Regel für die UI-Umsetzung (Scryfall erfüllt sie) |
 | R10 | Vercel: großes Artefakt, Cache-Kriterium 10 MB, CLI-Uploadgrenze | Frage 6; notfalls Code und Daten trennen oder vorkomprimieren |
-| R11 | Keine WebView-Wrapper möglich | TWA/WebAPK (Frage 8) |
+| R11 | Keine WebView-Wrapper möglich | gemeinsame ORYX-TWA / Browser-PWA (Frage 8) |
 | R12 | Die CI-Ressourcen des privaten Repos könnten für `native-image` nicht reichen | Frage 4 |
 | R13 | jupnp (CDDL) im Modul | Netzspiel aus der Erreichbarkeit nehmen, Nachweis im Build-Report |
 
@@ -182,7 +182,7 @@ Die App zeigt Engine- und Forge-Version an (Bible Phase 5). GraalVM-Updates lauf
 
 1. **§3 „pinned upstream Forge“:** Das reicht nicht. Nötig ist upstream **plus** eine GPL-Patch-Queue (Synchronmodus, KI, Input-Pumpe).
 2. **§2 „proven direction demonstrated by ManaBrew“:** Die Richtung ist belegt. ManaBrews Browser-Forge ist aber als experimentell markiert, läuft auf einem gepatchten Fork und hat einen Server-Rückfall, den OpenMana nicht hat.
-3. **§12 „preferably Capacitor“:** Mit dieser Architektur nicht tragfähig, weil der WebView der `SharedArrayBuffer` fehlt. Stattdessen TWA oder WebAPK.
+3. **§12 Android:** Die frühere Capacitor-Präferenz ist überholt; die Bible legt inzwischen die gemeinsame ORYX-TWA fest. Die WebView-Einschränkung bei `SharedArrayBuffer` bleibt der technische Hintergrund.
 4. **§4/§17 Bilder und Assets:** Unter COEP müssen fremde Ressourcen im CORS-Modus geladen werden.
 5. **§9.6 Reload:** Vorschlag für v1: Ein Reload beendet die Partie, klar angezeigt.
 6. **§19.1 „modern browser“:** Das wird zu konkreten Mindestversionen, siehe §8.
@@ -200,7 +200,7 @@ Nur Fragen, die diese Research nicht beantworten konnte.
 | 5 | Start, Speicher, KI-Zeit und Tab-Verwerfen auf dem Fold7 (Chrome und Samsung Internet ≥ 30), auch bei Commander? | Messung wie in [MANABREW_WASM.md](MANABREW_WASM.md) §6 auf dem Gerät: sofort mit ManaBrews produktivem Modul möglich, später mit dem eigenen | bevor „Handy unterstützt“ zugesagt wird |
 | 6 | Liefert Vercel das ~70-MB-Wasm mit COOP/COEP, Kompression und Edge-Cache aus, und welcher Deploy-Weg passt zum Plan (Hobby/Pro)? | Preview-Deploy mit dem Artefakt; `x-vercel-cache`, `content-encoding`, `crossOriginIsolated` prüfen | vor dem ersten Deploy |
 | 7 | Lässt sich Web Image aus `oracle/graal` (GPLv2 mit Classpath Exception) ohne `web-image-enterprise` bauen, und funktioniert es für Forge? | Build-Versuch mit `mx` | nur falls der Oracle-GFTC-Weg für die öffentliche Auslieferung abgelehnt wird |
-| 8 | Stellt eine TWA (Bubblewrap) oder WebAPK auf dem Fold7 `crossOriginIsolated` und `SharedArrayBuffer` bereit? | Test-APK über Warehouse installieren | vor Phase 5 (Android-Artefakt) |
+| 8 | Läuft die echte Forge-WASM-Engine auf dem Fold7 in ORYX mit `crossOriginIsolated` und `SharedArrayBuffer`? | Deployed OpenMana über die bestehende ORYX-TWA prüfen; keine eigene APK | Phase 5 (ORYX-Webintegration) |
 
 ## Entscheidung: **Go mit Bedingungen**
 
@@ -228,4 +228,4 @@ Nur Fragen, die diese Research nicht beantworten konnte.
 4. **Vor dem ersten öffentlichen Deploy:**
    - Vercel-Test (Frage 6);
    - Lizenz-Gate: GPL-Pflichten umgesetzt, GFTC-Frage entschieden, jupnp nachweislich nicht im Modul ([LICENSES.md](LICENSES.md) §4).
-5. **Android-Wrapper nicht über Capacitor/WebView.** Vor Phase 5 TWA bzw. WebAPK prüfen (Frage 8).
+5. **Android über ORYX.** Vor Abschluss der ORYX-Webintegration die echte Forge-WASM-Engine auf dem Gerät prüfen (Frage 8); keinen eigenen Wrapper bauen.
