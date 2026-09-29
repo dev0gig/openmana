@@ -3200,7 +3200,7 @@ async function decisionInteractions(page: Page, base: string, viewport: Viewport
   await armed(button("Alle angreifen"))
   await expectLast("attack: Alpha Strike", { kind: "buttons", button: 2 })
   await scene("attack-declared")
-  await armed(button("Alle zurücknehmen"))
+  await armed(button("Alle zurück"))
   await expectLast("attack: Call Back", { kind: "buttons", button: 2 })
   await scene("attack-planeswalker")
   const other = decision.locator('button[data-defender^="player:"]').first()

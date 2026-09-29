@@ -162,7 +162,7 @@ describe("the decision region while attackers are declared", () => {
     const back = decision().querySelector("[data-attack-unavailable]")!
     for (const { card, words } of view.unavailable) expect(back).toHaveTextContent(`${card.name} (${words.short})`)
     expect(within(decision()).queryByRole("group", { name: "Wen greifst du an?" })).not.toBeInTheDocument()
-    expect(within(decision()).getByText(/1 weitere Kreatur kann angreifen \(gold gestrichelt\)\. Antippen lässt eine Kreatur angreifen, ein zweiter Tipp nimmt sie zurück\./)).toBeInTheDocument()
+    expect(within(decision()).getByText(/^1 Kreatur kann angreifen \(gold gestrichelt\)\. Antippen lässt eine Kreatur angreifen, ein zweiter Tipp nimmt sie zurück\./)).toBeInTheDocument()
   })
 
   it("Forge's buttons by meaning: 'Nicht angreifen' without attackers, 'Alle angreifen' - each sent once armed", async () => {
@@ -181,15 +181,28 @@ describe("the decision region while attackers are declared", () => {
     for (const [id, body] of calls) expect(inputProblems({ type: "answer", seq: 1, question: id, ...body })).toBeNull()
   })
 
-  it("with attackers: how many attack, 'Alle zurücknehmen' for Forge's Call Back", async () => {
+  it("with attackers: how many attack, 'Alle zurück' for Forge's Call Back", async () => {
     const user = userEvent.setup()
     const { onAnswer } = table("attack-declared")
     const count = myField("attack-declared").filter((card) => card.attacking === true).length
     const buttons = within(answersGroup()).getAllByRole("button")
-    expect(buttons.map((button) => button.textContent)).toEqual([count === 1 ? "Mit 1 Kreatur angreifen" : `Mit ${count} Kreaturen angreifen`, "Alle zurücknehmen"])
+    expect(buttons.map((button) => button.textContent)).toEqual([count === 1 ? "Mit 1 Kreatur angreifen" : `Mit ${count} Kreaturen angreifen`, "Alle zurück"])
     wait()
     await user.click(buttons[0]!)
     expect(onAnswer).toHaveBeenCalledWith(attackQuestion("attack-declared").id, { kind: "buttons", button: 1 })
+  })
+
+  it("with attackers the region keeps to a priority's room: the sentence, one note (how to take one back, what OK does), no hints, no list", () => {
+    // Combat shows on the table now; the reasons stay below the cards (the table's cards, below).
+    const { scene } = table("attack-declared")
+    expect(scene.state.attack!.unavailable.length).toBeGreaterThan(0)
+    expect(decision().querySelector("[data-attack-hints]")).toBeNull()
+    expect(decision().querySelector("[data-attack-unavailable]")).toBeNull()
+    expect(within(answersGroup()).getAllByRole("button")[0]).toHaveAccessibleDescription("Ein zweiter Tipp nimmt eine Kreatur zurück. Mit dem Bestätigen steht der Angriff fest.")
+    const field = screen.getByRole("region", { name: "Dein Spielfeld" })
+    for (const entry of scene.state.attack!.unavailable) {
+      expect(field.querySelector(`[data-card="${entry.card}"] [data-slot="game-card-caption"]`)).toHaveTextContent(ATTACK_REFUSAL_WORDS[entry.reason].short)
+    }
   })
 
   it("several defenders: the attacked one marked, the other a button that taps at once (the player: Forge's player.tap)", async () => {

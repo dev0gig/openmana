@@ -39,9 +39,13 @@ export const SICK_LABEL = "Einsatzverzögerung"
 export const SICK_NOTE =
   "Noch nicht seit Beginn des letzten Zuges ihres Spielers unter dessen Kontrolle. Bis sein nächster Zug beginnt, kann sie nicht angreifen und keine Fähigkeiten mit {T} in den Kosten aktivieren."
 
-/** How many more creatures a tap would declare (the attack model's `ready`: Forge's marker, gold dashed on the table). */
+/**
+ * How many creatures a tap would declare (the attack model's `ready`: Forge's
+ * marker, gold dashed on the table) - said before the first attacker, while
+ * the region has room (see AttackDecision).
+ */
 export function readyText(ready: number): string {
-  return `${ready === 1 ? "1 weitere Kreatur kann" : `${ready} weitere Kreaturen können`} angreifen (gold gestrichelt).`
+  return `${ready === 1 ? "1 Kreatur kann" : `${ready} Kreaturen können`} angreifen (gold gestrichelt).`
 }
 
 /**
@@ -76,12 +80,21 @@ export function declareLabel(attackers: number): string {
   return attackers === 1 ? "Mit 1 Kreatur angreifen" : `Mit ${attackers} Kreaturen angreifen`
 }
 
-/** What Forge's OK does now - a static explanation of the turn (comprehensive rules 508-509), never a forecast. */
+/**
+ * What Forge's OK does now - a static explanation of the step, never a
+ * forecast. With attackers declared it is the region's one note (see
+ * AttackDecision), so it also says that a second tap takes a creature back
+ * (Anvil's lesson: a tap acts at once - the sentence must say how to undo it).
+ */
 export function declareNote(attackers: number): string {
   return attackers === 0
     ? "„Nicht angreifen“ lässt den Angriff in diesem Zug aus."
-    : "Mit dem Bestätigen steht der Angriff fest; danach entscheidet die Forge-KI, ob sie blockt."
+    : "Ein zweiter Tipp nimmt eine Kreatur zurück. Mit dem Bestätigen steht der Angriff fest."
 }
 
-/** Forge's Call Back (Button.meaning "callBack"), in words that say it takes all back. */
-export const CALL_BACK_LABEL = "Alle zurücknehmen"
+/**
+ * Forge's Call Back (Button.meaning "callBack"), in words that say it takes
+ * all back - short enough that it stays in one row with "Mit 14 Kreaturen
+ * angreifen" on a small phone (360 px; Forge's "Zurückrufen" does not say all).
+ */
+export const CALL_BACK_LABEL = "Alle zurück"

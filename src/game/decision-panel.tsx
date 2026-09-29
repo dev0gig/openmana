@@ -644,6 +644,14 @@ function PriorityDecision({ moment }: { moment: PriorityMoment }) {
  * with none, leaves the attack out -, the second declares all (Alpha
  * Strike) or takes all back (Call Back). Creatures are declared by tapping
  * them on the table (a tap there is sent at once and taken back by a second).
+ *
+ * The hints - how many creatures a tap would declare, how tapping works, who
+ * stays back and why - come before the first attacker, while combat is empty
+ * and the region may grow. Once attackers are declared the table shows the
+ * combat, and the region keeps to the room of a priority - the sentence, one
+ * note, the buttons in one row - so the battlefields keep theirs (on a small
+ * phone with a commander's seats and fourteen attackers it would take them
+ * below a row of cards); the reasons stay below the cards.
  */
 function AttackDecision({ view }: { view: AttackView }) {
   const { answer } = useDecision()
@@ -652,15 +660,18 @@ function AttackDecision({ view }: { view: AttackView }) {
   const { question, declare, second, attackers } = view
   const off = question.buttons.filter((button) => !button.enabled)
   const secondLabel = second === null ? null : second.meaning === "callBack" ? CALL_BACK_LABEL : buttonText(second.button)
+  const hints = attackers.length === 0
   return (
     <>
       <DecisionHeading label={questionLabel(question)} text={attackText(view)} source={null} />
       {view.defenders.length > 1 ? <DefenderChoices view={view} /> : null}
-      <GameDecisionNote>
-        {view.ready > 0 ? `${readyText(view.ready)} ` : null}
-        {attackTapNote(view.defenders.length)}
-      </GameDecisionNote>
-      {view.unavailable.length > 0 ? (
+      {hints ? (
+        <GameDecisionNote data-attack-hints>
+          {view.ready > 0 ? `${readyText(view.ready)} ` : null}
+          {attackTapNote(view.defenders.length)}
+        </GameDecisionNote>
+      ) : null}
+      {hints && view.unavailable.length > 0 ? (
         <GameDecisionNote data-attack-unavailable>
           Bleiben zurück: {view.unavailable.map(({ card, words }) => `${cardName(card)} (${words.short})`).join(", ")}.
         </GameDecisionNote>
