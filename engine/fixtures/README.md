@@ -39,7 +39,13 @@ fixtures/
 - `player`: die Regel des Testspielers. Er kennt keine Karte und keine Regel,
   er wählt unter dem, was Forge anbietet. `attack`: `all` (jede Kreatur, für
   die Forge einen Angriff anbietet), `none`, `alternate` (in jedem zweiten
-  eigenen Kampf). `block`: `none`, `one` (ein Blocker je Kampf, Forge wählt den
+  eigenen Kampf), `guided` (Prompt 18: abwechselnd drei Wege – Kreaturen
+  einzeln antippen, wobei er einen Planeswalker, den Forge als Angriffsziel
+  anbietet, erst per Antippen zum Ziel macht, eine Kreatur für ihn deklariert
+  und dann den Gegner wieder antippt; Forges „Alle angreifen“ und OK; „Alle
+  angreifen“, „Zurückrufen“ und OK ohne Angreifer – Knöpfe nach ihrer
+  Bedeutung; dazu prüft er bei jedem Zustand, dass die Angaben zum Angriff
+  zum Zustand passen). `block`: `none`, `one` (ein Blocker je Kampf, Forge wählt den
   Angreifer), `assign` (Angreifer antippen, dann einen von Forge angebotenen
   Blocker; erst einer je Angreifer, dann ein zweiter für den ersten).
   `play` (Prompt 16): `all` (bei der Priorität jede Karte, die Forge als
@@ -92,6 +98,8 @@ Unit-Test bei jedem Build).
 | `blocks-double` | dieselben, Seed 12 | wie oben, gibt in Zug 13 auf | ein Angreifer von zwei Kreaturen geblockt |
 | `stack-response` | Grün gegen rote Instants, Seed 3 | greift an | die KI antwortet auf einen Zauber (Stapeltiefe 2, LIFO), Sieg |
 | `priority-respond` | rote Instants gegen Grün, Seed 3, deutsch | hält Instants zurück (`play: respond`), blockt nie | Priorität im Zug der KI (nur wo Forge etwas für den Spieler findet), Antwort des Spielers auf den Zauber der KI (Stapeltiefe 2), Niederlage (Prompt 16) |
+| `targets-payment` | Rakdos gegen Grün, Seed 6, deutsch | wählt zuerst Spieler (`target: players`) | Spieler als Ziel per Antippen, zwei Ziele, Mana aus dem Vorrat, Leben für Phyrexia-Mana, Entscheidungen beim Wirken (Prompt 17) |
+| `attackers` | Grün gegen grüne Planeswalker, Seed 8, deutsch | greift auf drei Arten an (`attack: guided`), ein Blocker je Kampf | Planeswalker angegriffen, Angriffsziel per Antippen gewechselt, „Alle angreifen“, „Zurückrufen“, Forges Gründe, warum eine Kreatur nicht angreifen kann: Einsatzverzögerung, getappt, Verteidiger (Prompt 18) |
 | `commander` | Krenko gegen Fynn (je 100 Karten, regelkonform), Seed 5 | greift an | Kommandant aus der Kommandozone, zurück dorthin, erneut mit Kommandantensteuer, Kommandantenschaden, 40 Leben, Sieg |
 
 ## Eine Partie hinzufügen

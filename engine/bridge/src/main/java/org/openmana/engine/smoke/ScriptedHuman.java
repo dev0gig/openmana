@@ -67,6 +67,19 @@ import java.util.TreeMap;
  * would take from the pool (the state's payment) is used first, then life
  * where Forge takes the player (Phyrexian mana), then the sources or Forge's
  * auto payment as above.
+ *
+ * <p>Declaring attackers (prompt 18, protocol 7): {@link Attack#GUIDED}
+ * takes turns between three ways of Forge's declaration - tapping creatures
+ * one by one (where Forge offers a planeswalker or battle as defender, it
+ * first makes that card the defender by tapping it, declares one attacker
+ * for it, then makes the player the defender again by tapping them and
+ * declares the rest), Forge's Alpha Strike then OK, and Alpha Strike, Call
+ * Back and OK without attackers. Buttons are found by their meaning. On every
+ * state with a declaration in progress it checks what the bridge says
+ * against the state (counted under "protocol:"): the defender is one of the
+ * defenders, a creature Forge would not declare is the player's, on the
+ * battlefield, not attacking, offers no attack action, and is tapped or
+ * summoning sick where that is the reason.
  */
 public final class ScriptedHuman implements EngineHost {
 
@@ -104,7 +117,7 @@ public final class ScriptedHuman implements EngineHost {
     /** A state.request was sent; the next state message answers it. */
     private boolean stateRequested;
     /** When the player attacks (see class comment). */
-    public enum Attack { ALL, NONE, ALTERNATE }
+    public enum Attack { ALL, NONE, ALTERNATE, GUIDED }
 
     /** How the player blocks (see class comment). */
     public enum Block { NONE, ONE, ASSIGN }
@@ -121,6 +134,8 @@ public final class ScriptedHuman implements EngineHost {
     private Target target = Target.CARDS;
     /** ALTERNATE: whether the player attacks in a turn, decided at its first attack question of that turn. */
     private final Map<Integer, Boolean> attacksInTurn = new TreeMap<>();
+    /** GUIDED: the way the player declares attackers in a turn (0 taps, 1 Alpha Strike, 2 Alpha Strike + Call Back). */
+    private final Map<Integer, Integer> guidedWay = new TreeMap<>();
     /** Turn from which on the player concedes; 0 = never. */
     private int concedeInTurn;
     private int concededInTurn;
@@ -150,7 +165,7 @@ public final class ScriptedHuman implements EngineHost {
 
     /**
      * The policy of a differential test fixture:
-     * {@code {"attack": "all"|"none"|"alternate", "block": "none"|"one"|"assign", "play": "all"|"respond",
+     * {@code {"attack": "all"|"none"|"alternate"|"guided", "block": "none"|"one"|"assign", "play": "all"|"respond",
      * "target": "cards"|"players", "concedeInTurn": 0}},
      * every field optional (defaults: all, none, all, cards, 0). Anything else is refused.
      */
@@ -201,6 +216,7 @@ public final class ScriptedHuman implements EngineHost {
         switch (type) {
             case Protocol.STATE -> {
                 state = message;
+                checkAttack(message);
                 if (stateRequested) {
                     stateRequested = false;
                     count("state-request:answered");
@@ -719,6 +735,9 @@ public final class ScriptedHuman implements EngineHost {
             count("buttons:block");
             return press(q, enabled1 ? 1 : 2);
         }
+        if (attack == Attack.GUIDED && (Protocol.PURPOSE_ATTACK.equals(purpose) || Protocol.PURPOSE_ATTACK_DECLARED.equals(purpose))) {
+            return guidedAttack(q);
+        }
         if (Protocol.PURPOSE_ATTACK.equals(purpose) || Protocol.PURPOSE_ATTACK_DECLARED.equals(purpose)) {
             final JsonObject attacker = firstCard(true, "battlefield",
                     c -> c.has("action") && !c.has("attacking"), "attack:" + turn());
@@ -739,7 +758,122 @@ public final class ScriptedHuman implements EngineHost {
             case ALL -> true;
             case NONE -> false;
             case ALTERNATE -> attacksInTurn.computeIfAbsent(turn(), t -> attacksInTurn.size() % 2 == 0);
+            case GUIDED -> true;
         };
+    }
+
+    /** GUIDED (class comment): one of three ways per turn, found by the buttons' meanings. */
+    private JsonObject guidedAttack(final JsonObject q) {
+        final int t = turn();
+        final int way = guidedWay.computeIfAbsent(t, x -> guidedWay.size() % 3);
+        if (way != 0) {
+            if (meaning(q, 2, Protocol.MEANING_ATTACK_ALL) && enabled(q, 2) && tried.add("attack-all:" + t)) {
+                count("attack:all");
+                return press(q, 2);
+            }
+            if (way == 2 && meaning(q, 2, Protocol.MEANING_CALL_BACK) && enabled(q, 2) && tried.add("call-back:" + t)) {
+                count("attack:call-back");
+                return press(q, 2);
+            }
+            count(way == 1 ? "attack:declare-all" : "attack:declare-none");
+            return press(q, enabled(q, 1) ? 1 : 2);
+        }
+        final JsonObject attack = state == null || !state.has("attack") ? null : state.getAsJsonObject("attack");
+        final JsonObject defender = attack == null || attack.get("defender").isJsonNull() ? null : attack.getAsJsonObject("defender");
+        final boolean atCard = defender != null && "card".equals(defender.get("kind").getAsString());
+        // A defending card (planeswalker, battle) that is not the defender: make it the defender, once per turn.
+        if (attack != null && !atCard) {
+            for (final JsonElement e : attack.getAsJsonArray("defenders")) {
+                final JsonObject ref = e.getAsJsonObject();
+                if ("card".equals(ref.get("kind").getAsString()) && tried.add("defender-card:" + t)) {
+                    count("attack:defender-card");
+                    return cardTap(ref.get("id").getAsInt());
+                }
+            }
+        }
+        if (atCard && tried.add("attacker-for-card:" + t)) {
+            final JsonObject first = firstCard(true, "battlefield", c -> c.has("action") && !c.has("attacking"), "attack:" + t);
+            if (first != null) {
+                count("tap:attacker");
+                count("attack:attacker-for-card");
+                return cardTap(first);
+            }
+        }
+        if (atCard) {
+            // Then the player again: the defending player Forge's input would switch to.
+            final JsonObject opponent = player(false);
+            if (opponent != null && opponent.has("selectable") && tried.add("defender-player:" + t)) {
+                count("attack:defender-player");
+                return playerTap(opponent.get("id").getAsInt());
+            }
+        }
+        final JsonObject attacker = firstCard(true, "battlefield", c -> c.has("action") && !c.has("attacking"), "attack:" + t);
+        if (attacker != null) {
+            count("tap:attacker");
+            return cardTap(attacker);
+        }
+        count("attack:declare");
+        return press(q, enabled(q, 1) ? 1 : 2);
+    }
+
+    /**
+     * What the bridge says about a declaration of attackers in progress,
+     * checked against the state itself (class comment). A creature a tap
+     * would not declare must not offer an attack action; tapped and summoning
+     * sick must be what the state shows.
+     */
+    private void checkAttack(final JsonObject message) {
+        if (!message.has("attack")) {
+            return;
+        }
+        count("state:attack");
+        final JsonObject attack = message.getAsJsonObject("attack");
+        final JsonElement defender = attack.get("defender");
+        if (!defender.isJsonNull() && !attack.getAsJsonArray("defenders").contains(defender)) {
+            count("protocol:attack-defender-not-offered");
+        }
+        final Map<Integer, JsonObject> mine = new TreeMap<>();
+        for (final JsonElement p : message.getAsJsonArray("players")) {
+            final JsonObject player = p.getAsJsonObject();
+            if (player.get("me").getAsBoolean()) {
+                for (final JsonElement c : player.getAsJsonObject("zones").getAsJsonArray("battlefield")) {
+                    final JsonObject card = c.getAsJsonObject();
+                    if (card.has("id")) {
+                        mine.put(card.get("id").getAsInt(), card);
+                    }
+                }
+            }
+        }
+        for (final JsonElement e : attack.getAsJsonArray("unavailable")) {
+            final JsonObject entry = e.getAsJsonObject();
+            final String reason = entry.get("reason").getAsString();
+            count("attack:unavailable:" + reason);
+            final JsonObject card = mine.get(entry.get("card").getAsInt());
+            if (card == null) {
+                count("protocol:attack-unavailable-not-mine");
+                continue;
+            }
+            if (card.has("attacking") || card.has("action")) {
+                count("protocol:attack-unavailable-but-offered");
+            }
+            if (Protocol.ATTACK_REFUSAL_TAPPED.equals(reason) && !card.get("tapped").getAsBoolean()) {
+                count("protocol:attack-tapped-not-tapped");
+            }
+            if (Protocol.ATTACK_REFUSAL_SICK.equals(reason) && !card.get("sick").getAsBoolean()) {
+                count("protocol:attack-sick-not-sick");
+            }
+        }
+    }
+
+    /** Whether Forge's button nr carries this meaning (protocol 5/7). */
+    private static boolean meaning(final JsonObject q, final int nr, final String meaning) {
+        for (final JsonElement b : q.getAsJsonArray("buttons")) {
+            final JsonObject button = b.getAsJsonObject();
+            if (button.get("nr").getAsInt() == nr) {
+                return button.has("meaning") && meaning.equals(button.get("meaning").getAsString());
+            }
+        }
+        return false;
     }
 
     /**

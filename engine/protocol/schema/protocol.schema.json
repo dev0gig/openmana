@@ -11,8 +11,8 @@
   "$defs": {
     "ProtocolVersion": {
       "title": "ProtocolVersion",
-      "description": "Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace). 4: card language (boot argument --card-language, BootReport.cardLanguage) and Forge's AI profiles (BootReport.aiProfiles; match.start with any other profile is refused). 5: priority, stack and phases (prompt 16): a stack item carries its card as Forge shows it (StackItem.card) and says whether it is an ability (StackItem.ability), its source id only for a card the player may see; Forge's buttons of the priority step say what they do (Button.meaning); a selection's cards are only those the player may see. 6: targets and cost payment (prompt 17): Forge's players a player.tap would take now (Player.selectable) and its highlight on chosen players (Player.highlighted); the payment in progress (GameState.payment: the mana still to pay, the pool's colours Forge would take now) and paying from the mana pool (mana.use); a player.tap or mana.use Forge would not take is refused (no-effect).",
-      "const": 6
+      "description": "Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace). 4: card language (boot argument --card-language, BootReport.cardLanguage) and Forge's AI profiles (BootReport.aiProfiles; match.start with any other profile is refused). 5: priority, stack and phases (prompt 16): a stack item carries its card as Forge shows it (StackItem.card) and says whether it is an ability (StackItem.ability), its source id only for a card the player may see; Forge's buttons of the priority step say what they do (Button.meaning); a selection's cards are only those the player may see. 6: targets and cost payment (prompt 17): Forge's players a player.tap would take now (Player.selectable) and its highlight on chosen players (Player.highlighted); the payment in progress (GameState.payment: the mana still to pay, the pool's colours Forge would take now) and paying from the mana pool (mana.use); a player.tap or mana.use Forge would not take is refused (no-effect). 7: declaring attackers (prompt 18): the declaration in progress (GameState.attack: the defender a creature tapped now attacks, every defender Forge offers, and the player's creatures a tap would not declare now with Forge's reason), the defending players a player.tap would switch to (Player.selectable), and what Forge's buttons of the declaration do (Button.meaning declare, attackAll, callBack).",
+      "const": 7
     },
 
     "EngineMessage": {
@@ -461,7 +461,7 @@
     },
     "TraceMarkers": {
       "title": "TraceMarkers",
-      "description": "What Forge marked for the human seat's GUI (look-ups in the GUI's own sets): playable (weakly selectable), highlighted, selectable; the players the running input would take, the highlighted players, and the payment in progress (as in the state).",
+      "description": "What Forge marked for the human seat's GUI (look-ups in the GUI's own sets): playable (weakly selectable), highlighted, selectable; the players the running input would take, the highlighted players, the payment and the declaration of attackers in progress (as in the state).",
       "type": "object",
       "additionalProperties": false,
       "required": ["playable", "highlighted", "selectable", "players", "highlightedPlayers"],
@@ -471,7 +471,8 @@
         "selectable": { "type": "array", "items": { "$ref": "#/$defs/CardId" } },
         "players": { "type": "array", "items": { "$ref": "#/$defs/PlayerId" }, "description": "Players a click would take in the running input (protocol 6: Player.selectable)." },
         "highlightedPlayers": { "type": "array", "items": { "$ref": "#/$defs/PlayerId" } },
-        "payment": { "$ref": "#/$defs/Payment" }
+        "payment": { "$ref": "#/$defs/Payment" },
+        "attack": { "$ref": "#/$defs/Attack" }
       }
     },
     "TraceQuestion": {
@@ -716,8 +717,48 @@
         "players": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/Player" } },
         "stack": { "type": "array", "items": { "$ref": "#/$defs/StackItem" } },
         "combat": { "type": "array", "items": { "$ref": "#/$defs/CombatEntry" } },
-        "payment": { "$ref": "#/$defs/Payment" }
+        "payment": { "$ref": "#/$defs/Payment" },
+        "attack": { "$ref": "#/$defs/Attack" }
       }
+    },
+    "Attack": {
+      "title": "Attack",
+      "description": "Forge's declaration of the player's attackers in progress (its attack input runs; absent otherwise). defender: whom a creature tapped now would attack (Forge's current defender, which it highlights); defenders: everything Forge lets the player attack, in Forge's order (players, planeswalkers, battles) - a player.tap on another defending player or a card.tap on another defending card makes it the defender; unavailable: the player's creatures on the battlefield, not attacking yet, that a tap would not declare as an attacker of the defender now, each with Forge's reason (CombatUtil.attackRefusal). All asked of Forge, never computed by the UI.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["defender", "defenders", "unavailable"],
+      "properties": {
+        "defender": { "anyOf": [{ "$ref": "#/$defs/EntityRef" }, { "type": "null" }] },
+        "defenders": { "type": "array", "items": { "$ref": "#/$defs/EntityRef" } },
+        "unavailable": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["card", "reason"],
+            "properties": {
+              "card": { "$ref": "#/$defs/CardId" },
+              "reason": { "$ref": "#/$defs/AttackRefusal" }
+            }
+          }
+        }
+      }
+    },
+    "EntityRef": {
+      "title": "EntityRef",
+      "description": "A player or a card (player and card ids are separate ranges).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": { "enum": ["player", "card"] },
+        "id": { "type": "integer" }
+      }
+    },
+    "AttackRefusal": {
+      "title": "AttackRefusal",
+      "description": "Why Forge would not declare a creature an attacker of the defender now (Forge's CombatUtil.attackRefusal, in its order of checks): tapped; sick = summoning sickness (no haste, no effect lets it attack); phasedOut; goaded = it must attack a player who did not goad it; restricted = a keyword or effect says it can't attack (e.g. defender); defender = it could attack another defender Forge offers, not this one; notCreature and tooLate for completeness (Forge's other refusals).",
+      "enum": ["tapped", "sick", "phasedOut", "goaded", "restricted", "defender", "notCreature", "tooLate"]
     },
     "Payment": {
       "title": "Payment",
@@ -753,7 +794,7 @@
         "life": { "type": "integer" },
         "hasPriority": { "type": "boolean" },
         "canAct": { "type": "boolean", "description": "Forge: the player has anything to do at all right now." },
-        "selectable": { "const": true, "description": "Forge: a player.tap on this player would do something in the running step now - choose or un-choose them as a target, choose them, pay life for mana. Asked of Forge's running input (the same checks its click runs), never computed by the UI." },
+        "selectable": { "const": true, "description": "Forge: a player.tap on this player would do something in the running step now - choose or un-choose them as a target, choose them, pay life for mana, make them the defender attackers are declared for (protocol 7). Asked of Forge's running input (the same checks its click runs), never computed by the UI." },
         "highlighted": { "const": true, "description": "Forge's highlight on the player: chosen (a target so far)." },
         "lost": { "type": "boolean" },
         "maxHandSize": { "type": "integer" },
@@ -1083,8 +1124,8 @@
     },
     "ButtonMeaning": {
       "title": "ButtonMeaning",
-      "description": "What one of Forge's buttons does, where the bridge knows it from Forge's own label keys (the priority step): pass = pass priority (Forge's OK), endTurn = pass priority until the end of this turn (Forge's End Turn), undo = take back the last action (Forge's Undo). Absent elsewhere.",
-      "enum": ["pass", "endTurn", "undo"]
+      "description": "What one of Forge's buttons does, where the bridge knows it from Forge's own label keys. The priority step: pass = pass priority (Forge's OK), endTurn = pass priority until the end of this turn (Forge's End Turn), undo = take back the last action (Forge's Undo). The declaration of attackers (protocol 7): declare = attack with the creatures declared so far - none: no attack (Forge's OK), attackAll = declare every creature that can attack (Forge's Alpha Strike), callBack = take every declared attacker back (Forge's Call Back). Absent elsewhere.",
+      "enum": ["pass", "endTurn", "undo", "declare", "attackAll", "callBack"]
     },
     "ConfirmQuestion": {
       "title": "ConfirmQuestion",

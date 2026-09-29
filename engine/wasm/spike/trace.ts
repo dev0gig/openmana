@@ -253,6 +253,13 @@ export const COVERAGE: Readonly<Record<string, string>> = {
   "stack-resolve": "a spell or ability resolved from the stack",
   "stack-response": "a spell or ability went on top of another one (stack depth 2 and more, resolved last in, first out)",
   attack: "the player declared attackers",
+  "attack-planeswalker": "the player attacked a planeswalker or battle (a card as defender; prompt 18)",
+  "attack-defender": "the player made another defender the defender by tapping it (a player.tap or card.tap Forge took while attackers were declared; prompt 18)",
+  "attack-all": "the player declared every creature that could attack with Forge's Alpha Strike (prompt 18)",
+  "attack-call-back": "the player took every declared attacker back with Forge's Call Back (prompt 18)",
+  "attack-unavailable-sick": "Forge said a creature of the player could not attack because of summoning sickness (the state's attack; prompt 18)",
+  "attack-unavailable-tapped": "Forge said a creature of the player could not attack because it was tapped (prompt 18)",
+  "attack-unavailable-restricted": "Forge said a creature of the player could not attack because of a keyword or effect, e.g. defender (prompt 18)",
   block: "the player declared a blocker",
   "block-multi": "the player blocked two or more attackers at once (assigned blockers to attackers)",
   "block-double": "the player blocked one attacker with two or more creatures",
@@ -285,7 +292,10 @@ export const COVERAGE: Readonly<Record<string, string>> = {
  * block assignment, zone movement, game end, and Commander - and since
  * prompt 16 the player's priority in the opponent's turn and answers on the
  * stack, since prompt 17 players chosen by tapping them, several targets,
- * mana from the pool, life for mana and decisions while a spell is cast. The
+ * mana from the pool, life for mana and decisions while a spell is cast, since
+ * prompt 18 the declaration of attackers - a planeswalker attacked, the
+ * defender switched, Alpha Strike and Call Back, and Forge's reasons why a
+ * creature cannot attack (summoning sickness, tapped, an effect). The
  * fixtures (engine/fixtures/differential) name what each covers;
  * the union must contain all of these.
  */
@@ -310,6 +320,13 @@ export const REQUIRED_COVERAGE: readonly string[] = [
   "stack-resolve",
   "stack-response",
   "attack",
+  "attack-planeswalker",
+  "attack-defender",
+  "attack-all",
+  "attack-call-back",
+  "attack-unavailable-sick",
+  "attack-unavailable-tapped",
+  "attack-unavailable-restricted",
   "block",
   "block-multi",
   "block-double",
@@ -327,6 +344,14 @@ export const REQUIRED_COVERAGE: readonly string[] = [
   "commander-return",
   "commander-damage",
 ];
+
+/** Whether the declaration of attackers at this checkpoint offers this player or card as a defender other than the current one. */
+function isDefender(snapshot: TraceSnapshot | null, kind: "player" | "card", id: number | undefined): boolean {
+  const attack = snapshot?.gui?.attack;
+  if (attack === undefined || id === undefined) return false;
+  const current = attack.defender;
+  return attack.defenders.some((d) => d.kind === kind && d.id === id) && !(current !== null && current.kind === kind && current.id === id);
+}
 
 function zoneOf(ref: unknown): { zone: string; player: string } | null {
   if (typeof ref !== "string") return null;
@@ -399,6 +424,9 @@ export function traceCoverage(entries: readonly TraceEntry[]): Record<string, nu
             if (q && q["kind"] === "buttons") {
               if (q["purpose"] === "priority" && input["button"] === 1) hit("priority-pass");
               if (q["purpose"] === "payment" && input["button"] === 1) hit("payment-auto");
+              // Forge's second button of the declaration: Alpha Strike, or Call Back once attackers are declared.
+              if (q["purpose"] === "attack" && input["button"] === 2) hit("attack-all");
+              if (q["purpose"] === "attackDeclared" && input["button"] === 2) hit("attack-call-back");
             }
             if (q && q["kind"] === "select") hit("decision-select");
           } else if (input["type"] === "card.tap") {
@@ -409,10 +437,12 @@ export function traceCoverage(entries: readonly TraceEntry[]): Record<string, nu
               taps.set(seq, (previous?.stack.length ?? 0) > 0 ? ["priority-play", "priority-response"] : ["priority-play"]);
               casting = seq;
             } else if (purposes.has("payment")) taps.set(seq, ["payment-manual"]);
+            else if (isDefender(previous, "card", num(input["card"]))) taps.set(seq, ["attack-defender"]);
           } else if (input["type"] === "player.tap") {
             const seq = num(input["seq"]) ?? -1;
             if ([...open.values()].some((q) => q["kind"] === "select")) taps.set(seq, ["target-player-tap"]);
             else if (purposes.has("payment")) taps.set(seq, ["payment-life"]);
+            else if (isDefender(previous, "player", num(input["player"]))) taps.set(seq, ["attack-defender"]);
           } else if (input["type"] === "mana.use") {
             taps.set(num(input["seq"]) ?? -1, ["payment-pool"]);
           } else if (input["type"] === "state.request") {
@@ -443,7 +473,10 @@ export function traceCoverage(entries: readonly TraceEntry[]): Record<string, nu
           hit("stack-resolve");
           break;
         case "attackers":
-          if (e["player"] === human && Array.isArray(e["attacks"]) && e["attacks"].length > 0) hit("attack");
+          if (e["player"] === human && Array.isArray(e["attacks"]) && e["attacks"].length > 0) {
+            hit("attack");
+            if ((e["attacks"] as { defender?: unknown }[]).some((a) => typeof a.defender === "string" && a.defender.startsWith("c"))) hit("attack-planeswalker");
+          }
           break;
         case "blockers":
           if (e["player"] === human && Array.isArray(e["blocks"])) {
@@ -472,6 +505,11 @@ export function traceCoverage(entries: readonly TraceEntry[]): Record<string, nu
       }
     }
     previous = entry.snapshot;
+    for (const refused of entry.snapshot.gui?.attack?.unavailable ?? []) {
+      if (refused.reason === "sick") hit("attack-unavailable-sick");
+      if (refused.reason === "tapped") hit("attack-unavailable-tapped");
+      if (refused.reason === "restricted") hit("attack-unavailable-restricted");
+    }
     if (human !== null) {
       const me = entry.snapshot.players.find((p) => p.id === human);
       for (const c of me?.commanders ?? []) {

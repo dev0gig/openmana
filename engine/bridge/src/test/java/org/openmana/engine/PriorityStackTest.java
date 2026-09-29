@@ -274,7 +274,11 @@ public class PriorityStackTest {
 
     // ── Buttons of the priority step ──────────────────────────────────────────────
 
-    /** OK is "pass", the second button "end turn" or "undo"; buttons of every other step carry no meaning. */
+    /**
+     * OK is "pass", the second button "end turn" or "undo"; buttons of every
+     * other step carry no meaning - except the declaration of attackers
+     * (protocol 7, checked in AttackersTest).
+     */
     @Test
     public void theButtonsOfThePrioritySayWhatTheyDo() {
         final Set<String> seconds = new TreeSet<>();
@@ -289,6 +293,8 @@ public class PriorityStackTest {
                     final String second = meaning(m, 2);
                     assertTrue(Protocol.MEANING_END_TURN.equals(second) || Protocol.MEANING_UNDO.equals(second), m.toString());
                     seconds.add(second);
+                } else if (isQuestion(m, Protocol.KIND_BUTTONS, Protocol.PURPOSE_ATTACK) || isQuestion(m, Protocol.KIND_BUTTONS, Protocol.PURPOSE_ATTACK_DECLARED)) {
+                    continue;
                 } else {
                     others++;
                     assertFalse(button(m, 1).has("meaning") || button(m, 2).has("meaning"), "a meaning outside the priority: " + m);

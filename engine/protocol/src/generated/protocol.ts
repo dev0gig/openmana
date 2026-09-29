@@ -5,9 +5,9 @@
  */
 
 /**
- * Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace). 4: card language (boot argument --card-language, BootReport.cardLanguage) and Forge's AI profiles (BootReport.aiProfiles; match.start with any other profile is refused). 5: priority, stack and phases (prompt 16): a stack item carries its card as Forge shows it (StackItem.card) and says whether it is an ability (StackItem.ability), its source id only for a card the player may see; Forge's buttons of the priority step say what they do (Button.meaning); a selection's cards are only those the player may see. 6: targets and cost payment (prompt 17): Forge's players a player.tap would take now (Player.selectable) and its highlight on chosen players (Player.highlighted); the payment in progress (GameState.payment: the mana still to pay, the pool's colours Forge would take now) and paying from the mana pool (mana.use); a player.tap or mana.use Forge would not take is refused (no-effect).
+ * Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace). 4: card language (boot argument --card-language, BootReport.cardLanguage) and Forge's AI profiles (BootReport.aiProfiles; match.start with any other profile is refused). 5: priority, stack and phases (prompt 16): a stack item carries its card as Forge shows it (StackItem.card) and says whether it is an ability (StackItem.ability), its source id only for a card the player may see; Forge's buttons of the priority step say what they do (Button.meaning); a selection's cards are only those the player may see. 6: targets and cost payment (prompt 17): Forge's players a player.tap would take now (Player.selectable) and its highlight on chosen players (Player.highlighted); the payment in progress (GameState.payment: the mana still to pay, the pool's colours Forge would take now) and paying from the mana pool (mana.use); a player.tap or mana.use Forge would not take is refused (no-effect). 7: declaring attackers (prompt 18): the declaration in progress (GameState.attack: the defender a creature tapped now attacks, every defender Forge offers, and the player's creatures a tap would not declare now with Forge's reason), the defending players a player.tap would switch to (Player.selectable), and what Forge's buttons of the declaration do (Button.meaning declare, attackAll, callBack).
  */
-export type ProtocolVersion = 6;
+export type ProtocolVersion = 7;
 /**
  * Everything the worker posts to the page: lifecycle messages of the worker host (engine.*, match.finished, diagnostics.*) and the game messages of the bridge.
  */
@@ -173,6 +173,11 @@ export type TraceEntityRef = string;
  */
 export type TraceTarget = string;
 /**
+ * Why Forge would not declare a creature an attacker of the defender now (Forge's CombatUtil.attackRefusal, in its order of checks): tapped; sick = summoning sickness (no haste, no effect lets it attack); phasedOut; goaded = it must attack a player who did not goad it; restricted = a keyword or effect says it can't attack (e.g. defender); defender = it could attack another defender Forge offers, not this one; notCreature and tooLate for completeness (Forge's other refusals).
+ */
+export type AttackRefusal =
+  "tapped" | "sick" | "phasedOut" | "goaded" | "restricted" | "defender" | "notCreature" | "tooLate";
+/**
  * Strictly increasing within a match, never reused.
  */
 export type QuestionId = number;
@@ -213,9 +218,9 @@ export type Question =
 export type Item = VisibleItem | HiddenItem;
 export type ItemNr = number;
 /**
- * What one of Forge's buttons does, where the bridge knows it from Forge's own label keys (the priority step): pass = pass priority (Forge's OK), endTurn = pass priority until the end of this turn (Forge's End Turn), undo = take back the last action (Forge's Undo). Absent elsewhere.
+ * What one of Forge's buttons does, where the bridge knows it from Forge's own label keys. The priority step: pass = pass priority (Forge's OK), endTurn = pass priority until the end of this turn (Forge's End Turn), undo = take back the last action (Forge's Undo). The declaration of attackers (protocol 7): declare = attack with the creatures declared so far - none: no attack (Forge's OK), attackAll = declare every creature that can attack (Forge's Alpha Strike), callBack = take every declared attacker back (Forge's Call Back). Absent elsewhere.
  */
-export type ButtonMeaning = "pass" | "endTurn" | "undo";
+export type ButtonMeaning = "pass" | "endTurn" | "undo" | "declare" | "attackAll" | "callBack";
 /**
  * Number of an input within the match, from 1, without gaps.
  */
@@ -667,7 +672,7 @@ export interface TraceCombatEntry {
   blockers: CardId[];
 }
 /**
- * What Forge marked for the human seat's GUI (look-ups in the GUI's own sets): playable (weakly selectable), highlighted, selectable; the players the running input would take, the highlighted players, and the payment in progress (as in the state).
+ * What Forge marked for the human seat's GUI (look-ups in the GUI's own sets): playable (weakly selectable), highlighted, selectable; the players the running input would take, the highlighted players, the payment and the declaration of attackers in progress (as in the state).
  */
 export interface TraceMarkers {
   playable: CardId[];
@@ -679,6 +684,7 @@ export interface TraceMarkers {
   players: PlayerId[];
   highlightedPlayers: PlayerId[];
   payment?: Payment;
+  attack?: Attack;
 }
 /**
  * Forge's mana payment in progress (its payment input runs; absent otherwise). cost: the mana still to pay in Forge's mana symbols, as Forge's prompt shows it (like Card.cost; "0" = nothing left, an X already announced is included as its amount). pool: the colours of floating mana Forge would pay with now (mana.use), WUBRG then C for colourless; empty = none.
@@ -686,6 +692,24 @@ export interface TraceMarkers {
 export interface Payment {
   cost: string;
   pool: string;
+}
+/**
+ * Forge's declaration of the player's attackers in progress (its attack input runs; absent otherwise). defender: whom a creature tapped now would attack (Forge's current defender, which it highlights); defenders: everything Forge lets the player attack, in Forge's order (players, planeswalkers, battles) - a player.tap on another defending player or a card.tap on another defending card makes it the defender; unavailable: the player's creatures on the battlefield, not attacking yet, that a tap would not declare as an attacker of the defender now, each with Forge's reason (CombatUtil.attackRefusal). All asked of Forge, never computed by the UI.
+ */
+export interface Attack {
+  defender: EntityRef | null;
+  defenders: EntityRef[];
+  unavailable: {
+    card: CardId;
+    reason: AttackRefusal;
+  }[];
+}
+/**
+ * A player or a card (player and card ids are separate ranges).
+ */
+export interface EntityRef {
+  kind: "player" | "card";
+  id: number;
 }
 /**
  * A question without its words (text, button labels, card views): kind, limits, flags and what its items refer to.
@@ -752,6 +776,7 @@ export interface GameState {
   stack: StackItem[];
   combat: CombatEntry[];
   payment?: Payment;
+  attack?: Attack;
 }
 export interface Player {
   id: PlayerId;
@@ -765,7 +790,7 @@ export interface Player {
    */
   canAct: boolean;
   /**
-   * Forge: a player.tap on this player would do something in the running step now - choose or un-choose them as a target, choose them, pay life for mana. Asked of Forge's running input (the same checks its click runs), never computed by the UI.
+   * Forge: a player.tap on this player would do something in the running step now - choose or un-choose them as a target, choose them, pay life for mana, make them the defender attackers are declared for (protocol 7). Asked of Forge's running input (the same checks its click runs), never computed by the UI.
    */
   selectable?: true;
   /**

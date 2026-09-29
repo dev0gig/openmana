@@ -95,6 +95,11 @@ final class StateBuilder {
         if (payment != null) {
             o.add("payment", payment);
         }
+        // The declaration of attackers in progress, asked of Forge's attack input (protocol 7).
+        final JsonObject attack = RunningInput.attack(gui.getGameController());
+        if (attack != null) {
+            o.add("attack", attack);
+        }
         return o;
     }
 

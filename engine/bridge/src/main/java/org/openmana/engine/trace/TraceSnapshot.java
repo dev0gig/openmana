@@ -264,7 +264,8 @@ final class TraceSnapshot {
             }
         }
         // Protocol 6: the players the running input would take, Forge's
-        // highlighted players and the payment in progress - the same
+        // highlighted players and the payment in progress (protocol 7: and the
+        // declaration of attackers) - the same
         // questions to the running input the state asks (RunningInput).
         final JsonArray players = new JsonArray();
         final JsonArray highlightedPlayers = new JsonArray();
@@ -286,6 +287,11 @@ final class TraceSnapshot {
         final JsonObject payment = RunningInput.payment(gui.getGameController());
         if (payment != null) {
             o.add("payment", payment);
+        }
+        // Protocol 7: the declaration of attackers in progress, as in the state.
+        final JsonObject attack = RunningInput.attack(gui.getGameController());
+        if (attack != null) {
+            o.add("attack", attack);
         }
         return o;
     }

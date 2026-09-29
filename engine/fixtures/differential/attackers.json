@@ -1,0 +1,13 @@
+{
+  "description": "Declaring attackers (prompt 18): green creatures against green planeswalkers. The player declares attackers three ways in turn (guided): tapping them one by one - first for a planeswalker Forge offers as defender (tapped to make it the defender), then for the opponent again (tapped) -, Forge's Alpha Strike, and Alpha Strike taken back with Call Back. Forge says why a creature cannot attack: summoning sickness (cast this turn), tapped (Llanowar Elves tapped for mana), an effect (Wall of Wood's defender). In German, like the app: its moments are the attack scenes of the game table's tests.",
+  "match": {
+    "seed": 8,
+    "format": "constructed",
+    "human": { "name": "Player", "deck": "smoke-green-attackers" },
+    "ai": { "name": "Forge AI", "profile": "Default", "deck": "smoke-green-walkers" }
+  },
+  "player": { "attack": "guided", "block": "one", "play": "all" },
+  "engine": { "language": "de-DE" },
+  "wasm": { "node": ["lazy"], "browser": ["lazy"] },
+  "covers": ["attack", "attack-planeswalker", "attack-defender", "attack-all", "attack-call-back", "attack-unavailable-sick", "attack-unavailable-tapped", "attack-unavailable-restricted"]
+}

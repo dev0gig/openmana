@@ -1,0 +1,16 @@
+{
+  "name": "OpenMana Smoke Green Attackers",
+  "main": [
+    { "card": "Forest", "count": 20 },
+    { "card": "Llanowar Elves", "count": 4 },
+    { "card": "Wall of Wood", "count": 4 },
+    { "card": "Grizzly Bears", "count": 4 },
+    { "card": "Runeclaw Bear", "count": 4 },
+    { "card": "Centaur Courser", "count": 4 },
+    { "card": "Kalonian Tusker", "count": 4 },
+    { "card": "Trained Armodon", "count": 4 },
+    { "card": "Giant Spider", "count": 4 },
+    { "card": "Giant Growth", "count": 4 },
+    { "card": "Rampant Growth", "count": 4 }
+  ]
+}

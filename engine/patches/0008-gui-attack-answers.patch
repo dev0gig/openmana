@@ -1,0 +1,173 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: dev0gig <115336867+dev0gig@users.noreply.github.com>
+Date: Tue, 29 Sep 2026 10:00:00 +0200
+Subject: [PATCH 8/8] Read-only answers for GUIs: why a creature may not attack,
+ the defender
+
+Forge's own GUIs mark the creatures that can attack (setWeaklySelectable)
+and let the declaration of attackers ignore a click on any other one
+(InputAttack.onCardSelected returns false). A GUI that also says why a
+creature is not offered - tapped, summoning sick, an effect forbids it -
+and which defender a creature tapped now would attack needs Forge's own
+answers:
+
+- CombatUtil.attackRefusal(Card, GameEntity): the reason canAttack
+  refuses, or null. The checks of canAttack moved unchanged, in the same
+  order, into attackRefusal; canAttack is attackRefusal == null. The
+  combined basic check is split into single checks in its own order
+  (short-circuit order unchanged).
+- InputAttack.getCurrentDefender(): the defender a creature declared now
+  attacks (the one Forge highlights).
+- InputAttack.isSelectablePlayer(Player): whether a click on this player
+  would make them the defender (onPlayerSelected's check, moved into
+  isDefender, which onCardSelected uses too) and they are not already.
+
+No rule, card or AI behaviour changes: every new method only asks, and
+the moved code runs as before.
+
+Written for OpenMana on 2026-09-29.
+---
+ .../java/forge/game/combat/CombatUtil.java    | 61 ++++++++++++++++---
+ .../gamemodes/match/input/InputAttack.java    | 26 +++++++-
+ 2 files changed, 75 insertions(+), 12 deletions(-)
+
+diff --git a/forge-game/src/main/java/forge/game/combat/CombatUtil.java b/forge-game/src/main/java/forge/game/combat/CombatUtil.java
+index 3bafc99..d99755c 100644
+--- a/forge-game/src/main/java/forge/game/combat/CombatUtil.java
++++ b/forge-game/src/main/java/forge/game/combat/CombatUtil.java
+@@ -196,19 +196,60 @@ public class CombatUtil {
+     }
+ 
+     private static boolean canAttack(final Card attacker, final GameEntity defender, final boolean forNextTurn) {
++        // OpenMana patch 0008 (2026-09-29): the checks moved unchanged, in the same order, into attackRefusal.
++        return attackRefusal(attacker, defender, forNextTurn) == null;
++    }
++
++    /**
++     * OpenMana patch 0008 (2026-09-29): why a creature may not attack a
++     * defender now - the check of {@link #canAttack(Card, GameEntity)}, which
++     * refuses exactly when this names a reason. A GUI can say why a creature
++     * is not offered as an attacker instead of guessing.
++     */
++    public enum AttackRefusal {
++        /** Not a creature, or a battle. */
++        NOT_A_CREATURE,
++        TAPPED,
++        PHASED_OUT,
++        /** Summoning sickness (no haste, no effect lets it attack anyway). */
++        SICK,
++        /** The declaration of attackers is over. */
++        TOO_LATE,
++        /** Goaded: it must attack a player who did not goad it. */
++        GOADED,
++        /** A keyword or static ability says it can't attack (this defender). */
++        CANT_ATTACK
++    }
++
++    /** OpenMana patch 0008 (2026-09-29): why canAttack(attacker, defender) refuses, or null if it does not. */
++    public static AttackRefusal attackRefusal(final Card attacker, final GameEntity defender) {
++        return attackRefusal(attacker, defender, false);
++    }
++
++    private static AttackRefusal attackRefusal(final Card attacker, final GameEntity defender, final boolean forNextTurn) {
+         final Game game = attacker.getGame();
+ 
+         if (attacker.isBattle()) {
+-            return false;
++            return AttackRefusal.NOT_A_CREATURE;
+         }
+ 
+         // Basic checks (unless is for next turn)
+-        if (!forNextTurn &&
+-                (!attacker.isCreature()
+-                || attacker.isTapped() || attacker.isPhasedOut()
+-                || isAttackerSick(attacker, defender)
+-                || game.getPhaseHandler().getPhase().isAfter(PhaseType.COMBAT_DECLARE_ATTACKERS))) {
+-            return false;
++        if (!forNextTurn) {
++            if (!attacker.isCreature()) {
++                return AttackRefusal.NOT_A_CREATURE;
++            }
++            if (attacker.isTapped()) {
++                return AttackRefusal.TAPPED;
++            }
++            if (attacker.isPhasedOut()) {
++                return AttackRefusal.PHASED_OUT;
++            }
++            if (isAttackerSick(attacker, defender)) {
++                return AttackRefusal.SICK;
++            }
++            if (game.getPhaseHandler().getPhase().isAfter(PhaseType.COMBAT_DECLARE_ATTACKERS)) {
++                return AttackRefusal.TOO_LATE;
++            }
+         }
+ 
+         // Goad logic
+@@ -223,7 +264,7 @@ public class CombatUtil {
+                         // found a player which does not goad that creature
+                         // and creature can attack this player or planeswalker
+                         if (!attacker.isGoadedBy((Player) ge) && canAttack(attacker, ge)) {
+-                            return false;
++                            return AttackRefusal.GOADED;
+                         }
+                     }
+                 }
+@@ -232,10 +273,10 @@ public class CombatUtil {
+ 
+         // CantAttack static abilities
+         if (StaticAbilityCantAttackBlock.cantAttack(attacker, defender)) {
+-            return false;
++            return AttackRefusal.CANT_ATTACK;
+         }
+ 
+-        return true;
++        return null;
+     }
+ 
+     public static boolean isAttackerSick(final Card attacker, final GameEntity defender) {
+diff --git a/forge-gui/src/main/java/forge/gamemodes/match/input/InputAttack.java b/forge-gui/src/main/java/forge/gamemodes/match/input/InputAttack.java
+index c63f3ef..feb8f64 100644
+--- a/forge-gui/src/main/java/forge/gamemodes/match/input/InputAttack.java
++++ b/forge-gui/src/main/java/forge/gamemodes/match/input/InputAttack.java
+@@ -165,9 +165,31 @@ public class InputAttack extends InputSyncronizedBase {
+         updateMessage();
+     }
+ 
++    /**
++     * OpenMana patch 0008 (2026-09-29): the entity a creature declared now
++     * attacks (the current defender Forge highlights), or null.
++     */
++    public final GameEntity getCurrentDefender() {
++        return currentDefender;
++    }
++
++    /**
++     * OpenMana patch 0008 (2026-09-29): whether a click on this player would
++     * make them the defender - the check onPlayerSelected runs - and they are
++     * not the defender already (a click would change nothing).
++     */
++    public final boolean isSelectablePlayer(final Player player) {
++        return isDefender(player) && player != currentDefender;
++    }
++
++    /** OpenMana patch 0008 (2026-09-29): the check moved unchanged out of onPlayerSelected and onCardSelected. */
++    private boolean isDefender(final GameEntity entity) {
++        return defenders.contains(entity);
++    }
++
+     @Override
+     protected final void onPlayerSelected(Player selected, final ITriggerEvent triggerEvent) {
+-        if (defenders.contains(selected)) {
++        if (isDefender(selected)) {
+             setCurrentDefender(selected);
+         } else {
+             getController().getGui().flashIncorrectAction(); // cannot attack that player
+@@ -228,7 +250,7 @@ public class InputAttack extends InputSyncronizedBase {
+         }
+ 
+         if (card.getController().isOpponentOf(playerAttacks) || playerAttacks.isOpponentOf(card.getProtectingPlayer())) {
+-            if (defenders.contains(card)) { // planeswalker or battle?
++            if (isDefender(card)) { // planeswalker or battle?
+                 setCurrentDefender(card);
+                 updateMessage();
+                 return true;

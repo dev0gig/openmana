@@ -1,8 +1,13 @@
 package org.openmana.engine.bridge;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import forge.card.mana.ManaAtom;
 import forge.game.Game;
+import forge.game.GameEntity;
+import forge.game.card.Card;
+import forge.game.combat.Combat;
+import forge.game.combat.CombatUtil;
 import forge.game.player.Player;
 import forge.game.player.PlayerView;
 import forge.gamemodes.match.input.Input;
@@ -17,15 +22,17 @@ import forge.player.PlayerControllerHuman;
 /**
  * What Forge's running input for the human seat would take now (protocol 6,
  * prompt 17): a click on a player, floating mana from the pool, and the mana
- * still to pay. Only asked, never computed: every answer comes from the input
- * itself (Forge patch 0007 gives the inputs that take a player or mana the
- * same checks their click runs, without the click's effect).
+ * still to pay; and the declaration of attackers in progress (protocol 7,
+ * prompt 18): the defender, every defender and why a creature would not be
+ * declared. Only asked, never computed: every answer comes from the input
+ * itself or from Forge's own check (Forge patches 0007 and 0008 give the
+ * inputs the same checks their click runs, without the click's effect).
  *
  * <p>Forge's inputs that react to a player click at all are exactly four
  * (they override {@code onPlayerSelected}): the target selection, the choice
  * of entities from a list, the payment of a cost (life for Phyrexian mana)
- * and the declaration of attackers (the defender - prompt 18, not asked
- * here). Any other input ignores a player click.
+ * and the declaration of attackers (a defending player becomes the
+ * defender). Any other input ignores a player click.
  */
 public final class RunningInput {
 
@@ -62,13 +69,12 @@ public final class RunningInput {
 
     /**
      * Whether a click on this player would do something in the running input
-     * now: TRUE / FALSE where Forge's input says so, null for the declaration
-     * of attackers (the defender a click chooses belongs to prompt 18) and
-     * while no input runs.
+     * now: TRUE / FALSE where Forge's input says so, null while no input runs
+     * (or nothing is asked).
      */
     public static Boolean takesPlayer(final IGameController controller, final PlayerView view) {
         final Input input = current(controller);
-        if (!asking || input == null || input instanceof InputAttack || !(controller instanceof PlayerControllerHuman human)) {
+        if (!asking || input == null || !(controller instanceof PlayerControllerHuman human)) {
             return null;
         }
         final Game game = human.getGame();
@@ -85,6 +91,10 @@ public final class RunningInput {
             }
             if (input instanceof InputPayMana payment) {
                 return payment.isSelectablePlayer(player);
+            }
+            if (input instanceof InputAttack attack) {
+                // Protocol 7: a defending player who is not the defender yet (patch 0008).
+                return attack.isSelectablePlayer(player);
             }
         } catch (final RuntimeException e) {
             // Asking must never break the game; a player Forge cannot judge is not offered.
@@ -122,6 +132,98 @@ public final class RunningInput {
         } catch (final RuntimeException e) {
             return null;
         }
+    }
+
+    /**
+     * The declaration of attackers in progress as the protocol's Attack, or
+     * null when Forge's attack input does not run (protocol 7, prompt 18):
+     * the defender a creature tapped now attacks (Forge's current defender),
+     * every defender Forge offers (the combat's, in Forge's order) and the
+     * attacking player's creatures on the battlefield that are not attacking
+     * and that a tap would not declare - with Forge's reason
+     * (CombatUtil.attackRefusal, patch 0008), or "defender" when Forge would
+     * let it attack another of the defenders it offers.
+     */
+    public static JsonObject attack(final IGameController controller) {
+        if (!asking || !(current(controller) instanceof InputAttack input) || !(controller instanceof PlayerControllerHuman human)) {
+            return null;
+        }
+        try {
+            final Game game = human.getGame();
+            final Combat combat = game == null ? null : game.getCombat();
+            if (combat == null) {
+                return null;
+            }
+            final GameEntity defender = input.getCurrentDefender();
+            final JsonObject o = new JsonObject();
+            o.add("defender", defender == null ? com.google.gson.JsonNull.INSTANCE : entity(defender));
+            final JsonArray defenders = new JsonArray();
+            for (final GameEntity d : combat.getDefenders()) {
+                final JsonObject ref = entity(d);
+                if (ref != null) {
+                    defenders.add(ref);
+                }
+            }
+            o.add("defenders", defenders);
+            final JsonArray unavailable = new JsonArray();
+            if (defender != null && combat.getAttackingPlayer() != null) {
+                for (final Card c : combat.getAttackingPlayer().getCreaturesInPlay()) {
+                    if (combat.isAttacking(c)) {
+                        continue;
+                    }
+                    final CombatUtil.AttackRefusal refusal = CombatUtil.attackRefusal(c, defender);
+                    if (refusal == null) {
+                        continue;
+                    }
+                    final JsonObject entry = new JsonObject();
+                    entry.addProperty("card", c.getId());
+                    entry.addProperty("reason", attacksAnother(c, defender, combat) ? Protocol.ATTACK_REFUSAL_DEFENDER : reasonOf(refusal));
+                    unavailable.add(entry);
+                }
+            }
+            o.add("unavailable", unavailable);
+            return o;
+        } catch (final RuntimeException e) {
+            // Asking must never break the game.
+            return null;
+        }
+    }
+
+    /** Whether Forge would let the creature attack one of the other defenders it offers. */
+    private static boolean attacksAnother(final Card c, final GameEntity defender, final Combat combat) {
+        for (final GameEntity other : combat.getDefenders()) {
+            if (other != defender && CombatUtil.canAttack(c, other)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String reasonOf(final CombatUtil.AttackRefusal refusal) {
+        return switch (refusal) {
+            case TAPPED -> Protocol.ATTACK_REFUSAL_TAPPED;
+            case SICK -> Protocol.ATTACK_REFUSAL_SICK;
+            case PHASED_OUT -> Protocol.ATTACK_REFUSAL_PHASED_OUT;
+            case GOADED -> Protocol.ATTACK_REFUSAL_GOADED;
+            case CANT_ATTACK -> Protocol.ATTACK_REFUSAL_RESTRICTED;
+            case NOT_A_CREATURE -> Protocol.ATTACK_REFUSAL_NOT_CREATURE;
+            case TOO_LATE -> Protocol.ATTACK_REFUSAL_TOO_LATE;
+        };
+    }
+
+    /** A player or a card as the protocol's EntityRef, or null for anything else. */
+    private static JsonObject entity(final GameEntity e) {
+        final JsonObject o = new JsonObject();
+        if (e instanceof Player p) {
+            o.addProperty("kind", "player");
+            o.addProperty("id", p.getId());
+        } else if (e instanceof Card c) {
+            o.addProperty("kind", "card");
+            o.addProperty("id", c.getId());
+        } else {
+            return null;
+        }
+        return o;
     }
 
     /** The mana-pool colour of a protocol letter (W, U, B, R, G, C), or -1. */

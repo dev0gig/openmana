@@ -243,8 +243,8 @@ final class BridgeGuiGame extends AbstractGuiGame {
      * target or to pay life for Phyrexian mana. Forge's selectPlayer says
      * nothing about the result, so the running input is asked first (the same
      * checks its click runs, RunningInput): a player it would not take is
-     * refused, never swallowed. The declaration of attackers still takes any
-     * tap (its defender: prompt 18).
+     * refused, never swallowed - also in the declaration of attackers, where a
+     * tap makes a defending player the defender (protocol 7).
      */
     private void tapPlayer(final JsonObject input) {
         final PlayerView player = findPlayer(intField(input, "player"));
@@ -1301,14 +1301,30 @@ final class BridgeGuiGame extends AbstractGuiGame {
      * label keys like {@link #purposeFromLabels}: InputPassPriority shows OK
      * (pass priority) and as its second button Undo (n) while the last action
      * can be taken back (tryUndoLastAction), otherwise End Turn (pass until
-     * the end of the turn: autoPassUntilEndOfTurn). Null elsewhere: the UI
-     * then shows Forge's own words.
+     * the end of the turn: autoPassUntilEndOfTurn). The same for the
+     * declaration of attackers (protocol 7): OK declares, the second button
+     * is Alpha Strike or Call Back. Null elsewhere: the UI then shows Forge's
+     * own words.
      */
     static String meaningOf(final String purpose, final int nr, final String label) {
-        if (!Protocol.PURPOSE_PRIORITY.equals(purpose) || label == null) {
+        if (label == null) {
             return null;
         }
         final Localizer l = Localizer.getInstance();
+        // Protocol 7: the declaration of attackers (InputAttack.updatePrompt) shows OK
+        // and, as its second button, Alpha Strike or - once attackers are declared - Call Back.
+        if (Protocol.PURPOSE_ATTACK.equals(purpose) || Protocol.PURPOSE_ATTACK_DECLARED.equals(purpose)) {
+            if (nr == 1) {
+                return label.equals(l.getMessage("lblOK")) ? Protocol.MEANING_DECLARE : null;
+            }
+            if (label.equals(l.getMessage("lblAlphaStrike"))) {
+                return Protocol.MEANING_ATTACK_ALL;
+            }
+            return label.equals(l.getMessage("lblCallBack")) ? Protocol.MEANING_CALL_BACK : null;
+        }
+        if (!Protocol.PURPOSE_PRIORITY.equals(purpose)) {
+            return null;
+        }
         if (nr == 1) {
             return label.equals(l.getMessage("lblOK")) ? Protocol.MEANING_PASS : null;
         }

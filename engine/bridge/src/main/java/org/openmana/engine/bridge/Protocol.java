@@ -21,7 +21,7 @@ public final class Protocol {
      * ProtocolVersion). UI, worker host and engine must speak exactly the same
      * version; change it together with the schema.
      */
-    public static final int VERSION = 6;
+    public static final int VERSION = 7;
 
     // --- engine -> UI ---------------------------------------------------------
     public static final String GAME_STARTED = "game.started";
@@ -87,6 +87,25 @@ public final class Protocol {
     public static final String MEANING_END_TURN = "endTurn";
     /** Forge's Undo (n): take back the last action (e.g. a land tapped for mana). */
     public static final String MEANING_UNDO = "undo";
+
+    // --- what a button of the declaration of attackers does (Button.meaning, protocol 7) ---
+    /** Forge's OK while attackers are declared: attack with the declared creatures (none: no attack). */
+    public static final String MEANING_DECLARE = "declare";
+    /** Forge's Alpha Strike: declare every creature that can attack. */
+    public static final String MEANING_ATTACK_ALL = "attackAll";
+    /** Forge's Call Back: take every declared attacker back. */
+    public static final String MEANING_CALL_BACK = "callBack";
+
+    // --- why Forge would not declare a creature an attacker (Attack.unavailable, protocol 7) ---
+    public static final String ATTACK_REFUSAL_TAPPED = "tapped";
+    public static final String ATTACK_REFUSAL_SICK = "sick";
+    public static final String ATTACK_REFUSAL_PHASED_OUT = "phasedOut";
+    public static final String ATTACK_REFUSAL_GOADED = "goaded";
+    public static final String ATTACK_REFUSAL_RESTRICTED = "restricted";
+    /** It could attack another defender Forge offers, not the current one. */
+    public static final String ATTACK_REFUSAL_DEFENDER = "defender";
+    public static final String ATTACK_REFUSAL_NOT_CREATURE = "notCreature";
+    public static final String ATTACK_REFUSAL_TOO_LATE = "tooLate";
 
     // --- reasons of input.rejected ----------------------------------------------
     /** The question was withdrawn or already answered. Normal, not an error. */
