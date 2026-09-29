@@ -1,4 +1,4 @@
-# OpenMana-Protokoll (Version 6)
+# OpenMana-Protokoll (Version 7)
 
 Der **einzige Vertrag** zwischen der OpenMana-Oberfläche und der Engine (Forge
 im Dedicated Worker). Die Oberfläche sieht keine Forge-Klassen und rechnet
@@ -9,7 +9,8 @@ Version 2 mit Prompt 04 (siehe [unten](#änderungen-in-version-2-prompt-04)),
 Version 3 mit Prompt 05 (siehe [unten](#änderungen-in-version-3-prompt-05)),
 Version 4 mit Prompt 12 (siehe [unten](#änderungen-in-version-4-prompt-12)),
 Version 5 mit Prompt 16 (siehe [unten](#änderungen-in-version-5-prompt-16)),
-Version 6 mit Prompt 17 (siehe [unten](#änderungen-in-version-6-prompt-17)).
+Version 6 mit Prompt 17 (siehe [unten](#änderungen-in-version-6-prompt-17)),
+Version 7 mit Prompt 18 (siehe [unten](#änderungen-in-version-7-prompt-18)).
 
 ```
  UI ──ruft──▶ EngineClient (Main Thread) ──WorkerCommand (postMessage, nur wenn der Worker frei ist)──▶ Worker-Host
@@ -30,7 +31,7 @@ Version 6 mit Prompt 17 (siehe [unten](#änderungen-in-version-6-prompt-17)).
 
 ## Versionen
 
-- `ProtocolVersion` ist eine ganze Zahl (jetzt **6**). UI, Worker-Host und
+- `ProtocolVersion` ist eine ganze Zahl (jetzt **7**). UI, Worker-Host und
   Engine müssen **genau dieselbe** Version sprechen; es gibt keine
   Aushandlung. Eine App liefert UI und Engine immer zusammen aus
   (`engine.lock.json`, Prompt 25/26); eine Abweichung heißt „alter Cache“ oder
@@ -253,6 +254,34 @@ die Hand der KI).
 Vergleich, Prüfsumme und Abdeckung: [`engine/wasm/spike/trace.ts`](../wasm/spike/trace.ts);
 die Testpartien: [`engine/fixtures`](../fixtures/README.md).
 
+## Änderungen in Version 7 (Prompt 18)
+
+- **Angreifer deklarieren:** `GameState.attack` gibt es genau, solange Forges
+  Angriffs-Eingabe läuft: `defender` = wen eine jetzt angetippte Kreatur
+  angreift (Forges aktuelles Angriffsziel, das es hervorhebt), `defenders` =
+  alles, was Forge angreifen lässt (Spieler, Planeswalker, Kämpfe, in Forges
+  Reihenfolge), `unavailable` = die Kreaturen des Spielers auf dem Spielfeld,
+  die noch nicht angreifen und die ein Tipp jetzt nicht deklarieren würde,
+  je mit Forges Grund (`AttackRefusal`: `tapped`, `sick` = Einsatzverzögerung,
+  `phasedOut`, `goaded`, `restricted` = eine Fähigkeit oder ein Effekt
+  verbietet es, etwa Verteidiger, `defender` = ein anderes angebotenes Ziel
+  ginge; der Vollständigkeit halber `notCreature`, `tooLate`). Die Bridge
+  fragt Forges eigene Prüfung (Forge-Patch 0008, `CombatUtil.attackRefusal`,
+  `RunningInput.attack`); die Oberfläche rechnet nichts.
+- **Angriffsziel wechseln:** `Player.selectable` jetzt auch für einen
+  verteidigenden Spieler, der nicht schon das Ziel ist; `player.tap` macht ihn
+  zum Ziel. Ein Planeswalker oder Kampf wird wie bisher per `card.tap` zum Ziel
+  (Forges `action`). Ein `player.tap` auf das aktuelle Ziel oder auf sich
+  selbst lehnt die Bridge als `no-effect` ab – vorher nahm das Angreifen jeden
+  Tipp still an.
+- **Knöpfe:** `Button.meaning` auch beim Angreifen: `declare` (Forges OK – mit
+  den deklarierten Kreaturen angreifen, ohne: kein Angriff), `attackAll`
+  (Forges „Alle angreifen“), `callBack` (Forges „Zurückrufen“, sobald
+  Angreifer deklariert sind).
+- Engine-Spur: `TraceMarkers.attack` (dieselbe Frage wie der Zustand).
+- Nachweise: `AttackersTest` (JVM) und die Testpartie `attackers`
+  ([`engine/fixtures`](../fixtures/README.md)).
+
 ## Änderungen in Version 6 (Prompt 17)
 
 - **Spieler als Ziel:** `Player.selectable` sagt, dass ein `player.tap` auf
@@ -263,8 +292,8 @@ die Testpartien: [`engine/fixtures`](../fixtures/README.md).
   `RunningInput`); die Oberfläche rechnet nichts. `Player.highlighted` ist
   Forges Hervorhebung (bisher gewählte Ziele). Ein `player.tap`, den die
   laufende Eingabe nicht nähme, lehnt die Bridge als `no-effect` ab, statt ihn
-  still zu schlucken (Lücke aus Prompt 02); nur das Angreifen nimmt weiter
-  jeden Tipp (der Verteidiger – Prompt 18).
+  still zu schlucken (Lücke aus Prompt 02); nur das Angreifen nahm weiter
+  jeden Tipp (seit Version 7 ebenfalls gefragt).
 - **Grenzen einer Auswahl:** `SelectQuestion.min`/`max` sind Forges eigene
   Zahlen für die ganze Auswahl – Karten und Spieler zusammen –, nicht mehr auf
   die Zahl der aufgeführten Karten gekürzt (Arc Trail: zwei Ziele, auch mit

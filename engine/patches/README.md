@@ -15,10 +15,11 @@ selbst bleibt unverändert.
 | 0005 | `0005-sync-no-comfort-timers.patch` | Im Synchronmodus keine Komfort-Timer: `AbstractGuiGame.awaitNextInput` („Warte auf Gegner“ nach 250 ms), `showWaitingTimer` und `ThreadUtil.delay` (z. B. `InputLockUI`) laufen nicht. Sie zeigen nur Hinweise an; Spielablauf und Regeln bleiben unberührt | OpenMana, Prompt 02 |
 | 0006 | `0006-local-games-without-server-manager.patch` | Neu `FServerManager.getInstanceIfCreated()`; `HostedMatch.startGame` und `InputPassPriority.showAndWait` fragen nur einen **vorhandenen** Netzwerk-Manager. Vorher baute jede lokale Partie Netty-Event-Loops (zwei Thread-Gruppen) und Netzwerk-Einstellungen auf, die sie nie nutzte | OpenMana, Prompt 02 |
 | 0007 | `0007-gui-read-only-answers.patch` | **Nur lesende Auskünfte für die Oberfläche:** `InputSelectTargets.isSelectablePlayer` (würde ein Klick diesen Spieler als Ziel nehmen oder zurücknehmen?), `InputPayMana.getRemainingManaCost` (was noch zu zahlen ist, wie Forges Anweisung es zeigt), `InputPayMana.canUseManaFromPool` + `ManaPool.canPayCostWithColor` (würde Mana dieser Farbe aus dem Vorrat bezahlen?), `InputPayMana.isSelectablePlayer` (in `InputPayManaOfCostPayment`: Leben für Phyrexia-Mana). Die bisherigen Prüfungen sind unverändert in gemeinsame Methoden verschoben (`playerRefusal`, `manaToPayWithColor`), die der Klick und die neue Auskunft beide nutzen | OpenMana, Prompt 17 |
+| 0008 | `0008-gui-attack-answers.patch` | **Nur lesende Auskünfte zum Angreifen:** `CombatUtil.attackRefusal` (warum `canAttack` eine Kreatur ablehnt – getappt, Einsatzverzögerung, ausgephast, aufgestachelt, ein Effekt, zu spät; `canAttack` ist jetzt `attackRefusal == null`, die Prüfungen unverändert in derselben Reihenfolge verschoben, die zusammengefasste Grundprüfung in Einzelprüfungen zerlegt), `InputAttack.getCurrentDefender` (wen eine jetzt deklarierte Kreatur angreift), `InputAttack.isSelectablePlayer` (würde ein Klick diesen Spieler zum Ziel machen; die Prüfung aus `onPlayerSelected`/`onCardSelected` in `isDefender` verschoben) | OpenMana, Prompt 18 |
 
 0001–0003 stammen aus ManaBrews Forge-Fork (GPL-3.0-or-later wie Forge selbst,
 siehe `docs/research/LICENSES.md`) und sind auf `Card-Forge/forge@ed0333f`
-angepasst. 0004–0007 sind für OpenMana neu geschrieben (Begründung in der
+angepasst. 0004–0008 sind für OpenMana neu geschrieben (Begründung in der
 jeweiligen Patch-Beschreibung, Nachweise in
 [`docs/implementation/02-anvil-bridge.md`](../../docs/implementation/02-anvil-bridge.md)).
 Jede geänderte Stelle trägt im Quelltext den Vermerk
@@ -38,7 +39,8 @@ beide Laufzeiten dieselben Pfade nehmen (Voraussetzung für den JVM/Wasm-Verglei
 - Nur, was für den Betrieb im Browser **nötig** ist – oder, seit Prompt 17,
   eine **nur lesende Auskunft**, die die Oberfläche braucht, um Forges eigene
   Entscheidung vorher zu zeigen statt nachher zu raten (0007: welche Spieler
-  ein Klick nähme, was noch zu zahlen ist). Solch eine Auskunft stellt dieselbe
+  ein Klick nähme, was noch zu zahlen ist; 0008: warum eine Kreatur nicht
+  angreifen kann). Solch eine Auskunft stellt dieselbe
   Prüfung wie Forges Klick – die Prüfung wird dafür in eine gemeinsame Methode
   verschoben, nie abgeschrieben – und verändert nichts. Keine Regel-, Karten-
   oder KI-Änderungen „nebenbei“ (Bible §2). ManaBrews verhaltensändernde Patches

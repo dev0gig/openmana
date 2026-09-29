@@ -86,7 +86,7 @@ describe("start", () => {
 
   test("another protocol version from the page is refused before anything is loaded", () => {
     const s = setup();
-    s.start({ protocol: 7 });
+    s.start({ protocol: PROTOCOL_VERSION + 1 });
     assert.deepEqual(s.types(), ["engine.abort"]);
     assert.equal(s.last("engine.abort")?.reason, "protocol-mismatch");
     assert.deepEqual(s.loaded, []);
