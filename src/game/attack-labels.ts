@@ -56,7 +56,7 @@ export function attackTapNote(defenders: number): string {
   return `${tap}, ein zweiter Tipp nimmt sie zurück. Lange drücken oder Rechtsklick zeigt eine Karte groß.`
 }
 
-/** Whom a creature tapped now attacks, as the object of a sentence ("die Forge-KI", "„Garruk, Wildsprecher“"). */
+/** Whom a creature tapped now attacks, as the object of a sentence ("die Forge-KI", "„Garruk Wildsprecher“"). */
 export function defenderObject(defender: { readonly name: string; readonly player: unknown | null } | null): string {
   if (defender === null) return "den Gegner"
   return defender.player !== null ? `die ${defender.name}` : `„${defender.name}“`
