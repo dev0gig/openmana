@@ -211,6 +211,45 @@ describe("coverage", () => {
     assert.equal(c["target-card"], 1);
   });
 
+  test("declaring attackers: the defender switched, Alpha Strike, Call Back, a planeswalker attacked, Forge's reasons (prompt 18)", () => {
+    const A = (id: number, purpose: "attack" | "attackDeclared") => ({ id, kind: "buttons" as const, blocking: false, purpose, buttons: [true, true] });
+    const gui = (attack: NonNullable<NonNullable<TraceSnapshot["gui"]>["attack"]>) => ({ playable: [], highlighted: [], selectable: [], players: [], highlightedPlayers: [], attack });
+    const defenders = [{ kind: "player" as const, id: 1 }, { kind: "card" as const, id: 68 }, { kind: "card" as const, id: 74 }];
+    const atPlayer = { defender: defenders[0]!, defenders, unavailable: [] };
+    const atWalker = { defender: defenders[1]!, defenders, unavailable: [] };
+    const declaring = { questions: [A(1, "attack")] };
+    const trace: TraceEntry[] = [
+      // Forge's reasons at the first checkpoint of the declaration: each counts where the state names it.
+      entry(1, [q(1, "attack")], { ...declaring, gui: gui({ ...atPlayer, unavailable: [{ card: 17, reason: "sick" }, { card: 31, reason: "tapped" }, { card: 38, reason: "restricted" }] }) }),
+      // The planeswalker tapped: it becomes the defender.
+      entry(2, [input(1, { type: "card.tap", card: 68 })], { ...declaring, gui: gui(atWalker) }),
+      // The defender tapped again changes nothing: no switch.
+      entry(3, [input(2, { type: "card.tap", card: 68 })], { ...declaring, gui: gui(atWalker) }),
+      // Another planeswalker Forge refuses (the bridge's no-effect): no switch.
+      entry(4, [input(3, { type: "card.tap", card: 74 }), { e: "rejected", seq: 3, reason: "no-effect" }], { ...declaring, gui: gui(atWalker) }),
+      // The opponent tapped: the player is the defender again; the player themself is no defender.
+      entry(5, [input(4, { type: "player.tap", player: 1 })], { ...declaring, gui: gui(atPlayer) }),
+      entry(6, [input(5, { type: "player.tap", player: 0 }), { e: "rejected", seq: 5, reason: "no-effect" }], { ...declaring, gui: gui(atPlayer) }),
+      // Alpha Strike (Forge's second button while nobody attacks), then Call Back (once attackers are declared).
+      entry(7, [input(6, { type: "answer", question: 1, kind: "buttons", button: 2 }), { e: "answered", id: 1, seq: 6 }, q(2, "attackDeclared")], { questions: [A(2, "attackDeclared")], gui: gui(atPlayer) }),
+      entry(8, [input(7, { type: "answer", question: 2, kind: "buttons", button: 2 }), { e: "answered", id: 2, seq: 7 }, q(3, "attack")], { questions: [A(3, "attack")], gui: gui(atPlayer) }),
+      // OK declares: one creature at the planeswalker, one at the player; the AI's attack at a card is not the player's.
+      entry(9, [input(8, { type: "answer", question: 3, kind: "buttons", button: 1 }), { e: "answered", id: 3, seq: 8 },
+        { e: "attackers", player: 0, attacks: [{ defender: "c68", attackers: [14] }, { defender: "p1", attackers: [20] }] },
+        { e: "attackers", player: 1, attacks: [{ defender: "c90", attackers: [60] }] }]),
+    ];
+    const c = traceCoverage(trace);
+    assert.equal(c["attack-defender"], 2, "the planeswalker and the player again; not the defender tapped again, not a refused tap");
+    assert.equal(c["attack-all"], 1);
+    assert.equal(c["attack-call-back"], 1);
+    assert.equal(c["attack"], 1, "only the player's own attack");
+    assert.equal(c["attack-planeswalker"], 1);
+    assert.equal(c["attack-unavailable-sick"], 1);
+    assert.equal(c["attack-unavailable-tapped"], 1);
+    assert.equal(c["attack-unavailable-restricted"], 1);
+    assert.equal(c["input-rejected"], 2);
+  });
+
   test("a trace without a human seat still shows zones, stack and the end", () => {
     const trace = [entry(1, [{ e: "cast", card: 1, player: 1, spell: true, trigger: true, stack: 1, targets: [] }, { e: "move", card: 1, from: "Library:1", to: "Hand:1" }], { human: null }, "end")];
     const c = traceCoverage(trace);
