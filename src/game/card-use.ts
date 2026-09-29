@@ -31,8 +31,10 @@
  * (`GameState.attack`) names the defender, every defender and the player's
  * creatures a tap would not declare, with Forge's reason. So the table marks
  * the declared attackers ("greift an"), the defender ("wird angegriffen"),
- * the other defenders a tap would switch to, and says why a creature stays
- * back - it offers no tap on it (Forge would not take one).
+ * the other defenders a tap would switch to - on whichever side they lie (a
+ * battle the player controls is attacked when an opponent protects it) -,
+ * and says why a creature stays back - it offers no tap on it (Forge would
+ * not take one).
  */
 import type { Attack, ButtonsPurpose, EntityRef, Player, Question, SelectQuestion, VisibleCard } from "@openmana/engine-protocol"
 import { ATTACK_REFUSAL_WORDS } from "./attack-labels"
@@ -182,10 +184,12 @@ export function isEntity(ref: EntityRef | null, kind: EntityRef["kind"], id: num
 /**
  * A card of a battlefield while attackers are declared - null where the
  * declaration says nothing about it (the general rules above apply):
- * a declared attacker of the player (chosen: "greift an"; Forge's tap takes
- * it back), the defender ("wird angegriffen"), another defender a tap would
- * make the defender (usable), a creature of the player Forge would not
- * declare (no mark, no tap, Forge's reason).
+ * a declared attacker of the player (chosen: "greift an"; its tap is Forge's
+ * `action` - Forge takes it back from the defender, moves it to the defender
+ * from another one, or bands it), the defender ("wird angegriffen"), another
+ * defender a tap would make the defender (usable) - defenders as Forge names
+ * them, on either side -, a creature of the player Forge would not declare
+ * (no mark, no tap, Forge's reason).
  */
 function attackUse(card: VisibleCard, place: CardPlace, attack: Attack, moment: TableMoment): Omit<CardUse, "source"> | null {
   const tapOf = (fallback: string): CardTap => ({ label: card.action ?? fallback, marked: true })
@@ -196,10 +200,10 @@ function attackUse(card: VisibleCard, place: CardPlace, attack: Attack, moment: 
   if (place.mine && card.attacking === true) {
     return { mark: "selected", markLabel: "greift an", unavailable: null, ...direct(card.action !== undefined ? tapOf(card.action) : null) }
   }
-  if (!place.mine && isEntity(attack.defender, "card", card.id)) {
+  if (isEntity(attack.defender, "card", card.id)) {
     return { mark: "selected", markLabel: "wird angegriffen", unavailable: null, ...direct(null) }
   }
-  if (!place.mine && attack.defenders.some((ref) => isEntity(ref, "card", card.id))) {
+  if (attack.defenders.some((ref) => isEntity(ref, "card", card.id))) {
     return { mark: "usable", markLabel: "kann angegriffen werden", unavailable: null, ...direct(tapOf("Angreifen")) }
   }
   const refused = place.mine ? attack.unavailable.find((entry) => entry.card === card.id) : undefined

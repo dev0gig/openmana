@@ -9,11 +9,11 @@
  * page's).
  */
 import { inputProblems, type AnswerBody, type ButtonsQuestion, type VisibleCard } from "@openmana/engine-protocol"
-import { render, screen, within } from "@testing-library/react"
+import { fireEvent, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { tableScene, type TableSceneName } from "@/test/table-scenes"
-import { ATTACK_REFUSAL_WORDS, SICK_LABEL } from "./attack-labels"
+import { ATTACK_REFUSAL_WORDS, SICK_LABEL, SICK_NOTE } from "./attack-labels"
 import { attackView } from "./attack-model"
 import { ARMING_MS } from "./card-sheet"
 import { cardUse, playerUse, type TableMoment } from "./card-use"
@@ -122,6 +122,35 @@ describe("cards and players while attackers are declared (card-use.ts)", () => {
     const ready = myField("attack").find((card) => card.playable === true)!
     expect(cardUse(ready, { zone: "battlefield", mine: true }, { ...moment("attack"), attack: null }).unavailable).toBeNull()
   })
+
+  it("a creature Forge lets attack only another defender: its marker counts for nothing, no mark, no tap (built on attack-planeswalker)", () => {
+    // Forge marks creatures that can attack anyone (pushAttackerCandidates); the declaration names those the defender now excludes.
+    const scene = tableScene("attack-planeswalker")
+    const spider = myField("attack-planeswalker").find((card) => card.playable === true)!
+    const attack = { ...scene.state.attack!, unavailable: [{ card: spider.id, reason: "defender" as const }] }
+    expect(attackView(scene.state, attackQuestion("attack-planeswalker"))!.ready).toBe(1)
+    expect(attackView({ ...scene.state, attack }, attackQuestion("attack-planeswalker"))!.ready).toBe(0)
+    expect(cardUse(spider, { zone: "battlefield", mine: true }, { ...moment("attack-planeswalker"), attack })).toMatchObject({
+      mark: null,
+      markLabel: `kann nicht angreifen: ${ATTACK_REFUSAL_WORDS.defender.short}`,
+      tap: null,
+      primary: "look",
+    })
+  })
+
+  it("a defender on the player's own side (a battle an opponent protects): marked and tapped like any defender Forge names (built on attack)", () => {
+    const scene = tableScene("attack")
+    const battle = myField("attack").find((card) => card.power === undefined)!
+    const attack = { ...scene.state.attack!, defenders: [...scene.state.attack!.defenders, { kind: "card" as const, id: battle.id }] }
+    expect(cardUse(battle, { zone: "battlefield", mine: true }, { ...moment("attack"), attack })).toMatchObject({
+      mark: "usable",
+      markLabel: "kann angegriffen werden",
+      tap: { label: battle.action ?? "Angreifen", marked: true },
+      primary: "tap",
+    })
+    const attacked = { ...attack, defender: { kind: "card" as const, id: battle.id } }
+    expect(cardUse(battle, { zone: "battlefield", mine: true }, { ...moment("attack"), attack: attacked })).toMatchObject({ mark: "selected", markLabel: "wird angegriffen", tap: null })
+  })
 })
 
 describe("the decision region while attackers are declared", () => {
@@ -133,6 +162,7 @@ describe("the decision region while attackers are declared", () => {
     const back = decision().querySelector("[data-attack-unavailable]")!
     for (const { card, words } of view.unavailable) expect(back).toHaveTextContent(`${card.name} (${words.short})`)
     expect(within(decision()).queryByRole("group", { name: "Wen greifst du an?" })).not.toBeInTheDocument()
+    expect(within(decision()).getByText(/1 weitere Kreatur kann angreifen \(gold gestrichelt\)\. Antippen lässt eine Kreatur angreifen, ein zweiter Tipp nimmt sie zurück\./)).toBeInTheDocument()
   })
 
   it("Forge's buttons by meaning: 'Nicht angreifen' without attackers, 'Alle angreifen' - each sent once armed", async () => {
@@ -167,8 +197,14 @@ describe("the decision region while attackers are declared", () => {
     const { scene, onTapPlayer, onTapCard } = table("attack-planeswalker")
     const group = within(within(decision()).getByRole("group", { name: "Wen greifst du an?" }))
     const opponent = scene.state.players.find((player) => !player.me)!
-    const attacked = group.getByLabelText(/, wird angegriffen$/)
+    // The defender attacked now: marked, nothing to press, its mark in words for screen readers like a seat's (a span has no name of its own).
+    const attacked = decision().querySelector('[data-defender][data-mark="selected"]')!
     expect(attacked).toHaveAttribute("data-defender", `card:${scene.state.attack!.defender!.id}`)
+    expect(attacked.tagName).toBe("SPAN")
+    expect(attacked).not.toHaveAttribute("aria-label")
+    expect(attacked).toHaveTextContent(/, wird angegriffen$/)
+    // With several defenders a tap also moves an attacker to the chosen one: the note names it.
+    expect(within(decision()).getByText(/Antippen lässt eine Kreatur das gewählte Ziel angreifen, ein zweiter Tipp nimmt sie zurück\./)).toBeInTheDocument()
     const other = group.getByRole("button", { name: /Forge-KI.*Antippen: als Angriffsziel wählen/ })
     await user.click(other)
     expect(onTapPlayer).toHaveBeenCalledWith(opponent.id)
@@ -189,7 +225,26 @@ describe("the table's cards", () => {
       expect(button.querySelector('[data-slot="game-card-caption"]')).toHaveTextContent(words.short)
       expect(button).toHaveAccessibleName(new RegExp(`kann nicht angreifen: ${words.short}`))
     }
-    const sick = myField("attack").find((card) => card.sick)
-    if (sick !== undefined) expect(field.querySelector(`[data-card="${sick.id}"]`)).toHaveAccessibleName(new RegExp(SICK_LABEL))
+    const sick = myField("attack").find((card) => card.sick)!
+    expect(field.querySelector(`[data-card="${sick.id}"]`)).toHaveAccessibleName(new RegExp(SICK_LABEL))
+  })
+
+  it("the card view of a creature Forge names unavailable: Forge's reason instead of an offer", () => {
+    const { scene } = table("attack")
+    const [entry] = scene.state.attack!.unavailable.filter((candidate) => candidate.reason === "restricted")
+    const words = ATTACK_REFUSAL_WORDS.restricted
+    fireEvent.contextMenu(screen.getByRole("region", { name: "Dein Spielfeld" }).querySelector(`[data-card="${entry!.card}"]`)!)
+    const view = within(screen.getByRole("dialog"))
+    expect(view.getByText(`Kann gerade nicht angreifen: ${words.short}.`)).toBeInTheDocument()
+    expect(view.getByText(words.why)).toBeInTheDocument()
+  })
+
+  it("the card view says what summoning sickness means - also on the AI's creature, still sick in the player's turn", () => {
+    // Forge ends summoning sickness when its player's next turn begins: the AI's creature cast in its turn is sick in the player's.
+    const { scene } = table("attack")
+    const opponent = scene.state.players.find((player) => !player.me)!
+    const sick = opponent.zones.battlefield.find((card): card is VisibleCard => !("hidden" in card) && card.sick)!
+    fireEvent.contextMenu(screen.getByRole("region", { name: "Spielfeld der Forge-KI" }).querySelector(`[data-card="${sick.id}"]`)!)
+    expect(within(screen.getByRole("dialog")).getByText(SICK_NOTE)).toBeInTheDocument()
   })
 })

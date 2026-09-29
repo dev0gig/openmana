@@ -34,7 +34,11 @@ export interface AttackView {
   readonly defenders: readonly DefenderView[]
   /** The player's creatures declared as attackers so far. */
   readonly attackers: readonly VisibleCard[]
-  /** How many more creatures Forge would declare on a tap (its marker). */
+  /**
+   * How many more creatures Forge would declare on a tap: its marker, less
+   * those it names unavailable for the defender now (the marker also carries
+   * creatures that could attack only another defender).
+   */
   readonly ready: number
   /** The player's creatures Forge would not declare now, with its reason. */
   readonly unavailable: readonly { readonly card: VisibleCard; readonly words: RefusalWords }[]
@@ -75,13 +79,14 @@ export function attackView(state: GameState, question: ButtonsQuestion): AttackV
   const defenders = attack.defenders.map((ref) => defenderView(state, ref, attack)).filter((view): view is DefenderView => view !== null)
   const second = question.buttons.find((button) => button.nr === 2)
   const meaning = second?.meaning
+  const refused = new Set(attack.unavailable.map((entry) => entry.card))
   return {
     question,
     attack,
     defender: defenders.find((view) => view.current) ?? null,
     defenders,
     attackers: field.filter((card) => card.attacking === true),
-    ready: field.filter((card) => card.attacking !== true && card.playable === true).length,
+    ready: field.filter((card) => card.attacking !== true && card.playable === true && !refused.has(card.id)).length,
     unavailable: attack.unavailable.flatMap((entry) => {
       const card = cards.get(entry.card)
       return card === undefined ? [] : [{ card, words: ATTACK_REFUSAL_WORDS[entry.reason] }]

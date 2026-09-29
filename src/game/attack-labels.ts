@@ -31,8 +31,30 @@ export const ATTACK_REFUSAL_WORDS: Readonly<Record<AttackRefusal, RefusalWords>>
 /** The summoning-sickness mark of a creature (VisibleCard.sick: Forge's own, haste already considered). */
 export const SICK_LABEL = "Einsatzverzögerung"
 
-/** What a sick creature's mark means (the caption's tooltip, the card view). */
-export const SICK_NOTE = "Erst seit diesem Zug unter der Kontrolle ihres Spielers. Kreaturen mit Einsatzverzögerung können nicht angreifen und keine Fähigkeiten mit {T} in den Kosten aktivieren."
+/**
+ * What a sick creature's mark means (the card view), on any creature at any
+ * time (comprehensive rules 302.6; Forge ends it when its player's next turn
+ * begins): an AI creature cast in the AI's turn is still sick in the player's.
+ */
+export const SICK_NOTE =
+  "Noch nicht seit Beginn des letzten Zuges ihres Spielers unter dessen Kontrolle. Bis sein nächster Zug beginnt, kann sie nicht angreifen und keine Fähigkeiten mit {T} in den Kosten aktivieren."
+
+/** How many more creatures a tap would declare (the attack model's `ready`: Forge's marker, gold dashed on the table). */
+export function readyText(ready: number): string {
+  return `${ready === 1 ? "1 weitere Kreatur kann" : `${ready} weitere Kreaturen können`} angreifen (gold gestrichelt).`
+}
+
+/**
+ * How tapping declares (Forge's InputAttack): a tap declares a creature an
+ * attacker of the defender, a second takes it back; with several defenders a
+ * tap also moves a creature attacking another one to the defender - so the
+ * sentence names the chosen one. What a tap on a card does exactly, Forge's
+ * words on the card say (`action`).
+ */
+export function attackTapNote(defenders: number): string {
+  const tap = defenders > 1 ? "Antippen lässt eine Kreatur das gewählte Ziel angreifen" : "Antippen lässt eine Kreatur angreifen"
+  return `${tap}, ein zweiter Tipp nimmt sie zurück. Lange drücken oder Rechtsklick zeigt eine Karte groß.`
+}
 
 /** Whom a creature tapped now attacks, as the object of a sentence ("die Forge-KI", "„Garruk, Wildsprecher“"). */
 export function defenderObject(defender: { readonly name: string; readonly player: unknown | null } | null): string {

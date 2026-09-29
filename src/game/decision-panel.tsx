@@ -105,7 +105,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Spinner } from "@/components/ui/spinner"
 import { useCardPress } from "@/hooks/use-card-press"
 import { ARMING_MS } from "./card-sheet"
-import { attackText, CALL_BACK_LABEL, declareLabel, declareNote } from "./attack-labels"
+import { attackTapNote, attackText, CALL_BACK_LABEL, declareLabel, declareNote, readyText } from "./attack-labels"
 import { attackView, type AttackView, type DefenderView } from "./attack-model"
 import { directTaps, playerUse, tapBlocked, type TableMoment } from "./card-use"
 import {
@@ -657,8 +657,8 @@ function AttackDecision({ view }: { view: AttackView }) {
       <DecisionHeading label={questionLabel(question)} text={attackText(view)} source={null} />
       {view.defenders.length > 1 ? <DefenderChoices view={view} /> : null}
       <GameDecisionNote>
-        {view.ready > 0 ? `${view.ready === 1 ? "1 weitere Kreatur kann" : `${view.ready} weitere Kreaturen können`} angreifen (gold gestrichelt). ` : null}
-        Antippen lässt eine Kreatur angreifen, ein zweiter Tipp nimmt sie zurück. Lange drücken oder Rechtsklick zeigt eine Karte groß.
+        {view.ready > 0 ? `${readyText(view.ready)} ` : null}
+        {attackTapNote(view.defenders.length)}
       </GameDecisionNote>
       {view.unavailable.length > 0 ? (
         <GameDecisionNote data-attack-unavailable>
@@ -708,10 +708,11 @@ function AttackDecision({ view }: { view: AttackView }) {
 }
 
 /**
- * The defenders Forge offers (prompt 18), as buttons: the one attacked now
- * pressed, the others make themselves the defender at once (Forge's
- * player.tap for a player, card.tap for a planeswalker or battle - like
- * tapping them on the table), guarded against a double press.
+ * The defenders Forge offers (prompt 18): the one attacked now marked, to
+ * read (a tap would change nothing), the others buttons that make themselves
+ * the defender at once (Forge's player.tap for a player, card.tap for a
+ * planeswalker or battle - like tapping them on the table), guarded against
+ * a double press.
  */
 function DefenderChoices({ view }: { view: AttackView }) {
   const { tapBlocked: blocked, blockedId, tapPlayer, tapCard } = useDecision()
@@ -720,12 +721,13 @@ function DefenderChoices({ view }: { view: AttackView }) {
       {view.defenders.map((defender) => {
         const label = defenderLabel(defender)
         const key = `${defender.ref.kind}:${defender.ref.id}`
-        // The defender attacked now: its mark to read (a tap would change nothing, so there is none to press).
+        // The defender attacked now: its mark in words like a seat's (a span has no name of its own for screen readers).
         if (defender.current) {
           return (
-            <GamePlayer key={key} data-defender={key} mark="selected" aria-label={`${label}, wird angegriffen`}>
+            <GamePlayer key={key} data-defender={key} mark="selected" title={`${label}: wird angegriffen`}>
               <span className="font-heading text-sm font-semibold">{defender.name}</span>
               {defender.detail !== null ? <span className="text-xs text-muted-foreground tabular-nums">{defender.detail}</span> : null}
+              <span className="sr-only">, wird angegriffen</span>
             </GamePlayer>
           )
         }
