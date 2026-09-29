@@ -26,8 +26,16 @@
  * blocker; the London mulligan never answers `action` although every tap
  * counts). A tap that provably does nothing is never offered: the primary
  * activation then looks at the card.
+ *
+ * Declaring attackers (prompt 18): Forge's declaration in progress
+ * (`GameState.attack`) names the defender, every defender and the player's
+ * creatures a tap would not declare, with Forge's reason. So the table marks
+ * the declared attackers ("greift an"), the defender ("wird angegriffen"),
+ * the other defenders a tap would switch to, and says why a creature stays
+ * back - it offers no tap on it (Forge would not take one).
  */
-import type { ButtonsPurpose, Player, Question, SelectQuestion, VisibleCard } from "@openmana/engine-protocol"
+import type { Attack, ButtonsPurpose, EntityRef, Player, Question, SelectQuestion, VisibleCard } from "@openmana/engine-protocol"
+import { ATTACK_REFUSAL_WORDS } from "./attack-labels"
 import type { CardZone } from "./table-model"
 
 /** How the table marks a card: chosen (Forge's highlight) or usable now (Forge's marker, or named by a selection). */
@@ -44,6 +52,8 @@ export interface TableMoment {
   readonly questions: readonly Question[]
   readonly waiting: boolean
   readonly conceding: boolean
+  /** Forge's declaration of attackers in progress (GameState.attack, prompt 18); absent or null otherwise. */
+  readonly attack?: Attack | null
 }
 
 export interface CardTap {
@@ -65,6 +75,8 @@ export interface CardUse {
   readonly primary: "look" | "tap"
   /** Why no tap can be sent right now (German), or null. */
   readonly blocked: string | null
+  /** While attackers are declared: why Forge would not declare this creature (short and one sentence, German), or null (prompt 18). */
+  readonly unavailable: { readonly short: string; readonly why: string } | null
 }
 
 /** The steps in which Forge's input takes a tap back and confirms the step with its own button (see above). */
@@ -121,7 +133,12 @@ export function cardUse(card: VisibleCard, place: CardPlace, moment: TableMoment
   const chosen = card.highlighted === true
   // A card on the stack is never tapped (Forge's card.tap takes cards of the players' zones; prompt 16): only looked at.
   const source = stepSource(questions) === card.id
-  if (place.zone === "stack") return { mark: chosen ? "selected" : null, markLabel: chosen ? "ausgewählt" : null, source, tap: null, primary: "look", blocked: null }
+  if (place.zone === "stack") return { mark: chosen ? "selected" : null, markLabel: chosen ? "ausgewählt" : null, source, tap: null, primary: "look", blocked: null, unavailable: null }
+  const declaring = declaration(moment)
+  if (declaring !== null && place.zone === "battlefield") {
+    const found = attackUse(card, place, declaring, moment)
+    if (found !== null) return { ...found, source }
+  }
   const named = selection !== null && selection.cards.includes(card.id)
   // The London mulligan marks nothing and names no action, yet a tap on a hand card chooses it (Anvil lesson).
   const mulligan = step === "mulliganBottom" && place.zone === "hand" && place.mine
@@ -143,7 +160,54 @@ export function cardUse(card: VisibleCard, place: CardPlace, moment: TableMoment
     tap,
     primary: direct && blocked === null ? "tap" : "look",
     blocked,
+    unavailable: null,
   }
+}
+
+// ── Declaring attackers (prompt 18) ────────────────────────────────────────
+
+/** Forge's declaration of attackers, while its buttons are the running step (never under a selection Forge asks meanwhile). */
+export function declaration(moment: TableMoment): Attack | null {
+  const step = currentStep(moment.questions)
+  if (moment.attack === undefined || moment.attack === null) return null
+  if ((step !== "attack" && step !== "attackDeclared") || openSelection(moment.questions) !== null) return null
+  return moment.attack
+}
+
+/** Whether a reference names this player or card. */
+export function isEntity(ref: EntityRef | null, kind: EntityRef["kind"], id: number): boolean {
+  return ref !== null && ref.kind === kind && ref.id === id
+}
+
+/**
+ * A card of a battlefield while attackers are declared - null where the
+ * declaration says nothing about it (the general rules above apply):
+ * a declared attacker of the player (chosen: "greift an"; Forge's tap takes
+ * it back), the defender ("wird angegriffen"), another defender a tap would
+ * make the defender (usable), a creature of the player Forge would not
+ * declare (no mark, no tap, Forge's reason).
+ */
+function attackUse(card: VisibleCard, place: CardPlace, attack: Attack, moment: TableMoment): Omit<CardUse, "source"> | null {
+  const tapOf = (fallback: string): CardTap => ({ label: card.action ?? fallback, marked: true })
+  const direct = (tap: CardTap | null) => {
+    const blocked = tap === null ? null : tapBlocked(moment)
+    return { tap, blocked, primary: tap !== null && blocked === null ? ("tap" as const) : ("look" as const) }
+  }
+  if (place.mine && card.attacking === true) {
+    return { mark: "selected", markLabel: "greift an", unavailable: null, ...direct(card.action !== undefined ? tapOf(card.action) : null) }
+  }
+  if (!place.mine && isEntity(attack.defender, "card", card.id)) {
+    return { mark: "selected", markLabel: "wird angegriffen", unavailable: null, ...direct(null) }
+  }
+  if (!place.mine && attack.defenders.some((ref) => isEntity(ref, "card", card.id))) {
+    return { mark: "usable", markLabel: "kann angegriffen werden", unavailable: null, ...direct(tapOf("Angreifen")) }
+  }
+  const refused = place.mine ? attack.unavailable.find((entry) => entry.card === card.id) : undefined
+  if (refused !== undefined) {
+    const words = ATTACK_REFUSAL_WORDS[refused.reason]
+    return { mark: null, markLabel: `kann nicht angreifen: ${words.short}`, unavailable: words, tap: null, blocked: null, primary: "look" }
+  }
+  return null
 }
 
 /**
@@ -192,14 +256,16 @@ export function playerUse(player: Player, moment: TableMoment): PlayerUse {
   const chosen = player.highlighted === true
   const step = currentStep(moment.questions)
   const payment = step === "payment" && openSelection(moment.questions) === null
-  // While attackers are declared Forge highlights the player they attack (its current defender; the attack itself is prompt 18).
+  // While attackers are declared Forge highlights the player they attack (its current defender), and a tap on another
+  // defending player makes them the defender (prompt 18).
   const attack = (step === "attack" || step === "attackDeclared") && openSelection(moment.questions) === null
   let tap: PlayerTap | null = null
-  if (player.selectable === true) tap = { label: payment ? "Mit Leben bezahlen" : chosen ? "Auswahl aufheben" : "Wählen" }
+  if (player.selectable === true) tap = { label: payment ? "Mit Leben bezahlen" : attack ? "Angreifen" : chosen ? "Auswahl aufheben" : "Wählen" }
   const mark: CardMark | null = chosen ? "selected" : tap !== null ? "usable" : null
   return {
     mark,
-    markLabel: mark === "selected" ? (attack ? "wird angegriffen" : "gewählt") : mark === "usable" ? (payment ? "kann mit Leben bezahlen" : "wählbar") : null,
+    markLabel:
+      mark === "selected" ? (attack ? "wird angegriffen" : "gewählt") : mark === "usable" ? (payment ? "kann mit Leben bezahlen" : attack ? "kann angegriffen werden" : "wählbar") : null,
     tap,
     blocked: tap === null ? null : tapBlocked(moment),
   }

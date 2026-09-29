@@ -67,6 +67,9 @@ describe("recorded scenes", () => {
       "payment-pool",
       "payment-life",
       "cast-x",
+      "attack",
+      "attack-declared",
+      "attack-planeswalker",
     ])
     for (const scene of TABLE_SCENES) {
       expect(() => checkGameState(scene.state), scene.name).not.toThrow()

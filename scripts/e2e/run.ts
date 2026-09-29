@@ -2773,6 +2773,10 @@ const TABLE_SCENES = [
   "payment-pool",
   "payment-life",
   "cast-x",
+  // Declaring attackers (prompt 18): Forge's reasons why creatures stay back, declared attackers, a planeswalker as the defender.
+  "attack",
+  "attack-declared",
+  "attack-planeswalker",
 ] as const
 
 /** Forge's questions the recorded games do not reach, built after the schema on the recorded "main-phase" state (src/test/built-questions.ts) - marked as built. */
@@ -2800,8 +2804,8 @@ const SCENE_MARKS: Partial<Record<(typeof TABLE_SCENES)[number], { readonly usab
   opening: { usable: 0, selected: 0 },
   "main-phase": { usable: 1, selected: 0 },
   defend: { usable: 0, selected: 1 },
-  // Krenko can still attack; Forge highlights the player attacked (prompt 17 shows players' marks).
-  "commander-late": { usable: 1, selected: 0, players: 1 },
+  // Prompt 18: Krenko and the 13 goblins attack (chosen, "greift an" - combat keeps them out of piles); Forge highlights the player attacked.
+  "commander-late": { usable: 0, selected: 14, players: 1 },
   "opponent-turn": { usable: 4, selected: 0 },
   respond: { usable: 4, selected: 0 },
   "respond-own": { usable: 2, selected: 0 },
@@ -2813,6 +2817,11 @@ const SCENE_MARKS: Partial<Record<(typeof TABLE_SCENES)[number], { readonly usab
   payment: { usable: 1, selected: 0 },
   "payment-pool": { usable: 0, selected: 0 },
   "payment-life": { usable: 2, selected: 0, players: 1 },
+  // Prompt 18: the one creature Forge would declare (three stay back with its reasons), the player attacked; then declared;
+  // a planeswalker attacked with the creature ready, another planeswalker and the opponent a tap away.
+  attack: { usable: 1, selected: 0, players: 1 },
+  "attack-declared": { usable: 0, selected: 1, players: 1 },
+  "attack-planeswalker": { usable: 2, selected: 1, players: 1 },
 }
 
 /**
@@ -3185,6 +3194,23 @@ async function decisionInteractions(page: Page, base: string, viewport: Viewport
   const mana = await harnessMana(page)
   check(mana.length === 1 && mana[0] === color, `${label}: floating mana paid ${JSON.stringify(mana)}, expected [${color}]`)
   results["floating mana"] = mana
+
+  // Declaring attackers (prompt 18): Forge's buttons by meaning; another defender in the region is Forge's player.tap at once.
+  await scene("attack")
+  await armed(button("Alle angreifen"))
+  await expectLast("attack: Alpha Strike", { kind: "buttons", button: 2 })
+  await scene("attack-declared")
+  await armed(button("Alle zurücknehmen"))
+  await expectLast("attack: Call Back", { kind: "buttons", button: 2 })
+  await scene("attack-planeswalker")
+  const other = decision.locator('button[data-defender^="player:"]').first()
+  const defender = Number((await other.getAttribute("data-defender"))?.split(":")[1])
+  await activate(other)
+  await page.waitForFunction(() => ((window as unknown as { __openmanaPlayerTaps?: unknown[] }).__openmanaPlayerTaps ?? []).length > 0, null, { timeout: 5000 }).catch(() => undefined)
+  const defenderTaps = await harnessPlayerTaps(page)
+  check(defenderTaps.length === 1 && defenderTaps[0] === defender, `${label}: the other defender tapped ${JSON.stringify(defenderTaps)}, expected [${defender}]`)
+  check((await harnessAnswers(page)).length === 0, `${label}: switching the defender answered`)
+  results["attack: switch the defender"] = defenderTaps
 
   // The player's priority (prompt 16): Forge's OK in words for what passing does, End Turn only after asking.
   await scene("main-phase")

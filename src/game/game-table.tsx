@@ -47,7 +47,7 @@
  * so below its picture ("Quelle"). The decision region shows the payment:
  * what is still to pay, floating mana to pay with (onUseMana).
  */
-import { Ban, Crown, Hand as HandIcon, Heart, Library, Shield, Skull, Swords, type LucideIcon } from "lucide-react"
+import { Ban, CircleSlash, Crown, Hand as HandIcon, Heart, Hourglass, Library, Shield, Skull, Swords, type LucideIcon } from "lucide-react"
 import { cn } from "cn"
 import { createContext, use, useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import type { AnswerBody, Card, GameState, ManaColor, Question, VisibleCard } from "@openmana/engine-protocol"
@@ -161,7 +161,7 @@ export function GameTable({
 }: GameTableProps) {
   const view = useMemo(() => tableView(state, questions), [state, questions])
   const profile = profileDrawn ? `${aiProfileLabel(aiProfile)} (zufällig)` : aiProfileLabel(aiProfile)
-  const moment = useMemo<TableMoment>(() => ({ questions, waiting, conceding }), [questions, waiting, conceding])
+  const moment = useMemo<TableMoment>(() => ({ questions, waiting, conceding, attack: state.attack ?? null }), [questions, waiting, conceding, state.attack])
   const [look, setLook] = useState<CardLook | null>(null)
   // A card of Forge's question: its view as the question shows it goes along (it may lie in no zone of the state).
   const lookAtQuestionCard = useCallback(
@@ -201,6 +201,17 @@ export function GameTable({
       onTapPlayer(player)
     },
     [onTapPlayer],
+  )
+  // A card tapped from the decision region (a defending planeswalker - prompt 18): at once, a double tap counts once.
+  const tapCardNow = useCallback(
+    (card: number) => {
+      const now = performance.now()
+      const last = lastTap.current
+      if (onTapCard === undefined || (last !== null && last.id === card && now - last.at < ARMING_MS)) return
+      lastTap.current = { id: card, at: now }
+      onTapCard(card)
+    },
+    [onTapCard],
   )
   const controls = useMemo<CardControls>(() => {
     const open = (id: number) => setLook((previous) => ({ id, open: true, serial: (previous?.serial ?? 0) + 1 }))
@@ -289,6 +300,7 @@ export function GameTable({
             onLook={lookAtQuestionCard}
             {...(onAnswer !== undefined ? { onAnswer } : {})}
             {...(onTapPlayer !== undefined ? { onTapPlayer: tapPlayer } : {})}
+            {...(onTapCard !== undefined ? { onTapCard: tapCardNow } : {})}
             {...(onUseMana !== undefined ? { onUseMana } : {})}
           />
         </GameBoardArea>
@@ -546,7 +558,9 @@ function FieldCard({ card, count, pictures, seat, note }: { card: VisibleCard; c
   const controls = use(CardControlsContext)
   // The card the running step is about (an ability's source while its targets or costs are chosen - prompt 17).
   const source = controls !== null && stepSource(controls.moment.questions) === card.id
-  const title = [cardName(card), ...cardFacts(card, count), ...(note ? [note] : []), ...(source ? [SOURCE_LABEL] : [])].join(" · ")
+  // While attackers are declared: why Forge would not declare this creature (prompt 18) - said in the caption, in place of its facts.
+  const unavailable = controls === null ? null : cardUse(card, { zone: "battlefield", mine: seat === "me" }, controls.moment).unavailable
+  const title = [cardName(card), ...cardFacts(card, count), ...(note ? [note] : []), ...(source ? [SOURCE_LABEL] : []), ...(unavailable !== null ? [`kann nicht angreifen: ${unavailable.short}`] : [])].join(" · ")
   return (
     <TableCard
       card={card}
@@ -559,8 +573,10 @@ function FieldCard({ card, count, pictures, seat, note }: { card: VisibleCard; c
           {count > 1 ? <span className="font-medium text-foreground">{count}×</span> : null}
           {card.attacking === true ? <Swords aria-hidden /> : null}
           {card.blocking === true ? <Shield aria-hidden /> : null}
+          {card.sick ? <Hourglass aria-hidden /> : null}
           {source ? <span className="font-medium text-foreground">{SOURCE_LABEL}</span> : null}
-          <span className="truncate">{captionFacts(card).join(" · ")}</span>
+          {unavailable !== null ? <CircleSlash aria-hidden /> : null}
+          <span className="truncate">{unavailable !== null ? unavailable.short : captionFacts(card).join(" · ")}</span>
         </GameCardCaption>
       }
     />

@@ -40,6 +40,7 @@ import { CardPicture } from "@/components/ui/card-picture"
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useLandscape } from "@/hooks/use-landscape"
+import { SICK_LABEL, SICK_NOTE } from "./attack-labels"
 import { cardUse, type CardUse, type TableMoment } from "./card-use"
 import { STACK_KIND_LABELS } from "./priority-labels"
 import type { TableCardLookup } from "./table-cards"
@@ -260,8 +261,10 @@ function facts(card: VisibleCard, state: GameState, pile: readonly number[] | nu
   const list: Fact[] = []
   if (card.typeLine) list.push({ label: "Typ", value: card.typeLine })
   if (card.cost) list.push({ label: "Manakosten", value: card.cost })
-  const shown = [...spokenFacts(card), ...captionFacts(card)]
+  const shown = [...spokenFacts(card).filter((fact) => fact !== SICK_LABEL), ...captionFacts(card)]
   if (shown.length > 0) list.push({ label: "Zustand", value: shown.join(", ") })
+  // Forge's summoning sickness (prompt 18): what it means, once.
+  if (card.sick) list.push({ label: SICK_LABEL, value: SICK_NOTE })
   if (pile !== null && pile.length > 1) list.push({ label: "Gleiche Karten", value: `${pile.length} liegen hier als Stapel` })
   if (card.attachedTo !== undefined) list.push({ label: "Hängt an", value: cardName(cards.get(card.attachedTo)) })
   if (card.attached !== undefined) list.push({ label: "Daran hängt", value: card.attached.map((attached) => cardName(cards.get(attached))).join(", ") })
@@ -308,6 +311,9 @@ function ForgeOffer({ card, use, live }: { card: VisibleCard; use: CardUse; live
   if (use.tap !== null) {
     lines.push(live ? `Forge bietet an: ${use.tap.label}.` : `Forge bot an: ${use.tap.label}.`)
     if (live && use.primary === "tap") lines.push("In diesem Schritt wirkt ein Tipp auf die Karte sofort; ein zweiter nimmt ihn zurück, Forges Knopf bestätigt.")
+  } else if (use.unavailable !== null) {
+    // Forge's reason why it would not declare the creature an attacker now (prompt 18).
+    lines.push(`Kann gerade nicht angreifen: ${use.unavailable.short}.`, use.unavailable.why)
   } else if (card.controller !== null) {
     lines.push("Mit dieser Karte bietet Forge gerade nichts an.")
   }

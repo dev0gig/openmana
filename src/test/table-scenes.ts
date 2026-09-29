@@ -37,6 +37,10 @@ export type TableSceneName =
   | "payment-pool"
   | "payment-life"
   | "cast-x"
+  // Declaring attackers (prompt 18)
+  | "attack"
+  | "attack-declared"
+  | "attack-planeswalker"
 
 export interface TableScene {
   readonly name: TableSceneName

@@ -6,6 +6,7 @@
  * are shown as Forge sends them.
  */
 import type { VisibleCard } from "@openmana/engine-protocol"
+import { SICK_LABEL } from "./attack-labels"
 import type { CardUse, PlayerUse } from "./card-use"
 import type { CardRef, CardZone, CombatView, ManaColor, PlayerRef, Seat, StackEntryView } from "./table-model"
 
@@ -125,11 +126,19 @@ export function captionFacts(card: VisibleCard): string[] {
   return facts
 }
 
-/** What the caption shows as signs or not at all, in words for screen readers: tapped, combat, token. */
+/**
+ * What the caption shows as signs or not at all, in words for screen
+ * readers: tapped, summoning sickness (Forge's `sick`, haste already
+ * considered - prompt 18), combat, token.
+ */
 export function spokenFacts(card: VisibleCard): string[] {
-  return [card.tapped ? "getappt" : null, card.attacking === true ? "greift an" : null, card.blocking === true ? "blockt" : null, card.token === true ? "Spielstein" : null].filter(
-    (fact): fact is string => fact !== null,
-  )
+  return [
+    card.tapped ? "getappt" : null,
+    card.sick ? SICK_LABEL : null,
+    card.attacking === true ? "greift an" : null,
+    card.blocking === true ? "blockt" : null,
+    card.token === true ? "Spielstein" : null,
+  ].filter((fact): fact is string => fact !== null)
 }
 
 /** Everything the table knows about a card on the battlefield, as short German facts (the caption's tooltip): the pile's size first. */

@@ -1,19 +1,19 @@
 {
  "source": "Protocol messages of the fixture games of engine/scripts/test-engine.sh (JVM run, scripted rule-free test player), folded like EngineSession folds them; see scripts/record-table-scenes.ts.",
  "engine": {
-  "builtAt": "2026-09-28T20:26:38.058Z",
+  "builtAt": "2026-09-29T01:52:02.450Z",
   "forgeCommit": "ed0333fecb1fea0671b3e50cadc1da4f71db5798",
-  "protocol": 6
+  "protocol": 7
  },
  "scenes": [
   {
    "name": "opening",
    "description": "The mulligan: seven cards in the player's hand, the AI's hand hidden, Forge's German prompt (human-3-de).",
    "fixture": "human-3-de",
-   "message": 6,
+   "message": 5,
    "game": {
     "type": "game.started",
-    "protocol": 6,
+    "protocol": 7,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -48,7 +48,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 4,
+    "seq": 3,
     "running": true,
     "turn": 0,
     "phase": null,
@@ -280,10 +280,10 @@
    "name": "main-phase",
    "description": "The player's own main phase with priority, lands and creatures on both sides, the most permanents of such moments (human-3-de).",
    "fixture": "human-3-de",
-   "message": 489,
+   "message": 479,
    "game": {
     "type": "game.started",
-    "protocol": 6,
+    "protocol": 7,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -318,7 +318,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 88,
+    "seq": 82,
     "running": true,
     "turn": 14,
     "phase": "MAIN1",
@@ -866,10 +866,10 @@
    "name": "stack",
    "description": "A spell on the stack while Forge asks the player (human-3-de).",
    "fixture": "human-3-de",
-   "message": 283,
+   "message": 279,
    "game": {
     "type": "game.started",
-    "protocol": 6,
+    "protocol": 7,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -904,7 +904,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 54,
+    "seq": 51,
     "running": true,
     "turn": 8,
     "phase": "DRAW",
@@ -1326,10 +1326,10 @@
    "name": "blockers",
    "description": "Combat with an attacker blocked by two creatures (blocks-multi).",
    "fixture": "blocks-multi",
-   "message": 454,
+   "message": 443,
    "game": {
     "type": "game.started",
-    "protocol": 6,
+    "protocol": 7,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -1361,7 +1361,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 92,
+    "seq": 86,
     "running": true,
     "turn": 11,
     "phase": "COMBAT_DAMAGE",
@@ -1804,12 +1804,14 @@
       {
        "nr": 1,
        "label": "OK",
-       "enabled": true
+       "enabled": true,
+       "meaning": "declare"
       },
       {
        "nr": 2,
        "label": "Call Back",
-       "enabled": true
+       "enabled": true,
+       "meaning": "callBack"
       }
      ],
      "id": 50,
@@ -1874,10 +1876,10 @@
    "name": "defend",
    "description": "The player's creature blocks while Forge asks for blockers (human-5-defend).",
    "fixture": "human-5-defend",
-   "message": 348,
+   "message": 341,
    "game": {
     "type": "game.started",
-    "protocol": 6,
+    "protocol": 7,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -1912,7 +1914,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 68,
+    "seq": 63,
     "running": true,
     "turn": 9,
     "phase": "COMBAT_DECLARE_BLOCKERS",
@@ -2350,10 +2352,10 @@
    "name": "commander-late",
    "description": "A late Commander turn while the player declares attackers: the most permanents with the most attackers (tokens, counters, poison, commander tax and damage) (commander).",
    "fixture": "commander",
-   "message": 827,
+   "message": 805,
    "game": {
     "type": "game.started",
-    "protocol": 6,
+    "protocol": 7,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -2387,7 +2389,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 185,
+    "seq": 172,
     "running": true,
     "turn": 17,
     "phase": "COMBAT_DECLARE_ATTACKERS",
@@ -3238,7 +3240,20 @@
       "defenderKind": "player",
       "blockers": []
      }
-    ]
+    ],
+    "attack": {
+     "defender": {
+      "kind": "player",
+      "id": 1
+     },
+     "defenders": [
+      {
+       "kind": "player",
+       "id": 1
+      }
+     ],
+     "unavailable": []
+    }
    },
    "questions": [
     {
@@ -3250,12 +3265,14 @@
       {
        "nr": 1,
        "label": "OK",
-       "enabled": true
+       "enabled": true,
+       "meaning": "declare"
       },
       {
        "nr": 2,
        "label": "Call Back",
-       "enabled": true
+       "enabled": true,
+       "meaning": "callBack"
       }
      ],
      "id": 96,
@@ -3331,10 +3348,10 @@
    "name": "command-effects",
    "description": "Forge's effect cards in the command zone of a Constructed game (an adventure; human-11).",
    "fixture": "human-11",
-   "message": 216,
+   "message": 211,
    "game": {
     "type": "game.started",
-    "protocol": 6,
+    "protocol": 7,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -3369,7 +3386,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 46,
+    "seq": 43,
     "running": true,
     "turn": 5,
     "phase": "UPKEEP",
@@ -3780,7 +3797,7 @@
    "message": 5,
    "game": {
     "type": "game.started",
-    "protocol": 6,
+    "protocol": 7,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -3916,7 +3933,7 @@
    "message": 391,
    "game": {
     "type": "game.started",
-    "protocol": 6,
+    "protocol": 7,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -4568,10 +4585,10 @@
    "name": "target-player",
    "description": "A spell whose only targets are players: Forge's selection names no card, the state marks the players Forge takes (human-3-de).",
    "fixture": "human-3-de",
-   "message": 76,
+   "message": 74,
    "game": {
     "type": "game.started",
-    "protocol": 6,
+    "protocol": 7,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -4606,7 +4623,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 17,
+    "seq": 15,
     "running": true,
     "turn": 2,
     "phase": "MAIN1",
@@ -4912,10 +4929,10 @@
    "name": "yes-no",
    "description": "A trigger that may be used: Forge's own yes/no as its two buttons (human-3-de).",
    "fixture": "human-3-de",
-   "message": 301,
+   "message": 297,
    "game": {
     "type": "game.started",
-    "protocol": 6,
+    "protocol": 7,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -4950,7 +4967,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 58,
+    "seq": 55,
     "running": true,
     "turn": 8,
     "phase": "DRAW",
@@ -5399,10 +5416,10 @@
    "name": "discard",
    "description": "Two cards to discard from the hand: a selection of more than one, with Forge's prompt for it and no buttons (Forge ends it by itself; human-11).",
    "fixture": "human-11",
-   "message": 508,
+   "message": 495,
    "game": {
     "type": "game.started",
-    "protocol": 6,
+    "protocol": 7,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -5437,7 +5454,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 98,
+    "seq": 91,
     "running": true,
     "turn": 13,
     "phase": "MAIN1",
@@ -6117,10 +6134,10 @@
    "name": "choose-mode",
    "description": "A modal spell: choose one of its modes, a blocking question (human-3-de).",
    "fixture": "human-3-de",
-   "message": 351,
+   "message": 345,
    "game": {
     "type": "game.started",
-    "protocol": 6,
+    "protocol": 7,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -6155,7 +6172,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 64,
+    "seq": 60,
     "running": true,
     "turn": 10,
     "phase": "MAIN1",
@@ -6632,10 +6649,10 @@
    "name": "scry",
    "description": "Scrying: the library's top cards to the top or the bottom (arrange), a blocking question (human-3-de).",
    "fixture": "human-3-de",
-   "message": 284,
+   "message": 280,
    "game": {
     "type": "game.started",
-    "protocol": 6,
+    "protocol": 7,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -6670,7 +6687,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 54,
+    "seq": 51,
     "running": true,
     "turn": 8,
     "phase": "DRAW",
@@ -7146,10 +7163,10 @@
    "name": "ability",
    "description": "A card with two ways to play it (an adventure): which one, cancellable (options; human-11).",
    "fixture": "human-11",
-   "message": 122,
+   "message": 119,
    "game": {
     "type": "game.started",
-    "protocol": 6,
+    "protocol": 7,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -7184,7 +7201,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 25,
+    "seq": 23,
     "running": true,
     "turn": 3,
     "phase": "MAIN1",
@@ -7554,10 +7571,10 @@
    "name": "damage",
    "description": "An attacker blocked by two creatures: its combat damage to give out among them (distribute; blocks-double).",
    "fixture": "blocks-double",
-   "message": 436,
+   "message": 422,
    "game": {
     "type": "game.started",
-    "protocol": 6,
+    "protocol": 7,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -7589,7 +7606,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 89,
+    "seq": 81,
     "running": true,
     "turn": 11,
     "phase": "COMBAT_DAMAGE",
@@ -8020,12 +8037,14 @@
       {
        "nr": 1,
        "label": "OK",
-       "enabled": true
+       "enabled": true,
+       "meaning": "declare"
       },
       {
        "nr": 2,
        "label": "Call Back",
-       "enabled": true
+       "enabled": true,
+       "meaning": "callBack"
       }
      ],
      "id": 45,
@@ -8166,10 +8185,10 @@
    "name": "opponent-turn",
    "description": "The player's priority in the AI's turn with the stack empty: Forge asks only because the player holds an answer (priority-respond).",
    "fixture": "priority-respond",
-   "message": 237,
+   "message": 236,
    "game": {
     "type": "game.started",
-    "protocol": 6,
+    "protocol": 7,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -8197,7 +8216,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 45,
+    "seq": 44,
     "running": true,
     "turn": 4,
     "phase": "UPKEEP",
@@ -8529,10 +8548,10 @@
    "name": "respond",
    "description": "The player's priority with the AI's spell on top of the stack: answer it or let it resolve (priority-respond).",
    "fixture": "priority-respond",
-   "message": 250,
+   "message": 249,
    "game": {
     "type": "game.started",
-    "protocol": 6,
+    "protocol": 7,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -8560,7 +8579,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 47,
+    "seq": 46,
     "running": true,
     "turn": 4,
     "phase": "MAIN1",
@@ -8928,10 +8947,10 @@
    "name": "respond-own",
    "description": "The player's answer on top of the AI's spell, and the player's priority again (stack depth 2; priority-respond).",
    "fixture": "priority-respond",
-   "message": 416,
+   "message": 415,
    "game": {
     "type": "game.started",
-    "protocol": 6,
+    "protocol": 7,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -8959,7 +8978,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 78,
+    "seq": 77,
     "running": true,
     "turn": 6,
     "phase": "MAIN2",
@@ -9380,10 +9399,10 @@
    "name": "target-both",
    "description": "A spell with any target: Forge names the creatures and marks the players it would take (human-3-de).",
    "fixture": "human-3-de",
-   "message": 264,
+   "message": 260,
    "game": {
     "type": "game.started",
-    "protocol": 6,
+    "protocol": 7,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -9418,7 +9437,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 48,
+    "seq": 45,
     "running": true,
     "turn": 8,
     "phase": "DRAW",
@@ -9875,7 +9894,7 @@
    "message": 86,
    "game": {
     "type": "game.started",
-    "protocol": 6,
+    "protocol": 7,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -10208,7 +10227,7 @@
    "message": 180,
    "game": {
     "type": "game.started",
-    "protocol": 6,
+    "protocol": 7,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -10603,7 +10622,7 @@
    "message": 400,
    "game": {
     "type": "game.started",
-    "protocol": 6,
+    "protocol": 7,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -11139,7 +11158,7 @@
    "message": 133,
    "game": {
     "type": "game.started",
-    "protocol": 6,
+    "protocol": 7,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -11501,6 +11520,1642 @@
     }
    ],
    "prompt": "Priorität: Player Zug: 4 (Player) Phase: Erste Hauptphase (Vor-Kampf) Stapel: Leer",
+   "notices": [
+    {
+     "type": "input.rejected",
+     "seq": 5,
+     "reason": "stale",
+     "detail": "question 9999999 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 5,
+      "question": 9999999,
+      "kind": "buttons",
+      "button": 1
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 6,
+     "reason": "invalid",
+     "detail": "button must be 1 or 2, got 3",
+     "input": {
+      "type": "answer",
+      "seq": 6,
+      "question": 5,
+      "kind": "buttons",
+      "button": 3
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 7,
+     "reason": "unknown-card",
+     "detail": "no visible card with this id",
+     "input": {
+      "type": "card.tap",
+      "seq": 7,
+      "card": -5
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 8,
+     "reason": "stale",
+     "detail": "question 2 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 8,
+      "question": 2,
+      "kind": "buttons",
+      "button": 1
+     }
+    }
+   ]
+  },
+  {
+   "name": "attack",
+   "description": "Declaring attackers, none yet: creatures Forge would declare and creatures it names unavailable with its reasons - the most different reasons (attackers).",
+   "fixture": "attackers",
+   "message": 313,
+   "game": {
+    "type": "game.started",
+    "protocol": 7,
+    "human": "Player",
+    "ai": "Forge AI",
+    "aiProfile": "Default",
+    "format": "constructed",
+    "cardNames": [
+     "Centaur Courser",
+     "Craw Wurm",
+     "Forest",
+     "Garruk Wildspeaker",
+     "Giant Growth",
+     "Giant Spider",
+     "Grizzly Bears",
+     "Kalonian Tusker",
+     "Llanowar Elves",
+     "Nissa, Voice of Zendikar",
+     "Rampant Growth",
+     "Runeclaw Bear",
+     "Trained Armodon",
+     "Wall of Wood"
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 57,
+    "running": true,
+    "turn": 8,
+    "phase": "COMBAT_DECLARE_ATTACKERS",
+    "activePlayer": 0,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 20,
+      "hasPriority": false,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 1,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 54,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 31,
+         "key": "Llanowar Elves",
+         "name": "Llanowarelfen",
+         "typeLine": "Beschwörung von Elfen",
+         "cost": "{G}",
+         "set": "SLZ",
+         "power": 1,
+         "toughness": 1,
+         "text": "{T}: Erhöhe Deinen Manavorrat um G. Spiele diese Eigenschaft wie einen Unterbrechungszauber.",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 55,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 14,
+         "key": "Trained Armodon",
+         "name": "Gezähmtes Armodon",
+         "typeLine": "Beschwörung eines Elefanten",
+         "cost": "{1}{G}{G}",
+         "set": "TPR",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "playable": true,
+         "action": "Angriff mit Karte"
+        },
+        {
+         "id": 51,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 38,
+         "key": "Wall of Wood",
+         "name": "Holzmauer",
+         "typeLine": "Beschwörung einer Mauer",
+         "cost": "{G}",
+         "set": "30A",
+         "power": 0,
+         "toughness": 3,
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 17,
+         "key": "Giant Spider",
+         "name": "Riesenspinne",
+         "typeLine": "Beschwörung einer Spinne",
+         "cost": "{3}{G}",
+         "set": "SLZ",
+         "power": 2,
+         "toughness": 4,
+         "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+         "tapped": false,
+         "sick": true,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 44,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "hand": [],
+       "graveyard": [
+        {
+         "id": 21,
+         "key": "Giant Growth",
+         "name": "Riesenwuchs",
+         "typeLine": "Spontanzauber",
+         "cost": "{G}",
+         "set": "MSH",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 22,
+         "key": "Giant Growth",
+         "name": "Riesenwuchs",
+         "typeLine": "Spontanzauber",
+         "cost": "{G}",
+         "set": "MSH",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 50,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 20,
+      "hasPriority": true,
+      "canAct": false,
+      "highlighted": true,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 112,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 117,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 111,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 91,
+         "key": "Centaur Courser",
+         "name": "Zentauren-Renner",
+         "typeLine": "Kreatur — Zentaur, Krieger",
+         "cost": "{2}{G}",
+         "set": "PLST",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 109,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 79,
+         "key": "Giant Spider",
+         "name": "Riesenspinne",
+         "typeLine": "Beschwörung einer Spinne",
+         "cost": "{3}{G}",
+         "set": "SLZ",
+         "power": 2,
+         "toughness": 4,
+         "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+         "tapped": false,
+         "sick": true,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "hand": [
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [],
+       "exile": [],
+       "command": []
+      },
+      "library": 50,
+      "commanders": []
+     }
+    ],
+    "stack": [],
+    "combat": [],
+    "attack": {
+     "defender": {
+      "kind": "player",
+      "id": 1
+     },
+     "defenders": [
+      {
+       "kind": "player",
+       "id": 1
+      }
+     ],
+     "unavailable": [
+      {
+       "card": 31,
+       "reason": "tapped"
+      },
+      {
+       "card": 38,
+       "reason": "restricted"
+      },
+      {
+       "card": 17,
+       "reason": "sick"
+      }
+     ]
+    }
+   },
+   "questions": [
+    {
+     "type": "question",
+     "kind": "buttons",
+     "text": "Wähle angreifende Kreaturen oder Forge AI wähle den anzugreifenden Spieler/Planeswalker",
+     "purpose": "attack",
+     "buttons": [
+      {
+       "nr": 1,
+       "label": "OK",
+       "enabled": true,
+       "meaning": "declare"
+      },
+      {
+       "nr": 2,
+       "label": "Alle angreifen",
+       "enabled": true,
+       "meaning": "attackAll"
+      }
+     ],
+     "id": 36,
+     "blocking": false
+    }
+   ],
+   "prompt": "Wähle angreifende Kreaturen oder Forge AI wähle den anzugreifenden Spieler/Planeswalker",
+   "notices": [
+    {
+     "type": "input.rejected",
+     "seq": 5,
+     "reason": "stale",
+     "detail": "question 9999999 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 5,
+      "question": 9999999,
+      "kind": "buttons",
+      "button": 1
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 6,
+     "reason": "invalid",
+     "detail": "button must be 1 or 2, got 3",
+     "input": {
+      "type": "answer",
+      "seq": 6,
+      "question": 5,
+      "kind": "buttons",
+      "button": 3
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 7,
+     "reason": "unknown-card",
+     "detail": "no visible card with this id",
+     "input": {
+      "type": "card.tap",
+      "seq": 7,
+      "card": -5
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 8,
+     "reason": "stale",
+     "detail": "question 2 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 8,
+      "question": 2,
+      "kind": "buttons",
+      "button": 1
+     }
+    }
+   ]
+  },
+  {
+   "name": "attack-declared",
+   "description": "Attackers declared: Forge's Call Back instead of Alpha Strike, the attackers in combat, creatures that stay back (attackers).",
+   "fixture": "attackers",
+   "message": 319,
+   "game": {
+    "type": "game.started",
+    "protocol": 7,
+    "human": "Player",
+    "ai": "Forge AI",
+    "aiProfile": "Default",
+    "format": "constructed",
+    "cardNames": [
+     "Centaur Courser",
+     "Craw Wurm",
+     "Forest",
+     "Garruk Wildspeaker",
+     "Giant Growth",
+     "Giant Spider",
+     "Grizzly Bears",
+     "Kalonian Tusker",
+     "Llanowar Elves",
+     "Nissa, Voice of Zendikar",
+     "Rampant Growth",
+     "Runeclaw Bear",
+     "Trained Armodon",
+     "Wall of Wood"
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 59,
+    "running": true,
+    "turn": 8,
+    "phase": "COMBAT_DECLARE_ATTACKERS",
+    "activePlayer": 0,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 20,
+      "hasPriority": false,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 1,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 54,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 31,
+         "key": "Llanowar Elves",
+         "name": "Llanowarelfen",
+         "typeLine": "Beschwörung von Elfen",
+         "cost": "{G}",
+         "set": "SLZ",
+         "power": 1,
+         "toughness": 1,
+         "text": "{T}: Erhöhe Deinen Manavorrat um G. Spiele diese Eigenschaft wie einen Unterbrechungszauber.",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 55,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 14,
+         "key": "Trained Armodon",
+         "name": "Gezähmtes Armodon",
+         "typeLine": "Beschwörung eines Elefanten",
+         "cost": "{1}{G}{G}",
+         "set": "TPR",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "attacking": true,
+         "action": "Karte aus dem Kampf entfernen"
+        },
+        {
+         "id": 51,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 38,
+         "key": "Wall of Wood",
+         "name": "Holzmauer",
+         "typeLine": "Beschwörung einer Mauer",
+         "cost": "{G}",
+         "set": "30A",
+         "power": 0,
+         "toughness": 3,
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 17,
+         "key": "Giant Spider",
+         "name": "Riesenspinne",
+         "typeLine": "Beschwörung einer Spinne",
+         "cost": "{3}{G}",
+         "set": "SLZ",
+         "power": 2,
+         "toughness": 4,
+         "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+         "tapped": false,
+         "sick": true,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 44,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "hand": [],
+       "graveyard": [
+        {
+         "id": 21,
+         "key": "Giant Growth",
+         "name": "Riesenwuchs",
+         "typeLine": "Spontanzauber",
+         "cost": "{G}",
+         "set": "MSH",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 22,
+         "key": "Giant Growth",
+         "name": "Riesenwuchs",
+         "typeLine": "Spontanzauber",
+         "cost": "{G}",
+         "set": "MSH",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 50,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 20,
+      "hasPriority": true,
+      "canAct": false,
+      "highlighted": true,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 112,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 117,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 111,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 91,
+         "key": "Centaur Courser",
+         "name": "Zentauren-Renner",
+         "typeLine": "Kreatur — Zentaur, Krieger",
+         "cost": "{2}{G}",
+         "set": "PLST",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 109,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 79,
+         "key": "Giant Spider",
+         "name": "Riesenspinne",
+         "typeLine": "Beschwörung einer Spinne",
+         "cost": "{3}{G}",
+         "set": "SLZ",
+         "power": 2,
+         "toughness": 4,
+         "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+         "tapped": false,
+         "sick": true,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "hand": [
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [],
+       "exile": [],
+       "command": []
+      },
+      "library": 50,
+      "commanders": []
+     }
+    ],
+    "stack": [],
+    "combat": [
+     {
+      "attacker": 14,
+      "defender": 1,
+      "defenderKind": "player",
+      "blockers": []
+     }
+    ],
+    "attack": {
+     "defender": {
+      "kind": "player",
+      "id": 1
+     },
+     "defenders": [
+      {
+       "kind": "player",
+       "id": 1
+      }
+     ],
+     "unavailable": [
+      {
+       "card": 31,
+       "reason": "tapped"
+      },
+      {
+       "card": 38,
+       "reason": "restricted"
+      },
+      {
+       "card": 17,
+       "reason": "sick"
+      }
+     ]
+    }
+   },
+   "questions": [
+    {
+     "type": "question",
+     "kind": "buttons",
+     "text": "Wähle angreifende Kreaturen oder Forge AI wähle den anzugreifenden Spieler/Planeswalker",
+     "purpose": "attackDeclared",
+     "buttons": [
+      {
+       "nr": 1,
+       "label": "OK",
+       "enabled": true,
+       "meaning": "declare"
+      },
+      {
+       "nr": 2,
+       "label": "Zurückrufen",
+       "enabled": true,
+       "meaning": "callBack"
+      }
+     ],
+     "id": 37,
+     "blocking": false
+    }
+   ],
+   "prompt": "Wähle angreifende Kreaturen oder Forge AI wähle den anzugreifenden Spieler/Planeswalker",
+   "notices": [
+    {
+     "type": "input.rejected",
+     "seq": 5,
+     "reason": "stale",
+     "detail": "question 9999999 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 5,
+      "question": 9999999,
+      "kind": "buttons",
+      "button": 1
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 6,
+     "reason": "invalid",
+     "detail": "button must be 1 or 2, got 3",
+     "input": {
+      "type": "answer",
+      "seq": 6,
+      "question": 5,
+      "kind": "buttons",
+      "button": 3
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 7,
+     "reason": "unknown-card",
+     "detail": "no visible card with this id",
+     "input": {
+      "type": "card.tap",
+      "seq": 7,
+      "card": -5
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 8,
+     "reason": "stale",
+     "detail": "question 2 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 8,
+      "question": 2,
+      "kind": "buttons",
+      "button": 1
+     }
+    }
+   ]
+  },
+  {
+   "name": "attack-planeswalker",
+   "description": "A planeswalker of the AI's as the defender: two defenders to choose from, the player marked as the other one (attackers).",
+   "fixture": "attackers",
+   "message": 564,
+   "game": {
+    "type": "game.started",
+    "protocol": 7,
+    "human": "Player",
+    "ai": "Forge AI",
+    "aiProfile": "Default",
+    "format": "constructed",
+    "cardNames": [
+     "Centaur Courser",
+     "Craw Wurm",
+     "Forest",
+     "Garruk Wildspeaker",
+     "Giant Growth",
+     "Giant Spider",
+     "Grizzly Bears",
+     "Kalonian Tusker",
+     "Llanowar Elves",
+     "Nissa, Voice of Zendikar",
+     "Rampant Growth",
+     "Runeclaw Bear",
+     "Trained Armodon",
+     "Wall of Wood"
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 108,
+    "running": true,
+    "turn": 14,
+    "phase": "COMBAT_DECLARE_ATTACKERS",
+    "activePlayer": 0,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 7,
+      "hasPriority": false,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 1,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 54,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 55,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 51,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 17,
+         "key": "Giant Spider",
+         "name": "Riesenspinne",
+         "typeLine": "Beschwörung einer Spinne",
+         "cost": "{3}{G}",
+         "set": "SLZ",
+         "power": 2,
+         "toughness": 4,
+         "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "playable": true,
+         "action": "Angriff mit Karte"
+        },
+        {
+         "id": 44,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 57,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 41,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 45,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "hand": [],
+       "graveyard": [
+        {
+         "id": 21,
+         "key": "Giant Growth",
+         "name": "Riesenwuchs",
+         "typeLine": "Spontanzauber",
+         "cost": "{G}",
+         "set": "MSH",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 22,
+         "key": "Giant Growth",
+         "name": "Riesenwuchs",
+         "typeLine": "Spontanzauber",
+         "cost": "{G}",
+         "set": "MSH",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 31,
+         "key": "Llanowar Elves",
+         "name": "Llanowarelfen",
+         "typeLine": "Beschwörung von Elfen",
+         "cost": "{G}",
+         "set": "SLZ",
+         "power": 1,
+         "toughness": 1,
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 38,
+         "key": "Wall of Wood",
+         "name": "Holzmauer",
+         "typeLine": "Beschwörung einer Mauer",
+         "cost": "{G}",
+         "set": "30A",
+         "power": 0,
+         "toughness": 3,
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 28,
+         "key": "Rampant Growth",
+         "name": "Wucherndes Wachstum",
+         "typeLine": "Hexerei",
+         "cost": "{1}{G}",
+         "set": "FIC",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 14,
+         "key": "Trained Armodon",
+         "name": "Gezähmtes Armodon",
+         "typeLine": "Beschwörung eines Elefanten",
+         "cost": "{1}{G}{G}",
+         "set": "TPR",
+         "power": 3,
+         "toughness": 3,
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 46,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 20,
+      "hasPriority": true,
+      "canAct": false,
+      "selectable": true,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 112,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 117,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 111,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 91,
+         "key": "Centaur Courser",
+         "name": "Zentauren-Renner",
+         "typeLine": "Kreatur — Zentaur, Krieger",
+         "cost": "{2}{G}",
+         "set": "PLST",
+         "power": 4,
+         "toughness": 4,
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "counters": {
+          "+1/+1": 1
+         }
+        },
+        {
+         "id": 109,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 79,
+         "key": "Giant Spider",
+         "name": "Riesenspinne",
+         "typeLine": "Beschwörung einer Spinne",
+         "cost": "{3}{G}",
+         "set": "SLZ",
+         "power": 3,
+         "toughness": 5,
+         "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "counters": {
+          "+1/+1": 1
+         }
+        },
+        {
+         "id": 110,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 68,
+         "key": "Garruk Wildspeaker",
+         "name": "Garruk Wildsprecher",
+         "typeLine": "Planeswalker — Garruk",
+         "cost": "{2}{G}{G}",
+         "set": "SLP",
+         "loyalty": "1",
+         "text": "+1: Enttappe zwei Länder deiner Wahl.\r\n\r\n-1: Bringe einen 3/3 grünen Bestien-Kreaturenspielstein ins Spiel.\r\n\r\n-4: Kreaturen, die du kontrollierst, erhalten +3/+3 und verursachen bis zum Ende des Zuges Trampelschaden.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "action": "Angreifer für Karte deklarieren",
+         "highlighted": true,
+         "counters": {
+          "Loyalty": 1
+         }
+        },
+        {
+         "id": 124,
+         "key": "Beast Token",
+         "name": "Bestie Spielstein",
+         "typeLine": "Creature - Beast",
+         "set": "2XM",
+         "power": 4,
+         "toughness": 4,
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "token": true,
+         "counters": {
+          "+1/+1": 1
+         }
+        },
+        {
+         "id": 128,
+         "key": "Beast Token",
+         "name": "Bestie Spielstein",
+         "typeLine": "Creature - Beast",
+         "set": "2XM",
+         "power": 4,
+         "toughness": 4,
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "token": true,
+         "counters": {
+          "+1/+1": 1
+         }
+        },
+        {
+         "id": 74,
+         "key": "Nissa, Voice of Zendikar",
+         "name": "Nissa, Stimme Zendikars",
+         "typeLine": "Planeswalker — Nissa",
+         "cost": "{1}{G}{G}",
+         "set": "PIO",
+         "loyalty": "2",
+         "text": "+1: Bringe einen 0/1 grünen Pflanze-Kreaturenspielstein ins Spiel.\r\n\r\n−2: Lege eine +1/+1-Marke auf jede Kreatur, die du kontrollierst.\r\n\r\n−7: Du erhältst X Lebenspunkte dazu und ziehst X Karten, wobei X gleich der Anzahl an Ländern ist, die du kontrollierst.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "action": "Angreifer für Karte deklarieren",
+         "counters": {
+          "Loyalty": 2
+         }
+        },
+        {
+         "id": 64,
+         "key": "Grizzly Bears",
+         "name": "Grizzlybären",
+         "typeLine": "Beschwörung von Bären",
+         "cost": "{1}{G}",
+         "set": "SLZ",
+         "power": 2,
+         "toughness": 2,
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 99,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 137,
+         "key": "Beast Token",
+         "name": "Bestie Spielstein",
+         "typeLine": "Creature - Beast",
+         "set": "2XM",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
+         "tapped": false,
+         "sick": true,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "token": true
+        },
+        {
+         "id": 141,
+         "key": "Plant Token",
+         "name": "Pflanze Spielstein",
+         "typeLine": "Creature - Plant",
+         "set": "2XM",
+         "power": 0,
+         "toughness": 1,
+         "text": "",
+         "tapped": false,
+         "sick": true,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "token": true
+        },
+        {
+         "id": 93,
+         "key": "Craw Wurm",
+         "name": "Tatzelwurm",
+         "typeLine": "Beschwörung eines Wurms",
+         "cost": "{4}{G}{G}",
+         "set": "30A",
+         "power": 6,
+         "toughness": 4,
+         "text": "",
+         "tapped": false,
+         "sick": true,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "hand": [
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [],
+       "exile": [],
+       "command": []
+      },
+      "library": 47,
+      "commanders": []
+     }
+    ],
+    "stack": [],
+    "combat": [],
+    "attack": {
+     "defender": {
+      "kind": "card",
+      "id": 68
+     },
+     "defenders": [
+      {
+       "kind": "player",
+       "id": 1
+      },
+      {
+       "kind": "card",
+       "id": 68
+      },
+      {
+       "kind": "card",
+       "id": 74
+      }
+     ],
+     "unavailable": []
+    }
+   },
+   "questions": [
+    {
+     "type": "question",
+     "kind": "buttons",
+     "text": "Wähle angreifende Kreaturen oder Garruk Wildsprecher (68) wähle den anzugreifenden Spieler/Planeswalker",
+     "purpose": "attack",
+     "buttons": [
+      {
+       "nr": 1,
+       "label": "OK",
+       "enabled": true,
+       "meaning": "declare"
+      },
+      {
+       "nr": 2,
+       "label": "Alle angreifen",
+       "enabled": true,
+       "meaning": "attackAll"
+      }
+     ],
+     "id": 65,
+     "blocking": false
+    }
+   ],
+   "prompt": "Wähle angreifende Kreaturen oder Garruk Wildsprecher (68) wähle den anzugreifenden Spieler/Planeswalker",
    "notices": [
     {
      "type": "input.rejected",

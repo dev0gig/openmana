@@ -95,6 +95,18 @@ const plainButtons = (m: Moment) => open(m, "buttons").filter((q) => q.purpose =
 /** Forge's payment is open and its own prompt line for it has come (it follows the question - Anvil lesson). */
 const paying = (m: Moment) => open(m, "buttons").some((q) => q.purpose === "payment") && m.state.payment !== undefined && m.last.type === "message" && m.last.kind === "prompt"
 /** The player's priority, alone (no blocking question over it). */
+/**
+ * Forge's declaration of attackers is open, at the state Forge sends once its buttons are asked (prompt 18): Forge marks
+ * the creatures that can attack (its weakly-selectable cards) only after the question and its prompt line.
+ */
+const declaring = (m: Moment) =>
+  open(m, "buttons").some((q) => q.purpose === "attack" || q.purpose === "attackDeclared") &&
+  m.state.attack !== undefined &&
+  m.questions.every((q) => !q.blocking) &&
+  m.last.type === "state" &&
+  m.prompt !== null
+const reasons = (m: Moment) => new Set(m.state.attack?.unavailable.map((entry) => entry.reason) ?? []).size
+const attackers = (m: Moment) => me(m.state)?.zones.battlefield.filter((card) => "attacking" in card && card.attacking === true).length ?? 0
 const priority = (m: Moment) => open(m, "buttons").some((q) => q.purpose === "priority") && m.questions.every((q) => !q.blocking)
 
 interface SceneRule {
@@ -261,6 +273,26 @@ const RULES: readonly SceneRule[] = [
     description: "A decision while a spell is cast: the value of X for Blaze, a blocking choice before its target and payment (targets-payment).",
     fixture: "targets-payment",
     fits: (m) => open(m, "choose").length > 0 && m.state.turn > 0,
+  },
+  // Declaring attackers (prompt 18): Forge's reasons why creatures stay back, declared attackers, a planeswalker to attack.
+  {
+    name: "attack",
+    description: "Declaring attackers, none yet: creatures Forge would declare and creatures it names unavailable with its reasons - the most different reasons (attackers).",
+    fixture: "attackers",
+    fits: (m) => declaring(m) && attackers(m) === 0 && reasons(m) > 0 && (m.state.attack?.defenders.length ?? 0) === 1,
+    best: (a, b) => reasons(b) - reasons(a),
+  },
+  {
+    name: "attack-declared",
+    description: "Attackers declared: Forge's Call Back instead of Alpha Strike, the attackers in combat, creatures that stay back (attackers).",
+    fixture: "attackers",
+    fits: (m) => declaring(m) && attackers(m) > 0 && open(m, "buttons").some((q) => q.purpose === "attackDeclared") && reasons(m) > 0,
+  },
+  {
+    name: "attack-planeswalker",
+    description: "A planeswalker of the AI's as the defender: two defenders to choose from, the player marked as the other one (attackers).",
+    fixture: "attackers",
+    fits: (m) => declaring(m) && m.state.attack?.defender?.kind === "card",
   },
 ]
 

@@ -52,6 +52,14 @@
  * Forge would take from the pool (mana.use) and - for Phyrexian mana - life
  * (the player's own seat). All of it taps at once, like the mana sources on
  * the table; Forge's Cancel takes the whole payment back.
+ *
+ * Declaring attackers (prompt 18) has words of its own like the priority:
+ * Forge's prompt line there repeats a fixed sentence with the defender's
+ * name, so the region says from Forge's declaration in progress whom a
+ * creature tapped now attacks, which creatures attack so far, which stay
+ * back and why (Forge's reasons), lets the player switch among the defenders
+ * Forge offers (Forge's player.tap / card.tap), and names Forge's buttons by
+ * what they do (see AttackDecision).
  */
 import { ArrowDown, ArrowUp, Minus, Plus, Search, X } from "lucide-react"
 import { createContext, use, useEffect, useId, useMemo, useRef, useState, type ComponentProps, type ReactNode } from "react"
@@ -90,13 +98,15 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Field, FieldContent, FieldDescription, FieldLabel, FieldTitle } from "@/components/ui/field"
 import { GameCardBack, GameCardButton, GameCardRow, GameCardRowButton, GameCardRowItem, type GameCardMark } from "@/components/ui/game-card"
 import { GameDecision, GameDecisionActions, GameDecisionHeader, GameDecisionNote, GameDecisionRow, GameDecisionSource } from "@/components/ui/game-decision"
-import { GamePlayerButton } from "@/components/ui/game-player"
+import { GamePlayer, GamePlayerButton } from "@/components/ui/game-player"
 import { Input } from "@/components/ui/input"
 import { Item as ItemRow, ItemActions, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Spinner } from "@/components/ui/spinner"
 import { useCardPress } from "@/hooks/use-card-press"
 import { ARMING_MS } from "./card-sheet"
+import { attackText, CALL_BACK_LABEL, declareLabel, declareNote } from "./attack-labels"
+import { attackView, type AttackView, type DefenderView } from "./attack-model"
 import { directTaps, playerUse, tapBlocked, type TableMoment } from "./card-use"
 import {
   arrangeAnswer,
@@ -172,6 +182,8 @@ export interface DecisionPanelProps {
   readonly onLook: (id: number, snapshot?: VisibleCard) => void
   /** Taps a player (Forge's player.tap, prompt 17 - the page sends it). Absent: nothing is tapped. */
   readonly onTapPlayer?: (player: number) => void
+  /** Taps a card at once (Forge's card.tap - a defending planeswalker, prompt 18; the table's guard against a double tap). Absent: nothing is tapped. */
+  readonly onTapCard?: (card: number) => void
   /** Pays with floating mana (mana.use, prompt 17 - the page sends it). Absent: nothing is paid. */
   readonly onUseMana?: (color: ManaColor) => void
 }
@@ -190,6 +202,7 @@ interface DecisionContextValue {
   /** Why no tap can be sent (a player, mana), or null - the table's reasons, or that it is only looked at. */
   readonly tapBlocked: string | null
   readonly tapPlayer: (player: number) => void
+  readonly tapCard: (card: number) => void
   readonly payWithMana: (color: ManaColor) => void
 }
 
@@ -221,11 +234,11 @@ export function decisionNeedsRoom(decision: Decision, state: GameState | null): 
   return false
 }
 
-export function DecisionPanel({ state, questions, prompt, waiting, conceding, pictures, alerts, onAnswer, onLook, onTapPlayer, onUseMana }: DecisionPanelProps) {
+export function DecisionPanel({ state, questions, prompt, waiting, conceding, pictures, alerts, onAnswer, onLook, onTapPlayer, onTapCard, onUseMana }: DecisionPanelProps) {
   const decision = currentDecision(questions)
   const blocked = answerBlocked({ live: onAnswer !== undefined, conceding, waiting })
   const blockedId = useId()
-  const moment = useMemo<TableMoment>(() => ({ questions, waiting, conceding }), [questions, waiting, conceding])
+  const moment = useMemo<TableMoment>(() => ({ questions, waiting, conceding, attack: state.attack ?? null }), [questions, waiting, conceding, state.attack])
   const tapReason = onTapPlayer === undefined ? "Nur ansehen – hier wird nichts angetippt." : tapBlocked(moment)
   const context = useMemo<DecisionContextValue>(
     () => ({
@@ -238,9 +251,10 @@ export function DecisionPanel({ state, questions, prompt, waiting, conceding, pi
       moment,
       tapBlocked: tapReason,
       tapPlayer: onTapPlayer ?? (() => undefined),
+      tapCard: onTapCard ?? (() => undefined),
       payWithMana: onUseMana ?? (() => undefined),
     }),
-    [state, pictures, blocked, blockedId, onAnswer, onLook, moment, tapReason, onTapPlayer, onUseMana],
+    [state, pictures, blocked, blockedId, onAnswer, onLook, moment, tapReason, onTapPlayer, onTapCard, onUseMana],
   )
   const question = decisionQuestion(decision)
   return (
@@ -528,6 +542,10 @@ function useSearch(items: readonly Item[], labelOf: (item: Item) => string): { r
 function StepDecision({ buttons, select, prompt }: { buttons: ButtonsQuestion | null; select: SelectQuestion | null; prompt: string | null }) {
   const { state } = useDecision()
   if (buttons?.purpose === "priority" && select === null) return <PriorityDecision moment={priorityMoment(state, buttons)} />
+  if ((buttons?.purpose === "attack" || buttons?.purpose === "attackDeclared") && select === null) {
+    const view = attackView(state, buttons)
+    if (view !== null) return <AttackDecision view={view} />
+  }
   const selection = select === null ? null : selectView(select, state)
   const main = buttons ?? select
   const label = buttons?.purpose !== undefined ? questionLabel(buttons) : select !== null ? questionLabel(select) : main !== null ? questionLabel(main) : "Entscheidung"
@@ -613,6 +631,128 @@ function PriorityDecision({ moment }: { moment: PriorityMoment }) {
       </GameDecisionActions>
     </>
   )
+}
+
+/**
+ * Declaring attackers (prompt 18). Instead of Forge's fixed sentence the
+ * region says from Forge's declaration in progress whom a creature tapped
+ * now attacks and who attacks so far; with several defenders (a planeswalker
+ * or battle besides the player) they are buttons - a tap makes one the
+ * defender (Forge's player.tap / card.tap, at once like its click). The
+ * creatures Forge would not declare are named with Forge's reason. Forge's
+ * buttons by their meaning: OK attacks with the declared creatures - or,
+ * with none, leaves the attack out -, the second declares all (Alpha
+ * Strike) or takes all back (Call Back). Creatures are declared by tapping
+ * them on the table (a tap there is sent at once and taken back by a second).
+ */
+function AttackDecision({ view }: { view: AttackView }) {
+  const { answer } = useDecision()
+  const noteId = useId()
+  const offId = useId()
+  const { question, declare, second, attackers } = view
+  const off = question.buttons.filter((button) => !button.enabled)
+  const secondLabel = second === null ? null : second.meaning === "callBack" ? CALL_BACK_LABEL : buttonText(second.button)
+  return (
+    <>
+      <DecisionHeading label={questionLabel(question)} text={attackText(view)} source={null} />
+      {view.defenders.length > 1 ? <DefenderChoices view={view} /> : null}
+      <GameDecisionNote>
+        {view.ready > 0 ? `${view.ready === 1 ? "1 weitere Kreatur kann" : `${view.ready} weitere Kreaturen können`} angreifen (gold gestrichelt). ` : null}
+        Antippen lässt eine Kreatur angreifen, ein zweiter Tipp nimmt sie zurück. Lange drücken oder Rechtsklick zeigt eine Karte groß.
+      </GameDecisionNote>
+      {view.unavailable.length > 0 ? (
+        <GameDecisionNote data-attack-unavailable>
+          Bleiben zurück: {view.unavailable.map(({ card, words }) => `${cardName(card)} (${words.short})`).join(", ")}.
+        </GameDecisionNote>
+      ) : null}
+      <GameDecisionNote id={noteId}>{declareNote(attackers.length)}</GameDecisionNote>
+      {off.length > 0 ? (
+        <GameDecisionNote id={offId}>{off.length === 1 ? `„${buttonText(off[0]!)}“ hat Forge gerade abgeschaltet.` : "Forge hat beide Knöpfe gerade abgeschaltet."}</GameDecisionNote>
+      ) : null}
+      <BlockedNote />
+      <GameDecisionActions role="group" aria-label="Antworten, die Forge anbietet">
+        {declare !== null ? (
+          <SendButton
+            armKey={question.id}
+            {...(declare.meaning !== undefined ? { "data-meaning": declare.meaning } : {})}
+            disabled={!declare.enabled}
+            reasonId={declare.enabled ? noteId : offId}
+            onSend={() => answer(question.id, buttonsAnswer(1))}
+          >
+            {declare.meaning === "declare" ? declareLabel(attackers.length) : buttonText(declare)}
+          </SendButton>
+        ) : null}
+        {second !== null ? (
+          <SendButton
+            armKey={question.id}
+            variant="outline"
+            data-meaning={second.meaning}
+            disabled={!second.button.enabled}
+            reasonId={second.button.enabled ? undefined : offId}
+            onSend={() => answer(question.id, buttonsAnswer(2))}
+          >
+            {secondLabel}
+          </SendButton>
+        ) : (
+          question.buttons
+            .filter((button) => button.nr === 2)
+            .map((button) => (
+              <SendButton key={button.nr} armKey={question.id} variant="outline" disabled={!button.enabled} reasonId={button.enabled ? undefined : offId} onSend={() => answer(question.id, buttonsAnswer(2))}>
+                {buttonText(button)}
+              </SendButton>
+            ))
+        )}
+      </GameDecisionActions>
+    </>
+  )
+}
+
+/**
+ * The defenders Forge offers (prompt 18), as buttons: the one attacked now
+ * pressed, the others make themselves the defender at once (Forge's
+ * player.tap for a player, card.tap for a planeswalker or battle - like
+ * tapping them on the table), guarded against a double press.
+ */
+function DefenderChoices({ view }: { view: AttackView }) {
+  const { tapBlocked: blocked, blockedId, tapPlayer, tapCard } = useDecision()
+  return (
+    <GameDecisionActions role="group" aria-label="Wen greifst du an?" className="justify-start">
+      {view.defenders.map((defender) => {
+        const label = defenderLabel(defender)
+        const key = `${defender.ref.kind}:${defender.ref.id}`
+        // The defender attacked now: its mark to read (a tap would change nothing, so there is none to press).
+        if (defender.current) {
+          return (
+            <GamePlayer key={key} data-defender={key} mark="selected" aria-label={`${label}, wird angegriffen`}>
+              <span className="font-heading text-sm font-semibold">{defender.name}</span>
+              {defender.detail !== null ? <span className="text-xs text-muted-foreground tabular-nums">{defender.detail}</span> : null}
+            </GamePlayer>
+          )
+        }
+        return (
+          <GamePlayerButton
+            key={key}
+            data-defender={key}
+            mark="usable"
+            aria-label={`${label} – Antippen: als Angriffsziel wählen`}
+            {...(blocked !== null ? { "aria-describedby": blockedId, title: blocked } : {})}
+            disabled={blocked !== null}
+            onKeyDown={(event) => {
+              if (event.repeat) event.preventDefault()
+            }}
+            onClick={() => (defender.ref.kind === "player" ? tapPlayer(defender.ref.id) : tapCard(defender.ref.id))}
+          >
+            <span className="font-heading text-sm font-semibold">{defender.name}</span>
+            {defender.detail !== null ? <span className="text-xs text-muted-foreground tabular-nums">{defender.detail}</span> : null}
+          </GamePlayerButton>
+        )
+      })}
+    </GameDecisionActions>
+  )
+}
+
+function defenderLabel(defender: DefenderView): string {
+  return defender.detail === null ? defender.name : `${defender.name}, ${defender.detail}`
 }
 
 /**

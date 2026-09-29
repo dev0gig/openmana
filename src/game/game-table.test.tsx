@@ -137,11 +137,12 @@ describe("the battlefields", () => {
     expect(arsonist.querySelector('[data-slot="game-card-caption"]')).toHaveTextContent("1/1 · 2 Schaden")
   })
 
-  it("combat on the cards: attacking and blocking as signs, said in the card's name for screen readers", () => {
+  it("combat and summoning sickness on the cards: signs, said in the card's name for screen readers", () => {
     renderScene("defend")
     const blocker = region("Dein Spielfeld").querySelector('[data-card="58"]')!
-    expect(blocker.querySelector('[data-slot="game-card-caption"] svg')).not.toBeNull()
-    expect(blocker).toHaveAccessibleName(/^Goblin Arsonist, blockt, 1\/1/)
+    // Blocking and Forge's summoning sickness (prompt 18): two signs, both in the name.
+    expect(blocker.querySelectorAll('[data-slot="game-card-caption"] svg')).toHaveLength(2)
+    expect(blocker).toHaveAccessibleName(/^Goblin Arsonist, Einsatzverzögerung, blockt, 1\/1/)
     const attacker = region("Spielfeld der Forge-KI").querySelector('[data-card="80"]')!
     expect(attacker).toHaveAttribute("data-tapped", "true")
     expect(attacker).toHaveAccessibleName(/^Giant Spider, getappt, greift an, 2\/4, ausgewählt/)
