@@ -70,6 +70,8 @@ describe("recorded scenes", () => {
       "attack",
       "attack-declared",
       "attack-planeswalker",
+      "block-start",
+      "block-multiple",
     ])
     for (const scene of TABLE_SCENES) {
       expect(() => checkGameState(scene.state), scene.name).not.toThrow()

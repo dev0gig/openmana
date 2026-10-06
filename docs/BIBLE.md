@@ -186,6 +186,8 @@ Preserve Anvil's successful principle: priorities/decisions with no meaningful c
 
 How the player's priority, the stack and the turn's steps are shown - Forge's own auto-pass (APINA) in charge, the priority in words from Forge's state, Forge's OK as "Weiter"/"Verrechnen lassen", End Turn only after asking, the stack with its cards, the header's track of the turn's steps - is described in [implementation/16-priority-stack-phases.md](implementation/16-priority-stack-phases.md).
 
+Blocker declaration uses Forge's selected attacker, its actions for that target and its complete assignments. Inspection stays safe and confirmation is explicit; Forge's order/damage requests use the generic decision controls. The implementation and verification limits are described in [implementation/19-combat-blockers.md](implementation/19-combat-blockers.md).
+
 ### Card interaction
 
 Looking at a card must be safe. Committing an irreversible action requires clear intent. Full card view must be quickly accessible. Touch gestures must not cause accidental plays/activations.

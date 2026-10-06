@@ -62,7 +62,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { useCardPress } from "@/hooks/use-card-press"
 import { useElementHeight } from "@/hooks/use-element-height"
 import { ARMING_MS, CardSheet, type CardLook } from "./card-sheet"
-import { cardUse, playerUse, stepSource, type CardPlace, type CardUse, type TableMoment } from "./card-use"
+import { cardUse, currentStep, openSelection, playerUse, stepSource, type CardPlace, type CardUse, type TableMoment } from "./card-use"
 import { currentDecision } from "./decision-model"
 import { DecisionPanel, decisionNeedsRoom } from "./decision-panel"
 import { aiProfileLabel, PHASE_LABELS, phaseLabel } from "./game-labels"
@@ -161,7 +161,7 @@ export function GameTable({
 }: GameTableProps) {
   const view = useMemo(() => tableView(state, questions), [state, questions])
   const profile = profileDrawn ? `${aiProfileLabel(aiProfile)} (zufällig)` : aiProfileLabel(aiProfile)
-  const moment = useMemo<TableMoment>(() => ({ questions, waiting, conceding, attack: state.attack ?? null }), [questions, waiting, conceding, state.attack])
+  const moment = useMemo<TableMoment>(() => ({ questions, waiting, conceding, attack: state.attack ?? null, combat: state.combat }), [questions, waiting, conceding, state.attack, state.combat])
   const [look, setLook] = useState<CardLook | null>(null)
   // A card of Forge's question: its view as the question shows it goes along (it may lie in no zone of the state).
   const lookAtQuestionCard = useCallback(
@@ -559,8 +559,10 @@ function FieldCard({ card, count, pictures, seat, note }: { card: VisibleCard; c
   // The card the running step is about (an ability's source while its targets or costs are chosen - prompt 17).
   const source = controls !== null && stepSource(controls.moment.questions) === card.id
   // While attackers are declared: why Forge would not declare this creature (prompt 18) - said in the caption, in place of its facts.
-  const unavailable = controls === null ? null : cardUse(card, { zone: "battlefield", mine: seat === "me" }, controls.moment).unavailable
-  const title = [cardName(card), ...cardFacts(card, count), ...(note ? [note] : []), ...(source ? [SOURCE_LABEL] : []), ...(unavailable !== null ? [`kann nicht angreifen: ${unavailable.short}`] : [])].join(" · ")
+  const usage = controls === null ? null : cardUse(card, { zone: "battlefield", mine: seat === "me" }, controls.moment)
+  const unavailable = usage?.unavailable ?? null
+  const blockLabel = controls !== null && currentStep(controls.moment.questions) === "block" && openSelection(controls.moment.questions) === null ? usage?.markLabel ?? null : null
+  const title = [cardName(card), ...cardFacts(card, count), ...(note ? [note] : []), ...(source ? [SOURCE_LABEL] : []), ...(blockLabel !== null ? [blockLabel] : []), ...(unavailable !== null ? [`kann nicht angreifen: ${unavailable.short}`] : [])].join(" · ")
   return (
     <TableCard
       card={card}
@@ -576,7 +578,7 @@ function FieldCard({ card, count, pictures, seat, note }: { card: VisibleCard; c
           {card.sick ? <Hourglass aria-hidden /> : null}
           {source ? <span className="font-medium text-foreground">{SOURCE_LABEL}</span> : null}
           {unavailable !== null ? <CircleSlash aria-hidden /> : null}
-          <span className="truncate">{unavailable !== null ? unavailable.short : captionFacts(card).join(" · ")}</span>
+          <span className="truncate">{unavailable !== null ? unavailable.short : blockLabel ?? captionFacts(card).join(" · ")}</span>
         </GameCardCaption>
       }
     />
@@ -708,6 +710,8 @@ function Field({ side, pictures, nearRow, owner }: { side: TableSide; pictures: 
 /** The stack (top first, Forge's order) and the combat, in Forge's words and the table's names. */
 function StackAndCombat({ view, pictures }: { view: TableView; pictures: TableCardLookup }) {
   const { stack, combat } = view
+  const controls = use(CardControlsContext)
+  const blocking = controls !== null && currentStep(controls.moment.questions) === "block" && openSelection(controls.moment.questions) === null && !controls.moment.questions.some((q) => q.blocking)
   if (stack.length === 0 && combat.length === 0) {
     return (
       <div className="flex h-full flex-col justify-center">
@@ -732,10 +736,11 @@ function StackAndCombat({ view, pictures }: { view: TableView; pictures: TableCa
       ) : null}
       {combat.length > 0 ? (
         <div className="flex flex-col gap-1">
-          <h2 className="font-medium text-muted-foreground">Kampf</h2>
+          <h2 className="font-medium text-muted-foreground">{blocking ? "Blocks · noch nicht bestätigt" : "Kampf"}</h2>
           <ul className="flex flex-col gap-0.5">
-            {combatLines(combat).map((line) => (
-              <li key={line.key}>
+            {combatLines(combat, blocking).map((line) => (
+              <li key={line.key} data-combat-attacker={line.view.attacker.id}>
+                {blocking && line.view.attacker.card?.highlighted === true ? <><Badge variant="outline">Blockziel</Badge>{" "}</> : null}
                 <span className="font-medium">
                   {line.count > 1 ? `${line.count} × ` : null}
                   {cardName(line.view.attacker.card)}
@@ -812,12 +817,12 @@ function StackEntry({ entry, top, pictures }: { entry: StackEntryView; top: bool
  * state (Forge's values, like a pile on the battlefield) attacking the same
  * target share a line ("13 × Goblin greift Forge-KI an – ungeblockt").
  */
-function combatLines(combat: readonly CombatView[]): { readonly key: string; readonly view: CombatView; readonly count: number }[] {
+function combatLines(combat: readonly CombatView[], blocking = false): { readonly key: string; readonly view: CombatView; readonly count: number }[] {
   const lines: { key: string; view: CombatView; count: number; signature: string | null }[] = []
   for (const view of combat) {
     const card = view.attacker.card
     const signature =
-      card !== null && view.blockers.length === 0 ? JSON.stringify([card.key, card.name, card.power, card.toughness, card.damage, card.counters ?? null, view.defender]) : null
+      !blocking && card !== null && view.blockers.length === 0 ? JSON.stringify([card.key, card.name, card.power, card.toughness, card.damage, card.counters ?? null, view.defender]) : null
     const same = signature === null ? undefined : lines.find((line) => line.signature === signature)
     if (same) same.count++
     else lines.push({ key: String(view.attacker.id), view, count: 1, signature })

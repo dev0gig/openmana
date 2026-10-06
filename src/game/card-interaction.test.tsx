@@ -66,7 +66,7 @@ describe("marks: Forge's state as a frame around the picture", () => {
   it("chosen: the attacker blockers are assigned to", () => {
     table("defend")
     expect(cardButton(80)).toHaveAttribute("data-mark", "selected")
-    expect(cardButton(80)).toHaveAccessibleName(/ausgewählt – Antippen: Declare blockers for card$/)
+    expect(cardButton(80)).toHaveAccessibleName(/Blockziel – Antippen: Declare blockers for card$/)
   })
 })
 
@@ -230,7 +230,7 @@ describe("steps whose taps act at once (blocking, attacking, paying)", () => {
     const opened = fireEvent.contextMenu(cardButton(58))
     expect(opened).toBe(false)
     expect(cardView()).toBeInTheDocument()
-    expect(within(cardView()).getByText("In diesem Schritt wirkt ein Tipp auf die Karte sofort; ein zweiter nimmt ihn zurück, Forges Knopf bestätigt.")).toBeInTheDocument()
+    expect(within(cardView()).getByText("In diesem Schritt wirkt ein Tipp auf die Karte sofort. Forges Worte sagen, was ein weiterer Tipp tut; Forges Knopf bestätigt den Schritt.")).toBeInTheDocument()
     expect(onTapCard).not.toHaveBeenCalled()
   })
 

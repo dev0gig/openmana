@@ -15,6 +15,8 @@ export type TableSceneName =
   | "stack"
   | "blockers"
   | "defend"
+  | "block-start"
+  | "block-multiple"
   | "commander-late"
   | "command-effects"
   // Forge's decisions (prompt 15)

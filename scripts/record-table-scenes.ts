@@ -107,6 +107,7 @@ const declaring = (m: Moment) =>
   m.prompt !== null
 const reasons = (m: Moment) => new Set(m.state.attack?.unavailable.map((entry) => entry.reason) ?? []).size
 const attackers = (m: Moment) => me(m.state)?.zones.battlefield.filter((card) => "attacking" in card && card.attacking === true).length ?? 0
+const blocking = (m: Moment) => open(m, "buttons").some((q) => q.purpose === "block") && m.questions.every((q) => !q.blocking) && m.last.type === "state" && m.prompt !== null
 const priority = (m: Moment) => open(m, "buttons").some((q) => q.purpose === "priority") && m.questions.every((q) => !q.blocking)
 
 interface SceneRule {
@@ -153,6 +154,18 @@ const RULES: readonly SceneRule[] = [
     description: "The player's creature blocks while Forge asks for blockers (human-5-defend).",
     fixture: "human-5-defend",
     fits: (m) => (me(m.state)?.zones.battlefield.some((card) => "blocking" in card && card.blocking === true) ?? false) && m.questions.length > 0,
+  },
+  {
+    name: "block-start",
+    description: "Forge asks for blockers, before assignment: the current attacker highlighted, its legal blockers carry action (blocks-multi).",
+    fixture: "blocks-multi",
+    fits: (m) => blocking(m) && m.state.combat.length > 1 && m.state.combat.every((entry) => entry.blockers.length === 0) && (me(m.state)?.zones.battlefield.some((card) => "action" in card && card.action !== undefined) ?? false),
+  },
+  {
+    name: "block-multiple",
+    description: "The player assigns two blockers to one attacker while Forge's block input is still open (blocks-double).",
+    fixture: "blocks-double",
+    fits: (m) => blocking(m) && m.state.combat.some((entry) => entry.blockers.length > 1),
   },
   {
     name: "commander-late",

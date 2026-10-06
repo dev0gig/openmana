@@ -310,7 +310,7 @@ function ForgeOffer({ card, use, live }: { card: VisibleCard; use: CardUse; live
   const lines: ReactNode[] = []
   if (use.tap !== null) {
     lines.push(live ? `Forge bietet an: ${use.tap.label}.` : `Forge bot an: ${use.tap.label}.`)
-    if (live && use.primary === "tap") lines.push("In diesem Schritt wirkt ein Tipp auf die Karte sofort; ein zweiter nimmt ihn zurück, Forges Knopf bestätigt.")
+    if (live && use.primary === "tap") lines.push("In diesem Schritt wirkt ein Tipp auf die Karte sofort. Forges Worte sagen, was ein weiterer Tipp tut; Forges Knopf bestätigt den Schritt.")
   } else if (use.unavailable !== null) {
     // Forge's reason why it would not declare the creature an attacker now (prompt 18).
     lines.push(`Kann gerade nicht angreifen: ${use.unavailable.short}.`, use.unavailable.why)

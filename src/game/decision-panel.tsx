@@ -60,6 +60,10 @@
  * back and why (Forge's reasons), lets the player switch among the defenders
  * Forge offers (Forge's player.tap / card.tap), and names Forge's buttons by
  * what they do (see AttackDecision).
+ *
+ * Declaring blockers (prompt 19) uses Forge's highlighted attacker and combat
+ * assignments. Confirmation re-arms after an assignment changes. Blocking
+ * order/distribution requests continue through the generic decision controls.
  */
 import { ArrowDown, ArrowUp, Minus, Plus, Search, X } from "lucide-react"
 import { createContext, use, useEffect, useId, useMemo, useRef, useState, type ComponentProps, type ReactNode } from "react"
@@ -107,6 +111,8 @@ import { useCardPress } from "@/hooks/use-card-press"
 import { ARMING_MS } from "./card-sheet"
 import { attackTapNote, attackText, CALL_BACK_LABEL, declareLabel, declareNote, readyText } from "./attack-labels"
 import { attackView, type AttackView, type DefenderView } from "./attack-model"
+import { BLOCK_CONFIRM_NOTE, BLOCK_TAP_NOTE, blockConfirmLabel, blockText } from "./block-labels"
+import { blockView, type BlockView } from "./block-model"
 import { directTaps, playerUse, tapBlocked, type TableMoment } from "./card-use"
 import {
   arrangeAnswer,
@@ -238,7 +244,7 @@ export function DecisionPanel({ state, questions, prompt, waiting, conceding, pi
   const decision = currentDecision(questions)
   const blocked = answerBlocked({ live: onAnswer !== undefined, conceding, waiting })
   const blockedId = useId()
-  const moment = useMemo<TableMoment>(() => ({ questions, waiting, conceding, attack: state.attack ?? null }), [questions, waiting, conceding, state.attack])
+  const moment = useMemo<TableMoment>(() => ({ questions, waiting, conceding, attack: state.attack ?? null, combat: state.combat }), [questions, waiting, conceding, state.attack, state.combat])
   const tapReason = onTapPlayer === undefined ? "Nur ansehen – hier wird nichts angetippt." : tapBlocked(moment)
   const context = useMemo<DecisionContextValue>(
     () => ({
@@ -360,7 +366,7 @@ function DecisionHeading({ label, text, source }: { label: string; text: string 
  * reason), armed ARMING_MS after its question appeared (a press before that is
  * dropped - see above), a held key repeats nothing.
  */
-function SendButton({ armKey, onSend, reasonId, disabled = false, ...props }: Omit<ComponentProps<typeof Button>, "onClick"> & { armKey: number; onSend: () => void; reasonId?: string | undefined }) {
+function SendButton({ armKey, onSend, reasonId, disabled = false, ...props }: Omit<ComponentProps<typeof Button>, "onClick"> & { armKey: number | string; onSend: () => void; reasonId?: string | undefined }) {
   const { blocked, blockedId } = useDecision()
   const armedAt = useRef<number | null>(null)
   useEffect(() => {
@@ -542,6 +548,7 @@ function useSearch(items: readonly Item[], labelOf: (item: Item) => string): { r
 function StepDecision({ buttons, select, prompt }: { buttons: ButtonsQuestion | null; select: SelectQuestion | null; prompt: string | null }) {
   const { state } = useDecision()
   if (buttons?.purpose === "priority" && select === null) return <PriorityDecision moment={priorityMoment(state, buttons)} />
+  if (buttons?.purpose === "block" && select === null) return <BlockDecision view={blockView(state, buttons)} />
   if ((buttons?.purpose === "attack" || buttons?.purpose === "attackDeclared") && select === null) {
     const view = attackView(state, buttons)
     if (view !== null) return <AttackDecision view={view} />
@@ -561,6 +568,33 @@ function StepDecision({ buttons, select, prompt }: { buttons: ButtonsQuestion | 
       {directTaps(open) ? <GameDecisionNote>Karten antippen wirkt hier sofort, ein zweiter Tipp nimmt es zurück. Lange drücken oder Rechtsklick zeigt eine Karte groß.</GameDecisionNote> : null}
       <BlockedNote />
       {buttons !== null ? <ForgeButtons question={buttons} /> : null}
+    </>
+  )
+}
+
+/** Forge's reversible block input; the table supplies the guarded card taps. */
+function BlockDecision({ view }: { view: BlockView }) {
+  const { answer } = useDecision()
+  const noteId = useId()
+  const offId = useId()
+  const { question } = view
+  return (
+    <>
+      <DecisionHeading label={questionLabel(question)} text={blockText(view)} source={null} />
+      <GameDecisionNote data-block-guidance>
+        {view.assigned === 0 ? BLOCK_TAP_NOTE : "Blocker erneut antippen nimmt diese Zuordnung zurück. Lange drücken oder Rechtsklick zeigt die Karte."}
+        {view.assigned === 0 && view.ready === 0 ? " Für dieses Blockziel bietet Forge gerade keinen Blocker an." : null}
+      </GameDecisionNote>
+      <GameDecisionNote id={noteId}>{BLOCK_CONFIRM_NOTE}</GameDecisionNote>
+      {question.buttons.some((button) => !button.enabled) ? <GameDecisionNote id={offId}>Diesen Knopf hat Forge gerade abgeschaltet.</GameDecisionNote> : null}
+      <BlockedNote />
+      <GameDecisionActions role="group" aria-label="Antworten, die Forge anbietet">
+        {question.buttons.map((button) => (
+          <SendButton key={button.nr} armKey={`${question.id}:${view.revision}`} variant={button.nr === 1 ? "default" : "outline"} disabled={!button.enabled} reasonId={button.enabled ? noteId : offId} onSend={() => answer(question.id, buttonsAnswer(button.nr))}>
+            {button.nr === 1 ? blockConfirmLabel(view.assigned) : buttonText(button)}
+          </SendButton>
+        ))}
+      </GameDecisionActions>
     </>
   )
 }

@@ -35,8 +35,13 @@
  * battle the player controls is attacked when an opponent protects it) -,
  * and says why a creature stays back - it offers no tap on it (Forge would
  * not take one).
+ *
+ * Declaring blockers (prompt 19): `action` is Forge's permission for the
+ * selected attacker, while `playable` covers any attacker. Combat supplies
+ * the assigned blockers; the highlighted attacker is the current block
+ * target. No action means inspection only, even with a general marker.
  */
-import type { Attack, ButtonsPurpose, EntityRef, Player, Question, SelectQuestion, VisibleCard } from "@openmana/engine-protocol"
+import type { Attack, ButtonsPurpose, CombatEntry, EntityRef, Player, Question, SelectQuestion, VisibleCard } from "@openmana/engine-protocol"
 import { ATTACK_REFUSAL_WORDS } from "./attack-labels"
 import type { CardZone } from "./table-model"
 
@@ -56,6 +61,8 @@ export interface TableMoment {
   readonly conceding: boolean
   /** Forge's declaration of attackers in progress (GameState.attack, prompt 18); absent or null otherwise. */
   readonly attack?: Attack | null
+  /** Forge's planned block assignments, from the same full state. */
+  readonly combat?: readonly CombatEntry[]
 }
 
 export interface CardTap {
@@ -136,6 +143,7 @@ export function cardUse(card: VisibleCard, place: CardPlace, moment: TableMoment
   // A card on the stack is never tapped (Forge's card.tap takes cards of the players' zones; prompt 16): only looked at.
   const source = stepSource(questions) === card.id
   if (place.zone === "stack") return { mark: chosen ? "selected" : null, markLabel: chosen ? "ausgewählt" : null, source, tap: null, primary: "look", blocked: null, unavailable: null }
+  if (step === "block" && selection === null && place.zone === "battlefield") return { ...blockUse(card, place, moment), source }
   const declaring = declaration(moment)
   if (declaring !== null && place.zone === "battlefield") {
     const found = attackUse(card, place, declaring, moment)
@@ -164,6 +172,21 @@ export function cardUse(card: VisibleCard, place: CardPlace, moment: TableMoment
     blocked,
     unavailable: null,
   }
+}
+
+/** InputBlock's action is the permission for THIS attacker; its general marker is not. */
+function blockUse(card: VisibleCard, place: CardPlace, moment: TableMoment): Omit<CardUse, "source"> {
+  const combat = moment.combat ?? []
+  const attacker = card.attacking === true || combat.some((entry) => entry.attacker === card.id)
+  const assigned = combat.filter((entry) => entry.blockers.includes(card.id))
+  const tap = card.action === undefined ? null : { label: card.action, marked: true }
+  const blocked = tap === null ? null : tapBlocked(moment)
+  const chosen = attacker ? card.highlighted === true : place.mine && (assigned.length > 0 || card.blocking === true)
+  const mark = chosen ? "selected" : tap !== null ? "usable" : null
+  const markLabel = attacker
+    ? chosen ? "Blockziel" : tap !== null ? "Blocker zuweisen" : null
+    : chosen ? assigned.length > 1 ? `blockt ${assigned.length} Angreifer` : "blockt" : tap !== null ? "kann diesen Angreifer blocken" : null
+  return { mark, markLabel, tap, blocked, primary: tap !== null && blocked === null ? "tap" : "look", unavailable: null }
 }
 
 // ── Declaring attackers (prompt 18) ────────────────────────────────────────

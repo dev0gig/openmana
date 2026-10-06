@@ -1,6 +1,6 @@
 # OpenMana — Current Status
 
-Last repository review: 2026-09-29
+Last repository review: 2026-10-07
 
 Compact implementation map. This file deliberately does **not** replace the active queue ledger in `dev0gig/dropzone/workflow/tasks/INDEX.md`.
 
@@ -165,6 +165,11 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Engine, protocol 7: `GameState.attack`, defending players as `Player.selectable` (a tap on the defender or oneself is refused as `no-effect`), `Button.meaning` `declare`/`attackAll`/`callBack`, the same in the engine trace; new differential game `attackers` (green creatures against green planeswalkers) with required coverage `attack-planeswalker`, `attack-defender`, `attack-all`, `attack-call-back`, `attack-unavailable-sick|tapped|restricted`; JVM test `AttackersTest`, including the proof that asking Forge changes nothing.
 - Evidence: see `docs/implementation/18-combat-attackers.md`.
 
+### Combat: Blockers (Prompt 19)
+- Forge's current attacker is marked "Blockziel"; available blockers use Forge's `action` for that attacker, never the general `playable` marker. Assigned blockers remain chosen, with multiple assignments preserved in Forge's order.
+- The decision names the target and offers "Nicht blocken" / "Blocks bestätigen", retaining Forge's enabled states. Assignment changes re-arm confirmation; inspection, double-tap, busy/conceding/replay and withdrawal guards remain. Blocking order/damage questions use the existing generic controls.
+- Existing protocol 7 and engine artifacts suffice; no Forge patch or rebuild. Evidence: 815 frontend tests covered sequentially, final focused 91/91, lint/build, 21 Chrome scene/viewport checks with zero axe violations, one fresh short JVM game and identical WASM replay (45 inputs, 205 checkpoints). Detailed results, memory measurements and limits: `docs/implementation/19-combat-blockers.md`.
+
 ### ORYX Cloud Sync (outside the queue, 2026-09-25)
 - The project owner's direct assignment, not a queue prompt (outside the numbered program): the player's collection syncs through their ORYX account (the launcher's Supabase cloud) with the vendored ORYX SDK 1.0.0 (`src/cloud/oryx-sdk.js` and `.d.ts`, byte-identical copies of `oryx-games/shared`, checksum-tested, excluded from lint only themselves). Active only on `https://openmana.vercel.app/`; locally, in tests and previews inactive (no request, nothing stored). Local stays the source of truth.
 - One slot `collection` = one document (`src/storage/collection.ts`, schema `CollectionDocument`, version = `SCHEMA_VERSION`): valid decks, deletion marks (90 days) and every setting except `display.*`; never caches, recorded matches or `meta`.
@@ -176,7 +181,7 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Evidence: 622 Vitest tests (63 new: merge and check, read/apply on fake-indexeddb, the real SDK against a stand-in ORYX cloud on the real storage session, the card and the return notice in the real app frame, the SDK checksum), `npm run check` with the end-to-end test in Chrome, including the new section 13: the build served as `https://openmana.vercel.app` with a stand-in ORYX cloud - the whole OAuth/PKCE round trip under COOP/COEP, the start's merge, uploads, disconnecting, axe, 360 px; plus the card absent and Web Storage empty off the real address, and the deletion mark in IndexedDB after deleting a deck. Limits: ORYX takes 1 MB per slot by default (≈ 146 Constructed or 48 Commander decks); ORYX needs an OAuth client for `openmana`; effective once deployed. Details: `docs/implementation/oryx-cloud-sync.md`.
 
 ## Currently In Progress
-Nothing. Prompts 00–18 are `COMPLETE`. The next prompt is **19 — Combat: blockers** (`PENDING`, not started; execute one explicitly assigned central task at a time).
+Nothing. Prompts 00–19 are `COMPLETE`. The next prompt is **20 — Zones and full card viewer** (`PENDING`, not started; execute one explicitly assigned central task at a time).
 
 Any agent entering the repository must first reconcile this statement with the central Dropzone task state and Git state.
 
@@ -195,11 +200,11 @@ The existing queue covers the path from bridge/Worker/resource/differential engi
 - Android via the global ORYX app (no own APK),
 - regression/parity/production/readiness audits.
 
-The central Dropzone queue defines execution order; reconcile it with the Prompt 18 evidence before starting Prompt 19.
+The central Dropzone queue defines execution order; reconcile it with the Prompt 19 evidence before starting Prompt 20. Prompts 26, 30 and 32 require Astra with max reasoning under dev0gig's model gate in `AGENTS.md`.
 
 ## Not Yet Implemented
 At this review point:
-- the game table shows every state, its cards can be looked at and tapped where Forge offers it, every kind of Forge's questions can be answered, priority, stack and phases are presented, targets and cost payment come from Forge's data (players as targets, the pool, life for mana), and attackers are declared with Forge's marks and reasons; declaring blockers (prompt 19) follows,
+- zone browsing and the complete card viewer (prompt 20), history, recording/replay and the remaining numbered program follow the implemented combat declaration,
 - no service worker/offline mode or deployment yet; no individual Android artifact is planned,
 - the ORYX cloud sync is built but inactive until OpenMana runs at `openmana.vercel.app` and ORYX has an OAuth client for it.
 
@@ -217,7 +222,7 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 ## Workflow Compatibility
 The legacy local prompt workflow was removed upstream on 2026-09-28. The current checkout incorporates that deletion while preserving all previously local Prompt 16 and ORYX-return commits. Central tasks live in `dev0gig/dropzone/workflow/tasks/`; detailed implementation evidence remains in `docs/implementation/` and Git history.
 
-Preserve sequential execution and any active work. Prompt 18 is complete (committed locally, not pushed), Prompt 19 is next, and the publication hold through Prompt 31 remains. The cross-repository wrapper cleanup does not execute Prompt 28: its remaining scope is ORYX web integration and real-device Forge verification.
+Preserve sequential execution and any active work. Prompt 19 is complete (committed locally, not pushed), Prompt 20 is next, and the publication hold through Prompt 31 remains. The cross-repository wrapper cleanup does not execute Prompt 28: its remaining scope is ORYX web integration and real-device Forge verification.
 
 ## Maintenance
 Update this file only when the broad implementation state changes. Keep detailed prompt evidence, commit hashes, measurements and blockers in the central Dropzone task and implementation/research docs.

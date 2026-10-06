@@ -137,6 +137,14 @@ Declaring attackers (prompt 18, `src/game/card-use.ts` `declaration`/`attackUse`
 - New words for the game go into `attack-labels.ts` (never `game-labels.ts`, which the start page loads).
 - Verify with `src/game/attack.test.tsx` (recorded scenes `attack`, `attack-declared`, `attack-planeswalker`), `card-use.test.ts`, the engine's `AttackersTest` (incl. asking changes nothing), the differential game `attackers` (coverage `attack-planeswalker`, `attack-defender`, `attack-all`, `attack-call-back`, `attack-unavailable-sick|tapped|restricted`) and the end-to-end test's section 12.
 
+## Block Rules
+Declaring blockers (prompt 19, `src/game/block-model.ts`, `block-labels.ts`, `card-use.ts`, `BlockDecision` in `decision-panel.tsx`, `docs/implementation/19-combat-blockers.md`):
+- Forge's highlighted attacker is the current block target. `VisibleCard.action` alone permits a tap for that attacker; `playable` means a creature can block some attacker and is never permission for the current one. Without an action, inspect only.
+- `GameState.combat` supplies every assignment and its order. Assigned blockers stay chosen even without `playable`; one blocker on several attackers keeps every relationship and counts once. No local legality or damage calculation, no parsing of Forge's words.
+- The table marks the block target and assigned blockers, labels available actions, and keeps each attacker separate during declaration. Facts stay accessible in the card's name/view; nothing covers a picture.
+- Confirmation uses Forge's buttons and enabled states; label button 1 "Nicht blocken" or "Blocks bestätigen". Re-arm for `ARMING_MS` after assignment changes. Blocking order/distribution questions use the existing generic controls and supersede declaration. Never auto-answer, weaken tap guards, or make inspection send input.
+- Verify with `src/game/block.test.tsx`, affected card/decision tests and recorded combat scenes. `npm run test:e2e -- --no-build --combat-only` runs a small sequential combat UI check at three sizes; it does not replace complete app/engine acceptance. Keep recorded and built evidence distinct.
+
 ## Preferences Rules
 The player's preferences are settings in the local database, read and applied by `src/app/preferences.tsx` (prompt 12, `docs/implementation/12-ai-profiles-settings.md`):
 - A preference is chosen once - in Settings; the AI profile also through the play page's dialog - and saved the moment it changes; starting a game never asks for one. A stored value that fails its check is named and its default used, never silently replaced.
@@ -155,9 +163,21 @@ The optional sync of the player's collection through their ORYX account (project
 The legacy local prompt workflow was removed upstream on 2026-09-28. Executable tasks and their lifecycle now live in `dev0gig/dropzone/workflow/tasks/`; implementation evidence remains in `docs/implementation/` and Git history.
 
 - Numbered prompts run strictly sequentially; resume `IN_PROGRESS` work and never skip a `BLOCKED` predecessor. Mark a task complete only after its requirements and verification pass.
-- Reconcile the central status with code and `STATUS.md` before selecting work. Prompt 18 (combat: attackers) is complete; Prompt 19 is next.
+- Reconcile the central status with code and `STATUS.md` before selecting work. Prompt 19 (combat: blockers) is complete; Prompt 20 is next.
 - Run only the task explicitly assigned by the user; this cross-repository cleanup does not start a numbered implementation prompt.
 - Update the central task and `STATUS.md` with verified evidence; do not recreate the removed local queue.
+
+## Model gate for numbered prompts (dev0gig, 2026-10-07)
+
+Before starting/resuming a numbered task, check the actual session model and reasoning effort. dev0gig requires **GPT-6 Astra with `max` reasoning** for these prompts:
+
+- **26 — Isolated Forge update pipeline:** pinned Forge/patch/toolchain changes and reproducibility across JVM/WASM.
+- **30 — Anvil parity audit and remediation:** cross-repository assessment of every gameplay/decision path.
+- **32 — Final OpenMana readiness audit:** final functional gate spanning the complete product.
+
+If the session uses another model or effort, or these cannot be reliably established, stop before implementation and before moving the task to active. Tell dev0gig the prompt number, required model/effort and why; do not silently continue or switch models. Resume only after the correct model/effort is confirmed, or dev0gig explicitly overrides this gate for that task. Read-only task selection and the model check are permitted. The same gate applies to multi-master workers; a Sol worker may not execute these tasks.
+
+For the remaining prompts, Sol with `high` reasoning is the normal recommendation. Prompts 22 (recording/replay) and 25 (PWA updates/cache) merit particular care but do not require Astra Max by default. Model choice does not replace test evidence.
 
 ## Verification
 Use the exact verification required by the current prompt and affected subsystem. Never weaken/remove tests to obtain a green result and never present fake/mock results as real evidence.

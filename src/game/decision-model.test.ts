@@ -377,10 +377,10 @@ describe("the cards of questions", () => {
 describe("the built questions of the end-to-end test's harness (src/test/built-questions.ts)", () => {
   it("are what the protocol allows, each of the kind it names", () => {
     const kinds = BUILT_QUESTIONS.map((name) => {
-      const { questions } = builtQuestion(name, tableScene("main-phase"))
+      const { questions } = builtQuestion(name, tableScene(name === "block-order" ? "blockers" : "main-phase"))
       for (const question of questions) expect(() => checkEngineMessage(question), name).not.toThrow()
       return currentDecision(questions).kind === "blocking" ? (currentDecision(questions) as { question: Question }).question.kind : "select"
     })
-    expect(kinds).toEqual(["confirm", "input", "order", "options", "choose", "select"])
+    expect(kinds).toEqual(["confirm", "input", "order", "order", "options", "choose", "select"])
   })
 })

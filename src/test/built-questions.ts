@@ -11,10 +11,10 @@
  * free of the protocol's validators).
  */
 import type { Item, Question, VisibleCard } from "@openmana/engine-protocol"
-import { isVisible } from "@/game/table-model"
+import { isVisible, visibleCards } from "@/game/table-model"
 import type { TableScene } from "./table-scenes"
 
-export const BUILT_QUESTIONS = ["confirm", "input", "order", "reveal", "choose-many", "select-outside"] as const
+export const BUILT_QUESTIONS = ["confirm", "input", "order", "block-order", "reveal", "choose-many", "select-outside"] as const
 
 export type BuiltQuestionName = (typeof BUILT_QUESTIONS)[number]
 
@@ -37,6 +37,26 @@ export function builtQuestion(name: BuiltQuestionName, scene: TableScene): { rea
   const cardItem = (card: VisibleCard, nr: number): Item => ({ nr, text: `${card.name ?? card.key} (${card.id})`, card: card.id, cardView: card })
   let question: Question
   switch (name) {
+    case "block-order": {
+      // Built, not a recorded Forge request: the pinned Forge usually asks
+      // combat damage distribution directly. Exercise an order request using
+      // real combat cards, through the existing generic order controls.
+      const entry = scene.state.combat.find((entry) => entry.blockers.length > 1)
+      const cards = visibleCards(scene.state)
+      const attacker = entry === undefined ? undefined : cards.get(entry.attacker)
+      if (entry === undefined || attacker === undefined) throw new Error("block-order needs a scene with several blockers")
+      question = {
+        type: "question", kind: "order", id: 907, blocking: true,
+        text: "Lege die Reihenfolge der Blocker fest", top: "Zuerst", remainingMin: 0, remainingMax: 0,
+        card: attacker.id, cardView: attacker,
+        items: entry.blockers.map((id, index) => {
+          const card = cards.get(id)
+          if (card === undefined) throw new Error("missing visible blocker")
+          return cardItem(card, index + 1)
+        }),
+      }
+      break
+    }
     case "confirm":
       question = { type: "question", kind: "confirm", id: 900, blocking: true, text: `${first.name ?? first.key} - Möchtest du die Fähigkeit nutzen?`, suggested: true, card: first.id, cardView: first }
       break

@@ -13208,6 +13208,1131 @@
      }
     }
    ]
+  },
+  {
+   "name": "block-start",
+   "description": "Forge asks for blockers, before assignment: the current attacker highlighted, its legal blockers carry action (blocks-multi).",
+   "fixture": "blocks-multi",
+   "message": 535,
+   "game": {
+    "type": "game.started",
+    "protocol": 7,
+    "human": "Player",
+    "ai": "Forge AI",
+    "aiProfile": "Default",
+    "format": "constructed",
+    "cardNames": [
+     "Canyon Minotaur",
+     "Centaur Courser",
+     "Craw Wurm",
+     "Fire Elemental",
+     "Forest",
+     "Giant Growth",
+     "Giant Spider",
+     "Goblin Piker",
+     "Goblin Raider",
+     "Gray Ogre",
+     "Grizzly Bears",
+     "Hill Giant",
+     "Kalonian Tusker",
+     "Lightning Bolt",
+     "Llanowar Elves",
+     "Mountain",
+     "Raging Goblin",
+     "Rampant Growth",
+     "Runeclaw Bear",
+     "Shock",
+     "Trained Armodon",
+     "Volcanic Hammer"
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 101,
+    "running": true,
+    "turn": 14,
+    "phase": "COMBAT_DECLARE_BLOCKERS",
+    "activePlayer": 1,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 15,
+      "hasPriority": true,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 45,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land - Forest",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 50,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land - Forest",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 43,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land - Forest",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 3,
+         "key": "Grizzly Bears",
+         "name": "Grizzly Bears",
+         "typeLine": "Creature - Bear",
+         "cost": "{1}{G}",
+         "set": "SLZ",
+         "power": 2,
+         "toughness": 2,
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "playable": true,
+         "action": "Block with card"
+        },
+        {
+         "id": 42,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land - Forest",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 16,
+         "key": "Trained Armodon",
+         "name": "Trained Armodon",
+         "typeLine": "Creature - Elephant",
+         "cost": "{1}{G}{G}",
+         "set": "TPR",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "playable": true,
+         "action": "Block with card"
+        },
+        {
+         "id": 52,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land - Forest",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "hand": [],
+       "graveyard": [
+        {
+         "id": 23,
+         "key": "Giant Growth",
+         "name": "Giant Growth",
+         "typeLine": "Instant",
+         "cost": "{G}",
+         "set": "MSH",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 1,
+         "key": "Grizzly Bears",
+         "name": "Grizzly Bears",
+         "typeLine": "Creature - Bear",
+         "cost": "{1}{G}",
+         "set": "SLZ",
+         "power": 2,
+         "toughness": 2,
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 29,
+         "key": "Llanowar Elves",
+         "name": "Llanowar Elves",
+         "typeLine": "Creature - Elf Druid",
+         "cost": "{G}",
+         "set": "SLZ",
+         "power": 1,
+         "toughness": 1,
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 18,
+         "key": "Giant Spider",
+         "name": "Giant Spider",
+         "typeLine": "Creature - Spider",
+         "cost": "{3}{G}",
+         "set": "SLZ",
+         "power": 2,
+         "toughness": 4,
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 11,
+         "key": "Runeclaw Bear",
+         "name": "Runeclaw Bear",
+         "typeLine": "Creature - Bear",
+         "cost": "{1}{G}",
+         "set": "J21",
+         "power": 2,
+         "toughness": 2,
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 48,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 13,
+      "hasPriority": false,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 81,
+         "key": "Mountain",
+         "name": "Mountain",
+         "typeLine": "Basic Land - Mountain",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 115,
+         "key": "Raging Goblin",
+         "name": "Raging Goblin",
+         "typeLine": "Creature - Goblin Berserker",
+         "cost": "{R}",
+         "set": "ANB",
+         "power": 1,
+         "toughness": 1,
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 83,
+         "key": "Mountain",
+         "name": "Mountain",
+         "typeLine": "Basic Land - Mountain",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 86,
+         "key": "Mountain",
+         "name": "Mountain",
+         "typeLine": "Basic Land - Mountain",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 114,
+         "key": "Raging Goblin",
+         "name": "Raging Goblin",
+         "typeLine": "Creature - Goblin Berserker",
+         "cost": "{R}",
+         "set": "ANB",
+         "power": 1,
+         "toughness": 1,
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 79,
+         "key": "Mountain",
+         "name": "Mountain",
+         "typeLine": "Basic Land - Mountain",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 103,
+         "key": "Canyon Minotaur",
+         "name": "Canyon Minotaur",
+         "typeLine": "Creature - Minotaur Warrior",
+         "cost": "{3}{R}",
+         "set": "M14",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "attacking": true,
+         "action": "Declare blockers for card"
+        },
+        {
+         "id": 94,
+         "key": "Gray Ogre",
+         "name": "Gray Ogre",
+         "typeLine": "Creature - Ogre",
+         "cost": "{2}{R}",
+         "set": "30A",
+         "power": 2,
+         "toughness": 2,
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 72,
+         "key": "Mountain",
+         "name": "Mountain",
+         "typeLine": "Basic Land - Mountain",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 88,
+         "key": "Fire Elemental",
+         "name": "Fire Elemental",
+         "typeLine": "Creature - Elemental",
+         "cost": "{3}{R}{R}",
+         "set": "FDN",
+         "power": 5,
+         "toughness": 4,
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "attacking": true,
+         "action": "Declare blockers for card",
+         "highlighted": true
+        }
+       ],
+       "hand": [
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [
+        {
+         "id": 109,
+         "key": "Volcanic Hammer",
+         "name": "Volcanic Hammer",
+         "typeLine": "Sorcery",
+         "cost": "{1}{R}",
+         "set": "PLST",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 46,
+      "commanders": []
+     }
+    ],
+    "stack": [],
+    "combat": [
+     {
+      "attacker": 103,
+      "defender": 0,
+      "defenderKind": "player",
+      "blockers": []
+     },
+     {
+      "attacker": 88,
+      "defender": 0,
+      "defenderKind": "player",
+      "blockers": []
+     }
+    ]
+   },
+   "questions": [
+    {
+     "type": "question",
+     "kind": "buttons",
+     "text": "",
+     "purpose": "block",
+     "buttons": [
+      {
+       "nr": 1,
+       "label": "OK",
+       "enabled": true
+      },
+      {
+       "nr": 2,
+       "label": "Cancel",
+       "enabled": false
+      }
+     ],
+     "id": 58,
+     "blocking": false
+    }
+   ],
+   "prompt": "Select creatures to block Fire Elemental (88) or select another attacker to declare blockers for.",
+   "notices": [
+    {
+     "type": "input.rejected",
+     "seq": 6,
+     "reason": "stale",
+     "detail": "question 9999999 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 6,
+      "question": 9999999,
+      "kind": "buttons",
+      "button": 1
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 7,
+     "reason": "invalid",
+     "detail": "button must be 1 or 2, got 3",
+     "input": {
+      "type": "answer",
+      "seq": 7,
+      "question": 6,
+      "kind": "buttons",
+      "button": 3
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 8,
+     "reason": "unknown-card",
+     "detail": "no visible card with this id",
+     "input": {
+      "type": "card.tap",
+      "seq": 8,
+      "card": -5
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 9,
+     "reason": "stale",
+     "detail": "question 3 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 9,
+      "question": 3,
+      "kind": "buttons",
+      "button": 1
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 43,
+     "reason": "not-active",
+     "detail": "question 51 must be answered first",
+     "input": {
+      "type": "card.tap",
+      "seq": 43,
+      "card": 45
+     }
+    }
+   ]
+  },
+  {
+   "name": "block-multiple",
+   "description": "The player assigns two blockers to one attacker while Forge's block input is still open (blocks-double).",
+   "fixture": "blocks-double",
+   "message": 460,
+   "game": {
+    "type": "game.started",
+    "protocol": 7,
+    "human": "Player",
+    "ai": "Forge AI",
+    "aiProfile": "Default",
+    "format": "constructed",
+    "cardNames": [
+     "Canyon Minotaur",
+     "Centaur Courser",
+     "Craw Wurm",
+     "Fire Elemental",
+     "Forest",
+     "Giant Growth",
+     "Giant Spider",
+     "Goblin Piker",
+     "Goblin Raider",
+     "Gray Ogre",
+     "Grizzly Bears",
+     "Hill Giant",
+     "Kalonian Tusker",
+     "Lightning Bolt",
+     "Llanowar Elves",
+     "Mountain",
+     "Raging Goblin",
+     "Rampant Growth",
+     "Runeclaw Bear",
+     "Shock",
+     "Trained Armodon",
+     "Volcanic Hammer"
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 89,
+    "running": true,
+    "turn": 12,
+    "phase": "COMBAT_DECLARE_BLOCKERS",
+    "activePlayer": 1,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 20,
+      "hasPriority": true,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 39,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land - Forest",
+         "set": "TRK",
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 47,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land - Forest",
+         "set": "TRK",
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 51,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land - Forest",
+         "set": "TRK",
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 13,
+         "key": "Trained Armodon",
+         "name": "Trained Armodon",
+         "typeLine": "Creature - Elephant",
+         "cost": "{1}{G}{G}",
+         "set": "TPR",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 57,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land - Forest",
+         "set": "TRK",
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 14,
+         "key": "Trained Armodon",
+         "name": "Trained Armodon",
+         "typeLine": "Creature - Elephant",
+         "cost": "{1}{G}{G}",
+         "set": "TPR",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 11,
+         "key": "Runeclaw Bear",
+         "name": "Runeclaw Bear",
+         "typeLine": "Creature - Bear",
+         "cost": "{1}{G}",
+         "set": "J21",
+         "power": 2,
+         "toughness": 2,
+         "text": "",
+         "tapped": false,
+         "sick": true,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "blocking": true,
+         "action": "Remove card from combat"
+        },
+        {
+         "id": 2,
+         "key": "Grizzly Bears",
+         "name": "Grizzly Bears",
+         "typeLine": "Creature - Bear",
+         "cost": "{1}{G}",
+         "set": "SLZ",
+         "power": 2,
+         "toughness": 2,
+         "text": "",
+         "tapped": false,
+         "sick": true,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "blocking": true,
+         "action": "Remove card from combat"
+        }
+       ],
+       "hand": [
+        {
+         "id": 15,
+         "key": "Trained Armodon",
+         "name": "Trained Armodon",
+         "typeLine": "Creature - Elephant",
+         "cost": "{1}{G}{G}",
+         "set": "TPR",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "graveyard": [
+        {
+         "id": 6,
+         "key": "Kalonian Tusker",
+         "name": "Kalonian Tusker",
+         "typeLine": "Creature - Beast",
+         "cost": "{G}{G}",
+         "set": "M14",
+         "power": 3,
+         "toughness": 3,
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 18,
+         "key": "Giant Spider",
+         "name": "Giant Spider",
+         "typeLine": "Creature - Spider",
+         "cost": "{3}{G}",
+         "set": "SLZ",
+         "power": 2,
+         "toughness": 4,
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 49,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 11,
+      "hasPriority": false,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 81,
+         "key": "Mountain",
+         "name": "Mountain",
+         "typeLine": "Basic Land - Mountain",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 76,
+         "key": "Mountain",
+         "name": "Mountain",
+         "typeLine": "Basic Land - Mountain",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 69,
+         "key": "Mountain",
+         "name": "Mountain",
+         "typeLine": "Basic Land - Mountain",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 119,
+         "key": "Goblin Raider",
+         "name": "Goblin Raider",
+         "typeLine": "Creature - Goblin Warrior",
+         "cost": "{1}{R}",
+         "set": "9ED",
+         "power": 2,
+         "toughness": 2,
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 82,
+         "key": "Mountain",
+         "name": "Mountain",
+         "typeLine": "Basic Land - Mountain",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 101,
+         "key": "Canyon Minotaur",
+         "name": "Canyon Minotaur",
+         "typeLine": "Creature - Minotaur Warrior",
+         "cost": "{3}{R}",
+         "set": "M14",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "attacking": true,
+         "action": "Declare blockers for card",
+         "highlighted": true
+        },
+        {
+         "id": 115,
+         "key": "Raging Goblin",
+         "name": "Raging Goblin",
+         "typeLine": "Creature - Goblin Berserker",
+         "cost": "{R}",
+         "set": "ANB",
+         "power": 1,
+         "toughness": 1,
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 118,
+         "key": "Goblin Raider",
+         "name": "Goblin Raider",
+         "typeLine": "Creature - Goblin Warrior",
+         "cost": "{1}{R}",
+         "set": "9ED",
+         "power": 2,
+         "toughness": 2,
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "hand": [
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [
+        {
+         "id": 112,
+         "key": "Volcanic Hammer",
+         "name": "Volcanic Hammer",
+         "typeLine": "Sorcery",
+         "cost": "{1}{R}",
+         "set": "PLST",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 49,
+      "commanders": []
+     }
+    ],
+    "stack": [],
+    "combat": [
+     {
+      "attacker": 101,
+      "defender": 0,
+      "defenderKind": "player",
+      "blockers": [
+       11,
+       2
+      ]
+     }
+    ]
+   },
+   "questions": [
+    {
+     "type": "question",
+     "kind": "buttons",
+     "text": "Select creatures to block Canyon Minotaur (101) or select another attacker to declare blockers for.",
+     "purpose": "block",
+     "buttons": [
+      {
+       "nr": 1,
+       "label": "OK",
+       "enabled": true
+      },
+      {
+       "nr": 2,
+       "label": "Cancel",
+       "enabled": false
+      }
+     ],
+     "id": 49,
+     "blocking": false
+    }
+   ],
+   "prompt": "Select creatures to block Canyon Minotaur (101) or select another attacker to declare blockers for.",
+   "notices": [
+    {
+     "type": "input.rejected",
+     "seq": 6,
+     "reason": "stale",
+     "detail": "question 9999999 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 6,
+      "question": 9999999,
+      "kind": "buttons",
+      "button": 1
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 7,
+     "reason": "invalid",
+     "detail": "button must be 1 or 2, got 3",
+     "input": {
+      "type": "answer",
+      "seq": 7,
+      "question": 6,
+      "kind": "buttons",
+      "button": 3
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 8,
+     "reason": "unknown-card",
+     "detail": "no visible card with this id",
+     "input": {
+      "type": "card.tap",
+      "seq": 8,
+      "card": -5
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 9,
+     "reason": "stale",
+     "detail": "question 3 is not open",
+     "input": {
+      "type": "answer",
+      "seq": 9,
+      "question": 3,
+      "kind": "buttons",
+      "button": 1
+     }
+    },
+    {
+     "type": "input.rejected",
+     "seq": 40,
+     "reason": "not-active",
+     "detail": "question 46 must be answered first",
+     "input": {
+      "type": "card.tap",
+      "seq": 40,
+      "card": 39
+     }
+    }
+   ]
   }
  ]
 }

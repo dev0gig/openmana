@@ -14,7 +14,7 @@ import { isVisible, locateCard } from "./table-model"
 
 function moment(name: TableSceneName, overrides: Partial<TableMoment> = {}): TableMoment {
   const scene = tableScene(name)
-  return { questions: scene.questions, waiting: true, conceding: false, attack: scene.state.attack ?? null, ...overrides }
+  return { questions: scene.questions, waiting: true, conceding: false, attack: scene.state.attack ?? null, combat: scene.state.combat, ...overrides }
 }
 
 /** A card of a scene and its place, found by id. */
@@ -49,8 +49,8 @@ describe("marks and taps from Forge's markers (real scenes)", () => {
 
   it("blocking: Forge's taps act at once - the blocker taken back, the attacker to assign blockers to (Forge's highlight: chosen)", () => {
     expect(currentStep(tableScene("defend").questions)).toBe("block")
-    expect(useOf("defend", 58)).toEqual({ mark: null, markLabel: null, source: false, tap: { label: "Remove card from combat", marked: false }, primary: "tap", blocked: null, unavailable: null })
-    expect(useOf("defend", 80)).toEqual({ mark: "selected", markLabel: "ausgewählt", source: false, tap: { label: "Declare blockers for card", marked: false }, primary: "tap", blocked: null, unavailable: null })
+    expect(useOf("defend", 58)).toEqual({ mark: "selected", markLabel: "blockt", source: false, tap: { label: "Remove card from combat", marked: true }, primary: "tap", blocked: null, unavailable: null })
+    expect(useOf("defend", 80)).toEqual({ mark: "selected", markLabel: "Blockziel", source: false, tap: { label: "Declare blockers for card", marked: true }, primary: "tap", blocked: null, unavailable: null })
   })
 
   it("a declared attack: every declared attacker is chosen ('greift an', prompt 18) and taken back at once with Forge's words", () => {
@@ -155,7 +155,7 @@ describe("the London mulligan's bottom cards (built)", () => {
 
 describe("when no tap can be sent", () => {
   it("while Forge computes: the tap stays named, the card is looked at, the reason given", () => {
-    expect(useOf("defend", 58, { waiting: false })).toEqual({ mark: null, markLabel: null, source: false, tap: { label: "Remove card from combat", marked: false }, primary: "look", blocked: "Forge rechnet gerade.", unavailable: null })
+    expect(useOf("defend", 58, { waiting: false })).toEqual({ mark: "selected", markLabel: "blockt", source: false, tap: { label: "Remove card from combat", marked: true }, primary: "look", blocked: "Forge rechnet gerade.", unavailable: null })
   })
 
   it("while a blocking question waits (the client would refuse the tap) and while the concession is on its way", () => {

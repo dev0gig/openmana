@@ -4,6 +4,7 @@
  *
  *   npm run test:e2e                 build, then test
  *   npm run test:e2e -- --no-build   test the existing dist/
+ *   npm run test:e2e -- --no-build --combat-only  small, sequential table checks; no engine boot or full suite
  *
  * Environment: OPENMANA_CHROME (default: Playwright's Chrome for Testing, as
  * the engine tests use). Report and screenshots: reports/e2e/.
@@ -122,7 +123,8 @@ import { playDeck, type StoredDeck } from "./engine-decks.ts"
 
 const root = path.resolve(import.meta.dirname, "../..")
 const dist = path.join(root, "dist")
-const reportDir = path.join(root, "reports", "e2e")
+const combatOnly = process.argv.includes("--combat-only")
+const reportDir = path.join(root, "reports", combatOnly ? "combat-e2e" : "e2e")
 const require = createRequire(import.meta.url)
 
 interface Viewport {
@@ -2777,10 +2779,12 @@ const TABLE_SCENES = [
   "attack",
   "attack-declared",
   "attack-planeswalker",
+  "block-start",
+  "block-multiple",
 ] as const
 
 /** Forge's questions the recorded games do not reach, built after the schema on the recorded "main-phase" state (src/test/built-questions.ts) - marked as built. */
-const BUILT_SCENES = ["confirm", "input", "order", "reveal", "choose-many", "select-outside"] as const
+const BUILT_SCENES = ["confirm", "input", "order", "block-order", "reveal", "choose-many", "select-outside"] as const
 
 /** The sizes at which every kind of question is also answered (decisionInteractions); the layout is checked at all. */
 const DECISION_VIEWPORTS: readonly string[] = ["small-phone", "phone-landscape", "desktop"]
@@ -2803,7 +2807,9 @@ const TABLE_VIEWPORTS: readonly Viewport[] = [
 const SCENE_MARKS: Partial<Record<(typeof TABLE_SCENES)[number], { readonly usable: number; readonly selected: number; readonly players?: number }>> = {
   opening: { usable: 0, selected: 0 },
   "main-phase": { usable: 1, selected: 0 },
-  defend: { usable: 0, selected: 1 },
+  defend: { usable: 0, selected: 2 },
+  "block-start": { usable: 3, selected: 1 },
+  "block-multiple": { usable: 0, selected: 3 },
   // Prompt 18: Krenko and the 13 goblins attack (chosen, "greift an" - combat keeps them out of piles); Forge highlights the player attacked.
   "commander-late": { usable: 0, selected: 14, players: 1 },
   "opponent-turn": { usable: 4, selected: 0 },
@@ -3234,6 +3240,7 @@ async function decisionInteractions(page: Page, base: string, viewport: Viewport
   await activate(page.getByRole("alertdialog", { name: "Zug beenden?" }).getByRole("button", { name: "Zug beenden", exact: true }))
   await expectLast("priority: end the turn (asked first)", { kind: "buttons", button: 2 })
   check((await harnessTaps(page)).length === 0, `${label}: answering tapped a card`)
+  results["blocks"] = await blockInteractions(page, base, viewport)
   return results
 }
 
@@ -3257,12 +3264,14 @@ async function tableHarness(browser: Browser): Promise<Record<string, unknown>> 
   if (!base) throw new Error("the dev server did not report its URL")
   const results: Record<string, unknown> = {}
   try {
-    for (const viewport of TABLE_VIEWPORTS) {
+    for (const viewport of combatOnly ? TABLE_VIEWPORTS.filter((v) => DECISION_VIEWPORTS.includes(v.name)) : TABLE_VIEWPORTS) {
       log(`  ${viewport.name} (${viewport.width}x${viewport.height}${viewport.touch ? ", touch" : ""})`)
       const context = await newContext(browser, viewport)
       const scenes: Record<string, unknown> = {}
       try {
-        const runs = [...TABLE_SCENES.map((scene) => ({ scene: scene as string, built: null as string | null })), ...BUILT_SCENES.map((built) => ({ scene: "main-phase", built: built as string | null }))]
+        const selectedScenes = combatOnly ? TABLE_SCENES.filter((scene) => ["defend", "block-start", "block-multiple", "blockers", "damage", "attack-declared"].includes(scene)) : TABLE_SCENES
+        const selectedBuilt = combatOnly ? BUILT_SCENES.filter((built) => built === "block-order") : BUILT_SCENES
+        const runs = [...selectedScenes.map((scene) => ({ scene: scene as string, built: null as string | null })), ...selectedBuilt.map((built) => ({ scene: built === "block-order" ? "block-multiple" : "main-phase", built: built as string | null }))]
         for (const { scene, built } of runs) {
           const name = built === null ? scene : `built:${built}`
           const label = `game table (${viewport.name}, ${name})`
@@ -3315,10 +3324,10 @@ async function tableHarness(browser: Browser): Promise<Record<string, unknown>> 
         }
         const page = await context.newPage()
         const pageLog = watch(page)
-        scenes["interaction"] = await tableInteractions(page, base, viewport)
+        scenes["interaction"] = combatOnly ? await blockInteractions(page, base, viewport) : await tableInteractions(page, base, viewport)
         await page.close()
         // Answering every kind (prompt 15) where it is tightest and on the desktop: a small phone, a phone turned, a mouse.
-        if (DECISION_VIEWPORTS.includes(viewport.name)) {
+        if (!combatOnly && DECISION_VIEWPORTS.includes(viewport.name)) {
           const answers = await context.newPage()
           const answersLog = watch(answers)
           scenes["decisions"] = await decisionInteractions(answers, base, viewport)
@@ -3334,6 +3343,64 @@ async function tableHarness(browser: Browser): Promise<Record<string, unknown>> 
   } finally {
     await server.close()
   }
+  return results
+}
+
+/** Small protocol/UI checks. Inputs go to the harness recorder, not a simulated engine. */
+async function blockInteractions(page: Page, base: string, viewport: Viewport): Promise<Record<string, unknown>> {
+  const label = `blocking (${viewport.name})`
+  const results: Record<string, unknown> = {}
+  const activate = async (locator: Locator) => viewport.touch ? locator.tap() : locator.click()
+  const decision = page.getByRole("region", { name: "Entscheidung" })
+  const confirm = async (name: string) => {
+    await page.waitForTimeout(ARMED_AFTER_MS)
+    await activate(decision.getByRole("button", { name, exact: true }))
+  }
+  await openScene(page, base, "block-start")
+  check((await harnessAnswers(page)).length === 0, `${label}: answered on render`)
+  // The board uses named regions; getByRole avoids a CSS dependency on the region's internal key.
+  const blocker = page.getByRole("region", { name: "Dein Spielfeld" }).locator('button[data-card][data-mark="usable"]').first()
+  const id = Number(await blocker.getAttribute("data-card"))
+  await activate(blocker)
+  await activate(blocker)
+  const taps = await harnessTaps(page)
+  check(taps.length === 1 && taps[0] === id, `${label}: double tap ${JSON.stringify(taps)}, expected [${id}]`)
+  const other = page.getByRole("region", { name: "Spielfeld der Forge-KI" }).locator('button[data-card][data-mark="usable"]').first()
+  const target = Number(await other.getAttribute("data-card"))
+  await activate(other)
+  check(JSON.stringify(await harnessTaps(page)) === JSON.stringify([id, target]), `${label}: attacker switch sends the wrong card`)
+  check((await harnessAnswers(page)).length === 0, `${label}: assigning a block answered confirmation`)
+  results["assign/switch/double-tap"] = await harnessTaps(page)
+  await confirm("Nicht blocken")
+  check(JSON.stringify((await harnessAnswers(page))[0]?.[1]) === JSON.stringify({ kind: "buttons", button: 1 }), `${label}: no-block confirmation`)
+
+  await openScene(page, base, "block-multiple")
+  const selected = page.getByRole("region", { name: "Dein Spielfeld" }).locator('button[data-card][data-mark="selected"]').first()
+  const selectedId = Number(await selected.getAttribute("data-card"))
+  if (viewport.touch) await touch(page, selected, { holdMs: ARMED_AFTER_MS })
+  else await selected.click({ button: "right" })
+  await page.getByRole("dialog").waitFor()
+  check((await harnessTaps(page)).length === 0 && (await harnessAnswers(page)).length === 0, `${label}: inspecting a blocker sent input`)
+  await page.getByRole("dialog").getByRole("button", { name: "Schließen", exact: true }).click()
+  await activate(selected)
+  check(JSON.stringify(await harnessTaps(page)) === JSON.stringify([selectedId]), `${label}: remove-assignment tap`)
+  await confirm("Blocks bestätigen")
+  check(JSON.stringify((await harnessAnswers(page))[0]?.[1]) === JSON.stringify({ kind: "buttons", button: 1 }), `${label}: double-block confirmation`)
+  results["double-block"] = { taps: await harnessTaps(page), answers: await harnessAnswers(page) }
+
+  await openScene(page, base, "block-multiple", "&built=block-order")
+  check(await decision.getByRole("button", { name: "Blocks bestätigen", exact: true }).count() === 0, `${label}: block controls under blocking order request`)
+  await activate(decision.getByRole("button", { name: /nach unten$/ }).first())
+  await confirm("Bestätigen")
+  check(JSON.stringify((await harnessAnswers(page))[0]?.[1]) === JSON.stringify({ kind: "order", order: [2, 1] }), `${label}: block order (built)`)
+  results["block-order (built)"] = await harnessAnswers(page)
+
+  await openScene(page, base, "damage")
+  await activate(decision.getByRole("button", { name: "Bei Canyon Minotaur einen mehr", exact: true }))
+  await activate(decision.getByRole("button", { name: "Bei Raging Goblin einen mehr", exact: true }))
+  await confirm("Bestätigen")
+  check(JSON.stringify((await harnessAnswers(page))[0]?.[1]) === JSON.stringify({ kind: "distribute", amounts: [1, 1] }), `${label}: real combat damage request`)
+  results["damage"] = await harnessAnswers(page)
   return results
 }
 
@@ -3626,25 +3693,30 @@ async function main(): Promise<void> {
   report["browser"] = `${path.basename(executablePath)} ${browser.version()}`
   log(`Chrome ${browser.version()}, app at ${base}`)
   try {
-    await httpChecks(base, id)
-    await devServerChecks(browser, id)
-    await surfaces(browser, base, id)
-    report["engine"] = [await engine(browser, base, id, VIEWPORTS[2]!), await engine(browser, base, id, VIEWPORTS[0]!)]
-    await localData(browser, base)
-    await localDataQuota(executablePath, base)
-    await cardData(browser, base)
-    await deckImport(browser, base, id)
-    await pwa(base, executablePath)
-    await withoutIsolation(browser)
-    await oryxCloud(browser, base)
-    report["gameTable"] = await tableHarness(browser)
+    if (combatOnly) {
+      report["scope"] = "Recorded Forge combat scenes and one built order request, three viewports, one page at a time; no engine boot or complete application regression suite."
+      report["gameTable"] = await tableHarness(browser)
+    } else {
+      await httpChecks(base, id)
+      await devServerChecks(browser, id)
+      await surfaces(browser, base, id)
+      report["engine"] = [await engine(browser, base, id, VIEWPORTS[2]!), await engine(browser, base, id, VIEWPORTS[0]!)]
+      await localData(browser, base)
+      await localDataQuota(executablePath, base)
+      await cardData(browser, base)
+      await deckImport(browser, base, id)
+      await pwa(base, executablePath)
+      await withoutIsolation(browser)
+      await oryxCloud(browser, base)
+      report["gameTable"] = await tableHarness(browser)
+    }
   } finally {
     await browser.close()
     await new Promise<void>((resolve) => server.httpServer.close(() => resolve()))
   }
   report["failures"] = failures
   fs.writeFileSync(path.join(reportDir, "report.json"), `${JSON.stringify(report, null, 2)}\n`)
-  log(`\n${failures.length === 0 ? "E2E OK" : `E2E FAILED (${failures.length})`} – report: ${path.relative(root, path.join(reportDir, "report.json"))}`)
+  log(`\n${combatOnly ? "Combat " : ""}${failures.length === 0 ? "E2E OK" : `E2E FAILED (${failures.length})`} – report: ${path.relative(root, path.join(reportDir, "report.json"))}`)
   process.exitCode = failures.length === 0 ? 0 : 1
 }
 

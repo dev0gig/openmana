@@ -145,7 +145,7 @@ describe("the battlefields", () => {
     expect(blocker).toHaveAccessibleName(/^Goblin Arsonist, Einsatzverzögerung, blockt, 1\/1/)
     const attacker = region("Spielfeld der Forge-KI").querySelector('[data-card="80"]')!
     expect(attacker).toHaveAttribute("data-tapped", "true")
-    expect(attacker).toHaveAccessibleName(/^Giant Spider, getappt, greift an, 2\/4, ausgewählt/)
+    expect(attacker).toHaveAccessibleName(/^Giant Spider, getappt, greift an, 2\/4, Blockziel/)
   })
 
   it("the command zone leads the outer row, Forge's effect cards as Forge names them", () => {
@@ -216,7 +216,7 @@ describe("stack, combat and Forge's decision", () => {
 
   it("in a step whose taps act at once (blocking), the decision says so - and how to look at a card then", () => {
     renderScene("defend")
-    expect(within(region("Entscheidung")).getByText("Karten antippen wirkt hier sofort, ein zweiter Tipp nimmt es zurück. Lange drücken oder Rechtsklick zeigt eine Karte groß.")).toBeInTheDocument()
+    expect(within(region("Entscheidung")).getByText("Blocker erneut antippen nimmt diese Zuordnung zurück. Lange drücken oder Rechtsklick zeigt die Karte.")).toBeInTheDocument()
   })
 })
 
