@@ -25,6 +25,7 @@ export default defineConfig({
     ],
   },
   test: {
+    ...(process.env["VITEST_MAX_WORKERS"] ? { maxWorkers: Number(process.env["VITEST_MAX_WORKERS"]) } : {}),
     environment: "jsdom",
     setupFiles: ["src/test/setup.ts"],
     include: ["src/**/*.test.{ts,tsx}", "vite/**/*.test.ts", "scripts/**/*.test.ts", "cards/**/*.test.ts"],

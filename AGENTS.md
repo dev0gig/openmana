@@ -77,7 +77,7 @@ A game against Forge's AI runs through the app's one `EngineSession` (`src/engin
 
 ## Game Table Rules
 A running game is the game table (`src/game/game-table.tsx`; prompt 13, `docs/implementation/13-battlefield-foundation.md`):
-- The table is a view of one full state (`GameState`, the open questions, Forge's prompt line) and never sends anything itself; the page adds the menu (the way around the app, Forge's notices, conceding - confirmed), the warnings, the one way to act on a card (`onTapCard`, prompt 14; see Card Interaction Rules) and the one way to answer Forge (`onAnswer`, prompt 15; see Decision Rules). Later prompts (the replay of 22) can show recorded states with it - without `onTapCard` and `onAnswer`, cards can be looked at and questions read, never tapped or answered.
+- The table is a view of one full state (`GameState`, the open questions, Forge's prompt line) and never sends anything itself; the page adds the menu (the way around the app, Forge's notices, conceding - confirmed), the warnings, the one way to act on a card (`onTapCard`, prompt 14; see Card Interaction Rules) and the one way to answer Forge (`onAnswer`, prompt 15; see Decision Rules). The replay of prompt 22 shows recorded states with it - without `onTapCard` and `onAnswer`, cards can be looked at and questions read, never tapped or answered.
 - `src/game/table-model.ts` arranges the state from Forge's structured values only: seats from `me`, the row of a card from whether Forge sends power/toughness, piles of cards whose every value Forge sends is equal - never cards Forge names elsewhere (open questions, stack sources and targets, combat, attachments) -, attachments with their host (`attachedTo`), the stack in Forge's order (first = top) with each item's card (prompt 16: a spell's own card lies on the stack, `locateCard` finds it there). No legality, no computed values (no "remaining toughness"), no card- or name-specific branches.
 - Hidden stays hidden: a `HiddenCard` is a back and a count, never told apart or identified; what Forge reveals is shown; `game.started.cardNames` is never shown as anyone's cards.
 - Card pictures through `useTableCards` (`src/game/table-cards.ts`): Forge's key resolved once per key against the installed catalog, shown in the player's card language; a key the catalog cannot decide (tokens of one name that fit alike, Forge-only cards, Forge's effect cards) gets Forge's own words, never a guessed picture. Only catalog answers are remembered, never cards of the game.
@@ -109,8 +109,16 @@ Prompt 21 (`src/game/history-sheet.tsx`, `EngineSession.history`, `docs/implemen
 - History is Forge's MEDIUM GameLog (`events`), never narration derived from snapshots or input. Append every entry in reception order before folding the next state; retain kind, text (including null), actor and card ID. Repeated texts are distinct; never cap the log at the notice limit.
 - Actors come only from structured Forge source controllers at bridge emission. A log entry without a source/controller stays unassigned; never parse names or translated prose. This is a source-controller attribution, not a new authority on the acting player of every effect.
 - History sources resolve against the current visible state/open questions. Missing/hidden sources stay unavailable; never infer card identities from text or preserve stale card objects. History inspection uses the existing card viewer read-only and restores focus to the log.
-- The header opens a compact portrait / richer landscape Sheet without reducing battlefield height. Full texts scroll inside, new entries never move the reader automatically; "Neueste Einträge" scrolls on request. The just-finished/aborted session keeps its log; persistence/replay belongs to 22.
+- The header opens a compact portrait / richer landscape Sheet without reducing battlefield height. Full texts scroll inside, new entries never move the reader automatically; "Neueste Einträge" scrolls on request. The just-finished/aborted session keeps its log; persistence/replay is implemented in prompt 22.
 - Verify session/history tests, Bridge `HistoryTest`, recorded Chrome history at three sizes (`--history-only`) and full `npm run check` with the real engine after bridge changes.
+
+## Recording and Replay Rules
+Prompt 22 (`src/matches/`, `src/storage/matches.ts`, `docs/implementation/22-match-recording-replay.md`):
+- Capture the accepted session inputs and original engine messages in reception order, beginning at `game.started`. Store exact deck requests, seed, boot arguments, ready/build facts and manifest SHA-256; never infer events or results from snapshots.
+- Header and transcript batch commit together. Failed storage reports a problem while the game continues; deletion must never resurrect a recording. Default retention keeps the latest 100 terminal recordings; running/interrupted prefixes and damaged records require explicit removal.
+- Replay folds the recorded protocol envelopes and authoritative full states only. Pass no live input callbacks to the table; card/history inspection sends nothing. Another protocol remains exportable but is not interpreted by today's UI.
+- Portable replay JSON format 1 is schema-checked, bounded to 100 MiB and validated completely before an atomic import. Same ID with identical canonical content is a no-op; a conflict never overwrites data. Import and retention use one transaction.
+- Verify the framework-free recorder with fake IndexedDB and the real EngineClient/scripted Worker, then the complete `npm run check`: actual browser Forge games plus replay/library/file/retention checks. `--replay-only` uses recorded Forge messages with assembled portable metadata; it is not a new live recording or a deterministic engine re-simulation.
 
 ## Decision Rules
 Forge's questions are answered in the table's decision region (prompt 15, `src/game/decision-panel.tsx`, `src/game/decision-model.ts`, `docs/implementation/15-forge-decisions.md`):
@@ -179,7 +187,7 @@ The optional sync of the player's collection through their ORYX account (project
 The legacy local prompt workflow was removed upstream on 2026-09-28. Executable tasks and their lifecycle now live in `dev0gig/dropzone/workflow/tasks/`; implementation evidence remains in `docs/implementation/` and Git history.
 
 - Numbered prompts run strictly sequentially; resume `IN_PROGRESS` work and never skip a `BLOCKED` predecessor. Mark a task complete only after its requirements and verification pass.
-- Reconcile the central status with code and `STATUS.md` before selecting work. Prompt 21 (Forge game history) is complete; Prompt 22 is next.
+- Reconcile the central status with code and `STATUS.md` before selecting work. Prompt 22 (automatic recording and snapshot replay) is complete; Prompt 23 is next.
 - Run only the task explicitly assigned by the user; this cross-repository cleanup does not start a numbered implementation prompt.
 - Update the central task and `STATUS.md` with verified evidence; do not recreate the removed local queue.
 

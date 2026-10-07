@@ -40,6 +40,7 @@ export const TEST_ASSETS: EngineAssets = {
   wasmUrl: "/engine/0123456789abcdef/openmana-engine.js.wasm",
   manifestUrl: "/engine/0123456789abcdef/engine-manifest.json",
   build: {
+    manifestSha256: "a".repeat(64),
     builtAt: "2026-09-24T00:00:00.000Z",
     forgeRepository: "https://github.com/Card-Forge/forge",
     forgeCommit: "ed0333fecb1fea0671b3e50cadc1da4f71db5798",

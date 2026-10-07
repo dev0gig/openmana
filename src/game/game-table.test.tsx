@@ -201,7 +201,7 @@ describe("stack, combat and Forge's decision", () => {
   it("the decision: Forge's prompt, the kind, Forge's buttons - a table only looked at sends nothing and says so", () => {
     const scene = renderScene("opening")
     const decision = region("Entscheidung")
-    expect(within(decision).getByRole("heading", { name: "Forge wartet auf deine Entscheidung" })).toBeInTheDocument()
+    expect(within(decision).getByRole("heading", { name: "Gespeicherte Frage von Forge" })).toBeInTheDocument()
     expect(within(decision).getByText(scene.prompt!.replace(/\s+/g, " "))).toBeInTheDocument()
     expect(decision.querySelector('[data-slot="game-decision-header"]')).toHaveTextContent(/^Mulligan/)
     const buttons = within(within(decision).getByRole("group", { name: "Antworten, die Forge anbietet" })).getAllByRole("button")

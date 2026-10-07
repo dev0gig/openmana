@@ -7,7 +7,7 @@
     "SchemaVersion": {
       "title": "SchemaVersion",
       "description": "Version of the record schemas below = version of the IndexedDB database. Every change to a record shape or to the stores raises it and adds a migration (src/storage/migrations.ts) that upgrades the database and older backups alike. It is also the version of the collection the ORYX cloud keeps (CollectionDocument).",
-      "const": 4
+      "const": 5
     },
     "BackupFormatVersion": {
       "title": "BackupFormatVersion",
@@ -206,7 +206,8 @@
         "forgeVersion": { "$ref": "#/$defs/NonEmptyString" },
         "forgeCommit": { "$ref": "#/$defs/GitCommit" },
         "buildCommit": { "$ref": "#/$defs/GitCommit" },
-        "sourcesModified": { "type": "boolean" }
+        "sourcesModified": { "type": "boolean" },
+        "manifestSha256": { "$ref": "#/$defs/Sha256", "description": "SHA-256 of the exact engine manifest bytes. Absent in recordings before schema version 5." }
       }
     },
     "MatchEnd": {
@@ -736,6 +737,14 @@
           }
         },
         "records": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "ReplayDocument": {
+      "title": "ReplayDocument", "description": "Portable snapshot recording. Versions belong to the recorded match; schemaVersion names the record shapes.",
+      "type": "object", "additionalProperties": false, "required": ["format", "version", "schemaVersion", "match", "log"],
+      "properties": {
+        "format": { "const": "openmana-replay" }, "version": { "const": 1 }, "schemaVersion": { "type": "integer", "minimum": 1 },
+        "match": { "$ref": "#/$defs/MatchRecord" }, "log": { "type": "array", "items": { "$ref": "#/$defs/MatchLogEntry" } }
       }
     }
   }

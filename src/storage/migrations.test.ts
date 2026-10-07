@@ -251,13 +251,13 @@ describe("the app's schema versions", () => {
     expect(RECORD_CHECKS.decks(saved)).toBeNull()
     expect(await raw.getAll("scryfallCards")).toEqual([cardRecord])
     const meta = (await raw.get("meta", "database")) as DatabaseMeta
-    expect(meta.migrations.map((entry) => entry.version)).toEqual([1, 2, 3, 4])
+    expect(meta.migrations.map((entry) => entry.version)).toEqual([1, 2, 3, 4, 5])
     raw.close()
     // A deck that names its companion is a valid record of version 3.
     expect(RECORD_CHECKS.decks({ ...saved, companion: [{ count: 1, name: "Lurrus of the Dream-Den" }] })).toBeNull()
   })
 
-  it("version 3 → 4 adds the empty store of deletion marks; every record stays as it is", async () => {
+  it("version 3 → current adds the empty store of deletion marks; every record stays as it is", async () => {
     const v3 = await openWithMigrations({ name: DATABASE_NAME, migrations: MIGRATIONS.slice(0, 3), layout: LAYOUT_V3, app: APP, now: at("2026-09-25T03:00:00.000Z") })
     const saved = deck({ companion: [{ count: 1, name: "Lurrus of the Dream-Den" }] })
     const preference = setting("ai.profile", { kind: "random" })
@@ -273,7 +273,7 @@ describe("the app's schema versions", () => {
     const db = await openTestDatabase()
     db.close()
     const raw = await openDB(DATABASE_NAME)
-    expect(raw.version).toBe(4)
+    expect(raw.version).toBe(5)
     expect(await compareLayout(raw, STORE_LAYOUT)).toEqual([])
     expect(await raw.count("deckTombstones")).toBe(0)
     expect(await raw.getAll("decks")).toEqual([saved])
@@ -283,7 +283,7 @@ describe("the app's schema versions", () => {
     // The card data are not touched: no catalog download after the update.
     expect(await raw.getAll("scryfallCards")).toEqual([cardRecord])
     const meta = (await raw.get("meta", "database")) as DatabaseMeta
-    expect(meta.migrations.map((entry) => entry.version)).toEqual([1, 2, 3, 4])
+    expect(meta.migrations.map((entry) => entry.version)).toEqual([1, 2, 3, 4, 5])
     raw.close()
     // Records of an older backup need no upgrade.
     expect(upgradeRecord("decks", saved, 3, 4, MIGRATIONS)).toBe(saved)

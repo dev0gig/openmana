@@ -97,6 +97,7 @@ const TWO_ROWS_MIN_HEIGHT = 176
 const EMPTY_HISTORY: readonly GameEvent[] = []
 
 export interface GameTableProps {
+  readonly replay?: boolean
   readonly state: GameState
   readonly history?: readonly GameEvent[]
   /** The questions Forge asks right now. */
@@ -149,7 +150,7 @@ interface CardControls {
 
 const CardControlsContext = createContext<CardControls | null>(null)
 
-export function GameTable({
+export function GameTable({ replay = false,
   state,
   history = EMPTY_HISTORY,
   questions,
@@ -259,7 +260,7 @@ export function GameTable({
           </GameZoneButton>
           <GameZoneButton aria-label="Spielverlauf ansehen" title={`Spielverlauf: ${history.length} Einträge`} aria-haspopup="dialog" onClick={() => setHistoryOpen(true)}><History aria-hidden /></GameZoneButton>
           <div className="flex min-w-0 flex-1 flex-col">
-            <h1 className="sr-only">Partie</h1>
+            <h1 className="sr-only">{replay ? "Wiedergabe" : "Partie"}</h1>
             <p className="truncate text-sm font-medium" title={turnLine(view.turn, state.phase)}>
               {turnLine(view.turn, state.phase)}
             </p>
@@ -268,7 +269,7 @@ export function GameTable({
               <p className="truncate text-xs text-muted-foreground">{turnOwnerLabel(view.activeSeat)}</p>
             </div>
           </div>
-          {conceding ? (
+          {replay ? <Badge variant="secondary">Wiedergabe</Badge> : conceding ? (
             <Badge variant="secondary">
               <Spinner data-icon="inline-start" aria-hidden />
               Gibt auf …

@@ -140,6 +140,7 @@ export const MIGRATIONS: readonly Migration[] = [
     summary: "Deletion marks for the ORYX cloud sync: store deckTombstones (the id of a deleted deck and when); no stored record changes.",
     structure: (db) => createStores(db, DECK_TOMBSTONES_V4),
   },
+  { version: 5, summary: "Recorded matches may keep the exact engine manifest SHA-256; older records stay valid unchanged." },
 ]
 
 /** The version the migrations lead to; throws if they are not 1, 2, 3 … in order. */

@@ -7,7 +7,7 @@
 /**
  * Version of the record schemas below = version of the IndexedDB database. Every change to a record shape or to the stores raises it and adds a migration (src/storage/migrations.ts) that upgrades the database and older backups alike. It is also the version of the collection the ORYX cloud keeps (CollectionDocument).
  */
-export type SchemaVersion = 4;
+export type SchemaVersion = 5;
 /**
  * Version of the backup container (header, record and end lines). Independent of the record schemas, which the header names by SchemaVersion.
  */
@@ -43,6 +43,10 @@ export type GameResult = "win" | "loss" | "draw";
  * Forge AI profile (res/ai/*.ai).
  */
 export type NonEmptyString1 = string;
+/**
+ * SHA-256 of the exact engine manifest bytes. Absent in recordings before schema version 5.
+ */
+export type Sha256 = string;
 /**
  * Colours as letters in WUBRG order; empty = colourless.
  */
@@ -120,7 +124,7 @@ export type MetaRecord = DatabaseMeta | BackupMeta;
  * The stores a backup holds: the user's own data. Caches (scryfallCards, scryfallPrints, scryfallSets, forgeOnlyCards, cacheIndex) and meta are never part of a backup.
  */
 export type BackupStore = "decks" | "settings" | "matches" | "matchLog";
-export type Sha256 = string;
+export type Sha2561 = string;
 /**
  * Version of the card catalog container (header, record lines, end line). Its records are those of the header's schemaVersion.
  */
@@ -236,6 +240,7 @@ export interface MatchEngine {
   forgeCommit: GitCommit;
   buildCommit: GitCommit;
   sourcesModified: boolean;
+  manifestSha256?: Sha256;
 }
 /**
  * Forge's game.end, as far as the match library shows it.
@@ -542,9 +547,9 @@ export interface CatalogSource {
   updatedAt: Timestamp1;
   uri: NonEmptyString;
   bytes: number;
-  sha256: Sha256;
+  sha256: Sha2561;
   setsUri: NonEmptyString;
-  setsSha256: Sha256;
+  setsSha256: Sha2561;
 }
 /**
  * The Forge card database the catalog was matched against (the engine's pinned Forge): how many cards it has, how many the catalog found, how many have no Scryfall data.
@@ -607,4 +612,14 @@ export interface CatalogEnd {
     "forge-only": number;
   };
   records: number;
+}
+/**
+ * Portable snapshot recording. Versions belong to the recorded match; schemaVersion names the record shapes.
+ */
+export interface ReplayDocument {
+  format: "openmana-replay";
+  version: 1;
+  schemaVersion: number;
+  match: MatchRecord;
+  log: MatchLogEntry[];
 }

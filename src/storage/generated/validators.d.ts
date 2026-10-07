@@ -25,6 +25,7 @@ export declare const validateDeckRecord: Validator<R.DeckRecord>
 export declare const validateDeckTombstoneRecord: Validator<R.DeckTombstoneRecord>
 export declare const validateSettingRecord: Validator<R.SettingRecord>
 export declare const validateMatchRecord: Validator<R.MatchRecord>
+export declare const validateReplayDocument: Validator<R.ReplayDocument>
 export declare const validateMatchLogEntry: Validator<R.MatchLogEntry>
 export declare const validateCardRecord: Validator<R.CardRecord>
 export declare const validatePrintRecord: Validator<R.PrintRecord>

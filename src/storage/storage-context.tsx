@@ -30,6 +30,14 @@ export function StorageProvider({ children, session }: { children: ReactNode; se
   return <StorageContext value={value}>{children}</StorageContext>
 }
 
+const NO_STORAGE = () => null
+const NO_SUBSCRIBE = () => () => undefined
+/** Optional consumers (recording) also work in engine-only diagnostic frames. */
+export function useOptionalStorage(): StorageSnapshot | null {
+  const session = use(StorageContext)
+  return useSyncExternalStore(session?.subscribe ?? NO_SUBSCRIBE, session?.getSnapshot ?? NO_STORAGE)
+}
+
 export function useStorage(): { snapshot: StorageSnapshot; session: StorageSession } {
   const session = use(StorageContext)
   if (!session) throw new Error("useStorage outside StorageProvider")

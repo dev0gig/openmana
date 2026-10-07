@@ -110,7 +110,7 @@ describe("stores", () => {
   it("the schema version is the database version", () => {
     // Version 2 (prompt 08): the card catalog stores. Version 3 (prompt 10): a deck names its companion.
     // Version 4 (ORYX cloud): the deletion marks of deleted decks.
-    expect(SCHEMA_VERSION).toBe(4)
+    expect(SCHEMA_VERSION).toBe(5)
   })
 
   it("deletion marks are the database's own bookkeeping: never in a backup", async () => {

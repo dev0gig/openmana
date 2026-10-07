@@ -206,7 +206,15 @@ The implemented zones and full viewer — current IDs/question sources, pile/zon
 
 ### Game history
 
-The game history comes from Forge's MEDIUM GameLog, in chronological reception order before the state it explains. The complete text and structured source/actor values are retained; unknown actors remain unassigned. Actors currently reflect the source card's structured controller, without localized prose inference. Current visible source cards can be inspected safely, without game input. The portrait log is compact; landscape adds event type and entry index. The log remains available after game end or abort in the session; durable recording/replay is prompt 22. See [implementation/21-match-history-events.md](implementation/21-match-history-events.md).
+The game history comes from Forge's MEDIUM GameLog, in chronological reception order before the state it explains. The complete text and structured source/actor values are retained; unknown actors remain unassigned. Actors currently reflect the source card's structured controller, without localized prose inference. Current visible source cards can be inspected safely, without game input. The portrait log is compact; landscape adds event type and entry index. The log remains available after game end or abort in the session; durable recording/replay is implemented by prompt 22. See [implementation/21-match-history-events.md](implementation/21-match-history-events.md).
+
+### Match recording and replay
+
+Every match acknowledged by Forge (`game.started`) is recorded on the device in IndexedDB. Recording retains the exact decks/request/seed, app/engine/Forge versions and the SHA-256 of the verified engine manifest, followed by accepted player inputs and original structured engine messages, questions, events and full snapshots. Header and each reception-ordered batch are atomic; storage failure does not change the game and is shown to the player.
+
+Partien lists result, turns and duration. Portable JSON is validated completely before import; identical IDs/content are a no-op and conflicts never overwrite recordings. Deletion, clearing and retention changes are confirmed. The default keeps the latest 100 terminal recordings (configurable 1–1000); running/interrupted prefixes and damaged records remain until explicit removal. Imports are bounded to 100 MiB. Recordings stay device-local and never enter the cloud collection.
+
+Snapshot replay uses the existing table without any engine input callbacks. It shows only authoritative saved states and recorded question/history envelopes, with manual navigation; another protocol is preserved/exportable but not reinterpreted. Replay cannot resume or act on a live game. Deterministic engine re-simulation is not currently a supported product flow. Batches flush every 100 ms and immediately at start/end; pagehide is best effort, so an abrupt close can lose the pending tail. See [implementation/22-match-recording-replay.md](implementation/22-match-recording-replay.md).
 
 ### Battlefield
 

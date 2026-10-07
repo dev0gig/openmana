@@ -276,12 +276,19 @@ function refusal(error: unknown): string {
   return known ?? (error instanceof Error ? error.message : String(error))
 }
 
+export type RecordingEvent =
+  | { readonly kind: "started"; readonly setup: MatchSetup; readonly ready: EngineReady; readonly args: readonly string[] }
+  | { readonly kind: "message"; readonly message: EngineMessage }
+  | { readonly kind: "input"; readonly message: Record<string, unknown> & { type: string } }
+  | { readonly kind: "aborted"; readonly abort: EngineAbort }
+
 type Listener = () => void
 
 export class EngineSession {
   readonly #options: EngineSessionOptions
   readonly #now: () => number
   readonly #listeners = new Set<Listener>()
+  readonly #recorders = new Set<(event: RecordingEvent) => void>()
   #snapshot: EngineSessionSnapshot
   #client: SessionClient | null = null
   #unsubscribe: (() => void) | null = null
@@ -300,6 +307,8 @@ export class EngineSession {
     this.#bootOptions = options.bootOptions ?? DEFAULT_BOOT_OPTIONS
     this.#snapshot = { engine: this.#initialEngine(), match: null }
   }
+
+  get assets(): EngineAssets { return this.#options.assets }
 
   /** How the next engine boots. */
   get bootOptions(): EngineBootOptions {
@@ -328,6 +337,15 @@ export class EngineSession {
     return () => {
       this.#listeners.delete(listener)
     }
+  }
+
+  subscribeRecording(listener: (event: RecordingEvent) => void): () => void {
+    this.#recorders.add(listener)
+    return () => { this.#recorders.delete(listener) }
+  }
+
+  #record(event: RecordingEvent): void {
+    for (const listener of this.#recorders) listener(event)
   }
 
   /** Loads the engine on request (idle or after an abort). Anything else is ignored. */
@@ -403,6 +421,7 @@ export class EngineSession {
     if (match.conceding) return { ok: true }
     try {
       this.#concedeSeq = client.concede()
+      this.#record({ kind: "input", message: { type: "concede", seq: this.#concedeSeq } })
     } catch (error) {
       return { ok: false, reason: error instanceof Error ? error.message : String(error) }
     }
@@ -426,7 +445,8 @@ export class EngineSession {
     if (match.conceding) return { ok: false, reason: "Die Aufgabe ist unterwegs." }
     if (!client.engineWaiting) return { ok: false, reason: "Forge rechnet gerade – antippen geht, sobald Forge wieder auf dich wartet." }
     try {
-      client.tapCard(card)
+      const seq = client.tapCard(card)
+      this.#record({ kind: "input", message: { type: "card.tap", card, seq } })
     } catch (error) {
       return { ok: false, reason: refusal(error) }
     }
@@ -443,7 +463,7 @@ export class EngineSession {
    * tap the engine refuses anyway comes back as Forge's notice.
    */
   tapPlayer(player: number): InputResult {
-    return this.#input((client) => client.tapPlayer(player), "antippen")
+    return this.#input((client) => client.tapPlayer(player), "antippen", { type: "player.tap", player })
   }
 
   /**
@@ -452,18 +472,19 @@ export class EngineSession {
    * the UI offers only the colours Forge's payment would take.
    */
   useMana(color: ManaColor): InputResult {
-    return this.#input((client) => client.useMana(color), "bezahlen")
+    return this.#input((client) => client.useMana(color), "bezahlen", { type: "mana.use", color })
   }
 
   /** Sends one input for the player while Forge waits (see tapCard); `verb` finishes the sentence while it computes. */
-  #input(send: (client: SessionClient) => number, verb: string): InputResult {
+  #input(send: (client: SessionClient) => number, verb: string, message: Record<string, unknown> & { type: string }): InputResult {
     const match = this.#snapshot.match
     const client = this.#client
     if (match?.status !== "playing" || client === null) return { ok: false, reason: "Es läuft keine Partie." }
     if (match.conceding) return { ok: false, reason: "Die Aufgabe ist unterwegs." }
     if (!client.engineWaiting) return { ok: false, reason: `Forge rechnet gerade – ${verb} geht, sobald Forge wieder auf dich wartet.` }
     try {
-      send(client)
+      const seq = send(client)
+      this.#record({ kind: "input", message: { ...message, seq } })
     } catch (error) {
       return { ok: false, reason: refusal(error) }
     }
@@ -492,7 +513,8 @@ export class EngineSession {
     if (match.conceding) return { ok: false, reason: "Die Aufgabe ist unterwegs." }
     if (!client.engineWaiting) return { ok: false, reason: "Forge rechnet gerade – antworten geht, sobald Forge wieder auf dich wartet." }
     try {
-      client.answer(question, body)
+      const seq = client.answer(question, body)
+      this.#record({ kind: "input", message: { type: "answer", seq, question, ...body } })
     } catch (error) {
       return { ok: false, reason: refusal(error) }
     }
@@ -585,6 +607,12 @@ export class EngineSession {
   #onMessage(client: SessionClient, message: EngineMessage): void {
     const { engine, match } = this.#snapshot
     const now = this.#now()
+    if (message.type === "game.started" && match?.status === "starting" && engine.status === "busy") {
+      this.#record({ kind: "started", setup: match.setup, ready: engine.ready, args: engineArgs(this.#workerOptions ?? this.#bootOptions) })
+    }
+    if (match?.status === "playing" || (match?.status === "over" && message.type === "match.finished") || (message.type === "game.started" && match?.status === "starting")) {
+      this.#record({ kind: "message", message })
+    }
     switch (message.type) {
       case "engine.boot":
         if (engine.status === "booting") this.#set({ engine: { ...engine, steps: advance(engine.steps, message.phase, now) }, match })
@@ -755,6 +783,7 @@ export class EngineSession {
   }
 
   #set(snapshot: EngineSessionSnapshot): void {
+    if (snapshot.match?.status === "aborted" && this.#snapshot.match?.status === "playing") this.#record({ kind: "aborted", abort: snapshot.match.abort })
     this.#snapshot = snapshot
     // A copy: a listener may unsubscribe (itself or another) while being called.
     for (const listener of Array.from(this.#listeners)) listener()

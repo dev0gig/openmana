@@ -70,6 +70,7 @@ describe("verifyEngine", () => {
     const engine = await verifyEngine(dir)
     expect(engine.id).toMatch(/^[0-9a-f]{16}$/)
     expect(engine.build).toEqual({
+      manifestSha256: sha256(await fs.readFile(path.join(dir, MANIFEST_FILE), "utf8")),
       builtAt: "2026-09-24T19:34:25.845Z",
       forgeRepository: "https://github.com/Card-Forge/forge",
       forgeCommit: "ed0333fecb1fea0671b3e50cadc1da4f71db5798",

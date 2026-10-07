@@ -52,6 +52,7 @@ export const routes: RouteObject[] = [
             lazy: async () => ({ Component: (await import("@/game/game-page")).GamePage }),
           },
           { path: "matches", element: <MatchesPage /> },
+          { path: "matches/:matchId", HydrateFallback: PageLoading, lazy: async () => ({ Component: (await import("@/matches/replay-page")).ReplayPage }) },
           { path: "settings", element: <SettingsPage /> },
           { path: "credits", element: <CreditsPage /> },
           { path: "*", element: <NotFoundPage /> },

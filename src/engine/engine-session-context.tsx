@@ -9,6 +9,7 @@
  */
 import { createContext, use, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react"
 import { toast } from "sonner"
+import { RecordingProvider } from "@/matches/recording-status"
 import { engineAssets } from "./engine-assets"
 import { abortTitle } from "./engine-labels"
 import type { AnswerBody, ManaColor } from "@openmana/engine-protocol"
@@ -21,7 +22,7 @@ export function EngineSessionProvider({ children, session }: { children: ReactNo
   useEffect(() => () => value.stop(), [value])
   useAbortToast(value)
   useLeaveGuard(value)
-  return <EngineSessionContext value={value}>{children}</EngineSessionContext>
+  return <EngineSessionContext value={value}><RecordingProvider session={value}>{children}</RecordingProvider></EngineSessionContext>
 }
 
 export interface EngineSessionHandle {

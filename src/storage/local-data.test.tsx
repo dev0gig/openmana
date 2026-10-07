@@ -166,7 +166,7 @@ describe("settings: data on this device", () => {
   })
 
   it("a database of a newer OpenMana: says so, offers reload, pages do not pretend to be empty", async () => {
-    const newer = await openDB("openmana", 5)
+    const newer = await openDB("openmana", SCHEMA_VERSION + 1)
     newer.close()
     const router = renderAt("/settings")
     const card = await screen.findByRole("region", { name: "Daten auf diesem Gerät" })
@@ -234,8 +234,8 @@ describe("pages list what is stored", () => {
     const descriptions = within(list)
       .getAllByRole("listitem")
       .map((item) => item.querySelector("[data-slot=item-description]")?.textContent ?? "")
-    expect(descriptions[0]).toMatch(/22\.09\.2026.* · Sieg · 9 Züge$/)
-    expect(descriptions[1]).toMatch(/20\.09\.2026.* · Niederlage · 1 Zug$/)
+    expect(descriptions[0]).toMatch(/22\.09\.2026.* · Sieg · 9 Züge · 20 min$/)
+    expect(descriptions[1]).toMatch(/20\.09\.2026.* · Niederlage · 1 Zug · 2900 min$/)
     expect(within(list).getAllByText("Muster-Deck gegen Forge-KI")).toHaveLength(2)
   })
 

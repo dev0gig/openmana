@@ -130,6 +130,7 @@ export async function verifyEngine(dir: string): Promise<VerifiedEngine> {
   }
   const forge = record(manifest["forge"], "forge")
   const build: EngineBuildFacts = {
+    manifestSha256: createHash("sha256").update(text).digest("hex"),
     builtAt: string(manifest["builtAt"], "builtAt"),
     forgeRepository: string(forge["repository"], "forge.repository"),
     forgeCommit: string(forge["commit"], "forge.commit"),

@@ -177,21 +177,27 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 
 ### Game History (Prompt 21)
 - Full Forge MEDIUM GameLog entries stay in reception order before their snapshot, preserving raw text, kind, structured source and actor. The bridge no longer derives actors from localized prose; source-controller attribution at emission remains the existing structured limit.
-- The table opens a compact portrait / richer landscape history with current-source inspection that sends no game input. Missing/hidden sources remain unavailable; focus and manual scrolling are preserved. Ended/aborted sessions retain the log until another match or reload; persistence/replay belongs to 22.
+- The table opens a compact portrait / richer landscape history with current-source inspection that sends no game input. Missing/hidden sources remain unavailable; focus and manual scrolling are preserved. Ended/aborted sessions retain the log until another match or reload; persistence/replay is implemented in 22.
 - Rebuilt JVM/WASM bridge, 78 complete engine results with Chrome and 0 failures; 839 frontend tests and the complete app check passed, including 216 recorded/built scene/viewport checks. Final build and focused Chrome history passed. Details, failed resource attempts, safe swap rollback and reusable artifacts: `docs/implementation/21-match-history-events.md`.
+
+### Automatic Match Recording and Replay (Prompt 22)
+- Every Forge-started match records exact setup/decks/seed, app/build/Forge versions, manifest SHA-256, accepted inputs and original questions/events/full snapshots to IndexedDB. Header and each ordered batch commit together; failures remain visible while play continues. Schema 5 adds only an optional manifest hash and a portable replay envelope; migration preserves user data.
+- Partien lists result, turns and duration, imports/exports portable JSON and confirms deletion/clear/retention changes. Snapshot replay reuses the existing table without live callbacks, supports manual previous/next/jump and preserves the full history. Another engine protocol remains exportable without interpretation; no game resume or deterministic re-simulation is claimed.
+- Conservative choices: latest 100 terminal recordings by default (editable 1–1000), keep running/interrupted prefixes and damaged records until explicit deletion; 100 MiB per import; 100 ms batches, immediate start/end writes and best-effort pagehide flushing. An abrupt close can lose the pending tail. Deleted active recordings never reappear.
+- Evidence: 847/847 tests and the complete app/Chrome check, final expanded 73/73, build, two actual browser recordings and three portable-replay viewports; 216 scene/viewport checks and 296 axe checks with zero violations. Own temporary swap removed; original swap preserved. Detailed implementation, actual Chrome recording evidence, recorded-file provenance and verification limits: `docs/implementation/22-match-recording-replay.md`. Engine/bridge/protocol sources are unchanged; verified Prompt 21 artifacts are reused. No push/deployment or physical device test.
 
 ### ORYX Cloud Sync (outside the queue, 2026-09-25)
 - The project owner's direct assignment, not a queue prompt (outside the numbered program): the player's collection syncs through their ORYX account (the launcher's Supabase cloud) with the vendored ORYX SDK 1.0.0 (`src/cloud/oryx-sdk.js` and `.d.ts`, byte-identical copies of `oryx-games/shared`, checksum-tested, excluded from lint only themselves). Active only on `https://openmana.vercel.app/`; locally, in tests and previews inactive (no request, nothing stored). Local stays the source of truth.
 - One slot `collection` = one document (`src/storage/collection.ts`, schema `CollectionDocument`, version = `SCHEMA_VERSION`): valid decks, deletion marks (90 days) and every setting except `display.*`; never caches, recorded matches or `meta`.
 - Merged, never chosen (SDK `merge`, `ui: false`, no SDK dialog): per deck the newer `updatedAt` wins (equal times: a fixed canonical choice), a deletion mark removes a deck last changed before it, nothing disappears without a mark; settings: the newer change per key. A download is merged into the local data in one transaction (never replaces it; what only this device has is uploaded afterwards); a cloud collection that fails its check is not applied; a newer version is neither taken nor overwritten; a collection marked deleted in the cloud is kept here and uploaded again.
 - Flow: `oryx.ready()` before the first render (return from ORYX's consent page, `?oryx_sync=1`), one `pull()` once the local database is open (pages show local data at once and re-read what it writes), uploads only for this tab's own writes that change the document (hash compared with the synced one), never after applying the cloud's document.
-- Local database **schema version 4**: store `deckTombstones` (role internal, never in backups; migration 4); `deleteDeck` writes the mark in the same transaction and drops marks older than 90 days; loading a backup that brings a deleted deck back makes it a new change. `StorageSession.subscribeChanges` names the origin (`this-tab`/`other-tab`). Card catalog rebuilt for schema 4 (content unchanged, id `059d16eea3753a24`).
+- ORYX introduced local database **schema version 4** (current version 5): store `deckTombstones` (role internal, never in backups; migration 4); `deleteDeck` writes the mark in the same transaction and drops marks older than 90 days; loading a backup that brings a deleted deck back makes it a new change. `StorageSession.subscribeChanges` names the origin (`this-tab`/`other-tab`). Card catalog rebuilt for schema 4 (content unchanged, id `059d16eea3753a24`).
 - UI: Settings card "ORYX-Cloud" below "Daten auf diesem Gerät" (the SDK's status line, what syncs and what stays, "Mit ORYX verbinden" / "Verbindung auf diesem Gerät trennen", problems in place), not shown while inactive.
 - After returning from ORYX's consent page (it lands on the start page) a toast says once whether connecting worked; if the cloud cannot even start, OpenMana starts without it.
 - Evidence: 622 Vitest tests (63 new: merge and check, read/apply on fake-indexeddb, the real SDK against a stand-in ORYX cloud on the real storage session, the card and the return notice in the real app frame, the SDK checksum), `npm run check` with the end-to-end test in Chrome, including the new section 13: the build served as `https://openmana.vercel.app` with a stand-in ORYX cloud - the whole OAuth/PKCE round trip under COOP/COEP, the start's merge, uploads, disconnecting, axe, 360 px; plus the card absent and Web Storage empty off the real address, and the deletion mark in IndexedDB after deleting a deck. Limits: ORYX takes 1 MB per slot by default (≈ 146 Constructed or 48 Commander decks); ORYX needs an OAuth client for `openmana`; effective once deployed. Details: `docs/implementation/oryx-cloud-sync.md`.
 
 ## Currently In Progress
-None. Prompt **21 — In-game history** is complete and verified locally; Prompt **22 — Match recording/replay** is next and has not been started.
+None. Prompt **22 — Match recording/replay** is complete and verified locally; Prompt **23 — Beginner QoL** is next and has not been started.
 
 Any agent entering the repository must first reconcile this statement with the central Dropzone task state and Git state.
 
@@ -210,11 +216,11 @@ The existing queue covers the path from bridge/Worker/resource/differential engi
 - Android via the global ORYX app (no own APK),
 - regression/parity/production/readiness audits.
 
-The central Dropzone queue defines execution order; reconcile it with the Prompt 21 evidence before starting Prompt 22. Prompts 26, 30 and 32 require Astra with max reasoning under dev0gig's model gate in `AGENTS.md`.
+The central Dropzone queue defines execution order; reconcile it with the Prompt 22 evidence before starting Prompt 23. Prompts 26, 30 and 32 require Astra with max reasoning under dev0gig's model gate in `AGENTS.md`.
 
 ## Not Yet Implemented
 At this review point:
-- recording/replay (prompt 22) and the remaining numbered program follow the implemented history, combat and zone/card views,
+- beginner QoL (prompt 23) and the remaining numbered program follow the implemented recording/replay, history, combat and zone/card views,
 - no service worker/offline mode or deployment yet; no individual Android artifact is planned,
 - the ORYX cloud sync is built but inactive until OpenMana runs at `openmana.vercel.app` and ORYX has an OAuth client for it.
 
@@ -232,7 +238,7 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 ## Workflow Compatibility
 The legacy local prompt workflow was removed upstream on 2026-09-28. The current checkout incorporates that deletion while preserving all previously local Prompt 16 and ORYX-return commits. Central tasks live in `dev0gig/dropzone/workflow/tasks/`; detailed implementation evidence remains in `docs/implementation/` and Git history.
 
-Preserve sequential execution and any active work. Prompt 21 is complete (committed locally, not pushed), Prompt 22 is next, and the publication hold through Prompt 31 remains. The cross-repository wrapper cleanup does not execute Prompt 28: its remaining scope is ORYX web integration and real-device Forge verification.
+Preserve sequential execution and any active work. Prompt 22 is complete (committed locally, not pushed), Prompt 23 is next, and the publication hold through Prompt 31 remains. The cross-repository wrapper cleanup does not execute Prompt 28: its remaining scope is ORYX web integration and real-device Forge verification.
 
 ## Maintenance
 Update this file only when the broad implementation state changes. Keep detailed prompt evidence, commit hashes, measurements and blockers in the central Dropzone task and implementation/research docs.

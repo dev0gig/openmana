@@ -19,6 +19,7 @@ export interface EngineAssetsAvailable {
 }
 
 export interface EngineBuildFacts {
+  readonly manifestSha256: string
   readonly builtAt: string
   readonly forgeRepository: string
   readonly forgeCommit: string

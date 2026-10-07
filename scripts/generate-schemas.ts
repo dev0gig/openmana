@@ -63,6 +63,7 @@ const TARGETS: readonly Target[] = [
       validateDeckTombstoneRecord: "DeckTombstoneRecord",
       validateSettingRecord: "SettingRecord",
       validateMatchRecord: "MatchRecord",
+      validateReplayDocument: "ReplayDocument",
       validateMatchLogEntry: "MatchLogEntry",
       validateCardRecord: "CardRecord",
       validatePrintRecord: "PrintRecord",

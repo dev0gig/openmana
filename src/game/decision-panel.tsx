@@ -268,14 +268,14 @@ export function DecisionPanel({ state, questions, prompt, waiting, conceding, pi
       <GameDecision {...(question !== null ? { "data-question": question.id } : {})}>
         {alerts}
         {decision.kind === "none" ? (
-          waiting ? (
+          onAnswer === undefined ? <p className="text-sm">{prompt ?? "Gespeicherter Zustand – keine offene Frage."}</p> : waiting ? (
             <p className="text-sm">{prompt ?? "Forge wartet auf dich."}</p>
           ) : (
             <ForgeWorking state={state} />
           )
         ) : (
           <>
-            <h2 className="sr-only">Forge wartet auf deine Entscheidung</h2>
+            <h2 className="sr-only">{onAnswer === undefined ? "Gespeicherte Frage von Forge" : "Forge wartet auf deine Entscheidung"}</h2>
             {decision.kind === "blocking" ? (
               <BlockingDecision key={decision.question.id} question={decision.question} />
             ) : (

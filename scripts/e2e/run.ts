@@ -4,6 +4,7 @@
  *
  *   npm run test:e2e                 build, then test
  *   npm run test:e2e -- --no-build   test the existing dist/
+ *   npm run test:e2e -- --no-build --replay-only  imported recorded snapshots, library/file/retention checks
  *   npm run test:e2e -- --no-build --history-only recorded Forge history and current sources only
  *   npm run test:e2e -- --no-build --zones-only   visible zones, piles and DFC inspection only
  *   npm run test:e2e -- --no-build --combat-only  small, sequential table checks; no engine boot or full suite
@@ -125,11 +126,12 @@ import { playDeck, type StoredDeck } from "./engine-decks.ts"
 
 const root = path.resolve(import.meta.dirname, "../..")
 const dist = path.join(root, "dist")
+const replayOnly = process.argv.includes("--replay-only")
 const combatOnly = process.argv.includes("--combat-only")
 const zonesOnly = process.argv.includes("--zones-only")
 const historyOnly = process.argv.includes("--history-only")
 const focusedTable = combatOnly || zonesOnly || historyOnly
-const reportDir = path.join(root, "reports", combatOnly ? "combat-e2e" : zonesOnly ? "zones-e2e" : historyOnly ? "history-e2e" : "e2e")
+const reportDir = path.join(root, "reports", replayOnly ? "replay-e2e" : combatOnly ? "combat-e2e" : zonesOnly ? "zones-e2e" : historyOnly ? "history-e2e" : "e2e")
 const require = createRequire(import.meta.url)
 
 interface Viewport {
@@ -2265,6 +2267,46 @@ async function playRealGame(page: Page, label: string, touch = false): Promise<R
   return { liveHistory: { entries: liveEntries, axe: historyAxe }, first, presses, land, permanentsBefore: landFrom, permanentsAfter: permanents, track, buttonHeights: [Math.min(...heights), Math.max(...heights)], ms: Date.now() - started }
 }
 
+/** Verify the final committed traffic and Forge result of a real browser game. */
+async function finishedRecordingCheck(page: Page, label: string): Promise<Record<string, unknown>> {
+  await page.waitForTimeout(300)
+  const data = await dumpDatabase(page)
+  const headers = (data["matches"] ?? []) as { id: string; status: string; end: unknown; endedAt: string | null }[]
+  const header = headers.find((v) => v.status === "finished")
+  check(header !== undefined && header.end !== null && header.endedAt !== null, `${label}: final result was not committed`)
+  const log = (data["matchLog"] ?? []).filter((v) => (v as { matchId: string }).matchId === header?.id) as { seq: number; from: string; message: { type: string } }[]
+  check(log.every((e, i) => e.seq === i), `${label}: gap in original reception order`)
+  for (const type of ["engine.ready", "match.start", "game.started", "state", "question", "concede", "events", "game.end", "match.finished"]) check(log.some((v) => v.message.type === type), `${label}: recording missing ${type}`)
+  return { header, entries: log.length, inputs: log.filter((e) => e.from === "player").length, types: [...new Set(log.map((e) => e.message.type))] }
+}
+
+async function liveReplayCheck(page: Page, label: string): Promise<Record<string, unknown>> {
+  await tableHeader(page).getByText("Du bist dran", { exact: true }).waitFor({ timeout: 180_000 })
+  await waitForDecision(page)
+  await page.waitForTimeout(300) // flush the last received batch before comparing the read-only inspection
+  const before = await dumpDatabase(page)
+  const header = (before["matches"] ?? []).find((v) => (v as { status: string }).status === "running") as { id: string; seed: number; engine: { manifestSha256?: string }; human: { deck: unknown }; ai: { deck: unknown } } | undefined
+  check(header !== undefined, `${label}: live game was not recorded`)
+  if (!header) return { missing: true }
+  check(/^[0-9a-f]{64}$/.test(header.engine.manifestSha256 ?? ""), `${label}: exact manifest hash not recorded`)
+  const original = (before["matchLog"] ?? []).filter((v) => (v as { matchId: string }).matchId === header.id)
+  check(original.some((v) => (v as { message: { type: string } }).message.type === "state") && original.some((v) => (v as { message: { type: string } }).message.type === "question"), `${label}: states or questions missing`)
+  const menu = await openTableMenu(page)
+  await menu.getByRole("link", { name: "Partien", exact: true }).click()
+  await page.getByRole("list", { name: "Gespeicherte Partien" }).getByRole("link", { name: "Ansehen", exact: true }).first().click()
+  await page.getByRole("heading", { level: 1, name: "Wiedergabe", exact: true }).waitFor()
+  await page.getByRole("button", { name: "Nächster Schritt" }).click()
+  const axe = await accessibility(page, `${label}: live match replay`)
+  const after = await dumpDatabase(page)
+  check(JSON.stringify((after["matchLog"] ?? []).filter((v) => (v as { matchId: string }).matchId === header.id)) === JSON.stringify(original), `${label}: replay sent an input or changed the running recording`)
+  await page.getByRole("button", { name: "Wiedergabemenü" }).click()
+  await page.getByRole("dialog", { name: "Wiedergabe", exact: true }).getByRole("link", { name: "Zurück zu Partien" }).click()
+  await page.getByRole("link", { name: "Spielen", exact: true }).first().click()
+  await page.getByRole("button", { name: "Zur laufenden Partie" }).first().click()
+  await waitForDecision(page)
+  return { matchId: header.id, entries: original.length, seed: header.seed, manifestSha256: header.engine.manifestSha256, axe, noInput: true }
+}
+
 async function gameSession(browser: Browser, page: Page, pageLog: PageLog, base: string, id: string, decks: readonly SavedDeck[]): Promise<Record<string, unknown>> {
   log("Game session (prewarm, start, running game, concede, result, reload, refusal, failed boot, phone)")
   const results: Record<string, unknown> = {}
@@ -2333,6 +2375,8 @@ async function gameSession(browser: Browser, page: Page, pageLog: PageLog, base:
   await waitForDecision(page)
   await checkTableFits(page, "game table (back from the app)")
 
+  results["liveRecordingReplay"] = await liveReplayCheck(page, "game desktop")
+
   // 4. Conceding needs a confirmation; the result in one word; the spent engine goes, a fresh one is prewarmed.
   const conceded = await concedeGame(page, "game: confirm conceding")
   results["concedeAxe"] = conceded.axe
@@ -2340,6 +2384,7 @@ async function gameSession(browser: Browser, page: Page, pageLog: PageLog, base:
   check(resultText.includes("Du hast aufgegeben.") && resultText.includes("Du (E2E Brawl)40 Lebenspunkte"), `game: result "${resultText}"`)
   results["resultAxe"] = await accessibility(page, "game: result")
   await screenshots(page, "desktop-game-result")
+  results["finishedRecording"] = await finishedRecordingCheck(page, "game desktop")
   await conceded.result.getByRole("button", { name: "Spielverlauf ansehen" }).click()
   const finishedHistory = page.getByRole("dialog", { name: "Spielverlauf", exact: true })
   await finishedHistory.waitFor()
@@ -2519,6 +2564,7 @@ async function gamePhone(browser: Browser, base: string, decks: readonly SavedDe
     await waitForDecision(page)
     // Answering Forge by touch (prompt 15): keep, pass, play a land, pass; Forge's buttons 44 px or more.
     results["played"] = await playRealGame(page, "game (phone, playing)", true)
+    results["liveRecordingReplay"] = await liveReplayCheck(page, "game phone")
     await page.screenshot({ path: path.join(reportDir, "screens", "phone-game-played.png") })
     const { result } = await concedeGame(page)
     const bar = page.getByRole("region", { name: "Neue Partie" })
@@ -2532,6 +2578,7 @@ async function gamePhone(browser: Browser, base: string, decks: readonly SavedDe
     check(resultOverflow <= 0, `game (phone): result overflows by ${resultOverflow}px`)
     results["resultAxe"] = await accessibility(page, "game (phone): result")
     await screenshots(page, "phone-game-result")
+    results["finishedRecording"] = await finishedRecordingCheck(page, "game phone")
     results["sizes"] = { menu: menuHeight, again: againHeight, bar: barBox, tabBar: tabBox }
     for (const error of pageLog.errors) check(false, `game (phone): ${error}`)
   } finally {
@@ -3859,6 +3906,102 @@ async function expectUpload(cloud: { readonly uploads: readonly unknown[] }, cou
   check(cloud.uploads.length === count, `oryx: ${label}: ${cloud.uploads.length} uploads, expected ${count}`)
 }
 
+
+/** Prompt 22: recorded original Forge transcript in a deliberately assembled portable envelope. */
+async function replayLibrary(browser: Browser, base: string): Promise<Record<string, unknown>> {
+  log("Replay library (recorded Forge snapshots, JSON round trip, manual navigation, retention, confirmed deletion)")
+  const fixture = JSON.parse(fs.readFileSync(path.join(root, "src/test/fixtures/replay.json"), "utf8"))
+  const result: Record<string, unknown> = { provenance: fixture.provenance }
+  const bytes = Buffer.from(JSON.stringify(fixture.replay))
+  for (const viewport of TABLE_VIEWPORTS.filter((v) => ["small-phone", "phone-landscape", "desktop"].includes(v.name))) {
+    const context = await newContext(browser, viewport)
+    const page = await context.newPage()
+    const pageLog = watch(page)
+    const workers = countWorkers(page)
+    try {
+      await page.goto(new URL("/matches", base).href, { waitUntil: "networkidle" })
+      await page.getByText("Noch keine Partien", { exact: true }).waitFor()
+      const file = page.getByLabel("Wiedergabedatei")
+      await file.setInputFiles({ name: "recorded-forge.json", mimeType: "application/json", buffer: bytes })
+      await page.getByText("Wiedergabe geladen", { exact: true }).waitFor()
+      const list = page.getByRole("list", { name: "Gespeicherte Partien" })
+      await list.waitFor()
+      const before = await dumpDatabase(page)
+      check(JSON.stringify(before["matches"]) === JSON.stringify([fixture.replay.match]), `replay ${viewport.name}: imported header changed`)
+      check(JSON.stringify(before["matchLog"]) === JSON.stringify(fixture.replay.log), `replay ${viewport.name}: imported original messages changed`)
+      const initialGeometry = await page.evaluate(() => ({ width: innerWidth, height: innerHeight, scrollWidth: document.documentElement.scrollWidth, overflow: [...document.querySelectorAll("main *")].filter((e) => e.getBoundingClientRect().right > innerWidth+1).map((e) => ({ slot: e.getAttribute("data-slot"), tag: e.tagName, box: e.getBoundingClientRect().toJSON() })) }))
+      log(`Replay ${viewport.name}: ${JSON.stringify(initialGeometry)}`)
+      log(`Replay ${viewport.name}: original transcript imported; downloading JSON`)
+      let downloadedReplay: Awaited<ReturnType<typeof downloaded>>
+      try { downloadedReplay = await downloaded(page, () => list.getByRole("button", { name: "JSON speichern" }).click({ timeout: 10000 })) }
+      catch (error) { await page.screenshot({ path: path.join(reportDir, "screens", `replay-download-error-${viewport.name}.png`) }); log(`Replay geometry: ${JSON.stringify(await list.getByRole("button", { name: "JSON speichern" }).evaluate((b) => { const r = b.getBoundingClientRect(); const hit = document.elementFromPoint(r.x+r.width/2,r.y+r.height/2); return { box: r.toJSON(), hit: hit?.outerHTML, disabled: (b as HTMLButtonElement).disabled, scrollY, scrollHeight: document.documentElement.scrollHeight, height: innerHeight } }))}`); log(`Replay download error: ${(await page.locator("main").textContent()) ?? ""}; ${pageLog.errors.join(" | ")}`); throw error }
+      check(JSON.stringify(JSON.parse(downloadedReplay.text)) === JSON.stringify(fixture.replay), `replay ${viewport.name}: download differs`)
+      await file.setInputFiles({ name: "duplicate.json", mimeType: "application/json", buffer: bytes })
+      await page.getByText("Diese Partie ist schon gespeichert", { exact: true }).waitFor()
+      await list.getByRole("button", { name: "Löschen", exact: true }).click()
+      await page.getByRole("alertdialog").getByRole("button", { name: "Behalten" }).click()
+      check((await dumpDatabase(page))["matches"]?.length === 1, `replay ${viewport.name}: cancellation removed a recording`)
+      const libraryAxe = await accessibility(page, `replay ${viewport.name}: library`)
+      const libraryOverflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)
+      check(libraryOverflow <= 0, `replay ${viewport.name}: library overflow ${libraryOverflow}`)
+      await page.waitForFunction(() => document.querySelector("[data-sonner-toast]") === null, undefined, { timeout: 10_000 })
+      await page.screenshot({ path: path.join(reportDir, "screens", `replay-library-${viewport.name}.png`) })
+      await list.getByRole("link", { name: "Ansehen", exact: true }).click()
+      await page.getByRole("heading", { level: 1, name: "Wiedergabe", exact: true }).waitFor()
+      await page.getByRole("button", { name: "Nächster Schritt" }).click()
+      check(await page.getByRole("button", { name: "Vorheriger Schritt" }).isEnabled(), `replay ${viewport.name}: did not advance`)
+      await page.getByRole("button", { name: "Vorheriger Schritt" }).click()
+      check(await page.getByRole("button", { name: "Vorheriger Schritt" }).isDisabled(), `replay ${viewport.name}: did not rewind`)
+      const firstFacts = await tableFacts(page)
+      const replayAxe = await accessibility(page, `replay ${viewport.name}: table`)
+      const tableLayout = await checkTableFits(page, `replay ${viewport.name}`)
+      check((await page.getByText("Forge rechnet", { exact: true }).count()) === 0, `replay ${viewport.name}: live-engine status shown`)
+      await page.screenshot({ path: path.join(reportDir, "screens", `replay-table-${viewport.name}.png`) })
+      await page.getByRole("button", { name: "Wiedergabemenü" }).click()
+      const menu = page.getByRole("dialog", { name: "Wiedergabe", exact: true })
+      await menu.getByRole("button", { name: "Ende", exact: true }).click()
+      const menuAxe = await accessibility(page, `replay ${viewport.name}: menu`)
+      await page.keyboard.press("Escape")
+      check(await page.getByRole("button", { name: "Nächster Schritt" }).isDisabled(), `replay ${viewport.name}: end step not reached`)
+      const lastFacts = await tableFacts(page)
+      await page.getByRole("button", { name: "Spielverlauf ansehen", exact: true }).click()
+      const history = page.getByRole("dialog", { name: "Spielverlauf", exact: true })
+      const expectedEvents = fixture.replay.log.flatMap((e: { message: { type: string; entries?: unknown[] } }) => e.message.type === "events" ? e.message.entries ?? [] : [])
+      check(await history.locator("[data-history-entry]").count() === expectedEvents.length, `replay ${viewport.name}: incomplete history`)
+      await history.getByRole("button", { name: "Schließen", exact: true }).click()
+      check(JSON.stringify((await dumpDatabase(page))["matchLog"]) === JSON.stringify(before["matchLog"]), `replay ${viewport.name}: replay wrote game inputs`)
+      check(workers.created() === 0 && !pageLog.requests.some((p) => p.startsWith("/engine/")), `replay ${viewport.name}: replay booted or fetched an engine`)
+      await page.getByRole("button", { name: "Wiedergabemenü" }).click()
+      await menu.getByRole("link", { name: "Zurück zu Partien" }).click()
+      await page.getByRole("heading", { level: 1, name: "Partien", exact: true }).waitFor()
+      await file.setInputFiles({ name: "bad.json", mimeType: "application/json", buffer: Buffer.from('{"format":"bad"}') })
+      await page.getByRole("alert").filter({ hasText: "Die Partiedaten ließen sich nicht verarbeiten" }).waitFor()
+      check(JSON.stringify((await dumpDatabase(page))["matchLog"]) === JSON.stringify(before["matchLog"]), `replay ${viewport.name}: malformed import changed records`)
+      await page.getByLabel("Beendete Partien behalten (1–1000)").fill("1")
+      await page.getByRole("button", { name: "Aufbewahrung ändern" }).click()
+      await page.getByRole("alertdialog").getByRole("button", { name: "Ändern und ältere entfernen" }).click()
+      const second = structuredClone(fixture.replay)
+      second.match.id = "00000000-0000-4000-8000-000000000023"
+      second.match.startedAt = "2026-10-07T01:00:00.000Z"
+      second.match.endedAt = "2026-10-07T01:01:00.000Z"
+      second.log.forEach((e: { matchId: string }) => { e.matchId = second.match.id })
+      await file.setInputFiles({ name: "second.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(second)) })
+      await page.waitForFunction((id) => new Promise<boolean>((resolve) => { const request = indexedDB.open("openmana"); request.onsuccess = () => { const db = request.result; const get = db.transaction("matches").objectStore("matches").getAll(); get.onsuccess = () => { resolve(get.result.length === 1 && get.result[0].id === id); db.close() } } }), second.match.id)
+      const retained = await dumpDatabase(page)
+      log(`Replay ${viewport.name}: retention log ids ${JSON.stringify([...new Set((retained["matchLog"] ?? []).map((e) => (e as { matchId: string }).matchId))])}`)
+      check((retained["matchLog"] ?? []).every((e) => (e as { matchId: string }).matchId === second.match.id), `replay ${viewport.name}: retention left orphaned messages`)
+      await page.getByRole("button", { name: "Alle Partien löschen" }).click()
+      await page.getByRole("alertdialog").getByRole("button", { name: "Endgültig entfernen" }).click()
+      await page.getByText("Noch keine Partien", { exact: true }).waitFor()
+      check((await dumpDatabase(page))["matchLog"]?.length === 0, `replay ${viewport.name}: clear left messages`)
+      await page.reload({ waitUntil: "networkidle" })
+      await page.getByText("Noch keine Partien", { exact: true }).waitFor()
+      result[viewport.name] = { libraryAxe, replayAxe, menuAxe, libraryOverflow, tableLayout, firstFacts, lastFacts, entries: fixture.replay.log.length, events: expectedEvents.length, engineWorkers: workers.created(), portableRoundTrip: true, retention: true, confirmedClear: true }
+      for (const error of pageLog.errors) check(false, `replay ${viewport.name}: ${error}`)
+    } finally { await context.close() }
+  }
+  return result
+}
 // ── Run ──────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -3878,7 +4021,9 @@ async function main(): Promise<void> {
   report["browser"] = `${path.basename(executablePath)} ${browser.version()}`
   log(`Chrome ${browser.version()}, app at ${base}`)
   try {
-    if (focusedTable) {
+    if (replayOnly) {
+      report["replay"] = await replayLibrary(browser, base)
+    } else if (focusedTable) {
       report["scope"] = historyOnly ? "Recorded real Forge log entries and current card inspection, three viewports; no engine boot or full application suite." : zonesOnly ? "Recorded Forge zones and explicitly built DFC presentation, three viewports, one page at a time; no engine boot or complete application regression suite." : "Recorded Forge combat scenes and one built order request, three viewports, one page at a time; no engine boot or complete application regression suite."
       report["gameTable"] = await tableHarness(browser)
     } else {
@@ -3886,6 +4031,7 @@ async function main(): Promise<void> {
       await devServerChecks(browser, id)
       await surfaces(browser, base, id)
       report["engine"] = [await engine(browser, base, id, VIEWPORTS[2]!), await engine(browser, base, id, VIEWPORTS[0]!)]
+      report["replay"] = await replayLibrary(browser, base)
       await localData(browser, base)
       await localDataQuota(executablePath, base)
       await cardData(browser, base)
