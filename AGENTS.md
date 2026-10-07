@@ -30,6 +30,14 @@ OpenMana UI must not implement a parallel Magic rules engine or hard-code card/m
 - Imported decks/local user data remain local-first; IndexedDB is the planned durable store.
 - Android uses the shared ORYX TWA and the same web application. Do not create an individual Android UI, wrapper or APK pipeline.
 
+## Forge Update Rules
+
+Use `engine/UPDATING.md` for a dedicated Forge update:
+
+- Stage the full upstream gitlink, keep the submodule clean and apply changes through the patch queue. Updates stay in `engine/**`; a necessary protocol adaptation needs a raised protocol version, a concrete reason and explicitly authorized exact outside paths. Toolchain changes are separate.
+- Run `engine/scripts/validate-forge-update.mjs --base <review-base>` in a fresh output directory. Complete JVM, Node, Chrome, catalog and app/PWA checks are mandatory; never skip browser tests or promote a partial result. Only the successful pipeline writes `engine/engine.lock.json`.
+- Before reusing an engine, run `engine/scripts/engine-lock.mjs verify <dist>` and select that build and its catalog through `OPENMANA_ENGINE_DIR` / `OPENMANA_CARDS_DIR`. Keep earlier builds and failed evidence. Input reproducibility and verified artifact hashes do not imply bit-identical compiler output.
+
 ## User Interface Rules
 The web app (repository root, `src/`) follows `docs/DESIGN_SYSTEM.md`:
 - Build UI only from shadcn/ui components and the OpenMana design tokens in `src/index.css`; no custom CSS or ad-hoc Tailwind styling in pages. A missing component is added as a shadcn component (registry, or built the shadcn way in `src/components/ui/`).
@@ -209,8 +217,8 @@ The optional sync of the player's collection through their ORYX account (project
 The legacy local prompt workflow was removed upstream on 2026-09-28. Executable tasks and their lifecycle now live in `dev0gig/dropzone/workflow/tasks/`; implementation evidence remains in `docs/implementation/` and Git history.
 
 - Numbered prompts run strictly sequentially; resume `IN_PROGRESS` work and never skip a `BLOCKED` predecessor. Mark a task complete only after its requirements and verification pass.
-- Reconcile the central status with code and `STATUS.md` before selecting work. Prompt 25 (PWA cache/lifecycle) is complete; Prompt 26 is next and unstarted. The authorized 21–25 run stops after 25.
-- Run only the task explicitly assigned by the user; this cross-repository cleanup does not start a numbered implementation prompt.
+- Reconcile the central status with code and `STATUS.md` before selecting work. Prompt 26 (isolated Forge update pipeline) is complete; Prompt 27 is next and unstarted.
+- Run only the task assigned by the user; a single Dropmaster assignment ends after that task.
 - Update the central task and `STATUS.md` with verified evidence; do not recreate the removed local queue.
 
 ## Model gate for numbered prompts (dev0gig, 2026-10-07)

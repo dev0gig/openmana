@@ -1,0 +1,118 @@
+{
+  "format": "openmana-engine-lock/1",
+  "forge": {
+    "repository": "https://github.com/Card-Forge/forge",
+    "commit": "ed0333fecb1fea0671b3e50cadc1da4f71db5798",
+    "versionCode": "2.0.15"
+  },
+  "sources": {
+    "format": "openmana-engine-inputs/1",
+    "sha256": "7fd4ae7e681be1b79b6293fed3d32e9605ff5853aa1efec33012542ce0552e4f",
+    "files": 164
+  },
+  "patches": {
+    "count": 8,
+    "sha256": "2418d61b64ee88438d80e557b866ba77123bdf9d614f118dd383653bfb829e8a",
+    "files": [
+      "0001-forge-synchronous-mode.patch",
+      "0002-ai-cooperative-deadline.patch",
+      "0003-ai-attack-sequential.patch",
+      "0004-sync-input-pump.patch",
+      "0005-sync-no-comfort-timers.patch",
+      "0006-local-games-without-server-manager.patch",
+      "0007-gui-read-only-answers.patch",
+      "0008-gui-attack-answers.patch"
+    ]
+  },
+  "protocol": {
+    "version": 7,
+    "schema": "engine/protocol/schema/protocol.schema.json",
+    "sha256": "7c4aa3ee480998e8ef9b2f38fa75038769ee392aae56909c9a6d8e47d8afb866"
+  },
+  "toolchain": {
+    "graalvm": "25.4.4.1.1",
+    "graalvmJava": "25.0.4.1.1",
+    "graalvmSha256": "4fcc632cfc68e98f49f9316f8a3588bafe4f5289f120104e2d290a75cf33e28e",
+    "binaryen": "123",
+    "binaryenSha256": "e959f2170af4c20c552e9de3a0253704d6a9d2766e8fdb88e4d6ac4bae9388fe",
+    "maven": "3.9.16",
+    "mavenSha512": "831a8591fe20c8243b1dbe7d71e3244f31d1665b0804b2e825e38cbbe5ce0cafb8338851f90780735568773e0a6cd07bbec107cda0b896b008b861075358b6f6",
+    "node": "22.22.3",
+    "nodeSha256": "2e5d13569282d016861fae7c8f935e741693c269101a5bebcf761a5376d1f99f",
+    "npmVersion": "10.9.8",
+    "lockSha256": "e514541dbf4c10d1ef699f893ab3a5a5776a8e5c204899f7ed4685c34c2fe3d4",
+    "packageLockSha256": "ff09f60a6f98b4ca5362d7aaebeee0f1e722e63319ad26defe88fa5bb01dff35",
+    "npm": {
+      "typescript": "7.0.2",
+      "esbuild": "0.28.2",
+      "ajv": "8.20.0",
+      "json-schema-to-typescript": "16.0.0"
+    }
+  },
+  "manifest": {
+    "file": "engine-manifest.json",
+    "bytes": 5754,
+    "sha256": "dd33caca4339210f51f87d60a115a70e1b4a5e6934c08404cca5950896314d2c"
+  },
+  "artefacts": {
+    "engine-worker.js": {
+      "bytes": 424323,
+      "sha256": "5f5a01247c045ee4b3fc5798b2ad2243e031d78f9a816e81ced7e63da7003257"
+    },
+    "openmana-engine.js": {
+      "bytes": 112916,
+      "sha256": "edf456327b91601ab3ded0f35c6b1429adca8141a9fdd7d67849065185d72b42"
+    },
+    "openmana-engine.js.wasm": {
+      "bytes": 79117883,
+      "sha256": "ed45e5c62730e9c71187f6a689c29dee68e02a5edec9ceaeb79bbefbd7147be4"
+    },
+    "forge-res.inventory.json": {
+      "bytes": 4278015,
+      "sha256": "94b447cec329319b12be9c17e1838da1bdfd681fa45bb871b2d7dafb0ea1afa1"
+    }
+  },
+  "verification": {
+    "base": "2d97a021675b1cdc15bc350d1c24dedb13487f37",
+    "protocol": {
+      "before": 7,
+      "after": 7,
+      "changed": false,
+      "reason": "",
+      "adaptationPaths": []
+    },
+    "engineRuns": 78,
+    "browserRuns": 22,
+    "browserSkipped": false,
+    "reports": {
+      "pipeline.json": {
+        "bytes": 3582,
+        "sha256": "5cad21aa3e5e759b9f96a37992e89acd8edf60f4ddfe5df76121d46f6fba89e1"
+      },
+      "report/build-report.json": {
+        "bytes": 7427,
+        "sha256": "0eae8510ea780f539e11e0e8160ffa99a6537edec736bb55f5f593f341fa40db"
+      },
+      "report/jvm-tests.json": {
+        "bytes": 261,
+        "sha256": "20fdf430e29ce5f31d1fb19c05653581c4b0fcf51862f4ea7124305d18df579b"
+      },
+      "report/test-report.json": {
+        "bytes": 1102388,
+        "sha256": "c54f0b3545f9947fc2fa317efdf9c8d8694396ef4f91a5bd2ed4debae038e400"
+      },
+      "report/source-inputs.json": {
+        "bytes": 34233,
+        "sha256": "1ad4548fda044b83af4eed606a22e889cc08776cd86b22c2c9e4e106a7607ee8"
+      },
+      "report/unit-tests.xml": {
+        "bytes": 14522,
+        "sha256": "67a3cf78780638792caf080a7b2ef6098623630bcb9e5a4fe7c0ac0d842d9e10"
+      },
+      "catalog/card-catalog-manifest.json": {
+        "bytes": 1302,
+        "sha256": "139e3accaa79d2003c0ab071331c62dbb73831af405d68cd9e8f5f1f9a897d88"
+      }
+    }
+  }
+}

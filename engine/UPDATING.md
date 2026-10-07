@@ -11,7 +11,7 @@ Zuerst einen sauberen, aktuellen OpenMana-Branch für den Update-PR anlegen und
 seinen Ausgangscommit festhalten. Lokale Arbeiten erhalten; bei paralleler
 Arbeit einen eigenen Worktree verwenden. Node **22.22.3** mit npm **10.9.8**,
 Linux x86_64 und Chrome for Testing aus dem Engine-npm-Lock werden benötigt.
-`scripts/setup-toolchain.sh` kann die gepinnte Node-Distribution installieren;
+`engine/scripts/setup-toolchain.sh` kann die gepinnte Node-Distribution installieren;
 dann deren `bin` in `PATH` aufnehmen. Keine Systeminstallation ersetzen.
 
 ```bash

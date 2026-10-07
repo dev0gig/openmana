@@ -201,6 +201,12 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Native updates wait until all old tabs/app windows close, with no forced reload or activation during a match. Reload/background discard can still end a live game; recording/replay is not recovery. Browser client replacements first terminate the old worker and allow a short resource-release interval.
 - Evidence: full check with 881/881 tests in 72 files, final build, original 96 route/152 populated-state/288 scene checks, 24 viewer and 16 fresh Forge resizes, strict max1 worker traces and zero axe violations. Actual Chrome offline Forge start after HTTP-cache clearing and real server stop uses one worker and zero server requests; equal-length hash corruption, interrupted download, waiting/failed update, completed recording preservation, eviction and initial-install retry verified. See `docs/implementation/25-pwa-cache-offline.md`. Engine artifacts reused unchanged; no physical-device or deployment proof.
 
+### Isolated Forge Update Pipeline (Prompt 26)
+
+- Dedicated updates enforce `engine/**`, the staged full upstream gitlink, clean Forge sources and the patch queue. Protocol exceptions require a version increase, reason and exact authorized paths; toolchain updates stay separate. Node/npm are now pinned alongside GraalVM, Binaryen and Maven.
+- A new build directory, fresh tool extraction and dependencies, source fingerprints, JVM/WASM differential tests, Chrome, a matching card catalog and full app/PWA check precede atomic artifact-lock promotion. Test helpers use the selected build. Maintainer procedure: `engine/UPDATING.md`; local/CI entry: `engine/scripts/validate-forge-update.mjs`.
+- Evidence on the existing Forge pin/protocol 7: 95 engine unit tests, 76 JVM tests, 78 engine results (25 JVM/31 Node/22 Chrome), 881 app tests and complete real Chrome/PWA acceptance; independent lock/provenance checks passed. Details and artifact paths: `docs/implementation/26-forge-update-pipeline.md`. CI workflow linted, not run on a hosted runner; local commits only.
+
 ### ORYX Cloud Sync (outside the queue, 2026-09-25)
 - The project owner's direct assignment, not a queue prompt (outside the numbered program): the player's collection syncs through their ORYX account (the launcher's Supabase cloud) with the vendored ORYX SDK 1.0.0 (`src/cloud/oryx-sdk.js` and `.d.ts`, byte-identical copies of `oryx-games/shared`, checksum-tested, excluded from lint only themselves). Active only on `https://openmana.vercel.app/`; locally, in tests and previews inactive (no request, nothing stored). Local stays the source of truth.
 - One slot `collection` = one document (`src/storage/collection.ts`, schema `CollectionDocument`, version = `SCHEMA_VERSION`): valid decks, deletion marks (90 days) and every setting except `display.*`; never caches, recorded matches or `meta`.
@@ -212,7 +218,7 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Evidence: 622 Vitest tests (63 new: merge and check, read/apply on fake-indexeddb, the real SDK against a stand-in ORYX cloud on the real storage session, the card and the return notice in the real app frame, the SDK checksum), `npm run check` with the end-to-end test in Chrome, including the new section 13: the build served as `https://openmana.vercel.app` with a stand-in ORYX cloud - the whole OAuth/PKCE round trip under COOP/COEP, the start's merge, uploads, disconnecting, axe, 360 px; plus the card absent and Web Storage empty off the real address, and the deletion mark in IndexedDB after deleting a deck. Limits: ORYX takes 1 MB per slot by default (≈ 146 Constructed or 48 Commander decks); ORYX needs an OAuth client for `openmana`; effective once deployed. Details: `docs/implementation/oryx-cloud-sync.md`.
 
 ## Currently In Progress
-Prompt **26 — Isolated Forge update pipeline** is in progress under the direct `$dm openmana` assignment. The current session metadata confirms GPT-6 Astra/max. Predecessor 25 is complete; the work adds isolated validation and an artifact lock, with local commits only.
+No numbered task is currently in progress. Prompt **26 — Isolated Forge update pipeline** is complete; Prompt **27 — Credits, licenses and notices** is next and unstarted.
 
 Any agent entering the repository must first reconcile this statement with the central Dropzone task state and Git state.
 
@@ -231,11 +237,11 @@ The existing queue covers the path from bridge/Worker/resource/differential engi
 - Android via the global ORYX app (no own APK),
 - regression/parity/production/readiness audits.
 
-The central Dropzone queue defines execution order; reconcile it with the Prompt 25 evidence before starting Prompt 26. Prompts 26, 30 and 32 require Astra with max reasoning under dev0gig's model gate in `AGENTS.md`.
+The central Dropzone queue defines execution order; reconcile it with the Prompt 26 evidence before starting Prompt 27. Prompts 26, 30 and 32 require Astra with max reasoning under dev0gig's model gate in `AGENTS.md`.
 
 ## Not Yet Implemented
 At this review point:
-- the isolated Forge update pipeline (prompt 26) and the remaining numbered program follow the implemented PWA lifecycle, responsive pass and gameplay views,
+- credits/licenses (prompt 27) and the remaining numbered program follow the implemented Forge update pipeline,
 - no production deployment or physical ORYX/device proof yet; no individual Android artifact is planned,
 - the ORYX cloud sync is built but inactive until OpenMana runs at `openmana.vercel.app` and ORYX has an OAuth client for it.
 
@@ -253,7 +259,7 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 ## Workflow Compatibility
 The legacy local prompt workflow was removed upstream on 2026-09-28. The current checkout incorporates that deletion while preserving all previously local Prompt 16 and ORYX-return commits. Central tasks live in `dev0gig/dropzone/workflow/tasks/`; detailed implementation evidence remains in `docs/implementation/` and Git history.
 
-Preserve sequential execution and any active work. Prompt 25 is complete (committed locally, not pushed), Prompt 26 is next and unstarted, and the publication hold through Prompt 31 remains. The cross-repository wrapper cleanup does not execute Prompt 28: its remaining scope is ORYX web integration and real-device Forge verification.
+Preserve sequential execution and any active work. Prompt 26 is complete (committed locally, not pushed), Prompt 27 is next and unstarted, and the publication hold through Prompt 31 remains. Prompt 28 covers ORYX web integration and real-device Forge verification.
 
 ## Maintenance
 Update this file only when the broad implementation state changes. Keep detailed prompt evidence, commit hashes, measurements and blockers in the central Dropzone task and implementation/research docs.
