@@ -24,6 +24,7 @@ import { engineAssets, engineModeFromEnv } from "./vite/engine-assets.ts"
 import { ISOLATION_HEADERS } from "./vite/isolation-headers.ts"
 import { unwatchedPaths } from "./vite/watch.ts"
 import { pwa } from "./vite/pwa.ts"
+import { notices } from "./vite/notices.ts"
 
 const root = import.meta.dirname
 const engineDir = process.env["OPENMANA_ENGINE_DIR"] ?? path.join(root, "engine/build/dist")
@@ -42,6 +43,7 @@ export default defineConfig({
       ...(engineMode === "required" ? { engineManifest: path.join(engineDir, "engine-manifest.json") } : {}),
     }),
     buildInfo({ root, version }),
+    notices({ engineDir, engineMode }),
     pwa(),
   ],
   resolve: {

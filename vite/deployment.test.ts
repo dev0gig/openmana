@@ -72,9 +72,15 @@ describe("vercel.json", () => {
     for (const pathname of ["/", "/play", "/decks", "/settings", "/credits", "/matches", "/unknown/deep/link"]) {
       expect(matches(rewrite!.source, pathname), pathname).toBe(true)
     }
-    for (const pathname of ["/sw.js", "/manifest.webmanifest", "/favicon.ico", "/apple-touch-icon.png", "/engine/0123456789abcdef/missing.js", "/cards/0123456789abcdef/missing.gz", "/assets/missing.js", "/icons/missing.png"]) {
+    for (const pathname of ["/sw.js", "/manifest.webmanifest", "/favicon.ico", "/apple-touch-icon.png", "/engine/0123456789abcdef/missing.js", "/cards/0123456789abcdef/missing.gz", "/assets/missing.js", "/icons/missing.png", "/legal/LICENSE.txt", "/legal/SOURCE.txt", "/legal/THIRD-PARTY-NOTICES.txt", "/legal/missing.txt"]) {
       expect(matches(rewrite!.source, pathname), pathname).toBe(false)
     }
+  })
+  it("serves legal document navigation as UTF-8 text with isolation", () => {
+    for (const pathname of ["/legal/LICENSE.txt", "/legal/SOURCE.txt", "/legal/THIRD-PARTY-NOTICES.txt"]) {
+      expect(headersFor(pathname)).toMatchObject({ ...ISOLATION_HEADERS, "Content-Type": "text/plain; charset=utf-8" })
+    }
+    expect(headersFor("/legal/components.json")).not.toHaveProperty("Content-Type")
   })
 })
 

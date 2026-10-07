@@ -28,7 +28,11 @@
     {
       "source": "/cards/(.*)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    },
+    {
+      "source": "/legal/(.*[.]txt)",
+      "headers": [{ "key": "Content-Type", "value": "text/plain; charset=utf-8" }]
     }
   ],
-  "rewrites": [{ "source": "/((?!assets/|engine/|cards/|icons/|sw\\.js$|manifest\\.webmanifest$|favicon\\.ico$|apple-touch-icon\\.png$).*)", "destination": "/index.html" }]
+  "rewrites": [{ "source": "/((?!assets/|engine/|cards/|legal/|icons/|sw\\.js$|manifest\\.webmanifest$|favicon\\.ico$|apple-touch-icon\\.png$).*)", "destination": "/index.html" }]
 }

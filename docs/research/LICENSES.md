@@ -4,6 +4,56 @@
 > Festgehalten ist, was die geprüften Lizenzdateien, Header und Metadaten sagen.
 > Wo aus dem Text keine eindeutige Folge ableitbar ist, steht das ausdrücklich da.
 
+## Ergänzung: implementierter Stand vom 07.10.2026 (Prompt 27)
+
+Die folgenden ursprünglichen Abschnitte dokumentieren den Recherchezeitpunkt.
+Inzwischen enthält das Repository `LICENSE` (GPLv3-Text, Versionswahl
+GPL-3.0-or-later in `SOURCE.md`/Paketmetadaten), eine sichtbare Open-Source-Seite
+in Credits und aus dem Build erzeugte `THIRD-PARTY-NOTICES.md`.
+Die Oracle-/GFTC-Frage ist **weiter offen**. Das private Entwicklungsrepository
+wird ausdrücklich nicht als öffentliches Quellangebot ausgegeben.
+
+Die Engine-Inventur beruht auf dem erfolgreich geprüften Prompt-26-Artefakt
+(Manifest-SHA-256 `dd33caca4339210f51f87d60a115a70e1b4a5e6934c08404cca5950896314d2c`).
+Sie erfasst **7.818 Typen**: Klassen, Interfaces und Annotationen. Die ältere
+Buildstatistik mit 6.898 Klassen zählte nur die SBOM-Eigenschaft `class`.
+Die SBOM-Liste aller Classpath-Bibliotheken ist keine Auslieferungsliste:
+Typen mit Compiler-Zuordnung behalten diese; andere werden mit Original-JARs
+und den bytegleichen Klassen im tatsächlich gebauten Fat-JAR abgeglichen.
+Unbekannte, mehrdeutige oder Netzwerk-/jupnp-Typen werden abgelehnt.
+
+26 Engine-Komponenten mit 7.818 Typen wurden zugeordnet, darunter beide
+Guava-Versionen (Forge 33.3.1-android, Runtime 33.4.8-jre), Jimfs am Oracle-Pin,
+Sentry, tinylog, XStream, Gson, Commons Lang/Math, JGraphT und Annotationen.
+Keine jupnp-, Netty-, Jetty- oder Servlet-Typen sind enthalten; keine der
+zugeordneten Java-Abhängigkeiten wird über die CDDL-Option verwendet.
+Dies entscheidet **nicht** die offenen Oracle-Laufzeitbedingungen.
+JGraphT wird über LGPL-2.1-or-later geführt; Quellen und Neubau mit geänderter
+Bibliothek bleiben Teil der öffentlichen Release-Abnahme.
+
+Die App-Inventur stammt aus tatsächlich gerenderten Bundle-Modulen, ergänzt
+um die realen CSS-/Font-Imports, shadcn-Quellen und Ajv-Generatorcode.
+Originaltexte, Apache-NOTICE-Dateien, Oracle-Launcher-Header und der komplette
+Oracle-Distributionsanhang bleiben erhalten. Der Oracle-Anhang behauptet nicht,
+dass jede dort genannte Bibliothek eingebaut ist. Einige JDK-Originaltexte
+verwenden ISO-8859-1: ohne Textänderung nach UTF-8 transkodiert, mit ursprünglichem
+Bytehash und Zeichensatz pro Datei.
+
+Zwei Quellenlücken werden ausdrücklich dokumentiert: `react-remove-scroll-bar`
+2.3.8 liefert keinen eigenen MIT-Text (Paketmetadaten nennen MIT und Anton
+Korzunov; der gleiche Originaltext/Autor aus `react-remove-scroll` wird erhalten).
+JSR305 liefert keinen separaten Text im JAR/Sources-JAR; sein veröffentlichtes
+POM nennt Apache-2.0, dessen vollständiger Standardtext beiliegt. Diese Hinweise
+geben sich nicht als Originaldateien der jeweiligen Pakete aus.
+
+Oracles weiterhin vorhandene Output-Klausel und die Regeln für separat
+lizenzierte Technik wurden am 07.10. erneut mit dem
+[Originaltext](https://www.oracle.com/downloads/licenses/graal-free-license.html)
+abgeglichen. Eine Typinventur ersetzt keine rechtliche Freigabe.
+`SOURCE.md` beschreibt die noch offenen Pflichten; `OPENMANA_PUBLIC_RELEASE=1`
+scheitert ausdrücklich. Ablauf und technische Nachweise stehen in
+[Implementierung 27](../implementation/27-credits-licenses.md).
+
 ## 1. Geprüfte Lizenzen
 
 | Komponente | Lizenz | Geprüfte Quelle | Rolle in OpenMana |

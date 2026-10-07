@@ -89,6 +89,14 @@ die Darstellung in einer ausdrücklich beauftragten Änderung angepasst wurde.
 
 ## Vertrag und Umfang
 
+Seit Prompt 27 erzeugt der App-Build vollständige Engine-Lizenzhinweise aus
+der SBOM und Original-JARs des neuen Kandidaten. Die Inventur landet unter
+`<build>/report/notices-inventory.json`, ohne App-Quellen oder die eingecheckte
+Hinweisfassung zu ändern. Neue Bibliotheken/Versionen brauchen eine geprüfte
+Ergänzung ausschließlich unter `engine/**`, gemäß [NOTICES.md](NOTICES.md).
+Fehlende Lizenztexte oder unbekannte Typen stoppen die App-Abnahme; das ist
+kein Grund für eine pauschale Ausnahme der Pfadprüfung.
+
 Ein Forge-Update verändert standardmäßig ausschließlich `engine/**`.
 Toolchain-Pins werden in einem eigenen Wartungs-PR verändert. Die einmalige
 Einrichtung dieser Pipeline umfasst auch den CI-Workflow und Projektdokumentation;

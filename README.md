@@ -47,7 +47,8 @@ Implementation has started; current implementation is tracked in [STATUS.md](STA
 - **Responsive pass done (prompt 24):** all application routes and populated overlays are audited at eight phone/fold-like/tablet/desktop CSS sizes. Long deck names wrap, every Button size and Input has a 44 px coarse-pointer target, and low-screen confirmations scroll within the viewport. Fold/rotation checks retain viewer focus and compare the full original match transcript during fresh waiting Forge games. See [docs/implementation/24-responsive-polish.md](docs/implementation/24-responsive-polish.md).
 - **PWA cache and lifecycle done (prompt 25):** verified production shell and explicit versioned Forge cache preserve isolation offline. Settings explains installation, persistence and browser limits. Updates wait for all old clients to close; live matches and recordings remain intact, while reload/background discard is not recovery. Actual Chrome starts Forge with the real server stopped and no server requests; failed downloads/updates, eviction and initial retry are tested. See [docs/implementation/25-pwa-cache-offline.md](docs/implementation/25-pwa-cache-offline.md).
 - **Isolated Forge update pipeline done (prompt 26):** a dedicated update stays in `engine/**` with explicit versioned protocol exceptions. Fresh pinned builds, JVM/WASM/Chrome comparisons, a matching catalog and the complete app/PWA check gate the artifact lock. See the [maintainer procedure](engine/UPDATING.md) and [verification record](docs/implementation/26-forge-update-pipeline.md).
-- The numbered program continues with credits, licenses and notices (prompt 27); it has not started. Anvil remains the reference until feature parity.
+- **Credits, licenses and notices (prompt 27):** Credits exposes the GPL text, full build-derived notices and source/release instructions. The inventory follows rendered app modules and the selected WASM image; legal documents are available offline. Oracle/GFTC, public Corresponding Source and icon redistribution rights remain publication gates. See [SOURCE.md](SOURCE.md) and [implementation evidence](docs/implementation/27-credits-licenses.md).
+- The numbered program continues with ORYX web integration and real-device verification (prompt 28); it has not started. Anvil remains the reference until feature parity.
 
 ## Develop
 
@@ -65,7 +66,7 @@ npm run generate                     # after changing a schema (src/storage/sche
 
 ## Credits
 
-OpenMana will visibly credit Forge, ManaBrew, Scryfall, OpenAI ChatGPT and Anthropic Claude. Exact license and attribution obligations must be verified before distribution.
+OpenMana visibly credits Forge/Card-Forge, ManaBrew, Scryfall, OpenAI ChatGPT and Anthropic Claude. ManaBrew supplied technical inspiration and three GPL Forge patches; its AGPL application code is not incorporated. Repository licensing is [GPL-3.0-or-later](LICENSE); foreign components retain their licenses and copyrights in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). Public distribution remains gated by [SOURCE.md](SOURCE.md), independently of these notices.
 
 ## ORYX return navigation (2026-09-27)
 

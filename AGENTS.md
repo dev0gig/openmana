@@ -217,7 +217,7 @@ The optional sync of the player's collection through their ORYX account (project
 The legacy local prompt workflow was removed upstream on 2026-09-28. Executable tasks and their lifecycle now live in `dev0gig/dropzone/workflow/tasks/`; implementation evidence remains in `docs/implementation/` and Git history.
 
 - Numbered prompts run strictly sequentially; resume `IN_PROGRESS` work and never skip a `BLOCKED` predecessor. Mark a task complete only after its requirements and verification pass.
-- Reconcile the central status with code and `STATUS.md` before selecting work. Prompt 26 (isolated Forge update pipeline) is complete; Prompt 27 is next and unstarted.
+- Reconcile the central status with code and `STATUS.md` before selecting work. Prompt 27 (credits, licenses and notices) is complete; Prompt 28 is next and unstarted.
 - Run only the task assigned by the user; a single Dropmaster assignment ends after that task.
 - Update the central task and `STATUS.md` with verified evidence; do not recreate the removed local queue.
 

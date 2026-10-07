@@ -1,8 +1,8 @@
 /*
  * Credits (Bible §14): software OpenMana incorporates, data providers,
  * inspiration and reference, AI assistance, the temporary icon. Kinds are
- * kept apart, and nothing is claimed that is not so: the complete license
- * notices come before any public release, and the open GraalVM license
+ * kept apart. Build-generated legal assets are local/offline available; the
+ * open GraalVM license
  * question stays open here too (docs/research/LICENSES.md).
  *
  * Scryfall (prompt 08) is named as the source of card data and pictures -
@@ -20,6 +20,7 @@ import { cardAssets } from "@/cards/card-assets"
 import { formatDate } from "@/cards/card-labels"
 import { engineAssets } from "@/engine/engine-assets"
 import { shortCommit } from "@/engine/engine-labels"
+import { Button } from "@/components/ui/button"
 
 function CreditEntry({ name, href, license, children }: { name: string; href?: string; license?: string; children: ReactNode }) {
   return (
@@ -61,6 +62,31 @@ export function CreditsPage() {
     <Page title="Credits" description="Wer und was OpenMana möglich macht.">
       <Card>
         <CardHeader>
+          <CardTitle>Open Source und Lizenzen</CardTitle>
+          <CardDescription>Copyright © 2026 dev0gig und die OpenMana-Mitwirkenden.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <p className="text-sm text-muted-foreground">
+            OpenMana-Code und Forge-Engine stehen unter GPL-3.0-or-later. Du darfst den Code nach den Bedingungen
+            dieser Lizenz verwenden, ändern und weitergeben. Fremde Bestandteile behalten ihre eigenen Lizenzen.
+            Kartenbilder und Marken sind davon ausgenommen.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Ohne Gewährleistung, soweit gesetzlich zulässig. Die Einzelheiten stehen im vollständigen Lizenztext.
+          </p>
+          <ul className="flex flex-col gap-3" aria-label="Lizenztexte und Quelltext">
+            <li><Button variant="outline" asChild><a href="/legal/LICENSE.txt">GPL-Lizenztext</a></Button></li>
+            <li><Button variant="outline" asChild><a href="/legal/THIRD-PARTY-NOTICES.txt">Alle Drittanbieter-Lizenzen und Hinweise</a></Button></li>
+            <li><Button variant="outline" asChild><a href="/legal/SOURCE.txt">Quelltext und Veröffentlichungsstand</a></Button></li>
+          </ul>
+          <p className="text-sm text-muted-foreground">
+            Noch keine öffentliche Veröffentlichung: Die Weitergabe der GraalVM-Laufzeit ist nicht abschließend geklärt.
+            Ein öffentlich zugänglicher Quellstand für diese Version steht noch aus.
+          </p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
           <CardTitle>Enthaltene Software</CardTitle>
           <CardDescription>Was in OpenMana steckt und mit jeder Version ausgeliefert wird.</CardDescription>
         </CardHeader>
@@ -87,8 +113,8 @@ export function CreditsPage() {
               ))}
             </ul>
             <p className="text-sm text-muted-foreground">
-              Die vollständigen Lizenztexte und Hinweise aller ausgelieferten Bestandteile folgen vor einer öffentlichen
-              Veröffentlichung.
+              Die vollständigen Lizenztexte, Copyrights und Hinweise der enthaltenen Bestandteile findest du oben
+              unter „Alle Drittanbieter-Lizenzen und Hinweise“.
             </p>
           </div>
         </CardContent>
@@ -123,6 +149,7 @@ export function CreditsPage() {
             <CreditEntry name="ManaBrew" href="https://github.com/witchesofthehill/manabrew">
               Hat gezeigt, dass Forge als WebAssembly im Browser laufen kann, und war die technische Vorlage für OpenManas Engine.
               Drei Forge-Patches für den Betrieb auf einem einzigen Thread stammen aus ManaBrews Forge-Fork (GPL-3.0-or-later).
+              Die übrige OpenMana-Anwendung übernimmt keinen Code aus ManaBrews AGPL-Hauptrepository.
             </CreditEntry>
           </CardContent>
         </Card>

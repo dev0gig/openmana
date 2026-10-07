@@ -257,6 +257,14 @@ async function httpChecks(base: string, id: string): Promise<void> {
   }
   await (await checkHeaders(base, "preview", "/manifest.webmanifest", /^application\/manifest\+json/)).arrayBuffer()
   await (await checkHeaders(base, "preview", "/icons/icon-192.png", /^image\/png/)).arrayBuffer()
+  const legalFiles = { "/legal/LICENSE.txt": "GNU GENERAL PUBLIC LICENSE", "/legal/SOURCE.txt": "kein öffentliches Quellangebot",
+    "/legal/THIRD-PARTY-NOTICES.txt": "Oracle GraalVM/GFTC" }
+  for (const [pathname, required] of Object.entries(legalFiles)) {
+    const text = await (await checkHeaders(base, "preview", pathname, /^text\/plain; charset=utf-8/)).text()
+    check(text.includes(required), `${pathname}: original legal document is served`)
+    check(text === fs.readFileSync(path.join(dist, pathname.slice(1)), "utf8"), `${pathname}: complete bytes, no SPA fallback`)
+  }
+  report["legalDocuments"] = Object.keys(legalFiles)
   const files: Record<string, RegExp> = {
     "engine-worker.js": /^text\/javascript/,
     "openmana-engine.js": /^text\/javascript/,
@@ -458,6 +466,17 @@ async function surfaces(executablePath: string, base: string, id: string): Promi
           check(state.title === route.title, `${label}: title "${state.title}"`)
           check(state.overflow <= 0, `${label}: ${state.overflow}px horizontal overflow`)
           check(state.coarse === viewport.touch, `${label}: pointer mode differs from viewport emulation`)
+          if (route.path === "/credits") {
+            for (const name of ["GPL-Lizenztext", "Alle Drittanbieter-Lizenzen und Hinweise", "Quelltext und Veröffentlichungsstand"]) {
+              const link = page.getByRole("link", { name, exact: true })
+              check((await link.getAttribute("href"))?.startsWith("/legal/") === true, `${label}: ${name} local legal link`)
+              if (viewport.touch) {
+                const rect = await link.boundingBox()
+                check(Boolean(rect && rect.width >= 44 && rect.height >= 44), `${label}: ${name} touch target`)
+              }
+            }
+            check(await page.getByText(/Noch keine öffentliche Veröffentlichung/).isVisible(), `${label}: unresolved release status visible`)
+          }
           const tabBar = page.getByRole("navigation", { name: "Hauptnavigation" })
           const sidebarStart = page.locator('[data-slot="sidebar"] a', { hasText: "Start" })
           if (viewport.width < 768) {

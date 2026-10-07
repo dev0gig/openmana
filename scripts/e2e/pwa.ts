@@ -24,7 +24,7 @@ const require = createRequire(import.meta.url)
 type Entry = { url: string; bytes: number; sha256: string }
 type Config = { version: string; engineVersion: string; shell: Entry[]; engine: Entry[] }
 const results: Record<string, unknown> = {}
-const types: Record<string, string> = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".png": "image/png", ".ico": "image/x-icon", ".woff2": "font/woff2", ".wasm": "application/wasm", ".json": "application/json", ".webmanifest": "application/manifest+json" }
+const types: Record<string, string> = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".png": "image/png", ".ico": "image/x-icon", ".woff2": "font/woff2", ".wasm": "application/wasm", ".json": "application/json", ".txt": "text/plain; charset=utf-8", ".webmanifest": "application/manifest+json" }
 
 function fixtureBackup() {
   const now = "2026-10-07T08:00:00.000Z"
@@ -102,6 +102,20 @@ async function main() {
   const executablePath = process.env["OPENMANA_CHROME"] ?? chromium.executablePath()
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), "ompwa-"))
   const context = await chromium.launchPersistentContext(profile, { executablePath, headless: true, viewport: { width: 1440, height: 900 }, args: ["--no-sandbox", "--disable-gpu", "--host-resolver-rules=MAP *.vercel.app 0.0.0.0"] })
+  // Observe actual worker replies without changing message contents or ports.
+  await context.addInitScript(() => {
+    const NativeChannel = window.MessageChannel
+    const replies: unknown[] = []
+    Object.assign(window, { __openmanaPwaReplies: replies })
+    window.MessageChannel = class extends NativeChannel {
+      constructor() {
+        super()
+        this.port1.addEventListener("message", (event) => {
+          if (event.data && typeof event.data === "object" && ("ready" in event.data || "error" in event.data)) replies.push(event.data)
+        })
+      }
+    }
+  })
   const errors: string[] = []
   const preloadMismatches: string[] = []
   function watchPreload(page: Page) {
@@ -142,7 +156,16 @@ async function main() {
     mode = "normal"
     console.log("PWA: complete SHA-verified real engine download")
     await card.getByRole("button", { name: /Forge für offline laden/ }).click()
-    await card.getByText(/App und Forge sind vollständig/).waitFor({ timeout: 180_000 })
+    try {
+      await card.getByText(/App und Forge sind vollständig|Offline-Speicher oder Updateprüfung fehlgeschlagen/).waitFor({ timeout: 180_000 })
+      assert(await card.getByText(/App und Forge sind vollständig/).isVisible(), "Real engine download reported failure")
+    } catch (error) {
+      results["downloadFailureDiagnostics"] = { text: await card.textContent(), requests: requests.slice(-20), errors,
+        replies: await page.evaluate(() => (window as unknown as { __openmanaPwaReplies: unknown[] }).__openmanaPwaReplies),
+        caches: await page.evaluate(async () => Promise.all((await caches.keys()).map(async (name) => ({ name, urls: (await (await caches.open(name)).keys()).map((request) => request.url) })))) }
+      console.log("PWA download diagnostics", JSON.stringify(results["downloadFailureDiagnostics"]))
+      throw error
+    }
     assert.equal((await swStatus(page)).ready, true)
     results["engineCache"] = await page.evaluate(async () => {
       const name = (await caches.keys()).find((name) => name.startsWith("openmana-engine-"))!
@@ -171,6 +194,36 @@ async function main() {
       return { coop: response.headers.get("Cross-Origin-Opener-Policy"), coep: response.headers.get("Cross-Origin-Embedder-Policy"), type: response.headers.get("Content-Type") }
     })
     assert.deepEqual(offlineHeaders, { coop: "same-origin", coep: "require-corp", type: "application/wasm" })
+    console.log("PWA: Credits and complete legal documents with the actual server stopped")
+    await page.goto(`${base}/credits`)
+    await page.getByRole("heading", { name: "Credits", exact: true }).waitFor()
+    const offlineLegal = await page.evaluate(async () => {
+      const results = []
+      for (const url of ["/legal/LICENSE.txt", "/legal/SOURCE.txt", "/legal/THIRD-PARTY-NOTICES.txt"]) {
+        const response = await fetch(url)
+        const bytes = await response.arrayBuffer()
+        const digest = await crypto.subtle.digest("SHA-256", bytes)
+        results.push({ url, status: response.status, type: response.headers.get("Content-Type"), bytes: bytes.byteLength,
+          sha256: Array.from(new Uint8Array(digest), (n) => n.toString(16).padStart(2, "0")).join("") })
+      }
+      return results
+    })
+    for (const item of offlineLegal) {
+      assert.equal(item.status, 200)
+      assert(item.type?.startsWith("text/plain"))
+      assert.equal(item.sha256, hash(fs.readFileSync(path.join(dist, item.url.slice(1)))))
+    }
+    for (const [name, file] of [["GPL-Lizenztext", "LICENSE.txt"], ["Alle Drittanbieter-Lizenzen und Hinweise", "THIRD-PARTY-NOTICES.txt"], ["Quelltext und Veröffentlichungsstand", "SOURCE.txt"]]) {
+      await page.goto(`${base}/credits`)
+      await page.getByRole("link", { name: name!, exact: true }).click()
+      await page.waitForURL(`${base}/legal/${file}`)
+      // Chrome normalizes CRLF in its plain-text DOM; the fetch hashes above
+      // independently retain the exact original bytes.
+      const expected = fs.readFileSync(path.join(dist, "legal", file!), "utf8").replaceAll("\r\n", "\n")
+      await page.waitForFunction((length) => document.querySelector("pre")?.textContent?.length === length, expected.length)
+      assert.equal(await page.locator("pre").textContent(), expected)
+    }
+    results["offlineLegal"] = { documents: offlineLegal, actualServerStopped: true, allDocumentLinksOpened: true }
     await page.goto(`${base}/play`)
     await page.getByRole("button", { name: "Partie starten" }).first().click()
     await page.waitForURL(/\/play\/game$/)

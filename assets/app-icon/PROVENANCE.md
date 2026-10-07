@@ -34,8 +34,12 @@ Android-Icon dasselbe Bild vollflächig als Vordergrundebene nutzt.
 
 ## Rechte
 
-Das Bild gehört zum Projekt des Projektbesitzers (Anvil) und wird hier vom
-selben Besitzer weiterverwendet. Anvil hat keine eigene Lizenzdatei. Für eine
-**öffentliche** Veröffentlichung von OpenMana ist das Icon deshalb wie alle
-anderen Bestandteile im Lizenz-Schritt (Prompt 27) zu prüfen; das
-Android-Paket (Prompt 28) nutzt dasselbe vorläufige Icon.
+Das Bild stammt aus dem Upload des Projektbesitzers für Anvil und wird hier
+auf dessen Anweisung weiterverwendet. Anvil hat keine eigene Lizenzdatei.
+Prompt 27 hat den Bytehash und Anvils `ICON.md` abgeglichen: Die Herkunft ist
+bis zu diesem Upload nachvollziehbar. Ein ursprünglicher Urheber oder eine
+separate Bildlizenz ist dort nicht dokumentiert; es wird keine erfundene
+Bildlizenz oder Übernahme unter die Software-GPL behauptet. Vor einer
+öffentlichen Veröffentlichung ist die Berechtigung zur Bildweitergabe Teil
+der Freigabe gemäß `SOURCE.md`. Auf Android nutzt die gemeinsame ORYX-TWA
+dieselbe Web-App; es gibt kein eigenes OpenMana-Android-Paket.

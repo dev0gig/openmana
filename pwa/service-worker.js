@@ -50,13 +50,15 @@ self.addEventListener("fetch", (event) => {
   const request = event.request
   const url = new URL(request.url)
   if (request.method !== "GET" || url.origin !== self.location.origin || url.pathname === "/sw.js") return
-  if (request.mode === "navigate") {
+  // A document link is also a navigation. Serve known shell assets (including
+  // license/source texts) before applying the application's route fallback.
+  if (shellUrls.has(request.url)) {
+    event.respondWith((async () => (await (await caches.open(shellName)).match(request)) ?? fetch(request))())
+  } else if (request.mode === "navigate") {
     event.respondWith((async () => {
       const cached = await (await caches.open(shellName)).match("/index.html")
       return cached ? isolated(cached, CONFIG.headers) : fetch(request)
     })())
-  } else if (shellUrls.has(request.url)) {
-    event.respondWith((async () => (await (await caches.open(shellName)).match(request)) ?? fetch(request))())
   } else if (engineUrls.has(request.url)) {
     event.respondWith((async () => {
       if (await engineReady()) {

@@ -1,0 +1,132 @@
+{
+  "gpl-3.0": {
+    "file": "notices/licenses/gpl-3.0.txt",
+    "sha256": "8b1ba204bb69a0ade2bfcf65ef294a920f6bb361b317dba43c7ef29d96332b9b",
+    "source": "Card-Forge/forge@ed0333fecb1fea0671b3e50cadc1da4f71db5798/LICENSE"
+  },
+  "commons-lang3-license-license": {
+    "file": "notices/licenses/commons-lang3-license-license.txt",
+    "sha256": "b1d2870f1a00e4d7f56576e5f0870cba109e041f8af66866cf5b499478e654e7",
+    "source": "org/apache/commons/commons-lang3/3.18.0/commons-lang3-3.18.0.jar!/META-INF/LICENSE.txt"
+  },
+  "commons-lang3-license-notice": {
+    "file": "notices/licenses/commons-lang3-license-notice.txt",
+    "sha256": "64bc8696af3f6c770521412b85d3a733fa44b2ef5b0f4bd739e0c4d02eca492a",
+    "source": "org/apache/commons/commons-lang3/3.18.0/commons-lang3-3.18.0.jar!/META-INF/NOTICE.txt"
+  },
+  "commons-math3-license-license": {
+    "file": "notices/licenses/commons-math3-license-license.txt",
+    "sha256": "64f23963615950bad9ddd31569a7f09afbbe11b81d94873ffd9b1cac6081a11d",
+    "source": "org/apache/commons/commons-math3/3.6.1/commons-math3-3.6.1.jar!/META-INF/LICENSE.txt"
+  },
+  "commons-math3-license-notice": {
+    "file": "notices/licenses/commons-math3-license-notice.txt",
+    "sha256": "5495442a32bfc2b93b4a8f2c34c5c218d16cca434aa5684fb953d9419120e3fa",
+    "source": "org/apache/commons/commons-math3/3.6.1/commons-math3-3.6.1.jar!/META-INF/NOTICE.txt"
+  },
+  "mxparser-license-license": {
+    "file": "notices/licenses/mxparser-license-license.txt",
+    "sha256": "79f77e2e1ab271375ee45e3d9673fc78c024fe781ba6e3212d76f98bf3e60734",
+    "source": "io/github/x-stream/mxparser/1.2.2/mxparser-1.2.2.jar!/META-INF/LICENSE"
+  },
+  "xstream": {
+    "file": "notices/licenses/xstream.txt",
+    "sha256": "336a3c767b0f5e7374b00dfb8a9ce6343c6ec00dd2fc2a714f7e8482c3fa2939",
+    "source": "https://raw.githubusercontent.com/x-stream/xstream/XSTREAM_1_4_21/LICENSE.txt"
+  },
+  "tinylog": {
+    "file": "notices/licenses/tinylog.txt",
+    "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+    "source": "Card-Forge/forge@ed0333f/forge-gui/res/licenses/tinylog-license.txt"
+  },
+  "guava": {
+    "file": "notices/licenses/guava.txt",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "source": "https://raw.githubusercontent.com/google/guava/v33.3.1/LICENSE"
+  },
+  "gson": {
+    "file": "notices/licenses/gson.txt",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "source": "https://raw.githubusercontent.com/google/gson/gson-parent-2.13.2/LICENSE"
+  },
+  "errorprone": {
+    "file": "notices/licenses/errorprone.txt",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "source": "https://raw.githubusercontent.com/google/error-prone/v2.41.0/COPYING"
+  },
+  "sentry": {
+    "file": "notices/licenses/sentry.txt",
+    "sha256": "c90147c075a17f4aecfea27a56510ddf7c76508c8488df533623402008b9d052",
+    "source": "https://raw.githubusercontent.com/getsentry/sentry-java/8.21.1/LICENSE"
+  },
+  "checker-qual": {
+    "file": "notices/licenses/checker-qual.txt",
+    "sha256": "e90eaa08dea089df10f2bf7f9dba63a5f6237c01562c4741e2e86773e78582d5",
+    "source": "https://raw.githubusercontent.com/typetools/checker-framework/checker-framework-3.43.0/checker-qual/LICENSE.txt"
+  },
+  "jgrapht-lgpl": {
+    "file": "notices/licenses/jgrapht-lgpl.txt",
+    "sha256": "96881ccd754f3184722ebf5e10908426e8427a32e4a70e899feb29e654ed8ea0",
+    "source": "https://raw.githubusercontent.com/jgrapht/jgrapht/jgrapht-1.5.2/license-LGPL.txt"
+  },
+  "guava-runtime": {
+    "file": "notices/licenses/guava-runtime.txt",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "source": "https://raw.githubusercontent.com/google/guava/v33.4.8/LICENSE"
+  },
+  "jimfs": {
+    "file": "notices/licenses/jimfs.txt",
+    "sha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd",
+    "source": "https://raw.githubusercontent.com/google/jimfs/c7a51a6e2109ff7e391815ba34ad404ac8a375c6/LICENSE"
+  },
+  "jsr305": {
+    "file": "notices/licenses/jsr305.txt",
+    "sha256": "88c8c23d92ed0fdd8814abcddf2f5f524fab151b3b1a6d092f4dacec2f8e6b46",
+    "source": "https://repo.maven.apache.org/maven2/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.pom; full Apache-2.0 text from guava/LICENSE"
+  },
+  "react-remove-scroll-bar": {
+    "file": "notices/licenses/react-remove-scroll-bar.txt",
+    "sha256": "30f0cfddf483d1128e3610205020f2041a6c5e837aa999e0aa82e5576187d4a9",
+    "source": "MIT text and copyright from the same author in react-remove-scroll@2.7.2/LICENSE; react-remove-scroll-bar@2.3.8/package.json declares MIT and Anton Korzunov. No LICENSE shipped in that package."
+  },
+  "xmlpull": {
+    "file": "notices/licenses/xmlpull.txt",
+    "sha256": "4eeafa29d1d9a0cdbdad0f5178cd553527329b57b5808ffe912cb9c698343612",
+    "source": "https://www.xmlpull.org/v1/download/unpacked/LICENSE.txt"
+  },
+  "failureaccess": {
+    "file": "notices/licenses/failureaccess.txt",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "source": "https://repo.maven.apache.org/maven2/com/google/guava/failureaccess/1.0.2/failureaccess-1.0.2.pom (Apache-2.0); full text from guava v33.3.1 LICENSE"
+  },
+  "oracle-gftc": {
+    "file": "notices/licenses/oracle-gftc.txt",
+    "sha256": "c6f989689dd98054a77260222e7c648f5db72ec14e7e13a4fb79a797dd989b81",
+    "source": "Oracle GraalVM archive SHA-256 4fcc632cfc68e98f49f9316f8a3588bafe4f5289f120104e2d290a75cf33e28e!/LICENSE.txt"
+  },
+  "oracle-third-party": {
+    "file": "notices/licenses/oracle-third-party.txt",
+    "sha256": "1375e9af2a6b494e289cdca455e50d72f4aeef87d4da94304ec444579e8361d3",
+    "source": "same pinned Oracle archive!/license-information-user-manual.zip!/license-information-user-manual.html (complete distribution appendix; does not assert every component ships)"
+  },
+  "oracle-runtime-modules": {
+    "file": "notices/licenses/oracle-runtime-modules.txt",
+    "sha256": "e746d13be29143483e92e795015b0a42e1477d7ef5e5fd2952c7680926e2ef60",
+    "source": "pinned Oracle archive!/legal/: module names from the actual class-level SBOM; original bytes SHA-256 and source charset recorded per file, transcoded to UTF-8 without changing text"
+  },
+  "oracle-launcher": {
+    "file": "notices/licenses/oracle-launcher.txt",
+    "sha256": "fd0f40d027bf957eb816b41c476cc5adfc642f0cc9e9b255812e8c55fde68b98",
+    "source": "launcher SHA-256 edf456327b91601ab3ded0f35c6b1429adca8141a9fdd7d67849065185d72b42: original copyright/license comments"
+  },
+  "jgrapht-copyright": {
+    "file": "notices/licenses/jgrapht-copyright.txt",
+    "sha256": "46845c375dc1c2180c7b96c52135db2965637b4f4f03018ebe6c65d1a9d85d4e",
+    "source": "https://raw.githubusercontent.com/jgrapht/jgrapht/jgrapht-1.5.2/jgrapht-core/src/main/java/org/jgrapht/Graph.java (original header) and https://raw.githubusercontent.com/jgrapht/jgrapht/jgrapht-1.5.2/CONTRIBUTORS.md"
+  },
+  "forge-copyright": {
+    "file": "notices/licenses/forge-copyright.txt",
+    "sha256": "88700b1346d05457410228e0256339999cc19ed0996b962465f6b2f7441a741e",
+    "source": "Card-Forge/forge@ed0333fecb1fea0671b3e50cadc1da4f71db5798/forge-game/src/main/java/forge/game/Game.java (original header)"
+  }
+}

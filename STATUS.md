@@ -207,6 +207,12 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - A new build directory, fresh tool extraction and dependencies, source fingerprints, JVM/WASM differential tests, Chrome, a matching card catalog and full app/PWA check precede atomic artifact-lock promotion. Test helpers use the selected build. Maintainer procedure: `engine/UPDATING.md`; local/CI entry: `engine/scripts/validate-forge-update.mjs`.
 - Evidence on the existing Forge pin/protocol 7: 95 engine unit tests, 76 JVM tests, 78 engine results (25 JVM/31 Node/22 Chrome), 881 app tests and complete real Chrome/PWA acceptance; independent lock/provenance checks passed. Details and artifact paths: `docs/implementation/26-forge-update-pipeline.md`. CI workflow linted, not run on a hosted runner; local commits only.
 
+### Credits, licenses and notices (Prompt 27)
+- Credits links the GPL text, complete build-generated notices and source/release instructions; Forge/Card-Forge, ManaBrew, Scryfall, OpenAI ChatGPT and Anthropic Claude are credited by actual contribution.
+- 95 components/98 texts follow rendered app modules and the verified image's 7,818 types; jupnp/network types are absent. Original copyrights, Apache notices and vendor provenance are preserved.
+- All legal documents work offline and as native UTF-8 document links; known shell documents bypass the service worker and Vercel SPA fallback.
+- Evidence: complete `npm run check` (893 tests, real Chrome/Forge flows across eight sizes, full offline/update PWA suite), four inventory tests and exact HTTP/document hash checks. Oracle/GFTC, public Corresponding Source and icon redistribution remain publication gates. Details: `docs/implementation/27-credits-licenses.md`, `SOURCE.md`.
+
 ### ORYX Cloud Sync (outside the queue, 2026-09-25)
 - The project owner's direct assignment, not a queue prompt (outside the numbered program): the player's collection syncs through their ORYX account (the launcher's Supabase cloud) with the vendored ORYX SDK 1.0.0 (`src/cloud/oryx-sdk.js` and `.d.ts`, byte-identical copies of `oryx-games/shared`, checksum-tested, excluded from lint only themselves). Active only on `https://openmana.vercel.app/`; locally, in tests and previews inactive (no request, nothing stored). Local stays the source of truth.
 - One slot `collection` = one document (`src/storage/collection.ts`, schema `CollectionDocument`, version = `SCHEMA_VERSION`): valid decks, deletion marks (90 days) and every setting except `display.*`; never caches, recorded matches or `meta`.
@@ -218,7 +224,7 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Evidence: 622 Vitest tests (63 new: merge and check, read/apply on fake-indexeddb, the real SDK against a stand-in ORYX cloud on the real storage session, the card and the return notice in the real app frame, the SDK checksum), `npm run check` with the end-to-end test in Chrome, including the new section 13: the build served as `https://openmana.vercel.app` with a stand-in ORYX cloud - the whole OAuth/PKCE round trip under COOP/COEP, the start's merge, uploads, disconnecting, axe, 360 px; plus the card absent and Web Storage empty off the real address, and the deletion mark in IndexedDB after deleting a deck. Limits: ORYX takes 1 MB per slot by default (≈ 146 Constructed or 48 Commander decks); ORYX needs an OAuth client for `openmana`; effective once deployed. Details: `docs/implementation/oryx-cloud-sync.md`.
 
 ## Currently In Progress
-No numbered task is currently in progress. Prompt **26 — Isolated Forge update pipeline** is complete; Prompt **27 — Credits, licenses and notices** is next and unstarted.
+No numbered prompt is active. Prompt **27 — Credits, licenses and notices** is complete and committed locally; Prompt **28 — ORYX web integration and Android verification** is next and unstarted. Public Oracle/source/icon gates remain open.
 
 Any agent entering the repository must first reconcile this statement with the central Dropzone task state and Git state.
 
@@ -237,11 +243,11 @@ The existing queue covers the path from bridge/Worker/resource/differential engi
 - Android via the global ORYX app (no own APK),
 - regression/parity/production/readiness audits.
 
-The central Dropzone queue defines execution order; reconcile it with the Prompt 26 evidence before starting Prompt 27. Prompts 26, 30 and 32 require Astra with max reasoning under dev0gig's model gate in `AGENTS.md`.
+The central Dropzone queue defines execution order; reconcile it with the completed Prompt 27 evidence before starting another task. Prompts 26, 30 and 32 require Astra with max reasoning under dev0gig's model gate in `AGENTS.md`.
 
 ## Not Yet Implemented
 At this review point:
-- credits/licenses (prompt 27) and the remaining numbered program follow the implemented Forge update pipeline,
+- prompts 28 onward remain unstarted,
 - no production deployment or physical ORYX/device proof yet; no individual Android artifact is planned,
 - the ORYX cloud sync is built but inactive until OpenMana runs at `openmana.vercel.app` and ORYX has an OAuth client for it.
 
@@ -259,7 +265,7 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 ## Workflow Compatibility
 The legacy local prompt workflow was removed upstream on 2026-09-28. The current checkout incorporates that deletion while preserving all previously local Prompt 16 and ORYX-return commits. Central tasks live in `dev0gig/dropzone/workflow/tasks/`; detailed implementation evidence remains in `docs/implementation/` and Git history.
 
-Preserve sequential execution and any active work. Prompt 26 is complete (committed locally, not pushed), Prompt 27 is next and unstarted, and the publication hold through Prompt 31 remains. Prompt 28 covers ORYX web integration and real-device Forge verification.
+Preserve sequential execution. Prompt 27 is complete (committed locally, not pushed); the publication hold through Prompt 31 remains. Prompt 28 covers ORYX web integration and real-device Forge verification.
 
 ## Maintenance
 Update this file only when the broad implementation state changes. Keep detailed prompt evidence, commit hashes, measurements and blockers in the central Dropzone task and implementation/research docs.
