@@ -271,6 +271,8 @@ Desired aids:
 
 Assistance must derive from Forge state and static explanations; it must not invent rules.
 
+The implemented assistance (prompt 23) is an on-demand contextual help Sheet from the turn/phase area, with static phase/terminology explanations, question-bound required/optional clarity and explicit current stack target IDs. Target emphasis grants no action. Help never sends input, and technical aborts keep their original details with German next steps. See [implementation/23-beginner-qol.md](implementation/23-beginner-qol.md).
+
 ## 11. Responsive targets
 
 Web-first and touch-first, not mobile-only.

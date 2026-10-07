@@ -28,6 +28,18 @@ export function abortTitle(abort: EngineAbort): string {
   return ABORT_TITLES[abort.reason]
 }
 
+/** Practical next steps keyed only by the structured technical failure, never its prose. */
+export function abortAdvice(abort: EngineAbort): string {
+  switch (abort.reason) {
+    case "unsupported-browser": return "Öffne OpenMana in einem aktuellen Browser. Die Browserprüfung zeigt, welche Voraussetzung fehlt."
+    case "protocol-mismatch": return "Lade die App neu, damit App und Engine aus derselben Version kommen. Eine laufende Partie endet beim Neuladen."
+    case "boot-failed": return "Prüfe die Internetverbindung für den Engine-Download und versuche den Start erneut. Die technische Meldung darunter bleibt für die Fehlersuche erhalten."
+    case "ready-timeout": return "Der Start hat zu lange gedauert. Versuche es erneut; falls das wieder passiert, findest du die Versionsangaben in den Einstellungen unter Engine-Diagnose."
+    case "terminated": return "Die Engine läuft nicht mehr. Für eine neue Partie wird sie neu gestartet; eine beendete Sitzung lässt sich hier nicht fortsetzen."
+    default: return "Diese Engine-Sitzung kann nicht fortgesetzt werden. Starte eine neue Partie. Falls der Fehler wiederkehrt, bewahre die technische Meldung und die Engine-Diagnose aus den Einstellungen auf."
+  }
+}
+
 /** The language Forge's own texts are in (engine.ready boot.language). */
 export const ENGINE_LANGUAGE_LABELS: Readonly<Record<EngineLanguage, string>> = {
   "de-DE": "Deutsch",

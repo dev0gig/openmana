@@ -133,8 +133,10 @@ describe("the battlefields", () => {
   it("a creature's facts below its picture: power/toughness and damage from Forge; the target of a spell stays single", () => {
     renderScene("stack")
     const arsonist = region("Dein Spielfeld").querySelector('[data-card="55"]')!
-    expect(arsonist.querySelector('[data-slot="game-card-caption"]')).toHaveAttribute("title", "Goblin-Brandstifter · 1/1 · 2 Schaden")
+    expect(arsonist.querySelector('[data-slot="game-card-caption"]')).toHaveAttribute("title", "Goblin-Brandstifter · 1/1 · 2 Schaden · Ziel auf dem Stapel")
     expect(arsonist.querySelector('[data-slot="game-card-caption"]')).toHaveTextContent("1/1 · 2 Schaden")
+    expect(arsonist).toHaveAttribute("data-stack-target", "true")
+    expect(arsonist.querySelector('[data-slot="game-card-caption"]')).toHaveTextContent("Ziel")
   })
 
   it("combat and summoning sickness on the cards: signs, said in the card's name for screen readers", () => {

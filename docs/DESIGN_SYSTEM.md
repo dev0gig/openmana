@@ -212,6 +212,7 @@ the word.
 | `GameCardButton`, `GameCardRow`, `GameCardRowItem`, `GameCardRowButton`; the `mark` of `GameCard`/`GameCardButton` | `src/components/ui/game-card.tsx`, built the shadcn way (prompt 14) on Radix `Toolbar` (from `radix-ui`) | a card as a control: a button with shadcn's focus ring around the whole card, no image menu or text selection on a long press; Forge's state as a frame around the picture in the room every card keeps (`mark`: usable = dashed `--primary`, chosen = solid `--foreground`); a row of such cards as a toolbar (roving focus), else a focusable list |
 | `Checkbox` | shadcn/ui registry (`radix-maia`, prompt 15; `motion-reduce` added) | several choices of one of Forge's questions, inside a `FieldLabel` choice card (the whole card is the touch target) |
 | `GameDecision`, `GameDecisionHeader`, `GameDecisionSource`, `GameDecisionRow`, `GameDecisionNote`, `GameDecisionActions`; `GameBoard`'s `decision` (`compact`/`tall`/`expanded`) | `src/components/ui/game-decision.tsx`, `game-board.tsx`, built the shadcn way (prompt 15) | the decision region's content: what Forge asks (the asking card as a small `GameCardButton`), a row of a question's cards at a hand's height, short lines (how many, why a button is off), the answer buttons sticking to the region's bottom; the region's growth (§4) |
+| `GameHelpButton` | built the shadcn way (prompt 23) | header turn/phase area as a 44 px contextual-help trigger; phase and turn owner are its accessible description, no extra wide icon on small phones |
 | `PhaseTrack`, `PhaseTrackGroup`, `PhaseTrackStep` | `src/components/ui/phase-track.tsx`, built the shadcn way (prompt 16) | the turn's steps in the game table's header: a bar per step (`data-state` done/current/upcoming: `--muted-foreground`, wide `--primary`, `--border`), grouped by phase; `aria-hidden` (the header's words say the step), each bar's tooltip names it |
 | `GamePlayer`, `GamePlayerButton` | `src/components/ui/game-player.tsx`, built the shadcn way (prompt 17) | a player's name and life total on their seat and in the decision region; as a button where Forge's running input takes the player (a target, a choice, life for Phyrexian mana), with the cards' marks (usable = dashed `--primary`, chosen = solid `--foreground`) drawn as an outline inside the box, so a mark takes no room and the player's bar keeps its height; shadcn's focus ring, 44 px on touch screens as a button |
 | `ActionBar` | `src/components/ui/action-bar.tsx`, built the shadcn way (prompt 10) | a page's primary action on phones: sticky right above the tab bar (`bottom-16`), at the end of the content column – on a short page too (since prompt 11 the `Page` column fills the screen and the bar is pushed to its end, `mt-auto`); pages render it only below `md` (`useIsMobile`) and put the same actions into the header above |
@@ -247,3 +248,17 @@ the word.
   against the table's surfaces (1.4.11, checked by `design-tokens.test.ts`).
   A state that needs a colour of its own later (targets, attackers - prompts
   17-19) follows the token-pair rule above.
+
+## 7. Beginner help and target emphasis (prompt 23)
+
+The turn/phase area opens the contextual help Sheet, below in portrait and to
+the side in landscape. The help scrolls inside; its footer stays reachable and
+closing restores the opener's focus. Required/optional selection words join the
+existing decision heading instead of adding a tall guidance panel.
+
+Already named stack targets use the existing `--primary` in a **double** frame,
+an explicit accessible “Ziel” label and a crosshair on player seats.
+Battlefield captions retain their original statistics space; the viewer/title names the target. No tint
+or text covers a picture. Usable dashed / selected solid frames take precedence
+while the target words remain; a target relationship alone never offers a tap.
+No new colour tokens are needed. Player seats use the same double inset outline.

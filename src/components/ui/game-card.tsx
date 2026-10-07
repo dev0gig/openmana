@@ -21,7 +21,9 @@
  *   picture, never on it - a dashed gold frame for "usable now" (the one
  *   accent for "do this", --primary), a solid parchment frame for "chosen"
  *   (--foreground). Dashed against solid tells the two apart without colour
- *   (WCAG 1.4.1); both reach 3:1 against the table (1.4.11). Every card keeps
+ *   (WCAG 1.4.1); both reach 3:1 against the table (1.4.11). Prompt 23 adds
+ *   a double gold frame for a named stack target, never an action offer.
+ *   Usable/selected frames take precedence. Every card keeps
  *   the frame's room, marked or not, so a mark never moves a row.
  * - GameCardBack: a card whose face the player may not see (Forge's hidden
  *   cards): OpenMana's own back, never Wizards' card back.
@@ -42,11 +44,12 @@ import { Toolbar as ToolbarPrimitive } from "radix-ui"
 /** How much of the card's height the caption strip takes (h-5 below). */
 const CAPTION = "h-[calc(100%-1.375rem)]"
 
-export type GameCardMark = "usable" | "selected"
+export type GameCardMark = "usable" | "selected" | "target"
 
 const MARKS: Readonly<Record<GameCardMark, string>> = {
   usable: "border-dashed border-primary",
   selected: "border-solid border-foreground",
+  target: "border-4 border-double border-primary",
 }
 
 /** Inside a button a caption is a span (figcaption belongs to a figure). */

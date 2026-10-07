@@ -302,6 +302,7 @@ function facts(card: VisibleCard, state: GameState, pile: readonly number[] | nu
   if (card.cost) list.push({ label: "Manakosten", value: card.cost })
   const shown = [...spokenFacts(card).filter((fact) => fact !== SICK_LABEL), ...captionFacts(card)]
   if (shown.length > 0) list.push({ label: "Zustand", value: shown.join(", ") })
+  if (state.stack.some((item) => item.targets.some((target) => target.kind === "card" && target.id === card.id))) list.push({ label: "Ziel auf dem Stapel", value: "Forge nennt diese Karte als Ziel. Das bietet keine zusätzliche Aktion an." })
   // Forge's summoning sickness (prompt 18): what it means, once.
   if (card.sick) list.push({ label: SICK_LABEL, value: SICK_NOTE })
   if (pile !== null && pile.length > 1) list.push({ label: "Gleiche Karten", value: `${pile.length} liegen hier als Stapel` })

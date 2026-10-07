@@ -16,7 +16,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { aiProfileLabel } from "@/game/game-labels"
 import { useNow } from "@/hooks/use-now"
 import { engineAssets } from "./engine-assets"
-import { abortTitle, BOOT_PHASE_LABELS, ENGINE_LANGUAGE_LABELS, formatMegabytes, formatSeconds, shortCommit } from "./engine-labels"
+import { abortAdvice, abortTitle, BOOT_PHASE_LABELS, ENGINE_LANGUAGE_LABELS, formatMegabytes, formatSeconds, shortCommit } from "./engine-labels"
 import type { BootStep, EngineSnapshot } from "./engine-session"
 import { useEngineSession } from "./engine-session-context"
 
@@ -143,7 +143,8 @@ function PanelBody({ snapshot, now }: { snapshot: EngineSnapshot; now: number })
             <OctagonAlert aria-hidden />
             <AlertTitle>{abortTitle(snapshot.abort)}</AlertTitle>
             <AlertDescription>
-              <span className="break-words">{snapshot.abort.message}</span>
+              <span>{abortAdvice(snapshot.abort)}</span>
+              <code className="mt-2 block text-xs break-words">{snapshot.abort.message}</code>
               {snapshot.abort.detail ? <code className="mt-2 block text-xs break-words">{snapshot.abort.detail}</code> : null}
             </AlertDescription>
           </Alert>

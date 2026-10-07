@@ -5,6 +5,8 @@
  *   npm run test:e2e                 build, then test
  *   npm run test:e2e -- --no-build   test the existing dist/
  *   npm run test:e2e -- --no-build --replay-only  imported recorded snapshots, library/file/retention checks
+ *   npm run test:e2e -- --no-build --table-only   complete table checks at all six sizes, no fresh engine boot
+ *   npm run test:e2e -- --no-build --help-only    contextual help on recorded/built scenes, no engine boot
  *   npm run test:e2e -- --no-build --history-only recorded Forge history and current sources only
  *   npm run test:e2e -- --no-build --zones-only   visible zones, piles and DFC inspection only
  *   npm run test:e2e -- --no-build --combat-only  small, sequential table checks; no engine boot or full suite
@@ -130,8 +132,10 @@ const replayOnly = process.argv.includes("--replay-only")
 const combatOnly = process.argv.includes("--combat-only")
 const zonesOnly = process.argv.includes("--zones-only")
 const historyOnly = process.argv.includes("--history-only")
-const focusedTable = combatOnly || zonesOnly || historyOnly
-const reportDir = path.join(root, "reports", replayOnly ? "replay-e2e" : combatOnly ? "combat-e2e" : zonesOnly ? "zones-e2e" : historyOnly ? "history-e2e" : "e2e")
+const helpOnly = process.argv.includes("--help-only")
+const tableOnly = process.argv.includes("--table-only")
+const focusedTable = combatOnly || zonesOnly || historyOnly || helpOnly
+const reportDir = path.join(root, "reports", replayOnly ? "replay-e2e" : tableOnly ? "table-e2e" : helpOnly ? "help-e2e" : combatOnly ? "combat-e2e" : zonesOnly ? "zones-e2e" : historyOnly ? "history-e2e" : "e2e")
 const require = createRequire(import.meta.url)
 
 interface Viewport {
@@ -1815,17 +1819,21 @@ async function startNote(page: Page): Promise<string> {
 }
 
 /** Engine workers alive at the same time in a page, from now on: never more than one (one engine, about 1 GB). */
-function countWorkers(page: Page): { readonly max: () => number; readonly alive: () => number; readonly created: () => number } {
+function countWorkers(page: Page): { readonly max: () => number; readonly alive: () => number; readonly created: () => number; readonly trace: () => readonly Record<string, unknown>[] } {
   const alive = new Set<unknown>()
+  const trace: Record<string, unknown>[] = []
+  page.on("framenavigated", (frame) => { if (frame === page.mainFrame()) trace.push({ event: "navigation", at: Date.now(), url: frame.url(), reportedAlive: alive.size }) })
   let max = 0
   let created = 0
   page.on("worker", (worker) => {
     alive.add(worker)
     created++
     max = Math.max(max, alive.size)
-    worker.on("close", () => alive.delete(worker))
+    const number = created
+    trace.push({ event: "created", at: Date.now(), number, url: worker.url(), document: page.url(), reportedAlive: alive.size })
+    worker.on("close", () => { alive.delete(worker); trace.push({ event: "closed", at: Date.now(), number, reportedAlive: alive.size }) })
   })
-  return { max: () => max, alive: () => alive.size, created: () => created }
+  return { max: () => max, alive: () => alive.size, created: () => created, trace: () => trace }
 }
 
 /** Picks a deck in one of the two choice dialogs (an option's name is the deck's, plus "gewählt" if it is the current one). */
@@ -2248,7 +2256,7 @@ async function playRealGame(page: Page, label: string, touch = false): Promise<R
     check(!words.startsWith("Priorität:") && words.endsWith("oder weitergeben."), `${label}: the priority says "${words}"`)
     track = await tableHeader(page).locator('[data-slot="phase-track"]').getAttribute("data-phase")
     const current = await tableHeader(page).locator('[data-slot="phase-track-step"][data-state="current"]').getAttribute("title")
-    const line = ((await tableHeader(page).locator("p").first().textContent()) ?? "").trim()
+    const line = ((await tableHeader(page).getByRole("button", { name: "Hilfe am Spieltisch", exact: true }).locator("span[id][title]").textContent()) ?? "").trim()
     check(track !== null && current !== null && line.endsWith(current), `${label}: the header's track (${track}, ${current}) and words (${line}) disagree`)
     await press("Weiter", question)
   }
@@ -2329,6 +2337,7 @@ async function gameSession(browser: Browser, page: Page, pageLog: PageLog, base:
   const table: Record<string, unknown> = { desktop: await checkTableFits(page, "game table (desktop)") }
   results["table"] = table
   results["tablePictures"] = await tablePictures(page, "game table (desktop)")
+  results["help"] = await helpInteractions(page, "live-desktop", VIEWPORTS[2]!, true)
   const commanders = await page.locator('section[aria-label="Dein Spielfeld"] [data-slot="game-card"]').evaluateAll((figures) =>
     figures
       .filter((figure) => (figure.querySelector('[data-slot="game-card-caption"]')?.getAttribute("title") ?? "").endsWith("Kommandozone"))
@@ -2430,7 +2439,7 @@ async function gameSession(browser: Browser, page: Page, pageLog: PageLog, base:
   results["reloadDialog"] = dialogType
   check(dialogType === "beforeunload", `game: reloading during a game did not ask first (${dialogType})`)
   check(workers.max() <= 1, `game: ${workers.max()} engines at the same time`)
-  results["workers"] = { created: workers.created(), maxAtOnce: workers.max() }
+  results["workers"] = { created: workers.created(), maxAtOnce: workers.max(), trace: workers.trace() }
   for (const error of pageLog.errors.slice(errorsBefore)) check(false, `game: ${error}`)
 
   // 7.-8. Failures in a fresh profile: a boot that fails, and a deck Forge refuses.
@@ -2519,7 +2528,7 @@ async function gameFailures(browser: Browser, base: string, id: string, decks: r
     await startAndWait(page)
     check(engineWorkerRequests(pageLog, id) === workerScripts, "game failures: the refused game's engine was not used for the next game")
     await concedeGame(page)
-    results["workers"] = { created: workers.created(), maxAtOnce: workers.max() }
+    results["workers"] = { created: workers.created(), maxAtOnce: workers.max(), trace: workers.trace() }
     check(workers.max() <= 1, `game failures: ${workers.max()} engines at the same time`)
     // The server error of 7 was the test's; anything else is a failure.
     for (const error of pageLog.errors.filter((e) => !(e.includes(wasm) && /\[http 500\]|Failed to load resource/.test(e)))) check(false, `game failures: ${error}`)
@@ -2547,6 +2556,7 @@ async function gamePhone(browser: Browser, base: string, decks: readonly SavedDe
     // The table on the phone: the whole screen (no tab bar), every region in view, a 44 px menu button.
     results["table"] = await checkTableFits(page, "game table (phone)")
     results["tablePictures"] = await tablePictures(page, "game table (phone)")
+    results["help"] = await helpInteractions(page, "live-phone", VIEWPORTS[0]!, true)
     const menuHeight = await layoutHeight(tableHeader(page).getByRole("button", { name: /^Menü/ }))
     check(menuHeight >= 44, `game table (phone): the menu button ${menuHeight}px high`)
     results["playingAxe"] = await accessibility(page, "game (phone): running")
@@ -2720,7 +2730,7 @@ async function preferences(browser: Browser, base: string, id: string, decks: re
     results["drawnBadges"] = drawnBadges
     check(/^(Standard|Vorsichtig|Waghalsig|Experimentell) \(zufällig\)$/.test(drawnBadges[0] ?? ""), `preferences: the drawn profile ${JSON.stringify(drawnBadges)}`)
     await concedeGame(page)
-    results["workers"] = { created: workers.created(), maxAtOnce: workers.max() }
+    results["workers"] = { created: workers.created(), maxAtOnce: workers.max(), trace: workers.trace() }
     check(workers.max() <= 1, `preferences: ${workers.max()} engines at the same time`)
 
     // 7. Less motion: the dialogs animate by default; not with the setting.
@@ -2986,51 +2996,99 @@ async function closeCardView(page: Page): Promise<void> {
   await page.waitForFunction(() => document.querySelector('[role="dialog"]') === null)
 }
 
-/** Real recorded Forge logs, checked byte-for-byte, with current source inspection. */
-async function historyInteractions(page: Page, base: string, viewport: Viewport): Promise<Record<string, unknown>> {
-  const label = `history (${viewport.name})`
-  await page.goto(new URL("/scripts/e2e/table-harness.html?scene=main-phase", base).href, { waitUntil: "domcontentloaded" })
-  await page.locator('[data-harness="table"]').waitFor({ timeout: 300_000 })
-  const trigger = page.getByRole("button", { name: "Spielverlauf ansehen" })
+/** Prompt 23: actual help Sheet, scroll/footer, focus and no accepted game input. */
+async function helpInteractions(page: Page, label: string, viewport: Viewport, live = false): Promise<Record<string, unknown>> {
+  const beforeQuestion = await page.locator('[data-slot="game-decision"]').getAttribute("data-question")
+  const before = live ? (await dumpDatabase(page))["matchLog"] : null
+  const trigger = page.getByRole("button", { name: "Hilfe am Spieltisch", exact: true })
   await trigger.click()
-  const sheet = page.getByRole("dialog", { name: "Spielverlauf", exact: true })
+  const sheet = page.getByRole("dialog", { name: "Hilfe am Spieltisch", exact: true })
   await sheet.waitFor()
-  const recording = JSON.parse(fs.readFileSync(path.join(root, "src/test/fixtures/table-scenes.json"), "utf8")) as { scenes: { name: string; history: { text: string | null; actor?: string; kind: string; card?: number }[] }[] }
-  const expected = recording.scenes.find((scene) => scene.name === "main-phase")!.history
-  check(expected.length > 20, `${label}: a real long log was not recorded`)
-  const rows = sheet.locator("[data-history-entry]")
-  const texts = await rows.locator('[data-slot="item-description"]').allTextContents()
-  check(JSON.stringify(texts) === JSON.stringify(expected.map((entry) => entry.text === null || entry.text.trim() === "" ? "Forge liefert für diesen Eintrag keinen Text." : entry.text)), `${label}: the full chronological Forge texts differ`)
-  const titleTexts = await rows.locator('[data-slot="item-title"]').allTextContents()
-  check(titleTexts.every((text, i) => text.startsWith(expected[i]!.actor === "me" ? "Du" : expected[i]!.actor === "opponent" ? "Forge-KI" : "Nicht zugeordnet")), `${label}: actors differ from structured log data`)
-  const axe = await accessibility(page, label)
-  const jump = sheet.getByRole("button", { name: "Neueste Einträge" })
-  await jump.click()
+  check(await sheet.getByText("Aktuelle Entscheidung", { exact: true }).count() === 1, `${label}: contextual decision missing`)
+  const region = sheet.getByRole("region", { name: "Spielhilfe" })
+  const text = await region.textContent()
+  for (const term of ["Priorität", "Stapel", "Ziel und Quelle", "Getappt", "Einsatzverzögerung", "Mulligan", "Mana und Kosten"]) check(await sheet.getByText(term, { exact: true }).count() === 1, `${label}: missing terminology ${term}`)
+  const axe = await accessibility(page, `${label}: help`)
+  await page.screenshot({ path: path.join(reportDir, "screens", `help-context-${label.replace(/[^a-zA-Z0-9_-]/g, "_")}.png`) })
   const close = sheet.getByRole("button", { name: "Schließen", exact: true })
   const box = await close.boundingBox()
-  check(box !== null && box.y >= 0 && box.y + box.height <= viewport.height + 1, `${label}: close button outside the screen`)
-  const scroll = await sheet.locator("[data-history-scroll]").evaluate((node) => ({ top: node.scrollTop, height: node.clientHeight, total: node.scrollHeight }))
-  check(scroll.top > 0 && scroll.total > scroll.height, `${label}: the long log did not scroll to latest entries`)
-  await page.screenshot({ path: path.join(reportDir, "screens", `history-${viewport.name}.png`) })
-  const source = sheet.locator("[data-history-card]").first()
-  check(await source.count() === 1, `${label}: no resolvable source card`)
-  const sourceName = await source.textContent()
-  await source.click()
-  const card = page.getByRole("dialog").last()
-  await card.waitFor()
-  check(await card.getByRole("button", { name: /Spiele|Aktiviere/ }).count() === 0, `${label}: history inspection offers game input`)
-  const cardAxe = await accessibility(page, `${label}: source card`)
-  await card.getByRole("button", { name: "Schließen", exact: true }).click()
-  await sheet.waitFor()
-  check(await source.evaluate((node) => node === document.activeElement), `${label}: source focus not restored`)
-  const inputs = await page.evaluate(() => { const recorder = window as unknown as { __openmanaTaps?: unknown[]; __openmanaAnswers?: unknown[]; __openmanaPlayerTaps?: unknown[]; __openmanaMana?: unknown[] }; return { taps: recorder.__openmanaTaps ?? [], answers: recorder.__openmanaAnswers ?? [], players: recorder.__openmanaPlayerTaps ?? [], mana: recorder.__openmanaMana ?? [] } })
-  check(Object.values(inputs).every((values) => values.length === 0), `${label}: history inspection sent input ${JSON.stringify(inputs)}`)
+  check(box !== null && box.y >= 0 && box.y + box.height <= viewport.height + 1, `${label}: help footer outside screen`)
+  await region.evaluate((node) => { node.scrollTop = node.scrollHeight })
+  const scroll = await region.evaluate((node) => ({ top: node.scrollTop, height: node.clientHeight, total: node.scrollHeight }))
+  check(scroll.total <= scroll.height || scroll.top > 0, `${label}: help cannot scroll`)
+  await page.screenshot({ path: path.join(reportDir, "screens", `help-${label.replace(/[^a-zA-Z0-9_-]/g, "_")}.png`) })
   await close.click()
   await sheet.waitFor({ state: "hidden" })
-  check(await trigger.evaluate((node) => node === document.activeElement), `${label}: trigger focus not restored`)
+  check(await trigger.evaluate((node) => document.activeElement === node), `${label}: help focus not restored`)
+  check(await page.locator('[data-slot="game-decision"]').getAttribute("data-question") === beforeQuestion, `${label}: help changed the pending question`)
   const touchTarget = await layoutHeight(trigger)
-  if (viewport.touch) check(touchTarget >= 44, `${label}: history trigger is only ${touchTarget}px high`)
-  return { entries: expected.length, rawTextsEqual: true, sourceName, scroll, axe, cardAxe, inputs, touchTarget }
+  if (viewport.touch) check(touchTarget >= 44, `${label}: help trigger only ${touchTarget}px`)
+  let noInput: boolean
+  if (live) {
+    const after = (await dumpDatabase(page))["matchLog"]
+    noInput = JSON.stringify(before) === JSON.stringify(after)
+  } else {
+    noInput = await page.evaluate(() => {
+      const recorder = window as unknown as { __openmanaTaps?: unknown[]; __openmanaAnswers?: unknown[]; __openmanaPlayerTaps?: unknown[]; __openmanaMana?: unknown[] }
+      return [recorder.__openmanaTaps, recorder.__openmanaAnswers, recorder.__openmanaPlayerTaps, recorder.__openmanaMana].every((values) => values === undefined || values.length === 0)
+    })
+  }
+  check(noInput, `${label}: help sent game input`)
+  return { context: text, beforeQuestion, noInput, live, axe, scroll, touchTarget, footer: box }
+}
+
+/** Real recorded Forge logs, checked byte-for-byte, with current source inspection. */
+async function historyInteractions(parent: Page, base: string, viewport: Viewport): Promise<Record<string, unknown>> {
+  const page = await parent.context().newPage()
+  const pageLog = watch(page)
+  try {
+    const label = `history (${viewport.name})`
+    await page.goto(new URL("/scripts/e2e/table-harness.html?scene=main-phase", base).href, { waitUntil: "domcontentloaded" })
+    await page.locator('[data-harness="table"]').waitFor({ timeout: 300_000 })
+    const trigger = page.getByRole("button", { name: "Spielverlauf ansehen" })
+    await trigger.click()
+    const sheet = page.getByRole("dialog", { name: "Spielverlauf", exact: true })
+    await sheet.waitFor()
+    const recording = JSON.parse(fs.readFileSync(path.join(root, "src/test/fixtures/table-scenes.json"), "utf8")) as { scenes: { name: string; history: { text: string | null; actor?: string; kind: string; card?: number }[] }[] }
+    const expected = recording.scenes.find((scene) => scene.name === "main-phase")!.history
+    check(expected.length > 20, `${label}: a real long log was not recorded`)
+    const rows = sheet.locator("[data-history-entry]")
+    const texts = await rows.locator('[data-slot="item-description"]').allTextContents()
+    check(JSON.stringify(texts) === JSON.stringify(expected.map((entry) => entry.text === null || entry.text.trim() === "" ? "Forge liefert für diesen Eintrag keinen Text." : entry.text)), `${label}: the full chronological Forge texts differ`)
+    const titleTexts = await rows.locator('[data-slot="item-title"]').allTextContents()
+    check(titleTexts.every((text, i) => text.startsWith(expected[i]!.actor === "me" ? "Du" : expected[i]!.actor === "opponent" ? "Forge-KI" : "Nicht zugeordnet")), `${label}: actors differ from structured log data`)
+    const axe = await accessibility(page, label)
+    const jump = sheet.getByRole("button", { name: "Neueste Einträge" })
+    await jump.click()
+    const close = sheet.getByRole("button", { name: "Schließen", exact: true })
+    const box = await close.boundingBox()
+    check(box !== null && box.y >= 0 && box.y + box.height <= viewport.height + 1, `${label}: close button outside the screen`)
+    const scroll = await sheet.locator("[data-history-scroll]").evaluate((node) => ({ top: node.scrollTop, height: node.clientHeight, total: node.scrollHeight }))
+    check(scroll.top > 0 && scroll.total > scroll.height, `${label}: the long log did not scroll to latest entries`)
+    await page.screenshot({ path: path.join(reportDir, "screens", `history-${viewport.name}.png`) })
+    const source = sheet.locator("[data-history-card]").first()
+    check(await source.count() === 1, `${label}: no resolvable source card`)
+    const sourceName = await source.textContent()
+    await source.click()
+    const card = page.getByRole("dialog").last()
+    await card.waitFor()
+    check(await card.getByRole("button", { name: /Spiele|Aktiviere/ }).count() === 0, `${label}: history inspection offers game input`)
+    const cardAxe = await accessibility(page, `${label}: source card`)
+    await card.getByRole("button", { name: "Schließen", exact: true }).click()
+    await sheet.waitFor()
+    check(await source.evaluate((node) => node === document.activeElement), `${label}: source focus not restored`)
+    const inputs = await page.evaluate(() => { const recorder = window as unknown as { __openmanaTaps?: unknown[]; __openmanaAnswers?: unknown[]; __openmanaPlayerTaps?: unknown[]; __openmanaMana?: unknown[] }; return { taps: recorder.__openmanaTaps ?? [], answers: recorder.__openmanaAnswers ?? [], players: recorder.__openmanaPlayerTaps ?? [], mana: recorder.__openmanaMana ?? [] } })
+    check(Object.values(inputs).every((values) => values.length === 0), `${label}: history inspection sent input ${JSON.stringify(inputs)}`)
+    await close.click()
+    await sheet.waitFor({ state: "hidden" })
+    check(await trigger.evaluate((node) => node === document.activeElement), `${label}: trigger focus not restored`)
+    const touchTarget = await layoutHeight(trigger)
+    if (viewport.touch) check(touchTarget >= 44, `${label}: history trigger is only ${touchTarget}px high`)
+    return { entries: expected.length, rawTextsEqual: true, sourceName, scroll, axe, cardAxe, inputs, touchTarget }
+  } finally {
+    for (const error of pageLog.errors) check(false, `history (${viewport.name}): ${error}`)
+    await page.close()
+  }
 }
 
 /**
@@ -3048,135 +3106,150 @@ async function historyInteractions(page: Page, base: string, viewport: Viewport)
  *  - the keyboard (desktop): arrow keys, End and Home within the hand, Enter
  *    looks, Escape returns to the card.
  */
-async function tableInteractions(page: Page, base: string, viewport: Viewport): Promise<Record<string, unknown>> {
-  const label = `game table (${viewport.name})`
-  const results: Record<string, unknown> = {}
-  const landscape = viewport.width > viewport.height
+async function tableInteractions(parent: Page, base: string, viewport: Viewport): Promise<Record<string, unknown>> {
+  let page = await parent.context().newPage()
+  let sceneLog: PageLog | null = null
+  const sceneErrors = () => { for (const error of sceneLog?.errors ?? []) check(false, `game table (${viewport.name}): ${error}`) }
+  const scene = async (name: string) => {
+    sceneErrors()
+    await page.close()
+    page = await parent.context().newPage()
+    sceneLog = watch(page)
+    await openScene(page, base, name)
+  }
+  try {
+    const label = `game table (${viewport.name})`
+    const results: Record<string, unknown> = {}
+    const landscape = viewport.width > viewport.height
 
-  // Priority: look first, the view's button taps - armed.
-  await openScene(page, base, "main-phase")
-  const land = page.locator('button[data-card="25"]')
-  if (viewport.touch) await land.tap()
-  else await land.click()
-  const view = page.getByRole("dialog", { name: "Gebirge" })
-  await view.waitFor()
-  const side = await page.locator('[data-slot="sheet-content"]').getAttribute("data-side")
-  check(side === (landscape ? "right" : "bottom"), `${label}: the card view comes from "${side}"`)
-  check((await harnessTaps(page)).length === 0, `${label}: looking at the land tapped it`)
-  await animationsDone(view)
-  results["viewAxe"] = await accessibility(page, `${label}: card view`)
-  await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-card-view.png`) })
-  const tapHeight = await layoutHeight(view.getByRole("button", { name: "Spiele ein Land" }))
-  if (viewport.touch) check(tapHeight >= 44, `${label}: the card view's tap button ${tapHeight}px high`)
-  await closeCardView(page)
-  // A double tap's second touch lands on the button that just appeared: it must not tap.
-  await page.evaluate(async () => {
-    document.querySelector<HTMLButtonElement>('button[data-card="25"]')!.click()
-    await new Promise((resolve) => requestAnimationFrame(resolve))
-    ;[...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find((button) => button.textContent === "Spiele ein Land")!.click()
-  })
-  check((await harnessTaps(page)).length === 0, `${label}: the view's button tapped right after it appeared`)
-  await page.waitForTimeout(600)
-  await view.getByRole("button", { name: "Spiele ein Land" }).click()
-  await page.waitForFunction(() => document.querySelector('[role="dialog"]') === null)
-  const armedTaps = await harnessTaps(page)
-  check(armedTaps.join() === "25", `${label}: the armed button tapped ${JSON.stringify(armedTaps)}`)
-  if (!viewport.touch) {
-    await land.dblclick()
+    // Priority: look first, the view's button taps - armed.
+    await scene("main-phase")
+    const land = page.locator('button[data-card="25"]')
+    if (viewport.touch) await land.tap()
+    else await land.click()
+    const view = page.getByRole("dialog", { name: "Gebirge" })
     await view.waitFor()
-    await page.waitForTimeout(300)
-    check(await view.isVisible(), `${label}: a double click on a card closed its view again`)
-    check((await harnessTaps(page)).join() === "25", `${label}: a double click on a card tapped it`)
+    const side = await page.locator('[data-slot="sheet-content"]').getAttribute("data-side")
+    check(side === (landscape ? "right" : "bottom"), `${label}: the card view comes from "${side}"`)
+    check((await harnessTaps(page)).length === 0, `${label}: looking at the land tapped it`)
+    await animationsDone(view)
+    results["viewAxe"] = await accessibility(page, `${label}: card view`)
+    await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-card-view.png`) })
+    const tapHeight = await layoutHeight(view.getByRole("button", { name: "Spiele ein Land" }))
+    if (viewport.touch) check(tapHeight >= 44, `${label}: the card view's tap button ${tapHeight}px high`)
     await closeCardView(page)
-  }
-  results["priority"] = { side, tapHeight, taps: armedTaps }
-
-  // The stack (prompt 16): a card on it opens the card view - where it is, how far from the top -, to look at, never to tap.
-  await openScene(page, base, "respond-own")
-  const lower = page.locator("[data-stack-item]").nth(1).locator("button[data-stack-card]")
-  const lowerName = ((await lower.getAttribute("aria-label")) ?? "").replace(/ ansehen$/, "")
-  if (viewport.touch) await lower.tap()
-  else await lower.click()
-  const stackView = page.getByRole("dialog", { name: lowerName })
-  await stackView.waitFor()
-  const onStack = ((await stackView.getByRole("region", { name: "Auf dem Stapel" }).textContent()) ?? "").trim()
-  check(onStack.startsWith("Auf dem Stapel: Zauberspruch von der Forge-KI – 1 Eintrag liegt darüber."), `${label}: the stack card's view says "${onStack}"`)
-  const stackButtons = await stackView.getByRole("button").allTextContents()
-  check(stackButtons.join() === "Schließen", `${label}: the view of a card on the stack offers ${JSON.stringify(stackButtons)}`)
-  await animationsDone(stackView)
-  results["stackViewAxe"] = await accessibility(page, `${label}: card view of a card on the stack`)
-  await closeCardView(page)
-  check((await harnessTaps(page)).length === 0 && (await harnessAnswers(page)).length === 0, `${label}: looking at a card on the stack sent something`)
-  const stackCard = await layoutHeight(lower)
-  results["stack"] = { card: lowerName, view: onStack, height: stackCard }
-
-  // Blocking: a tap acts at once (a double one once); a right click or long press looks.
-  await openScene(page, base, "defend")
-  const blocker = page.locator('button[data-card="58"]')
-  if (viewport.touch) await blocker.tap()
-  else await blocker.click()
-  await page.waitForTimeout(100)
-  check((await harnessTaps(page)).join() === "58" && (await page.getByRole("dialog").count()) === 0, `${label}: a tap on the blocker ${JSON.stringify(await harnessTaps(page))}`)
-  await page.waitForTimeout(600)
-  if (!viewport.touch) {
-    await blocker.dblclick()
-    await page.waitForTimeout(100)
-    check((await harnessTaps(page)).join() === "58,58", `${label}: a double click on the blocker ${JSON.stringify(await harnessTaps(page))}`)
-    await blocker.click({ button: "right" })
-  } else {
-    await touch(page, blocker, { holdMs: 900 })
-  }
-  await page.getByRole("dialog").waitFor()
-  const blockTaps = await harnessTaps(page)
-  check(blockTaps.length === (viewport.touch ? 1 : 2), `${label}: looking at the blocker (${viewport.touch ? "long press" : "right click"}) tapped it ${JSON.stringify(blockTaps)}`)
-  await closeCardView(page)
-  results["block"] = { taps: blockTaps }
-
-  // A swipe along a full row (a phone with fourteen attackers): the row scrolls, nothing is looked at or tapped.
-  if (viewport.touch && viewport.width < 768) {
-    await openScene(page, base, "commander-late")
-    const row = page.getByRole("toolbar", { name: /^Kreaturen von dir|^Bleibende Karten von dir/ })
-    const before = await row.evaluate((element) => element.scrollLeft)
-    await touch(page, row.locator('button[data-slot="game-card"]').nth(1), { moveX: -160 })
-    await page.waitForTimeout(400)
-    const after = await row.evaluate((element) => element.scrollLeft)
-    check(after > before, `${label}: the swipe did not scroll the row (${before} → ${after})`)
-    check((await page.getByRole("dialog").count()) === 0 && (await harnessTaps(page)).length === 0, `${label}: the swipe looked or tapped`)
-    results["swipe"] = { before, after }
-  }
-
-  // The keyboard: one stop per row, the arrow keys inside it, Enter looks, Escape returns.
-  if (!viewport.touch) {
-    await openScene(page, base, "opening")
-    const hand = page.getByRole("toolbar", { name: "Deine Hand: 7 Karten" })
-    const cards = hand.getByRole("button")
-    await cards.first().focus()
-    const focusedCard = () => page.evaluate(() => document.activeElement?.getAttribute("data-card") ?? null)
-    const ids = await cards.evaluateAll((buttons) => buttons.map((button) => button.getAttribute("data-card")))
-    // Radix moves the focus a tick after the key: wait for the card expected, then read where it is.
-    const press = async (key: string, expected: string | null | undefined) => {
-      await page.keyboard.press(key)
-      await page.waitForFunction((id) => document.activeElement?.getAttribute("data-card") === id, expected ?? null, { timeout: 2000 }).catch(() => undefined)
-      return focusedCard()
+    // A double tap's second touch lands on the button that just appeared: it must not tap.
+    await page.evaluate(async () => {
+      document.querySelector<HTMLButtonElement>('button[data-card="25"]')!.click()
+      await new Promise((resolve) => requestAnimationFrame(resolve))
+      ;[...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find((button) => button.textContent === "Spiele ein Land")!.click()
+    })
+    check((await harnessTaps(page)).length === 0, `${label}: the view's button tapped right after it appeared`)
+    await page.waitForTimeout(600)
+    await view.getByRole("button", { name: "Spiele ein Land" }).click()
+    await page.waitForFunction(() => document.querySelector('[role="dialog"]') === null)
+    const armedTaps = await harnessTaps(page)
+    check(armedTaps.join() === "25", `${label}: the armed button tapped ${JSON.stringify(armedTaps)}`)
+    if (!viewport.touch) {
+      await land.dblclick()
+      await view.waitFor()
+      await page.waitForTimeout(300)
+      check(await view.isVisible(), `${label}: a double click on a card closed its view again`)
+      check((await harnessTaps(page)).join() === "25", `${label}: a double click on a card tapped it`)
+      await closeCardView(page)
     }
-    const second = await press("ArrowRight", ids[1])
-    const last = await press("End", ids[6])
-    const first = await press("Home", ids[0])
-    check(second === ids[1] && last === ids[6] && first === ids[0], `${label}: arrow keys in the hand ${JSON.stringify({ second, last, first, ids })}`)
-    await page.keyboard.press("Enter")
-    await page.getByRole("dialog").waitFor()
-    const inView = await page.evaluate(() => document.activeElement?.getAttribute("role"))
+    results["priority"] = { side, tapHeight, taps: armedTaps }
+
+    // The stack (prompt 16): a card on it opens the card view - where it is, how far from the top -, to look at, never to tap.
+    await scene("respond-own")
+    const lower = page.locator("[data-stack-item]").nth(1).locator("button[data-stack-card]")
+    const lowerName = ((await lower.getAttribute("aria-label")) ?? "").replace(/ ansehen$/, "")
+    if (viewport.touch) await lower.tap()
+    else await lower.click()
+    const stackView = page.getByRole("dialog", { name: lowerName })
+    await stackView.waitFor()
+    const onStack = ((await stackView.getByRole("region", { name: "Auf dem Stapel" }).textContent()) ?? "").trim()
+    check(onStack.startsWith("Auf dem Stapel: Zauberspruch von der Forge-KI – 1 Eintrag liegt darüber."), `${label}: the stack card's view says "${onStack}"`)
+    const stackButtons = await stackView.getByRole("button").allTextContents()
+    check(stackButtons.join() === "Schließen", `${label}: the view of a card on the stack offers ${JSON.stringify(stackButtons)}`)
+    await animationsDone(stackView)
+    results["stackViewAxe"] = await accessibility(page, `${label}: card view of a card on the stack`)
     await closeCardView(page)
-    await page.waitForFunction((id) => document.activeElement?.getAttribute("data-card") === id, ids[0] ?? null, { timeout: 2000 }).catch(() => undefined)
-    const back = await focusedCard()
-    check(inView === "dialog" && back === ids[0], `${label}: Enter looks (${inView}), Escape returns (${back})`)
-    await page.keyboard.press("Tab")
-    const next = await page.evaluate(() => document.activeElement?.closest('[data-slot="game-card-row"]')?.getAttribute("aria-label") ?? document.activeElement?.tagName ?? null)
-    check(next !== "Deine Hand: 7 Karten", `${label}: Tab stayed in the hand (${next})`)
-    check((await harnessTaps(page)).length === 0, `${label}: the keyboard tapped a card`)
-    results["keyboard"] = { second, last, first, inView, back, afterTab: next }
+    check((await harnessTaps(page)).length === 0 && (await harnessAnswers(page)).length === 0, `${label}: looking at a card on the stack sent something`)
+    const stackCard = await layoutHeight(lower)
+    results["stack"] = { card: lowerName, view: onStack, height: stackCard }
+
+    // Blocking: a tap acts at once (a double one once); a right click or long press looks.
+    await scene("defend")
+    const blocker = page.locator('button[data-card="58"]')
+    if (viewport.touch) await blocker.tap()
+    else await blocker.click()
+    await page.waitForTimeout(100)
+    check((await harnessTaps(page)).join() === "58" && (await page.getByRole("dialog").count()) === 0, `${label}: a tap on the blocker ${JSON.stringify(await harnessTaps(page))}`)
+    await page.waitForTimeout(600)
+    if (!viewport.touch) {
+      await blocker.dblclick()
+      await page.waitForTimeout(100)
+      check((await harnessTaps(page)).join() === "58,58", `${label}: a double click on the blocker ${JSON.stringify(await harnessTaps(page))}`)
+      await blocker.click({ button: "right" })
+    } else {
+      await touch(page, blocker, { holdMs: 900 })
+    }
+    await page.getByRole("dialog").waitFor()
+    const blockTaps = await harnessTaps(page)
+    check(blockTaps.length === (viewport.touch ? 1 : 2), `${label}: looking at the blocker (${viewport.touch ? "long press" : "right click"}) tapped it ${JSON.stringify(blockTaps)}`)
+    await closeCardView(page)
+    results["block"] = { taps: blockTaps }
+
+    // A swipe along a full row (a phone with fourteen attackers): the row scrolls, nothing is looked at or tapped.
+    if (viewport.touch && viewport.width < 768) {
+      await scene("commander-late")
+      const row = page.getByRole("toolbar", { name: /^Kreaturen von dir|^Bleibende Karten von dir/ })
+      const before = await row.evaluate((element) => element.scrollLeft)
+      await touch(page, row.locator('button[data-slot="game-card"]').nth(1), { moveX: -160 })
+      await page.waitForTimeout(400)
+      const after = await row.evaluate((element) => element.scrollLeft)
+      check(after > before, `${label}: the swipe did not scroll the row (${before} → ${after})`)
+      check((await page.getByRole("dialog").count()) === 0 && (await harnessTaps(page)).length === 0, `${label}: the swipe looked or tapped`)
+      results["swipe"] = { before, after }
+    }
+
+    // The keyboard: one stop per row, the arrow keys inside it, Enter looks, Escape returns.
+    if (!viewport.touch) {
+      await scene("opening")
+      const hand = page.getByRole("toolbar", { name: "Deine Hand: 7 Karten" })
+      const cards = hand.getByRole("button")
+      await cards.first().focus()
+      const focusedCard = () => page.evaluate(() => document.activeElement?.getAttribute("data-card") ?? null)
+      const ids = await cards.evaluateAll((buttons) => buttons.map((button) => button.getAttribute("data-card")))
+      // Radix moves the focus a tick after the key: wait for the card expected, then read where it is.
+      const press = async (key: string, expected: string | null | undefined) => {
+        await page.keyboard.press(key)
+        await page.waitForFunction((id) => document.activeElement?.getAttribute("data-card") === id, expected ?? null, { timeout: 2000 }).catch(() => undefined)
+        return focusedCard()
+      }
+      const second = await press("ArrowRight", ids[1])
+      const last = await press("End", ids[6])
+      const first = await press("Home", ids[0])
+      check(second === ids[1] && last === ids[6] && first === ids[0], `${label}: arrow keys in the hand ${JSON.stringify({ second, last, first, ids })}`)
+      await page.keyboard.press("Enter")
+      await page.getByRole("dialog").waitFor()
+      const inView = await page.evaluate(() => document.activeElement?.getAttribute("role"))
+      await closeCardView(page)
+      await page.waitForFunction((id) => document.activeElement?.getAttribute("data-card") === id, ids[0] ?? null, { timeout: 2000 }).catch(() => undefined)
+      const back = await focusedCard()
+      check(inView === "dialog" && back === ids[0], `${label}: Enter looks (${inView}), Escape returns (${back})`)
+      await page.keyboard.press("Tab")
+      const next = await page.evaluate(() => document.activeElement?.closest('[data-slot="game-card-row"]')?.getAttribute("aria-label") ?? document.activeElement?.tagName ?? null)
+      check(next !== "Deine Hand: 7 Karten", `${label}: Tab stayed in the hand (${next})`)
+      check((await harnessTaps(page)).length === 0, `${label}: the keyboard tapped a card`)
+      results["keyboard"] = { second, last, first, inView, back, afterTab: next }
+    }
+    return results
+  } finally {
+    sceneErrors()
+    await page.close()
   }
-  return results
 }
 
 /** The answers the harness's table gave so far (window.__openmanaAnswers: question id and answer). */
@@ -3409,7 +3482,7 @@ async function decisionInteractions(page: Page, base: string, viewport: Viewport
  * to their row (a full row scrolls sideways), pictures load, touch targets,
  * axe-core.
  */
-async function tableHarness(browser: Browser): Promise<Record<string, unknown>> {
+async function tableHarness(executablePath: string): Promise<Record<string, unknown>> {
   log("Game table (recorded real scenes in the real table, every size)")
   const server = await createServer({ root, configFile: path.join(root, "vite.config.ts"), logLevel: "warn", server: { host: "127.0.0.1", port: 0 } })
   await server.listen()
@@ -3419,11 +3492,15 @@ async function tableHarness(browser: Browser): Promise<Record<string, unknown>> 
   try {
     for (const viewport of focusedTable ? TABLE_VIEWPORTS.filter((v) => DECISION_VIEWPORTS.includes(v.name)) : TABLE_VIEWPORTS) {
       log(`  ${viewport.name} (${viewport.width}x${viewport.height}${viewport.touch ? ", touch" : ""})`)
-      const context = await newContext(browser, viewport)
+      // Bound Chromium's lifetime per viewport: closing pages/contexts alone did
+      // not prevent ERR_INSUFFICIENT_RESOURCES after hundreds of dev-module loads.
+      // Every scene, interaction and request-error assertion still runs.
+      const tableBrowser = await launchBrowser(executablePath)
+      const context = await newContext(tableBrowser, viewport)
       const scenes: Record<string, unknown> = {}
       try {
-        const selectedScenes = historyOnly ? TABLE_SCENES.filter((scene) => ["opening", "main-phase", "stack", "commander-late"].includes(scene)) : zonesOnly ? TABLE_SCENES.filter((scene) => ["opening", "main-phase", "command-effects", "commander-late", "stack", "block-multiple"].includes(scene)) : combatOnly ? TABLE_SCENES.filter((scene) => ["defend", "block-start", "block-multiple", "blockers", "damage", "attack-declared"].includes(scene)) : TABLE_SCENES
-        const selectedBuilt = historyOnly ? [] : zonesOnly ? [] : combatOnly ? BUILT_SCENES.filter((built) => built === "block-order") : BUILT_SCENES
+        const selectedScenes = helpOnly ? TABLE_SCENES.filter((scene) => ["opening", "main-phase", "stack", "target", "attack-declared", "block-multiple"].includes(scene)) : historyOnly ? TABLE_SCENES.filter((scene) => ["opening", "main-phase", "stack", "commander-late"].includes(scene)) : zonesOnly ? TABLE_SCENES.filter((scene) => ["opening", "main-phase", "command-effects", "commander-late", "stack", "block-multiple"].includes(scene)) : combatOnly ? TABLE_SCENES.filter((scene) => ["defend", "block-start", "block-multiple", "blockers", "damage", "attack-declared"].includes(scene)) : TABLE_SCENES
+        const selectedBuilt = helpOnly ? BUILT_SCENES.filter((built) => ["choose-many", "confirm", "input", "order"].includes(built)) : historyOnly ? [] : zonesOnly ? [] : combatOnly ? BUILT_SCENES.filter((built) => built === "block-order") : BUILT_SCENES
         const runs = [...selectedScenes.map((scene) => ({ scene: scene as string, built: null as string | null })), ...selectedBuilt.map((built) => ({ scene: built === "block-order" ? "block-multiple" : "main-phase", built: built as string | null }))]
         for (const { scene, built } of runs) {
           const name = built === null ? scene : `built:${built}`
@@ -3459,7 +3536,8 @@ async function tableHarness(browser: Browser): Promise<Record<string, unknown>> 
             usable: document.querySelectorAll('button[data-slot="game-card"][data-mark="usable"]').length,
             selected: document.querySelectorAll('button[data-slot="game-card"][data-mark="selected"]').length,
             // Players Forge takes (prompt 17): their seats on the table (the region repeats them).
-            players: document.querySelectorAll('[data-slot="game-player"][data-player][data-mark]').length,
+            players: document.querySelectorAll('[data-slot="game-player"][data-player][data-mark="usable"], [data-slot="game-player"][data-player][data-mark="selected"]').length,
+            targets: document.querySelectorAll('[data-stack-target="true"]').length,
           }))
           const expected = built === null ? SCENE_MARKS[scene as (typeof TABLE_SCENES)[number]] : undefined
           if (expected) {
@@ -3468,16 +3546,34 @@ async function tableHarness(browser: Browser): Promise<Record<string, unknown>> 
               `${label}: marks ${JSON.stringify(marks)}, expected ${JSON.stringify(expected)}`,
             )
           }
+          // Independent check against the original recorded target envelopes, never display text.
+          if (built === null) {
+            const recorded = JSON.parse(fs.readFileSync(path.join(root, "src/test/fixtures/table-scenes.json"), "utf8")) as { scenes: { name: string; state: { stack: { targets: { kind: string; id: number }[] }[] } }[] }
+            const targetRefs = recorded.scenes.find((record) => record.name === scene)!.state.stack.flatMap((item) => item.targets)
+            const targetCheck = await page.evaluate((refs) => {
+              const cards = [...document.querySelectorAll<HTMLElement>('[data-card], [data-stack-card]')]
+              const players = [...document.querySelectorAll<HTMLElement>('[data-slot="game-player"][data-player]')]
+              const mismatches: string[] = []
+              for (const [kind, nodes] of [["card", cards], ["player", players]] as const) for (const node of nodes) {
+                const id = Number(kind === "card" ? node.dataset["card"] ?? node.dataset["stackCard"] : node.dataset["player"])
+                const expected = refs.some((ref) => ref.kind === kind && ref.id === id)
+                if ((node.dataset["stackTarget"] === "true") !== expected) mismatches.push(`${kind}:${id}`)
+              }
+              return mismatches
+            }, targetRefs)
+            check(targetCheck.length === 0, `${label}: exact stack target markings differ ${JSON.stringify(targetCheck)}`)
+          }
           const decision = await decisionFits(page, label, viewport)
           const axe = await accessibility(page, label)
           await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-${built === null ? scene : `built-${built}`}.png`) })
-          scenes[name] = { areas: layout["areas"], pictures, rows, menu, cards, marks, decision, axe }
+          const help = helpOnly || ["main-phase", "stack", "built:choose-many", "built:confirm"].includes(name) ? await helpInteractions(page, `${viewport.name}-${name}`, viewport) : null
+          scenes[name] = { help, areas: layout["areas"], pictures, rows, menu, cards, marks, decision, axe }
           for (const error of pageLog.errors) check(false, `${label}: ${error}`)
           await page.close()
         }
         const page = await context.newPage()
         const pageLog = watch(page)
-        scenes["interaction"] = historyOnly ? await historyInteractions(page, base, viewport) : zonesOnly ? await zoneInteractions(page, base, viewport) : combatOnly ? await blockInteractions(page, base, viewport) : await tableInteractions(page, base, viewport)
+        scenes["interaction"] = helpOnly ? { scope: "Help interactions checked for every selected recorded/built scene above" } : historyOnly ? await historyInteractions(page, base, viewport) : zonesOnly ? await zoneInteractions(page, base, viewport) : combatOnly ? await blockInteractions(page, base, viewport) : await tableInteractions(page, base, viewport)
         if (!focusedTable) scenes["history"] = await historyInteractions(page, base, viewport)
         await page.close()
         // Answering every kind (prompt 15) where it is tightest and on the desktop: a small phone, a phone turned, a mouse.
@@ -3491,6 +3587,7 @@ async function tableHarness(browser: Browser): Promise<Record<string, unknown>> 
         for (const error of pageLog.errors) check(false, `game table (${viewport.name}): ${error}`)
       } finally {
         await context.close()
+        await tableBrowser.close()
       }
       results[viewport.name] = scenes
     }
@@ -3501,69 +3598,89 @@ async function tableHarness(browser: Browser): Promise<Record<string, unknown>> 
 }
 
 /** Small protocol/UI checks. Inputs go to the harness recorder, not a simulated engine. */
-async function blockInteractions(page: Page, base: string, viewport: Viewport): Promise<Record<string, unknown>> {
+async function blockInteractions(parent: Page, base: string, viewport: Viewport): Promise<Record<string, unknown>> {
   const label = `blocking (${viewport.name})`
+  let page = await parent.context().newPage()
+  let sceneLog: PageLog | null = null
   const results: Record<string, unknown> = {}
   const activate = async (locator: Locator) => viewport.touch ? locator.tap() : locator.click()
-  const decision = page.getByRole("region", { name: "Entscheidung" })
+  let decision = page.getByRole("region", { name: "Entscheidung" })
   const confirm = async (name: string) => {
     await page.waitForTimeout(ARMED_AFTER_MS)
     await activate(decision.getByRole("button", { name, exact: true }))
   }
-  await openScene(page, base, "block-start")
-  check((await harnessAnswers(page)).length === 0, `${label}: answered on render`)
-  // The board uses named regions; getByRole avoids a CSS dependency on the region's internal key.
-  const blocker = page.getByRole("region", { name: "Dein Spielfeld" }).locator('button[data-card][data-mark="usable"]').first()
-  const id = Number(await blocker.getAttribute("data-card"))
-  await activate(blocker)
-  await activate(blocker)
-  const taps = await harnessTaps(page)
-  check(taps.length === 1 && taps[0] === id, `${label}: double tap ${JSON.stringify(taps)}, expected [${id}]`)
-  const other = page.getByRole("region", { name: "Spielfeld der Forge-KI" }).locator('button[data-card][data-mark="usable"]').first()
-  const target = Number(await other.getAttribute("data-card"))
-  await activate(other)
-  check(JSON.stringify(await harnessTaps(page)) === JSON.stringify([id, target]), `${label}: attacker switch sends the wrong card`)
-  check((await harnessAnswers(page)).length === 0, `${label}: assigning a block answered confirmation`)
-  results["assign/switch/double-tap"] = await harnessTaps(page)
-  await confirm("Nicht blocken")
-  check(JSON.stringify((await harnessAnswers(page))[0]?.[1]) === JSON.stringify({ kind: "buttons", button: 1 }), `${label}: no-block confirmation`)
+  // Isolate each dev-module navigation just like decision/layout scenes.
+  // Parent stays open; each owned page keeps its request/error assertions.
+  const sceneErrors = () => { for (const error of sceneLog?.errors ?? []) check(false, `${label}: ${error}`) }
+  const scene = async (name: string, query = "") => {
+    sceneErrors()
+    await page.close()
+    page = await parent.context().newPage()
+    sceneLog = watch(page)
+    decision = page.getByRole("region", { name: "Entscheidung" })
+    await openScene(page, base, name, query)
+  }
+  try {
+    await scene("block-start")
+    check((await harnessAnswers(page)).length === 0, `${label}: answered on render`)
+    // The board uses named regions; getByRole avoids a CSS dependency on the region's internal key.
+    const blocker = page.getByRole("region", { name: "Dein Spielfeld" }).locator('button[data-card][data-mark="usable"]').first()
+    const id = Number(await blocker.getAttribute("data-card"))
+    await activate(blocker)
+    await activate(blocker)
+    const taps = await harnessTaps(page)
+    check(taps.length === 1 && taps[0] === id, `${label}: double tap ${JSON.stringify(taps)}, expected [${id}]`)
+    const other = page.getByRole("region", { name: "Spielfeld der Forge-KI" }).locator('button[data-card][data-mark="usable"]').first()
+    const target = Number(await other.getAttribute("data-card"))
+    await activate(other)
+    check(JSON.stringify(await harnessTaps(page)) === JSON.stringify([id, target]), `${label}: attacker switch sends the wrong card`)
+    check((await harnessAnswers(page)).length === 0, `${label}: assigning a block answered confirmation`)
+    results["assign/switch/double-tap"] = await harnessTaps(page)
+    await confirm("Nicht blocken")
+    check(JSON.stringify((await harnessAnswers(page))[0]?.[1]) === JSON.stringify({ kind: "buttons", button: 1 }), `${label}: no-block confirmation`)
 
-  await openScene(page, base, "block-multiple")
-  const selected = page.getByRole("region", { name: "Dein Spielfeld" }).locator('button[data-card][data-mark="selected"]').first()
-  const selectedId = Number(await selected.getAttribute("data-card"))
-  if (viewport.touch) await touch(page, selected, { holdMs: ARMED_AFTER_MS })
-  else await selected.click({ button: "right" })
-  await page.getByRole("dialog").waitFor()
-  check((await harnessTaps(page)).length === 0 && (await harnessAnswers(page)).length === 0, `${label}: inspecting a blocker sent input`)
-  await page.getByRole("dialog").getByRole("button", { name: "Schließen", exact: true }).click()
-  await activate(selected)
-  check(JSON.stringify(await harnessTaps(page)) === JSON.stringify([selectedId]), `${label}: remove-assignment tap`)
-  await confirm("Blocks bestätigen")
-  check(JSON.stringify((await harnessAnswers(page))[0]?.[1]) === JSON.stringify({ kind: "buttons", button: 1 }), `${label}: double-block confirmation`)
-  results["double-block"] = { taps: await harnessTaps(page), answers: await harnessAnswers(page) }
+    await scene("block-multiple")
+    const selected = page.getByRole("region", { name: "Dein Spielfeld" }).locator('button[data-card][data-mark="selected"]').first()
+    const selectedId = Number(await selected.getAttribute("data-card"))
+    if (viewport.touch) await touch(page, selected, { holdMs: ARMED_AFTER_MS })
+    else await selected.click({ button: "right" })
+    await page.getByRole("dialog").waitFor()
+    check((await harnessTaps(page)).length === 0 && (await harnessAnswers(page)).length === 0, `${label}: inspecting a blocker sent input`)
+    await page.getByRole("dialog").getByRole("button", { name: "Schließen", exact: true }).click()
+    await activate(selected)
+    check(JSON.stringify(await harnessTaps(page)) === JSON.stringify([selectedId]), `${label}: remove-assignment tap`)
+    await confirm("Blocks bestätigen")
+    check(JSON.stringify((await harnessAnswers(page))[0]?.[1]) === JSON.stringify({ kind: "buttons", button: 1 }), `${label}: double-block confirmation`)
+    results["double-block"] = { taps: await harnessTaps(page), answers: await harnessAnswers(page) }
 
-  await openScene(page, base, "block-multiple", "&built=block-order")
-  check(await decision.getByRole("button", { name: "Blocks bestätigen", exact: true }).count() === 0, `${label}: block controls under blocking order request`)
-  await activate(decision.getByRole("button", { name: /nach unten$/ }).first())
-  await confirm("Bestätigen")
-  check(JSON.stringify((await harnessAnswers(page))[0]?.[1]) === JSON.stringify({ kind: "order", order: [2, 1] }), `${label}: block order (built)`)
-  results["block-order (built)"] = await harnessAnswers(page)
+    await scene("block-multiple", "&built=block-order")
+    check(await decision.getByRole("button", { name: "Blocks bestätigen", exact: true }).count() === 0, `${label}: block controls under blocking order request`)
+    await activate(decision.getByRole("button", { name: /nach unten$/ }).first())
+    await confirm("Bestätigen")
+    check(JSON.stringify((await harnessAnswers(page))[0]?.[1]) === JSON.stringify({ kind: "order", order: [2, 1] }), `${label}: block order (built)`)
+    results["block-order (built)"] = await harnessAnswers(page)
 
-  await openScene(page, base, "damage")
-  await activate(decision.getByRole("button", { name: "Bei Canyon Minotaur einen mehr", exact: true }))
-  await activate(decision.getByRole("button", { name: "Bei Raging Goblin einen mehr", exact: true }))
-  await confirm("Bestätigen")
-  check(JSON.stringify((await harnessAnswers(page))[0]?.[1]) === JSON.stringify({ kind: "distribute", amounts: [1, 1] }), `${label}: real combat damage request`)
-  results["damage"] = await harnessAnswers(page)
-  return results
+    await scene("damage")
+    await activate(decision.getByRole("button", { name: "Bei Canyon Minotaur einen mehr", exact: true }))
+    await activate(decision.getByRole("button", { name: "Bei Raging Goblin einen mehr", exact: true }))
+    await confirm("Bestätigen")
+    check(JSON.stringify((await harnessAnswers(page))[0]?.[1]) === JSON.stringify({ kind: "distribute", amounts: [1, 1] }), `${label}: real combat damage request`)
+    results["damage"] = await harnessAnswers(page)
+    return results
+  } finally {
+    sceneErrors()
+    await page.close()
+  }
 }
 
 /** Zone/card inspection in real Chrome; DFC substitution is explicitly built, inputs recorded only. */
-async function zoneInteractions(page: Page, base: string, viewport: Viewport): Promise<Record<string, unknown>> {
+async function zoneInteractions(parent: Page, base: string, viewport: Viewport): Promise<Record<string, unknown>> {
   const label = `zones (${viewport.name})`
+  let page = await parent.context().newPage()
+  let sceneLog: PageLog | null = null
   const results: Record<string, unknown> = {}
   const activate = async (locator: Locator) => viewport.touch ? locator.tap() : locator.click()
-  const view = page.getByRole("dialog")
+  let view = page.getByRole("dialog")
   const safe = async () => check((await harnessTaps(page)).length === 0 && (await harnessAnswers(page)).length === 0, `${label}: inspection sent an input`)
   const inspect = async (zone: string) => {
     await activate(page.getByRole("button", { name: "Zonen ansehen", exact: true }))
@@ -3587,53 +3704,69 @@ async function zoneInteractions(page: Page, base: string, viewport: Viewport): P
     await activate(view.getByRole("button", { name: "Schließen", exact: true }))
     await view.waitFor({ state: "hidden" })
   }
-  await openScene(page, base, "main-phase")
-  await inspect("Dein Friedhof: 6 Karten ansehen")
-  await inspect("Friedhof der Forge-KI: 2 Karten ansehen")
-  await inspect("Dein Exil: 0 Karten ansehen")
-  results["graveyards/empty"] = true
-  await openScene(page, base, "command-effects")
-  await inspect("Dein Exil: 1 Karten ansehen")
-  await inspect("Deine Kommandozone: 2 Karten ansehen")
-  results["exile/command"] = true
-  await openScene(page, base, "stack")
-  await inspect("Karten auf dem Stapel: 1 Einträge ansehen")
-  results["stack"] = true
-  await openScene(page, base, "commander-late")
-  // Forge's real battlefield piles: choose one whose caption counts at least two.
-  const pileIds = await page.evaluate(() => [...document.querySelectorAll<HTMLButtonElement>('button[data-card]')].filter((b) => /, \d+ Karten(?:,|$)/.test(b.getAttribute("aria-label") ?? "")).map((b) => b.dataset["card"]))
-  if (pileIds.length > 0) {
-    const target = page.locator(`button[data-card="${pileIds[0]}"]`)
-    if (viewport.touch) await touch(page, target, { holdMs: ARMED_AFTER_MS })
-    else await target.click({ button: "right" })
-    await view.waitFor()
-    await activate(view.getByRole("button", { name: "Nächste Karte", exact: true }))
-    await safe()
-    await activate(view.getByRole("button", { name: "Schließen", exact: true }))
-  } else check(false, `${label}: recorded battlefield has no pile to browse`)
-  results["pile"] = true
-  for (const presentation of ["dfc", "fallback"]) {
-    await openScene(page, base, "main-phase", `&presentation=${presentation}`)
-    const hand = page.getByRole("region", { name: "Deine Hand", exact: true })
-    await activate(hand.locator("button[data-card]").first())
-    await view.waitFor()
-    await view.getByRole("group", { name: "Kartenseiten" }).waitFor()
-    const faces = view.getByRole("group", { name: "Kartenseiten" }).getByRole("button")
-    await activate(faces.nth(1))
-    await page.waitForFunction(() => [...document.querySelectorAll('[role="dialog"] img')].every((img) => (img as HTMLImageElement).complete))
-    await safe()
-    await accessibility(page, `${label}: ${presentation} (built)`)
-    const action = view.getByRole("button", { name: "Spiele ein Land", exact: true })
-    const box = await action.boundingBox()
-    check(box !== null && box.y >= 0 && box.y + box.height <= viewport.height + 1, `${label}: viewer action outside viewport`)
-    check(await faces.nth(1).getAttribute("aria-pressed") === "true", `${label}: second face not selected`)
-    if (presentation === "dfc") check((await view.locator("img").first().getAttribute("src"))?.includes("/back/") === true, `${label}: DFC back picture`)
-    if (presentation === "fallback") check((await view.textContent())?.includes("englisch (kein deutscher Text verfügbar)") === true, `${label}: English fallback not marked`)
-    await page.screenshot({ path: path.join(reportDir, "screens", `viewer-${viewport.name}-${presentation}.png`) })
-    await activate(view.getByRole("button", { name: "Schließen", exact: true }))
-    results[`${presentation} (built)`] = true
+  // Isolate each dev-module navigation just like decision/layout scenes.
+  // Parent stays open; each owned page keeps its request/error assertions.
+  const sceneErrors = () => { for (const error of sceneLog?.errors ?? []) check(false, `${label}: ${error}`) }
+  const scene = async (name: string, query = "") => {
+    sceneErrors()
+    await page.close()
+    page = await parent.context().newPage()
+    sceneLog = watch(page)
+    view = page.getByRole("dialog")
+    await openScene(page, base, name, query)
   }
-  return results
+  try {
+    await scene("main-phase")
+    await inspect("Dein Friedhof: 6 Karten ansehen")
+    await inspect("Friedhof der Forge-KI: 2 Karten ansehen")
+    await inspect("Dein Exil: 0 Karten ansehen")
+    results["graveyards/empty"] = true
+    await scene("command-effects")
+    await inspect("Dein Exil: 1 Karten ansehen")
+    await inspect("Deine Kommandozone: 2 Karten ansehen")
+    results["exile/command"] = true
+    await scene("stack")
+    await inspect("Karten auf dem Stapel: 1 Einträge ansehen")
+    results["stack"] = true
+    await scene("commander-late")
+    // Forge's real battlefield piles: choose one whose caption counts at least two.
+    const pileIds = await page.evaluate(() => [...document.querySelectorAll<HTMLButtonElement>('button[data-card]')].filter((b) => /, \d+ Karten(?:,|$)/.test(b.getAttribute("aria-label") ?? "")).map((b) => b.dataset["card"]))
+    if (pileIds.length > 0) {
+      const target = page.locator(`button[data-card="${pileIds[0]}"]`)
+      if (viewport.touch) await touch(page, target, { holdMs: ARMED_AFTER_MS })
+      else await target.click({ button: "right" })
+      await view.waitFor()
+      await activate(view.getByRole("button", { name: "Nächste Karte", exact: true }))
+      await safe()
+      await activate(view.getByRole("button", { name: "Schließen", exact: true }))
+    } else check(false, `${label}: recorded battlefield has no pile to browse`)
+    results["pile"] = true
+    for (const presentation of ["dfc", "fallback"]) {
+      await scene("main-phase", `&presentation=${presentation}`)
+      const hand = page.getByRole("region", { name: "Deine Hand", exact: true })
+      await activate(hand.locator("button[data-card]").first())
+      await view.waitFor()
+      await view.getByRole("group", { name: "Kartenseiten" }).waitFor()
+      const faces = view.getByRole("group", { name: "Kartenseiten" }).getByRole("button")
+      await activate(faces.nth(1))
+      await page.waitForFunction(() => [...document.querySelectorAll('[role="dialog"] img')].every((img) => (img as HTMLImageElement).complete))
+      await safe()
+      await accessibility(page, `${label}: ${presentation} (built)`)
+      const action = view.getByRole("button", { name: "Spiele ein Land", exact: true })
+      const box = await action.boundingBox()
+      check(box !== null && box.y >= 0 && box.y + box.height <= viewport.height + 1, `${label}: viewer action outside viewport`)
+      check(await faces.nth(1).getAttribute("aria-pressed") === "true", `${label}: second face not selected`)
+      if (presentation === "dfc") check((await view.locator("img").first().getAttribute("src"))?.includes("/back/") === true, `${label}: DFC back picture`)
+      if (presentation === "fallback") check((await view.textContent())?.includes("englisch (kein deutscher Text verfügbar)") === true, `${label}: English fallback not marked`)
+      await page.screenshot({ path: path.join(reportDir, "screens", `viewer-${viewport.name}-${presentation}.png`) })
+      await activate(view.getByRole("button", { name: "Schließen", exact: true }))
+      results[`${presentation} (built)`] = true
+    }
+    return results
+  } finally {
+    sceneErrors()
+    await page.close()
+  }
 }
 
 // ── 13. The ORYX cloud on OpenMana's real address ─────────────────────────
@@ -4017,15 +4150,16 @@ async function main(): Promise<void> {
   const base = server.resolvedUrls?.local[0]
   if (!base) throw new Error("vite preview did not report its URL")
   const executablePath = process.env["OPENMANA_CHROME"] || chromium.executablePath()
-  const browser = await chromium.launch({ executablePath, headless: true, args: ["--no-sandbox", "--disable-gpu", NO_REAL_CLOUD] })
+  const browser = await launchBrowser(executablePath)
   report["browser"] = `${path.basename(executablePath)} ${browser.version()}`
   log(`Chrome ${browser.version()}, app at ${base}`)
   try {
     if (replayOnly) {
       report["replay"] = await replayLibrary(browser, base)
-    } else if (focusedTable) {
-      report["scope"] = historyOnly ? "Recorded real Forge log entries and current card inspection, three viewports; no engine boot or full application suite." : zonesOnly ? "Recorded Forge zones and explicitly built DFC presentation, three viewports, one page at a time; no engine boot or complete application regression suite." : "Recorded Forge combat scenes and one built order request, three viewports, one page at a time; no engine boot or complete application regression suite."
-      report["gameTable"] = await tableHarness(browser)
+    } else if (focusedTable || tableOnly) {
+      report["scope"] = tableOnly ? "All 216 recorded/built scene/viewport checks and every original table/history/decision/combat/zone interaction; no fresh engine boot or complete application suite." : helpOnly ? "Recorded Forge scenes and explicitly built question families; help, target markings, three viewports; no engine boot or full application suite." : historyOnly ? "Recorded real Forge log entries and current card inspection, three viewports; no engine boot or full application suite." : zonesOnly ? "Recorded Forge zones and explicitly built DFC presentation, three viewports, one page at a time; no engine boot or complete application regression suite." : "Recorded Forge combat scenes and one built order request, three viewports, one page at a time; no engine boot or complete application regression suite."
+      await browser.close()
+      report["gameTable"] = await tableHarness(executablePath)
     } else {
       await httpChecks(base, id)
       await devServerChecks(browser, id)
@@ -4039,7 +4173,8 @@ async function main(): Promise<void> {
       await pwa(base, executablePath)
       await withoutIsolation(browser)
       await oryxCloud(browser, base)
-      report["gameTable"] = await tableHarness(browser)
+      await browser.close()
+      report["gameTable"] = await tableHarness(executablePath)
     }
   } finally {
     await browser.close()
@@ -4047,8 +4182,13 @@ async function main(): Promise<void> {
   }
   report["failures"] = failures
   fs.writeFileSync(path.join(reportDir, "report.json"), `${JSON.stringify(report, null, 2)}\n`)
-  log(`\n${combatOnly ? "Combat " : zonesOnly ? "Zones " : historyOnly ? "History " : ""}${failures.length === 0 ? "E2E OK" : `E2E FAILED (${failures.length})`} – report: ${path.relative(root, path.join(reportDir, "report.json"))}`)
+  log(`\n${tableOnly ? "Table " : helpOnly ? "Help " : combatOnly ? "Combat " : zonesOnly ? "Zones " : historyOnly ? "History " : ""}${failures.length === 0 ? "E2E OK" : `E2E FAILED (${failures.length})`} – report: ${path.relative(root, path.join(reportDir, "report.json"))}`)
   process.exitCode = failures.length === 0 ? 0 : 1
+}
+
+/** Same browser configuration for application checks and each bounded table run. */
+function launchBrowser(executablePath: string): Promise<Browser> {
+  return chromium.launch({ executablePath, headless: true, args: ["--no-sandbox", "--disable-gpu", NO_REAL_CLOUD] })
 }
 
 await main()

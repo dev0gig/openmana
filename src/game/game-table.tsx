@@ -47,13 +47,14 @@
  * so below its picture ("Quelle"). The decision region shows the payment:
  * what is still to pay, floating mana to pay with (onUseMana).
  */
-import { Ban, CircleSlash, Crown, Hand as HandIcon, Heart, History, Hourglass, Library, Shield, Skull, Swords, type LucideIcon } from "lucide-react"
+import { Ban, CircleSlash, Crosshair, Crown, Hand as HandIcon, Heart, History, Hourglass, Library, Shield, Skull, Swords, type LucideIcon } from "lucide-react"
 import { cn } from "cn"
-import { createContext, use, useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { createContext, use, useCallback, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import type { AnswerBody, Card, GameEvent, GameState, ManaColor, Question, VisibleCard } from "@openmana/engine-protocol"
 import { Badge } from "@/components/ui/badge"
 import { GameBoard, GameBoardArea, type GameBoardDecision } from "@/components/ui/game-board"
 import { GameCard, GameCardBack, GameCardButton, GameCardCaption, GameCardGroup, GameCardRow, GameCardRowButton, GameCardRowItem } from "@/components/ui/game-card"
+import { GameHelpButton } from "@/components/ui/game-help-button"
 import { GameZoneButton } from "@/components/ui/game-zone-button"
 import { GamePlayer, GamePlayerButton } from "@/components/ui/game-player"
 import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item"
@@ -64,6 +65,8 @@ import { useCardPress } from "@/hooks/use-card-press"
 import { useElementHeight } from "@/hooks/use-element-height"
 import { ARMING_MS, CardSheet, type CardLook } from "./card-sheet"
 import { questionCard, type CardBrowse } from "./card-view-model"
+import { HelpSheet } from "./help-sheet"
+import { STACK_TARGET_LABEL, stackTargetIds } from "./beginner-help"
 import { HistorySheet } from "./history-sheet"
 import { ZoneSheet, type ZoneLook } from "./zone-sheet"
 import { cardUse, currentStep, openSelection, playerUse, stepSource, type CardPlace, type CardUse, type TableMoment } from "./card-use"
@@ -139,6 +142,7 @@ export interface GameTableProps {
 
 /** What a card of the table needs to be operated: the moment's questions and Forge's state of waiting, and the two ways to use it. */
 interface CardControls {
+  readonly targets: { readonly cards: ReadonlySet<number>; readonly players: ReadonlySet<number> }
   readonly moment: TableMoment
   /** Taps can be sent (the page gave onTapCard). */
   readonly live: boolean
@@ -171,6 +175,10 @@ export function GameTable({ replay = false,
   const profile = profileDrawn ? `${aiProfileLabel(aiProfile)} (zufällig)` : aiProfileLabel(aiProfile)
   const moment = useMemo<TableMoment>(() => ({ questions, waiting, conceding, attack: state.attack ?? null, combat: state.combat }), [questions, waiting, conceding, state.attack, state.combat])
   const [look, setLook] = useState<CardLook | null>(null)
+  const [helpOpen, setHelpOpen] = useState(false)
+  const helpPhaseId = useId()
+  const helpOwnerId = useId()
+  const targets = useMemo(() => ({ cards: stackTargetIds(state, "card"), players: stackTargetIds(state, "player") }), [state])
   const [historyOpen, setHistoryOpen] = useState(false)
   const [inspectingHistory, setInspectingHistory] = useState(false)
   const [zone, setZone] = useState<ZoneLook | null>(null)
@@ -233,6 +241,7 @@ export function GameTable({ replay = false,
     const open = openCard
     return {
       moment,
+      targets,
       live: onTapCard !== undefined,
       look: open,
       primary: (card, use) => {
@@ -248,7 +257,7 @@ export function GameTable({ replay = false,
       },
       tapPlayer: onTapPlayer === undefined ? null : tapPlayer,
     }
-  }, [moment, onTapCard, onTapPlayer, tapPlayer, openCard])
+  }, [moment, targets, onTapCard, onTapPlayer, tapPlayer, openCard])
   return (
     <CardControlsContext value={controls}>
       <GameBoard decision={room}>
@@ -259,16 +268,16 @@ export function GameTable({ replay = false,
             <Library aria-hidden />
           </GameZoneButton>
           <GameZoneButton aria-label="Spielverlauf ansehen" title={`Spielverlauf: ${history.length} Einträge`} aria-haspopup="dialog" onClick={() => setHistoryOpen(true)}><History aria-hidden /></GameZoneButton>
-          <div className="flex min-w-0 flex-1 flex-col">
-            <h1 className="sr-only">{replay ? "Wiedergabe" : "Partie"}</h1>
-            <p className="truncate text-sm font-medium" title={turnLine(view.turn, state.phase)}>
+          <h1 className="sr-only">{replay ? "Wiedergabe" : "Partie"}</h1>
+          <GameHelpButton aria-label="Hilfe am Spieltisch" aria-describedby={`${helpPhaseId} ${helpOwnerId}`} title="Hilfe am Spieltisch" aria-haspopup="dialog" onClick={() => setHelpOpen(true)}>
+            <span id={helpPhaseId} className="line-clamp-2 text-xs leading-tight font-medium landscape:text-sm" title={turnLine(view.turn, state.phase)}>
               {turnLine(view.turn, state.phase)}
-            </p>
-            <div className="flex min-w-0 items-center gap-2">
+            </span>
+            <span className="flex min-w-0 items-center gap-2">
               <TurnTrack phase={state.phase} />
-              <p className="truncate text-xs text-muted-foreground">{turnOwnerLabel(view.activeSeat)}</p>
-            </div>
-          </div>
+              <span id={helpOwnerId} className="truncate text-xs text-muted-foreground">{turnOwnerLabel(view.activeSeat)}</span>
+            </span>
+          </GameHelpButton>
           {replay ? <Badge variant="secondary">Wiedergabe</Badge> : conceding ? (
             <Badge variant="secondary">
               <Spinner data-icon="inline-start" aria-hidden />
@@ -328,6 +337,7 @@ export function GameTable({ replay = false,
         <GameBoardArea area="hand" aria-label="Deine Hand">
           <Hand cards={view.me?.hand ?? []} pictures={pictures} />
         </GameBoardArea>
+        <HelpSheet open={helpOpen} onOpenChange={setHelpOpen} state={state} questions={questions} replay={replay} waiting={waiting} conceding={conceding} />
         <ZoneSheet onSourceChange={setZone} source={zone} state={state} pictures={pictures} onClose={() => setZone(null)} onLook={openCard} />
         <HistorySheet open={historyOpen} onOpenChange={setHistoryOpen} history={history} state={state} questions={questions} onLook={(id) => { lookAtQuestionCard(id); setInspectingHistory(true) }} />
         <CardSheet
@@ -450,9 +460,12 @@ function SeatPlayer({ side }: { side: TableSide }) {
   if (controls === null) throw new Error("SeatPlayer outside GameTable")
   const { player } = side
   const usage = playerUse(player, controls.moment)
+  const target = controls.targets.players.has(player.id)
+  const mark = usage.mark ?? (target ? "target" : null)
   const name = side.seat === "me" ? "Du" : seatName(side.seat)
   const content = (
     <>
+      {target ? <Crosshair aria-hidden className="size-3.5" /> : null}
       <span className="font-heading text-sm font-semibold text-foreground">{name}</span>
       <span className="flex items-center gap-1 text-foreground" title="Lebenspunkte">
         <Heart aria-hidden className="size-4" />
@@ -464,17 +477,19 @@ function SeatPlayer({ side }: { side: TableSide }) {
   const tapPlayer = controls.tapPlayer
   if (usage.tap === null || tapPlayer === null) {
     return (
-      <GamePlayer data-player={player.id} mark={usage.mark} {...(usage.markLabel !== null ? { title: `${name}: ${usage.markLabel}` } : {})}>
+      <GamePlayer data-player={player.id} data-stack-target={target || undefined} mark={mark} title={[name, usage.markLabel, target ? STACK_TARGET_LABEL : null].filter(Boolean).join(": ")}>
         {content}
         {usage.markLabel !== null ? <span className="sr-only">, {usage.markLabel}</span> : null}
+        {target ? <span className="sr-only">, {STACK_TARGET_LABEL}</span> : null}
       </GamePlayer>
     )
   }
-  const label = playerButtonLabel(name, player.life, usage)
+  const label = [playerButtonLabel(name, player.life, usage), ...(target ? [STACK_TARGET_LABEL] : [])].join(", ")
   return (
     <GamePlayerButton
       data-player={player.id}
-      mark={usage.mark}
+      mark={mark}
+      data-stack-target={target || undefined}
       aria-label={label}
       title={usage.blocked ?? label}
       disabled={usage.blocked !== null}
@@ -553,17 +568,19 @@ function TableCard({ card, place, pictures, count = 1, note, caption }: { card: 
   // Only looked at (no page to send taps): the primary activation looks too.
   const usage: CardUse = controls.live ? found : { ...found, primary: "look" }
   const press = useCardPress({ onPrimary: () => controls.primary(card, usage), onLook: () => controls.look(card.id) })
-  const label = cardButtonLabel(card, usage, { count, ...(note ? { note } : {}) })
+  const target = controls.targets.cards.has(card.id)
+  const label = [cardButtonLabel(card, usage, { count, ...(note ? { note } : {}) }), ...(target ? [STACK_TARGET_LABEL] : [])].join(", ")
   return (
     <GameCardRowButton>
       <GameCardButton
         tapped={card.tapped}
-        mark={usage.mark}
+        mark={usage.mark ?? (target ? "target" : null)}
+        data-stack-target={target || undefined}
         data-card={card.id}
         aria-label={label}
         title={label}
         {...(usage.primary === "look" ? { "aria-haspopup": "dialog" as const } : {})}
-        {...(caption !== undefined ? { caption } : {})}
+        {...(caption !== undefined ? { caption } : target ? { caption: <GameCardCaption title={STACK_TARGET_LABEL}><Crosshair aria-hidden /><span>Ziel</span></GameCardCaption> } : {})}
         {...press}
       >
         <TablePicture card={card} pictures={pictures} />
@@ -580,12 +597,13 @@ function TableCard({ card, place, pictures, count = 1, note, caption }: { card: 
 function FieldCard({ card, count, pictures, seat, note }: { card: VisibleCard; count: number; pictures: TableCardLookup; seat: Seat; note?: string }) {
   const controls = use(CardControlsContext)
   // The card the running step is about (an ability's source while its targets or costs are chosen - prompt 17).
+  const target = controls?.targets.cards.has(card.id) ?? false
   const source = controls !== null && stepSource(controls.moment.questions) === card.id
   // While attackers are declared: why Forge would not declare this creature (prompt 18) - said in the caption, in place of its facts.
   const usage = controls === null ? null : cardUse(card, { zone: "battlefield", mine: seat === "me" }, controls.moment)
   const unavailable = usage?.unavailable ?? null
   const blockLabel = controls !== null && currentStep(controls.moment.questions) === "block" && openSelection(controls.moment.questions) === null ? usage?.markLabel ?? null : null
-  const title = [cardName(card), ...cardFacts(card, count), ...(note ? [note] : []), ...(source ? [SOURCE_LABEL] : []), ...(blockLabel !== null ? [blockLabel] : []), ...(unavailable !== null ? [`kann nicht angreifen: ${unavailable.short}`] : [])].join(" · ")
+  const title = [cardName(card), ...cardFacts(card, count), ...(note ? [note] : []), ...(source ? [SOURCE_LABEL] : []), ...(target ? [STACK_TARGET_LABEL] : []), ...(blockLabel !== null ? [blockLabel] : []), ...(unavailable !== null ? [`kann nicht angreifen: ${unavailable.short}`] : [])].join(" · ")
   return (
     <TableCard
       card={card}
@@ -599,6 +617,7 @@ function FieldCard({ card, count, pictures, seat, note }: { card: VisibleCard; c
           {card.attacking === true ? <Swords aria-hidden /> : null}
           {card.blocking === true ? <Shield aria-hidden /> : null}
           {card.sick ? <Hourglass aria-hidden /> : null}
+          {target ? <span className="sr-only">Ziel</span> : null}
           {source ? <span className="font-medium text-foreground">{SOURCE_LABEL}</span> : null}
           {unavailable !== null ? <CircleSlash aria-hidden /> : null}
           <span className="truncate">{unavailable !== null ? unavailable.short : blockLabel ?? captionFacts(card).join(" · ")}</span>
@@ -791,6 +810,7 @@ function StackEntry({ entry, top, pictures }: { entry: StackEntryView; top: bool
   const owner = stackOwner(entry.controller)
   const targets = stackTargets(entry)
   const card = entry.card
+  const target = card !== null && controls.targets.cards.has(card.id)
   const facts = [STACK_KIND_LABELS[entry.kind], ...(owner !== null ? [owner] : []), ...(targets !== null ? [targets] : [])]
   return (
     <Item asChild variant="outline" size="xs">
@@ -800,9 +820,11 @@ function StackEntry({ entry, top, pictures }: { entry: StackEntryView; top: bool
             {card !== null ? (
               <GameCardButton
                 data-stack-card={card.id}
-                aria-label={`${cardName(card)} ansehen`}
+                data-stack-target={target || undefined}
+                mark={target ? "target" : null}
+                aria-label={`${cardName(card)} ansehen${target ? ` · ${STACK_TARGET_LABEL}` : ""}`}
                 aria-haspopup="dialog"
-                title={cardName(card)}
+                title={`${cardName(card)}${target ? ` · ${STACK_TARGET_LABEL}` : ""}`}
                 onClick={() => controls.look(card.id)}
                 onContextMenu={(event) => {
                   event.preventDefault()

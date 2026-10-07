@@ -120,6 +120,14 @@ Prompt 22 (`src/matches/`, `src/storage/matches.ts`, `docs/implementation/22-mat
 - Portable replay JSON format 1 is schema-checked, bounded to 100 MiB and validated completely before an atomic import. Same ID with identical canonical content is a no-op; a conflict never overwrites data. Import and retention use one transaction.
 - Verify the framework-free recorder with fake IndexedDB and the real EngineClient/scripted Worker, then the complete `npm run check`: actual browser Forge games plus replay/library/file/retention checks. `--replay-only` uses recorded Forge messages with assembled portable metadata; it is not a new live recording or a deterministic engine re-simulation.
 
+## Beginner Help Rules
+Prompt 23 (`src/game/beginner-help.ts`, `src/game/help-sheet.tsx`, `docs/implementation/23-beginner-qol.md`):
+- Explain the current structured questions with the existing blocking precedence. Required/optional labels use only explicit min/bounds/cancellable fields; suggestions and localized prose never decide optionality or legality. Zero-item optional choices still require explicit completion.
+- Phase/terminology text is static orientation. Forge’s legal-action, attack/block, tapped and sickness markers remain authoritative. Preserve arming, confirmation, withdrawal and every meaningful player choice.
+- Target emphasis uses only exact current stack target IDs, separately for cards and players. Hidden/missing identities stay hidden; usable/selected frames take precedence. A target mark never enables an action.
+- Help opens from the turn/phase area, updates from current props, restores focus and sends no input. Replay stays read-only. Abort advice uses structured reasons and retains technical details; reload advice must disclose loss of the current game.
+- Verify focused help/error tests, `--help-only` recorded/built scenes and the complete app check with fresh real desktop/phone Forge games. Chrome viewport/touch emulation is not physical-device evidence.
+
 ## Decision Rules
 Forge's questions are answered in the table's decision region (prompt 15, `src/game/decision-panel.tsx`, `src/game/decision-model.ts`, `docs/implementation/15-forge-decisions.md`):
 - Every kind of question the protocol knows has its controls: Forge's two buttons (`buttons`), a selection (`select`: cards the table shows are tapped on the table, the others - graveyard, exile, library, hidden - come as a row in the region), `choose`, `confirm`, `options` (and Forge's revealed lists with one OK), `input`, `order`, `arrange`, `distribute`. A blocking question is answered alone; otherwise Forge's buttons and its selection side by side (`currentDecision`).
@@ -187,7 +195,7 @@ The optional sync of the player's collection through their ORYX account (project
 The legacy local prompt workflow was removed upstream on 2026-09-28. Executable tasks and their lifecycle now live in `dev0gig/dropzone/workflow/tasks/`; implementation evidence remains in `docs/implementation/` and Git history.
 
 - Numbered prompts run strictly sequentially; resume `IN_PROGRESS` work and never skip a `BLOCKED` predecessor. Mark a task complete only after its requirements and verification pass.
-- Reconcile the central status with code and `STATUS.md` before selecting work. Prompt 22 (automatic recording and snapshot replay) is complete; Prompt 23 is next.
+- Reconcile the central status with code and `STATUS.md` before selecting work. Prompt 23 (beginner QoL) is complete; Prompt 24 is next.
 - Run only the task explicitly assigned by the user; this cross-repository cleanup does not start a numbered implementation prompt.
 - Update the central task and `STATUS.md` with verified evidence; do not recreate the removed local queue.
 

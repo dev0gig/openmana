@@ -157,6 +157,7 @@ import {
   type PileSide,
   type SelectView,
 } from "./decision-model"
+import { choiceClarity } from "./beginner-help"
 import { questionLabel } from "./game-labels"
 import { endTurnText, PASS_LABELS, PASS_NOTES, priorityText } from "./priority-labels"
 import type { TableCardLookup } from "./table-cards"
@@ -330,7 +331,10 @@ function sourceOf(question: Question | null): { readonly id: number; readonly ca
 
 /** What Forge asks: the asking card (its picture opens the card view), the kind of decision, Forge's words. */
 function DecisionHeading({ label, text, source }: { label: string; text: string | null; source: { readonly id: number; readonly card: VisibleCard } | null }) {
-  const { pictures, look } = useDecision()
+  const { pictures, look, moment } = useDecision()
+  const current = currentDecision(moment.questions)
+  const active = current.kind === "blocking" ? current.question : current.kind === "step" ? current.select ?? current.buttons : null
+  const clarity = active === null ? null : choiceClarity(active)
   return (
     <GameDecisionHeader>
       {source !== null ? (
@@ -352,7 +356,7 @@ function DecisionHeading({ label, text, source }: { label: string; text: string 
       ) : null}
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <p className="text-xs text-muted-foreground">
-          {label}
+          {label}{clarity !== null ? ` · ${clarity}` : ""}
           {source !== null ? ` · ${cardName(source.card)}` : null}
         </p>
         {text ? <p className="text-sm font-medium break-words">{text}</p> : null}
