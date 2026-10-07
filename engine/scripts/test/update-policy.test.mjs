@@ -4,8 +4,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { checkForge, fileDigest, git, inspectUpdate, sourceIdentity } from "../update-policy.mjs";
-import { ARTIFACTS, validateEvidence, verifyArtifacts } from "../engine-lock.mjs";
+import { appIdentity, checkForge, fileDigest, git, inspectUpdate, sourceIdentity } from "../update-policy.mjs";
+import { ARTIFACTS, recordJvmTests, validateEvidence, verifyArtifacts } from "../engine-lock.mjs";
 
 function repository(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "openmana-update-test-"));
@@ -126,6 +126,36 @@ test("a partial or failed validation cannot produce green evidence", (t) => {
   assert.throws(() => validateEvidence(root), /has not passed/);
   write("pipeline.json", { status: "passed", steps: [] });
   assert.throws(() => validateEvidence(root), /Missing\/failed pipeline step/);
+});
+
+test("JVM evidence requires real nonzero tests with no errors, failures or skips", (t) => {
+  const { root, write } = repository(t);
+  const surefire = path.join(root, "surefire");
+  const report = path.join(root, "report");
+  fs.mkdirSync(surefire);
+  assert.throws(() => recordJvmTests(surefire, report), /missing, failed or skipped/);
+  const xml = (tests, errors, failures, skipped) => `<testsuite name="TestSuite" tests="${tests}" errors="${errors}" failures="${failures}" skipped="${skipped}"></testsuite>`;
+  for (const counters of [[0, 0, 0, 0], [1, 1, 0, 0], [1, 0, 1, 0], [1, 0, 0, 1]]) {
+    write("surefire/TEST-TestSuite.xml", xml(...counters));
+    assert.throws(() => recordJvmTests(surefire, report), /missing, failed or skipped/);
+  }
+  write("surefire/TEST-TestSuite.xml", xml(2, 0, 0, 0));
+  assert.equal(recordJvmTests(surefire, report).tests, 2);
+  assert.equal(fs.readFileSync(path.join(report, "jvm-tests/TEST-TestSuite.xml"), "utf8"), xml(2, 0, 0, 0));
+});
+
+test("application identity detects untracked adaptation files and deletions", (t) => {
+  const { root, write } = repository(t);
+  const original = appIdentity(root);
+  write("src/new.ts", "new protocol adapter");
+  const added = appIdentity(root);
+  assert.notEqual(added, original);
+  write("src/new.ts", "different adapter");
+  assert.notEqual(appIdentity(root), added);
+  fs.unlinkSync(path.join(root, "src/new.ts"));
+  assert.equal(appIdentity(root), original);
+  fs.unlinkSync(path.join(root, "src/ui.ts"));
+  assert.notEqual(appIdentity(root), original);
 });
 
 test("browser server and Node helper resolve the isolated candidate build", async (t) => {

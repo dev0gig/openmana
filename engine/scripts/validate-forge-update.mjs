@@ -5,7 +5,7 @@ import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { checkForge, fileDigest, git, inspectUpdate, readJson, repoDir, sha256, sourceIdentity } from "./update-policy.mjs";
+import { appIdentity, checkForge, fileDigest, git, inspectUpdate, readJson, repoDir, sourceIdentity } from "./update-policy.mjs";
 import { promoteLock, verifyArtifacts } from "./engine-lock.mjs";
 
 const args = process.argv.slice(2);
@@ -49,17 +49,14 @@ if (out) {
 }
 const logDir = path.join(out, "logs");
 fs.mkdirSync(logDir);
-fs.mkdirSync(path.join(out, "tmp"));
+// Chrome creates a Unix-domain socket under TMPDIR (108-byte path limit).
+// Keep this path short and disk-backed, independently of checkout/output depth.
+const temporaryDir = fs.mkdtempSync("/var/tmp/om-");
 const input = sourceIdentity();
 // Keep the app (including test/build tooling and local-data schema) unchanged
 // during validation. No engine source or UI edit can pass on stale evidence.
-function appIdentity() {
-  return sha256(JSON.stringify(git(repoDir, "ls-files", "-z").split("\0")
-    .filter((p) => p && !p.startsWith("engine/") && !p.endsWith(".md"))
-    .sort().map((p) => [p, fileDigest(path.join(repoDir, p))])));
-}
 const appInputsSha256 = appIdentity();
-const report = { format: "openmana-forge-update/1", status: "running", startedAt: new Date().toISOString(), commit: git(repoDir, "rev-parse", "HEAD"), forge, policy, engineInputsSha256: input.sha256, appInputsSha256, steps: [] };
+const report = { format: "openmana-forge-update/1", status: "running", startedAt: new Date().toISOString(), commit: git(repoDir, "rev-parse", "HEAD"), forge, policy, temporaryDir, engineInputsSha256: input.sha256, appInputsSha256, steps: [] };
 const reportFile = path.join(out, "pipeline.json");
 const save = () => fs.writeFileSync(reportFile, JSON.stringify(report, null, 2) + "\n");
 save();
@@ -69,14 +66,9 @@ console.log(`[forge-update] Output: ${out}`);
 // Forge/bridge classes, resources, harness and WASM in this validation run.
 const cachedTools = process.env.OPENMANA_TOOLCHAIN_DIR || path.join(process.env.XDG_CACHE_HOME || path.join(os.homedir(), ".cache"), "openmana/toolchain");
 const freshTools = path.join(out, "toolchain");
-fs.mkdirSync(path.join(freshTools, "downloads"), { recursive: true });
-for (const tool of [toolchain.graalvm, toolchain.binaryen, toolchain.maven, toolchain.node]) {
-  const cached = path.join(cachedTools, "downloads", tool.archive);
-  if (fs.existsSync(cached)) fs.copyFileSync(cached, path.join(freshTools, "downloads", tool.archive), fs.constants.COPYFILE_FICLONE);
-}
 const env = {
   ...process.env,
-  TMPDIR: path.join(out, "tmp"),
+  TMPDIR: temporaryDir,
   OPENMANA_ENGINE_BUILD_DIR: out,
   OPENMANA_TOOLCHAIN_DIR: freshTools,
   OPENMANA_ENGINE_DIR: path.join(out, "dist"),
@@ -110,8 +102,14 @@ async function run(name, command, commandArgs, cwd = repoDir, extraEnv = {}) {
 }
 
 try {
+  fs.mkdirSync(path.join(freshTools, "downloads"), { recursive: true });
+  for (const tool of [toolchain.graalvm, toolchain.binaryen, toolchain.maven, toolchain.node]) {
+    const cached = path.join(cachedTools, "downloads", tool.archive);
+    if (fs.existsSync(cached)) fs.copyFileSync(cached, path.join(freshTools, "downloads", tool.archive), fs.constants.COPYFILE_FICLONE);
+  }
   await run("engine-dependencies", "npm", ["ci", "--no-audit", "--no-fund"], engine);
   await run("app-dependencies", "npm", ["ci", "--no-audit", "--no-fund"]);
+  await run("browser-preflight", process.execPath, ["engine/scripts/browser-preflight.mjs"]);
   await run("build", "bash", ["engine/scripts/build.sh"]);
   const manifest = verifyArtifacts(path.join(out, "dist"));
   if (manifest.sources.sha256 !== input.sha256 || manifest.forge.commit !== forge) throw new Error("Built engine differs from the selected inputs");
@@ -132,4 +130,6 @@ try {
   save();
   console.error(`[forge-update] FAILED: ${error.message}. Previous lock retained. Evidence: ${out}`);
   process.exitCode = 1;
+} finally {
+  fs.rmSync(temporaryDir, { recursive: true, force: true });
 }

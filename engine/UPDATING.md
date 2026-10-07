@@ -51,6 +51,11 @@ kopiert und erneut gehasht; die Werkzeuge werden frisch entpackt. `npm ci`
 installiert beide gesperrten npm-Abhängigkeitsbäume. Maven darf seinen
 Downloadcache nutzen, nie frühere Forge-/Bridge-Klassen oder WASM-Artefakte.
 
+Chrome wird vor dem teuren Neubau tatsächlich gestartet. Seine temporären
+Dateien liegen in einem eigenen kurzen Verzeichnis unter `/var/tmp`, unabhängig
+von der Länge des Checkout-Pfads; das Verzeichnis wird nach dem Lauf entfernt.
+Damit bleiben die Unix-Socketpfade innerhalb von Chromes Grenze.
+
 Die obligatorischen Schritte laufen nacheinander:
 
 1. Pfadprüfung gegen den festgehaltenen Commit, einschließlich gestagter,
@@ -58,7 +63,8 @@ Die obligatorischen Schritte laufen nacheinander:
 2. Frische Toolchain aus den Archivpins; Protokollgenerierung prüfen,
    Typecheck und Engine-Unit-Tests. Frischer Forge-Baum und alle Patches mit
    `git apply --check`; vollständiges Ressourcenpaket und Maven `clean package`
-   einschließlich der echten JVM-Bridge-Tests.
+   einschließlich der echten JVM-Bridge-Tests. Deren originale Surefire-Berichte
+   werden archiviert; null ausgeführte Tests, Fehler und Skips sind ein Abbruch.
 3. Frischer Web-Image-Build mit Netzspiel-/Klassenprüfung, Manifest mit
    Quellfingerabdruck, Protokoll-/Toolchain-/npm-Lock-Prüfsummen und Artefakthashes.
 4. Vollständige vorhandene Engine-Suite: JVM-Referenzen, identische Eingaben und
@@ -118,7 +124,8 @@ zwischen JVM/WASM; eine bitidentische Wiederholbarkeit des Compilers ist nicht
 behauptet. Die Hashes pinnen genau den tatsächlich geprüften Artefaktsatz.
 
 Die GitHub-Actions-Datei `forge-update.yml` prüft PRs mit geändertem Forge-Pin
-automatisch; für einen Patch-/Bridge-Update ohne Pinwechsel das Label
+automatisch gegen den gemeinsamen Ausgangscommit von Ziel und PR; für einen
+Patch-/Bridge-Update ohne Pinwechsel das Label
 `forge-update` setzen. Ein manueller Lauf erlaubt explizite Protokollausnahmen.
 Der Workflow nutzt denselben lokalen Einstieg und archiviert Nachweise/Artefakte,
 erteilt aber keine Veröffentlichungsfreigabe. Einrichtung von Branch Protection

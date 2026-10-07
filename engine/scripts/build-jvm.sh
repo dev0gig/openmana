@@ -35,6 +35,7 @@ mvn -B -ntp -f "$OM_WORK_DIR/pom.xml" -pl bridge -am clean package \
 rc="${PIPESTATUS[0]}"
 set -e
 [ "$rc" -eq 0 ] || om_die "Maven-Build fehlgeschlagen (Exit $rc), siehe $OM_REPORT_DIR/maven.log"
+node "$OM_ENGINE_DIR/scripts/engine-lock.mjs" jvm-report "$OM_WORK_DIR/bridge/target/surefire-reports" "$OM_REPORT_DIR"
 
 jar="$OM_WORK_DIR/bridge/target/openmana-engine-bridge-0.1.0-SNAPSHOT-jar-with-dependencies.jar"
 [ -f "$jar" ] || om_die "Fat-JAR fehlt: $jar"

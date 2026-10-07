@@ -50,6 +50,13 @@ export function sourceIdentity(root = repoDir) {
   return { format: "openmana-engine-inputs/1", forgeCommit, sha256: sha256(JSON.stringify({ forgeCommit, entries })), files: entries };
 }
 
+export function appIdentity(root = repoDir) {
+  const files = [...new Set(paths(git(root, "ls-files", "-z", "--cached", "--others", "--exclude-standard")))].sort();
+  return sha256(JSON.stringify(files
+    .filter((name) => !name.startsWith("engine/") && !name.endsWith(".md") && fs.existsSync(path.join(root, name)))
+    .map((name) => [name, fileDigest(path.join(root, name))])));
+}
+
 export function inspectUpdate(root, baseRef, { protocolReason = "", adaptationPaths = [] } = {}) {
   const base = git(root, "rev-parse", "--verify", `${baseRef}^{commit}`);
   // --no-renames keeps BOTH sides of a move visible. Diff against the worktree

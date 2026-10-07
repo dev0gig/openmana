@@ -6,7 +6,29 @@ import { fileURLToPath } from "node:url";
 import { checkForge, fileDigest, readJson, repoDir, sourceIdentity } from "./update-policy.mjs";
 
 export const ARTIFACTS = ["engine-worker.js", "openmana-engine.js", "openmana-engine.js.wasm", "forge-res.inventory.json"];
-export const REQUIRED_STEPS = ["engine-dependencies", "app-dependencies", "build", "engine-tests", "catalog", "app-check"];
+export const REQUIRED_STEPS = ["engine-dependencies", "app-dependencies", "browser-preflight", "build", "engine-tests", "catalog", "app-check"];
+
+export function recordJvmTests(surefireDir, reportDir) {
+  const reports = fs.readdirSync(surefireDir).filter((name) => /^TEST-.*\.xml$/.test(name)).sort();
+  const summary = { format: "openmana-jvm-tests/1", tests: 0, errors: 0, failures: 0, skipped: 0, reports: {} };
+  for (const name of reports) {
+    const file = path.join(surefireDir, name);
+    // Surefire emits the totals as integer attributes on the testsuite root.
+    const root = /<testsuite\s+([^>]+)>/.exec(fs.readFileSync(file, "utf8"))?.[1];
+    if (!root) throw new Error(`No Surefire testsuite in ${name}`);
+    for (const key of ["tests", "errors", "failures", "skipped"]) {
+      const value = new RegExp(`\\b${key}="(\\d+)"`).exec(root)?.[1];
+      if (value === undefined) throw new Error(`Missing Surefire ${key}: ${name}`);
+      summary[key] += Number(value);
+    }
+    summary.reports[name] = fileDigest(file);
+  }
+  if (summary.tests === 0 || summary.errors || summary.failures || summary.skipped) throw new Error(`JVM tests missing, failed or skipped: ${JSON.stringify(summary)}`);
+  fs.mkdirSync(path.join(reportDir, "jvm-tests"), { recursive: true });
+  for (const name of reports) fs.copyFileSync(path.join(surefireDir, name), path.join(reportDir, "jvm-tests", name));
+  fs.writeFileSync(path.join(reportDir, "jvm-tests.json"), JSON.stringify(summary, null, 2) + "\n");
+  return summary;
+}
 
 export function verifyArtifacts(dist) {
   const manifest = readJson(path.join(dist, "engine-manifest.json"));
@@ -36,6 +58,12 @@ export function validateEvidence(dir) {
   if (JSON.stringify(build.manifest) !== JSON.stringify(manifest) || build.steps.some((s) => s.exitCode !== 0) || build.steps.length !== 6) throw new Error("Build report does not describe this complete engine");
   const sources = readJson(path.join(dir, "report/source-inputs.json"));
   if (sources.sha256 !== manifest.sources?.sha256 || sources.sha256 !== pipeline.engineInputsSha256) throw new Error("Build/test source identity mismatch");
+  const jvm = readJson(path.join(dir, "report/jvm-tests.json"));
+  if (jvm.format !== "openmana-jvm-tests/1" || !(jvm.tests > 0) || jvm.errors !== 0 || jvm.failures !== 0 || jvm.skipped !== 0) throw new Error("JVM test evidence missing, failed or skipped");
+  if (!Object.keys(jvm.reports).length) throw new Error("No original JVM reports");
+  for (const [name, expected] of Object.entries(jvm.reports)) {
+    if (fileDigest(path.join(dir, "report/jvm-tests", name)).sha256 !== expected.sha256) throw new Error(`JVM report changed: ${name}`);
+  }
   const tests = readJson(path.join(dir, "report/test-report.json"));
   if (tests.format !== "openmana-engine-tests/1" || tests.failures !== 0 || tests.browserSkipped !== false || tests.manifestSha256 !== manifestDigest.sha256) throw new Error("Engine tests missing, skipped, failed or from another build");
   const runs = Object.keys(tests.runs);
@@ -68,7 +96,7 @@ export function promoteLock(dir, root = repoDir) {
       engineRuns: runs.length,
       browserRuns: runs.filter((name) => name.startsWith("browser-")).length,
       browserSkipped: false,
-      reports: Object.fromEntries(["pipeline.json", "report/build-report.json", "report/test-report.json", "report/source-inputs.json", "report/unit-tests.xml", "catalog/card-catalog-manifest.json"].map((name) => [name, fileDigest(path.join(dir, name))])),
+      reports: Object.fromEntries(["pipeline.json", "report/build-report.json", "report/jvm-tests.json", "report/test-report.json", "report/source-inputs.json", "report/unit-tests.xml", "catalog/card-catalog-manifest.json"].map((name) => [name, fileDigest(path.join(dir, name))])),
     },
   };
   const file = path.join(root, "engine/engine.lock.json");
@@ -97,8 +125,11 @@ export function verifyLock(dist, root = repoDir) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const [command, dist] = process.argv.slice(2);
-  if (command !== "verify" || !dist) throw new Error("Usage: node engine/scripts/engine-lock.mjs verify <dist-dir>");
-  const lock = verifyLock(path.resolve(dist));
-  console.log(`Verified Forge ${lock.forge.commit}; manifest ${lock.manifest.sha256}`);
+  const [command, first, second] = process.argv.slice(2);
+  if (command === "verify" && first) {
+    const lock = verifyLock(path.resolve(first));
+    console.log(`Verified Forge ${lock.forge.commit}; manifest ${lock.manifest.sha256}`);
+  } else if (command === "jvm-report" && first && second) {
+    console.log(`JVM tests: ${recordJvmTests(first, second).tests} passed, zero skips`);
+  } else throw new Error("Usage: engine-lock.mjs verify <dist-dir> | jvm-report <surefire-dir> <report-dir>");
 }
