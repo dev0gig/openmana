@@ -75,8 +75,9 @@ files work under COEP and nothing leaks to third parties (Bible §15).
    ersetzen", "Aufgeben") and whose cancel button keeps things as they are
    ("Weiterspielen").
 5. **Touch first.** On coarse pointers (`pointer-coarse:`) buttons, sidebar
-   entries, menu entries, select triggers and options and toggles grow to at
-   least 44 px (default `h-11`, `lg` `h-12`, icons `size-11`, menu entries
+   entries, menu entries, inputs, select triggers and options and toggles grow to at
+   least 44 px in both dimensions (`Button` coarse `min-w-11`; all Button sizes
+   including `xs`/`sm`: `h-11`, `lg` `h-12`, icons `size-11`, menu entries
    `min-h-11`); the phone's tab bar gives each destination a 64 px high,
    full-width target. Mouse layouts stay compact. A page's primary action
    stays on screen on phones: an `ActionBar` right above the tab bar (Anvil
@@ -262,3 +263,11 @@ Battlefield captions retain their original statistics space; the viewer/title na
 or text covers a picture. Usable dashed / selected solid frames take precedence
 while the target words remain; a target relationship alone never offers a tap.
 No new colour tokens are needed. Player seats use the same double inset outline.
+
+## 8. Responsive pass (prompt 24)
+
+User names must wrap inside the content column rather than widening the browser layout viewport. `Page` can shrink, `PageHeader` bounds/wraps its title and `ItemContent`/`ItemTitle` stay within their row. These are deliberate shared shadcn/layout adaptations.
+
+`Dialog`/`Sheet` content wraps long text; `AlertDialog` confirmations scroll within the available screen height. Sheets are bounded by the dynamic viewport. Existing viewer/help/history/decision scroll regions and sticky footers remain reachable. The mobile brand link also has a 44 px target. Fine-pointer component sizes retain their registry dimensions.
+
+The audit checks eight CSS sizes from 360×740 through 1440×900, including fold-like 690×829 and 829×690. It keeps the original eight-region table allocation, card gestures, keyboard navigation and meaningful decisions. Resize preserves viewer identity/focus and live Forge transcripts. Screens are emulated Chrome evidence; no physical hinge behavior is implied. See [implementation/24-responsive-polish.md](implementation/24-responsive-polish.md).

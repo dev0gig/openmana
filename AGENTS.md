@@ -84,7 +84,7 @@ A running game is the game table (`src/game/game-table.tsx`; prompt 13, `docs/im
 - Nothing is drawn over a card picture: a card's facts go into `GameCardCaption` below it; tapped is a quarter turn (`GameCard`); Forge's marks are a frame around it (prompt 14).
 - `GameBoard` keeps eight regions on the screen (portrait: stacked; landscape: side column) and the page never scrolls; card rows scroll sideways, texts inside their region. The table takes the whole screen while the game runs (`useImmersive`, `src/app/immersive.tsx`).
 - Forge's own texts (prompt line, questions, stack descriptions, button labels) are shown as Forge sends them; a notice appears as a toast at the top and stays in the menu (`noticeCount`).
-- Verify table changes with the unit tests on real recorded scenes (`src/test/table-scenes.ts`, re-recorded with `scripts/record-table-scenes.ts` after `engine/scripts/test-engine.sh`) and the end-to-end test's section 12 (those scenes in the real table at six sizes).
+- Verify table changes with the unit tests on real recorded scenes (`src/test/table-scenes.ts`, re-recorded with `scripts/record-table-scenes.ts` after `engine/scripts/test-engine.sh`) and the end-to-end test's section 12 (those scenes in the real table at eight sizes).
 
 ## Card Interaction Rules
 Every card the player may see on the game table is a control (prompt 14, `docs/implementation/14-card-hand-interactions.md`):
@@ -94,7 +94,7 @@ Every card the player may see on the game table is a control (prompt 14, `docs/i
 - Against taps by mistake: the card view never focuses its tap button, the button ignores presses for `ARMING_MS` after it appeared or changed meaning (and outside presses do not close the view that early), a repeated keydown is dropped, and nothing taps while Forge computes, a blocking question waits or a concession is on its way (`tapBlocked`, with the reason shown). Never weaken these guards for speed.
 - Marks are frames around the picture, never on it (`GameCardButton`/`GameCard` `mark`): usable = dashed `--primary`, chosen = solid `--foreground`. A card's name for screen readers says its facts, its mark and - where it taps at once - what the tap does (`cardButtonLabel`).
 - Rows of cards are toolbars (`GameCardRow controls`: Radix Toolbar - one Tab stop, arrow keys, Home, End); a row without such cards stays a focusable list. A `GameCardRowButton` must sit in a toolbar row.
-- Verify with `src/game/card-use.test.ts` (real recorded scenes plus built selections/mulligan), `src/game/card-interaction.test.tsx` (look, arming, keyboard, context menu, long press, swipe, live updates) and the end-to-end test's section 12 (`tableInteractions`: the same in real Chrome at six sizes, with the harness recording taps).
+- Verify with `src/game/card-use.test.ts` (real recorded scenes plus built selections/mulligan), `src/game/card-interaction.test.tsx` (look, arming, keyboard, context menu, long press, swipe, live updates) and the end-to-end test's section 12 (`tableInteractions`: the same in real Chrome at eight sizes, with the harness recording taps).
 
 ## Zones and Full Card Viewer Rules
 Prompt 20 (`src/game/zone-sheet.tsx`, `card-view-model.ts`, `card-sheet.tsx`, `docs/implementation/20-zones-card-viewer.md`):
@@ -128,6 +128,12 @@ Prompt 23 (`src/game/beginner-help.ts`, `src/game/help-sheet.tsx`, `docs/impleme
 - Help opens from the turn/phase area, updates from current props, restores focus and sends no input. Replay stays read-only. Abort advice uses structured reasons and retains technical details; reload advice must disclose loss of the current game.
 - Verify focused help/error tests, `--help-only` recorded/built scenes and the complete app check with fresh real desktop/phone Forge games. Chrome viewport/touch emulation is not physical-device evidence.
 
+## Responsive Rules
+Prompt 24 (`docs/implementation/24-responsive-polish.md`):
+- Viewport/orientation changes only present state. Never send engine input, restart a Worker or mutate MatchLog on resize. Preserve current viewer ID, focus, reachable footer and inspection guards.
+- Bound/wrap user names inside Page/Item/Dialog/Sheet; coarse-pointer Button sizes and Input targets stay at least 44 px. Table-card minimums and safe gestures retain their existing rules.
+- Keep all eight CSS viewports in the application/table e2e audit, including both fold-like orientations. Emulation does not prove physical Fold, hinge or ORYX-device behavior.
+
 ## Decision Rules
 Forge's questions are answered in the table's decision region (prompt 15, `src/game/decision-panel.tsx`, `src/game/decision-model.ts`, `docs/implementation/15-forge-decisions.md`):
 - Every kind of question the protocol knows has its controls: Forge's two buttons (`buttons`), a selection (`select`: cards the table shows are tapped on the table, the others - graveyard, exile, library, hidden - come as a row in the region), `choose`, `confirm`, `options` (and Forge's revealed lists with one OK), `input`, `order`, `arrange`, `distribute`. A blocking question is answered alone; otherwise Forge's buttons and its selection side by side (`currentDecision`).
@@ -137,7 +143,7 @@ Forge's questions are answered in the table's decision region (prompt 15, `src/g
 - Words: the buttons and selection of a running step show Forge's prompt line (their own text is the line of the moment the step began); a blocking question shows its own text. Forge's labels as sent; a button without one is "OK" (1) / "Abbrechen" (2), the protocol's meaning. The one exception is the player's priority (prompt 16, see Priority, Stack and Turn Rules): its words come from Forge's structured state, and Forge's OK says what passing does. Players in items by `me` ("Du", "Forge-KI"), never by name. Players as targets: see Targets and Payment Rules.
 - A withdrawn question takes its controls and any draft with it; the next question starts afresh (keyed by question id).
 - The region grows only as far as its content needs (`GameBoard decision`: `tall` for words that do not fit - at most 28 % of a portrait screen -, `expanded` for a blocking list/form, cards outside the table, or words while stack and combat are empty - at most 36 %); in a low landscape window an expanded decision takes the stack's place. The answer buttons stick to its bottom.
-- Verify with `src/game/decision-model.test.ts`, `src/game/decision-panel.test.tsx` (recorded scenes of every kind the test games reach, questions built after the schema for the others - `src/test/built-questions.ts`), `src/game/game-page.test.tsx` (answers through the real client) and the end-to-end test: section 10 plays the real game (keep, pass, play a land, pass), section 12 checks and answers every kind at six sizes (`decisionFits`, `decisionInteractions`).
+- Verify with `src/game/decision-model.test.ts`, `src/game/decision-panel.test.tsx` (recorded scenes of every kind the test games reach, questions built after the schema for the others - `src/test/built-questions.ts`), `src/game/game-page.test.tsx` (answers through the real client) and the end-to-end test: section 10 plays the real game (keep, pass, play a land, pass), section 12 checks every kind at eight sizes (`decisionFits`) and answers every kind at small-phone, phone-landscape and desktop (`decisionInteractions`).
 
 ## Priority, Stack and Turn Rules
 The player's priority, the stack and the turn's steps (prompt 16, `src/game/turn-model.ts`, `PriorityDecision` in `src/game/decision-panel.tsx`, `src/game/game-table.tsx`, `docs/implementation/16-priority-stack-phases.md`):
@@ -147,7 +153,7 @@ The player's priority, the stack and the turn's steps (prompt 16, `src/game/turn
 - Cards are played at priority by tapping them (Card Interaction Rules: the card view's button, Forge's `card.tap`), never through a list or a question the app makes up.
 - The stack region shows every item top first with its card (`StackItem.card`: a spell's own card, an ability's source; a hidden card is a back), what it is (`STACK_KIND_LABELS`), whose it is, its targets and Forge's description. A card on the stack is looked at - its card view says where it is on the stack (`StackFacts`) - never tapped (`cardUse` zone `stack`).
 - The header shows the turn's steps as a `PhaseTrack` (`turnSteps`: the fixed order of Forge's `PhaseType`; a picture of the words beside it, hidden from screen readers) and whose turn it is. Forge moves the game on; the track only shows where it is (a step Forge skips is simply passed over).
-- Verify with `src/game/turn-model.test.ts`, `src/game/priority.test.tsx` (recorded scenes `main-phase`, `opponent-turn`, `respond`, `respond-own`, `stack`, `yes-no`), the engine's `PriorityStackTest` (APINA, meanings, End Turn and Undo in real games, stack cards, looking without side effects) and the end-to-end test (section 10: the real game's priority and header; section 12: the priority scenes at six sizes, priorities answered, End Turn asked first).
+- Verify with `src/game/turn-model.test.ts`, `src/game/priority.test.tsx` (recorded scenes `main-phase`, `opponent-turn`, `respond`, `respond-own`, `stack`, `yes-no`), the engine's `PriorityStackTest` (APINA, meanings, End Turn and Undo in real games, stack cards, looking without side effects) and the end-to-end test (section 10: the real game's priority and header; section 12: the priority scenes at eight sizes, priorities answered, End Turn asked first).
 
 ## Targets and Payment Rules
 Targets, choices of players and cost payment (prompt 17, `src/game/card-use.ts` `playerUse`/`stepSource`, `src/game/decision-model.ts` `selectView`/`paymentView`, `src/components/ui/game-player.tsx`, `docs/implementation/17-targeting-cost-payment.md`):
@@ -195,7 +201,7 @@ The optional sync of the player's collection through their ORYX account (project
 The legacy local prompt workflow was removed upstream on 2026-09-28. Executable tasks and their lifecycle now live in `dev0gig/dropzone/workflow/tasks/`; implementation evidence remains in `docs/implementation/` and Git history.
 
 - Numbered prompts run strictly sequentially; resume `IN_PROGRESS` work and never skip a `BLOCKED` predecessor. Mark a task complete only after its requirements and verification pass.
-- Reconcile the central status with code and `STATUS.md` before selecting work. Prompt 23 (beginner QoL) is complete; Prompt 24 is next.
+- Reconcile the central status with code and `STATUS.md` before selecting work. Prompt 24 (responsive pass) is complete; Prompt 25 is next.
 - Run only the task explicitly assigned by the user; this cross-repository cleanup does not start a numbered implementation prompt.
 - Update the central task and `STATUS.md` with verified evidence; do not recreate the removed local queue.
 

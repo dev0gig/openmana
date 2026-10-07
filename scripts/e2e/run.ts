@@ -4,8 +4,9 @@
  *
  *   npm run test:e2e                 build, then test
  *   npm run test:e2e -- --no-build   test the existing dist/
+ *   npm run test:e2e -- --no-build --responsive-only all routes/overlays at eight sizes, normal real Play prewarm
  *   npm run test:e2e -- --no-build --replay-only  imported recorded snapshots, library/file/retention checks
- *   npm run test:e2e -- --no-build --table-only   complete table checks at all six sizes, no fresh engine boot
+ *   npm run test:e2e -- --no-build --table-only   complete table checks at all eight sizes, no fresh engine boot
  *   npm run test:e2e -- --no-build --help-only    contextual help on recorded/built scenes, no engine boot
  *   npm run test:e2e -- --no-build --history-only recorded Forge history and current sources only
  *   npm run test:e2e -- --no-build --zones-only   visible zones, piles and DFC inspection only
@@ -99,7 +100,7 @@
  *     and turning the phone re-lay the table without touching the game. And
  *     recorded real states of the engine's test games (full battlefields,
  *     piles, a stack, blockers, fourteen attackers, the command zone) in the
- *     real table at six sizes (tableHarness), each with axe-core.
+ *     real table at eight sizes (tableHarness), each with axe-core.
  * 13. The ORYX cloud on OpenMana's real address (Playwright serves the build
  *     as https://openmana.vercel.app; the ORYX cloud is a stand-in): a guest
  *     sees the card and sends nothing; connecting leaves for the consent page
@@ -116,7 +117,7 @@ import os from "node:os"
 import type { AddressInfo } from "node:net"
 import path from "node:path"
 import { gunzipSync, gzipSync } from "node:zlib"
-import { chromium, type Browser, type BrowserContext, type ConsoleMessage, type Locator, type Page, type Route } from "playwright-core"
+import { chromium, type Browser, type BrowserContext, type ConsoleMessage, type Locator, type Page, type Request, type Route } from "playwright-core"
 // The real ORYX cloud and *.vercel.app resolve to nowhere in every browser this run starts: requests sent while a page
 // is left (keepalive) bypass page.route and would otherwise reach Supabase (2026-09-26, refused there with 401).
 const NO_REAL_CLOUD = "--host-resolver-rules=MAP fellumrfugohnnvtxxye.supabase.co 0.0.0.0, MAP *.vercel.app 0.0.0.0"
@@ -128,6 +129,7 @@ import { playDeck, type StoredDeck } from "./engine-decks.ts"
 
 const root = path.resolve(import.meta.dirname, "../..")
 const dist = path.join(root, "dist")
+const responsiveOnly = process.argv.includes("--responsive-only")
 const replayOnly = process.argv.includes("--replay-only")
 const combatOnly = process.argv.includes("--combat-only")
 const zonesOnly = process.argv.includes("--zones-only")
@@ -135,7 +137,7 @@ const historyOnly = process.argv.includes("--history-only")
 const helpOnly = process.argv.includes("--help-only")
 const tableOnly = process.argv.includes("--table-only")
 const focusedTable = combatOnly || zonesOnly || historyOnly || helpOnly
-const reportDir = path.join(root, "reports", replayOnly ? "replay-e2e" : tableOnly ? "table-e2e" : helpOnly ? "help-e2e" : combatOnly ? "combat-e2e" : zonesOnly ? "zones-e2e" : historyOnly ? "history-e2e" : "e2e")
+const reportDir = path.join(root, "reports", responsiveOnly ? "responsive-e2e" : replayOnly ? "replay-e2e" : tableOnly ? "table-e2e" : helpOnly ? "help-e2e" : combatOnly ? "combat-e2e" : zonesOnly ? "zones-e2e" : historyOnly ? "history-e2e" : "e2e")
 const require = createRequire(import.meta.url)
 
 interface Viewport {
@@ -154,18 +156,33 @@ const VIEWPORTS: readonly Viewport[] = [
   { name: "desktop", width: 1440, height: 900, touch: false, scale: 1 },
 ]
 
+// CSS viewports only, not a claim about physical Fold hardware or its hinge.
+const RESPONSIVE_VIEWPORTS: readonly Viewport[] = [
+  { name: "small-phone", width: 360, height: 740, touch: true, scale: 3 },
+  VIEWPORTS[0]!,
+  { name: "phone-landscape", width: 915, height: 412, touch: true, scale: 2.625 },
+  { name: "fold-portrait", width: 690, height: 829, touch: true, scale: 2 },
+  { name: "fold-landscape", width: 829, height: 690, touch: true, scale: 2 },
+  VIEWPORTS[1]!,
+  { name: "tablet-landscape", width: 1104, height: 884, touch: true, scale: 2 },
+  VIEWPORTS[2]!,
+]
+
 const ROUTES = [
   { path: "/", title: "OpenMana", heading: "OpenMana" },
   { path: "/decks", title: "Decks · OpenMana", heading: "Decks" },
   { path: "/decks/import", title: "Arena-Deck importieren · OpenMana", heading: "Arena-Deck importieren" },
   // A deck that is not there: the details page says so (loaded on demand, like the import).
   { path: "/decks/00000000-0000-4000-8000-000000000000", title: "Deck nicht gefunden · OpenMana", heading: "Deck nicht gefunden" },
+  { path: "/decks/00000000-0000-4000-8000-000000000000/import", title: "Deck nicht gefunden · OpenMana", heading: "Deck nicht gefunden" },
   { path: "/play", title: "Spielen · OpenMana", heading: "Spielen" },
   // The game page without a game (a reload ends one): it says so.
   { path: "/play/game", title: "Partie · OpenMana", heading: "Partie" },
   { path: "/matches", title: "Partien · OpenMana", heading: "Partien" },
   { path: "/settings", title: "Einstellungen · OpenMana", heading: "Einstellungen" },
   { path: "/credits", title: "Credits · OpenMana", heading: "Credits" },
+  { path: "/matches/missing", title: "Wiedergabe · OpenMana", heading: "Wiedergabe" },
+  { path: "/missing", title: "Nicht gefunden · OpenMana", heading: "Nicht gefunden" },
 ] as const
 
 const failures: string[] = []
@@ -396,55 +413,203 @@ async function accessibility(page: Page, label: string): Promise<number> {
  * whole page (sticky bars then sit where the first screen ended).
  */
 async function screenshots(page: Page, name: string): Promise<string[]> {
+  const coarse = await page.evaluate(() => matchMedia("(pointer: coarse)").matches)
   await page.evaluate(() => window.scrollTo(0, 0))
   const first = path.join(reportDir, "screens", `${name}.png`)
   const full = path.join(reportDir, "screens", "full", `${name}.png`)
   await page.screenshot({ path: first })
   await page.screenshot({ path: full, fullPage: true })
+  // Chrome's full-page capture can reset touch emulation. Restore the original
+  // pointer mode so the next surface still tests the intended coarse controls.
+  if (coarse) {
+    const cdp = await page.context().newCDPSession(page)
+    await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 })
+    await cdp.detach()
+  }
   return [first, full].map((file) => path.relative(root, file))
 }
 
-async function surfaces(browser: Browser, base: string, id: string): Promise<void> {
+async function surfaces(executablePath: string, base: string, id: string): Promise<void> {
   const results: unknown[] = []
-  for (const viewport of VIEWPORTS) {
+  for (const viewport of RESPONSIVE_VIEWPORTS) {
     log(`Surfaces at ${viewport.name} (${viewport.width}x${viewport.height}${viewport.touch ? ", touch" : ""})`)
-    const context = await newContext(browser, viewport)
-    const page = await context.newPage()
-    const pageLog = watch(page)
-    for (const route of ROUTES) {
-      const label = `${viewport.name} ${route.path}`
-      await page.goto(new URL(route.path, base).href, { waitUntil: "networkidle" })
-      await page.getByRole("heading", { level: 1, name: route.heading }).waitFor()
-      await page.evaluate(() => document.fonts.ready)
-      const state = await page.evaluate(() => ({
-        isolated: globalThis.crossOriginIsolated,
-        title: document.title,
-        overflow: document.documentElement.scrollWidth - window.innerWidth,
-        coarse: matchMedia("(pointer: coarse)").matches,
-      }))
-      check(state.isolated === true, `${label}: crossOriginIsolated is ${state.isolated}`)
-      check(state.title === route.title, `${label}: title "${state.title}"`)
-      check(state.overflow <= 0, `${label}: ${state.overflow}px horizontal overflow`)
-      const tabBar = page.getByRole("navigation", { name: "Hauptnavigation" })
-      const sidebarStart = page.locator('[data-slot="sidebar"] a', { hasText: "Start" })
-      if (viewport.width < 768) {
-        check(await tabBar.isVisible(), `${label}: tab bar hidden on a phone`)
-        check(!(await sidebarStart.isVisible()), `${label}: sidebar visible on a phone`)
-      } else {
-        check(!(await tabBar.isVisible()), `${label}: tab bar visible on a large screen`)
-        check(await sidebarStart.isVisible(), `${label}: sidebar hidden on a large screen`)
+    const surfaceBrowser = await launchBrowser(executablePath)
+    const context = await newContext(surfaceBrowser, viewport)
+    const pageLogs: PageLog[] = []
+    try {
+      for (const route of ROUTES) {
+        // Own page per route: repeated high-DPR full-page captures must not
+        // accumulate renderer resources. Keep every page's request/error stream.
+        const page = await context.newPage()
+        const pageLog = watch(page)
+        pageLogs.push(pageLog)
+        try {
+          const label = `${viewport.name} ${route.path}`
+          await page.goto(new URL(route.path, base).href, { waitUntil: "networkidle" })
+          await page.getByRole("heading", { level: 1, name: route.heading }).waitFor()
+          await page.evaluate(() => document.fonts.ready)
+          const state = await page.evaluate(() => ({
+            isolated: globalThis.crossOriginIsolated,
+            title: document.title,
+            overflow: document.documentElement.scrollWidth - window.innerWidth,
+            coarse: matchMedia("(pointer: coarse)").matches,
+          }))
+          check(state.isolated === true, `${label}: crossOriginIsolated is ${state.isolated}`)
+          check(state.title === route.title, `${label}: title "${state.title}"`)
+          check(state.overflow <= 0, `${label}: ${state.overflow}px horizontal overflow`)
+          check(state.coarse === viewport.touch, `${label}: pointer mode differs from viewport emulation`)
+          const tabBar = page.getByRole("navigation", { name: "Hauptnavigation" })
+          const sidebarStart = page.locator('[data-slot="sidebar"] a', { hasText: "Start" })
+          if (viewport.width < 768) {
+            check(await tabBar.isVisible(), `${label}: tab bar hidden on a phone`)
+            check(!(await sidebarStart.isVisible()), `${label}: sidebar visible on a phone`)
+          } else {
+            check(!(await tabBar.isVisible()), `${label}: tab bar visible on a large screen`)
+            check(await sidebarStart.isVisible(), `${label}: sidebar hidden on a large screen`)
+          }
+          const violations = await accessibility(page, label)
+          const shots = await screenshots(page, `${viewport.name}${route.path === "/" ? "-home" : route.path.replace(/\//g, "-")}`)
+          results.push({ viewport: viewport.name, route: route.path, ...state, violations, screenshots: shots })
+        } finally {
+          await page.close()
+        }
       }
-      const violations = await accessibility(page, label)
-      const shots = await screenshots(page, `${viewport.name}${route.path === "/" ? "-home" : route.path.replace(/\//g, "-")}`)
-      results.push({ viewport: viewport.name, route: route.path, ...state, violations, screenshots: shots })
+      const requests = pageLogs.flatMap((entry) => entry.requests)
+      const hosts = new Set(pageLogs.flatMap((entry) => [...entry.hosts]))
+      check(!requests.some((p) => p.startsWith(`/engine/${id}/`)), `${viewport.name}: engine files requested without being asked`)
+      check(!requests.some((p) => p.startsWith("/cards/")), `${viewport.name}: card catalog requested without being asked`)
+      check(hosts.size === 1, `${viewport.name}: requests to other hosts without being asked: ${[...hosts].join(", ")}`)
+      for (const error of pageLogs.flatMap((entry) => entry.errors)) check(false, `${viewport.name}: ${error}`)
+    } finally {
+      await context.close()
+      await surfaceBrowser.close()
     }
-    check(!pageLog.requests.some((p) => p.startsWith(`/engine/${id}/`)), `${viewport.name}: engine files requested without being asked`)
-    check(!pageLog.requests.some((p) => p.startsWith("/cards/")), `${viewport.name}: card catalog requested without being asked`)
-    check(pageLog.hosts.size === 1, `${viewport.name}: requests to other hosts without being asked: ${[...pageLog.hosts].join(", ")}`)
-    for (const error of pageLog.errors) check(false, `${viewport.name}: ${error}`)
-    await context.close()
   }
   report["surfaces"] = results
+}
+
+/** Prompt 24: populated routes/overlays through the real UI. Play keeps its normal real-engine prewarm. */
+async function responsiveSurfaces(executablePath: string, base: string): Promise<unknown[]> {
+  const results: unknown[] = []
+  const fixture = JSON.parse(fs.readFileSync(path.join(root, "src/test/fixtures/replay.json"), "utf8"))
+  for (const viewport of RESPONSIVE_VIEWPORTS) {
+    log(`Responsive populated surfaces (${viewport.name})`)
+    const surfaceBrowser = await launchBrowser(executablePath)
+    const context = await newContext(surfaceBrowser, viewport)
+    const page = await context.newPage()
+    const pageLog = watch(page)
+    const workers = countWorkers(page)
+    const states: unknown[] = []
+    const audit = async (name: string, overlay = false) => {
+      await page.evaluate(() => document.fonts.ready)
+      const geometry = await page.evaluate(() => ({
+        width: innerWidth, height: innerHeight, overflow: document.documentElement.scrollWidth - innerWidth,
+        pageHeight: document.documentElement.scrollHeight,
+        dialogs: [...document.querySelectorAll('[role="dialog"], [role="alertdialog"]')].map((node) => {
+          const r = node.getBoundingClientRect()
+          return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, overflow: node.scrollWidth - node.clientWidth }
+        }),
+        // Off-screen vertical content is expected on library/settings pages; horizontal clipping is not.
+        wide: [...document.querySelectorAll('main h1, main [data-slot="item"], main [data-slot="action-bar"]')].filter((node) => node.getBoundingClientRect().right > innerWidth + 1).map((node) => ({ slot: node.getAttribute("data-slot"), text: node.textContent?.slice(0, 100) })),
+      }))
+      check(geometry.overflow <= 0 && geometry.wide.length === 0, `${viewport.name} ${name}: horizontal overflow ${JSON.stringify(geometry)}`)
+      check(geometry.width === viewport.width && geometry.height === viewport.height, `${viewport.name} ${name}: layout viewport widened by content ${geometry.width}×${geometry.height}`)
+      check(await page.evaluate(() => matchMedia("(pointer: coarse)").matches) === viewport.touch, `${viewport.name} ${name}: wrong pointer mode`)
+      if (overlay) for (const box of geometry.dialogs) check(box.left >= 0 && box.right <= geometry.width + 1 && box.top >= 0 && box.bottom <= geometry.height + 1 && box.overflow <= 1, `${viewport.name} ${name}: dialog outside viewport ${JSON.stringify(box)}`)
+      const controls = await page.locator('button[data-slot="button"], input:not([type="file"]), [data-slot="select-trigger"]').evaluateAll((nodes) => nodes.map((node) => ({ name: node.getAttribute("aria-label") ?? node.textContent?.trim(), height: node.getBoundingClientRect().height, width: node.getBoundingClientRect().width })).filter((box) => box.height > 0 && box.width > 0))
+      if (viewport.touch) for (const box of controls) check(box.height >= 44 && box.width >= 44, `${viewport.name} ${name}: touch control under 44 px ${JSON.stringify(box)}`)
+      let actionBar: unknown = null
+      if (!overlay && viewport.width < 768 && await page.locator('[data-slot="action-bar"]').count() > 0) {
+        const bar = page.locator('[data-slot="action-bar"]')
+        const button = bar.locator('button, a').first()
+        await button.scrollIntoViewIfNeeded()
+        actionBar = await button.evaluate((node) => {
+          const r = node.getBoundingClientRect()
+          return { top: r.top, bottom: r.bottom, reachable: node.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)) }
+        })
+        const box = actionBar as { top: number; bottom: number; reachable: boolean }
+        check(box.top >= 0 && box.bottom <= viewport.height && box.reachable, `${viewport.name} ${name}: primary action unreachable ${JSON.stringify(box)}`)
+      }
+      const axe = await accessibility(page, `responsive ${viewport.name} ${name}`)
+      if (!overlay) await page.evaluate(() => window.scrollTo(0, 0))
+      await page.screenshot({ path: path.join(reportDir, "screens", `responsive-${viewport.name}-${name}.png`) })
+      states.push({ name, geometry, controls, actionBar, axe })
+    }
+    try {
+      const now = new Date().toISOString()
+      const longName = "Langdeck".repeat(14)
+      const decks = [longName, "Responsive Beispieldeck"].map((name) => ({ id: randomUUID(), name, format: "constructed", main: [{ count: 60, name: "Mountain" }], sideboard: [], commander: [], source: { kind: "arena", text: "Deck\n60 Mountain", importedAt: now }, createdAt: now, updatedAt: now }))
+      await loadDecks(page, base, decks)
+      await page.goto(new URL("/matches", base).href, { waitUntil: "networkidle" })
+      await page.getByLabel("Wiedergabedatei").setInputFiles({ name: "recorded.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(fixture.replay)) })
+      await page.getByText("Wiedergabe geladen", { exact: true }).waitFor()
+      for (const [name, route] of [["home", "/"], ["library", "/decks"], ["deck", `/decks/${decks[0]!.id}`], ["update", `/decks/${decks[0]!.id}/import`], ["import", "/decks/import"], ["play", "/play"], ["matches", "/matches"], ["settings", "/settings"]]) {
+        await page.goto(new URL(route!, base).href, { waitUntil: "networkidle" })
+        await page.locator("main h1").waitFor()
+        if (name === "play") await chooseDeck(page, "Dein Deck wählen", "Responsive Beispieldeck")
+        await audit(name!)
+        if (name === "import" || name === "update") {
+          const input = page.getByLabel("Liste im Arena-Format")
+          await input.fill("Deck\n" + Array.from({ length: 60 }, () => "1 Mountain").join("\n"))
+          await audit(`${name}-long-list`)
+        }
+      }
+      await page.goto(new URL(`/decks/${decks[0]!.id}`, base).href, { waitUntil: "networkidle" })
+      await deckMenu(page, "Umbenennen")
+      const rename = page.getByRole("dialog")
+      await animationsDone(rename)
+      await audit("rename", true)
+      const inputHeight = await layoutHeight(rename.getByLabel("Name des Decks"))
+      if (viewport.touch) check(inputHeight >= 44, `${viewport.name}: rename input only ${inputHeight}px`)
+      await page.keyboard.press("Escape")
+      await overlaysGone(page)
+      await deckMenu(page, "Löschen")
+      await animationsDone(page.getByRole("alertdialog"))
+      await audit("delete-confirm", true)
+      await page.keyboard.press("Escape")
+      await overlaysGone(page)
+      await page.goto(new URL("/play", base).href, { waitUntil: "networkidle" })
+      await page.getByRole("button", { name: "Dein Deck wählen" }).click()
+      await animationsDone(page.getByRole("dialog"))
+      await audit("deck-picker", true)
+      await page.keyboard.press("Escape")
+      await overlaysGone(page)
+      const cardData = await openCardData(page, base)
+      await installFromSettings(cardData, `responsive ${viewport.name}`)
+      await lookUp(page, "Gebirge", "Gebirge")
+      await animationsDone(page.getByRole("dialog"))
+      await audit("catalog-card", true)
+      await page.keyboard.press("Escape")
+      await overlaysGone(page)
+      await page.getByRole("button", { name: "Diagnose anzeigen" }).click()
+      await animationsDone(page.getByRole("dialog"))
+      await audit("diagnostics", true)
+      await page.keyboard.press("Escape")
+      await overlaysGone(page)
+      for (const [name, route] of [["import", "/decks/import"], ["update", `/decks/${decks[0]!.id}/import`]]) {
+        await page.goto(new URL(route!, base).href, { waitUntil: "networkidle" })
+        await checkList(page, "Deck\n60 Mountain\n1 Does not exist responsive test", `responsive ${viewport.name} ${name}`)
+        await audit(`${name}-report`)
+      }
+      const workersBeforeReplay = workers.created()
+      await page.goto(new URL(`/matches/${fixture.replay.match.id}`, base).href, { waitUntil: "networkidle" })
+      await page.locator('[data-slot="game-board"]').waitFor()
+      const replayLayout = await checkTableFits(page, `responsive replay ${viewport.name}`)
+      await audit("replay")
+      await page.getByRole("button", { name: "Wiedergabemenü" }).click()
+      await animationsDone(page.getByRole("dialog"))
+      await audit("replay-menu", true)
+      check(workers.max() <= 1, `${viewport.name}: more than one engine at once during normal Play prewarming`)
+      check(workers.created() === workersBeforeReplay, `${viewport.name}: replay booted an engine`)
+      check((await dumpDatabase(page, ["matches"]))["matches"]?.length === 1, `${viewport.name}: inspection started/recorded a game`)
+      results.push({ viewport, states, inputHeight, replayLayout, engineWorkers: workers.created(), maximumConcurrentWorkers: workers.max(), replayWorkers: workers.created() - workersBeforeReplay, provenance: fixture.provenance })
+      for (const error of pageLog.errors) check(false, `responsive ${viewport.name}: ${error}`)
+    } finally {
+      await context.close()
+      await surfaceBrowser.close()
+    }
+  }
+  return results
 }
 
 /**
@@ -610,15 +775,15 @@ function sampleBackup(decks: number, prefix = "Muster-Deck"): SampleBackup {
 }
 
 /** Every record of the app's database, read past the app (the browser's own IndexedDB). */
-function dumpDatabase(page: Page): Promise<Record<string, unknown[]>> {
-  return page.evaluate(async () => {
+function dumpDatabase(page: Page, stores?: readonly string[]): Promise<Record<string, unknown[]>> {
+  return page.evaluate(async (stores) => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open("openmana")
       request.onsuccess = () => resolve(request.result)
       request.onerror = () => reject(request.error)
     })
     const out: Record<string, unknown[]> = {}
-    for (const name of Array.from(db.objectStoreNames)) {
+    for (const name of stores ?? Array.from(db.objectStoreNames)) {
       out[name] = await new Promise<unknown[]>((resolve, reject) => {
         const request = db.transaction(name).objectStore(name).getAll()
         request.onsuccess = () => resolve(request.result as unknown[])
@@ -627,7 +792,7 @@ function dumpDatabase(page: Page): Promise<Record<string, unknown[]>> {
     }
     db.close()
     return out
-  })
+  }, stores)
 }
 
 async function cardFacts(card: Locator): Promise<Record<string, string>> {
@@ -2035,6 +2200,37 @@ async function waitForDecision(page: Page): Promise<void> {
   }
 }
 
+/** Resize only presents: compare the original persisted stream, pending question and Worker identity. */
+async function liveResizeCheck(page: Page, label: string): Promise<Record<string, unknown>> {
+  await waitForDecision(page)
+  await page.waitForTimeout(150) // allow the recorder's existing 100 ms batch to flush
+  const before = (await dumpDatabase(page, ["matchLog"]))["matchLog"]
+  const question = await page.locator('[data-slot="game-decision"]').getAttribute("data-question")
+  check(question !== null && before?.some((entry) => (entry as { message?: { type?: string } }).message?.type === "state"), `${label}: no pending question/original recorded state to compare`)
+  const workerRequests: string[] = []
+  const request = (r: Request) => { if (r.url().endsWith("/engine-worker.js")) workerRequests.push(r.url()) }
+  page.on("request", request)
+  const original = page.viewportSize()!
+  const layouts: unknown[] = []
+  try {
+    for (const viewport of RESPONSIVE_VIEWPORTS) {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height })
+      await page.waitForTimeout(100)
+      const layout = await checkTableFits(page, `${label} resize ${viewport.name}`)
+      check(await page.locator('[data-slot="game-decision"]').getAttribute("data-question") === question, `${label}: resize changed the pending question`)
+      const after = (await dumpDatabase(page, ["matchLog"]))["matchLog"]
+      check(JSON.stringify(after) === JSON.stringify(before), `${label}: resize changed original engine state/log/input`)
+      await page.screenshot({ path: path.join(reportDir, "screens", `resize-${label}-${viewport.name}.png`) })
+      layouts.push({ viewport: viewport.name, layout, unchangedTranscript: JSON.stringify(after) === JSON.stringify(before) })
+    }
+    check(workerRequests.length === 0, `${label}: resize requested another Worker`)
+    return { question, logEntries: before?.length, workerRequests, layouts, evidence: "Full original matchLog messages and accepted inputs byte-compared at every resize while Forge waits; no new Worker request." }
+  } finally {
+    page.off("request", request)
+    await page.setViewportSize(original)
+  }
+}
+
 /** Starts a game from the play page and waits for Forge's first decision; returns the milliseconds from the click. */
 async function startAndWait(page: Page): Promise<number> {
   const started = Date.now()
@@ -2360,6 +2556,7 @@ async function gameSession(browser: Browser, page: Page, pageLog: PageLog, base:
   await page.setViewportSize({ width: VIEWPORTS[2]!.width, height: VIEWPORTS[2]!.height })
   await waitForDecision(page)
   check(workers.created() === 1, `game table: resizing the window changed the engine (${workers.created()} workers)`)
+  results["resizeInvariance"] = await liveResizeCheck(page, "live-desktop")
 
   // 3. Around the app and back through the table's menu: the game keeps running in the session, the app's frame is back outside it.
   const menu = await openTableMenu(page)
@@ -2573,6 +2770,7 @@ async function gamePhone(browser: Browser, base: string, decks: readonly SavedDe
     await page.setViewportSize({ width: VIEWPORTS[0]!.width, height: VIEWPORTS[0]!.height })
     await waitForDecision(page)
     // Answering Forge by touch (prompt 15): keep, pass, play a land, pass; Forge's buttons 44 px or more.
+    results["resizeInvariance"] = await liveResizeCheck(page, "live-phone")
     results["played"] = await playRealGame(page, "game (phone, playing)", true)
     results["liveRecordingReplay"] = await liveReplayCheck(page, "game phone")
     await page.screenshot({ path: path.join(reportDir, "screens", "phone-game-played.png") })
@@ -2878,6 +3076,8 @@ const TABLE_VIEWPORTS: readonly Viewport[] = [
   { name: "small-phone", width: 360, height: 740, touch: true, scale: 3 },
   VIEWPORTS[1]!,
   { name: "tablet-landscape", width: 1104, height: 884, touch: true, scale: 2 },
+  RESPONSIVE_VIEWPORTS[3]!,
+  RESPONSIVE_VIEWPORTS[4]!,
   VIEWPORTS[2]!,
 ]
 
@@ -3160,6 +3360,30 @@ async function tableInteractions(parent: Page, base: string, viewport: Viewport)
     }
     results["priority"] = { side, tapHeight, taps: armedTaps }
 
+    // A fold/rotation with an open viewer keeps the current ID and focus,
+    // and only repositions the Sheet. Inspection never becomes a card tap.
+    await scene("main-phase")
+    await page.locator('button[data-card="25"]').click()
+    await page.getByRole("dialog", { name: "Gebirge" }).waitFor()
+    const resized: unknown[] = []
+    for (const size of [RESPONSIVE_VIEWPORTS[3]!, RESPONSIVE_VIEWPORTS[4]!, viewport]) {
+      await page.setViewportSize({ width: size.width, height: size.height })
+      await page.waitForTimeout(100)
+      const sheet = page.getByRole("dialog", { name: "Gebirge" })
+      await animationsDone(sheet)
+      const side = await sheet.getAttribute("data-side")
+      check(side === (size.width > size.height ? "right" : "bottom"), `${label}: resized card view on wrong side ${side}`)
+      check(await sheet.evaluate((node) => node.contains(document.activeElement)), `${label}: resized viewer lost focus`)
+      const close = sheet.getByRole("button", { name: "Schließen", exact: true })
+      const box = await close.boundingBox()
+      check(box !== null && box.y >= 0 && box.y + box.height <= size.height + 1, `${label}: resized viewer footer outside viewport`)
+      check((await harnessTaps(page)).length === 0 && (await harnessAnswers(page)).length === 0, `${label}: viewer resize sent game input`)
+      resized.push({ size: size.name, side, footer: box })
+    }
+    await closeCardView(page)
+    check(await page.locator('button[data-card="25"]').evaluate((node) => document.activeElement === node), `${label}: resized viewer did not restore card focus`)
+    results["viewerResize"] = resized
+
     // The stack (prompt 16): a card on it opens the card view - where it is, how far from the top -, to look at, never to tap.
     await scene("respond-own")
     const lower = page.locator("[data-stack-item]").nth(1).locator("button[data-stack-card]")
@@ -3281,6 +3505,7 @@ async function decisionFits(page: Page, label: string, viewport: Viewport): Prom
       scroll: { width: region.scrollWidth, clientWidth: region.clientWidth, height: region.scrollHeight, clientHeight: region.clientHeight },
       actions: box(region.querySelector('[data-slot="game-decision-actions"]')),
       smallest: buttons.length === 0 ? null : Math.min(...buttons.map((element) => target(element).offsetHeight)),
+      smallestWidth: buttons.length === 0 ? null : Math.min(...buttons.map((element) => target(element).offsetWidth)),
       window: { width: window.innerWidth, height: window.innerHeight },
     }
   })
@@ -3288,6 +3513,7 @@ async function decisionFits(page: Page, label: string, viewport: Viewport): Prom
   if (info.actions !== null) check(info.actions.top >= 0 && info.actions.bottom <= info.window.height + 1, `${label}: the decision's buttons outside the window ${JSON.stringify(info.actions)}`)
   check(info.scroll.width <= info.scroll.clientWidth + 1, `${label}: the decision is wider than its region ${JSON.stringify(info.scroll)}`)
   if (viewport.touch && info.smallest !== null) check(info.smallest >= 44, `${label}: a control of the decision ${info.smallest}px high`)
+  if (viewport.touch && info.smallestWidth !== null) check(info.smallestWidth >= 44, `${label}: a control of the decision ${info.smallestWidth}px wide`)
   return info
 }
 
@@ -4154,16 +4380,21 @@ async function main(): Promise<void> {
   report["browser"] = `${path.basename(executablePath)} ${browser.version()}`
   log(`Chrome ${browser.version()}, app at ${base}`)
   try {
-    if (replayOnly) {
+    if (responsiveOnly) {
+      report["scope"] = "Every application route, empty/populated states and overlays at eight emulated viewports, retaining normal real Play prewarming. Real Forge resize invariance is checked in the full suite separately."
+      report["responsive"] = await responsiveSurfaces(executablePath, base)
+      await surfaces(executablePath, base, id)
+    } else if (replayOnly) {
       report["replay"] = await replayLibrary(browser, base)
     } else if (focusedTable || tableOnly) {
-      report["scope"] = tableOnly ? "All 216 recorded/built scene/viewport checks and every original table/history/decision/combat/zone interaction; no fresh engine boot or complete application suite." : helpOnly ? "Recorded Forge scenes and explicitly built question families; help, target markings, three viewports; no engine boot or full application suite." : historyOnly ? "Recorded real Forge log entries and current card inspection, three viewports; no engine boot or full application suite." : zonesOnly ? "Recorded Forge zones and explicitly built DFC presentation, three viewports, one page at a time; no engine boot or complete application regression suite." : "Recorded Forge combat scenes and one built order request, three viewports, one page at a time; no engine boot or complete application regression suite."
+      report["scope"] = tableOnly ? "All 288 recorded/built scene/viewport checks and every original table/history/decision/combat/zone interaction; no fresh engine boot or complete application suite." : helpOnly ? "Recorded Forge scenes and explicitly built question families; help, target markings, three viewports; no engine boot or full application suite." : historyOnly ? "Recorded real Forge log entries and current card inspection, three viewports; no engine boot or full application suite." : zonesOnly ? "Recorded Forge zones and explicitly built DFC presentation, three viewports, one page at a time; no engine boot or complete application regression suite." : "Recorded Forge combat scenes and one built order request, three viewports, one page at a time; no engine boot or complete application regression suite."
       await browser.close()
       report["gameTable"] = await tableHarness(executablePath)
     } else {
       await httpChecks(base, id)
       await devServerChecks(browser, id)
-      await surfaces(browser, base, id)
+      await surfaces(executablePath, base, id)
+      report["responsive"] = await responsiveSurfaces(executablePath, base)
       report["engine"] = [await engine(browser, base, id, VIEWPORTS[2]!), await engine(browser, base, id, VIEWPORTS[0]!)]
       report["replay"] = await replayLibrary(browser, base)
       await localData(browser, base)
@@ -4182,7 +4413,7 @@ async function main(): Promise<void> {
   }
   report["failures"] = failures
   fs.writeFileSync(path.join(reportDir, "report.json"), `${JSON.stringify(report, null, 2)}\n`)
-  log(`\n${tableOnly ? "Table " : helpOnly ? "Help " : combatOnly ? "Combat " : zonesOnly ? "Zones " : historyOnly ? "History " : ""}${failures.length === 0 ? "E2E OK" : `E2E FAILED (${failures.length})`} – report: ${path.relative(root, path.join(reportDir, "report.json"))}`)
+  log(`\n${responsiveOnly ? "Responsive " : tableOnly ? "Table " : helpOnly ? "Help " : combatOnly ? "Combat " : zonesOnly ? "Zones " : historyOnly ? "History " : ""}${failures.length === 0 ? "E2E OK" : `E2E FAILED (${failures.length})`} – report: ${path.relative(root, path.join(reportDir, "report.json"))}`)
   process.exitCode = failures.length === 0 ? 0 : 1
 }
 

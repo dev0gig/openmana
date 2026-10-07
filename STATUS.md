@@ -191,6 +191,11 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Help sends no game input; current props/withdrawal/replay stay honest. Structured engine aborts explain next steps while retaining original details. No rules engine, automatic answers, preference, protocol or database change.
 - Evidence: 866/866 tests in 69 files, complete app/Chrome check and separate final build; 216 recorded/built scene/viewport checks, 323 axe measurements with zero violations, 24 recorded/built help flows and two fresh real Forge help inspections with unchanged match logs. Target IDs, focus, scrolling and 44 px targets verified. Engine artifacts are SHA-identical and reused; own temporary swap removed, original swap preserved. See `docs/implementation/23-beginner-qol.md` for evidence, historical failed attempts and limits. Local commits only; no push/deployment or physical-device proof.
 
+### Responsive Pass (Prompt 24)
+- All application routes and populated views/overlays are audited at eight emulated phone/fold-like/tablet/desktop sizes. Long deck names wrap within the page; all Button sizes and Input have 44 px coarse targets. Confirmations scroll inside low landscape screens; existing table regions, hand/actions and gesture/keyboard guards remain.
+- Open viewer rotation retains ID/focus/footer and sends no input. Fresh waiting Forge games are resized across all eight sizes with unchanged complete original MatchLog and pending question, without a new Worker. Detailed evidence and operational limits: `docs/implementation/24-responsive-polish.md`.
+- Evidence: complete check with 866/866 tests, separate final 512 MiB build; 96 route and 152 populated-state checks, 288 recorded/built table scenes, 24 viewer resizes, 16 fresh Forge resizes, 658 axe measurements with zero violations and strict Worker max1. Engine/protocol/storage sources unchanged; verified predecessor artifacts reused. Local commits only; CSS/touch emulation does not prove physical Fold/hinge behavior.
+
 ### ORYX Cloud Sync (outside the queue, 2026-09-25)
 - The project owner's direct assignment, not a queue prompt (outside the numbered program): the player's collection syncs through their ORYX account (the launcher's Supabase cloud) with the vendored ORYX SDK 1.0.0 (`src/cloud/oryx-sdk.js` and `.d.ts`, byte-identical copies of `oryx-games/shared`, checksum-tested, excluded from lint only themselves). Active only on `https://openmana.vercel.app/`; locally, in tests and previews inactive (no request, nothing stored). Local stays the source of truth.
 - One slot `collection` = one document (`src/storage/collection.ts`, schema `CollectionDocument`, version = `SCHEMA_VERSION`): valid decks, deletion marks (90 days) and every setting except `display.*`; never caches, recorded matches or `meta`.
@@ -202,7 +207,7 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Evidence: 622 Vitest tests (63 new: merge and check, read/apply on fake-indexeddb, the real SDK against a stand-in ORYX cloud on the real storage session, the card and the return notice in the real app frame, the SDK checksum), `npm run check` with the end-to-end test in Chrome, including the new section 13: the build served as `https://openmana.vercel.app` with a stand-in ORYX cloud - the whole OAuth/PKCE round trip under COOP/COEP, the start's merge, uploads, disconnecting, axe, 360 px; plus the card absent and Web Storage empty off the real address, and the deletion mark in IndexedDB after deleting a deck. Limits: ORYX takes 1 MB per slot by default (≈ 146 Constructed or 48 Commander decks); ORYX needs an OAuth client for `openmana`; effective once deployed. Details: `docs/implementation/oryx-cloud-sync.md`.
 
 ## Currently In Progress
-No numbered task is in progress in this checkout. Prompt **23 — Beginner QoL** is complete; Prompt **24 — Responsive phone/fold/tablet/desktop pass** is next. Prompt 22 and all local predecessor commits are preserved. Assumption: help is on demand from the turn/phase area, without an additional preference or database shape.
+No numbered task is in progress in this checkout. Prompt **24 — Responsive phone/fold/tablet/desktop pass** is complete; Prompt **25 — PWA, engine caching and lifecycle** is next. All local predecessor commits are preserved. Assumption: representative fold-like CSS sizes and conservative shared wrap/44 px/viewport bounds cover the reversible responsive pass; physical hinge/device testing remains a separate verification limit.
 
 Any agent entering the repository must first reconcile this statement with the central Dropzone task state and Git state.
 
@@ -221,11 +226,11 @@ The existing queue covers the path from bridge/Worker/resource/differential engi
 - Android via the global ORYX app (no own APK),
 - regression/parity/production/readiness audits.
 
-The central Dropzone queue defines execution order; reconcile it with the Prompt 23 evidence before starting Prompt 24. Prompts 26, 30 and 32 require Astra with max reasoning under dev0gig's model gate in `AGENTS.md`.
+The central Dropzone queue defines execution order; reconcile it with the Prompt 24 evidence before starting Prompt 25. Prompts 26, 30 and 32 require Astra with max reasoning under dev0gig's model gate in `AGENTS.md`.
 
 ## Not Yet Implemented
 At this review point:
-- responsive polish (prompt 24) and the remaining numbered program follow the implemented beginner QoL, recording/replay, history, combat and zone/card views,
+- PWA lifecycle (prompt 25) and the remaining numbered program follow the implemented responsive pass, beginner QoL, recording/replay, history, combat and zone/card views,
 - no service worker/offline mode or deployment yet; no individual Android artifact is planned,
 - the ORYX cloud sync is built but inactive until OpenMana runs at `openmana.vercel.app` and ORYX has an OAuth client for it.
 
@@ -243,7 +248,7 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 ## Workflow Compatibility
 The legacy local prompt workflow was removed upstream on 2026-09-28. The current checkout incorporates that deletion while preserving all previously local Prompt 16 and ORYX-return commits. Central tasks live in `dev0gig/dropzone/workflow/tasks/`; detailed implementation evidence remains in `docs/implementation/` and Git history.
 
-Preserve sequential execution and any active work. Prompt 23 is complete (committed locally, not pushed), Prompt 24 is next, and the publication hold through Prompt 31 remains. The cross-repository wrapper cleanup does not execute Prompt 28: its remaining scope is ORYX web integration and real-device Forge verification.
+Preserve sequential execution and any active work. Prompt 24 is complete (committed locally, not pushed), Prompt 25 is next, and the publication hold through Prompt 31 remains. The cross-repository wrapper cleanup does not execute Prompt 28: its remaining scope is ORYX web integration and real-device Forge verification.
 
 ## Maintenance
 Update this file only when the broad implementation state changes. Keep detailed prompt evidence, commit hashes, measurements and blockers in the central Dropzone task and implementation/research docs.

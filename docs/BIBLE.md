@@ -279,6 +279,8 @@ Web-first and touch-first, not mobile-only.
 
 Support modern Android phones, foldables, tablets, desktop browsers, mouse/keyboard and touch. Use responsive web layout/feature detection rather than recreating Anvil's device-specific Kotlin architecture.
 
+The responsive pass (prompt 24) checks every application route, populated overlays and the existing table at eight CSS sizes, including two fold-like orientations. Long user names wrap within bounded content and coarse controls retain 44 px targets. Open viewer focus survives rotation; full original match transcripts and pending Forge questions remain unchanged through live resize. These are Chrome emulation checks, not physical-device or hinge evidence. See [implementation/24-responsive-polish.md](implementation/24-responsive-polish.md).
+
 ## 12. PWA and Android
 
 Primary artifact: web application/PWA.

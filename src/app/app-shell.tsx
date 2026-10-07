@@ -55,7 +55,7 @@ function Frame() {
         {immersive ? null : (
           <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4 md:h-12 md:border-b-0">
             <SidebarTrigger className="hidden md:inline-flex" />
-            <NavLink to="/" aria-label="OpenMana – Start" className="rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 md:hidden">
+            <NavLink to="/" aria-label="OpenMana – Start" className="inline-flex min-h-11 items-center rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 md:hidden">
               <Brand />
             </NavLink>
             <Button asChild variant="ghost" size="icon-lg" className="ml-auto md:hidden">
