@@ -285,6 +285,10 @@ The responsive pass (prompt 24) checks every application route, populated overla
 
 Primary artifact: web application/PWA.
 
+The production service worker (prompt 25) stages a content-addressed app shell and independently versioned Forge artifacts, with full byte-length/SHA verification before readiness. Cache responses preserve MIME and COOP/COEP/CORP; the existing feature checks still decide engine support before startup. Forge caching is an explicit Settings action; persistent storage and installation are user requests, with denial/eviction limits explained. Cloud/third-party traffic and local user data remain outside the worker cache.
+
+Updates use the native waiting lifecycle until all predecessor tabs/app windows close, without forced activation or reload during a match. A running game remains tab-local: reload, closing and background discard can end it; recording/replay is not resume. Offline play with saved decks and verified app/engine caches is proven in Chrome after HTTP-cache clearing and an actual stopped server, with one real Forge worker and zero server requests. Search/import additionally needs installed catalog data; pictures/cloud need network and missing pictures retain text. Cache presence alone does not establish current browser support. See [implementation/25-pwa-cache-offline.md](implementation/25-pwa-cache-offline.md). Physical device/ORYX checks remain separate.
+
 Android distribution uses the shared ORYX Trusted Web Activity (`net.tsnet.oryx`), which opens the same deployed web application. OpenMana remains independently runnable in the browser/PWA. No individual Capacitor shell, TWA wrapper, APK build or Warehouse package is supported (architecture decision, 2026-09-28). Preserve the PWA manifest/icons, responsive controls, isolation headers and ORYX Digital Asset Links; verify the Forge WASM engine inside ORYX as well as Chrome.
 
 ## 13. Visual identity

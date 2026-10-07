@@ -25,6 +25,7 @@ import { engineAssets } from "@/engine/engine-assets"
 import { formatMegabytes, shortCommit } from "@/engine/engine-labels"
 import { AiProfileOptions } from "@/game/ai-profile-options"
 import { LocalDataCard } from "@/storage/local-data-card"
+import { PwaCard } from "@/pwa/pwa-card"
 
 const dateFormat = new Intl.DateTimeFormat("de-DE", { dateStyle: "medium", timeStyle: "short" })
 
@@ -152,6 +153,7 @@ export function SettingsPage() {
         </Card>
       </div>
       <LocalDataCard />
+      <PwaCard />
       <OryxCloudCard />
       <CardDataCard />
     </Page>

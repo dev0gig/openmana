@@ -227,10 +227,25 @@ export interface EngineLaunch {
 export type CreateSessionClient = (launch: EngineLaunch) => SessionClient
 
 /** The real client: EngineClient with the browser's Dedicated Worker, loaded on demand. */
+let browserRelease: Promise<void> = Promise.resolve()
+
 export async function loadBrowserClient(): Promise<CreateSessionClient> {
   const { EngineClient, browserWorkerPort } = await import("@openmana/engine-client")
-  return ({ workerUrl, engineScriptUrl, wasmUrl, engineArgs }) =>
-    new EngineClient({ createPort: browserWorkerPort(workerUrl), engineScriptUrl, wasmUrl, engineArgs })
+  // terminate() has no completion event/promise. Give the browser a quiet
+  // resource-release interval before allocating the next roughly 1 GB engine.
+  // In Chrome the previous target's close can arrive after the next creation
+  // if a cached script makes the replacement start in the same turn.
+  await browserRelease
+  return ({ workerUrl, engineScriptUrl, wasmUrl, engineArgs }) => {
+    const client = new EngineClient({ createPort: browserWorkerPort(workerUrl), engineScriptUrl, wasmUrl, engineArgs })
+    const dispose = client.dispose.bind(client)
+    client.dispose = () => {
+      if (client.status === "disposed") return
+      dispose()
+      browserRelease = new Promise((resolve) => setTimeout(resolve, 1000))
+    }
+    return client
+  }
 }
 
 export interface EngineSessionOptions {

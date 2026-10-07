@@ -16,10 +16,11 @@
     "lint": "oxlint",
     "test": "vitest run",
     "test:e2e": "node scripts/e2e/run.ts",
+    "test:pwa": "node scripts/e2e/pwa.ts",
     "generate": "node scripts/generate-schemas.ts",
     "cards:build": "node cards/scripts/build-catalog.ts",
     "icons": "python3 scripts/gen-app-icons.py",
-    "check": "node scripts/generate-schemas.ts --check && tsc -b && oxlint && vitest run && node scripts/e2e/run.ts"
+    "check": "node scripts/generate-schemas.ts --check && tsc -b && oxlint && vitest run && node scripts/e2e/run.ts && node scripts/e2e/pwa.ts --no-build"
   },
   "dependencies": {
     "@fontsource-variable/cinzel": "5.3.0",

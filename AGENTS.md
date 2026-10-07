@@ -75,6 +75,14 @@ A game against Forge's AI runs through the app's one `EngineSession` (`src/engin
 - Who is who comes from Forge's structured state (`me`, `activePlayer`, `result`), never from names; Forge's own texts (German, `ENGINE_ARGS`) are shown as Forge sends them.
 - Conceding and ending a game without a result are confirmed first; while a game is on its way or running, leaving the page asks first (a reload ends the game).
 
+## PWA Lifecycle Rules
+Production PWA code is `pwa/`, `vite/pwa.ts` and `src/pwa/` (prompt 25, `docs/implementation/25-pwa-cache-offline.md`):
+- Registration is gated by the actual Vite build command and current isolation, never `PROD` alone; development has no offline worker.
+- Activate shell/cache readiness only after complete byte-length/SHA checks; keep the previous version usable on failure. Engine caching is explicit, independently versioned and never mixes partial versions. Preserve MIME and COOP/COEP/CORP in cached responses; user IndexedDB and third-party/cloud traffic stay outside this cache.
+- Never force `skipWaiting`, reload or tab navigation while clients of the old version exist. Explain that all old tabs/windows must close. Download controls protect the current running/starting/queued match; installation and persistent storage requests require user actions.
+- A cached engine does not imply a supported browser or a recoverable match. Reload/background discard may end the game. Claim offline play only with real browser evidence after cache clearing and actual server shutdown; preserve original match traffic and data across updates.
+- Keep the real browser client release interval before replacement and the existing attempt cancellation guard; `terminate()` has no completion promise. Full original worker traces must still satisfy max1. `npm run check` includes the original app/Forge suite and the additional `test:pwa` suite.
+
 ## Game Table Rules
 A running game is the game table (`src/game/game-table.tsx`; prompt 13, `docs/implementation/13-battlefield-foundation.md`):
 - The table is a view of one full state (`GameState`, the open questions, Forge's prompt line) and never sends anything itself; the page adds the menu (the way around the app, Forge's notices, conceding - confirmed), the warnings, the one way to act on a card (`onTapCard`, prompt 14; see Card Interaction Rules) and the one way to answer Forge (`onAnswer`, prompt 15; see Decision Rules). The replay of prompt 22 shows recorded states with it - without `onTapCard` and `onAnswer`, cards can be looked at and questions read, never tapped or answered.
@@ -201,7 +209,7 @@ The optional sync of the player's collection through their ORYX account (project
 The legacy local prompt workflow was removed upstream on 2026-09-28. Executable tasks and their lifecycle now live in `dev0gig/dropzone/workflow/tasks/`; implementation evidence remains in `docs/implementation/` and Git history.
 
 - Numbered prompts run strictly sequentially; resume `IN_PROGRESS` work and never skip a `BLOCKED` predecessor. Mark a task complete only after its requirements and verification pass.
-- Reconcile the central status with code and `STATUS.md` before selecting work. Prompt 24 (responsive pass) is complete; Prompt 25 is next.
+- Reconcile the central status with code and `STATUS.md` before selecting work. Prompt 25 (PWA cache/lifecycle) is complete; Prompt 26 is next and unstarted. The authorized 21–25 run stops after 25.
 - Run only the task explicitly assigned by the user; this cross-repository cleanup does not start a numbered implementation prompt.
 - Update the central task and `STATUS.md` with verified evidence; do not recreate the removed local queue.
 

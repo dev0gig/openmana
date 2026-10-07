@@ -45,7 +45,8 @@ Implementation has started; current implementation is tracked in [STATUS.md](STA
 - **Automatic recording and snapshot replay done (prompt 22):** every Forge-started match is saved locally with versions, exact manifest hash, seed, both decks and original input/question/event/state traffic. Partien shows result, turns and duration; portable JSON import/export, confirmed delete/clear and configurable retention (latest 100 terminal recordings by default) keep the library manageable. Manual replay uses the existing table without any live input callbacks. Schema 5 preserves older data; no deterministic re-simulation or resume after reload is claimed. See [docs/implementation/22-match-recording-replay.md](docs/implementation/22-match-recording-replay.md).
 - **Beginner QoL done (prompt 23):** the turn/phase area opens current-decision and terminology help. Required/optional labels use Forge’s structured bounds; exact stack targets get words and a distinct double frame. Existing legal-action, attack/block, tapped and sickness guidance remains authoritative. Structured engine aborts explain next steps while retaining technical details. Help inspection sends no game input. See [docs/implementation/23-beginner-qol.md](docs/implementation/23-beginner-qol.md).
 - **Responsive pass done (prompt 24):** all application routes and populated overlays are audited at eight phone/fold-like/tablet/desktop CSS sizes. Long deck names wrap, every Button size and Input has a 44 px coarse-pointer target, and low-screen confirmations scroll within the viewport. Fold/rotation checks retain viewer focus and compare the full original match transcript during fresh waiting Forge games. See [docs/implementation/24-responsive-polish.md](docs/implementation/24-responsive-polish.md).
-- The numbered program continues with PWA lifecycle (prompt 25). Anvil remains the working reference implementation until OpenMana reaches feature parity.
+- **PWA cache and lifecycle done (prompt 25):** verified production shell and explicit versioned Forge cache preserve isolation offline. Settings explains installation, persistence and browser limits. Updates wait for all old clients to close; live matches and recordings remain intact, while reload/background discard is not recovery. Actual Chrome starts Forge with the real server stopped and no server requests; failed downloads/updates, eviction and initial retry are tested. See [docs/implementation/25-pwa-cache-offline.md](docs/implementation/25-pwa-cache-offline.md).
+- The numbered program continues with the isolated Forge update pipeline (prompt 26, Astra/max required); it has not started. The authorized 21–25 run stops here. Anvil remains the reference until feature parity.
 
 ## Develop
 
@@ -54,7 +55,8 @@ npm ci                               # web app dependencies (repository root)
 bash engine/scripts/build.sh         # build the Forge engine once (~6 min, see engine/README.md)
 npm run cards:build                  # build the card catalog from Scryfall's bulk data (~45 s, see cards/README.md)
 npm run dev                          # http://localhost:5173, cross-origin isolated
-npm run check                        # typecheck, lint, unit tests, end-to-end test in Chrome with the real engine
+npm run check                        # schemas, typecheck, lint, unit tests, full Chrome/Forge suite and real PWA offline/update checks
+npm run test:pwa                     # production build + dedicated real Chrome offline/cache/update suite
 npm run generate                     # after changing a schema (src/storage/schema, src/cards/scryfall): regenerate types and validators
 ```
 

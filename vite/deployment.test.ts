@@ -55,6 +55,8 @@ describe("vercel.json", () => {
   )
 
   it("caches only content-addressed files forever", () => {
+    expect(headersFor("/sw.js")["Cache-Control"]).toBe("no-cache")
+    expect(headersFor("/sw.js")).toMatchObject(ISOLATION_HEADERS)
     expect(headersFor("/assets/index-abc.js")["Cache-Control"]).toBe("public, max-age=31536000, immutable")
     expect(headersFor("/engine/0123456789abcdef/openmana-engine.js.wasm")["Cache-Control"]).toBe("public, max-age=31536000, immutable")
     expect(headersFor("/cards/0123456789abcdef/card-catalog.jsonl.gz")["Cache-Control"]).toBe("public, max-age=31536000, immutable")
@@ -70,7 +72,7 @@ describe("vercel.json", () => {
     for (const pathname of ["/", "/play", "/decks", "/settings", "/credits", "/matches", "/unknown/deep/link"]) {
       expect(matches(rewrite!.source, pathname), pathname).toBe(true)
     }
-    for (const pathname of ["/engine/0123456789abcdef/missing.js", "/cards/0123456789abcdef/missing.gz", "/assets/missing.js", "/icons/missing.png"]) {
+    for (const pathname of ["/sw.js", "/manifest.webmanifest", "/favicon.ico", "/apple-touch-icon.png", "/engine/0123456789abcdef/missing.js", "/cards/0123456789abcdef/missing.gz", "/assets/missing.js", "/icons/missing.png"]) {
       expect(matches(rewrite!.source, pathname), pathname).toBe(false)
     }
   })

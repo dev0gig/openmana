@@ -5,6 +5,7 @@ import { createAppRouter } from "./app/router"
 import { CloudProvider } from "./cloud/cloud-context"
 import { createAppCloud, type CloudSync } from "./cloud/cloud-sync"
 import "./index.css"
+import { startPwa } from "./pwa/lifecycle"
 
 const container = document.getElementById("root")
 if (!container) throw new Error("index.html has no #root element")
@@ -30,6 +31,7 @@ async function startCloud(): Promise<CloudSync | "redirecting" | null> {
 async function boot(): Promise<void> {
   const cloud = await startCloud()
   if (cloud === "redirecting") return
+  startPwa()
   const app: ReactNode = <RouterProvider router={createAppRouter()} />
   createRoot(root).render(<StrictMode>{cloud === null ? app : <CloudProvider cloud={cloud}>{app}</CloudProvider>}</StrictMode>)
 }

@@ -23,6 +23,7 @@ import { cardAssets, cardsModeFromEnv } from "./vite/card-assets.ts"
 import { engineAssets, engineModeFromEnv } from "./vite/engine-assets.ts"
 import { ISOLATION_HEADERS } from "./vite/isolation-headers.ts"
 import { unwatchedPaths } from "./vite/watch.ts"
+import { pwa } from "./vite/pwa.ts"
 
 const root = import.meta.dirname
 const engineDir = process.env["OPENMANA_ENGINE_DIR"] ?? path.join(root, "engine/build/dist")
@@ -41,6 +42,7 @@ export default defineConfig({
       ...(engineMode === "required" ? { engineManifest: path.join(engineDir, "engine-manifest.json") } : {}),
     }),
     buildInfo({ root, version }),
+    pwa(),
   ],
   resolve: {
     alias: appAliases(root),
@@ -53,6 +55,10 @@ export default defineConfig({
     headers: ISOLATION_HEADERS,
   },
   build: {
+    // A first-visit SW claim can straddle network module preloads and cached
+    // module imports (Chrome's cross-world resource-mismatch warning). Load
+    // modules normally; the verified shell already retains every lazy chunk.
+    modulePreload: false,
     sourcemap: true,
     rolldownOptions: {
       output: {

@@ -63,7 +63,7 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - OpenMana design system (`docs/DESIGN_SYSTEM.md`): dark-only night blue/gold tokens, Cinzel headings, Inter text, touch targets ≥ 44 px on coarse pointers, WCAG AA contrast checked from the tokens, shadcn-only UI rule.
 - Engine integration: `EngineSession` wraps the `EngineClient` (loaded on demand); "Play" boots the real engine on request and shows its boot phases, `engine.ready` facts or the abort reason. `vite/engine-assets.ts` takes `engine/build/dist` only after checking size and SHA-256 of every runtime file and the protocol version, and serves it content-addressed under `/engine/<id>/`; a build without a checked engine fails (`OPENMANA_ENGINE=omit` builds UI-only on purpose).
 - COOP/COEP/CORP on every response of dev server, preview and `vercel.json` (one source); SPA fallback that never swallows engine or asset files; immutable caching only for hashed/content-addressed paths. Nothing deployed.
-- PWA basics: web app manifest (installable in Chrome, no installability errors), icons from Anvil's unchanged icon with provenance (`assets/app-icon/`). No service worker yet (prompt 25).
+- PWA basics: web app manifest (installable in Chrome, no installability errors), icons from Anvil's unchanged icon with provenance (`assets/app-icon/`). Service worker/cache lifecycle completed in prompt 25 below.
 - Evidence: `npm run check` — typecheck, oxlint, 82 Vitest tests (session, surfaces, tokens, PWA, import boundary, engine assets, deployment config), end-to-end test in Chrome 153 with the real engine (every surface at three sizes with axe-core, engine boot via preview and dev server, installability, negative test without isolation); engine unit tests unchanged green. Details: `docs/implementation/06-web-pwa-skeleton.md`.
 
 ### Local Data Layer (Prompt 07)
@@ -196,6 +196,11 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Open viewer rotation retains ID/focus/footer and sends no input. Fresh waiting Forge games are resized across all eight sizes with unchanged complete original MatchLog and pending question, without a new Worker. Detailed evidence and operational limits: `docs/implementation/24-responsive-polish.md`.
 - Evidence: complete check with 866/866 tests, separate final 512 MiB build; 96 route and 152 populated-state checks, 288 recorded/built table scenes, 24 viewer resizes, 16 fresh Forge resizes, 658 axe measurements with zero violations and strict Worker max1. Engine/protocol/storage sources unchanged; verified predecessor artifacts reused. Local commits only; CSS/touch emulation does not prove physical Fold/hinge behavior.
 
+### PWA Cache and Lifecycle (Prompt 25)
+- Production-only service worker verifies every shell/engine byte by length and SHA-256, publishes readiness last, preserves MIME and COOP/COEP/CORP, rolls back incomplete downloads and excludes third-party/cloud/user data. Forge is cached only on request; installability and persistence have explicit user actions and honest device/storage limits.
+- Native updates wait until all old tabs/app windows close, with no forced reload or activation during a match. Reload/background discard can still end a live game; recording/replay is not recovery. Browser client replacements first terminate the old worker and allow a short resource-release interval.
+- Evidence: full check with 881/881 tests in 72 files, final build, original 96 route/152 populated-state/288 scene checks, 24 viewer and 16 fresh Forge resizes, strict max1 worker traces and zero axe violations. Actual Chrome offline Forge start after HTTP-cache clearing and real server stop uses one worker and zero server requests; equal-length hash corruption, interrupted download, waiting/failed update, completed recording preservation, eviction and initial-install retry verified. See `docs/implementation/25-pwa-cache-offline.md`. Engine artifacts reused unchanged; no physical-device or deployment proof.
+
 ### ORYX Cloud Sync (outside the queue, 2026-09-25)
 - The project owner's direct assignment, not a queue prompt (outside the numbered program): the player's collection syncs through their ORYX account (the launcher's Supabase cloud) with the vendored ORYX SDK 1.0.0 (`src/cloud/oryx-sdk.js` and `.d.ts`, byte-identical copies of `oryx-games/shared`, checksum-tested, excluded from lint only themselves). Active only on `https://openmana.vercel.app/`; locally, in tests and previews inactive (no request, nothing stored). Local stays the source of truth.
 - One slot `collection` = one document (`src/storage/collection.ts`, schema `CollectionDocument`, version = `SCHEMA_VERSION`): valid decks, deletion marks (90 days) and every setting except `display.*`; never caches, recorded matches or `meta`.
@@ -207,7 +212,7 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Evidence: 622 Vitest tests (63 new: merge and check, read/apply on fake-indexeddb, the real SDK against a stand-in ORYX cloud on the real storage session, the card and the return notice in the real app frame, the SDK checksum), `npm run check` with the end-to-end test in Chrome, including the new section 13: the build served as `https://openmana.vercel.app` with a stand-in ORYX cloud - the whole OAuth/PKCE round trip under COOP/COEP, the start's merge, uploads, disconnecting, axe, 360 px; plus the card absent and Web Storage empty off the real address, and the deletion mark in IndexedDB after deleting a deck. Limits: ORYX takes 1 MB per slot by default (≈ 146 Constructed or 48 Commander decks); ORYX needs an OAuth client for `openmana`; effective once deployed. Details: `docs/implementation/oryx-cloud-sync.md`.
 
 ## Currently In Progress
-No numbered task is in progress in this checkout. Prompt **24 — Responsive phone/fold/tablet/desktop pass** is complete; Prompt **25 — PWA, engine caching and lifecycle** is next. All local predecessor commits are preserved. Assumption: representative fold-like CSS sizes and conservative shared wrap/44 px/viewport bounds cover the reversible responsive pass; physical hinge/device testing remains a separate verification limit.
+None. Prompt **25 — PWA, engine caching and lifecycle** is complete, committed locally without publication. Prompt **26 — Isolated Forge update pipeline** is the next queued task, requires Astra/max under the model gate and has not been started. The authorized 21–25 run stops here; publication remains held through Prompt 31.
 
 Any agent entering the repository must first reconcile this statement with the central Dropzone task state and Git state.
 
@@ -226,12 +231,12 @@ The existing queue covers the path from bridge/Worker/resource/differential engi
 - Android via the global ORYX app (no own APK),
 - regression/parity/production/readiness audits.
 
-The central Dropzone queue defines execution order; reconcile it with the Prompt 24 evidence before starting Prompt 25. Prompts 26, 30 and 32 require Astra with max reasoning under dev0gig's model gate in `AGENTS.md`.
+The central Dropzone queue defines execution order; reconcile it with the Prompt 25 evidence before starting Prompt 26. Prompts 26, 30 and 32 require Astra with max reasoning under dev0gig's model gate in `AGENTS.md`.
 
 ## Not Yet Implemented
 At this review point:
-- PWA lifecycle (prompt 25) and the remaining numbered program follow the implemented responsive pass, beginner QoL, recording/replay, history, combat and zone/card views,
-- no service worker/offline mode or deployment yet; no individual Android artifact is planned,
+- the isolated Forge update pipeline (prompt 26) and the remaining numbered program follow the implemented PWA lifecycle, responsive pass and gameplay views,
+- no production deployment or physical ORYX/device proof yet; no individual Android artifact is planned,
 - the ORYX cloud sync is built but inactive until OpenMana runs at `openmana.vercel.app` and ORYX has an OAuth client for it.
 
 Anvil remains the working reference implementation until OpenMana reaches the intended parity.
@@ -248,7 +253,7 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 ## Workflow Compatibility
 The legacy local prompt workflow was removed upstream on 2026-09-28. The current checkout incorporates that deletion while preserving all previously local Prompt 16 and ORYX-return commits. Central tasks live in `dev0gig/dropzone/workflow/tasks/`; detailed implementation evidence remains in `docs/implementation/` and Git history.
 
-Preserve sequential execution and any active work. Prompt 24 is complete (committed locally, not pushed), Prompt 25 is next, and the publication hold through Prompt 31 remains. The cross-repository wrapper cleanup does not execute Prompt 28: its remaining scope is ORYX web integration and real-device Forge verification.
+Preserve sequential execution and any active work. Prompt 25 is complete (committed locally, not pushed), Prompt 26 is next and unstarted, and the publication hold through Prompt 31 remains. The cross-repository wrapper cleanup does not execute Prompt 28: its remaining scope is ORYX web integration and real-device Forge verification.
 
 ## Maintenance
 Update this file only when the broad implementation state changes. Keep detailed prompt evidence, commit hashes, measurements and blockers in the central Dropzone task and implementation/research docs.
