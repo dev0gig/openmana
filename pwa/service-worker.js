@@ -49,7 +49,9 @@ self.addEventListener("message", (event) => {
 self.addEventListener("fetch", (event) => {
   const request = event.request
   const url = new URL(request.url)
-  if (request.method !== "GET" || url.origin !== self.location.origin || url.pathname === "/sw.js") return
+  if (request.method !== "GET" || url.origin !== self.location.origin || url.pathname === "/sw.js" || url.pathname.startsWith("/.well-known/")) return
+  // Origin trust metadata must come from the server, never an app shell cache
+  // or a navigation fallback. Android verifies it outside the service worker.
   // A document link is also a navigation. Serve known shell assets (including
   // license/source texts) before applying the application's route fallback.
   if (shellUrls.has(request.url)) {

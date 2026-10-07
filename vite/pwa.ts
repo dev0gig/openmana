@@ -33,7 +33,7 @@ export function pwa(): Plugin {
       async function walk(relative = "") {
         for (const item of await fs.readdir(path.join(outDir, relative), { withFileTypes: true })) {
           const name = path.posix.join(relative, item.name)
-          if (item.isDirectory()) { if (name !== "cards") await walk(name); continue }
+          if (item.isDirectory()) { if (name !== "cards" && name !== ".well-known") await walk(name); continue }
           if (name.endsWith(".map") || name === "sw.js") continue
           const bytes = await fs.readFile(path.join(outDir, name))
           const entry = { url: `/${name}`, bytes: bytes.length, sha256: digest(bytes) }

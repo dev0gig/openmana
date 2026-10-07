@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "net.tsnet.oryx",
+      "sha256_cert_fingerprints": ["EB:25:B0:E8:DD:00:04:BD:6A:BB:7F:C0:FF:52:DF:FE:B2:B4:8D:76:D2:27:F2:5F:D8:16:C1:94:91:46:3F:AA"]
+    }
+  }
+]

@@ -1,4 +1,8 @@
 // @vitest-environment node
+import fs from "node:fs/promises"
+import os from "node:os"
+import path from "node:path"
+import { runInNewContext } from "node:vm"
 import { createHash } from "node:crypto"
 import { describe, expect, it, vi } from "vitest"
 import { completeCache, isolated, verifiedDownload } from "../pwa/cache-runtime.js"
@@ -97,5 +101,36 @@ describe("PWA verified staging", () => {
     expect(response.headers.has("content-length")).toBe(false)
     expect(response.headers.get("content-type")).toBe("text/html")
     expect(await response.text()).toBe("body")
+  })
+})
+
+
+describe("ORYX trust metadata", () => {
+  it("keeps server trust statements outside the offline app cache", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "omtrust-"))
+    try {
+      const outDir = path.join(dir, "dist")
+      await fs.mkdir(path.join(outDir, ".well-known"), { recursive: true })
+      await fs.writeFile(path.join(outDir, "index.html"), "shell")
+      await fs.writeFile(path.join(outDir, ".well-known/assetlinks.json"), "[]")
+      const plugin = pwa()
+      const resolved = plugin.configResolved as (config: unknown) => void
+      resolved({ root: path.resolve(import.meta.dirname, ".."), command: "build", base: "/", build: { outDir } })
+      const close = plugin.closeBundle as () => Promise<void>
+      await close()
+      const sw = await fs.readFile(path.join(outDir, "sw.js"), "utf8")
+      const config = JSON.parse(/^const CONFIG = (.+);\n/.exec(sw)![1]!)
+      expect(config.shell.map((entry: { url: string }) => entry.url)).toEqual(["/index.html"])
+    } finally { await fs.rm(dir, { recursive: true, force: true }) }
+  })
+  it.each(["/.well-known/assetlinks.json", "/.well-known/missing"])("never replaces %s with cached trust or the SPA", async (pathname) => {
+    const handlers = new Map<string, (event: unknown) => void>()
+    runInNewContext(await fs.readFile(path.resolve(import.meta.dirname, "../pwa/service-worker.js"), "utf8"), {
+      CONFIG: { shell: [], engine: [], version: "one", engineVersion: "one" }, URL,
+      self: { location: { origin: "https://openmana.vercel.app" }, addEventListener: (type: string, handle: (event: unknown) => void) => handlers.set(type, handle) },
+    })
+    const respondWith = vi.fn()
+    handlers.get("fetch")!({ request: { method: "GET", mode: "navigate", url: `https://openmana.vercel.app${pathname}` }, respondWith })
+    expect(respondWith).not.toHaveBeenCalled()
   })
 })

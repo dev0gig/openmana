@@ -47,7 +47,7 @@ describe("vercel.json", () => {
     expect(vercel).toMatchObject({ framework: "vite", installCommand: "npm ci", buildCommand: "npm run build", outputDirectory: "dist" })
   })
 
-  it.each(["/", "/index.html", "/play", "/decks", "/manifest.webmanifest", "/icons/icon-192.png", "/assets/index-abc.js", "/engine/0123456789abcdef/openmana-engine.js.wasm", "/cards/0123456789abcdef/card-catalog.jsonl.gz"])(
+  it.each(["/", "/index.html", "/play", "/decks", "/manifest.webmanifest", "/.well-known/assetlinks.json", "/icons/icon-192.png", "/assets/index-abc.js", "/engine/0123456789abcdef/openmana-engine.js.wasm", "/cards/0123456789abcdef/card-catalog.jsonl.gz"])(
     "%s carries the isolation headers",
     (pathname) => {
       expect(headersFor(pathname)).toMatchObject(ISOLATION_HEADERS)
@@ -72,9 +72,22 @@ describe("vercel.json", () => {
     for (const pathname of ["/", "/play", "/decks", "/settings", "/credits", "/matches", "/unknown/deep/link"]) {
       expect(matches(rewrite!.source, pathname), pathname).toBe(true)
     }
-    for (const pathname of ["/sw.js", "/manifest.webmanifest", "/favicon.ico", "/apple-touch-icon.png", "/engine/0123456789abcdef/missing.js", "/cards/0123456789abcdef/missing.gz", "/assets/missing.js", "/icons/missing.png", "/legal/LICENSE.txt", "/legal/SOURCE.txt", "/legal/THIRD-PARTY-NOTICES.txt", "/legal/missing.txt"]) {
+    for (const pathname of ["/sw.js", "/manifest.webmanifest", "/favicon.ico", "/apple-touch-icon.png", "/engine/0123456789abcdef/missing.js", "/cards/0123456789abcdef/missing.gz", "/assets/missing.js", "/icons/missing.png", "/legal/LICENSE.txt", "/legal/SOURCE.txt", "/legal/THIRD-PARTY-NOTICES.txt", "/legal/missing.txt", "/.well-known/assetlinks.json", "/.well-known/missing", "/.well-known/missing.json"]) {
       expect(matches(rewrite!.source, pathname), pathname).toBe(false)
     }
+  })
+  it("serves ORYX trust metadata as revalidated JSON with isolation", () => {
+    expect(headersFor("/.well-known/assetlinks.json")).toMatchObject({ ...ISOLATION_HEADERS, "Content-Type": "application/json", "Cache-Control": "no-cache" })
+    const links = JSON.parse(readFileSync(path.join(root, "public/.well-known/assetlinks.json"), "utf8"))
+    expect(links).toEqual([{
+      relation: ["delegate_permission/common.handle_all_urls"],
+      target: {
+        namespace: "android_app",
+        package_name: "net.tsnet.oryx",
+        // Confirmed against ORYX ab3b8c7 and the existing signed 0.2.4 APK.
+        sha256_cert_fingerprints: ["EB:25:B0:E8:DD:00:04:BD:6A:BB:7F:C0:FF:52:DF:FE:B2:B4:8D:76:D2:27:F2:5F:D8:16:C1:94:91:46:3F:AA"],
+      },
+    }])
   })
   it("serves legal document navigation as UTF-8 text with isolation", () => {
     for (const pathname of ["/legal/LICENSE.txt", "/legal/SOURCE.txt", "/legal/THIRD-PARTY-NOTICES.txt"]) {

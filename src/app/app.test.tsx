@@ -32,7 +32,7 @@ describe("surfaces", () => {
     vi.stubGlobal("location", { assign })
     try {
       await userEvent.click(button)
-      expect(assign).toHaveBeenCalledExactlyOnceWith("https://oryx-games.vercel.app/")
+      expect(assign).toHaveBeenCalledExactlyOnceWith("https://oryx.quest/")
       // External navigation is delegated to the browser; no internal route or cloud action.
       expect(router.state.location.pathname).toBe("/")
     } finally {

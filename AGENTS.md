@@ -217,7 +217,7 @@ The optional sync of the player's collection through their ORYX account (project
 The legacy local prompt workflow was removed upstream on 2026-09-28. Executable tasks and their lifecycle now live in `dev0gig/dropzone/workflow/tasks/`; implementation evidence remains in `docs/implementation/` and Git history.
 
 - Numbered prompts run strictly sequentially; resume `IN_PROGRESS` work and never skip a `BLOCKED` predecessor. Mark a task complete only after its requirements and verification pass.
-- Reconcile the central status with code and `STATUS.md` before selecting work. Prompt 27 (credits, licenses and notices) is complete; Prompt 28 is next and unstarted.
+- Reconcile the central status with code and `STATUS.md` before selecting work. Prompt 28 web integration is complete after full local verification; physical ORYX/Android acceptance is explicitly deferred by dev0gig until authorized publication. Prompt 29 is next and unstarted.
 - Run only the task assigned by the user; a single Dropmaster assignment ends after that task.
 - Update the central task and `STATUS.md` with verified evidence; do not recreate the removed local queue.
 
@@ -262,4 +262,5 @@ Do not duplicate detailed per-prompt history into root `STATUS.md`.
 ## Publishing and Android (project owner, 2026-09-25)
 - **Publication held until Prompt 31** (project owner, 2026-09-27). Keep the existing local Prompt-16 work and the ORYX return-navigation change committed locally. Do not push or deploy OpenMana as part of the cross-repository ORYX task. Prompt 31 still requires an explicit publication instruction under the global Vercel rule.
 - **Commit, never push.** Every push to `main` triggers a Vercel deployment and uses up the project owner's Vercel deployment quota. Commit finished work right away; push only when the project owner explicitly asks for it. This replaces the former "committed and pushed" completion rule of the numbered program.
+- **Deferred physical gate (dev0gig, 2026-10-07).** Prompt 28’s completed web scope does not prove physical Android/TWA behavior. Perform and document the real-device checklist in `docs/implementation/28-oryx-web-android.md` before closing publication Prompt 31; Prompt 32 must inspect it. The deferral does not authorize push/deployment.
 - **No APKs.** On Android, OpenMana runs only inside the global ORYX app (Trusted Web Activity `net.tsnet.oryx`, which already lists `openmana.vercel.app` as trusted). Do not build an own TWA, APK or Warehouse package. Prompt 28 verifies ORYX Digital Asset Links, isolation headers and real Forge WASM operation inside ORYX (`crossOriginIsolated`); it must not create a separate game package. The central cleanup task makes this scope authoritative.

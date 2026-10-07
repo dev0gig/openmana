@@ -4,6 +4,7 @@
  *
  *   npm run test:e2e                 build, then test
  *   npm run test:e2e -- --no-build   test the existing dist/
+ *   npm run test:oryx -- --no-build   ORYX web navigation and stored records; desktop/touch emulation only
  *   npm run test:e2e -- --no-build --responsive-only all routes/overlays at eight sizes, normal real Play prewarm
  *   npm run test:e2e -- --no-build --replay-only  imported recorded snapshots, library/file/retention checks
  *   npm run test:e2e -- --no-build --table-only   complete table checks at all eight sizes, no fresh engine boot
@@ -120,7 +121,7 @@ import { gunzipSync, gzipSync } from "node:zlib"
 import { chromium, type Browser, type BrowserContext, type ConsoleMessage, type Locator, type Page, type Request, type Route } from "playwright-core"
 // The real ORYX cloud and *.vercel.app resolve to nowhere in every browser this run starts: requests sent while a page
 // is left (keepalive) bypass page.route and would otherwise reach Supabase (2026-09-26, refused there with 401).
-const NO_REAL_CLOUD = "--host-resolver-rules=MAP fellumrfugohnnvtxxye.supabase.co 0.0.0.0, MAP *.vercel.app 0.0.0.0"
+const NO_REAL_CLOUD = "--host-resolver-rules=MAP fellumrfugohnnvtxxye.supabase.co 0.0.0.0, MAP *.vercel.app 0.0.0.0, MAP oryx.quest 0.0.0.0, MAP *.oryx.quest 0.0.0.0"
 import { build, createServer, preview } from "vite"
 import { PROTOCOL_VERSION } from "../../engine/protocol/src/generated/constants.ts"
 import { SCHEMA_VERSION } from "../../src/storage/generated/constants.ts"
@@ -130,6 +131,7 @@ import { playDeck, type StoredDeck } from "./engine-decks.ts"
 const root = path.resolve(import.meta.dirname, "../..")
 const dist = path.join(root, "dist")
 const responsiveOnly = process.argv.includes("--responsive-only")
+const oryxOnly = process.argv.includes("--oryx-only")
 const replayOnly = process.argv.includes("--replay-only")
 const combatOnly = process.argv.includes("--combat-only")
 const zonesOnly = process.argv.includes("--zones-only")
@@ -137,7 +139,7 @@ const historyOnly = process.argv.includes("--history-only")
 const helpOnly = process.argv.includes("--help-only")
 const tableOnly = process.argv.includes("--table-only")
 const focusedTable = combatOnly || zonesOnly || historyOnly || helpOnly
-const reportDir = path.join(root, "reports", responsiveOnly ? "responsive-e2e" : replayOnly ? "replay-e2e" : tableOnly ? "table-e2e" : helpOnly ? "help-e2e" : combatOnly ? "combat-e2e" : zonesOnly ? "zones-e2e" : historyOnly ? "history-e2e" : "e2e")
+const reportDir = path.join(root, "reports", oryxOnly ? "oryx-e2e" : responsiveOnly ? "responsive-e2e" : replayOnly ? "replay-e2e" : tableOnly ? "table-e2e" : helpOnly ? "help-e2e" : combatOnly ? "combat-e2e" : zonesOnly ? "zones-e2e" : historyOnly ? "history-e2e" : "e2e")
 const require = createRequire(import.meta.url)
 
 interface Viewport {
@@ -249,12 +251,22 @@ async function checkCatalogFile(base: string, label: string, catalog: CatalogMan
   return encoding
 }
 
+async function checkAssetLinks(base: string, label: string): Promise<void> {
+  const response = await checkHeaders(base, label, "/.well-known/assetlinks.json", /^application\/json/)
+  check(!response.redirected, `${label}: ORYX asset links redirected`)
+  const bytes = Buffer.from(await response.arrayBuffer())
+  const expected = fs.readFileSync(path.join(root, "public/.well-known/assetlinks.json"))
+  check(bytes.equals(expected), `${label}: exact ORYX statement bytes, no SPA fallback`)
+  report[`assetLinks${label}`] = { bytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex"), redirected: response.redirected, type: response.headers.get("content-type") }
+}
+
 async function httpChecks(base: string, id: string): Promise<void> {
   log("HTTP (vite preview)")
   for (const pathname of ["/", "/play", "/credits", "/does-not-exist"]) {
     const response = await checkHeaders(base, "preview", pathname, /^text\/html/)
     check((await response.text()).includes('<div id="root">'), `preview ${pathname}: not the app's index.html`)
   }
+  await checkAssetLinks(base, "preview")
   await (await checkHeaders(base, "preview", "/manifest.webmanifest", /^application\/manifest\+json/)).arrayBuffer()
   await (await checkHeaders(base, "preview", "/icons/icon-192.png", /^image\/png/)).arrayBuffer()
   const legalFiles = { "/legal/LICENSE.txt": "GNU GENERAL PUBLIC LICENSE", "/legal/SOURCE.txt": "kein öffentliches Quellangebot",
@@ -312,6 +324,7 @@ async function devServerChecks(browser: Browser, id: string): Promise<void> {
     const address = server.httpServer?.address() as AddressInfo
     const base = `http://127.0.0.1:${address.port}/`
     await (await checkHeaders(base, "dev", "/", /^text\/html/)).text()
+    await checkAssetLinks(base, "dev")
     for (const file of ["engine-worker.js", "openmana-engine.js", "openmana-engine.js.wasm", "engine-manifest.json"]) {
       const response = await checkHeaders(base, "dev", `/engine/${id}/${file}`)
       const bytes = (await response.arrayBuffer()).byteLength
@@ -4380,6 +4393,85 @@ async function replayLibrary(browser: Browser, base: string): Promise<Record<str
   }
   return result
 }
+/** Prompt 28: real browser web navigation; the ORYX landing page is a stand-in.
+ * This never claims DAL verification by Android or a physical TWA run. */
+async function oryxNavigation(browser: Browser, base: string): Promise<void> {
+  log("ORYX web integration (same-tab return, real IndexedDB; stand-in launcher, no Android device)")
+  const launcher = "https://oryx.quest/"
+  const fixture = JSON.parse(fs.readFileSync(path.join(root, "src/test/fixtures/replay.json"), "utf8"))
+  const config = JSON.parse(/^const CONFIG = (.+);\n/.exec(fs.readFileSync(path.join(dist, "sw.js"), "utf8"))![1]!) as { shell: { url: string }[] }
+  check(!config.shell.some((entry) => entry.url.startsWith("/.well-known/")), "ORYX: origin trust statements entered the app cache")
+  const results: unknown[] = []
+  for (const viewport of [RESPONSIVE_VIEWPORTS[0]!, VIEWPORTS[2]!]) {
+    const context = await newContext(browser, viewport)
+    const page = await context.newPage()
+    const pageLog = watch(page)
+    const workers = countWorkers(page)
+    try {
+      // The stand-in only models an explicit link in the same browsing context.
+      // Its live ORYX implementation, browser provider and TWA are not under test.
+      await context.route(`${launcher}**`, (route) => route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: `<html lang="de"><title>ORYX-Testseite</title><body><h1>ORYX-Testseite</h1><a href="${base}">OpenMana öffnen</a></body></html>` }))
+      log(`ORYX web ${viewport.name}: import local records, direct start and browser Back`)
+      const sample = sampleBackup(1, "ORYX-Lokal")
+      const card = await openLocalData(page, base)
+      await chooseBackup(card, "oryx-local.jsonl.gz", sample.bytes)
+      await page.getByRole("dialog", { name: "Sicherung laden" }).getByRole("button", { name: "Zusammenführen", exact: true }).click()
+      await page.getByText("Sicherung geladen", { exact: true }).waitFor()
+      await page.goto(new URL("/matches", base).href, { waitUntil: "networkidle" })
+      await page.getByLabel("Wiedergabedatei").setInputFiles({ name: "recorded-forge.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(fixture.replay)) })
+      await page.getByRole("list", { name: "Gespeicherte Partien" }).getByRole("link", { name: "Ansehen", exact: true }).first().waitFor()
+      await page.getByText("Wiedergabe geladen", { exact: true }).waitFor()
+      const before = await dumpDatabase(page, ["decks", "settings", "matches", "matchLog"])
+      check(before["matches"]?.length === 2, "ORYX: backup and recorded Forge replay were not imported")
+      // Direct start requires no launcher query marker. Internal browser Back
+      // still belongs to the platform rather than a rewritten history stack.
+      await page.goto(base, { waitUntil: "networkidle" })
+      await page.waitForFunction(() => navigator.serviceWorker.controller !== null, undefined, { timeout: 60_000 })
+      await page.locator('[aria-labelledby="home-title"]').getByRole("link", { name: "Decks", exact: true }).click()
+      await page.getByRole("heading", { name: "Decks", exact: true }).waitFor()
+      await page.goBack()
+      await page.getByRole("heading", { name: "OpenMana", exact: true }).waitFor()
+      const back = page.getByRole("button", { name: "Zurück zu ORYX", exact: true })
+      if (viewport.touch) check((await back.boundingBox())!.height >= 44, "ORYX: return target smaller than 44 px")
+      log(`ORYX web ${viewport.name}: return to stand-in launcher and reopen`)
+      const navigation = page.waitForURL(launcher)
+      if (viewport.touch) await back.tap()
+      else await back.click()
+      await navigation
+      await page.getByRole("heading", { name: "ORYX-Testseite" }).waitFor()
+      check(context.pages().length === 1, "ORYX: return opened another tab")
+      await page.getByRole("link", { name: "OpenMana öffnen", exact: true }).click()
+      await page.waitForURL(base)
+      await page.getByRole("heading", { name: "OpenMana", exact: true }).waitFor()
+      const after = await dumpDatabase(page, ["decks", "settings", "matches", "matchLog"])
+      check(JSON.stringify(after) === JSON.stringify(before), "ORYX: navigation changed existing local records")
+      check(workers.created() === 0, "ORYX: browsing local data started Forge")
+      // Even in a controlled PWA, DAL metadata comes from the current HTTP
+      // server rather than a cached trust statement or SPA document.
+      log(`ORYX web ${viewport.name}: network trust endpoint and preserved replay`)
+      const endpoint = new URL("/.well-known/assetlinks.json", base).href
+      const responsePromise = page.waitForResponse(endpoint)
+      const trust = await page.evaluate(async (url) => {
+        const response = await fetch(url)
+        return { status: response.status, type: response.headers.get("content-type"), redirected: response.redirected, text: await response.text() }
+      }, endpoint)
+      const response = await responsePromise
+      check(trust.status === 200 && !trust.redirected && trust.type?.startsWith("application/json"), "ORYX: DAL status/type/redirect")
+      check(trust.text === fs.readFileSync(path.join(root, "public/.well-known/assetlinks.json"), "utf8"), "ORYX: DAL bytes changed in PWA")
+      check(!response.fromServiceWorker(), "ORYX: DAL request was intercepted by the app worker")
+      await page.goto(new URL(`/matches/${fixture.replay.match.id}`, base).href)
+      await page.getByRole("heading", { name: "Wiedergabe", exact: true }).waitFor()
+      await page.getByRole("button", { name: "Nächster Schritt", exact: true }).click()
+      check(JSON.stringify(await dumpDatabase(page, ["decks", "settings", "matches", "matchLog"])) === JSON.stringify(before), "ORYX: saved replay changed on inspection")
+      const axe = await accessibility(page, `ORYX stored replay ${viewport.name}`)
+      await screenshots(page, `oryx-saved-replay-${viewport.name}`)
+      for (const error of pageLog.errors) check(false, `ORYX web ${viewport.name}: ${error}`)
+      results.push({ viewport: viewport.name, launcher, launcherStandIn: true, sameTab: true, internalBack: true, originalLocalRecordsUnchanged: true, savedForgeReplayViewed: true, engineWorkers: workers.created(), assetLinksNetworkOnly: !response.fromServiceWorker(), assetLinks: trust, axe })
+    } finally { await context.close() }
+  }
+  report["oryxWebIntegration"] = { evidence: "Desktop Chrome with CSS/touch emulation, a stand-in launcher and actual IndexedDB. No physical Android/TWA acceptance.", deviceAcceptance: "pending", results }
+}
+
 // ── Run ──────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -4399,7 +4491,10 @@ async function main(): Promise<void> {
   report["browser"] = `${path.basename(executablePath)} ${browser.version()}`
   log(`Chrome ${browser.version()}, app at ${base}`)
   try {
-    if (responsiveOnly) {
+    if (oryxOnly) {
+      await checkAssetLinks(base, "preview")
+      await oryxNavigation(browser, base)
+    } else if (responsiveOnly) {
       report["scope"] = "Every application route, empty/populated states and overlays at eight emulated viewports, retaining normal real Play prewarming. Real Forge resize invariance is checked in the full suite separately."
       report["responsive"] = await responsiveSurfaces(executablePath, base)
       await surfaces(executablePath, base, id)
@@ -4423,6 +4518,7 @@ async function main(): Promise<void> {
       await pwa(base, executablePath)
       await withoutIsolation(browser)
       await oryxCloud(browser, base)
+      await oryxNavigation(browser, base)
       await browser.close()
       report["gameTable"] = await tableHarness(executablePath)
     }

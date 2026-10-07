@@ -213,6 +213,11 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - All legal documents work offline and as native UTF-8 document links; known shell documents bypass the service worker and Vercel SPA fallback.
 - Evidence: complete `npm run check` (893 tests, real Chrome/Forge flows across eight sizes, full offline/update PWA suite), four inventory tests and exact HTTP/document hash checks. Oracle/GFTC, public Corresponding Source and icon redistribution remain publication gates. Details: `docs/implementation/27-credits-licenses.md`, `SOURCE.md`.
 
+### Shared ORYX TWA web integration (Prompt 28)
+- Digital Asset Links uses the existing signed ORYX identity (`net.tsnet.oryx`), served unchanged as JSON outside SPA fallback and service-worker caching. Same-tab launcher return follows `https://oryx.quest/`; direct browser start and existing local records remain supported.
+- Evidence: full `npm run check`, 898/898 tests in 73 files, 96 route/152 populated-state/288 scene checks, 661 axe measurements without violations, strict max1 worker traces and complete real Forge/PWA offline/update checks. Independent source/artifact audit passed. Details and preserved logs: `docs/implementation/28-oryx-web-android.md`.
+- **Physical Android/ORYX acceptance was not performed. dev0gig explicitly deferred it until authorized publication (2026-10-07).** Prompt 31 must verify the live trust endpoint and installed APK identity, launch via ORYX on a physical device, isolation/Wasm/worker lifecycle, a real Forge match, saved local data and return/Back navigation, touch/orientation/background/offline behavior. Prompt 32 must inspect that evidence. Desktop/touch emulation is not device acceptance; no publication was triggered.
+
 ### ORYX Cloud Sync (outside the queue, 2026-09-25)
 - The project owner's direct assignment, not a queue prompt (outside the numbered program): the player's collection syncs through their ORYX account (the launcher's Supabase cloud) with the vendored ORYX SDK 1.0.0 (`src/cloud/oryx-sdk.js` and `.d.ts`, byte-identical copies of `oryx-games/shared`, checksum-tested, excluded from lint only themselves). Active only on `https://openmana.vercel.app/`; locally, in tests and previews inactive (no request, nothing stored). Local stays the source of truth.
 - One slot `collection` = one document (`src/storage/collection.ts`, schema `CollectionDocument`, version = `SCHEMA_VERSION`): valid decks, deletion marks (90 days) and every setting except `display.*`; never caches, recorded matches or `meta`.
@@ -224,7 +229,7 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Evidence: 622 Vitest tests (63 new: merge and check, read/apply on fake-indexeddb, the real SDK against a stand-in ORYX cloud on the real storage session, the card and the return notice in the real app frame, the SDK checksum), `npm run check` with the end-to-end test in Chrome, including the new section 13: the build served as `https://openmana.vercel.app` with a stand-in ORYX cloud - the whole OAuth/PKCE round trip under COOP/COEP, the start's merge, uploads, disconnecting, axe, 360 px; plus the card absent and Web Storage empty off the real address, and the deletion mark in IndexedDB after deleting a deck. Limits: ORYX takes 1 MB per slot by default (≈ 146 Constructed or 48 Commander decks); ORYX needs an OAuth client for `openmana`; effective once deployed. Details: `docs/implementation/oryx-cloud-sync.md`.
 
 ## Currently In Progress
-No numbered prompt is active. Prompt **27 — Credits, licenses and notices** is complete and committed locally; Prompt **28 — ORYX web integration and Android verification** is next and unstarted. Public Oracle/source/icon gates remain open.
+No numbered prompt is active in this checkout at the end of Prompt 28. Prompt **28** is complete for the locally verified web scope under dev0gig’s explicit deferral of physical ORYX/Android acceptance. Prompt **29** is next and unstarted. The deferred physical gate remains mandatory in Prompt 31/32; public Oracle/source/icon gates remain open.
 
 Any agent entering the repository must first reconcile this statement with the central Dropzone task state and Git state.
 
@@ -243,11 +248,11 @@ The existing queue covers the path from bridge/Worker/resource/differential engi
 - Android via the global ORYX app (no own APK),
 - regression/parity/production/readiness audits.
 
-The central Dropzone queue defines execution order; reconcile it with the completed Prompt 27 evidence before starting another task. Prompts 26, 30 and 32 require Astra with max reasoning under dev0gig's model gate in `AGENTS.md`.
+The central Dropzone queue defines execution order; reconcile it with the completed Prompt 28 evidence before starting another task. Prompts 26, 30 and 32 require Astra with max reasoning under dev0gig's model gate in `AGENTS.md`.
 
 ## Not Yet Implemented
 At this review point:
-- prompts 28 onward remain unstarted,
+- prompts 29 onward remain unstarted,
 - no production deployment or physical ORYX/device proof yet; no individual Android artifact is planned,
 - the ORYX cloud sync is built but inactive until OpenMana runs at `openmana.vercel.app` and ORYX has an OAuth client for it.
 
@@ -265,11 +270,11 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 ## Workflow Compatibility
 The legacy local prompt workflow was removed upstream on 2026-09-28. The current checkout incorporates that deletion while preserving all previously local Prompt 16 and ORYX-return commits. Central tasks live in `dev0gig/dropzone/workflow/tasks/`; detailed implementation evidence remains in `docs/implementation/` and Git history.
 
-Preserve sequential execution. Prompt 27 is complete (committed locally, not pushed); the publication hold through Prompt 31 remains. Prompt 28 covers ORYX web integration and real-device Forge verification.
+Preserve sequential execution. Prompt 28 is complete for the locally verified web scope (committed locally, not pushed); the publication hold through Prompt 31 remains. Its physical Android/ORYX Forge acceptance is explicitly deferred by dev0gig until authorized publication; the concrete mandatory checklist is in `docs/implementation/28-oryx-web-android.md` and central Prompt 31. Desktop/touch emulation does not satisfy it. Conservative choice: origin-trust metadata stays network-only; return follows the current ORYX canonical origin `oryx.quest` without changing SDK/cloud origins or the OpenMana storage origin.
 
 ## Maintenance
 Update this file only when the broad implementation state changes. Keep detailed prompt evidence, commit hashes, measurements and blockers in the central Dropzone task and implementation/research docs.
 
 ## ORYX return navigation (2026-09-27)
 
-ORYX and its games switch through explicit UI navigation in the same tab/TWA. System/browser Back belongs to the platform or the game’s own internal navigation. **Zurück zu ORYX** sits beside Spielen and Decks on Start, using `location.assign("https://oryx-games.vercel.app/")` even after a direct start. It is not on the immersive game table. The existing provider-level beforeunload guard still asks before leaving a starting/running Forge match, including after navigating internally to Start. Cloud sessions and IndexedDB are retained.
+ORYX and its games switch through explicit UI navigation in the same tab/TWA. System/browser Back belongs to the platform or the game’s own internal navigation. **Zurück zu ORYX** sits beside Spielen and Decks on Start, using `location.assign("https://oryx.quest/")` even after a direct start. It is not on the immersive game table. The existing provider-level beforeunload guard still asks before leaving a starting/running Forge match, including after navigating internally to Start. Cloud sessions and IndexedDB are retained.

@@ -42,7 +42,7 @@ export function HomePage() {
               Decks
             </Link>
           </Button>
-          <Button size="lg" variant="outline" onClick={() => location.assign("https://oryx-games.vercel.app/")}>
+          <Button size="lg" variant="outline" onClick={() => location.assign("https://oryx.quest/")}>
             Zurück zu ORYX
           </Button>
         </div>
