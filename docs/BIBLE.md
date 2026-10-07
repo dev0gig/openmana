@@ -204,6 +204,10 @@ The implemented card interaction - every visible card a control, looking that se
 
 The implemented zones and full viewer — current IDs/question sources, pile/zone navigation, catalog sides and German-to-English fallback — are described in [implementation/20-zones-card-viewer.md](implementation/20-zones-card-viewer.md). Inspecting or switching a catalog side never sends game input.
 
+### Game history
+
+The game history comes from Forge's MEDIUM GameLog, in chronological reception order before the state it explains. The complete text and structured source/actor values are retained; unknown actors remain unassigned. Actors currently reflect the source card's structured controller, without localized prose inference. Current visible source cards can be inspected safely, without game input. The portrait log is compact; landscape adds event type and entry index. The log remains available after game end or abort in the session; durable recording/replay is prompt 22. See [implementation/21-match-history-events.md](implementation/21-match-history-events.md).
+
 ### Battlefield
 
 Do not create a vertically endless table. Keep opponent summary/hand, opponent battlefield, combat/stack, player battlefield, decision area and player hand spatially understandable. Responsive layouts may reorganize them.

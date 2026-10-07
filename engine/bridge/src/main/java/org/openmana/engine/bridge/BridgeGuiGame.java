@@ -1013,8 +1013,8 @@ final class BridgeGuiGame extends AbstractGuiGame {
     /**
      * Forge's own game log, filtered with Forge's MEDIUM verbosity. The
      * pointer counts the UNFILTERED list (Anvil lesson). {@code actor} is
-     * "me"/"opponent" from the source card's controller, else from the player
-     * name Forge puts at the start of the sentence; unknown stays absent.
+     * "me"/"opponent" only from the structured source card controller.
+     * Unknown stays absent; localized prose is never parsed.
      */
     private void sendEvents() {
         final GameView game = getGameView();
@@ -1038,7 +1038,7 @@ final class BridgeGuiGame extends AbstractGuiGame {
             if (e.sourceCard() != null && mayViewSafely(e.sourceCard())) {
                 o.addProperty("card", e.sourceCard().getId());
             }
-            final String actor = actor(e, me, game);
+            final String actor = actor(e, me);
             if (actor != null) {
                 o.addProperty("actor", actor);
             }
@@ -1054,23 +1054,13 @@ final class BridgeGuiGame extends AbstractGuiGame {
         host.emit(o);
     }
 
-    private static String actor(final GameLogEntry e, final PlayerView me, final GameView game) {
+    static String actor(final GameLogEntry e, final PlayerView me) {
         if (me == null) {
             return null;
         }
         final CardView source = e.sourceCard();
         if (source != null && source.getController() != null) {
             return source.getController().equals(me) ? "me" : "opponent";
-        }
-        final String sentence = e.message();
-        if (sentence == null || game.getPlayers() == null) {
-            return null;
-        }
-        for (final PlayerView p : game.getPlayers()) {
-            final String name = p.getName();
-            if (name != null && !name.isEmpty() && sentence.startsWith(name)) {
-                return p.equals(me) ? "me" : "opponent";
-            }
         }
         return null;
     }

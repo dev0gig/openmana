@@ -79,6 +79,7 @@ function SceneTable({ scene, questions, prompt, language, waiting }: { scene: Ta
     <main className="h-dvh" data-harness="table">
       <GameTable
         state={scene.state}
+        history={scene.history}
         questions={questions}
         prompt={prompt}
         waiting={waiting && questions.length > 0}

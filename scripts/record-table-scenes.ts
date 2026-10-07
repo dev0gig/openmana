@@ -19,7 +19,7 @@
  */
 import fs from "node:fs"
 import path from "node:path"
-import type { EngineMessage, GameMessage, GameStarted, GameState, InputRejected, Question } from "../engine/protocol/src/index.ts"
+import type { EngineMessage, GameEvent, GameMessage, GameStarted, GameState, InputRejected, Question } from "../engine/protocol/src/index.ts"
 
 const root = path.resolve(import.meta.dirname, "..")
 
@@ -40,6 +40,7 @@ interface Moment {
   readonly state: GameState
   readonly questions: readonly Question[]
   readonly prompt: string | null
+  readonly history: readonly GameEvent[]
   readonly notices: readonly (GameMessage | InputRejected)[]
 }
 
@@ -56,11 +57,15 @@ function moments(fixture: string): Moment[] {
   let state: GameState | null = null
   let questions: Question[] = []
   let prompt: string | null = null
+  let history: GameEvent[] = []
   let notices: (GameMessage | InputRejected)[] = []
   messages.forEach((message, index) => {
     switch (message.type) {
       case "game.started":
         game = message
+        break
+      case "events":
+        history = [...history, ...message.entries]
         break
       case "state":
         state = message
@@ -82,7 +87,7 @@ function moments(fixture: string): Moment[] {
       default:
         break
     }
-    if (game !== null && state !== null) out.push({ index, last: message, game, state, questions, prompt, notices })
+    if (game !== null && state !== null) out.push({ index, last: message, game, state, questions, prompt, history, notices })
   })
   return out
 }
@@ -154,18 +159,6 @@ const RULES: readonly SceneRule[] = [
     description: "The player's creature blocks while Forge asks for blockers (human-5-defend).",
     fixture: "human-5-defend",
     fits: (m) => (me(m.state)?.zones.battlefield.some((card) => "blocking" in card && card.blocking === true) ?? false) && m.questions.length > 0,
-  },
-  {
-    name: "block-start",
-    description: "Forge asks for blockers, before assignment: the current attacker highlighted, its legal blockers carry action (blocks-multi).",
-    fixture: "blocks-multi",
-    fits: (m) => blocking(m) && m.state.combat.length > 1 && m.state.combat.every((entry) => entry.blockers.length === 0) && (me(m.state)?.zones.battlefield.some((card) => "action" in card && card.action !== undefined) ?? false),
-  },
-  {
-    name: "block-multiple",
-    description: "The player assigns two blockers to one attacker while Forge's block input is still open (blocks-double).",
-    fixture: "blocks-double",
-    fits: (m) => blocking(m) && m.state.combat.some((entry) => entry.blockers.length > 1),
   },
   {
     name: "commander-late",
@@ -307,6 +300,19 @@ const RULES: readonly SceneRule[] = [
     fixture: "attackers",
     fits: (m) => declaring(m) && m.state.attack?.defender?.kind === "card",
   },
+  // Added combat scenes retain their established fixture order.
+  {
+    name: "block-start",
+    description: "Forge asks for blockers, before assignment: the current attacker highlighted, its legal blockers carry action (blocks-multi).",
+    fixture: "blocks-multi",
+    fits: (m) => blocking(m) && m.state.combat.length > 1 && m.state.combat.every((entry) => entry.blockers.length === 0) && (me(m.state)?.zones.battlefield.some((card) => "action" in card && card.action !== undefined) ?? false),
+  },
+  {
+    name: "block-multiple",
+    description: "The player assigns two blockers to one attacker while Forge's block input is still open (blocks-double).",
+    fixture: "blocks-double",
+    fits: (m) => blocking(m) && m.state.combat.some((entry) => entry.blockers.length > 1),
+  },
 ]
 
 const scenes = RULES.map((rule) => {
@@ -323,6 +329,7 @@ const scenes = RULES.map((rule) => {
     questions: moment.questions,
     prompt: moment.prompt,
     notices: moment.notices,
+    history: moment.history,
   }
 })
 

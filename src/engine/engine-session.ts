@@ -43,6 +43,7 @@ import type {
   EngineReady,
   FeatureReport,
   GameEnd,
+  GameEvent,
   GameMessage,
   GameStarted,
   GameState,
@@ -147,7 +148,7 @@ interface MatchBase {
 /** Forge's messages during a game that the player must see (the prompt line is kept on its own). */
 export type GameNotice = GameMessage | InputRejected
 
-/** How many notices a game keeps (the newest); the full history is prompt 21. */
+/** How many notices a game keeps (the newest); Forge history is kept separately in full. */
 export const NOTICE_LIMIT = 20
 
 export type MatchSnapshot =
@@ -161,6 +162,8 @@ export type MatchSnapshot =
       readonly status: "playing"
       readonly startedAt: number
       readonly game: GameStarted
+      /** Forge log entries in reception order, never inferred from state or prose. */
+      readonly history: readonly GameEvent[]
       /** The latest full snapshot (null until the first arrives). */
       readonly state: GameState | null
       /** Questions Forge is asking right now, in the order asked. */
@@ -182,6 +185,8 @@ export type MatchSnapshot =
       readonly startedAt: number
       readonly endedAt: number
       readonly game: GameStarted
+      /** Forge log entries in reception order, never inferred from state or prose. */
+      readonly history: readonly GameEvent[]
       readonly state: GameState | null
       readonly end: GameEnd
       /** match.finished: the engine's technical summary (null until it arrives, or if the engine was released first). */
@@ -191,6 +196,7 @@ export type MatchSnapshot =
   | (MatchBase & {
       readonly status: "aborted"
       readonly game: GameStarted | null
+      readonly history: readonly GameEvent[]
       readonly state: GameState | null
       readonly abort: EngineAbort
     })
@@ -626,6 +632,7 @@ export class EngineSession {
             waiting: client.engineWaiting,
             stalledMs: match.stalledMs,
             conceding: false,
+            history: [],
             notices: [],
             noticeCount: 0,
           },
@@ -649,6 +656,9 @@ export class EngineSession {
     const engine = this.#snapshot.engine
     const waiting = client.engineWaiting
     switch (message.type) {
+      case "events":
+        this.#set({ engine, match: { ...match, history: [...match.history, ...message.entries], waiting } })
+        return
       case "state":
         this.#set({ engine, match: { ...match, state: message, waiting } })
         return
@@ -684,13 +694,13 @@ export class EngineSession {
             endedAt: this.#now(),
             game: match.game,
             state: match.state,
+            history: match.history,
             end: message,
             summary: null,
           },
         })
         return
       default:
-        // events: the game history is prompt 21.
         return
     }
   }
@@ -758,6 +768,7 @@ function aborted(match: Extract<MatchSnapshot, { status: "queued" | "starting" |
     requestedAt: match.requestedAt,
     game: match.status === "playing" ? match.game : null,
     state: match.status === "playing" ? match.state : null,
+    history: match.status === "playing" ? match.history : [],
     abort,
   }
 }

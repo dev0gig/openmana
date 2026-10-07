@@ -1,7 +1,7 @@
 {
  "source": "Protocol messages of the fixture games of engine/scripts/test-engine.sh (JVM run, scripted rule-free test player), folded like EngineSession folds them; see scripts/record-table-scenes.ts.",
  "engine": {
-  "builtAt": "2026-09-29T01:52:02.450Z",
+  "builtAt": "2026-10-07T04:55:59.529Z",
   "forgeCommit": "ed0333fecb1fea0671b3e50cadc1da4f71db5798",
   "protocol": 7
  },
@@ -274,7 +274,8 @@
     }
    ],
    "prompt": "Forge AI beginnt.. Player, Du startest 2te.  Starthand behalten?",
-   "notices": []
+   "notices": [],
+   "history": []
   },
   {
    "name": "main-phase",
@@ -860,6 +861,516 @@
       "card": 28
      }
     }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Player nutze Mulligan und hat nun 6 Karten."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI hat 7 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player hat 6 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 1 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (116)",
+     "card": 116,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 2 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (28)",
+     "card": 28,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Shock mit Ziel [Forge AI]",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Schock (49) verursacht 2 Nicht-Kampf Schaden bei Forge AI.",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 20 > 18"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Schock (49) - Schock (49) deals 2 damage to Forge AI.",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 3 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (113)",
+     "card": 113,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 4 Player"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Lightning Bolt mit Ziel [Forge AI]",
+     "card": 4,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Blitzschlag (4) verursacht 3 Nicht-Kampf Schaden bei Forge AI.",
+     "card": 4,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 18 > 15"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Blitzschlag (4) - Blitzschlag (4) deals 3 damage to Forge AI.",
+     "card": 4,
+     "actor": "me"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (26)",
+     "card": 26,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Goblin Arsonist",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Goblin-Brandstifter - Kreatur 1 / 1",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 5 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (104)",
+     "card": 104,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 6 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (33)",
+     "card": 33,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player läßt Goblin-Brandstifter (55) Forge AI angreifen."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI hat Goblin-Brandstifter (55) nicht geblockt."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Goblin-Brandstifter (55) verursacht 1 Kampf Schaden bei Forge AI.",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 15 > 14"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 7 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (118)",
+     "card": 118,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Giant Spider",
+     "card": 77,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Riesenspinne - Kreatur 2 / 4",
+     "card": 77,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 8 Player"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Magma Jet mit Ziel [Goblin-Brandstifter (55)]",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Magmastrahl (14) verursacht 2 Schaden bei Goblin-Brandstifter (55)",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Hellsicht: Player legte 1 Karte(n) auf und 1 Karte(n) unter die Bibliothek"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Magmastrahl (14) - Magmastrahl (14) deals 2 damage to Goblin-Brandstifter (55). Player scries 2.",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Goblin-Brandstifter (55) was put into Graveyard from Battlefield.",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player löst aus Goblin Arsonist mit Ziel [Riesenspinne (77)]",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Goblin-Brandstifter (55) verursacht 1 Schaden bei Riesenspinne (77)",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Wenn der Goblin-Brandstifter aus dem Spiel auf einen Friedhof gelegt wird, kannst du ihn einer Kreatur oder einem Spieler deiner Wahl 1 Schadenspunkt zufügen lassen. (Targeting: [[Riesenspinne (77)]]) [Zone geändert: Goblin-Brandstifter (55)]",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (36)",
+     "card": 36,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 9 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (106)",
+     "card": 106,
+     "actor": "opponent"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI läßt Riesenspinne (77) Player angreifen."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player hat Riesenspinne (77) nicht geblockt."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Riesenspinne (77) verursacht 2 Kampf Schaden bei Player.",
+     "card": 77,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Player 20 > 18"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Giant Spider",
+     "card": 79,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Riesenspinne - Kreatur 2 / 4",
+     "card": 79,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Llanowar Elves",
+     "card": 90,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Llanowarelfen - Kreatur 1 / 1",
+     "card": 90,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 10 Player"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Fiery Confluence",
+     "card": 24,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Feurige Konfluenz (24) verursacht 1 Schaden bei Riesenspinne (77)",
+     "card": 24,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Feurige Konfluenz (24) verursacht 1 Schaden bei Riesenspinne (79)",
+     "card": 24,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Feurige Konfluenz (24) verursacht 1 Schaden bei Llanowarelfen (90)",
+     "card": 24,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Feurige Konfluenz (24) verursacht 1 Schaden bei Riesenspinne (77)",
+     "card": 24,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Feurige Konfluenz (24) verursacht 1 Schaden bei Riesenspinne (79)",
+     "card": 24,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Feurige Konfluenz (24) verursacht 1 Schaden bei Llanowarelfen (90)",
+     "card": 24,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Feurige Konfluenz (24) verursacht 1 Schaden bei Riesenspinne (77)",
+     "card": 24,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Feurige Konfluenz (24) verursacht 1 Schaden bei Riesenspinne (79)",
+     "card": 24,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Feurige Konfluenz (24) verursacht 1 Schaden bei Llanowarelfen (90)",
+     "card": 24,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Feurige Konfluenz (24) -  • Die Feurige Konfluenz fügt jeder Kreatur 1 Schadenspunkt zu. • Die Feurige Konfluenz fügt jeder Kreatur 1 Schadenspunkt zu. • Die Feurige Konfluenz fügt jeder Kreatur 1 Schadenspunkt zu.",
+     "card": 24,
+     "actor": "me"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Llanowarelfen (90) was put into Graveyard from Battlefield.",
+     "card": 90,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (27)",
+     "card": 27,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 11 Forge AI"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI läßt Riesenspinne (77) and Riesenspinne (79) Player angreifen."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player hat Riesenspinne (77) nicht geblockt.\nPlayer hat Riesenspinne (79) nicht geblockt."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Riesenspinne (77) verursacht 2 Kampf Schaden bei Player.",
+     "card": 77,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Riesenspinne (79) verursacht 2 Kampf Schaden bei Player.",
+     "card": 79,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Player 18 > 14"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (120)",
+     "card": 120,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Trained Armodon",
+     "card": 74,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Gezähmtes Armodon - Kreatur 3 / 3",
+     "card": 74,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 12 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (30)",
+     "card": 30,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Raging Goblin",
+     "card": 19,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Wütender Goblin - Kreatur 1 / 1",
+     "card": 19,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player läßt Wütender Goblin (19) Forge AI angreifen."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI läßt Gezähmtes Armodon (74) Wütender Goblin (19) blocken."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Wütender Goblin (19) verursacht 1 Schaden bei Gezähmtes Armodon (74)",
+     "card": 19,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Gezähmtes Armodon (74) verursacht 3 Schaden bei Wütender Goblin (19)",
+     "card": 74,
+     "actor": "opponent"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Wütender Goblin (19) was put into Graveyard from Battlefield.",
+     "card": 19,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 13 Forge AI"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI läßt Gezähmtes Armodon (74), Riesenspinne (77) and Riesenspinne (79) Player angreifen."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player hat Gezähmtes Armodon (74) nicht geblockt.\nPlayer hat Riesenspinne (77) nicht geblockt.\nPlayer hat Riesenspinne (79) nicht geblockt."
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Giant Growth mit Ziel [Riesenspinne (77)]",
+     "card": 81,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Riesenwuchs (81) - Riesenspinne (77) gets +3/+3  until end of turn.",
+     "card": 81,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Gezähmtes Armodon (74) verursacht 3 Kampf Schaden bei Player.",
+     "card": 74,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Riesenspinne (77) verursacht 5 Kampf Schaden bei Player.",
+     "card": 77,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Riesenspinne (79) verursacht 2 Kampf Schaden bei Player.",
+     "card": 79,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Player 14 > 4"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (115)",
+     "card": 115,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 14 Player"
+    }
    ]
   },
   {
@@ -1320,13 +1831,199 @@
       "button": 1
      }
     }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Player nutze Mulligan und hat nun 6 Karten."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI hat 7 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player hat 6 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 1 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (116)",
+     "card": 116,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 2 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (28)",
+     "card": 28,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Shock mit Ziel [Forge AI]",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Schock (49) verursacht 2 Nicht-Kampf Schaden bei Forge AI.",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 20 > 18"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Schock (49) - Schock (49) deals 2 damage to Forge AI.",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 3 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (113)",
+     "card": 113,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 4 Player"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Lightning Bolt mit Ziel [Forge AI]",
+     "card": 4,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Blitzschlag (4) verursacht 3 Nicht-Kampf Schaden bei Forge AI.",
+     "card": 4,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 18 > 15"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Blitzschlag (4) - Blitzschlag (4) deals 3 damage to Forge AI.",
+     "card": 4,
+     "actor": "me"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (26)",
+     "card": 26,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Goblin Arsonist",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Goblin-Brandstifter - Kreatur 1 / 1",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 5 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (104)",
+     "card": 104,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 6 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (33)",
+     "card": 33,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player läßt Goblin-Brandstifter (55) Forge AI angreifen."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI hat Goblin-Brandstifter (55) nicht geblockt."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Goblin-Brandstifter (55) verursacht 1 Kampf Schaden bei Forge AI.",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 15 > 14"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 7 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (118)",
+     "card": 118,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Giant Spider",
+     "card": 77,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Riesenspinne - Kreatur 2 / 4",
+     "card": 77,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 8 Player"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Magma Jet mit Ziel [Goblin-Brandstifter (55)]",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Magmastrahl (14) verursacht 2 Schaden bei Goblin-Brandstifter (55)",
+     "card": 14,
+     "actor": "me"
+    }
    ]
   },
   {
    "name": "blockers",
    "description": "Combat with an attacker blocked by two creatures (blocks-multi).",
    "fixture": "blocks-multi",
-   "message": 443,
+   "message": 442,
    "game": {
     "type": "game.started",
     "protocol": 7,
@@ -1870,6 +2567,330 @@
       "button": 1
      }
     }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Player has mulliganed down to 6 cards."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player has kept a hand of 6 cards"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI has kept a hand of 7 cards"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 1 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Forest (45)",
+     "card": 45,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 2 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Mountain (81)",
+     "card": 81,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Raging Goblin",
+     "card": 115,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Raging Goblin - Creature 1 / 1",
+     "card": 115,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Giant Growth targeting [Raging Goblin (115)]",
+     "card": 23,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Giant Growth (23) - Raging Goblin (115) gets +3/+3  until end of turn.",
+     "card": 23,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI assigned Raging Goblin (115) to attack Player."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player didn't block Raging Goblin (115)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Raging Goblin (115) deals 4 combat damage to Player.",
+     "card": 115,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Player 20 > 16"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 3 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Forest (50)",
+     "card": 50,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Grizzly Bears",
+     "card": 1,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Grizzly Bears - Creature 2 / 2",
+     "card": 1,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 4 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Mountain (83)",
+     "card": 83,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Volcanic Hammer targeting [Grizzly Bears (1)]",
+     "card": 109,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Volcanic Hammer (109) deals 3 damage to Grizzly Bears (1).",
+     "card": 109,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Volcanic Hammer (109) - Volcanic Hammer (109) deals 3 damage to Grizzly Bears (1).",
+     "card": 109,
+     "actor": "opponent"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Grizzly Bears (1) was put into Graveyard from Battlefield.",
+     "card": 1,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI assigned Raging Goblin (115) to attack Player."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player didn't block Raging Goblin (115)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Raging Goblin (115) deals 1 combat damage to Player.",
+     "card": 115,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Player 16 > 15"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 5 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Forest (43)",
+     "card": 43,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Llanowar Elves",
+     "card": 29,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Llanowar Elves - Creature 1 / 1",
+     "card": 29,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Grizzly Bears",
+     "card": 3,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Grizzly Bears - Creature 2 / 2",
+     "card": 3,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 6 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Mountain (86)",
+     "card": 86,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Raging Goblin",
+     "card": 114,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Raging Goblin - Creature 1 / 1",
+     "card": 114,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 7 (Player)"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Giant Spider",
+     "card": 18,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Giant Spider - Creature 2 / 4",
+     "card": 18,
+     "actor": "me"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Forest (42)",
+     "card": 42,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player assigned Grizzly Bears (3) to attack Forge AI."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI didn't block Grizzly Bears (3)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Grizzly Bears (3) deals 2 combat damage to Forge AI.",
+     "card": 3,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 20 > 18"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 8 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Mountain (79)",
+     "card": 79,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Canyon Minotaur",
+     "card": 103,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Canyon Minotaur - Creature 3 / 3",
+     "card": 103,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 9 (Player)"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Trained Armodon",
+     "card": 16,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Trained Armodon - Creature 3 / 3",
+     "card": 16,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 10 (Forge AI)"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Gray Ogre",
+     "card": 94,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Gray Ogre - Creature 2 / 2",
+     "card": 94,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 11 (Player)"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Runeclaw Bear",
+     "card": 11,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Runeclaw Bear - Creature 2 / 2",
+     "card": 11,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player assigned Llanowar Elves (29), Grizzly Bears (3), Giant Spider (18) and Trained Armodon (16) to attack Forge AI."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI assigned Gray Ogre (94) to block Llanowar Elves (29).\nForge AI didn't block Grizzly Bears (3).\nForge AI assigned Canyon Minotaur (103) and Raging Goblin (115) to block Giant Spider (18).\nForge AI didn't block Trained Armodon (16)."
+    }
    ]
   },
   {
@@ -2346,13 +3367,249 @@
       "button": 1
      }
     }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI has mulliganed down to 6 cards."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player has mulliganed down to 6 cards."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI has kept a hand of 6 cards"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player has kept a hand of 6 cards"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 1 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Forest (108)",
+     "card": 108,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 2 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Mountain (38)",
+     "card": 38,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Lightning Bolt targeting [Forge AI]",
+     "card": 4,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Lightning Bolt (4) deals 3 non-combat damage to Forge AI.",
+     "card": 4,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 20 > 17"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Lightning Bolt (4) - Lightning Bolt (4) deals 3 damage to Forge AI.",
+     "card": 4,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 3 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Forest (102)",
+     "card": 102,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Grizzly Bears",
+     "card": 63,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Grizzly Bears - Creature 2 / 2",
+     "card": 63,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 4 (Player)"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Shock targeting [Grizzly Bears (63)]",
+     "card": 47,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Shock (47) deals 2 damage to Grizzly Bears (63).",
+     "card": 47,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Shock (47) - Shock (47) deals 2 damage to Grizzly Bears (63).",
+     "card": 47,
+     "actor": "me"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Grizzly Bears (63) was put into Graveyard from Battlefield.",
+     "card": 63,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Mountain (33)",
+     "card": 33,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Raging Goblin",
+     "card": 21,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Raging Goblin - Creature 1 / 1",
+     "card": 21,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 5 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Forest (119)",
+     "card": 119,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 6 (Player)"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Abrade",
+     "card": 12,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Abrade (12) deals 3 damage to Raging Goblin (21).",
+     "card": 12,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Abrade (12) -  Abrade deals 3 damage to target creature. (Targeting: Raging Goblin (21))",
+     "card": 12,
+     "actor": "me"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Raging Goblin (21) was put into Graveyard from Battlefield.",
+     "card": 21,
+     "actor": "me"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Mountain (35)",
+     "card": 35,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 7 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Forest (117)",
+     "card": 117,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Giant Spider",
+     "card": 80,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Giant Spider - Creature 2 / 4",
+     "card": 80,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 8 (Player)"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Stomp",
+     "card": 54,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Stomp (54) deals 2 damage to Giant Spider (80).",
+     "card": 54,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Stomp (54) - Damage can't be prevented this turn. Stomp deals 2 damage to any target. Stomp (54) deals 2 damage to Giant Spider (80).",
+     "card": 54,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Goblin Arsonist",
+     "card": 58,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Goblin Arsonist - Creature 1 / 1",
+     "card": 58,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 9 (Forge AI)"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI assigned Giant Spider (80) to attack Player."
+    }
    ]
   },
   {
    "name": "commander-late",
    "description": "A late Commander turn while the player declares attackers: the most permanents with the most attackers (tokens, counters, poison, commander tax and damage) (commander).",
    "fixture": "commander",
-   "message": 805,
+   "message": 807,
    "game": {
     "type": "game.started",
     "protocol": 7,
@@ -2389,7 +3646,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 172,
+    "seq": 173,
     "running": true,
     "turn": 17,
     "phase": "COMBAT_DECLARE_ATTACKERS",
@@ -3342,13 +4599,737 @@
       "card": 18
      }
     }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Player has mulliganed down to 6 cards."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player has kept a hand of 6 cards"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI has kept a hand of 7 cards"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 1 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Mountain (18)",
+     "card": 18,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Shock targeting [Forge AI]",
+     "card": 92,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Shock (92) deals 2 non-combat damage to Forge AI.",
+     "card": 92,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 40 > 38"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Shock (92) - Shock (92) deals 2 damage to Forge AI.",
+     "card": 92,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 2 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Forest (117)",
+     "card": 117,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 3 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Mountain (19)",
+     "card": 19,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Magma Jet targeting [Forge AI]",
+     "card": 94,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Magma Jet (94) deals 2 non-combat damage to Forge AI.",
+     "card": 94,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 38 > 36"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Player scried 1 card(s) to the top of the library and 1 card(s) to the bottom of the library"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Magma Jet (94) - Magma Jet (94) deals 2 damage to Forge AI. Player scries 2.",
+     "card": 94,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 4 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Forest (154)",
+     "card": 154,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Fynn, the Fangbearer",
+     "card": 201,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Fynn, the Fangbearer - Creature 1 / 3",
+     "card": 201,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 5 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Mountain (63)",
+     "card": 63,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Gray Ogre",
+     "card": 93,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Gray Ogre - Creature 2 / 2",
+     "card": 93,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 6 (Forge AI)"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI assigned Fynn, the Fangbearer (201) to attack Player."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player didn't block Fynn, the Fangbearer (201)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Fynn, the Fangbearer (201) deals 1 combat damage to Player.",
+     "card": 201,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Player 40 > 39"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI triggered Fynn, the Fangbearer",
+     "card": 201,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Player receives 2 poison counter from Forge AI"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Whenever a creature you control with deathtouch deals combat damage to a player, that player gets two poison counters. (A player with ten or more poison counters loses the game.) [Damage Source: Fynn, the Fangbearer (201), Damaged: Player, Amount: 1]",
+     "card": 201,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Forest (130)",
+     "card": 130,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 7 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Mountain (58)",
+     "card": 58,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Krenko, Tin Street Kingpin",
+     "card": 100,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Krenko, Tin Street Kingpin - Creature 1 / 2",
+     "card": 100,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player assigned Gray Ogre (93) to attack Forge AI."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI didn't block Gray Ogre (93)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Gray Ogre (93) deals 2 combat damage to Forge AI.",
+     "card": 93,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 36 > 34"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 8 (Forge AI)"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI assigned Fynn, the Fangbearer (201) to attack Player."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player didn't block Fynn, the Fangbearer (201)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Fynn, the Fangbearer (201) deals 1 combat damage to Player.",
+     "card": 201,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Player 39 > 38"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI triggered Fynn, the Fangbearer",
+     "card": 201,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Player receives 2 poison counter from Forge AI"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Whenever a creature you control with deathtouch deals combat damage to a player, that player gets two poison counters. (A player with ten or more poison counters loses the game.) [Damage Source: Fynn, the Fangbearer (201), Damaged: Player, Amount: 1]",
+     "card": 201,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Forest (170)",
+     "card": 170,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 9 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Mountain (90)",
+     "card": 90,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player assigned Gray Ogre (93) and Krenko, Tin Street Kingpin (100) to attack Forge AI."
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player triggered Krenko, Tin Street Kingpin",
+     "card": 100,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Whenever Krenko, Tin Street Kingpin attacks, put a +1/+1 counter on it, then create a number of 1/1 red Goblin creature tokens equal to Krenko's power. [Attacker: Krenko, Tin Street Kingpin (100)]",
+     "card": 100,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI didn't block Gray Ogre (93).\nForge AI didn't block Krenko, Tin Street Kingpin (100)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Gray Ogre (93) deals 2 combat damage to Forge AI.",
+     "card": 93,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Krenko, Tin Street Kingpin (100) deals 2 combat damage to Forge AI.",
+     "card": 100,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 34 > 30"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 10 (Forge AI)"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI assigned Fynn, the Fangbearer (201) to attack Player."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player didn't block Fynn, the Fangbearer (201)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Fynn, the Fangbearer (201) deals 1 combat damage to Player.",
+     "card": 201,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Player 38 > 37"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI triggered Fynn, the Fangbearer",
+     "card": 201,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Player receives 2 poison counter from Forge AI"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Whenever a creature you control with deathtouch deals combat damage to a player, that player gets two poison counters. (A player with ten or more poison counters loses the game.) [Damage Source: Fynn, the Fangbearer (201), Damaged: Player, Amount: 1]",
+     "card": 201,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Forest (118)",
+     "card": 118,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Kalonian Tusker",
+     "card": 103,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Kalonian Tusker - Creature 3 / 3",
+     "card": 103,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 11 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Mountain (10)",
+     "card": 10,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player assigned Gray Ogre (93), Krenko, Tin Street Kingpin (100), Goblin Token (204) and Goblin Token (205) to attack Forge AI."
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player triggered Krenko, Tin Street Kingpin",
+     "card": 100,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Whenever Krenko, Tin Street Kingpin attacks, put a +1/+1 counter on it, then create a number of 1/1 red Goblin creature tokens equal to Krenko's power. [Attacker: Krenko, Tin Street Kingpin (100)]",
+     "card": 100,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI assigned Kalonian Tusker (103) to block Gray Ogre (93).\nForge AI didn't block Krenko, Tin Street Kingpin (100).\nForge AI didn't block Goblin Token (204).\nForge AI didn't block Goblin Token (205)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Gray Ogre (93) deals 2 damage to Kalonian Tusker (103).",
+     "card": 93,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Krenko, Tin Street Kingpin (100) deals 3 combat damage to Forge AI.",
+     "card": 100,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Goblin Token (204) deals 1 combat damage to Forge AI.",
+     "card": 204,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Goblin Token (205) deals 1 combat damage to Forge AI.",
+     "card": 205,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Kalonian Tusker (103) deals 3 damage to Gray Ogre (93).",
+     "card": 103,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 30 > 25"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Gray Ogre (93) was put into Graveyard from Battlefield.",
+     "card": 93,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 12 (Forge AI)"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI assigned Kalonian Tusker (103) to attack Player."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player didn't block Kalonian Tusker (103)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Kalonian Tusker (103) deals 3 combat damage to Player.",
+     "card": 103,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Player 37 > 34"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Forest (156)",
+     "card": 156,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 13 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Mountain (74)",
+     "card": 74,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player assigned Krenko, Tin Street Kingpin (100), Goblin Token (204), Goblin Token (205), Goblin Token (207), Goblin Token (208) and Goblin Token (209) to attack Forge AI."
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player triggered Krenko, Tin Street Kingpin",
+     "card": 100,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Whenever Krenko, Tin Street Kingpin attacks, put a +1/+1 counter on it, then create a number of 1/1 red Goblin creature tokens equal to Krenko's power. [Attacker: Krenko, Tin Street Kingpin (100)]",
+     "card": 100,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI didn't block Krenko, Tin Street Kingpin (100).\nForge AI assigned Fynn, the Fangbearer (201) to block Goblin Token (204).\nForge AI didn't block Goblin Token (205).\nForge AI didn't block Goblin Token (207).\nForge AI didn't block Goblin Token (208).\nForge AI didn't block Goblin Token (209)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Krenko, Tin Street Kingpin (100) deals 4 combat damage to Forge AI.",
+     "card": 100,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Goblin Token (204) deals 1 damage to Fynn, the Fangbearer (201).",
+     "card": 204,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Goblin Token (205) deals 1 combat damage to Forge AI.",
+     "card": 205,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Goblin Token (207) deals 1 combat damage to Forge AI.",
+     "card": 207,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Goblin Token (208) deals 1 combat damage to Forge AI.",
+     "card": 208,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Goblin Token (209) deals 1 combat damage to Forge AI.",
+     "card": 209,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Fynn, the Fangbearer (201) deals 1 damage (Deathtouch) to Goblin Token (204).",
+     "card": 201,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 25 > 17"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Goblin Token (204) was put into Graveyard from Battlefield.",
+     "card": 204,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 14 (Forge AI)"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI assigned Kalonian Tusker (103) to attack Player."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player didn't block Kalonian Tusker (103)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Kalonian Tusker (103) deals 3 combat damage to Player.",
+     "card": 103,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Player 34 > 31"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Forest (189)",
+     "card": 189,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 15 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Mountain (79)",
+     "card": 79,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player assigned Krenko, Tin Street Kingpin (100), Goblin Token (205), Goblin Token (207), Goblin Token (208), Goblin Token (209), Goblin Token (211), Goblin Token (212), Goblin Token (213) and Goblin Token (214) to attack Forge AI."
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player triggered Krenko, Tin Street Kingpin",
+     "card": 100,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Whenever Krenko, Tin Street Kingpin attacks, put a +1/+1 counter on it, then create a number of 1/1 red Goblin creature tokens equal to Krenko's power. [Attacker: Krenko, Tin Street Kingpin (100)]",
+     "card": 100,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI assigned Fynn, the Fangbearer (201) to block Krenko, Tin Street Kingpin (100).\nForge AI didn't block Goblin Token (205).\nForge AI didn't block Goblin Token (207).\nForge AI didn't block Goblin Token (208).\nForge AI didn't block Goblin Token (209).\nForge AI didn't block Goblin Token (211).\nForge AI didn't block Goblin Token (212).\nForge AI didn't block Goblin Token (213).\nForge AI didn't block Goblin Token (214)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Krenko, Tin Street Kingpin (100) deals 5 damage to Fynn, the Fangbearer (201).",
+     "card": 100,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Goblin Token (205) deals 1 combat damage to Forge AI.",
+     "card": 205,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Goblin Token (207) deals 1 combat damage to Forge AI.",
+     "card": 207,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Goblin Token (208) deals 1 combat damage to Forge AI.",
+     "card": 208,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Goblin Token (209) deals 1 combat damage to Forge AI.",
+     "card": 209,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Goblin Token (211) deals 1 combat damage to Forge AI.",
+     "card": 211,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Goblin Token (212) deals 1 combat damage to Forge AI.",
+     "card": 212,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Goblin Token (213) deals 1 combat damage to Forge AI.",
+     "card": 213,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Goblin Token (214) deals 1 combat damage to Forge AI.",
+     "card": 214,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Fynn, the Fangbearer (201) deals 1 damage (Deathtouch) to Krenko, Tin Street Kingpin (100).",
+     "card": 201,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 17 > 9"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Krenko, Tin Street Kingpin (100) was put into Graveyard from Battlefield.",
+     "card": 100,
+     "actor": "me"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Fynn, the Fangbearer (201) was put into Graveyard from Battlefield.",
+     "card": 201,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Krenko, Tin Street Kingpin",
+     "card": 100,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Krenko, Tin Street Kingpin - Creature 1 / 2",
+     "card": 100,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 16 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Forest (122)",
+     "card": 122,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Fynn, the Fangbearer",
+     "card": 201,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Fynn, the Fangbearer - Creature 1 / 3",
+     "card": 201,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 17 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Mountain (48)",
+     "card": 48,
+     "actor": "me"
+    }
    ]
   },
   {
    "name": "command-effects",
    "description": "Forge's effect cards in the command zone of a Constructed game (an adventure; human-11).",
    "fixture": "human-11",
-   "message": 211,
+   "message": 213,
    "game": {
     "type": "game.started",
     "protocol": 7,
@@ -3386,7 +5367,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 43,
+    "seq": 44,
     "running": true,
     "turn": 5,
     "phase": "UPKEEP",
@@ -3788,6 +5769,146 @@
       "card": 35
      }
     }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Player has mulliganed down to 6 cards."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player has kept a hand of 6 cards"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI has kept a hand of 7 cards"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 1 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Mountain (35)",
+     "card": 35,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Shock targeting [Forge AI]",
+     "card": 48,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Shock (48) deals 2 non-combat damage to Forge AI.",
+     "card": 48,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 20 > 18"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Shock (48) - Shock (48) deals 2 damage to Forge AI.",
+     "card": 48,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 2 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Forest (102)",
+     "card": 102,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Llanowar Elves",
+     "card": 92,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Llanowar Elves - Creature 1 / 1",
+     "card": 92,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 3 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Mountain (32)",
+     "card": 32,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Goblin Arsonist",
+     "card": 58,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Goblin Arsonist - Creature 1 / 1",
+     "card": 58,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 4 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Forest (115)",
+     "card": 115,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Rampant Growth",
+     "card": 87,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Rampant Growth (87) - Search your library for a basic land card, put that card onto the battlefield tapped, then shuffle.",
+     "card": 87,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 5 (Player)"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Stomp",
+     "card": 54,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Stomp (54) deals 2 damage to Goblin Arsonist (58).",
+     "card": 54,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Stomp (54) - Damage can't be prevented this turn. Stomp deals 2 damage to any target. Stomp (54) deals 2 damage to Goblin Arsonist (58).",
+     "card": 54,
+     "actor": "me"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Goblin Arsonist (58) was put into Graveyard from Battlefield.",
+     "card": 58,
+     "actor": "me"
+    }
    ]
   },
   {
@@ -3924,13 +6045,14 @@
     }
    ],
    "prompt": "Player, you have won the coin toss.  Would you like to play or draw?",
-   "notices": []
+   "notices": [],
+   "history": []
   },
   {
    "name": "target",
    "description": "A spell's target: Forge names the creatures to choose from (select), no player (Dismember), and waits with OK off and cancel on (targets-payment).",
    "fixture": "targets-payment",
-   "message": 391,
+   "message": 390,
    "game": {
     "type": "game.started",
     "protocol": 7,
@@ -3968,7 +6090,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 73,
+    "seq": 72,
     "running": true,
     "turn": 10,
     "phase": "DRAW",
@@ -4579,6 +6701,304 @@
       "card": 39
      }
     }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI nutze Mulligan und hat nun 6 Karten."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player nutze Mulligan und hat nun 6 Karten."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI hat 6 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player hat 6 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 1 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (111)",
+     "card": 111,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 2 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (39)",
+     "card": 39,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Shock mit Ziel [Forge AI]",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Schock (49) verursacht 2 Nicht-Kampf Schaden bei Forge AI.",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 20 > 18"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Schock (49) - Schock (49) deals 2 damage to Forge AI.",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 3 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (113)",
+     "card": 113,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Rampant Growth",
+     "card": 87,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Wucherndes Wachstum (87) - Search your library for a basic land card, put that card onto the battlefield tapped, then shuffle.",
+     "card": 87,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 4 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Sumpf (21)",
+     "card": 21,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Dark Ritual",
+     "card": 54,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Schwarzer Ritus (54) - Player adds {B}{B}{B}.",
+     "card": 54,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Arc Trail mit Ziel [Forge AI] [Player]",
+     "card": 7,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Lichtbogen-Spur (7) verursacht 2 Nicht-Kampf Schaden bei Forge AI.",
+     "card": 7,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Lichtbogen-Spur (7) verursacht 1 Nicht-Kampf Schaden bei Player.",
+     "card": 7,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Player 20 > 19"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 18 > 16"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Lichtbogen-Spur (7) - Lichtbogen-Spur (7) deals 2 damage to Forge AI. Lichtbogen-Spur (7) deals 1 damage to Player. ",
+     "card": 7,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 5 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (101)",
+     "card": 101,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Trained Armodon",
+     "card": 75,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Gezähmtes Armodon - Kreatur 3 / 3",
+     "card": 75,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 6 Player"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Dark Ritual",
+     "card": 53,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Schwarzer Ritus (53) - Player adds {B}{B}{B}.",
+     "card": 53,
+     "actor": "me"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (46)",
+     "card": 46,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 7 Forge AI"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI läßt Gezähmtes Armodon (75) Player angreifen."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player hat Gezähmtes Armodon (75) nicht geblockt."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Gezähmtes Armodon (75) verursacht 3 Kampf Schaden bei Player.",
+     "card": 75,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Player 19 > 16"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Centaur Courser",
+     "card": 96,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Zentauren-Renner - Kreatur 3 / 3",
+     "card": 96,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 8 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Sumpf (13)",
+     "card": 13,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Hill Giant",
+     "card": 23,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Hügelriese - Kreatur 3 / 3",
+     "card": 23,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 9 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (120)",
+     "card": 120,
+     "actor": "opponent"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI läßt Gezähmtes Armodon (75) and Zentauren-Renner (96) Player angreifen."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player hat Gezähmtes Armodon (75) nicht geblockt.\nPlayer hat Zentauren-Renner (96) nicht geblockt."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Gezähmtes Armodon (75) verursacht 3 Kampf Schaden bei Player.",
+     "card": 75,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Zentauren-Renner (96) verursacht 3 Kampf Schaden bei Player.",
+     "card": 96,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Player 16 > 10"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Kalonian Tusker",
+     "card": 65,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Kalonischer Keiler - Kreatur 3 / 3",
+     "card": 65,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Grizzly Bears",
+     "card": 64,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Grizzlybären - Kreatur 2 / 2",
+     "card": 64,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 10 Player"
+    }
    ]
   },
   {
@@ -4922,6 +7342,40 @@
       "kind": "buttons",
       "button": 1
      }
+    }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Player nutze Mulligan und hat nun 6 Karten."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI hat 7 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player hat 6 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 1 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (116)",
+     "card": 116,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 2 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (28)",
+     "card": 28,
+     "actor": "me"
     }
    ]
   },
@@ -5410,13 +7864,221 @@
       "card": 28
      }
     }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Player nutze Mulligan und hat nun 6 Karten."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI hat 7 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player hat 6 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 1 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (116)",
+     "card": 116,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 2 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (28)",
+     "card": 28,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Shock mit Ziel [Forge AI]",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Schock (49) verursacht 2 Nicht-Kampf Schaden bei Forge AI.",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 20 > 18"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Schock (49) - Schock (49) deals 2 damage to Forge AI.",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 3 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (113)",
+     "card": 113,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 4 Player"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Lightning Bolt mit Ziel [Forge AI]",
+     "card": 4,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Blitzschlag (4) verursacht 3 Nicht-Kampf Schaden bei Forge AI.",
+     "card": 4,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 18 > 15"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Blitzschlag (4) - Blitzschlag (4) deals 3 damage to Forge AI.",
+     "card": 4,
+     "actor": "me"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (26)",
+     "card": 26,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Goblin Arsonist",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Goblin-Brandstifter - Kreatur 1 / 1",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 5 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (104)",
+     "card": 104,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 6 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (33)",
+     "card": 33,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player läßt Goblin-Brandstifter (55) Forge AI angreifen."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI hat Goblin-Brandstifter (55) nicht geblockt."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Goblin-Brandstifter (55) verursacht 1 Kampf Schaden bei Forge AI.",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 15 > 14"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 7 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (118)",
+     "card": 118,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Giant Spider",
+     "card": 77,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Riesenspinne - Kreatur 2 / 4",
+     "card": 77,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 8 Player"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Magma Jet mit Ziel [Goblin-Brandstifter (55)]",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Magmastrahl (14) verursacht 2 Schaden bei Goblin-Brandstifter (55)",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Hellsicht: Player legte 1 Karte(n) auf und 1 Karte(n) unter die Bibliothek"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Magmastrahl (14) - Magmastrahl (14) deals 2 damage to Goblin-Brandstifter (55). Player scries 2.",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Goblin-Brandstifter (55) was put into Graveyard from Battlefield.",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player löst aus Goblin Arsonist mit Ziel [Riesenspinne (77)]",
+     "card": 55,
+     "actor": "me"
+    }
    ]
   },
   {
    "name": "discard",
    "description": "Two cards to discard from the hand: a selection of more than one, with Forge's prompt for it and no buttons (Forge ends it by itself; human-11).",
    "fixture": "human-11",
-   "message": 495,
+   "message": 501,
    "game": {
     "type": "game.started",
     "protocol": 7,
@@ -5454,7 +8116,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 91,
+    "seq": 94,
     "running": true,
     "turn": 13,
     "phase": "MAIN1",
@@ -6128,6 +8790,476 @@
       "card": 35
      }
     }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Player has mulliganed down to 6 cards."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player has kept a hand of 6 cards"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI has kept a hand of 7 cards"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 1 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Mountain (35)",
+     "card": 35,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Shock targeting [Forge AI]",
+     "card": 48,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Shock (48) deals 2 non-combat damage to Forge AI.",
+     "card": 48,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 20 > 18"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Shock (48) - Shock (48) deals 2 damage to Forge AI.",
+     "card": 48,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 2 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Forest (102)",
+     "card": 102,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Llanowar Elves",
+     "card": 92,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Llanowar Elves - Creature 1 / 1",
+     "card": 92,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 3 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Mountain (32)",
+     "card": 32,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Goblin Arsonist",
+     "card": 58,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Goblin Arsonist - Creature 1 / 1",
+     "card": 58,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 4 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Forest (115)",
+     "card": 115,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Rampant Growth",
+     "card": 87,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Rampant Growth (87) - Search your library for a basic land card, put that card onto the battlefield tapped, then shuffle.",
+     "card": 87,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 5 (Player)"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Stomp",
+     "card": 54,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Stomp (54) deals 2 damage to Goblin Arsonist (58).",
+     "card": 54,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Stomp (54) - Damage can't be prevented this turn. Stomp deals 2 damage to any target. Stomp (54) deals 2 damage to Goblin Arsonist (58).",
+     "card": 54,
+     "actor": "me"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Goblin Arsonist (58) was put into Graveyard from Battlefield.",
+     "card": 58,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player triggered Goblin Arsonist targeting [Llanowar Elves (92)]",
+     "card": 58,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Goblin Arsonist (58) deals 1 damage to Llanowar Elves (92).",
+     "card": 58,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "When Goblin Arsonist dies, you may have it deal 1 damage to any target. (Targeting: [[Llanowar Elves (92)]]) [Zone Changer: Goblin Arsonist (58)]",
+     "card": 58,
+     "actor": "me"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Llanowar Elves (92) was put into Graveyard from Battlefield.",
+     "card": 92,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 6 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Forest (112)",
+     "card": 112,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Giant Spider",
+     "card": 78,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Giant Spider - Creature 2 / 4",
+     "card": 78,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 7 (Player)"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Magma Jet targeting [Giant Spider (78)]",
+     "card": 15,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Magma Jet (15) deals 2 damage to Giant Spider (78).",
+     "card": 15,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Player scried 1 card(s) to the top of the library and 1 card(s) to the bottom of the library"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Magma Jet (15) - Magma Jet (15) deals 2 damage to Giant Spider (78). Player scries 2.",
+     "card": 15,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 8 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Forest (109)",
+     "card": 109,
+     "actor": "opponent"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI assigned Giant Spider (78) to attack Player."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player didn't block Giant Spider (78)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Giant Spider (78) deals 2 combat damage to Player.",
+     "card": 78,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Player 20 > 18"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Trained Armodon",
+     "card": 75,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Trained Armodon - Creature 3 / 3",
+     "card": 75,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Llanowar Elves",
+     "card": 89,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Llanowar Elves - Creature 1 / 1",
+     "card": 89,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 9 (Player)"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Magma Jet targeting [Giant Spider (78)]",
+     "card": 13,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Magma Jet (13) deals 2 damage to Giant Spider (78).",
+     "card": 13,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Player scried 1 card(s) to the top of the library and 1 card(s) to the bottom of the library"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Magma Jet (13) - Magma Jet (13) deals 2 damage to Giant Spider (78). Player scries 2.",
+     "card": 13,
+     "actor": "me"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Mountain (39)",
+     "card": 39,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 10 (Forge AI)"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI assigned Trained Armodon (75), Giant Spider (78) and Llanowar Elves (89) to attack Player."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player didn't block Trained Armodon (75).\nPlayer didn't block Giant Spider (78).\nPlayer didn't block Llanowar Elves (89)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Trained Armodon (75) deals 3 combat damage to Player.",
+     "card": 75,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Giant Spider (78) deals 2 combat damage to Player.",
+     "card": 78,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Llanowar Elves (89) deals 1 combat damage to Player.",
+     "card": 89,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Player 18 > 12"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Forest (119)",
+     "card": 119,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Grizzly Bears",
+     "card": 63,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Grizzly Bears - Creature 2 / 2",
+     "card": 63,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 11 (Player)"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Abrade",
+     "card": 11,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Abrade (11) deals 3 damage to Giant Spider (78).",
+     "card": 11,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Abrade (11) -  Abrade deals 3 damage to target creature. (Targeting: Giant Spider (78))",
+     "card": 11,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Raging Goblin",
+     "card": 19,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Raging Goblin - Creature 1 / 1",
+     "card": 19,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player assigned Raging Goblin (19) to attack Forge AI."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI assigned Grizzly Bears (63) to block Raging Goblin (19)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Raging Goblin (19) deals 1 damage to Grizzly Bears (63).",
+     "card": 19,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Grizzly Bears (63) deals 2 damage to Raging Goblin (19).",
+     "card": 63,
+     "actor": "opponent"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Raging Goblin (19) was put into Graveyard from Battlefield.",
+     "card": 19,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 12 (Forge AI)"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI assigned Trained Armodon (75), Giant Spider (78), Grizzly Bears (63) and Llanowar Elves (89) to attack Player."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player didn't block Trained Armodon (75).\nPlayer didn't block Giant Spider (78).\nPlayer didn't block Grizzly Bears (63).\nPlayer didn't block Llanowar Elves (89)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Trained Armodon (75) deals 3 combat damage to Player.",
+     "card": 75,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Giant Spider (78) deals 2 combat damage to Player.",
+     "card": 78,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Grizzly Bears (63) deals 2 combat damage to Player.",
+     "card": 63,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Llanowar Elves (89) deals 1 combat damage to Player.",
+     "card": 89,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Player 12 > 4"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Centaur Courser",
+     "card": 94,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Centaur Courser - Creature 3 / 3",
+     "card": 94,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 13 (Player)"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Faithless Looting",
+     "card": 6,
+     "actor": "me"
+    }
    ]
   },
   {
@@ -6643,6 +9775,288 @@
       "card": 28
      }
     }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Player nutze Mulligan und hat nun 6 Karten."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI hat 7 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player hat 6 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 1 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (116)",
+     "card": 116,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 2 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (28)",
+     "card": 28,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Shock mit Ziel [Forge AI]",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Schock (49) verursacht 2 Nicht-Kampf Schaden bei Forge AI.",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 20 > 18"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Schock (49) - Schock (49) deals 2 damage to Forge AI.",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 3 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (113)",
+     "card": 113,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 4 Player"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Lightning Bolt mit Ziel [Forge AI]",
+     "card": 4,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Blitzschlag (4) verursacht 3 Nicht-Kampf Schaden bei Forge AI.",
+     "card": 4,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 18 > 15"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Blitzschlag (4) - Blitzschlag (4) deals 3 damage to Forge AI.",
+     "card": 4,
+     "actor": "me"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (26)",
+     "card": 26,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Goblin Arsonist",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Goblin-Brandstifter - Kreatur 1 / 1",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 5 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (104)",
+     "card": 104,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 6 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (33)",
+     "card": 33,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player läßt Goblin-Brandstifter (55) Forge AI angreifen."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI hat Goblin-Brandstifter (55) nicht geblockt."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Goblin-Brandstifter (55) verursacht 1 Kampf Schaden bei Forge AI.",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 15 > 14"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 7 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (118)",
+     "card": 118,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Giant Spider",
+     "card": 77,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Riesenspinne - Kreatur 2 / 4",
+     "card": 77,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 8 Player"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Magma Jet mit Ziel [Goblin-Brandstifter (55)]",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Magmastrahl (14) verursacht 2 Schaden bei Goblin-Brandstifter (55)",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Hellsicht: Player legte 1 Karte(n) auf und 1 Karte(n) unter die Bibliothek"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Magmastrahl (14) - Magmastrahl (14) deals 2 damage to Goblin-Brandstifter (55). Player scries 2.",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Goblin-Brandstifter (55) was put into Graveyard from Battlefield.",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player löst aus Goblin Arsonist mit Ziel [Riesenspinne (77)]",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Goblin-Brandstifter (55) verursacht 1 Schaden bei Riesenspinne (77)",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Wenn der Goblin-Brandstifter aus dem Spiel auf einen Friedhof gelegt wird, kannst du ihn einer Kreatur oder einem Spieler deiner Wahl 1 Schadenspunkt zufügen lassen. (Targeting: [[Riesenspinne (77)]]) [Zone geändert: Goblin-Brandstifter (55)]",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (36)",
+     "card": 36,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 9 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (106)",
+     "card": 106,
+     "actor": "opponent"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI läßt Riesenspinne (77) Player angreifen."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player hat Riesenspinne (77) nicht geblockt."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Riesenspinne (77) verursacht 2 Kampf Schaden bei Player.",
+     "card": 77,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Player 20 > 18"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Giant Spider",
+     "card": 79,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Riesenspinne - Kreatur 2 / 4",
+     "card": 79,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Llanowar Elves",
+     "card": 90,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Llanowarelfen - Kreatur 1 / 1",
+     "card": 90,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 10 Player"
+    }
    ]
   },
   {
@@ -7157,6 +10571,192 @@
       "button": 1
      }
     }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Player nutze Mulligan und hat nun 6 Karten."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI hat 7 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player hat 6 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 1 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (116)",
+     "card": 116,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 2 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (28)",
+     "card": 28,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Shock mit Ziel [Forge AI]",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Schock (49) verursacht 2 Nicht-Kampf Schaden bei Forge AI.",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 20 > 18"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Schock (49) - Schock (49) deals 2 damage to Forge AI.",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 3 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (113)",
+     "card": 113,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 4 Player"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Lightning Bolt mit Ziel [Forge AI]",
+     "card": 4,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Blitzschlag (4) verursacht 3 Nicht-Kampf Schaden bei Forge AI.",
+     "card": 4,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 18 > 15"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Blitzschlag (4) - Blitzschlag (4) deals 3 damage to Forge AI.",
+     "card": 4,
+     "actor": "me"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (26)",
+     "card": 26,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Goblin Arsonist",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Goblin-Brandstifter - Kreatur 1 / 1",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 5 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (104)",
+     "card": 104,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 6 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (33)",
+     "card": 33,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player läßt Goblin-Brandstifter (55) Forge AI angreifen."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI hat Goblin-Brandstifter (55) nicht geblockt."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Goblin-Brandstifter (55) verursacht 1 Kampf Schaden bei Forge AI.",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 15 > 14"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 7 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (118)",
+     "card": 118,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Giant Spider",
+     "card": 77,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Riesenspinne - Kreatur 2 / 4",
+     "card": 77,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 8 Player"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Magma Jet mit Ziel [Goblin-Brandstifter (55)]",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Magmastrahl (14) verursacht 2 Schaden bei Goblin-Brandstifter (55)",
+     "card": 14,
+     "actor": "me"
+    }
    ]
   },
   {
@@ -7564,6 +11164,84 @@
       "kind": "buttons",
       "button": 1
      }
+    }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Player has mulliganed down to 6 cards."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player has kept a hand of 6 cards"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI has kept a hand of 7 cards"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 1 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Mountain (35)",
+     "card": 35,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Shock targeting [Forge AI]",
+     "card": 48,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Shock (48) deals 2 non-combat damage to Forge AI.",
+     "card": 48,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 20 > 18"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Shock (48) - Shock (48) deals 2 damage to Forge AI.",
+     "card": 48,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 2 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Forest (102)",
+     "card": 102,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Llanowar Elves",
+     "card": 92,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Llanowar Elves - Creature 1 / 1",
+     "card": 92,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 3 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Mountain (32)",
+     "card": 32,
+     "actor": "me"
     }
    ]
   },
@@ -8179,6 +11857,290 @@
       "button": 1
      }
     }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Player has mulliganed down to 6 cards."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI has mulliganed down to 6 cards."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI has mulliganed down to 5 cards."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player has kept a hand of 6 cards"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI has kept a hand of 5 cards"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 1 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Forest (39)",
+     "card": 39,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 2 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Mountain (81)",
+     "card": 81,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 3 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Forest (47)",
+     "card": 47,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Kalonian Tusker",
+     "card": 6,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Kalonian Tusker - Creature 3 / 3",
+     "card": 6,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 4 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Mountain (76)",
+     "card": 76,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Volcanic Hammer targeting [Kalonian Tusker (6)]",
+     "card": 112,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Volcanic Hammer (112) deals 3 damage to Kalonian Tusker (6).",
+     "card": 112,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Volcanic Hammer (112) - Volcanic Hammer (112) deals 3 damage to Kalonian Tusker (6).",
+     "card": 112,
+     "actor": "opponent"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Kalonian Tusker (6) was put into Graveyard from Battlefield.",
+     "card": 6,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 5 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Forest (51)",
+     "card": 51,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Trained Armodon",
+     "card": 13,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Trained Armodon - Creature 3 / 3",
+     "card": 13,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 6 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Mountain (69)",
+     "card": 69,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Goblin Raider",
+     "card": 119,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Goblin Raider - Creature 2 / 2",
+     "card": 119,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 7 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Forest (57)",
+     "card": 57,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Giant Spider",
+     "card": 18,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Giant Spider - Creature 2 / 4",
+     "card": 18,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player assigned Trained Armodon (13) to attack Forge AI."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI didn't block Trained Armodon (13)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Trained Armodon (13) deals 3 combat damage to Forge AI.",
+     "card": 13,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 20 > 17"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 8 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Mountain (82)",
+     "card": 82,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Canyon Minotaur",
+     "card": 101,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Canyon Minotaur - Creature 3 / 3",
+     "card": 101,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 9 (Player)"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Trained Armodon",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Trained Armodon - Creature 3 / 3",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 10 (Forge AI)"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Raging Goblin",
+     "card": 115,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Raging Goblin - Creature 1 / 1",
+     "card": 115,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Goblin Raider",
+     "card": 118,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Goblin Raider - Creature 2 / 2",
+     "card": 118,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 11 (Player)"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Runeclaw Bear",
+     "card": 11,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Runeclaw Bear - Creature 2 / 2",
+     "card": 11,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Grizzly Bears",
+     "card": 2,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Grizzly Bears - Creature 2 / 2",
+     "card": 2,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player assigned Trained Armodon (13), Giant Spider (18) and Trained Armodon (14) to attack Forge AI."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI didn't block Trained Armodon (13).\nForge AI assigned Canyon Minotaur (101) and Raging Goblin (115) to block Giant Spider (18).\nForge AI didn't block Trained Armodon (14)."
+    }
    ]
   },
   {
@@ -8541,6 +12503,88 @@
       "seq": 26,
       "card": 16
      }
+    }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Player nutze Mulligan und hat nun 6 Karten."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player hat 6 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI hat 7 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 1 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (16)",
+     "card": 16,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 2 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (95)",
+     "card": 95,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Llanowar Elves",
+     "card": 72,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Burst Lightning mit Ziel [Forge AI]",
+     "card": 28,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Geborstener Blitz (28) verursacht 2 Nicht-Kampf Schaden bei Forge AI.",
+     "card": 28,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 20 > 18"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Geborstener Blitz (28) - Geborstener Blitz (28) deals 2 damage to Forge AI.",
+     "card": 28,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Llanowarelfen - Kreatur 1 / 1",
+     "card": 72,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 3 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (24)",
+     "card": 24,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 4 Forge AI"
     }
    ]
   },
@@ -8940,6 +12984,100 @@
       "seq": 26,
       "card": 16
      }
+    }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Player nutze Mulligan und hat nun 6 Karten."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player hat 6 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI hat 7 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 1 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (16)",
+     "card": 16,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 2 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (95)",
+     "card": 95,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Llanowar Elves",
+     "card": 72,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Burst Lightning mit Ziel [Forge AI]",
+     "card": 28,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Geborstener Blitz (28) verursacht 2 Nicht-Kampf Schaden bei Forge AI.",
+     "card": 28,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 20 > 18"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Geborstener Blitz (28) - Geborstener Blitz (28) deals 2 damage to Forge AI.",
+     "card": 28,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Llanowarelfen - Kreatur 1 / 1",
+     "card": 72,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 3 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (24)",
+     "card": 24,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 4 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (81)",
+     "card": 81,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Rampant Growth",
+     "card": 68,
+     "actor": "opponent"
     }
    ]
   },
@@ -9392,6 +13530,156 @@
       "seq": 26,
       "card": 16
      }
+    }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Player nutze Mulligan und hat nun 6 Karten."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player hat 6 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI hat 7 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 1 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (16)",
+     "card": 16,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 2 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (95)",
+     "card": 95,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Llanowar Elves",
+     "card": 72,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Burst Lightning mit Ziel [Forge AI]",
+     "card": 28,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Geborstener Blitz (28) verursacht 2 Nicht-Kampf Schaden bei Forge AI.",
+     "card": 28,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 20 > 18"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Geborstener Blitz (28) - Geborstener Blitz (28) deals 2 damage to Forge AI.",
+     "card": 28,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Llanowarelfen - Kreatur 1 / 1",
+     "card": 72,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 3 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (24)",
+     "card": 24,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 4 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (81)",
+     "card": 81,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Rampant Growth",
+     "card": 68,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Lightning Strike mit Ziel [Llanowarelfen (72)]",
+     "card": 8,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Blitzeinschlag (8) verursacht 3 Schaden bei Llanowarelfen (72)",
+     "card": 8,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Blitzeinschlag (8) - Blitzeinschlag (8) deals 3 damage to Llanowarelfen (72).",
+     "card": 8,
+     "actor": "me"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Llanowarelfen (72) was put into Graveyard from Battlefield.",
+     "card": 72,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Wucherndes Wachstum (68) - Search your library for a basic land card, put that card onto the battlefield tapped, then shuffle.",
+     "card": 68,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 5 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (13)",
+     "card": 13,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 6 Forge AI"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Kalonian Tusker",
+     "card": 47,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Shock mit Ziel [Forge AI]",
+     "card": 29,
+     "actor": "me"
     }
    ]
   },
@@ -9885,13 +14173,187 @@
       "button": 1
      }
     }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Player nutze Mulligan und hat nun 6 Karten."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI hat 7 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player hat 6 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 1 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (116)",
+     "card": 116,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 2 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (28)",
+     "card": 28,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Shock mit Ziel [Forge AI]",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Schock (49) verursacht 2 Nicht-Kampf Schaden bei Forge AI.",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 20 > 18"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Schock (49) - Schock (49) deals 2 damage to Forge AI.",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 3 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (113)",
+     "card": 113,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 4 Player"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Lightning Bolt mit Ziel [Forge AI]",
+     "card": 4,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Blitzschlag (4) verursacht 3 Nicht-Kampf Schaden bei Forge AI.",
+     "card": 4,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 18 > 15"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Blitzschlag (4) - Blitzschlag (4) deals 3 damage to Forge AI.",
+     "card": 4,
+     "actor": "me"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (26)",
+     "card": 26,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Goblin Arsonist",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Goblin-Brandstifter - Kreatur 1 / 1",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 5 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (104)",
+     "card": 104,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 6 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (33)",
+     "card": 33,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player läßt Goblin-Brandstifter (55) Forge AI angreifen."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI hat Goblin-Brandstifter (55) nicht geblockt."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Goblin-Brandstifter (55) verursacht 1 Kampf Schaden bei Forge AI.",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 15 > 14"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 7 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (118)",
+     "card": 118,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Giant Spider",
+     "card": 77,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Riesenspinne - Kreatur 2 / 4",
+     "card": 77,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 8 Player"
+    }
    ]
   },
   {
    "name": "payment",
    "description": "Paying a spell's cost by hand: Forge's payment with what is still to pay, the mana sources Forge marks, Auto and Cancel (targets-payment).",
    "fixture": "targets-payment",
-   "message": 86,
+   "message": 85,
    "game": {
     "type": "game.started",
     "protocol": 7,
@@ -9929,7 +14391,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 19,
+    "seq": 18,
     "running": true,
     "turn": 2,
     "phase": "MAIN1",
@@ -10218,13 +14680,51 @@
       "button": 1
      }
     }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI nutze Mulligan und hat nun 6 Karten."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player nutze Mulligan und hat nun 6 Karten."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI hat 6 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player hat 6 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 1 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (111)",
+     "card": 111,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 2 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (39)",
+     "card": 39,
+     "actor": "me"
+    }
    ]
   },
   {
    "name": "payment-pool",
    "description": "Floating mana from Dark Ritual while a spell is paid: Forge would take it from the pool (targets-payment).",
    "fixture": "targets-payment",
-   "message": 180,
+   "message": 179,
    "game": {
     "type": "game.started",
     "protocol": 7,
@@ -10262,7 +14762,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 37,
+    "seq": 36,
     "running": true,
     "turn": 4,
     "phase": "MAIN1",
@@ -10613,13 +15113,117 @@
       "card": 39
      }
     }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI nutze Mulligan und hat nun 6 Karten."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player nutze Mulligan und hat nun 6 Karten."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI hat 6 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player hat 6 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 1 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (111)",
+     "card": 111,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 2 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (39)",
+     "card": 39,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Shock mit Ziel [Forge AI]",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Schock (49) verursacht 2 Nicht-Kampf Schaden bei Forge AI.",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 20 > 18"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Schock (49) - Schock (49) deals 2 damage to Forge AI.",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 3 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (113)",
+     "card": 113,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Rampant Growth",
+     "card": 87,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Wucherndes Wachstum (87) - Search your library for a basic land card, put that card onto the battlefield tapped, then shuffle.",
+     "card": 87,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 4 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Sumpf (21)",
+     "card": 21,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Dark Ritual",
+     "card": 54,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Schwarzer Ritus (54) - Player adds {B}{B}{B}.",
+     "card": 54,
+     "actor": "me"
+    }
    ]
   },
   {
    "name": "payment-life",
    "description": "Phyrexian mana: Forge's payment takes the player's life - their seat is marked (Gitaxian Probe, Dismember; targets-payment).",
    "fixture": "targets-payment",
-   "message": 400,
+   "message": 399,
    "game": {
     "type": "game.started",
     "protocol": 7,
@@ -10657,7 +15261,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 75,
+    "seq": 74,
     "running": true,
     "turn": 10,
     "phase": "DRAW",
@@ -11149,13 +15753,311 @@
       "card": 39
      }
     }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI nutze Mulligan und hat nun 6 Karten."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player nutze Mulligan und hat nun 6 Karten."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI hat 6 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player hat 6 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 1 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (111)",
+     "card": 111,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 2 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (39)",
+     "card": 39,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Shock mit Ziel [Forge AI]",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Schock (49) verursacht 2 Nicht-Kampf Schaden bei Forge AI.",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 20 > 18"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Schock (49) - Schock (49) deals 2 damage to Forge AI.",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 3 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (113)",
+     "card": 113,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Rampant Growth",
+     "card": 87,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Wucherndes Wachstum (87) - Search your library for a basic land card, put that card onto the battlefield tapped, then shuffle.",
+     "card": 87,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 4 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Sumpf (21)",
+     "card": 21,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Dark Ritual",
+     "card": 54,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Schwarzer Ritus (54) - Player adds {B}{B}{B}.",
+     "card": 54,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Arc Trail mit Ziel [Forge AI] [Player]",
+     "card": 7,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Lichtbogen-Spur (7) verursacht 2 Nicht-Kampf Schaden bei Forge AI.",
+     "card": 7,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Lichtbogen-Spur (7) verursacht 1 Nicht-Kampf Schaden bei Player.",
+     "card": 7,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Player 20 > 19"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 18 > 16"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Lichtbogen-Spur (7) - Lichtbogen-Spur (7) deals 2 damage to Forge AI. Lichtbogen-Spur (7) deals 1 damage to Player. ",
+     "card": 7,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 5 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (101)",
+     "card": 101,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Trained Armodon",
+     "card": 75,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Gezähmtes Armodon - Kreatur 3 / 3",
+     "card": 75,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 6 Player"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Dark Ritual",
+     "card": 53,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Schwarzer Ritus (53) - Player adds {B}{B}{B}.",
+     "card": 53,
+     "actor": "me"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (46)",
+     "card": 46,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 7 Forge AI"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI läßt Gezähmtes Armodon (75) Player angreifen."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player hat Gezähmtes Armodon (75) nicht geblockt."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Gezähmtes Armodon (75) verursacht 3 Kampf Schaden bei Player.",
+     "card": 75,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Player 19 > 16"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Centaur Courser",
+     "card": 96,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Zentauren-Renner - Kreatur 3 / 3",
+     "card": 96,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 8 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Sumpf (13)",
+     "card": 13,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Hill Giant",
+     "card": 23,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Hügelriese - Kreatur 3 / 3",
+     "card": 23,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 9 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (120)",
+     "card": 120,
+     "actor": "opponent"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI läßt Gezähmtes Armodon (75) and Zentauren-Renner (96) Player angreifen."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player hat Gezähmtes Armodon (75) nicht geblockt.\nPlayer hat Zentauren-Renner (96) nicht geblockt."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Gezähmtes Armodon (75) verursacht 3 Kampf Schaden bei Player.",
+     "card": 75,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Zentauren-Renner (96) verursacht 3 Kampf Schaden bei Player.",
+     "card": 96,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Player 16 > 10"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Kalonian Tusker",
+     "card": 65,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Kalonischer Keiler - Kreatur 3 / 3",
+     "card": 65,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Grizzly Bears",
+     "card": 64,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Grizzlybären - Kreatur 2 / 2",
+     "card": 64,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 10 Player"
+    }
    ]
   },
   {
    "name": "cast-x",
    "description": "A decision while a spell is cast: the value of X for Blaze, a blocking choice before its target and payment (targets-payment).",
    "fixture": "targets-payment",
-   "message": 133,
+   "message": 132,
    "game": {
     "type": "game.started",
     "protocol": 7,
@@ -11193,7 +16095,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 25,
+    "seq": 24,
     "running": true,
     "turn": 4,
     "phase": "MAIN1",
@@ -11570,6 +16472,98 @@
       "kind": "buttons",
       "button": 1
      }
+    }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI nutze Mulligan und hat nun 6 Karten."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player nutze Mulligan und hat nun 6 Karten."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI hat 6 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player hat 6 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 1 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (111)",
+     "card": 111,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 2 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Gebirge (39)",
+     "card": 39,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Shock mit Ziel [Forge AI]",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Schock (49) verursacht 2 Nicht-Kampf Schaden bei Forge AI.",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 20 > 18"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Schock (49) - Schock (49) deals 2 damage to Forge AI.",
+     "card": 49,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 3 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (113)",
+     "card": 113,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Rampant Growth",
+     "card": 87,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Wucherndes Wachstum (87) - Search your library for a basic land card, put that card onto the battlefield tapped, then shuffle.",
+     "card": 87,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 4 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Sumpf (21)",
+     "card": 21,
+     "actor": "me"
     }
    ]
   },
@@ -12039,6 +17033,196 @@
       "kind": "buttons",
       "button": 1
      }
+    }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Player nutze Mulligan und hat nun 6 Karten."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI hat 7 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player hat 6 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 1 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (112)",
+     "card": 112,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 2 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Forest (54)",
+     "card": 54,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Llanowar Elves",
+     "card": 31,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Llanowarelfen - Kreatur 1 / 1",
+     "card": 31,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 3 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (117)",
+     "card": 117,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 4 Player"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Giant Growth mit Ziel [Llanowarelfen (31)]",
+     "card": 21,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Riesenwuchs (21) - Die Zielkreatur erhält +3/+3 bis zum Ende des Zuges.",
+     "card": 21,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Giant Growth mit Ziel [Llanowarelfen (31)]",
+     "card": 22,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Riesenwuchs (22) - Die Zielkreatur erhält +3/+3 bis zum Ende des Zuges.",
+     "card": 22,
+     "actor": "me"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Forest (55)",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 5 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (111)",
+     "card": 111,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Centaur Courser",
+     "card": 91,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Zentauren-Renner - Kreatur 3 / 3",
+     "card": 91,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 6 Player"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Trained Armodon",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Gezähmtes Armodon - Kreatur 3 / 3",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Forest (51)",
+     "card": 51,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Wall of Wood",
+     "card": 38,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Holzmauer - Kreatur 0 / 3",
+     "card": 38,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 7 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (109)",
+     "card": 109,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Giant Spider",
+     "card": 79,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Riesenspinne - Kreatur 2 / 4",
+     "card": 79,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 8 Player"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Giant Spider",
+     "card": 17,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Riesenspinne - Kreatur 2 / 4",
+     "card": 17,
+     "actor": "me"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Forest (44)",
+     "card": 44,
+     "actor": "me"
     }
    ]
   },
@@ -12516,13 +17700,203 @@
       "button": 1
      }
     }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Player nutze Mulligan und hat nun 6 Karten."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI hat 7 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player hat 6 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 1 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (112)",
+     "card": 112,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 2 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Forest (54)",
+     "card": 54,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Llanowar Elves",
+     "card": 31,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Llanowarelfen - Kreatur 1 / 1",
+     "card": 31,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 3 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (117)",
+     "card": 117,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 4 Player"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Giant Growth mit Ziel [Llanowarelfen (31)]",
+     "card": 21,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Riesenwuchs (21) - Die Zielkreatur erhält +3/+3 bis zum Ende des Zuges.",
+     "card": 21,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Giant Growth mit Ziel [Llanowarelfen (31)]",
+     "card": 22,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Riesenwuchs (22) - Die Zielkreatur erhält +3/+3 bis zum Ende des Zuges.",
+     "card": 22,
+     "actor": "me"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Forest (55)",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 5 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (111)",
+     "card": 111,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Centaur Courser",
+     "card": 91,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Zentauren-Renner - Kreatur 3 / 3",
+     "card": 91,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 6 Player"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Trained Armodon",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Gezähmtes Armodon - Kreatur 3 / 3",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Forest (51)",
+     "card": 51,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Wall of Wood",
+     "card": 38,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Holzmauer - Kreatur 0 / 3",
+     "card": 38,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 7 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (109)",
+     "card": 109,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Giant Spider",
+     "card": 79,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Riesenspinne - Kreatur 2 / 4",
+     "card": 79,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 8 Player"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Giant Spider",
+     "card": 17,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Riesenspinne - Kreatur 2 / 4",
+     "card": 17,
+     "actor": "me"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Forest (44)",
+     "card": 44,
+     "actor": "me"
+    }
    ]
   },
   {
    "name": "attack-planeswalker",
    "description": "A planeswalker of the AI's as the defender: two defenders to choose from, the player marked as the other one (attackers).",
    "fixture": "attackers",
-   "message": 564,
+   "message": 563,
    "game": {
     "type": "game.started",
     "protocol": 7,
@@ -12549,7 +17923,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 108,
+    "seq": 107,
     "running": true,
     "turn": 14,
     "phase": "COMBAT_DECLARE_ATTACKERS",
@@ -13207,13 +18581,523 @@
       "button": 1
      }
     }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Player nutze Mulligan und hat nun 6 Karten."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI hat 7 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player hat 6 Karten auf der Hand behalten"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 1 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (112)",
+     "card": 112,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 2 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Forest (54)",
+     "card": 54,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Llanowar Elves",
+     "card": 31,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Llanowarelfen - Kreatur 1 / 1",
+     "card": 31,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 3 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (117)",
+     "card": 117,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 4 Player"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Giant Growth mit Ziel [Llanowarelfen (31)]",
+     "card": 21,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Riesenwuchs (21) - Die Zielkreatur erhält +3/+3 bis zum Ende des Zuges.",
+     "card": 21,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Giant Growth mit Ziel [Llanowarelfen (31)]",
+     "card": 22,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Riesenwuchs (22) - Die Zielkreatur erhält +3/+3 bis zum Ende des Zuges.",
+     "card": 22,
+     "actor": "me"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Forest (55)",
+     "card": 55,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 5 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (111)",
+     "card": 111,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Centaur Courser",
+     "card": 91,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Zentauren-Renner - Kreatur 3 / 3",
+     "card": 91,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 6 Player"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Trained Armodon",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Gezähmtes Armodon - Kreatur 3 / 3",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Forest (51)",
+     "card": 51,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Wall of Wood",
+     "card": 38,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Holzmauer - Kreatur 0 / 3",
+     "card": 38,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 7 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (109)",
+     "card": 109,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Giant Spider",
+     "card": 79,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Riesenspinne - Kreatur 2 / 4",
+     "card": 79,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 8 Player"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Giant Spider",
+     "card": 17,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Riesenspinne - Kreatur 2 / 4",
+     "card": 17,
+     "actor": "me"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Forest (44)",
+     "card": 44,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player läßt Gezähmtes Armodon (14) Forge AI angreifen."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI läßt Riesenspinne (79) Gezähmtes Armodon (14) blocken."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Gezähmtes Armodon (14) verursacht 3 Schaden bei Riesenspinne (79)",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Riesenspinne (79) verursacht 2 Schaden bei Gezähmtes Armodon (14)",
+     "card": 79,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 9 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (110)",
+     "card": 110,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Garruk Wildspeaker",
+     "card": 68,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Garruk Wildsprecher",
+     "card": 68,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI aktiviert Garruk Wildspeaker",
+     "card": 68,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Garruk Wildsprecher (68) - -1: Bringe einen 3/3 grünen Bestien-Kreaturenspielstein ins Spiel.",
+     "card": 68,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 10 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Forest (57)",
+     "card": 57,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player läßt Llanowarelfen (31), Gezähmtes Armodon (14) and Riesenspinne (17) Forge AI angreifen."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI läßt Zentauren-Renner (91) Llanowarelfen (31) blocken.\nForge AI läßt Riesenspinne (79) Gezähmtes Armodon (14) blocken.\nForge AI läßt Bestie Spielstein (124) Riesenspinne (17) blocken."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Llanowarelfen (31) verursacht 1 Schaden bei Zentauren-Renner (91)",
+     "card": 31,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Gezähmtes Armodon (14) verursacht 3 Schaden bei Riesenspinne (79)",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Riesenspinne (17) verursacht 2 Schaden bei Bestie Spielstein (124)",
+     "card": 17,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Riesenspinne (79) verursacht 2 Schaden bei Gezähmtes Armodon (14)",
+     "card": 79,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Bestie Spielstein (124) verursacht 3 Schaden bei Riesenspinne (17)",
+     "card": 124,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Zentauren-Renner (91) verursacht 3 Schaden bei Llanowarelfen (31)",
+     "card": 91,
+     "actor": "opponent"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Llanowarelfen (31) was put into Graveyard from Battlefield.",
+     "card": 31,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 11 Forge AI"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI aktiviert Garruk Wildspeaker",
+     "card": 68,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Garruk Wildsprecher (68) - -1: Bringe einen 3/3 grünen Bestien-Kreaturenspielstein ins Spiel.",
+     "card": 68,
+     "actor": "opponent"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI läßt Zentauren-Renner (91), Bestie Spielstein (124) and Riesenspinne (79) Player angreifen."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player läßt Holzmauer (38) Zentauren-Renner (91) blocken.\nPlayer hat Bestie Spielstein (124) nicht geblockt.\nPlayer hat Riesenspinne (79) nicht geblockt."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Zentauren-Renner (91) verursacht 3 Schaden bei Holzmauer (38)",
+     "card": 91,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Bestie Spielstein (124) verursacht 3 Kampf Schaden bei Player.",
+     "card": 124,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Riesenspinne (79) verursacht 2 Kampf Schaden bei Player.",
+     "card": 79,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Player 20 > 15"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Holzmauer (38) was put into Graveyard from Battlefield.",
+     "card": 38,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Nissa, Voice of Zendikar",
+     "card": 74,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Nissa, Stimme Zendikars",
+     "card": 74,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI aktiviert Nissa, Voice of Zendikar",
+     "card": 74,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Nissa, Stimme Zendikars (74) - Put a +1/+1 counter on each valid permanent.",
+     "card": 74,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Grizzly Bears",
+     "card": 64,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Grizzlybären - Kreatur 2 / 2",
+     "card": 64,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 12 Player"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player zaubert Rampant Growth",
+     "card": 28,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Wucherndes Wachstum (28) - Search your library for a basic land card, put that card onto the battlefield tapped, then shuffle.",
+     "card": 28,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 13 Forge AI"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI spielte Forest (99)",
+     "card": 99,
+     "actor": "opponent"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI läßt Zentauren-Renner (91), Bestie Spielstein (124) and Bestie Spielstein (128) Player angreifen."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player läßt Gezähmtes Armodon (14) Zentauren-Renner (91) blocken.\nPlayer hat Bestie Spielstein (124) nicht geblockt.\nPlayer hat Bestie Spielstein (128) nicht geblockt."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Zentauren-Renner (91) verursacht 4 Schaden bei Gezähmtes Armodon (14)",
+     "card": 91,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Bestie Spielstein (124) verursacht 4 Kampf Schaden bei Player.",
+     "card": 124,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Bestie Spielstein (128) verursacht 4 Kampf Schaden bei Player.",
+     "card": 128,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Gezähmtes Armodon (14) verursacht 3 Schaden bei Zentauren-Renner (91)",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Player 15 > 7"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Gezähmtes Armodon (14) was put into Graveyard from Battlefield.",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Garruk Wildsprecher (68) - [Couldn't add to stack, failed to target] - +1: Untap two target lands."
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI aktiviert Garruk Wildspeaker",
+     "card": 68,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Garruk Wildsprecher (68) - -1: Bringe einen 3/3 grünen Bestien-Kreaturenspielstein ins Spiel.",
+     "card": 68,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI aktiviert Nissa, Voice of Zendikar",
+     "card": 74,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Nissa, Stimme Zendikars (74) - +1: Bringe einen 0/1 grünen Pflanze-Kreaturenspielstein ins Spiel.",
+     "card": 74,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI zaubert Craw Wurm",
+     "card": 93,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Tatzelwurm - Kreatur 6 / 4",
+     "card": 93,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Zug 14 Player"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player spielte Forest (45)",
+     "card": 45,
+     "actor": "me"
+    }
    ]
   },
   {
    "name": "block-start",
    "description": "Forge asks for blockers, before assignment: the current attacker highlighted, its legal blockers carry action (blocks-multi).",
    "fixture": "blocks-multi",
-   "message": 535,
+   "message": 534,
    "game": {
     "type": "game.started",
     "protocol": 7,
@@ -13793,6 +19677,454 @@
       "card": 45
      }
     }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Player has mulliganed down to 6 cards."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player has kept a hand of 6 cards"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI has kept a hand of 7 cards"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 1 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Forest (45)",
+     "card": 45,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 2 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Mountain (81)",
+     "card": 81,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Raging Goblin",
+     "card": 115,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Raging Goblin - Creature 1 / 1",
+     "card": 115,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Giant Growth targeting [Raging Goblin (115)]",
+     "card": 23,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Giant Growth (23) - Raging Goblin (115) gets +3/+3  until end of turn.",
+     "card": 23,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI assigned Raging Goblin (115) to attack Player."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player didn't block Raging Goblin (115)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Raging Goblin (115) deals 4 combat damage to Player.",
+     "card": 115,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Player 20 > 16"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 3 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Forest (50)",
+     "card": 50,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Grizzly Bears",
+     "card": 1,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Grizzly Bears - Creature 2 / 2",
+     "card": 1,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 4 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Mountain (83)",
+     "card": 83,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Volcanic Hammer targeting [Grizzly Bears (1)]",
+     "card": 109,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Volcanic Hammer (109) deals 3 damage to Grizzly Bears (1).",
+     "card": 109,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Volcanic Hammer (109) - Volcanic Hammer (109) deals 3 damage to Grizzly Bears (1).",
+     "card": 109,
+     "actor": "opponent"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Grizzly Bears (1) was put into Graveyard from Battlefield.",
+     "card": 1,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI assigned Raging Goblin (115) to attack Player."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player didn't block Raging Goblin (115)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Raging Goblin (115) deals 1 combat damage to Player.",
+     "card": 115,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Player 16 > 15"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 5 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Forest (43)",
+     "card": 43,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Llanowar Elves",
+     "card": 29,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Llanowar Elves - Creature 1 / 1",
+     "card": 29,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Grizzly Bears",
+     "card": 3,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Grizzly Bears - Creature 2 / 2",
+     "card": 3,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 6 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Mountain (86)",
+     "card": 86,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Raging Goblin",
+     "card": 114,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Raging Goblin - Creature 1 / 1",
+     "card": 114,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 7 (Player)"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Giant Spider",
+     "card": 18,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Giant Spider - Creature 2 / 4",
+     "card": 18,
+     "actor": "me"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Forest (42)",
+     "card": 42,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player assigned Grizzly Bears (3) to attack Forge AI."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI didn't block Grizzly Bears (3)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Grizzly Bears (3) deals 2 combat damage to Forge AI.",
+     "card": 3,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 20 > 18"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 8 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Mountain (79)",
+     "card": 79,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Canyon Minotaur",
+     "card": 103,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Canyon Minotaur - Creature 3 / 3",
+     "card": 103,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 9 (Player)"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Trained Armodon",
+     "card": 16,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Trained Armodon - Creature 3 / 3",
+     "card": 16,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 10 (Forge AI)"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Gray Ogre",
+     "card": 94,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Gray Ogre - Creature 2 / 2",
+     "card": 94,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 11 (Player)"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Runeclaw Bear",
+     "card": 11,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Runeclaw Bear - Creature 2 / 2",
+     "card": 11,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player assigned Llanowar Elves (29), Grizzly Bears (3), Giant Spider (18) and Trained Armodon (16) to attack Forge AI."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI assigned Gray Ogre (94) to block Llanowar Elves (29).\nForge AI didn't block Grizzly Bears (3).\nForge AI assigned Canyon Minotaur (103) and Raging Goblin (115) to block Giant Spider (18).\nForge AI didn't block Trained Armodon (16)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Llanowar Elves (29) deals 1 damage to Gray Ogre (94).",
+     "card": 29,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Grizzly Bears (3) deals 2 combat damage to Forge AI.",
+     "card": 3,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Giant Spider (18) deals 2 damage to Canyon Minotaur (103).",
+     "card": 18,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Trained Armodon (16) deals 3 combat damage to Forge AI.",
+     "card": 16,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Canyon Minotaur (103) deals 3 damage to Giant Spider (18).",
+     "card": 103,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Raging Goblin (115) deals 1 damage to Giant Spider (18).",
+     "card": 115,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Gray Ogre (94) deals 2 damage to Llanowar Elves (29).",
+     "card": 94,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 18 > 13"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Llanowar Elves (29) was put into Graveyard from Battlefield.",
+     "card": 29,
+     "actor": "me"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Giant Spider (18) was put into Graveyard from Battlefield.",
+     "card": 18,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 12 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Mountain (72)",
+     "card": 72,
+     "actor": "opponent"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI assigned Canyon Minotaur (103) to attack Player."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player assigned Runeclaw Bear (11) to block Canyon Minotaur (103)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Canyon Minotaur (103) deals 3 damage to Runeclaw Bear (11).",
+     "card": 103,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Runeclaw Bear (11) deals 2 damage to Canyon Minotaur (103).",
+     "card": 11,
+     "actor": "me"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Runeclaw Bear (11) was put into Graveyard from Battlefield.",
+     "card": 11,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Fire Elemental",
+     "card": 88,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Fire Elemental - Creature 5 / 4",
+     "card": 88,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 13 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Forest (52)",
+     "card": 52,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 14 (Forge AI)"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI assigned Fire Elemental (88) and Canyon Minotaur (103) to attack Player."
+    }
    ]
   },
   {
@@ -14331,6 +20663,338 @@
       "seq": 40,
       "card": 39
      }
+    }
+   ],
+   "history": [
+    {
+     "kind": "MULLIGAN",
+     "text": "Player has mulliganed down to 6 cards."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI has mulliganed down to 6 cards."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI has mulliganed down to 5 cards."
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Player has kept a hand of 6 cards"
+    },
+    {
+     "kind": "MULLIGAN",
+     "text": "Forge AI has kept a hand of 5 cards"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 1 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Forest (39)",
+     "card": 39,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 2 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Mountain (81)",
+     "card": 81,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 3 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Forest (47)",
+     "card": 47,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Kalonian Tusker",
+     "card": 6,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Kalonian Tusker - Creature 3 / 3",
+     "card": 6,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 4 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Mountain (76)",
+     "card": 76,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Volcanic Hammer targeting [Kalonian Tusker (6)]",
+     "card": 112,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Volcanic Hammer (112) deals 3 damage to Kalonian Tusker (6).",
+     "card": 112,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Volcanic Hammer (112) - Volcanic Hammer (112) deals 3 damage to Kalonian Tusker (6).",
+     "card": 112,
+     "actor": "opponent"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Kalonian Tusker (6) was put into Graveyard from Battlefield.",
+     "card": 6,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 5 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Forest (51)",
+     "card": 51,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Trained Armodon",
+     "card": 13,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Trained Armodon - Creature 3 / 3",
+     "card": 13,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 6 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Mountain (69)",
+     "card": 69,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Goblin Raider",
+     "card": 119,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Goblin Raider - Creature 2 / 2",
+     "card": 119,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 7 (Player)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Player played Forest (57)",
+     "card": 57,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Giant Spider",
+     "card": 18,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Giant Spider - Creature 2 / 4",
+     "card": 18,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player assigned Trained Armodon (13) to attack Forge AI."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI didn't block Trained Armodon (13)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Trained Armodon (13) deals 3 combat damage to Forge AI.",
+     "card": 13,
+     "actor": "me"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 20 > 17"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 8 (Forge AI)"
+    },
+    {
+     "kind": "LAND",
+     "text": "Forge AI played Mountain (82)",
+     "card": 82,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Canyon Minotaur",
+     "card": 101,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Canyon Minotaur - Creature 3 / 3",
+     "card": 101,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 9 (Player)"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Trained Armodon",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Trained Armodon - Creature 3 / 3",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 10 (Forge AI)"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Raging Goblin",
+     "card": 115,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Raging Goblin - Creature 1 / 1",
+     "card": 115,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Forge AI cast Goblin Raider",
+     "card": 118,
+     "actor": "opponent"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Goblin Raider - Creature 2 / 2",
+     "card": 118,
+     "actor": "opponent"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 11 (Player)"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Runeclaw Bear",
+     "card": 11,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Runeclaw Bear - Creature 2 / 2",
+     "card": 11,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_ADD",
+     "text": "Player cast Grizzly Bears",
+     "card": 2,
+     "actor": "me"
+    },
+    {
+     "kind": "STACK_RESOLVE",
+     "text": "Grizzly Bears - Creature 2 / 2",
+     "card": 2,
+     "actor": "me"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Player assigned Trained Armodon (13), Giant Spider (18) and Trained Armodon (14) to attack Forge AI."
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI didn't block Trained Armodon (13).\nForge AI assigned Canyon Minotaur (101) and Raging Goblin (115) to block Giant Spider (18).\nForge AI didn't block Trained Armodon (14)."
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Trained Armodon (13) deals 3 combat damage to Forge AI.",
+     "card": 13,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Giant Spider (18) deals 2 damage to Canyon Minotaur (101).",
+     "card": 18,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Trained Armodon (14) deals 3 combat damage to Forge AI.",
+     "card": 14,
+     "actor": "me"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Canyon Minotaur (101) deals 3 damage to Giant Spider (18).",
+     "card": 101,
+     "actor": "opponent"
+    },
+    {
+     "kind": "DAMAGE",
+     "text": "Raging Goblin (115) deals 1 damage to Giant Spider (18).",
+     "card": 115,
+     "actor": "opponent"
+    },
+    {
+     "kind": "LIFE",
+     "text": "Life: Forge AI 17 > 11"
+    },
+    {
+     "kind": "ZONE_CHANGE",
+     "text": "Giant Spider (18) was put into Graveyard from Battlefield.",
+     "card": 18,
+     "actor": "me"
+    },
+    {
+     "kind": "TURN",
+     "text": "Turn 12 (Forge AI)"
+    },
+    {
+     "kind": "COMBAT",
+     "text": "Forge AI assigned Canyon Minotaur (101) to attack Player."
     }
    ]
   }

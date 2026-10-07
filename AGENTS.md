@@ -104,6 +104,14 @@ Prompt 20 (`src/game/zone-sheet.tsx`, `card-view-model.ts`, `card-sheet.tsx`, `d
 - Card sides are catalog presentation only, through the same `useTableCards`/`cardDisplay` pipeline. Begin with Forge's current key/face, reset inspection when that key changes, never send input for a side switch. Keep Forge facts/actions attached to the actual card. Label supplemental catalog text and DE→EN fallback; an English preference is not a claim that German is unavailable. Never replace a missing back image with the front.
 - Verify `card-view.test.tsx`, affected card/decision/catalog tests and `npm run test:e2e -- --no-build --zones-only` (three sizes, recorded zones plus explicitly built catalog boundaries). This focused mode does not replace complete app/engine/device acceptance.
 
+## Game History Rules
+Prompt 21 (`src/game/history-sheet.tsx`, `EngineSession.history`, `docs/implementation/21-match-history-events.md`):
+- History is Forge's MEDIUM GameLog (`events`), never narration derived from snapshots or input. Append every entry in reception order before folding the next state; retain kind, text (including null), actor and card ID. Repeated texts are distinct; never cap the log at the notice limit.
+- Actors come only from structured Forge source controllers at bridge emission. A log entry without a source/controller stays unassigned; never parse names or translated prose. This is a source-controller attribution, not a new authority on the acting player of every effect.
+- History sources resolve against the current visible state/open questions. Missing/hidden sources stay unavailable; never infer card identities from text or preserve stale card objects. History inspection uses the existing card viewer read-only and restores focus to the log.
+- The header opens a compact portrait / richer landscape Sheet without reducing battlefield height. Full texts scroll inside, new entries never move the reader automatically; "Neueste Einträge" scrolls on request. The just-finished/aborted session keeps its log; persistence/replay belongs to 22.
+- Verify session/history tests, Bridge `HistoryTest`, recorded Chrome history at three sizes (`--history-only`) and full `npm run check` with the real engine after bridge changes.
+
 ## Decision Rules
 Forge's questions are answered in the table's decision region (prompt 15, `src/game/decision-panel.tsx`, `src/game/decision-model.ts`, `docs/implementation/15-forge-decisions.md`):
 - Every kind of question the protocol knows has its controls: Forge's two buttons (`buttons`), a selection (`select`: cards the table shows are tapped on the table, the others - graveyard, exile, library, hidden - come as a row in the region), `choose`, `confirm`, `options` (and Forge's revealed lists with one OK), `input`, `order`, `arrange`, `distribute`. A blocking question is answered alone; otherwise Forge's buttons and its selection side by side (`currentDecision`).
@@ -171,7 +179,7 @@ The optional sync of the player's collection through their ORYX account (project
 The legacy local prompt workflow was removed upstream on 2026-09-28. Executable tasks and their lifecycle now live in `dev0gig/dropzone/workflow/tasks/`; implementation evidence remains in `docs/implementation/` and Git history.
 
 - Numbered prompts run strictly sequentially; resume `IN_PROGRESS` work and never skip a `BLOCKED` predecessor. Mark a task complete only after its requirements and verification pass.
-- Reconcile the central status with code and `STATUS.md` before selecting work. Prompt 20 (zones and full card viewer) is complete; Prompt 21 is next.
+- Reconcile the central status with code and `STATUS.md` before selecting work. Prompt 21 (Forge game history) is complete; Prompt 22 is next.
 - Run only the task explicitly assigned by the user; this cross-repository cleanup does not start a numbered implementation prompt.
 - Update the central task and `STATUS.md` with verified evidence; do not recreate the removed local queue.
 

@@ -6,7 +6,7 @@
  * line and notices, as the engine session holds them. Unedited Forge output;
  * every state is checked against the protocol by the tests.
  */
-import type { GameMessage, GameStarted, GameState, InputRejected, Question } from "@openmana/engine-protocol"
+import type { GameEvent, GameMessage, GameStarted, GameState, InputRejected, Question } from "@openmana/engine-protocol"
 import recorded from "./fixtures/table-scenes.json"
 
 export type TableSceneName =
@@ -54,6 +54,7 @@ export interface TableScene {
   readonly state: GameState
   readonly questions: readonly Question[]
   readonly prompt: string | null
+  readonly history: readonly GameEvent[]
   readonly notices: readonly (GameMessage | InputRejected)[]
 }
 

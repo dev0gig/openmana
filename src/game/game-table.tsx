@@ -47,10 +47,10 @@
  * so below its picture ("Quelle"). The decision region shows the payment:
  * what is still to pay, floating mana to pay with (onUseMana).
  */
-import { Ban, CircleSlash, Crown, Hand as HandIcon, Heart, Hourglass, Library, Shield, Skull, Swords, type LucideIcon } from "lucide-react"
+import { Ban, CircleSlash, Crown, Hand as HandIcon, Heart, History, Hourglass, Library, Shield, Skull, Swords, type LucideIcon } from "lucide-react"
 import { cn } from "cn"
 import { createContext, use, useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
-import type { AnswerBody, Card, GameState, ManaColor, Question, VisibleCard } from "@openmana/engine-protocol"
+import type { AnswerBody, Card, GameEvent, GameState, ManaColor, Question, VisibleCard } from "@openmana/engine-protocol"
 import { Badge } from "@/components/ui/badge"
 import { GameBoard, GameBoardArea, type GameBoardDecision } from "@/components/ui/game-board"
 import { GameCard, GameCardBack, GameCardButton, GameCardCaption, GameCardGroup, GameCardRow, GameCardRowButton, GameCardRowItem } from "@/components/ui/game-card"
@@ -64,6 +64,7 @@ import { useCardPress } from "@/hooks/use-card-press"
 import { useElementHeight } from "@/hooks/use-element-height"
 import { ARMING_MS, CardSheet, type CardLook } from "./card-sheet"
 import { questionCard, type CardBrowse } from "./card-view-model"
+import { HistorySheet } from "./history-sheet"
 import { ZoneSheet, type ZoneLook } from "./zone-sheet"
 import { cardUse, currentStep, openSelection, playerUse, stepSource, type CardPlace, type CardUse, type TableMoment } from "./card-use"
 import { currentDecision } from "./decision-model"
@@ -93,9 +94,11 @@ import { TURN_PHASES, turnSteps } from "./turn-model"
 
 /** Below this height a battlefield shows its cards in one row instead of two (px, measured). */
 const TWO_ROWS_MIN_HEIGHT = 176
+const EMPTY_HISTORY: readonly GameEvent[] = []
 
 export interface GameTableProps {
   readonly state: GameState
+  readonly history?: readonly GameEvent[]
   /** The questions Forge asks right now. */
   readonly questions: readonly Question[]
   /** Forge's instruction line for the current decision (null: none). */
@@ -148,6 +151,7 @@ const CardControlsContext = createContext<CardControls | null>(null)
 
 export function GameTable({
   state,
+  history = EMPTY_HISTORY,
   questions,
   prompt,
   waiting,
@@ -166,8 +170,11 @@ export function GameTable({
   const profile = profileDrawn ? `${aiProfileLabel(aiProfile)} (zufällig)` : aiProfileLabel(aiProfile)
   const moment = useMemo<TableMoment>(() => ({ questions, waiting, conceding, attack: state.attack ?? null, combat: state.combat }), [questions, waiting, conceding, state.attack, state.combat])
   const [look, setLook] = useState<CardLook | null>(null)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [inspectingHistory, setInspectingHistory] = useState(false)
   const [zone, setZone] = useState<ZoneLook | null>(null)
   const openCard = useCallback((id: number, browse?: CardBrowse, question?: number) => {
+    setInspectingHistory(false)
     const pile = browse === undefined ? pileOf(view, id) : null
     setLook((previous) => ({ id, open: true, serial: (previous?.serial ?? 0) + 1,
       ...(question !== undefined ? { question } : {}),
@@ -250,6 +257,7 @@ export function GameTable({
           <GameZoneButton aria-label="Zonen ansehen" title="Zonen ansehen" aria-haspopup="dialog" disabled={state.players.length === 0} onClick={() => { const player = state.players.find((p) => p.me) ?? state.players[0]; if (player !== undefined) setZone({ kind: "zone", player: player.id, zone: "graveyard" }) }}>
             <Library aria-hidden />
           </GameZoneButton>
+          <GameZoneButton aria-label="Spielverlauf ansehen" title={`Spielverlauf: ${history.length} Einträge`} aria-haspopup="dialog" onClick={() => setHistoryOpen(true)}><History aria-hidden /></GameZoneButton>
           <div className="flex min-w-0 flex-1 flex-col">
             <h1 className="sr-only">Partie</h1>
             <p className="truncate text-sm font-medium" title={turnLine(view.turn, state.phase)}>
@@ -320,6 +328,7 @@ export function GameTable({
           <Hand cards={view.me?.hand ?? []} pictures={pictures} />
         </GameBoardArea>
         <ZoneSheet onSourceChange={setZone} source={zone} state={state} pictures={pictures} onClose={() => setZone(null)} onLook={openCard} />
+        <HistorySheet open={historyOpen} onOpenChange={setHistoryOpen} history={history} state={state} questions={questions} onLook={(id) => { lookAtQuestionCard(id); setInspectingHistory(true) }} />
         <CardSheet
           look={look}
           onBrowse={(id) => setLook((previous) => previous === null ? null : { ...previous, id })}
@@ -328,7 +337,7 @@ export function GameTable({
           view={view}
           moment={moment}
           pictures={pictures}
-          {...(onTapCard !== undefined ? { onTap: onTapCard } : {})}
+          {...(onTapCard !== undefined && !inspectingHistory ? { onTap: onTapCard } : {})}
         />
       </GameBoard>
     </CardControlsContext>

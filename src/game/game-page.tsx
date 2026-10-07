@@ -75,6 +75,10 @@ import {
 } from "./game-labels"
 import { questionCards } from "./decision-model"
 import { useGameStart, type StartState } from "./game-start"
+import { CardSheet } from "./card-sheet"
+import type { CardLook } from "./card-sheet"
+import { HistorySheet } from "./history-sheet"
+import { tableView } from "./table-model"
 import { GameTable } from "./game-table"
 import { useTableCards } from "./table-cards"
 import { visibleCards } from "./table-model"
@@ -585,6 +589,7 @@ function Playing({ match }: { match: Of<"playing"> }) {
       ) : (
         <GameTable
           state={match.state}
+          history={match.history}
           questions={match.questions}
           prompt={match.prompt}
           waiting={match.waiting}
@@ -645,6 +650,7 @@ function Over({ match, again, note }: { match: Of<"over">; again: ReactNode; not
       </CardContent>
       <CardFooter className="flex flex-wrap items-center gap-3">
         {again}
+        <FinishedHistory match={match} />
         <BackButton />
         {note !== null ? (
           <span id="game-again-note" className="text-sm text-muted-foreground">
@@ -684,6 +690,22 @@ function Aborted({ match, again, note }: { match: Of<"aborted">; again: ReactNod
       </Alert>
       {match.state ? <p className="text-sm text-muted-foreground">Zuletzt: {turnLine(match.state)}.</p> : null}
       <Matchup setup={setup} />
+      <FinishedHistory match={match} />
     </GameCard>
   )
+}
+
+/** The just-finished session keeps its Forge log; inspecting still sends nothing. */
+function FinishedHistory({ match }: { match: Of<"over"> | Of<"aborted"> }) {
+  const [open, setOpen] = useState(false)
+  const [look, setLook] = useState<CardLook | null>(null)
+  const cards = useMemo(() => match.state === null ? [] : [...visibleCards(match.state).values()], [match.state])
+  const { cardLanguage } = usePreferences()
+  const pictures = useTableCards(cards, cardLanguage)
+  const view = useMemo(() => match.state === null ? null : tableView(match.state, []), [match.state])
+  return <>
+    <Button variant="outline" aria-haspopup="dialog" onClick={() => setOpen(true)}>Spielverlauf ansehen</Button>
+    <HistorySheet open={open} onOpenChange={setOpen} history={match.history} state={match.state} questions={[]} onLook={(id) => setLook((previous) => ({ id, open: true, serial: (previous?.serial ?? 0) + 1 }))} />
+    {match.state !== null && view !== null ? <CardSheet look={look} onBrowse={(id) => setLook((previous) => previous === null ? null : { ...previous, id })} onOpenChange={(isOpen) => setLook((previous) => previous === null ? null : { ...previous, open: isOpen })} state={match.state} view={view} pictures={pictures} moment={{ questions: [], waiting: false, conceding: false, attack: null, combat: match.state.combat }} /> : null}
+  </>
 }

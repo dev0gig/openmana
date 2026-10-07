@@ -38,7 +38,7 @@ function withBattlefields(mine: VisibleCard[] | GameState["players"][number]["zo
 }
 
 describe("recorded scenes", () => {
-  it("are real protocol messages: every state, question and notice passes the protocol's checks", () => {
+  it("are real protocol messages: every state, question, notice and history passes the protocol's checks", () => {
     expect(TABLE_SCENES.map((scene) => scene.name)).toEqual([
       "opening",
       "main-phase",
@@ -76,6 +76,8 @@ describe("recorded scenes", () => {
     for (const scene of TABLE_SCENES) {
       expect(() => checkGameState(scene.state), scene.name).not.toThrow()
       expect(() => checkEngineMessage(scene.game), scene.name).not.toThrow()
+      expect(Array.isArray(scene.history), scene.name).toBe(true)
+      for (const event of scene.history) expect(() => checkEngineMessage({ type: "events", entries: [event] }), scene.name).not.toThrow()
       for (const question of scene.questions) expect(() => checkEngineMessage(question), scene.name).not.toThrow()
       for (const notice of scene.notices) expect(() => checkEngineMessage(notice), scene.name).not.toThrow()
     }

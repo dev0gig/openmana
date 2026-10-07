@@ -4,6 +4,7 @@
  *
  *   npm run test:e2e                 build, then test
  *   npm run test:e2e -- --no-build   test the existing dist/
+ *   npm run test:e2e -- --no-build --history-only recorded Forge history and current sources only
  *   npm run test:e2e -- --no-build --zones-only   visible zones, piles and DFC inspection only
  *   npm run test:e2e -- --no-build --combat-only  small, sequential table checks; no engine boot or full suite
  *
@@ -112,7 +113,7 @@ import os from "node:os"
 import type { AddressInfo } from "node:net"
 import path from "node:path"
 import { gunzipSync, gzipSync } from "node:zlib"
-import { chromium, type Browser, type BrowserContext, type Locator, type Page, type Route } from "playwright-core"
+import { chromium, type Browser, type BrowserContext, type ConsoleMessage, type Locator, type Page, type Route } from "playwright-core"
 // The real ORYX cloud and *.vercel.app resolve to nowhere in every browser this run starts: requests sent while a page
 // is left (keepalive) bypass page.route and would otherwise reach Supabase (2026-09-26, refused there with 401).
 const NO_REAL_CLOUD = "--host-resolver-rules=MAP fellumrfugohnnvtxxye.supabase.co 0.0.0.0, MAP *.vercel.app 0.0.0.0"
@@ -126,8 +127,9 @@ const root = path.resolve(import.meta.dirname, "../..")
 const dist = path.join(root, "dist")
 const combatOnly = process.argv.includes("--combat-only")
 const zonesOnly = process.argv.includes("--zones-only")
-const focusedTable = combatOnly || zonesOnly
-const reportDir = path.join(root, "reports", combatOnly ? "combat-e2e" : zonesOnly ? "zones-e2e" : "e2e")
+const historyOnly = process.argv.includes("--history-only")
+const focusedTable = combatOnly || zonesOnly || historyOnly
+const reportDir = path.join(root, "reports", combatOnly ? "combat-e2e" : zonesOnly ? "zones-e2e" : historyOnly ? "history-e2e" : "e2e")
 const require = createRequire(import.meta.url)
 
 interface Viewport {
@@ -2102,9 +2104,11 @@ async function lookInRealGame(page: Page, label: string, touch = false): Promise
   const title = (await view.getByRole("heading").first().textContent()) ?? ""
   const offer = (await view.getByRole("region", { name: "Was Forge anbietet" }).textContent()) ?? ""
   const buttons = await view.getByRole("button").allTextContents()
+  const footerButtons = await view.locator('[data-slot="sheet-footer"]').getByRole("button").allTextContents()
+  const faceButtons = await view.getByRole("group", { name: "Kartenseiten", exact: true }).getByRole("button").count()
   const picture = await view.locator('[data-slot="card-picture"]').getAttribute("data-state")
   check(name.startsWith(title) && title.length > 0, `${label}: the card view's title "${title}" for "${name}"`)
-  check(offer === "Mit dieser Karte bietet Forge gerade nichts an." && buttons.join("|") === "Schließen", `${label}: in the first decision Forge offers nothing for the card ("${offer}", buttons ${buttons.join("|")})`)
+  check(offer === "Mit dieser Karte bietet Forge gerade nichts an." && footerButtons.join("|") === "Schließen" && buttons.length === footerButtons.length + faceButtons, `${label}: in the first decision only close and inspection controls are offered ("${offer}", buttons ${buttons.join("|")})`)
   check(picture === "loaded" || picture === "missing", `${label}: the card view's picture ${picture}`)
   const focused = await page.evaluate(() => document.activeElement?.getAttribute("role"))
   check(focused === "dialog", `${label}: the card view does not hold the focus itself (${focused})`)
@@ -2248,7 +2252,17 @@ async function playRealGame(page: Page, label: string, touch = false): Promise<R
   }
   if (touch) for (const height of heights) check(height >= 44, `${label}: one of Forge's buttons ${height}px high`)
   check((await page.locator("[data-sonner-toast]").count()) === 0, `${label}: a notice appeared while playing (${(await page.locator("[data-sonner-toast]").allTextContents()).join(" | ")})`)
-  return { first, presses, land, permanentsBefore: landFrom, permanentsAfter: permanents, track, buttonHeights: [Math.min(...heights), Math.max(...heights)], ms: Date.now() - started }
+  // Prompt 21: real Forge events reach the session's history, with structured actor/source.
+  await page.getByRole("button", { name: "Spielverlauf ansehen", exact: true }).click()
+  const history = page.getByRole("dialog", { name: "Spielverlauf", exact: true })
+  await history.waitFor()
+  const liveEntries = await history.locator("[data-history-entry]").count()
+  check(liveEntries > 0, `${label}: the real engine supplied no history`)
+  check(await history.locator('[data-history-kind="LAND"][data-history-actor="me"]').count() > 0, `${label}: the player's real land event has no structured actor`)
+  const historyAxe = await accessibility(page, `${label}: live Forge history`)
+  await history.getByRole("button", { name: "Schließen", exact: true }).click()
+  await history.waitFor({ state: "hidden" })
+  return { liveHistory: { entries: liveEntries, axe: historyAxe }, first, presses, land, permanentsBefore: landFrom, permanentsAfter: permanents, track, buttonHeights: [Math.min(...heights), Math.max(...heights)], ms: Date.now() - started }
 }
 
 async function gameSession(browser: Browser, page: Page, pageLog: PageLog, base: string, id: string, decks: readonly SavedDeck[]): Promise<Record<string, unknown>> {
@@ -2326,6 +2340,14 @@ async function gameSession(browser: Browser, page: Page, pageLog: PageLog, base:
   check(resultText.includes("Du hast aufgegeben.") && resultText.includes("Du (E2E Brawl)40 Lebenspunkte"), `game: result "${resultText}"`)
   results["resultAxe"] = await accessibility(page, "game: result")
   await screenshots(page, "desktop-game-result")
+  await conceded.result.getByRole("button", { name: "Spielverlauf ansehen" }).click()
+  const finishedHistory = page.getByRole("dialog", { name: "Spielverlauf", exact: true })
+  await finishedHistory.waitFor()
+  const finishedEntries = await finishedHistory.locator("[data-history-entry]").count()
+  check(finishedEntries > 0 && await finishedHistory.locator('[data-history-kind="GAME_OUTCOME"]').count() > 0, "game: the finished match lost its Forge outcome history")
+  results["finishedHistory"] = { entries: finishedEntries, axe: await accessibility(page, "game: finished history") }
+  await finishedHistory.getByRole("button", { name: "Schließen", exact: true }).click()
+  await finishedHistory.waitFor({ state: "hidden" })
   const deadline = Date.now() + 180_000
   while (workers.created() < 2 && Date.now() < deadline) await page.waitForTimeout(100)
   check(workers.created() === 2, `game: the next engine was not prewarmed after the result (${workers.created()} workers)`)
@@ -2873,8 +2895,24 @@ function harnessMana(page: Page): Promise<string[]> {
 }
 
 async function openScene(page: Page, base: string, scene: string, query = ""): Promise<void> {
-  await page.goto(new URL(`/scripts/e2e/table-harness.html?scene=${scene}${query}`, base).href, { waitUntil: "domcontentloaded" })
-  await page.locator('[data-harness="table"]').waitFor({ timeout: 300_000 })
+  const errors: string[] = []
+  const onError = (error: Error) => { errors.push(error.message) }
+  const onConsole = (message: ConsoleMessage) => { if (message.type() === "error") errors.push(message.text()) }
+  page.on("pageerror", onError)
+  page.on("console", onConsole)
+  try {
+    await page.goto(new URL(`/scripts/e2e/table-harness.html?scene=${scene}${query}`, base).href, { waitUntil: "domcontentloaded" })
+    await page.locator('[data-harness="table"]').waitFor({ timeout: 300_000 })
+  } catch (error) {
+    const state = await Promise.race([
+      page.evaluate(() => ({ title: document.title, harness: [...document.querySelectorAll("[data-harness]")].map((node) => ({ kind: node.getAttribute("data-harness"), status: node.getAttribute("data-status"), text: node.textContent?.slice(0, 900) })), body: document.body.textContent?.slice(0, 900) })).catch(() => "Page unavailable"),
+      new Promise<string>((resolve) => setTimeout(() => resolve("Page did not respond to diagnostics"), 2000)),
+    ])
+    throw new Error(`Table scene failed: ${JSON.stringify({ url: page.url(), errors, state })}`, { cause: error })
+  } finally {
+    page.off("pageerror", onError)
+    page.off("console", onConsole)
+  }
 }
 
 /** A touch at the middle of an element, held (a long press) or moved sideways (a swipe), through Chrome's own touch input. */
@@ -2899,6 +2937,53 @@ async function touch(page: Page, element: Locator, gesture: { readonly holdMs?: 
 async function closeCardView(page: Page): Promise<void> {
   await page.keyboard.press("Escape")
   await page.waitForFunction(() => document.querySelector('[role="dialog"]') === null)
+}
+
+/** Real recorded Forge logs, checked byte-for-byte, with current source inspection. */
+async function historyInteractions(page: Page, base: string, viewport: Viewport): Promise<Record<string, unknown>> {
+  const label = `history (${viewport.name})`
+  await page.goto(new URL("/scripts/e2e/table-harness.html?scene=main-phase", base).href, { waitUntil: "domcontentloaded" })
+  await page.locator('[data-harness="table"]').waitFor({ timeout: 300_000 })
+  const trigger = page.getByRole("button", { name: "Spielverlauf ansehen" })
+  await trigger.click()
+  const sheet = page.getByRole("dialog", { name: "Spielverlauf", exact: true })
+  await sheet.waitFor()
+  const recording = JSON.parse(fs.readFileSync(path.join(root, "src/test/fixtures/table-scenes.json"), "utf8")) as { scenes: { name: string; history: { text: string | null; actor?: string; kind: string; card?: number }[] }[] }
+  const expected = recording.scenes.find((scene) => scene.name === "main-phase")!.history
+  check(expected.length > 20, `${label}: a real long log was not recorded`)
+  const rows = sheet.locator("[data-history-entry]")
+  const texts = await rows.locator('[data-slot="item-description"]').allTextContents()
+  check(JSON.stringify(texts) === JSON.stringify(expected.map((entry) => entry.text === null || entry.text.trim() === "" ? "Forge liefert für diesen Eintrag keinen Text." : entry.text)), `${label}: the full chronological Forge texts differ`)
+  const titleTexts = await rows.locator('[data-slot="item-title"]').allTextContents()
+  check(titleTexts.every((text, i) => text.startsWith(expected[i]!.actor === "me" ? "Du" : expected[i]!.actor === "opponent" ? "Forge-KI" : "Nicht zugeordnet")), `${label}: actors differ from structured log data`)
+  const axe = await accessibility(page, label)
+  const jump = sheet.getByRole("button", { name: "Neueste Einträge" })
+  await jump.click()
+  const close = sheet.getByRole("button", { name: "Schließen", exact: true })
+  const box = await close.boundingBox()
+  check(box !== null && box.y >= 0 && box.y + box.height <= viewport.height + 1, `${label}: close button outside the screen`)
+  const scroll = await sheet.locator("[data-history-scroll]").evaluate((node) => ({ top: node.scrollTop, height: node.clientHeight, total: node.scrollHeight }))
+  check(scroll.top > 0 && scroll.total > scroll.height, `${label}: the long log did not scroll to latest entries`)
+  await page.screenshot({ path: path.join(reportDir, "screens", `history-${viewport.name}.png`) })
+  const source = sheet.locator("[data-history-card]").first()
+  check(await source.count() === 1, `${label}: no resolvable source card`)
+  const sourceName = await source.textContent()
+  await source.click()
+  const card = page.getByRole("dialog").last()
+  await card.waitFor()
+  check(await card.getByRole("button", { name: /Spiele|Aktiviere/ }).count() === 0, `${label}: history inspection offers game input`)
+  const cardAxe = await accessibility(page, `${label}: source card`)
+  await card.getByRole("button", { name: "Schließen", exact: true }).click()
+  await sheet.waitFor()
+  check(await source.evaluate((node) => node === document.activeElement), `${label}: source focus not restored`)
+  const inputs = await page.evaluate(() => { const recorder = window as unknown as { __openmanaTaps?: unknown[]; __openmanaAnswers?: unknown[]; __openmanaPlayerTaps?: unknown[]; __openmanaMana?: unknown[] }; return { taps: recorder.__openmanaTaps ?? [], answers: recorder.__openmanaAnswers ?? [], players: recorder.__openmanaPlayerTaps ?? [], mana: recorder.__openmanaMana ?? [] } })
+  check(Object.values(inputs).every((values) => values.length === 0), `${label}: history inspection sent input ${JSON.stringify(inputs)}`)
+  await close.click()
+  await sheet.waitFor({ state: "hidden" })
+  check(await trigger.evaluate((node) => node === document.activeElement), `${label}: trigger focus not restored`)
+  const touchTarget = await layoutHeight(trigger)
+  if (viewport.touch) check(touchTarget >= 44, `${label}: history trigger is only ${touchTarget}px high`)
+  return { entries: expected.length, rawTextsEqual: true, sourceName, scroll, axe, cardAxe, inputs, touchTarget }
 }
 
 /**
@@ -3095,7 +3180,7 @@ async function decisionFits(page: Page, label: string, viewport: Viewport): Prom
  */
 async function decisionInteractions(page: Page, base: string, viewport: Viewport): Promise<Record<string, unknown>> {
   const label = `game decisions (${viewport.name})`
-  const decision = page.getByRole("region", { name: "Entscheidung" })
+  let decision = page.getByRole("region", { name: "Entscheidung" })
   const activate = async (locator: Locator) => {
     if (viewport.touch) await locator.tap()
     else await locator.click()
@@ -3112,140 +3197,157 @@ async function decisionInteractions(page: Page, base: string, viewport: Viewport
     check(answers.length === 1 && JSON.stringify(body) === JSON.stringify(expected), `${label}: ${name} answered ${JSON.stringify(answers)}, expected ${JSON.stringify(expected)}`)
     results[name] = body
   }
-  const scene = async (name: string, built?: string) => openScene(page, base, name, built ? `&built=${built}` : "")
+  const context = page.context()
+  let sceneLog: PageLog | null = null
+  const sceneErrors = () => { for (const error of sceneLog?.errors ?? []) check(false, `${label}: ${error}`) }
+  const scene = async (name: string, built?: string) => {
+    // Like the layout scenes, each decision uses a fresh page. Repeated Vite
+    // module loads in one renderer can fail with ERR_INSUFFICIENT_RESOURCES.
+    sceneErrors()
+    await page.close()
+    page = await context.newPage()
+    sceneLog = watch(page)
+    decision = page.getByRole("region", { name: "Entscheidung" })
+    await openScene(page, base, name, built ? `&built=${built}` : "")
+  }
   const button = (name: string) => decision.getByRole("button", { name, exact: true })
 
-  await scene("opening")
-  await armed(button("Behalten"))
-  await expectLast("mulligan", { kind: "buttons", button: 1 })
+  try {
+    await scene("opening")
+    await armed(button("Behalten"))
+    await expectLast("mulligan", { kind: "buttons", button: 1 })
 
-  await scene("play-draw")
-  await armed(button("Draw"))
-  await expectLast("play or draw", { kind: "buttons", button: 2 })
+    await scene("play-draw")
+    await armed(button("Draw"))
+    await expectLast("play or draw", { kind: "buttons", button: 2 })
 
-  await scene("target")
-  await armed(button("Abbrechen"))
-  await expectLast("target: cancel", { kind: "buttons", button: 2 })
+    await scene("target")
+    await armed(button("Abbrechen"))
+    await expectLast("target: cancel", { kind: "buttons", button: 2 })
 
-  await scene("choose-mode")
-  await activate(decision.getByRole("radio").nth(1))
-  await armed(button("Bestätigen"))
-  await expectLast("mode", { kind: "choose", choices: [2] })
+    await scene("choose-mode")
+    await activate(decision.getByRole("radio").nth(1))
+    await armed(button("Bestätigen"))
+    await expectLast("mode", { kind: "choose", choices: [2] })
 
-  await scene("scry")
-  await activate(button("Nach unten (Goblin-Brandstifter)"))
-  await armed(button("Bestätigen"))
-  await expectLast("scry", { kind: "arrange", top: [2], bottom: [1] })
+    await scene("scry")
+    await activate(button("Nach unten (Goblin-Brandstifter)"))
+    await armed(button("Bestätigen"))
+    await expectLast("scry", { kind: "arrange", top: [2], bottom: [1] })
 
-  await scene("ability")
-  await activate(decision.getByRole("radio").nth(1))
-  await armed(button("Bestätigen"))
-  await expectLast("ability", { kind: "options", option: 2 })
+    await scene("ability")
+    await activate(decision.getByRole("radio").nth(1))
+    await armed(button("Bestätigen"))
+    await expectLast("ability", { kind: "options", option: 2 })
 
-  await scene("damage")
-  await activate(button("Bei Canyon Minotaur einen mehr"))
-  await activate(button("Bei Raging Goblin einen mehr"))
-  await armed(button("Bestätigen"))
-  await expectLast("combat damage", { kind: "distribute", amounts: [1, 1] })
+    await scene("damage")
+    await activate(button("Bei Canyon Minotaur einen mehr"))
+    await activate(button("Bei Raging Goblin einen mehr"))
+    await armed(button("Bestätigen"))
+    await expectLast("combat damage", { kind: "distribute", amounts: [1, 1] })
 
-  await scene("main-phase", "confirm")
-  await armed(button("Nein"))
-  await expectLast("confirm (built)", { kind: "confirm", yes: false })
+    await scene("main-phase", "confirm")
+    await armed(button("Nein"))
+    await expectLast("confirm (built)", { kind: "confirm", yes: false })
 
-  await scene("main-phase", "input")
-  const field = decision.getByRole("textbox", { name: "Deine Zahl" })
-  await field.fill("3")
-  await page.waitForTimeout(ARMED_AFTER_MS)
-  await field.press("Enter")
-  await expectLast("input (built)", { kind: "input", value: "3" })
+    await scene("main-phase", "input")
+    const field = decision.getByRole("textbox", { name: "Deine Zahl" })
+    await field.fill("3")
+    await page.waitForTimeout(ARMED_AFTER_MS)
+    await field.press("Enter")
+    await expectLast("input (built)", { kind: "input", value: "3" })
 
-  await scene("main-phase", "order")
-  const third = (await decision.getByRole("region", { name: "Reihenfolge" }).getByRole("listitem").nth(2).locator('[data-slot="item-title"]').textContent())?.replace(/^3\. /, "").trim() ?? ""
-  await activate(button(`${third} nach oben`))
-  await armed(button("Bestätigen"))
-  await expectLast("order (built)", { kind: "order", order: [1, 3, 2] })
+    await scene("main-phase", "order")
+    const third = (await decision.getByRole("region", { name: "Reihenfolge" }).getByRole("listitem").nth(2).locator('[data-slot="item-title"]').textContent())?.replace(/^3\. /, "").trim() ?? ""
+    await activate(button(`${third} nach oben`))
+    await armed(button("Bestätigen"))
+    await expectLast("order (built)", { kind: "order", order: [1, 3, 2] })
 
-  await scene("main-phase", "reveal")
-  await armed(button("OK"))
-  await expectLast("reveal (built)", { kind: "options", option: 1 })
+    await scene("main-phase", "reveal")
+    await armed(button("OK"))
+    await expectLast("reveal (built)", { kind: "options", option: 1 })
 
-  await scene("main-phase", "choose-many")
-  await activate(decision.getByRole("checkbox", { name: "Blau" }))
-  await activate(decision.getByRole("checkbox", { name: "Rot" }))
-  await armed(button("Bestätigen"))
-  await expectLast("several choices (built)", { kind: "choose", choices: [2, 4] })
+    await scene("main-phase", "choose-many")
+    await activate(decision.getByRole("checkbox", { name: "Blau" }))
+    await activate(decision.getByRole("checkbox", { name: "Rot" }))
+    await armed(button("Bestätigen"))
+    await expectLast("several choices (built)", { kind: "choose", choices: [2, 4] })
 
-  await scene("main-phase", "select-outside")
-  await activate(decision.getByRole("toolbar", { name: "Wählbare Karten, die nicht auf dem Tisch liegen" }).getByRole("button").first())
-  await expectLast("a card outside the table (built)", { kind: "select", choices: [1] })
+    await scene("main-phase", "select-outside")
+    await activate(decision.getByRole("toolbar", { name: "Wählbare Karten, die nicht auf dem Tisch liegen" }).getByRole("button").first())
+    await expectLast("a card outside the table (built)", { kind: "select", choices: [1] })
 
-  // Targets and payment (prompt 17): the players Forge takes - in the region and on their seat -, floating mana, life for mana; each at once, a double tap once.
-  const playerTaps = async (name: string, element: Locator, times = 1) => {
-    const id = Number(await element.getAttribute("data-player-choice") ?? await element.getAttribute("data-player"))
-    for (let i = 0; i < times; i++) await activate(element)
+    // Targets and payment (prompt 17): the players Forge takes - in the region and on their seat -, floating mana, life for mana; each at once, a double tap once.
+    const playerTaps = async (name: string, element: Locator, times = 1) => {
+      const id = Number(await element.getAttribute("data-player-choice") ?? await element.getAttribute("data-player"))
+      for (let i = 0; i < times; i++) await activate(element)
+      await page.waitForFunction(() => ((window as unknown as { __openmanaPlayerTaps?: unknown[] }).__openmanaPlayerTaps ?? []).length > 0, null, { timeout: 5000 }).catch(() => undefined)
+      const taps = await harnessPlayerTaps(page)
+      check(taps.length === 1 && taps[0] === id, `${label}: ${name} tapped ${JSON.stringify(taps)}, expected [${id}]`)
+      check((await harnessAnswers(page)).length === 0 && (await harnessTaps(page)).length === 0, `${label}: ${name} sent an answer or a card tap`)
+      results[name] = taps
+    }
+    await scene("target-player")
+    await playerTaps("a player as target (region)", decision.locator("[data-player-choice]").first())
+    await scene("target-both")
+    await playerTaps("a player as target (seat, double tap once)", page.locator('button[data-slot="game-player"][data-player]').first(), 2)
+    await scene("payment-life")
+    await playerTaps("life for Phyrexian mana", decision.locator("[data-player-choice]").first())
+    await scene("payment-pool")
+    const pool = decision.locator("[data-mana]").first()
+    const color = await pool.getAttribute("data-mana")
+    await activate(pool)
+    await page.waitForFunction(() => ((window as unknown as { __openmanaMana?: unknown[] }).__openmanaMana ?? []).length > 0, null, { timeout: 5000 }).catch(() => undefined)
+    const mana = await harnessMana(page)
+    check(mana.length === 1 && mana[0] === color, `${label}: floating mana paid ${JSON.stringify(mana)}, expected [${color}]`)
+    results["floating mana"] = mana
+
+    // Declaring attackers (prompt 18): Forge's buttons by meaning; another defender in the region is Forge's player.tap at once.
+    await scene("attack")
+    await armed(button("Alle angreifen"))
+    await expectLast("attack: Alpha Strike", { kind: "buttons", button: 2 })
+    await scene("attack-declared")
+    await armed(button("Alle zurück"))
+    await expectLast("attack: Call Back", { kind: "buttons", button: 2 })
+    await scene("attack-planeswalker")
+    const other = decision.locator('button[data-defender^="player:"]').first()
+    const defender = Number((await other.getAttribute("data-defender"))?.split(":")[1])
+    await activate(other)
     await page.waitForFunction(() => ((window as unknown as { __openmanaPlayerTaps?: unknown[] }).__openmanaPlayerTaps ?? []).length > 0, null, { timeout: 5000 }).catch(() => undefined)
-    const taps = await harnessPlayerTaps(page)
-    check(taps.length === 1 && taps[0] === id, `${label}: ${name} tapped ${JSON.stringify(taps)}, expected [${id}]`)
-    check((await harnessAnswers(page)).length === 0 && (await harnessTaps(page)).length === 0, `${label}: ${name} sent an answer or a card tap`)
-    results[name] = taps
+    const defenderTaps = await harnessPlayerTaps(page)
+    check(defenderTaps.length === 1 && defenderTaps[0] === defender, `${label}: the other defender tapped ${JSON.stringify(defenderTaps)}, expected [${defender}]`)
+    check((await harnessAnswers(page)).length === 0, `${label}: switching the defender answered`)
+    results["attack: switch the defender"] = defenderTaps
+
+    // The player's priority (prompt 16): Forge's OK in words for what passing does, End Turn only after asking.
+    await scene("main-phase")
+    await armed(button("Weiter"))
+    await expectLast("priority: pass", { kind: "buttons", button: 1 })
+
+    await scene("respond")
+    await armed(button("Verrechnen lassen"))
+    await expectLast("priority: let the AI's spell resolve", { kind: "buttons", button: 1 })
+
+    await scene("main-phase")
+    await activate(button("Zug beenden …"))
+    const endTurn = page.getByRole("alertdialog", { name: "Zug beenden?" })
+    await endTurn.waitFor()
+    await animationsDone(endTurn)
+    results["endTurnAxe"] = await accessibility(page, `${label}: End Turn asks`)
+    await activate(endTurn.getByRole("button", { name: "Weiterspielen" }))
+    await endTurn.waitFor({ state: "detached" })
+    check((await harnessAnswers(page)).length === 0, `${label}: playing on after End Turn answered ${JSON.stringify(await harnessAnswers(page))}`)
+    await activate(button("Zug beenden …"))
+    await activate(page.getByRole("alertdialog", { name: "Zug beenden?" }).getByRole("button", { name: "Zug beenden", exact: true }))
+    await expectLast("priority: end the turn (asked first)", { kind: "buttons", button: 2 })
+    check((await harnessTaps(page)).length === 0, `${label}: answering tapped a card`)
+    results["blocks"] = await blockInteractions(page, base, viewport)
+    results["zones"] = await zoneInteractions(page, base, viewport)
+    return results
+  } finally {
+    sceneErrors()
+    await page.close()
   }
-  await scene("target-player")
-  await playerTaps("a player as target (region)", decision.locator("[data-player-choice]").first())
-  await scene("target-both")
-  await playerTaps("a player as target (seat, double tap once)", page.locator('button[data-slot="game-player"][data-player]').first(), 2)
-  await scene("payment-life")
-  await playerTaps("life for Phyrexian mana", decision.locator("[data-player-choice]").first())
-  await scene("payment-pool")
-  const pool = decision.locator("[data-mana]").first()
-  const color = await pool.getAttribute("data-mana")
-  await activate(pool)
-  await page.waitForFunction(() => ((window as unknown as { __openmanaMana?: unknown[] }).__openmanaMana ?? []).length > 0, null, { timeout: 5000 }).catch(() => undefined)
-  const mana = await harnessMana(page)
-  check(mana.length === 1 && mana[0] === color, `${label}: floating mana paid ${JSON.stringify(mana)}, expected [${color}]`)
-  results["floating mana"] = mana
-
-  // Declaring attackers (prompt 18): Forge's buttons by meaning; another defender in the region is Forge's player.tap at once.
-  await scene("attack")
-  await armed(button("Alle angreifen"))
-  await expectLast("attack: Alpha Strike", { kind: "buttons", button: 2 })
-  await scene("attack-declared")
-  await armed(button("Alle zurück"))
-  await expectLast("attack: Call Back", { kind: "buttons", button: 2 })
-  await scene("attack-planeswalker")
-  const other = decision.locator('button[data-defender^="player:"]').first()
-  const defender = Number((await other.getAttribute("data-defender"))?.split(":")[1])
-  await activate(other)
-  await page.waitForFunction(() => ((window as unknown as { __openmanaPlayerTaps?: unknown[] }).__openmanaPlayerTaps ?? []).length > 0, null, { timeout: 5000 }).catch(() => undefined)
-  const defenderTaps = await harnessPlayerTaps(page)
-  check(defenderTaps.length === 1 && defenderTaps[0] === defender, `${label}: the other defender tapped ${JSON.stringify(defenderTaps)}, expected [${defender}]`)
-  check((await harnessAnswers(page)).length === 0, `${label}: switching the defender answered`)
-  results["attack: switch the defender"] = defenderTaps
-
-  // The player's priority (prompt 16): Forge's OK in words for what passing does, End Turn only after asking.
-  await scene("main-phase")
-  await armed(button("Weiter"))
-  await expectLast("priority: pass", { kind: "buttons", button: 1 })
-
-  await scene("respond")
-  await armed(button("Verrechnen lassen"))
-  await expectLast("priority: let the AI's spell resolve", { kind: "buttons", button: 1 })
-
-  await scene("main-phase")
-  await activate(button("Zug beenden …"))
-  const endTurn = page.getByRole("alertdialog", { name: "Zug beenden?" })
-  await endTurn.waitFor()
-  await animationsDone(endTurn)
-  results["endTurnAxe"] = await accessibility(page, `${label}: End Turn asks`)
-  await activate(endTurn.getByRole("button", { name: "Weiterspielen" }))
-  await endTurn.waitFor({ state: "detached" })
-  check((await harnessAnswers(page)).length === 0, `${label}: playing on after End Turn answered ${JSON.stringify(await harnessAnswers(page))}`)
-  await activate(button("Zug beenden …"))
-  await activate(page.getByRole("alertdialog", { name: "Zug beenden?" }).getByRole("button", { name: "Zug beenden", exact: true }))
-  await expectLast("priority: end the turn (asked first)", { kind: "buttons", button: 2 })
-  check((await harnessTaps(page)).length === 0, `${label}: answering tapped a card`)
-  results["blocks"] = await blockInteractions(page, base, viewport)
-  results["zones"] = await zoneInteractions(page, base, viewport)
-  return results
 }
 
 /**
@@ -3273,8 +3375,8 @@ async function tableHarness(browser: Browser): Promise<Record<string, unknown>> 
       const context = await newContext(browser, viewport)
       const scenes: Record<string, unknown> = {}
       try {
-        const selectedScenes = zonesOnly ? TABLE_SCENES.filter((scene) => ["opening", "main-phase", "command-effects", "commander-late", "stack", "block-multiple"].includes(scene)) : combatOnly ? TABLE_SCENES.filter((scene) => ["defend", "block-start", "block-multiple", "blockers", "damage", "attack-declared"].includes(scene)) : TABLE_SCENES
-        const selectedBuilt = zonesOnly ? [] : combatOnly ? BUILT_SCENES.filter((built) => built === "block-order") : BUILT_SCENES
+        const selectedScenes = historyOnly ? TABLE_SCENES.filter((scene) => ["opening", "main-phase", "stack", "commander-late"].includes(scene)) : zonesOnly ? TABLE_SCENES.filter((scene) => ["opening", "main-phase", "command-effects", "commander-late", "stack", "block-multiple"].includes(scene)) : combatOnly ? TABLE_SCENES.filter((scene) => ["defend", "block-start", "block-multiple", "blockers", "damage", "attack-declared"].includes(scene)) : TABLE_SCENES
+        const selectedBuilt = historyOnly ? [] : zonesOnly ? [] : combatOnly ? BUILT_SCENES.filter((built) => built === "block-order") : BUILT_SCENES
         const runs = [...selectedScenes.map((scene) => ({ scene: scene as string, built: null as string | null })), ...selectedBuilt.map((built) => ({ scene: built === "block-order" ? "block-multiple" : "main-phase", built: built as string | null }))]
         for (const { scene, built } of runs) {
           const name = built === null ? scene : `built:${built}`
@@ -3328,7 +3430,8 @@ async function tableHarness(browser: Browser): Promise<Record<string, unknown>> 
         }
         const page = await context.newPage()
         const pageLog = watch(page)
-        scenes["interaction"] = zonesOnly ? await zoneInteractions(page, base, viewport) : combatOnly ? await blockInteractions(page, base, viewport) : await tableInteractions(page, base, viewport)
+        scenes["interaction"] = historyOnly ? await historyInteractions(page, base, viewport) : zonesOnly ? await zoneInteractions(page, base, viewport) : combatOnly ? await blockInteractions(page, base, viewport) : await tableInteractions(page, base, viewport)
+        if (!focusedTable) scenes["history"] = await historyInteractions(page, base, viewport)
         await page.close()
         // Answering every kind (prompt 15) where it is tightest and on the desktop: a small phone, a phone turned, a mouse.
         if (!focusedTable && DECISION_VIEWPORTS.includes(viewport.name)) {
@@ -3776,7 +3879,7 @@ async function main(): Promise<void> {
   log(`Chrome ${browser.version()}, app at ${base}`)
   try {
     if (focusedTable) {
-      report["scope"] = zonesOnly ? "Recorded Forge zones and explicitly built DFC presentation, three viewports, one page at a time; no engine boot or complete application regression suite." : "Recorded Forge combat scenes and one built order request, three viewports, one page at a time; no engine boot or complete application regression suite."
+      report["scope"] = historyOnly ? "Recorded real Forge log entries and current card inspection, three viewports; no engine boot or full application suite." : zonesOnly ? "Recorded Forge zones and explicitly built DFC presentation, three viewports, one page at a time; no engine boot or complete application regression suite." : "Recorded Forge combat scenes and one built order request, three viewports, one page at a time; no engine boot or complete application regression suite."
       report["gameTable"] = await tableHarness(browser)
     } else {
       await httpChecks(base, id)
@@ -3798,7 +3901,7 @@ async function main(): Promise<void> {
   }
   report["failures"] = failures
   fs.writeFileSync(path.join(reportDir, "report.json"), `${JSON.stringify(report, null, 2)}\n`)
-  log(`\n${combatOnly ? "Combat " : zonesOnly ? "Zones " : ""}${failures.length === 0 ? "E2E OK" : `E2E FAILED (${failures.length})`} – report: ${path.relative(root, path.join(reportDir, "report.json"))}`)
+  log(`\n${combatOnly ? "Combat " : zonesOnly ? "Zones " : historyOnly ? "History " : ""}${failures.length === 0 ? "E2E OK" : `E2E FAILED (${failures.length})`} – report: ${path.relative(root, path.join(reportDir, "report.json"))}`)
   process.exitCode = failures.length === 0 ? 0 : 1
 }
 

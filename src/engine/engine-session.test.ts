@@ -680,3 +680,42 @@ describe("EngineSession: answering Forge (prompt 15)", () => {
     expect(engine.worker().inputs()).toEqual([{ type: "concede", seq: 1 }])
   })
 })
+
+describe("EngineSession: Forge history", () => {
+  it("preserves every entry, actor and source before the state they explain (including repeated/null/unknown texts)", async () => {
+    const engine = await playing()
+    const entries = [{ kind: "LAND", text: "Forge-KI ist nur Text", actor: "me" as const, card: 1 }, { kind: "LIFE", text: null }, { kind: "NEW_FORGE_KIND", text: "" }]
+    const seen: { type: string; count: number; seq: number | undefined }[] = []
+    const unsubscribe = engine.session.subscribe(() => { const m = match(engine, "playing"); seen.push({ type: m.history.length > 0 ? "history" : "empty", count: m.history.length, seq: m.state?.seq }) })
+    engine.worker().send({ type: "events", entries })
+    engine.worker().send(gameState(4))
+    expect(seen).toEqual([{ type: "history", count: 3, seq: 3 }, { type: "history", count: 3, seq: 4 }])
+    engine.worker().send({ type: "events", entries: [entries[0]!] })
+    expect(match(engine, "playing").history).toEqual([...entries, entries[0]])
+    unsubscribe()
+    engine.session.stop()
+  })
+
+  it("keeps the complete log through game end and worker release, and starts the next game empty", async () => {
+    const engine = await playing()
+    const entries = Array.from({ length: 100 }, (_, i) => ({ kind: "TURN", text: String(i) }))
+    engine.worker().send({ type: "events", entries })
+    engine.session.concede()
+    engine.worker().concedeAccepted()
+    expect(match(engine, "over").history).toEqual([...entries, { kind: "GAME_OUTCOME", text: "Spieler hat aufgegeben", actor: "me" }])
+    expect(engine.session.getSnapshot().engine.status).toBe("idle")
+    engine.session.startMatch(testSetup())
+    await settle(); engine.worker().boot(); engine.worker().startGame()
+    expect(match(engine, "playing").history).toEqual([])
+    engine.session.stop()
+  })
+
+  it("retains received history when the client aborts", async () => {
+    const engine = await playing()
+    const entries = [{ kind: "DAMAGE", text: "Forges Text", actor: "opponent" as const, card: 3 }]
+    engine.worker().send({ type: "events", entries })
+    engine.worker().send({ type: "engine.abort", origin: "engine", reason: "engine-failure", stage: "match", message: "failed" })
+    expect(match(engine, "aborted").history).toEqual(entries)
+    engine.session.stop()
+  })
+})
