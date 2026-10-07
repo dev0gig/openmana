@@ -110,7 +110,7 @@ describe("looking is safe", () => {
     const view = cardView()
     expect(within(view).getByText("Spielfeld der Forge-KI")).toBeInTheDocument()
     expect(within(view).getByText("Mit dieser Karte bietet Forge gerade nichts an.")).toBeInTheDocument()
-    expect(within(view).getAllByRole("button").map((button) => button.textContent)).toEqual(["Schließen"])
+    expect(within(view).getAllByRole("button").map((button) => button.textContent)).toEqual(["Vorige Karte", "Nächste Karte", "Schließen"])
     expect(onTapCard).not.toHaveBeenCalled()
   })
 })

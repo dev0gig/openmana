@@ -22,8 +22,8 @@
  * change while it is open, and a card Forge no longer shows says so. A card
  * of one of Forge's questions that lies in no zone the table shows (the top
  * of the library while scrying, a card to choose from a pile - prompt 15)
- * is shown as the question shows it (`snapshot`), as long as the question
- * is open; it is answered in the decision region, never tapped here.
+ * is resolved from its source question ID in the latest questions while
+ * that question is open; it is answered in the decision region, never tapped here.
  * A card on the stack (prompt 16: a spell's own card, or the source of an
  * ability there) shows what it is there, whose, how far from the top, and
  * Forge's description with its targets; a card on the stack is only looked
@@ -31,7 +31,7 @@
  * Forge's texts (name, type line, rules text, the tap's words) are shown as
  * Forge sends them; the picture comes from the card catalog, never covered.
  */
-import { useEffect, useId, useRef, type ReactNode } from "react"
+import { useEffect, useId, useRef, useState, type ReactNode } from "react"
 import type { GameState, VisibleCard } from "@openmana/engine-protocol"
 import { FactList, type Fact } from "@/components/fact-list"
 import { Badge } from "@/components/ui/badge"
@@ -40,10 +40,11 @@ import { CardPicture } from "@/components/ui/card-picture"
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useLandscape } from "@/hooks/use-landscape"
+import { browseIds, questionCard, type CardBrowse } from "./card-view-model"
 import { SICK_LABEL, SICK_NOTE } from "./attack-labels"
 import { cardUse, type CardUse, type TableMoment } from "./card-use"
 import { STACK_KIND_LABELS } from "./priority-labels"
-import type { TableCardLookup } from "./table-cards"
+import type { TableCardLookup, TableCardPicture, TableFace, TablePictureData } from "./table-cards"
 import { captionFacts, cardName, placeLabel, spokenFacts, stackOwner, stackTargets } from "./table-labels"
 import { locateCard, pileOf, stackEntriesOf, visibleCards, type StackEntryView, type TableView } from "./table-model"
 
@@ -55,13 +56,15 @@ export interface CardLook {
   readonly id: number
   readonly open: boolean
   readonly serial: number
-  /** The card as a question of Forge shows it, for a card in no zone of the state (prompt 15). */
-  readonly snapshot?: VisibleCard
+  /** Only the ID of the open question, never its former card object. */
+  readonly question?: number
+  readonly browse?: CardBrowse
 }
 
 export interface CardSheetProps {
   readonly look: CardLook | null
   readonly onOpenChange: (open: boolean) => void
+  readonly onBrowse: (id: number) => void
   readonly state: GameState
   readonly view: TableView
   readonly moment: TableMoment
@@ -70,7 +73,7 @@ export interface CardSheetProps {
   readonly onTap?: (id: number) => void
 }
 
-export function CardSheet({ look, onOpenChange, state, view, moment, pictures, onTap }: CardSheetProps) {
+export function CardSheet({ look, onOpenChange, onBrowse, state, view, moment, pictures, onTap }: CardSheetProps) {
   const landscape = useLandscape()
   const content = useRef<HTMLDivElement>(null)
   const openedAt = useRef(0)
@@ -99,14 +102,14 @@ export function CardSheet({ look, onOpenChange, state, view, moment, pictures, o
           // Back to what opened it; else to the card - also where it moved (hand → battlefield); gone: to Forge's decision.
           event.preventDefault()
           const from = opener.current
-          const back = from?.isConnected && id !== null && (from.dataset["card"] === String(id) || from.dataset["questionCard"] === String(id)) ? from : null
+          const back = from?.isConnected && (from.closest('[data-slot="sheet-content"]') !== null || (id !== null && (from.dataset["card"] === String(id) || from.dataset["questionCard"] === String(id)))) ? from : null
           opener.current = null
           const card = id === null ? null : document.querySelector<HTMLElement>(`button[data-card="${id}"]`)
           ;(back ?? card ?? document.querySelector<HTMLElement>('[data-area="decision"]'))?.focus()
         }}
       >
         {look !== null ? (
-          <CardView key={look.serial} id={look.id} snapshot={look.snapshot} state={state} view={view} moment={moment} pictures={pictures} onTap={onTap} onClose={() => onOpenChange(false)} />
+          <><BrowseCards id={look.id} ids={browseIds(state, look.browse)} onBrowse={onBrowse} /><CardView key={`${look.serial}:${look.id}:${locateCard(state, look.id)?.card.key ?? ""}`} id={look.id} question={look.question} state={state} view={view} moment={moment} pictures={pictures} onTap={onTap} onClose={() => onOpenChange(false)} /></>
         ) : null}
       </SheetContent>
     </Sheet>
@@ -115,7 +118,7 @@ export function CardSheet({ look, onOpenChange, state, view, moment, pictures, o
 
 function CardView({
   id,
-  snapshot,
+  question,
   state,
   view,
   moment,
@@ -124,7 +127,7 @@ function CardView({
   onClose,
 }: {
   id: number
-  snapshot: VisibleCard | undefined
+  question: number | undefined
   state: GameState
   view: TableView
   moment: TableMoment
@@ -133,7 +136,8 @@ function CardView({
   onClose: () => void
 }) {
   const located = locateCard(state, id)
-  if (located === null && snapshot !== undefined && questionShows(moment, id)) return <QuestionCardView card={snapshot} state={state} pictures={pictures} />
+  const asked = question === undefined ? null : questionCard(moment.questions, id, question)
+  if (located === null && asked !== null) return <QuestionCardView card={asked.card} state={state} pictures={pictures} />
   if (located === null) {
     return (
       <>
@@ -160,34 +164,40 @@ function CardView({
         </div>
         <SheetDescription>{placeLabel(zone, seat)}</SheetDescription>
       </SheetHeader>
-      <div className="flex flex-row gap-4 px-6 landscape:flex-col">
-        <div className="w-32 shrink-0 sm:w-44 landscape:self-center">
-          <LargePicture card={card} pictures={pictures} />
-        </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-3">
-          {card.text ? <p className="text-sm whitespace-pre-line">{card.text}</p> : null}
-          <FactList facts={facts(card, state, pile, pictures)} />
-          {onStack.length > 0 ? <StackFacts entries={onStack} view={view} /> : null}
-          {zone === "stack" && use.tap === null ? null : <ForgeOffer card={card} use={use} live={onTap !== undefined} />}
-        </div>
-      </div>
+      <CardPresentation card={card} pictures={pictures}>
+        <FactList facts={facts(card, state, pile, pictures)} />
+        {onStack.length > 0 ? <StackFacts entries={onStack} view={view} /> : null}
+        {zone === "stack" && use.tap === null ? null : <ForgeOffer card={card} use={use} live={onTap !== undefined} />}
+      </CardPresentation>
       {/* The buttons stay in view while the card scrolls above them (a phone turned sideways; Bible §6: the action stays easy to reach). */}
       <SheetFooter className="sticky bottom-0 bg-popover landscape:flex-row landscape:flex-wrap">
-        {onTap !== undefined && use.tap !== null ? <TapButton use={use} onTap={() => onTap(pile?.[0] ?? id)} onClose={onClose} /> : null}
+        {onTap !== undefined && use.tap !== null ? <TapButton identity={id} use={use} onTap={() => onTap(id)} onClose={onClose} /> : null}
         <CloseButton />
       </SheetFooter>
     </>
   )
 }
 
-/** Whether an open question still shows this card (its asking card or one of its items). */
-function questionShows(moment: TableMoment, id: number): boolean {
-  return moment.questions.some(
-    (question) =>
-      ("card" in question && question.card === id) ||
-      ("items" in question && question.items !== undefined && question.items.some((item) => "card" in item && item.card === id)) ||
-      (question.kind === "options" && (question.revealed ?? []).some((item) => "card" in item && item.card === id)),
-  )
+/** Navigation is inspection only. The list is resolved from the current snapshot. */
+function BrowseCards({ id, ids, onBrowse }: { id: number; ids: readonly number[]; onBrowse: (id: number) => void }) {
+  const index = ids.indexOf(id)
+  if (ids.length < 2 && index >= 0) return null
+  if (ids.length === 0) return null
+  return <div role="group" aria-label="Karten durchsehen" className="flex items-center gap-2 px-6 pt-4">
+    <Button variant="outline" size="default" disabled={index <= 0} onClick={() => { const next = ids[index - 1]; if (next !== undefined) onBrowse(next) }}>Vorige Karte</Button>
+    <span className="text-sm tabular-nums" aria-live="polite">{index + 1} / {ids.length}</span>
+    <Button variant="outline" size="default" disabled={index >= ids.length - 1} onClick={() => { const next = ids[index + 1]; if (next !== undefined) onBrowse(next) }}>Nächste Karte</Button>
+  </div>
+}
+
+function CatalogFace({ face }: { face: TableFace }) {
+  return <section aria-label="Katalogangaben – nur ansehen" className="flex flex-col gap-1 text-sm">
+    <p className="font-medium">Katalogangaben – nur ansehen</p>
+    <p lang={face.name.lang}>{face.name.text}</p>
+    {face.typeLine !== null ? <p lang={face.typeLine.lang}>{face.typeLine.text}</p> : null}
+    {face.text !== null ? <p lang={face.text.lang} className="whitespace-pre-line">{face.text.text}</p> : null}
+    <p className="text-muted-foreground">Katalogtext: {face.text?.lang === "de" ? "deutsch" : face.textFallback ? "englisch (kein deutscher Text verfügbar)" : "englisch"}. Regeln und Aktionen bestimmt Forge.</p>
+  </section>
 }
 
 /** A card of Forge's question that lies in no zone the table shows: as the question shows it, answered in the decision region. */
@@ -198,20 +208,47 @@ function QuestionCardView({ card, state, pictures }: { card: VisibleCard; state:
         <SheetTitle>{cardName(card)}</SheetTitle>
         <SheetDescription>Aus Forges Frage – diese Karte liegt nicht sichtbar auf dem Tisch.</SheetDescription>
       </SheetHeader>
-      <div className="flex flex-row gap-4 px-6 landscape:flex-col">
-        <div className="w-32 shrink-0 sm:w-44 landscape:self-center">
-          <LargePicture card={card} pictures={pictures} />
-        </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-3">
-          {card.text ? <p className="text-sm whitespace-pre-line">{card.text}</p> : null}
-          <FactList facts={facts(card, state, null, pictures)} />
-          <p className="text-sm text-muted-foreground">Wählen kannst du sie im Entscheidungsbereich, dort, wo Forge fragt.</p>
-        </div>
-      </div>
+      <CardPresentation card={card} pictures={pictures}>
+        <FactList facts={facts(card, state, null, pictures)} />
+        <p className="text-sm text-muted-foreground">Wählen kannst du sie im Entscheidungsbereich, dort, wo Forge fragt.</p>
+      </CardPresentation>
       <SheetFooter className="sticky bottom-0 bg-popover landscape:flex-row landscape:flex-wrap">
         <CloseButton />
       </SheetFooter>
     </>
+  )
+}
+
+/** The same complete presentation for zone cards and cards only exposed by an open question. */
+function CardPresentation({ card, pictures, children }: { card: VisibleCard; pictures: TableCardLookup; children: ReactNode }) {
+  const [inspection, setInspection] = useState<{ key: string | null; index: number } | null>(null)
+  const picture = pictures(card)
+  const faces = picture === "loading" || picture === "none" ? [] : picture.faces ?? []
+  const activeFace = picture === "loading" || picture === "none" ? 0 : picture.face ?? 0
+  const index = inspection !== null && inspection.key === (card.key ?? null) ? inspection.index : activeFace
+  const chosen = faces.find((f) => f.index === index) ?? null
+  const alternate = chosen !== null && chosen.index !== activeFace
+  return (
+    <div className="flex flex-row gap-4 px-6 landscape:flex-col">
+      <div className="w-32 shrink-0 sm:w-44 landscape:self-center">
+        <LargePicture card={card} picture={chosen === null ? picture : chosen.picture} name={chosen?.name.text} fallbackFace={chosen} />
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col gap-3">
+        {faces.length > 1 ? (
+          <div role="group" aria-label="Kartenseiten" className="flex flex-wrap gap-2">
+            {faces.map((f) => (
+              <Button key={f.index} variant={f.index === index ? "default" : "outline"} aria-pressed={f.index === index} onClick={() => setInspection({ key: card.key ?? null, index: f.index })}>
+                {f.name.text}
+              </Button>
+            ))}
+          </div>
+        ) : null}
+        {chosen !== null && (alternate || !card.text) ? <CatalogFace face={chosen} /> : null}
+        {card.text ? <p className="text-sm whitespace-pre-line">{card.text}</p> : <p className="text-sm text-muted-foreground">Forge sendet hier keinen Regeltext.</p>}
+        {alternate ? <p className="text-sm text-muted-foreground">Forges aktueller Zustand und die Aktion gehören weiter zu „{cardName(card)}“. Eine andere Kartenseite anzusehen ändert die Partie nicht.</p> : null}
+        {children}
+      </div>
+    </div>
   )
 }
 
@@ -226,9 +263,11 @@ function CloseButton() {
 }
 
 /** The card's picture, large: the catalog's in the player's card language, a placeholder while it is looked up, Forge's words without one. */
-function LargePicture({ card, pictures }: { card: VisibleCard; pictures: TableCardLookup }) {
-  const picture = pictures(card)
-  const name = cardName(card)
+function LargePicture({ card, picture, name: shownName, fallbackFace }: { card: VisibleCard; picture: TableCardPicture | TablePictureData | null; name?: string | undefined; fallbackFace?: TableFace | null }) {
+  const name = shownName ?? cardName(card)
+  const cost = fallbackFace ? fallbackFace.manaCost : card.cost
+  const type = fallbackFace ? fallbackFace.typeLine?.text : card.typeLine
+  const text = fallbackFace ? fallbackFace.text?.text : card.text
   if (picture === "loading") {
     return (
       <Skeleton className="aspect-63/88 w-full rounded-xl">
@@ -238,17 +277,17 @@ function LargePicture({ card, pictures }: { card: VisibleCard; pictures: TableCa
   }
   return (
     <CardPicture
-      src={picture === "none" ? null : picture.large}
-      {...(picture === "none" ? {} : { srcSet: picture.largeSrcSet, sizes: "(min-width: 640px) 11rem, 8rem" })}
+      src={picture === "none" || picture === null ? null : picture.large}
+      {...(picture === "none" || picture === null ? {} : { srcSet: picture.largeSrcSet, sizes: "(min-width: 640px) 11rem, 8rem" })}
       alt={`Kartenbild: ${name}`}
       draggable={false}
       fallback={
         <>
           <span className="font-heading text-sm font-semibold">{name}</span>
-          {card.cost ? <span className="text-xs text-muted-foreground tabular-nums">{card.cost}</span> : null}
-          {card.typeLine ? <span className="text-xs">{card.typeLine}</span> : null}
-          {card.text ? <span className="line-clamp-6 text-xs whitespace-pre-line text-muted-foreground">{card.text}</span> : null}
-          <span className="mt-auto text-xs font-medium text-muted-foreground">{picture === "none" ? "Kein Kartenbild – Forges Angaben." : "Das Bild konnte nicht geladen werden."}</span>
+          {cost ? <span className="text-xs text-muted-foreground tabular-nums">{cost}</span> : null}
+          {type ? <span className="text-xs">{type}</span> : null}
+          {text ? <span className="line-clamp-6 text-xs whitespace-pre-line text-muted-foreground">{text}</span> : null}
+          <span className="mt-auto text-xs font-medium text-muted-foreground">{picture === "none" || picture === null ? "Kein Kartenbild – Forges Angaben." : "Das Bild konnte nicht geladen werden."}</span>
         </>
       }
     />
@@ -340,13 +379,13 @@ function ForgeOffer({ card, use, live }: { card: VisibleCard; use: CardUse; live
 }
 
 /** The view's main button: Forge's tap, armed a moment after it appears (see above). */
-function TapButton({ use, onTap, onClose }: { use: CardUse; onTap: () => void; onClose: () => void }) {
+function TapButton({ identity, use, onTap, onClose }: { identity: number; use: CardUse; onTap: () => void; onClose: () => void }) {
   const reason = useId()
   const armedAt = useRef(0)
   const label = use.tap?.label ?? ""
   useEffect(() => {
     armedAt.current = performance.now()
-  }, [label])
+  }, [identity, label])
   if (use.tap === null) return null
   return (
     <>

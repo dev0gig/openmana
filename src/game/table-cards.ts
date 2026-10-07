@@ -19,13 +19,13 @@
 import { useEffect, useMemo, useState } from "react"
 import type { VisibleCard } from "@openmana/engine-protocol"
 import { useCardCatalog } from "@/cards/card-catalog-context"
-import { cardDisplay, type TextLanguage } from "@/cards/card-display"
+import { cardDisplay, type DisplayFace, type TextLanguage } from "@/cards/card-display"
 import { resolveEngineKey, type CardMatch, type KeyHints } from "@/cards/card-lookup"
 import { IMAGE_SIZES } from "@/cards/images"
 import type { LocalDatabase } from "@/storage/database"
 import { useStorage } from "@/storage/storage-context"
 
-export interface TablePicture {
+export interface TablePictureData {
   readonly src: string
   /** Scryfall's small and large version: the browser takes what the card's size on screen needs. */
   readonly srcSet: string
@@ -34,6 +34,17 @@ export interface TablePicture {
   readonly largeSrcSet: string
   /** The picture's language (de, en or another): an English picture in a German game is marked. */
   readonly lang: string
+}
+
+export interface TableFace extends DisplayFace {
+  readonly picture: TablePictureData | null
+  readonly textFallback?: boolean
+}
+
+export interface TablePicture extends TablePictureData {
+  /** Static catalog presentation, separate from Forge's active face and game facts. */
+  readonly faces?: readonly TableFace[]
+  readonly face?: number
 }
 
 /**
@@ -54,6 +65,7 @@ type Resolution = { readonly status: "found"; readonly match: CardMatch } | { re
 
 /** The lookup key of a card: its engine key, and for tokens what tells tokens of one name apart. null: nothing to look up. */
 export function pictureKey(card: VisibleCard): string | null {
+  if (card.faceDown) return null
   if (card.key === null || card.key === undefined || card.key === "") return null
   return card.token === true ? `token|${card.key}|${card.power ?? ""}|${card.toughness ?? ""}|${card.colors ?? ""}` : `card|${card.key}`
 }
@@ -89,12 +101,20 @@ export function pictureOf(resolution: Resolution, language: TextLanguage): Table
   const display = cardDisplay(resolution.match.card, { match: resolution.match, language })
   const picture = display.picture
   if (picture === null) return "none"
+  const image = (p: NonNullable<typeof picture>): TablePictureData => ({
+    src: p.urls.grid,
+    srcSet: `${p.urls.thumb} ${IMAGE_SIZES.thumb.width}w, ${p.urls.grid} ${IMAGE_SIZES.grid.width}w`,
+    large: p.urls.display,
+    largeSrcSet: `${p.urls.grid} ${IMAGE_SIZES.grid.width}w, ${p.urls.display} ${IMAGE_SIZES.display.width}w`,
+    lang: p.lang,
+  })
   return {
-    src: picture.urls.grid,
-    srcSet: `${picture.urls.thumb} ${IMAGE_SIZES.thumb.width}w, ${picture.urls.grid} ${IMAGE_SIZES.grid.width}w`,
-    large: picture.urls.display,
-    largeSrcSet: `${picture.urls.grid} ${IMAGE_SIZES.grid.width}w, ${picture.urls.display} ${IMAGE_SIZES.display.width}w`,
-    lang: picture.lang,
+    ...image(picture),
+    face: display.face,
+    faces: display.faces.map((face) => {
+      const p = cardDisplay(resolution.match.card, { match: resolution.match, language, face: face.index }).picture
+      return { ...face, textFallback: language === "de" && face.text?.lang === "en", picture: p === null ? null : image(p) }
+    }),
   }
 }
 

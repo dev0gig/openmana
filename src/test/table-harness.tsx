@@ -27,7 +27,7 @@
  * /scripts/e2e/table-harness.html?scene=<name>[&built=<question>][&language=en][&waiting=0].
  */
 import { Menu } from "lucide-react"
-import { StrictMode, useEffect, useMemo } from "react"
+import { StrictMode, useEffect, useMemo, useState } from "react"
 import { createRoot } from "react-dom/client"
 import "@/index.css"
 import { CardCatalogProvider, useCardCatalog } from "@/cards/card-catalog-context"
@@ -98,9 +98,21 @@ function SceneTable({ scene, questions, prompt, language, waiting }: { scene: Ta
   )
 }
 
+/** Built catalog presentation case, separate from the unchanged recorded scenes. */
+function presentationScene(recorded: TableScene, presentation: string | null): TableScene {
+  if (presentation !== "dfc" && presentation !== "fallback") return recorded
+  const state = structuredClone(recorded.state)
+  const me = state.players.find((p) => p.me)!
+  me.zones.hand = me.zones.hand.map((card, index) => index === 0 && !("hidden" in card) ? { ...card, key: presentation === "dfc" ? "Delver of Secrets" : "Akki Lavarunner", name: presentation === "dfc" ? "Geheimnisstöberer" : "Akki Lavarunner", text: null } : card)
+  return { ...recorded, state }
+}
+
 function Harness() {
   const params = new URLSearchParams(window.location.search)
-  const scene = tableScene((params.get("scene") ?? "opening") as TableSceneName)
+  const recorded = tableScene((params.get("scene") ?? "opening") as TableSceneName)
+  // Explicitly built presentation boundary: real catalog DFC, no claim of a Forge transform.
+  const presentation = params.get("presentation")
+  const [scene] = useState(() => presentationScene(recorded, presentation))
   const builtName = params.get("built")
   const built = builtName !== null && (BUILT_QUESTIONS as readonly string[]).includes(builtName) ? builtQuestion(builtName as BuiltQuestionName, scene) : null
   const language = params.get("language") === "en" ? "en" : "de"

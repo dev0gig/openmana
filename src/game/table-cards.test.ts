@@ -31,6 +31,7 @@ describe("the lookup key", () => {
     expect(pictureKey(card(3, "Goblin Token", { token: true, power: 2, toughness: 1, colors: "R" }))).toBe("token|Goblin Token|2|1|R")
     expect(pictureKey(card(4, null))).toBeNull()
     expect(pictureKey(card(5, ""))).toBeNull()
+    expect(pictureKey(card(6, "Delver of Secrets", { faceDown: true }))).toBeNull()
   })
 })
 
@@ -58,6 +59,23 @@ describe("resolving against the catalog", () => {
     const found = await resolvePictures(db, [card(1, "Insectile Aberration")], new Map())
     const picture = pictureOf(found.get("card|Insectile Aberration")!, "de")
     expect(picture !== "loading" && picture !== "none" && picture.src).toMatch(/\/grid\/back\//)
+  })
+
+  it("DFC inspection carries both real catalog faces and side-specific images, with German-to-English fallback", async () => {
+    const found = await resolvePictures(db, [card(1, "Insectile Aberration"), card(2, "Akki Lavarunner")], new Map())
+    const back = pictureOf(found.get("card|Insectile Aberration")!, "de")
+    expect(back).toMatchObject({ face: 1 })
+    if (back === "none" || back === "loading") throw new Error("missing DFC")
+    expect(back.faces).toHaveLength(2)
+    const english = pictureOf(found.get("card|Insectile Aberration")!, "en")
+    if (english === "none" || english === "loading") throw new Error("missing English DFC")
+    expect(english.faces!.every((f) => f.textFallback === false)).toBe(true)
+    expect(back.faces![0]!.picture!.large).toContain("/front/")
+    expect(back.faces![1]!.picture!.large).toContain("/back/")
+    const fallback = pictureOf(found.get("card|Akki Lavarunner")!, "de")
+    expect(fallback).toMatchObject({ lang: "en" })
+    if (fallback === "none" || fallback === "loading") throw new Error("missing fallback")
+    expect(fallback.faces!.map((f) => f.text?.lang)).toEqual(["en", "en"])
   })
 
   it("no picture instead of a guess: tokens that fit alike, cards the catalog lacks, Forge's effect cards", async () => {

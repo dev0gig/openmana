@@ -4,6 +4,7 @@
  *
  *   npm run test:e2e                 build, then test
  *   npm run test:e2e -- --no-build   test the existing dist/
+ *   npm run test:e2e -- --no-build --zones-only   visible zones, piles and DFC inspection only
  *   npm run test:e2e -- --no-build --combat-only  small, sequential table checks; no engine boot or full suite
  *
  * Environment: OPENMANA_CHROME (default: Playwright's Chrome for Testing, as
@@ -124,7 +125,9 @@ import { playDeck, type StoredDeck } from "./engine-decks.ts"
 const root = path.resolve(import.meta.dirname, "../..")
 const dist = path.join(root, "dist")
 const combatOnly = process.argv.includes("--combat-only")
-const reportDir = path.join(root, "reports", combatOnly ? "combat-e2e" : "e2e")
+const zonesOnly = process.argv.includes("--zones-only")
+const focusedTable = combatOnly || zonesOnly
+const reportDir = path.join(root, "reports", combatOnly ? "combat-e2e" : zonesOnly ? "zones-e2e" : "e2e")
 const require = createRequire(import.meta.url)
 
 interface Viewport {
@@ -3241,6 +3244,7 @@ async function decisionInteractions(page: Page, base: string, viewport: Viewport
   await expectLast("priority: end the turn (asked first)", { kind: "buttons", button: 2 })
   check((await harnessTaps(page)).length === 0, `${label}: answering tapped a card`)
   results["blocks"] = await blockInteractions(page, base, viewport)
+  results["zones"] = await zoneInteractions(page, base, viewport)
   return results
 }
 
@@ -3264,13 +3268,13 @@ async function tableHarness(browser: Browser): Promise<Record<string, unknown>> 
   if (!base) throw new Error("the dev server did not report its URL")
   const results: Record<string, unknown> = {}
   try {
-    for (const viewport of combatOnly ? TABLE_VIEWPORTS.filter((v) => DECISION_VIEWPORTS.includes(v.name)) : TABLE_VIEWPORTS) {
+    for (const viewport of focusedTable ? TABLE_VIEWPORTS.filter((v) => DECISION_VIEWPORTS.includes(v.name)) : TABLE_VIEWPORTS) {
       log(`  ${viewport.name} (${viewport.width}x${viewport.height}${viewport.touch ? ", touch" : ""})`)
       const context = await newContext(browser, viewport)
       const scenes: Record<string, unknown> = {}
       try {
-        const selectedScenes = combatOnly ? TABLE_SCENES.filter((scene) => ["defend", "block-start", "block-multiple", "blockers", "damage", "attack-declared"].includes(scene)) : TABLE_SCENES
-        const selectedBuilt = combatOnly ? BUILT_SCENES.filter((built) => built === "block-order") : BUILT_SCENES
+        const selectedScenes = zonesOnly ? TABLE_SCENES.filter((scene) => ["opening", "main-phase", "command-effects", "commander-late", "stack", "block-multiple"].includes(scene)) : combatOnly ? TABLE_SCENES.filter((scene) => ["defend", "block-start", "block-multiple", "blockers", "damage", "attack-declared"].includes(scene)) : TABLE_SCENES
+        const selectedBuilt = zonesOnly ? [] : combatOnly ? BUILT_SCENES.filter((built) => built === "block-order") : BUILT_SCENES
         const runs = [...selectedScenes.map((scene) => ({ scene: scene as string, built: null as string | null })), ...selectedBuilt.map((built) => ({ scene: built === "block-order" ? "block-multiple" : "main-phase", built: built as string | null }))]
         for (const { scene, built } of runs) {
           const name = built === null ? scene : `built:${built}`
@@ -3324,10 +3328,10 @@ async function tableHarness(browser: Browser): Promise<Record<string, unknown>> 
         }
         const page = await context.newPage()
         const pageLog = watch(page)
-        scenes["interaction"] = combatOnly ? await blockInteractions(page, base, viewport) : await tableInteractions(page, base, viewport)
+        scenes["interaction"] = zonesOnly ? await zoneInteractions(page, base, viewport) : combatOnly ? await blockInteractions(page, base, viewport) : await tableInteractions(page, base, viewport)
         await page.close()
         // Answering every kind (prompt 15) where it is tightest and on the desktop: a small phone, a phone turned, a mouse.
-        if (!combatOnly && DECISION_VIEWPORTS.includes(viewport.name)) {
+        if (!focusedTable && DECISION_VIEWPORTS.includes(viewport.name)) {
           const answers = await context.newPage()
           const answersLog = watch(answers)
           scenes["decisions"] = await decisionInteractions(answers, base, viewport)
@@ -3401,6 +3405,84 @@ async function blockInteractions(page: Page, base: string, viewport: Viewport): 
   await confirm("Bestätigen")
   check(JSON.stringify((await harnessAnswers(page))[0]?.[1]) === JSON.stringify({ kind: "distribute", amounts: [1, 1] }), `${label}: real combat damage request`)
   results["damage"] = await harnessAnswers(page)
+  return results
+}
+
+/** Zone/card inspection in real Chrome; DFC substitution is explicitly built, inputs recorded only. */
+async function zoneInteractions(page: Page, base: string, viewport: Viewport): Promise<Record<string, unknown>> {
+  const label = `zones (${viewport.name})`
+  const results: Record<string, unknown> = {}
+  const activate = async (locator: Locator) => viewport.touch ? locator.tap() : locator.click()
+  const view = page.getByRole("dialog")
+  const safe = async () => check((await harnessTaps(page)).length === 0 && (await harnessAnswers(page)).length === 0, `${label}: inspection sent an input`)
+  const inspect = async (zone: string) => {
+    await activate(page.getByRole("button", { name: "Zonen ansehen", exact: true }))
+    await activate(view.getByRole("button", { name: zone, exact: true }))
+    await view.waitFor()
+    await accessibility(page, `${label}: ${zone}`)
+    const card = view.locator("button[data-card]").first()
+    if (await card.count() > 0) {
+      await activate(card)
+      await view.getByRole("button", { name: "Schließen", exact: true }).waitFor()
+      const next = view.getByRole("button", { name: "Nächste Karte", exact: true })
+      if (await next.count() > 0 && await next.isEnabled()) await activate(next)
+      await accessibility(page, `${label}: card from ${zone}`)
+      const close = view.getByRole("button", { name: "Schließen", exact: true })
+      const box = await close.boundingBox()
+      check(box !== null && box.y >= 0 && box.y + box.height <= viewport.height + 1, `${label}: close button outside viewport`)
+      await safe()
+      await activate(close)
+      await view.waitFor()
+    }
+    await activate(view.getByRole("button", { name: "Schließen", exact: true }))
+    await view.waitFor({ state: "hidden" })
+  }
+  await openScene(page, base, "main-phase")
+  await inspect("Dein Friedhof: 6 Karten ansehen")
+  await inspect("Friedhof der Forge-KI: 2 Karten ansehen")
+  await inspect("Dein Exil: 0 Karten ansehen")
+  results["graveyards/empty"] = true
+  await openScene(page, base, "command-effects")
+  await inspect("Dein Exil: 1 Karten ansehen")
+  await inspect("Deine Kommandozone: 2 Karten ansehen")
+  results["exile/command"] = true
+  await openScene(page, base, "stack")
+  await inspect("Karten auf dem Stapel: 1 Einträge ansehen")
+  results["stack"] = true
+  await openScene(page, base, "commander-late")
+  // Forge's real battlefield piles: choose one whose caption counts at least two.
+  const pileIds = await page.evaluate(() => [...document.querySelectorAll<HTMLButtonElement>('button[data-card]')].filter((b) => /, \d+ Karten(?:,|$)/.test(b.getAttribute("aria-label") ?? "")).map((b) => b.dataset["card"]))
+  if (pileIds.length > 0) {
+    const target = page.locator(`button[data-card="${pileIds[0]}"]`)
+    if (viewport.touch) await touch(page, target, { holdMs: ARMED_AFTER_MS })
+    else await target.click({ button: "right" })
+    await view.waitFor()
+    await activate(view.getByRole("button", { name: "Nächste Karte", exact: true }))
+    await safe()
+    await activate(view.getByRole("button", { name: "Schließen", exact: true }))
+  } else check(false, `${label}: recorded battlefield has no pile to browse`)
+  results["pile"] = true
+  for (const presentation of ["dfc", "fallback"]) {
+    await openScene(page, base, "main-phase", `&presentation=${presentation}`)
+    const hand = page.getByRole("region", { name: "Deine Hand", exact: true })
+    await activate(hand.locator("button[data-card]").first())
+    await view.waitFor()
+    await view.getByRole("group", { name: "Kartenseiten" }).waitFor()
+    const faces = view.getByRole("group", { name: "Kartenseiten" }).getByRole("button")
+    await activate(faces.nth(1))
+    await page.waitForFunction(() => [...document.querySelectorAll('[role="dialog"] img')].every((img) => (img as HTMLImageElement).complete))
+    await safe()
+    await accessibility(page, `${label}: ${presentation} (built)`)
+    const action = view.getByRole("button", { name: "Spiele ein Land", exact: true })
+    const box = await action.boundingBox()
+    check(box !== null && box.y >= 0 && box.y + box.height <= viewport.height + 1, `${label}: viewer action outside viewport`)
+    check(await faces.nth(1).getAttribute("aria-pressed") === "true", `${label}: second face not selected`)
+    if (presentation === "dfc") check((await view.locator("img").first().getAttribute("src"))?.includes("/back/") === true, `${label}: DFC back picture`)
+    if (presentation === "fallback") check((await view.textContent())?.includes("englisch (kein deutscher Text verfügbar)") === true, `${label}: English fallback not marked`)
+    await page.screenshot({ path: path.join(reportDir, "screens", `viewer-${viewport.name}-${presentation}.png`) })
+    await activate(view.getByRole("button", { name: "Schließen", exact: true }))
+    results[`${presentation} (built)`] = true
+  }
   return results
 }
 
@@ -3693,8 +3775,8 @@ async function main(): Promise<void> {
   report["browser"] = `${path.basename(executablePath)} ${browser.version()}`
   log(`Chrome ${browser.version()}, app at ${base}`)
   try {
-    if (combatOnly) {
-      report["scope"] = "Recorded Forge combat scenes and one built order request, three viewports, one page at a time; no engine boot or complete application regression suite."
+    if (focusedTable) {
+      report["scope"] = zonesOnly ? "Recorded Forge zones and explicitly built DFC presentation, three viewports, one page at a time; no engine boot or complete application regression suite." : "Recorded Forge combat scenes and one built order request, three viewports, one page at a time; no engine boot or complete application regression suite."
       report["gameTable"] = await tableHarness(browser)
     } else {
       await httpChecks(base, id)
@@ -3716,7 +3798,7 @@ async function main(): Promise<void> {
   }
   report["failures"] = failures
   fs.writeFileSync(path.join(reportDir, "report.json"), `${JSON.stringify(report, null, 2)}\n`)
-  log(`\n${combatOnly ? "Combat " : ""}${failures.length === 0 ? "E2E OK" : `E2E FAILED (${failures.length})`} – report: ${path.relative(root, path.join(reportDir, "report.json"))}`)
+  log(`\n${combatOnly ? "Combat " : zonesOnly ? "Zones " : ""}${failures.length === 0 ? "E2E OK" : `E2E FAILED (${failures.length})`} – report: ${path.relative(root, path.join(reportDir, "report.json"))}`)
   process.exitCode = failures.length === 0 ? 0 : 1
 }
 

@@ -185,7 +185,7 @@ export interface DecisionPanelProps {
   /** Sends an answer (the page does it). Absent: the table is only looked at - nothing can be answered. */
   readonly onAnswer?: (question: number, body: AnswerBody) => void
   /** Opens the card view for a card of a question (with the question's view of it, for a card in no zone of the state). */
-  readonly onLook: (id: number, snapshot?: VisibleCard) => void
+  readonly onLook: (id: number) => void
   /** Taps a player (Forge's player.tap, prompt 17 - the page sends it). Absent: nothing is tapped. */
   readonly onTapPlayer?: (player: number) => void
   /** Taps a card at once (Forge's card.tap - a defending planeswalker, prompt 18; the table's guard against a double tap). Absent: nothing is tapped. */
@@ -202,7 +202,7 @@ interface DecisionContextValue {
   /** The id of the line that says why (for aria-describedby). */
   readonly blockedId: string
   readonly answer: (question: number, body: AnswerBody) => void
-  readonly look: (id: number, snapshot?: VisibleCard) => void
+  readonly look: (id: number) => void
   /** The moment as the table's cards see it (card-use.ts): the questions, whether Forge waits, a concession. */
   readonly moment: TableMoment
   /** Why no tap can be sent (a player, mana), or null - the table's reasons, or that it is only looked at. */
@@ -340,10 +340,10 @@ function DecisionHeading({ label, text, source }: { label: string; text: string 
             aria-label={`${cardName(source.card)} ansehen`}
             aria-haspopup="dialog"
             title={cardName(source.card)}
-            onClick={() => look(source.id, source.card)}
+            onClick={() => look(source.id)}
             onContextMenu={(event) => {
               event.preventDefault()
-              look(source.id, source.card)
+              look(source.id)
             }}
           >
             <TablePicture card={source.card} pictures={pictures} />
@@ -423,10 +423,10 @@ function ItemThumb({ item }: { item: Item }) {
       aria-label={`${cardName(card)} ansehen`}
       aria-haspopup="dialog"
       title={cardName(card)}
-      onClick={() => look(id, card)}
+      onClick={() => look(id)}
       onContextMenu={(event) => {
         event.preventDefault()
-        look(id, card)
+        look(id)
       }}
     >
       <TablePicture card={card} pictures={pictures} />
@@ -495,7 +495,7 @@ function ItemCard({ item, mark, label, active, onPrimary }: { item: Item; mark: 
   const { pictures, look } = useDecision()
   const visible = isVisibleItem(item) && item.cardView !== undefined && item.card !== undefined ? { id: item.card, card: item.cardView } : null
   const lookAt = () => {
-    if (visible !== null) look(visible.id, visible.card)
+    if (visible !== null) look(visible.id)
   }
   const press = useCardPress({ onPrimary: active ? onPrimary : lookAt, onLook: lookAt })
   return (

@@ -202,6 +202,8 @@ The implemented card interaction - every visible card a control, looking that se
 - dismissal is obvious on touch and desktop
 - current/live state wins over stale cached UI
 
+The implemented zones and full viewer — current IDs/question sources, pile/zone navigation, catalog sides and German-to-English fallback — are described in [implementation/20-zones-card-viewer.md](implementation/20-zones-card-viewer.md). Inspecting or switching a catalog side never sends game input.
+
 ### Battlefield
 
 Do not create a vertically endless table. Keep opponent summary/hand, opponent battlefield, combat/stack, player battlefield, decision area and player hand spatially understandable. Responsive layouts may reorganize them.

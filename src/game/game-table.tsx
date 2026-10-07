@@ -54,6 +54,7 @@ import type { AnswerBody, Card, GameState, ManaColor, Question, VisibleCard } fr
 import { Badge } from "@/components/ui/badge"
 import { GameBoard, GameBoardArea, type GameBoardDecision } from "@/components/ui/game-board"
 import { GameCard, GameCardBack, GameCardButton, GameCardCaption, GameCardGroup, GameCardRow, GameCardRowButton, GameCardRowItem } from "@/components/ui/game-card"
+import { GameZoneButton } from "@/components/ui/game-zone-button"
 import { GamePlayer, GamePlayerButton } from "@/components/ui/game-player"
 import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item"
 import { PhaseTrack, PhaseTrackGroup, PhaseTrackStep } from "@/components/ui/phase-track"
@@ -62,6 +63,8 @@ import { Spinner } from "@/components/ui/spinner"
 import { useCardPress } from "@/hooks/use-card-press"
 import { useElementHeight } from "@/hooks/use-element-height"
 import { ARMING_MS, CardSheet, type CardLook } from "./card-sheet"
+import { questionCard, type CardBrowse } from "./card-view-model"
+import { ZoneSheet, type ZoneLook } from "./zone-sheet"
 import { cardUse, currentStep, openSelection, playerUse, stepSource, type CardPlace, type CardUse, type TableMoment } from "./card-use"
 import { currentDecision } from "./decision-model"
 import { DecisionPanel, decisionNeedsRoom } from "./decision-panel"
@@ -84,7 +87,7 @@ import {
   stackOwner,
   stackTargets,
 } from "./table-labels"
-import { isVisible, tableView, type BoardEntry, type CombatView, type Seat, type StackEntryView, type TableSide, type TableView } from "./table-model"
+import { pileOf, isVisible, tableView, type BoardEntry, type CombatView, type Seat, type StackEntryView, type TableSide, type TableView } from "./table-model"
 import { TablePicture } from "./table-picture"
 import { TURN_PHASES, turnSteps } from "./turn-model"
 
@@ -163,11 +166,16 @@ export function GameTable({
   const profile = profileDrawn ? `${aiProfileLabel(aiProfile)} (zufällig)` : aiProfileLabel(aiProfile)
   const moment = useMemo<TableMoment>(() => ({ questions, waiting, conceding, attack: state.attack ?? null, combat: state.combat }), [questions, waiting, conceding, state.attack, state.combat])
   const [look, setLook] = useState<CardLook | null>(null)
-  // A card of Forge's question: its view as the question shows it goes along (it may lie in no zone of the state).
-  const lookAtQuestionCard = useCallback(
-    (id: number, snapshot?: VisibleCard) => setLook((previous) => ({ id, open: true, serial: (previous?.serial ?? 0) + 1, ...(snapshot !== undefined ? { snapshot } : {}) })),
-    [],
-  )
+  const [zone, setZone] = useState<ZoneLook | null>(null)
+  const openCard = useCallback((id: number, browse?: CardBrowse, question?: number) => {
+    const pile = browse === undefined ? pileOf(view, id) : null
+    setLook((previous) => ({ id, open: true, serial: (previous?.serial ?? 0) + 1,
+      ...(question !== undefined ? { question } : {}),
+      ...(browse !== undefined ? { browse } : pile !== null && pile.length > 1 ? { browse: { kind: "ids", ids: pile } as const } : {}),
+    }))
+  }, [view])
+  // Only a stable question ID is held; its latest cardView is resolved while it remains open.
+  const lookAtQuestionCard = useCallback((id: number) => openCard(id, undefined, questionCard(questions, id)?.question), [openCard, questions])
   // A decision gets room when it needs it (GameBoard): a question with a list, a form or cards outside the table
   // (expanded) - or more words than the compact region holds (tall), measured once per set of open questions, so
   // the region never flips back and forth.
@@ -214,7 +222,7 @@ export function GameTable({
     [onTapCard],
   )
   const controls = useMemo<CardControls>(() => {
-    const open = (id: number) => setLook((previous) => ({ id, open: true, serial: (previous?.serial ?? 0) + 1 }))
+    const open = openCard
     return {
       moment,
       live: onTapCard !== undefined,
@@ -232,13 +240,16 @@ export function GameTable({
       },
       tapPlayer: onTapPlayer === undefined ? null : tapPlayer,
     }
-  }, [moment, onTapCard, onTapPlayer, tapPlayer])
+  }, [moment, onTapCard, onTapPlayer, tapPlayer, openCard])
   return (
     <CardControlsContext value={controls}>
       <GameBoard decision={room}>
         <title>Partie · OpenMana</title>
         <GameBoardArea area="header" aria-label="Spielstand" className="flex items-center gap-2 px-2 py-1">
           {menu}
+          <GameZoneButton aria-label="Zonen ansehen" title="Zonen ansehen" aria-haspopup="dialog" disabled={state.players.length === 0} onClick={() => { const player = state.players.find((p) => p.me) ?? state.players[0]; if (player !== undefined) setZone({ kind: "zone", player: player.id, zone: "graveyard" }) }}>
+            <Library aria-hidden />
+          </GameZoneButton>
           <div className="flex min-w-0 flex-1 flex-col">
             <h1 className="sr-only">Partie</h1>
             <p className="truncate text-sm font-medium" title={turnLine(view.turn, state.phase)}>
@@ -308,8 +319,10 @@ export function GameTable({
         <GameBoardArea area="hand" aria-label="Deine Hand">
           <Hand cards={view.me?.hand ?? []} pictures={pictures} />
         </GameBoardArea>
+        <ZoneSheet onSourceChange={setZone} source={zone} state={state} pictures={pictures} onClose={() => setZone(null)} onLook={openCard} />
         <CardSheet
           look={look}
+          onBrowse={(id) => setLook((previous) => previous === null ? null : { ...previous, id })}
           onOpenChange={(open) => setLook((previous) => (previous === null ? null : { ...previous, open }))}
           state={state}
           view={view}
