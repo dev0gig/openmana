@@ -40,6 +40,9 @@ source "$(dirname "$0")/lib.sh"
 
 om_require_node_typescript
 om_use_toolchain
+manifest_sha="$(sha256sum "$OM_DIST_DIR/engine-manifest.json" | awk '{print $1}')"
+browser_skipped=false
+[ "${OPENMANA_SKIP_BROWSER:-0}" = "1" ] && browser_skipped=true
 jar="$OM_BUILD_DIR/jvm/openmana-engine-jvm.jar"
 bundle="$OM_BUILD_DIR/resources/forge-res.bin"
 [ -f "$jar" ] && [ -f "$OM_DIST_DIR/openmana-engine.js.wasm" ] || om_die "Keine Build-Artefakte. Zuerst engine/scripts/build.sh ausfuehren."
@@ -259,8 +262,10 @@ const dir = process.argv[1];
 const runs = {};
 for (const f of fs.readdirSync(dir).filter((f) => f.endsWith(".json")).sort()) runs[f.replace(/\.json$/, "")] = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
 const measure = fs.existsSync(dir + "/measure.jsonl") ? fs.readFileSync(dir + "/measure.jsonl", "utf8").trim().split("\n").map(JSON.parse) : [];
-fs.writeFileSync(path.join(dir, "..", "test-report.json"), JSON.stringify({ failures: +process.argv[2], runs, jvmProcesses: measure }, null, 2) + "\n");
-' "$runs" "$failures"
+fs.writeFileSync(path.join(dir, "..", "test-report.json"), JSON.stringify({ format: "openmana-engine-tests/1", manifestSha256: process.argv[3], browserSkipped: process.argv[4] === "true", failures: +process.argv[2], runs, jvmProcesses: measure }, null, 2) + "\n");
+' "$runs" "$failures" "$manifest_sha" "$browser_skipped"
+
+[ "$manifest_sha" = "$(sha256sum "$OM_DIST_DIR/engine-manifest.json" | awk '{print $1}')" ] || om_die "Engine-Manifest wurde waehrend der Tests geaendert"
 
 [ "$failures" -eq 0 ] || om_die "$failures Engine-Test(s) fehlgeschlagen, Details in $runs"
 om_log "Alle Engine-Tests bestanden. Bericht: $OM_REPORT_DIR/test-report.json"

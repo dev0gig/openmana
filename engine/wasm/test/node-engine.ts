@@ -12,6 +12,7 @@ import { nodeWorkerPort } from "../../client/src/node-worker-port.ts";
 
 export const WASM_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const ENGINE_DIR = path.resolve(WASM_DIR, "..");
+export const ENGINE_BUILD_DIR = path.resolve(process.env["OPENMANA_ENGINE_BUILD_DIR"] || path.join(ENGINE_DIR, "build"));
 
 export function option(args: readonly string[], name: string, fallback: string): string;
 export function option(args: readonly string[], name: string, fallback: null): string | null;

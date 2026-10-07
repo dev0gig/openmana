@@ -212,7 +212,7 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Evidence: 622 Vitest tests (63 new: merge and check, read/apply on fake-indexeddb, the real SDK against a stand-in ORYX cloud on the real storage session, the card and the return notice in the real app frame, the SDK checksum), `npm run check` with the end-to-end test in Chrome, including the new section 13: the build served as `https://openmana.vercel.app` with a stand-in ORYX cloud - the whole OAuth/PKCE round trip under COOP/COEP, the start's merge, uploads, disconnecting, axe, 360 px; plus the card absent and Web Storage empty off the real address, and the deletion mark in IndexedDB after deleting a deck. Limits: ORYX takes 1 MB per slot by default (≈ 146 Constructed or 48 Commander decks); ORYX needs an OAuth client for `openmana`; effective once deployed. Details: `docs/implementation/oryx-cloud-sync.md`.
 
 ## Currently In Progress
-None. Prompt **25 — PWA, engine caching and lifecycle** is complete, committed locally without publication. Prompt **26 — Isolated Forge update pipeline** is the next queued task, requires Astra/max under the model gate and has not been started. The authorized 21–25 run stops here; publication remains held through Prompt 31.
+Prompt **26 — Isolated Forge update pipeline** is in progress under the direct `$dm openmana` assignment. The current session metadata confirms GPT-6 Astra/max. Predecessor 25 is complete; the work adds isolated validation and an artifact lock, with local commits only.
 
 Any agent entering the repository must first reconcile this statement with the central Dropzone task state and Git state.
 

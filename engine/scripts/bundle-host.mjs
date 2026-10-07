@@ -15,12 +15,13 @@ import { fileURLToPath } from "node:url";
 import * as esbuild from "esbuild";
 
 const engineDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const buildDir = path.resolve(process.env.OPENMANA_ENGINE_BUILD_DIR || path.join(engineDir, "build"));
 const common = { bundle: true, platform: "browser", target: "es2022", format: "iife", logLevel: "warning", charset: "utf8" };
 
 await esbuild.build({
   ...common,
   entryPoints: [path.join(engineDir, "wasm", "host", "engine-worker.ts")],
-  outfile: path.join(engineDir, "build", "dist", "engine-worker.js"),
+  outfile: path.join(buildDir, "dist", "engine-worker.js"),
   minify: true,
   sourcemap: "linked",
   legalComments: "none",
@@ -29,7 +30,7 @@ await esbuild.build({
 await esbuild.build({
   ...common,
   entryPoints: [path.join(engineDir, "wasm", "spike", "page.ts")],
-  outfile: path.join(engineDir, "build", "harness", "spike.js"),
+  outfile: path.join(buildDir, "harness", "spike.js"),
   sourcemap: "inline",
 });
 console.error("[openmana-engine] Bundles: build/dist/engine-worker.js, build/harness/spike.js");

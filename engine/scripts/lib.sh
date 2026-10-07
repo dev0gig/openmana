@@ -9,6 +9,8 @@ set -euo pipefail
 OM_ENGINE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OM_REPO_DIR="$(cd "$OM_ENGINE_DIR/.." && pwd)"
 OM_BUILD_DIR="${OPENMANA_ENGINE_BUILD_DIR:-$OM_ENGINE_DIR/build}"
+OM_BUILD_DIR="$(realpath -m "$OM_BUILD_DIR")"
+export OPENMANA_ENGINE_BUILD_DIR="$OM_BUILD_DIR"
 OM_TOOLCHAIN_DIR="${OPENMANA_TOOLCHAIN_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/openmana/toolchain}"
 OM_LOCK_FILE="$OM_ENGINE_DIR/toolchain.lock.json"
 OM_FORGE_SUBMODULE="$OM_ENGINE_DIR/forge"
@@ -51,20 +53,23 @@ om_lock() {
 om_graalvm_home() { printf '%s/%s' "$OM_TOOLCHAIN_DIR" "$(om_lock 'lock.graalvm.home')"; }
 om_binaryen_home() { printf '%s/%s' "$OM_TOOLCHAIN_DIR" "$(om_lock 'lock.binaryen.home')"; }
 om_maven_home() { printf '%s/%s' "$OM_TOOLCHAIN_DIR" "$(om_lock 'lock.maven.home')"; }
+om_node_home() { printf '%s/%s' "$OM_TOOLCHAIN_DIR" "$(om_lock 'lock.node.home')"; }
 
 # Put the pinned toolchain first on PATH. Refuses to continue if it is not set
 # up, so a build can never silently pick up a different JDK or wasm-as.
 om_use_toolchain() {
-    local graal binaryen maven
+    local graal binaryen maven node_home
     graal="$(om_graalvm_home)"
     binaryen="$(om_binaryen_home)"
     maven="$(om_maven_home)"
+    node_home="$(om_node_home)"
     [ -x "$graal/bin/native-image" ] || om_die "GraalVM fehlt unter $graal. Zuerst engine/scripts/setup-toolchain.sh ausfuehren."
     [ -f "$graal/lib/svm/tools/svm-wasm/builder/svm-wasm.jar" ] || om_die "Diese GraalVM hat kein Web Image (svm-wasm fehlt): $graal"
     [ -x "$binaryen/bin/wasm-as" ] || om_die "Binaryen fehlt unter $binaryen. Zuerst engine/scripts/setup-toolchain.sh ausfuehren."
     [ -x "$maven/bin/mvn" ] || om_die "Maven fehlt unter $maven. Zuerst engine/scripts/setup-toolchain.sh ausfuehren."
+    [ -x "$node_home/bin/node" ] || om_die "Gepinntes Node fehlt unter $node_home. Zuerst engine/scripts/setup-toolchain.sh ausfuehren."
     export JAVA_HOME="$graal"
-    export PATH="$graal/bin:$binaryen/bin:$maven/bin:$PATH"
+    export PATH="$graal/bin:$binaryen/bin:$maven/bin:$node_home/bin:$PATH"
     unset JAVA_TOOL_OPTIONS || true
 }
 
@@ -83,7 +88,7 @@ om_check_forge_checkout() {
     actual="$(git -C "$OM_FORGE_SUBMODULE" rev-parse HEAD)"
     [ -n "$pinned" ] || om_die "Kein Forge-Pin (gitlink engine/forge) im Git-Index gefunden."
     [ "$pinned" = "$actual" ] || om_die "engine/forge steht auf $actual, gepinnt ist $pinned. Ausfuehren: git submodule update engine/forge"
-    if [ -n "$(git -C "$OM_FORGE_SUBMODULE" status --porcelain --untracked-files=no)" ]; then
+    if [ -n "$(git -C "$OM_FORGE_SUBMODULE" status --porcelain --untracked-files=all)" ]; then
         om_die "engine/forge hat lokale Aenderungen. Der Build nimmt nur den gepinnten, unveraenderten Stand (Patches kommen aus engine/patches)."
     fi
 }

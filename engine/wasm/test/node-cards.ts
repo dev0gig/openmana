@@ -10,10 +10,10 @@ import fs from "node:fs";
 import path from "node:path";
 import type { CardProbeResult } from "../../protocol/src/index.ts";
 import { probeDifferences, probeProblems } from "./card-probe-check.ts";
-import { ENGINE_DIR, nodeClient, option, vmHwmMiB } from "./node-engine.ts";
+import { ENGINE_BUILD_DIR, nodeClient, option, vmHwmMiB } from "./node-engine.ts";
 
 const args = process.argv.slice(2);
-const distDir = path.resolve(option(args, "--dist", path.join(ENGINE_DIR, "build", "dist")));
+const distDir = path.resolve(option(args, "--dist", path.join(ENGINE_BUILD_DIR, "dist")));
 const cardLoading = option(args, "--card-loading", "eager");
 const language = option(args, "--language", "en-US");
 const cardLanguage = option(args, "--card-language", null);

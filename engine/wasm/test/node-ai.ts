@@ -9,10 +9,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describeDivergence, parseTraceLines, TraceComparison, traceDigest, type TraceEntry } from "../spike/trace.ts";
-import { ENGINE_DIR, nodeClient, option, vmHwmMiB } from "./node-engine.ts";
+import { ENGINE_BUILD_DIR, nodeClient, option, vmHwmMiB } from "./node-engine.ts";
 
 const args = process.argv.slice(2);
-const distDir = path.resolve(option(args, "--dist", path.join(ENGINE_DIR, "build", "dist")));
+const distDir = path.resolve(option(args, "--dist", path.join(ENGINE_BUILD_DIR, "dist")));
 const seed = Number(option(args, "--seed", "42"));
 const cardLoading = option(args, "--card-loading", "eager");
 const language = option(args, "--language", "en-US");

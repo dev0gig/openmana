@@ -16,13 +16,14 @@ import { fileURLToPath } from "node:url";
 
 const wasmDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const engineDir = path.resolve(wasmDir, "..");
+const buildDir = path.resolve(process.env.OPENMANA_ENGINE_BUILD_DIR || path.join(engineDir, "build"));
 
 // /engine/  the engine artefacts as the app will serve them (worker, launcher, module)
 // /harness/ the bundled diagnostics page script (engine/scripts/bundle-host.mjs)
 // /         the diagnostics page itself
 const ROUTES = [
-  ["/engine/", path.join(engineDir, "build", "dist")],
-  ["/harness/", path.join(engineDir, "build", "harness")],
+  ["/engine/", path.join(buildDir, "dist")],
+  ["/harness/", path.join(buildDir, "harness")],
   ["/", path.join(wasmDir, "spike")],
 ];
 

@@ -17,6 +17,8 @@ mkdir -p "$OM_REPORT_DIR"
 scripts="$OM_ENGINE_DIR/scripts"
 
 om_timed setup-toolchain bash "$scripts/setup-toolchain.sh"
+om_use_toolchain
+node "$scripts/update-policy.mjs" sources > "$OM_REPORT_DIR/source-inputs.json"
 om_timed build-host bash "$scripts/build-host.sh"
 om_timed prepare-forge bash "$scripts/prepare-forge.sh"
 om_timed pack-resources node "$scripts/pack-resources.mjs" "$(om_forge_pinned_sha)" "$OM_BUILD_DIR/resources"

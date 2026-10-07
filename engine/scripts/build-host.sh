@@ -28,7 +28,7 @@ om_log "Unit-Tests: Protokoll, Client, Worker-Host"
 mkdir -p "$OM_REPORT_DIR"
 node --test --test-reporter=spec --test-reporter-destination=stdout \
     --test-reporter=junit --test-reporter-destination="$OM_REPORT_DIR/unit-tests.xml" \
-    "protocol/test/**/*.test.ts" "client/test/**/*.test.ts" "wasm/test/**/*.test.ts" \
+    "protocol/test/**/*.test.ts" "client/test/**/*.test.ts" "wasm/test/**/*.test.ts" "scripts/test/*.test.mjs" \
     2>&1 | tee "$OM_REPORT_DIR/unit-tests.log"
 [ "${PIPESTATUS[0]}" -eq 0 ] || om_die "Unit-Tests fehlgeschlagen, siehe $OM_REPORT_DIR/unit-tests.log"
 node scripts/bundle-host.mjs

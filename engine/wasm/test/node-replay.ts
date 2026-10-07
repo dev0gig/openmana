@@ -14,10 +14,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { replay, type Feeding, type Transcript } from "../spike/replay.ts";
-import { ENGINE_DIR, nodeClient, option, vmHwmMiB } from "./node-engine.ts";
+import { ENGINE_BUILD_DIR, nodeClient, option, vmHwmMiB } from "./node-engine.ts";
 
 const args = process.argv.slice(2);
-const distDir = path.resolve(option(args, "--dist", path.join(ENGINE_DIR, "build", "dist")));
+const distDir = path.resolve(option(args, "--dist", path.join(ENGINE_BUILD_DIR, "dist")));
 const transcriptFile = option(args, "--transcript", null);
 const feeding = option(args, "--feeding", "lazy") as Feeding;
 const queueCapacity = Number(option(args, "--queue-capacity", feeding === "eager" ? "256" : "65536"));

@@ -11,8 +11,10 @@
     "generate": "node protocol/scripts/generate.mjs",
     "check:generated": "node protocol/scripts/generate.mjs --check",
     "typecheck": "tsc -p tsconfig.json",
-    "test:unit": "node --test --test-reporter=spec \"protocol/test/**/*.test.ts\" \"client/test/**/*.test.ts\" \"wasm/test/**/*.test.ts\"",
-    "bundle": "node scripts/bundle-host.mjs"
+    "test:unit": "node --test --test-reporter=spec \"protocol/test/**/*.test.ts\" \"client/test/**/*.test.ts\" \"wasm/test/**/*.test.ts\" \"scripts/test/*.test.mjs\"",
+    "bundle": "node scripts/bundle-host.mjs",
+    "update:check": "node scripts/validate-forge-update.mjs --check-only",
+    "update:validate": "node scripts/validate-forge-update.mjs"
   },
   "devDependencies": {
     "@types/node": "22.20.4",

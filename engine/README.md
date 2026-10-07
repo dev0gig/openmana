@@ -22,6 +22,15 @@ Eintrag für Eintrag; jede Abweichung scheitert mit ihrer Stelle in der Partie
 [`04-forge-resources-card-scripts.md`](../docs/implementation/04-forge-resources-card-scripts.md),
 [`05-engine-differential-tests.md`](../docs/implementation/05-engine-differential-tests.md).
 
+## Isolierte Forge-Updates (Prompt 26)
+
+Für ein neues Forge-Release oder Set den vollständigen Ablauf in
+[UPDATING.md](UPDATING.md) verwenden. `validate-forge-update.mjs --base <commit>`
+prüft den Umfang, baut in einem neuen Verzeichnis mit frisch entpackten Pins,
+führt Engine-, Browser-, Katalog- und App-Prüfungen aus und ersetzt erst danach
+`engine.lock.json`. Alle Testhelfer respektieren `OPENMANA_ENGINE_BUILD_DIR`.
+Der Lock bindet genau den geprüften Satz; bestehende Builds bleiben erhalten.
+
 ## Aufbau
 
 ```
@@ -59,7 +68,7 @@ Browser-Artefakte) und `report/` (Zeiten, Speicher, Testergebnisse, Berichte von
 
 ## Voraussetzungen
 
-- Linux x86_64 (der Toolchain-Pin gilt nur dafür), `git`, `curl`, `tar`, Node ≥ 22.18
+- Linux x86_64 (der Toolchain-Pin gilt nur dafür), `git`, `curl`, `tar`, Node 22.22.3 mit npm 10.9.8
   (führt die TypeScript-Dateien direkt aus).
 - Rund 8 GB freier Speicher für `native-image` (gemessen: 5,2 GiB Spitze) und
   2 GB Plattenplatz im Bauordner.

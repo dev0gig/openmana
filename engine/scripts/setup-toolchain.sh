@@ -45,7 +45,7 @@ unpack() {
     home="$(om_lock "lock.$tool.home")"
     if [ ! -d "$OM_TOOLCHAIN_DIR/$home" ]; then
         om_log "entpacke $archive"
-        tar -xzf "$downloads/$archive" -C "$OM_TOOLCHAIN_DIR"
+        tar -xf "$downloads/$archive" -C "$OM_TOOLCHAIN_DIR"
     fi
     [ -d "$OM_TOOLCHAIN_DIR/$home" ] || om_die "$archive enthaelt nicht das erwartete Verzeichnis $home"
 }
@@ -53,9 +53,11 @@ unpack() {
 fetch_verified graalvm sha256
 fetch_verified binaryen sha256
 fetch_verified maven sha512
+fetch_verified node sha256
 unpack graalvm
 unpack binaryen
 unpack maven
+unpack node
 
 graal="$(om_graalvm_home)"
 for rel in $(om_lock 'lock.graalvm.requiredFiles.join(" ")'); do
@@ -65,6 +67,8 @@ grep -q "GRAALVM_VERSION=\"$(om_lock 'lock.graalvm.version')\"" "$graal/release"
     || om_die "GraalVM-Version in $graal/release passt nicht zum Pin"
 
 om_use_toolchain
+[ "$(node -p 'process.versions.node')" = "$(om_lock 'lock.node.version')" ] || om_die "Node-Version weicht vom Pin ab"
+[ "$(npm --version)" = "$(om_lock 'lock.node.npmVersion')" ] || om_die "npm-Version weicht vom Pin ab"
 wasm_as_version="$(wasm-as --version)"
 case "$wasm_as_version" in
     *"version $(om_lock 'lock.binaryen.version')"*) ;;

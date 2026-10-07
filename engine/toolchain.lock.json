@@ -35,7 +35,13 @@
     "home": "apache-maven-3.9.16"
   },
   "node": {
-    "minimumVersion": "22.0.0",
-    "note": "Node runs the resource packer, the launcher post-processing and the Wasm smoke tests. The smoke tests verify the required Wasm features (GC, exnref, typed function references) instead of assuming them; Node 22.22.3 was measured to run Web Image output without extra flags."
+    "version": "22.22.3",
+    "npmVersion": "10.9.8",
+    "archive": "node-v22.22.3-linux-x64.tar.xz",
+    "url": "https://nodejs.org/dist/v22.22.3/node-v22.22.3-linux-x64.tar.xz",
+    "size": 31059464,
+    "sha256": "2e5d13569282d016861fae7c8f935e741693c269101a5bebcf761a5376d1f99f",
+    "checksumSource": "https://nodejs.org/dist/v22.22.3/SHASUMS256.txt (verified 2026-10-07)",
+    "home": "node-v22.22.3-linux-x64"
   }
 }

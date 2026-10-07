@@ -90,6 +90,8 @@ Update flow:
 7. Review as a dedicated Forge-update PR.
 8. Deploy only after tests pass.
 
+The maintained procedure is [engine/UPDATING.md](../engine/UPDATING.md). Its validation pipeline enforces the engine-only review scope, explicit versioned protocol exceptions, a fresh build and complete JVM/WASM/browser/catalog/app checks before replacing the artifact lock. Toolchain updates are separate. Publication still needs the owner’s explicit instruction.
+
 Forge updates may bring card scripts, sets, mechanics, rules fixes and AI improvements. They must not silently mutate OpenMana UI.
 
 If Forge API changes break integration, adapt the bridge rather than leaking Forge-specific changes through the UI.

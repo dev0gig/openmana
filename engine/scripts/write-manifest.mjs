@@ -31,6 +31,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import zlib from "node:zlib";
+import { sourceIdentity } from "./update-policy.mjs";
 
 const engineDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const [distDir, reportDir, resourcesManifest] = process.argv.slice(2);
@@ -43,6 +44,10 @@ function fail(message) {
 const readJson = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
 const sha256 = (data) => createHash("sha256").update(data).digest("hex");
 const lock = readJson(path.join(engineDir, "toolchain.lock.json"));
+const sourceFile = path.join(reportDir, "source-inputs.json");
+if (!fs.existsSync(sourceFile)) fail("source-inputs.json is missing; run a complete build.sh");
+const sources = readJson(sourceFile);
+if (sources.sha256 !== sourceIdentity().sha256) fail("engine sources changed during/after compilation; run a complete build.sh");
 const forgeSource = readJson(path.join(reportDir, "forge-source.json"));
 const resources = readJson(resourcesManifest ?? path.join(engineDir, "build", "resources", "forge-res.manifest.json"));
 if (resources.forgeCommit !== forgeSource.forgeCommit) {
@@ -99,6 +104,7 @@ const protocolSchema = readJson(path.join(engineDir, "protocol", "schema", "prot
 const manifest = {
   format: "openmana-engine-manifest/2",
   builtAt: new Date().toISOString(),
+  sources: { format: sources.format, sha256: sources.sha256, files: sources.files.length },
   forge: { repository: "https://github.com/Card-Forge/forge", commit: forgeSource.forgeCommit, versionCode: forgeSource.forgeVersionCode },
   patches: { count: forgeSource.patchCount, sha256: forgeSource.patchesSha256, files: forgeSource.patches },
   resources: {
@@ -122,6 +128,10 @@ const manifest = {
     maven: lock.maven.version,
     mavenSha512: lock.maven.sha512,
     node: process.versions.node,
+    nodeSha256: lock.node.sha256,
+    npmVersion: lock.node.npmVersion,
+    lockSha256: sha256(fs.readFileSync(path.join(engineDir, "toolchain.lock.json"))),
+    packageLockSha256: sha256(fs.readFileSync(path.join(engineDir, "package-lock.json"))),
     npm: {
       typescript: npmVersion("typescript"),
       esbuild: npmVersion("esbuild"),
@@ -140,7 +150,7 @@ const manifest = {
       forgeNetworkPlayClasses: imageClasses.forgeNetworkPlay,
     },
   },
-  protocol: { version: protocolSchema.$defs.ProtocolVersion.const, schema: "engine/protocol/schema/protocol.schema.json" },
+  protocol: { version: protocolSchema.$defs.ProtocolVersion.const, schema: "engine/protocol/schema/protocol.schema.json", sha256: sha256(fs.readFileSync(path.join(engineDir, "protocol/schema/protocol.schema.json"))) },
   artefacts,
 };
 fs.writeFileSync(manifestFile, JSON.stringify(manifest, null, 2) + "\n");

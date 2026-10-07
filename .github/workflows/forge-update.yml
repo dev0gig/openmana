@@ -1,0 +1,96 @@
+name: Forge update validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+    paths: ["engine/**", ".github/workflows/forge-update.yml"]
+  workflow_dispatch:
+    inputs:
+      base:
+        description: Full review base commit (before the Forge update)
+        required: true
+      protocol_reason:
+        description: Explicit reason for a versioned protocol adaptation (otherwise empty)
+        default: ""
+      adaptation_paths:
+        description: Exact outside-engine files, one per line (only with protocol adaptation)
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: forge-update-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      REVIEW_BASE: ${{ github.event.pull_request.base.sha || inputs.base }}
+      PROTOCOL_REASON: ${{ inputs.protocol_reason }}
+      ADAPTATION_PATHS: ${{ inputs.adaptation_paths }}
+      UPDATE_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'forge-update') }}
+      NODE_OPTIONS: --max-old-space-size=2048
+      JDK_JAVA_OPTIONS: -Xmx512m
+      MAVEN_OPTS: -Xmx768m
+      OPENMANA_NATIVE_IMAGE_XMX: 6g
+      OPENMANA_NATIVE_IMAGE_PARALLELISM: 2
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          submodules: true
+          persist-credentials: false
+      - name: Select dedicated Forge updates
+        id: select
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" = workflow_dispatch ] || [ "$UPDATE_LABEL" = true ] || [ -n "$(git diff --name-only "$REVIEW_BASE" HEAD -- engine/forge)" ]; then
+            echo 'run=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'run=false' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        if: steps.select.outputs.run == 'true'
+        with:
+          node-version: 22.22.3 # exact bootstrap version in engine/toolchain.lock.json
+      - name: Check review scope before downloading/building
+        if: steps.select.outputs.run == 'true'
+        run: |
+          args=(--base "$REVIEW_BASE")
+          if [ -n "$PROTOCOL_REASON" ]; then args+=(--protocol-reason "$PROTOCOL_REASON"); fi
+          while IFS= read -r file; do
+            if [ -n "$file" ]; then args+=(--adaptation-path "$file"); fi
+          done <<< "$ADAPTATION_PATHS"
+          node engine/scripts/validate-forge-update.mjs "${args[@]}" --check-only
+      - name: Install browser from the pinned engine npm lock
+        if: steps.select.outputs.run == 'true'
+        run: |
+          npm ci --prefix engine --no-audit --no-fund
+          engine/node_modules/.bin/playwright-core install --with-deps chromium
+      - name: Clean build, differential games, browser, catalog and app
+        if: steps.select.outputs.run == 'true'
+        run: |
+          args=(--base "$REVIEW_BASE")
+          if [ -n "$PROTOCOL_REASON" ]; then args+=(--protocol-reason "$PROTOCOL_REASON"); fi
+          while IFS= read -r file; do
+            if [ -n "$file" ]; then args+=(--adaptation-path "$file"); fi
+          done <<< "$ADAPTATION_PATHS"
+          node engine/scripts/validate-forge-update.mjs "${args[@]}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always() && steps.select.outputs.run == 'true'
+        with:
+          name: forge-validation-${{ github.run_id }}
+          retention-days: 14
+          path: |
+            engine/build/update-*/engine.lock.json
+            engine/build/update-*/pipeline.json
+            engine/build/update-*/logs/
+            engine/build/update-*/report/
+            engine/build/update-*/dist/
+            engine/build/update-*/catalog/
+            reports/
