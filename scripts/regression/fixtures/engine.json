@@ -1,0 +1,1064 @@
+{
+  "format": "openmana-engine-tests/1",
+  "manifestSha256": "dd33caca4339210f51f87d60a115a70e1b4a5e6934c08404cca5950896314d2c",
+  "browserSkipped": false,
+  "failures": 0,
+  "runs": {
+    "browser-ai-eager-42": {
+      "ok": true
+    },
+    "browser-ai-lazy-42-de-DE": {
+      "ok": true
+    },
+    "browser-ai-lazy-42": {
+      "ok": true
+    },
+    "browser-ai-lazy-7": {
+      "ok": true
+    },
+    "browser-cards-eager": {
+      "ok": true
+    },
+    "browser-cards-lazy-de-DE-cards-en-US": {
+      "ok": true
+    },
+    "browser-cards-lazy": {
+      "ok": true
+    },
+    "browser-negative": {
+      "ok": true
+    },
+    "browser-protocol-mismatch": {
+      "ok": true
+    },
+    "browser-replay-eager-human-11": {
+      "ok": true
+    },
+    "browser-replay-eager-human-3": {
+      "ok": true
+    },
+    "browser-replay-lazy-attackers": {
+      "ok": true
+    },
+    "browser-replay-lazy-blocks-double": {
+      "ok": true
+    },
+    "browser-replay-lazy-blocks-multi": {
+      "ok": true
+    },
+    "browser-replay-lazy-commander": {
+      "ok": true
+    },
+    "browser-replay-lazy-human-11": {
+      "ok": true
+    },
+    "browser-replay-lazy-human-3-concede": {
+      "ok": true
+    },
+    "browser-replay-lazy-human-3": {
+      "ok": true
+    },
+    "browser-replay-lazy-human-5-defend": {
+      "ok": true
+    },
+    "browser-replay-lazy-priority-respond": {
+      "ok": true
+    },
+    "browser-replay-lazy-stack-response": {
+      "ok": true
+    },
+    "browser-replay-lazy-targets-payment": {
+      "ok": true
+    },
+    "jvm-cards-check": {
+      "ok": true
+    },
+    "jvm-cards-eager": {},
+    "jvm-cards-lazy-de-DE-cards-en-US": {},
+    "jvm-cards-lazy-de-DE": {},
+    "jvm-cards-lazy": {},
+    "jvm-eager-42": {},
+    "jvm-fixture-attackers": {},
+    "jvm-fixture-blocks-double": {},
+    "jvm-fixture-blocks-multi": {},
+    "jvm-fixture-commander": {},
+    "jvm-fixture-human-11": {},
+    "jvm-fixture-human-3-concede": {},
+    "jvm-fixture-human-3-de-cards-en": {},
+    "jvm-fixture-human-3-de": {},
+    "jvm-fixture-human-3-lazy": {},
+    "jvm-fixture-human-3": {},
+    "jvm-fixture-human-5-defend": {},
+    "jvm-fixture-priority-respond": {},
+    "jvm-fixture-stack-response": {},
+    "jvm-fixture-targets-payment": {},
+    "jvm-lazy-42-de-DE": {},
+    "jvm-lazy-42": {},
+    "jvm-lazy-7": {},
+    "jvm-messages-schema": {
+      "ok": true
+    },
+    "jvm-traces": {
+      "ok": true,
+      "problems": [],
+      "required": [
+        "mulligan",
+        "land",
+        "spell",
+        "priority-pass",
+        "priority-play",
+        "priority-response",
+        "priority-opponent-turn",
+        "payment-auto",
+        "payment-manual",
+        "target-card",
+        "target-player",
+        "target-player-tap",
+        "target-multi",
+        "payment-pool",
+        "payment-life",
+        "cast-nested",
+        "trigger",
+        "stack-resolve",
+        "stack-response",
+        "attack",
+        "attack-planeswalker",
+        "attack-defender",
+        "attack-all",
+        "attack-call-back",
+        "attack-unavailable-sick",
+        "attack-unavailable-tapped",
+        "attack-unavailable-restricted",
+        "block",
+        "block-multi",
+        "block-double",
+        "zone:Library->Hand",
+        "zone:Hand->Battlefield",
+        "zone:Hand->Stack",
+        "zone:Stack->Graveyard",
+        "zone:Battlefield->Graveyard",
+        "end-win",
+        "end-loss",
+        "end-life",
+        "end-concede",
+        "commander-cast",
+        "commander-tax",
+        "commander-return",
+        "commander-damage"
+      ],
+      "fixtures": [
+        {
+          "name": "attackers",
+          "sameGameAs": null,
+          "turns": 15,
+          "result": "loss",
+          "inputs": 52,
+          "stats": {
+            "checkpoints": {
+              "end": 1
+            }
+          },
+          "covers": [
+            "attack",
+            "attack-planeswalker",
+            "attack-defender",
+            "attack-all",
+            "attack-call-back",
+            "attack-unavailable-sick",
+            "attack-unavailable-tapped",
+            "attack-unavailable-restricted"
+          ],
+          "coverage": {
+            "zone:Library->Hand": 35,
+            "zone:Hand->Library": 8,
+            "question-withdrawn": 51,
+            "mulligan": 1,
+            "zone:Hand->Battlefield": 12,
+            "input-rejected": 4,
+            "state-request": 1,
+            "land": 6,
+            "zone:Hand->Stack": 14,
+            "payment-auto": 3,
+            "spell": 7,
+            "zone:Stack->Battlefield": 10,
+            "stack-resolve": 18,
+            "decision-select": 4,
+            "target-card": 2,
+            "priority-pass": 1,
+            "zone:Stack->Graveyard": 3,
+            "attack-unavailable-tapped": 2,
+            "attack-unavailable-restricted": 4,
+            "attack-unavailable-sick": 2,
+            "attack": 3,
+            "attack-all": 2,
+            "zone:Battlefield->Graveyard": 4,
+            "block": 2,
+            "zone:Library->Battlefield": 1,
+            "attack-call-back": 1,
+            "attack-planeswalker": 1,
+            "end-loss": 1,
+            "priority-play": 14,
+            "payment-manual": 5,
+            "priority-response": 1,
+            "attack-defender": 2,
+            "end-life": 1
+          },
+          "problems": []
+        },
+        {
+          "name": "blocks-double",
+          "sameGameAs": null,
+          "turns": 13,
+          "result": "loss",
+          "inputs": 45,
+          "stats": {
+            "checkpoints": {
+              "end": 1
+            }
+          },
+          "covers": [
+            "block",
+            "block-double",
+            "attack",
+            "decision-distribute",
+            "end-concede",
+            "end-loss"
+          ],
+          "coverage": {
+            "zone:Library->Hand": 47,
+            "zone:Hand->Library": 24,
+            "question-withdrawn": 38,
+            "mulligan": 1,
+            "input-rejected": 5,
+            "state-request": 2,
+            "zone:Hand->Battlefield": 8,
+            "land": 4,
+            "zone:Hand->Stack": 13,
+            "payment-auto": 3,
+            "spell": 6,
+            "zone:Stack->Battlefield": 12,
+            "stack-resolve": 13,
+            "zone:Stack->Graveyard": 1,
+            "zone:Battlefield->Graveyard": 4,
+            "attack-unavailable-sick": 11,
+            "attack": 2,
+            "decision-distribute": 1,
+            "block": 1,
+            "block-double": 1,
+            "end-loss": 1,
+            "end-concede": 1,
+            "priority-play": 10,
+            "payment-manual": 8
+          },
+          "problems": []
+        },
+        {
+          "name": "blocks-multi",
+          "sameGameAs": null,
+          "turns": 16,
+          "result": "loss",
+          "inputs": 55,
+          "stats": {
+            "checkpoints": {
+              "end": 1
+            }
+          },
+          "covers": [
+            "mulligan",
+            "land",
+            "spell",
+            "priority-play",
+            "payment-auto",
+            "payment-manual",
+            "attack",
+            "block",
+            "block-multi",
+            "decision-distribute",
+            "zone:Stack->Battlefield",
+            "end-loss",
+            "end-life"
+          ],
+          "coverage": {
+            "zone:Library->Hand": 36,
+            "zone:Hand->Library": 8,
+            "question-withdrawn": 49,
+            "mulligan": 1,
+            "input-rejected": 5,
+            "state-request": 2,
+            "zone:Hand->Battlefield": 11,
+            "land": 6,
+            "zone:Hand->Stack": 15,
+            "zone:Stack->Battlefield": 13,
+            "stack-resolve": 15,
+            "priority-opponent-turn": 1,
+            "decision-select": 1,
+            "payment-auto": 4,
+            "spell": 7,
+            "target-card": 1,
+            "zone:Stack->Graveyard": 2,
+            "zone:Battlefield->Graveyard": 6,
+            "attack-unavailable-tapped": 2,
+            "attack-unavailable-sick": 8,
+            "attack": 2,
+            "decision-distribute": 1,
+            "block": 2,
+            "block-multi": 1,
+            "end-loss": 1,
+            "priority-play": 13,
+            "payment-manual": 7,
+            "end-life": 1
+          },
+          "problems": []
+        },
+        {
+          "name": "commander",
+          "sameGameAs": null,
+          "turns": 17,
+          "result": "win",
+          "inputs": 85,
+          "stats": {
+            "checkpoints": {
+              "end": 1
+            }
+          },
+          "covers": [
+            "commander-cast",
+            "commander-tax",
+            "commander-return",
+            "commander-damage",
+            "trigger",
+            "attack",
+            "target-player",
+            "zone:Command->Stack",
+            "zone:Graveyard->Command",
+            "end-win",
+            "end-life"
+          ],
+          "coverage": {
+            "zone:Library->Hand": 37,
+            "zone:Hand->Library": 8,
+            "question-withdrawn": 77,
+            "mulligan": 1,
+            "input-rejected": 5,
+            "state-request": 2,
+            "zone:Hand->Battlefield": 17,
+            "land": 9,
+            "zone:Hand->Stack": 4,
+            "payment-auto": 3,
+            "spell": 5,
+            "target-player": 2,
+            "stack-resolve": 16,
+            "zone:Stack->Graveyard": 2,
+            "decision-arrange": 1,
+            "zone:Library->Library": 2,
+            "zone:Command->Stack": 4,
+            "zone:Stack->Battlefield": 6,
+            "trigger": 8,
+            "commander-cast": 2,
+            "attack-unavailable-sick": 2,
+            "attack": 6,
+            "commander-damage": 9,
+            "zone:Battlefield->Graveyard": 4,
+            "zone:Graveyard->Command": 2,
+            "commander-return": 1,
+            "commander-tax": 1,
+            "end-win": 1,
+            "priority-play": 14,
+            "target-player-tap": 2,
+            "payment-manual": 5,
+            "end-life": 1
+          },
+          "problems": []
+        },
+        {
+          "name": "human-11",
+          "sameGameAs": null,
+          "turns": 14,
+          "result": "loss",
+          "inputs": 54,
+          "stats": {
+            "checkpoints": {
+              "end": 1
+            }
+          },
+          "covers": [
+            "mulligan",
+            "land",
+            "spell",
+            "priority-play",
+            "payment-auto",
+            "payment-manual",
+            "target-card",
+            "target-player",
+            "attack",
+            "decision-options",
+            "decision-arrange",
+            "decision-select",
+            "zone:Library->Hand",
+            "zone:Hand->Graveyard",
+            "zone:Stack->Exile",
+            "end-loss",
+            "end-life"
+          ],
+          "coverage": {
+            "zone:Library->Hand": 36,
+            "zone:Hand->Library": 8,
+            "question-withdrawn": 46,
+            "mulligan": 1,
+            "input-rejected": 5,
+            "state-request": 2,
+            "zone:Hand->Battlefield": 8,
+            "land": 3,
+            "zone:Hand->Stack": 18,
+            "payment-auto": 5,
+            "spell": 9,
+            "target-player": 1,
+            "stack-resolve": 18,
+            "zone:Stack->Graveyard": 8,
+            "zone:Stack->Battlefield": 8,
+            "decision-options": 1,
+            "zone:Library->Battlefield": 1,
+            "decision-select": 8,
+            "target-card": 6,
+            "zone:Stack->Exile": 1,
+            "zone:Battlefield->Graveyard": 3,
+            "trigger": 1,
+            "decision-arrange": 2,
+            "zone:Library->Library": 4,
+            "attack": 1,
+            "zone:Hand->Graveyard": 2,
+            "end-loss": 1,
+            "priority-play": 13,
+            "target-player-tap": 1,
+            "payment-manual": 8,
+            "end-life": 1
+          },
+          "problems": []
+        },
+        {
+          "name": "human-3-concede",
+          "sameGameAs": null,
+          "turns": 4,
+          "result": "loss",
+          "inputs": 14,
+          "stats": {
+            "checkpoints": {
+              "end": 1
+            }
+          },
+          "covers": [
+            "mulligan",
+            "end-concede",
+            "end-loss"
+          ],
+          "coverage": {
+            "zone:Library->Hand": 23,
+            "zone:Hand->Library": 8,
+            "question-withdrawn": 7,
+            "mulligan": 1,
+            "zone:Hand->Battlefield": 3,
+            "input-rejected": 4,
+            "state-request": 1,
+            "land": 1,
+            "zone:Hand->Stack": 1,
+            "payment-auto": 1,
+            "spell": 1,
+            "target-player": 1,
+            "stack-resolve": 1,
+            "zone:Stack->Graveyard": 1,
+            "end-loss": 1,
+            "end-concede": 1,
+            "priority-play": 2,
+            "target-player-tap": 1
+          },
+          "problems": []
+        },
+        {
+          "name": "human-3-de-cards-en",
+          "sameGameAs": "human-3",
+          "turns": 15,
+          "result": "loss",
+          "inputs": 44,
+          "stats": {
+            "checkpoints": {
+              "end": 1
+            }
+          },
+          "covers": [
+            "mulligan",
+            "land",
+            "spell",
+            "priority-play",
+            "payment-auto",
+            "payment-manual",
+            "target-card",
+            "target-player",
+            "trigger",
+            "stack-resolve",
+            "attack",
+            "decision-arrange",
+            "decision-choose",
+            "decision-select",
+            "input-rejected",
+            "state-request",
+            "zone:Library->Hand",
+            "zone:Hand->Battlefield",
+            "zone:Hand->Stack",
+            "zone:Stack->Graveyard",
+            "zone:Battlefield->Graveyard",
+            "end-loss",
+            "end-life"
+          ],
+          "coverage": {
+            "zone:Library->Hand": 35,
+            "zone:Hand->Library": 8,
+            "question-withdrawn": 37,
+            "mulligan": 1,
+            "zone:Hand->Battlefield": 14,
+            "input-rejected": 5,
+            "state-request": 2,
+            "land": 7,
+            "zone:Hand->Stack": 11,
+            "payment-auto": 3,
+            "spell": 6,
+            "target-player": 2,
+            "stack-resolve": 12,
+            "zone:Stack->Graveyard": 5,
+            "zone:Stack->Battlefield": 6,
+            "attack": 2,
+            "decision-select": 2,
+            "target-card": 2,
+            "decision-arrange": 1,
+            "zone:Library->Library": 2,
+            "zone:Battlefield->Graveyard": 3,
+            "trigger": 1,
+            "decision-choose": 3,
+            "cast-nested": 3,
+            "end-loss": 1,
+            "priority-play": 13,
+            "target-player-tap": 2,
+            "payment-manual": 4,
+            "end-life": 1
+          },
+          "problems": []
+        },
+        {
+          "name": "human-3-de",
+          "sameGameAs": "human-3",
+          "turns": 15,
+          "result": "loss",
+          "inputs": 44,
+          "stats": {
+            "checkpoints": {
+              "end": 1
+            }
+          },
+          "covers": [
+            "mulligan",
+            "land",
+            "spell",
+            "priority-play",
+            "payment-auto",
+            "payment-manual",
+            "target-card",
+            "target-player",
+            "trigger",
+            "stack-resolve",
+            "attack",
+            "decision-arrange",
+            "decision-choose",
+            "decision-select",
+            "input-rejected",
+            "state-request",
+            "zone:Library->Hand",
+            "zone:Hand->Battlefield",
+            "zone:Hand->Stack",
+            "zone:Stack->Graveyard",
+            "zone:Battlefield->Graveyard",
+            "end-loss",
+            "end-life"
+          ],
+          "coverage": {
+            "zone:Library->Hand": 35,
+            "zone:Hand->Library": 8,
+            "question-withdrawn": 37,
+            "mulligan": 1,
+            "zone:Hand->Battlefield": 14,
+            "input-rejected": 5,
+            "state-request": 2,
+            "land": 7,
+            "zone:Hand->Stack": 11,
+            "payment-auto": 3,
+            "spell": 6,
+            "target-player": 2,
+            "stack-resolve": 12,
+            "zone:Stack->Graveyard": 5,
+            "zone:Stack->Battlefield": 6,
+            "attack": 2,
+            "decision-select": 2,
+            "target-card": 2,
+            "decision-arrange": 1,
+            "zone:Library->Library": 2,
+            "zone:Battlefield->Graveyard": 3,
+            "trigger": 1,
+            "decision-choose": 3,
+            "cast-nested": 3,
+            "end-loss": 1,
+            "priority-play": 13,
+            "target-player-tap": 2,
+            "payment-manual": 4,
+            "end-life": 1
+          },
+          "problems": []
+        },
+        {
+          "name": "human-3-lazy",
+          "sameGameAs": "human-3",
+          "turns": 15,
+          "result": "loss",
+          "inputs": 44,
+          "stats": {
+            "checkpoints": {
+              "end": 1
+            }
+          },
+          "covers": [
+            "mulligan",
+            "land",
+            "spell",
+            "priority-play",
+            "payment-auto",
+            "payment-manual",
+            "target-card",
+            "target-player",
+            "trigger",
+            "stack-resolve",
+            "attack",
+            "decision-arrange",
+            "decision-choose",
+            "decision-select",
+            "input-rejected",
+            "state-request",
+            "zone:Library->Hand",
+            "zone:Hand->Battlefield",
+            "zone:Hand->Stack",
+            "zone:Stack->Graveyard",
+            "zone:Battlefield->Graveyard",
+            "end-loss",
+            "end-life"
+          ],
+          "coverage": {
+            "zone:Library->Hand": 35,
+            "zone:Hand->Library": 8,
+            "question-withdrawn": 37,
+            "mulligan": 1,
+            "zone:Hand->Battlefield": 14,
+            "input-rejected": 5,
+            "state-request": 2,
+            "land": 7,
+            "zone:Hand->Stack": 11,
+            "payment-auto": 3,
+            "spell": 6,
+            "target-player": 2,
+            "stack-resolve": 12,
+            "zone:Stack->Graveyard": 5,
+            "zone:Stack->Battlefield": 6,
+            "attack": 2,
+            "decision-select": 2,
+            "target-card": 2,
+            "decision-arrange": 1,
+            "zone:Library->Library": 2,
+            "zone:Battlefield->Graveyard": 3,
+            "trigger": 1,
+            "decision-choose": 3,
+            "cast-nested": 3,
+            "end-loss": 1,
+            "priority-play": 13,
+            "target-player-tap": 2,
+            "payment-manual": 4,
+            "end-life": 1
+          },
+          "problems": []
+        },
+        {
+          "name": "human-3",
+          "sameGameAs": null,
+          "turns": 15,
+          "result": "loss",
+          "inputs": 44,
+          "stats": {
+            "checkpoints": {
+              "end": 1
+            }
+          },
+          "covers": [
+            "mulligan",
+            "land",
+            "spell",
+            "priority-play",
+            "payment-auto",
+            "payment-manual",
+            "target-card",
+            "target-player",
+            "trigger",
+            "stack-resolve",
+            "attack",
+            "decision-arrange",
+            "decision-choose",
+            "decision-select",
+            "input-rejected",
+            "state-request",
+            "zone:Library->Hand",
+            "zone:Hand->Battlefield",
+            "zone:Hand->Stack",
+            "zone:Stack->Graveyard",
+            "zone:Battlefield->Graveyard",
+            "end-loss",
+            "end-life"
+          ],
+          "coverage": {
+            "zone:Library->Hand": 35,
+            "zone:Hand->Library": 8,
+            "question-withdrawn": 37,
+            "mulligan": 1,
+            "zone:Hand->Battlefield": 14,
+            "input-rejected": 5,
+            "state-request": 2,
+            "land": 7,
+            "zone:Hand->Stack": 11,
+            "payment-auto": 3,
+            "spell": 6,
+            "target-player": 2,
+            "stack-resolve": 12,
+            "zone:Stack->Graveyard": 5,
+            "zone:Stack->Battlefield": 6,
+            "attack": 2,
+            "decision-select": 2,
+            "target-card": 2,
+            "decision-arrange": 1,
+            "zone:Library->Library": 2,
+            "zone:Battlefield->Graveyard": 3,
+            "trigger": 1,
+            "decision-choose": 3,
+            "cast-nested": 3,
+            "end-loss": 1,
+            "priority-play": 13,
+            "target-player-tap": 2,
+            "payment-manual": 4,
+            "end-life": 1
+          },
+          "problems": []
+        },
+        {
+          "name": "human-5-defend",
+          "sameGameAs": null,
+          "turns": 15,
+          "result": "loss",
+          "inputs": 52,
+          "stats": {
+            "checkpoints": {
+              "end": 1
+            }
+          },
+          "covers": [
+            "mulligan",
+            "priority-pass",
+            "priority-play",
+            "payment-auto",
+            "payment-manual",
+            "block",
+            "decision-choose",
+            "trigger",
+            "end-loss",
+            "end-life"
+          ],
+          "coverage": {
+            "zone:Library->Hand": 42,
+            "zone:Hand->Library": 16,
+            "question-withdrawn": 44,
+            "mulligan": 1,
+            "zone:Hand->Battlefield": 8,
+            "input-rejected": 5,
+            "state-request": 2,
+            "land": 4,
+            "zone:Hand->Stack": 16,
+            "payment-auto": 5,
+            "spell": 9,
+            "target-player": 1,
+            "stack-resolve": 17,
+            "zone:Stack->Graveyard": 7,
+            "zone:Stack->Battlefield": 8,
+            "decision-select": 5,
+            "target-card": 5,
+            "zone:Battlefield->Graveyard": 4,
+            "zone:Stack->Exile": 1,
+            "block": 2,
+            "trigger": 1,
+            "decision-choose": 3,
+            "zone:Library->Battlefield": 1,
+            "priority-pass": 2,
+            "end-loss": 1,
+            "priority-play": 13,
+            "target-player-tap": 1,
+            "payment-manual": 6,
+            "end-life": 1
+          },
+          "problems": []
+        },
+        {
+          "name": "priority-respond",
+          "sameGameAs": null,
+          "turns": 14,
+          "result": "loss",
+          "inputs": 140,
+          "stats": {
+            "checkpoints": {
+              "end": 1
+            }
+          },
+          "covers": [
+            "priority-opponent-turn",
+            "priority-response",
+            "priority-pass",
+            "stack-response",
+            "stack-resolve",
+            "land",
+            "spell",
+            "target-card",
+            "end-loss"
+          ],
+          "coverage": {
+            "zone:Library->Hand": 34,
+            "zone:Hand->Library": 8,
+            "question-withdrawn": 42,
+            "mulligan": 1,
+            "input-rejected": 5,
+            "state-request": 2,
+            "zone:Hand->Battlefield": 6,
+            "land": 3,
+            "priority-pass": 97,
+            "priority-opponent-turn": 52,
+            "zone:Hand->Stack": 17,
+            "decision-choose": 2,
+            "payment-auto": 4,
+            "stack-response": 8,
+            "spell": 8,
+            "target-player": 3,
+            "stack-resolve": 17,
+            "zone:Stack->Graveyard": 9,
+            "zone:Stack->Battlefield": 8,
+            "decision-select": 5,
+            "target-card": 5,
+            "zone:Battlefield->Graveyard": 4,
+            "zone:Library->Battlefield": 1,
+            "cast-nested": 1,
+            "end-loss": 1,
+            "priority-play": 11,
+            "priority-response": 8,
+            "target-player-tap": 3,
+            "payment-manual": 6,
+            "end-life": 1
+          },
+          "problems": []
+        },
+        {
+          "name": "stack-response",
+          "sameGameAs": null,
+          "turns": 13,
+          "result": "win",
+          "inputs": 46,
+          "stats": {
+            "checkpoints": {
+              "end": 1
+            }
+          },
+          "covers": [
+            "stack-response",
+            "stack-resolve",
+            "spell",
+            "attack",
+            "end-win",
+            "end-life"
+          ],
+          "coverage": {
+            "zone:Library->Hand": 47,
+            "zone:Hand->Library": 24,
+            "question-withdrawn": 44,
+            "mulligan": 1,
+            "input-rejected": 4,
+            "state-request": 1,
+            "zone:Hand->Battlefield": 6,
+            "land": 5,
+            "zone:Hand->Stack": 10,
+            "payment-auto": 4,
+            "spell": 7,
+            "zone:Stack->Battlefield": 7,
+            "stack-resolve": 10,
+            "zone:Stack->Graveyard": 3,
+            "zone:Battlefield->Graveyard": 3,
+            "attack-unavailable-sick": 12,
+            "attack": 4,
+            "stack-response": 1,
+            "end-win": 1,
+            "priority-play": 12,
+            "payment-manual": 8,
+            "end-life": 1
+          },
+          "problems": []
+        },
+        {
+          "name": "targets-payment",
+          "sameGameAs": null,
+          "turns": 11,
+          "result": "loss",
+          "inputs": 52,
+          "stats": {
+            "checkpoints": {
+              "end": 1
+            }
+          },
+          "covers": [
+            "target-player-tap",
+            "target-multi",
+            "payment-pool",
+            "payment-life",
+            "cast-nested",
+            "target-player",
+            "target-card",
+            "payment-manual",
+            "payment-auto",
+            "spell",
+            "land"
+          ],
+          "coverage": {
+            "zone:Library->Hand": 38,
+            "zone:Hand->Library": 16,
+            "question-withdrawn": 42,
+            "mulligan": 1,
+            "zone:Hand->Battlefield": 8,
+            "input-rejected": 5,
+            "state-request": 2,
+            "land": 4,
+            "zone:Hand->Stack": 18,
+            "payment-auto": 2,
+            "spell": 6,
+            "target-player": 2,
+            "stack-resolve": 12,
+            "zone:Stack->Graveyard": 7,
+            "zone:Library->Battlefield": 1,
+            "decision-choose": 6,
+            "target-multi": 1,
+            "zone:Stack->Battlefield": 5,
+            "cast-nested": 5,
+            "priority-pass": 4,
+            "decision-select": 1,
+            "target-card": 1,
+            "zone:Battlefield->Graveyard": 1,
+            "end-loss": 1,
+            "priority-play": 16,
+            "target-player-tap": 2,
+            "payment-manual": 5,
+            "payment-pool": 2,
+            "payment-life": 2,
+            "end-life": 1
+          },
+          "problems": []
+        }
+      ]
+    },
+    "node-ai-eager-42": {
+      "ok": true
+    },
+    "node-ai-lazy-42-de-DE": {
+      "ok": true
+    },
+    "node-ai-lazy-42": {
+      "ok": true
+    },
+    "node-ai-lazy-7": {
+      "ok": true
+    },
+    "node-cards-eager": {
+      "ok": true
+    },
+    "node-cards-lazy-de-DE-cards-en-US": {
+      "ok": true
+    },
+    "node-cards-lazy-de-DE": {
+      "ok": true
+    },
+    "node-cards-lazy": {
+      "ok": true
+    },
+    "node-divergence": {
+      "ok": true
+    },
+    "node-protocol": {
+      "ok": true
+    },
+    "node-replay-eager-blocks-double": {
+      "ok": true
+    },
+    "node-replay-eager-blocks-multi": {
+      "ok": true
+    },
+    "node-replay-eager-commander": {
+      "ok": true
+    },
+    "node-replay-eager-human-11": {
+      "ok": true
+    },
+    "node-replay-eager-human-3-concede": {
+      "ok": true
+    },
+    "node-replay-eager-human-3": {
+      "ok": true
+    },
+    "node-replay-eager-human-5-defend": {
+      "ok": true
+    },
+    "node-replay-eager-stack-response": {
+      "ok": true
+    },
+    "node-replay-lazy-attackers": {
+      "ok": true
+    },
+    "node-replay-lazy-blocks-double": {
+      "ok": true
+    },
+    "node-replay-lazy-blocks-multi": {
+      "ok": true
+    },
+    "node-replay-lazy-commander": {
+      "ok": true
+    },
+    "node-replay-lazy-human-11": {
+      "ok": true
+    },
+    "node-replay-lazy-human-3-concede": {
+      "ok": true
+    },
+    "node-replay-lazy-human-3-de-cards-en": {
+      "ok": true
+    },
+    "node-replay-lazy-human-3-de": {
+      "ok": true
+    },
+    "node-replay-lazy-human-3": {
+      "ok": true
+    },
+    "node-replay-lazy-human-5-defend": {
+      "ok": true
+    },
+    "node-replay-lazy-priority-respond": {
+      "ok": true
+    },
+    "node-replay-lazy-stack-response": {
+      "ok": true
+    },
+    "node-replay-lazy-targets-payment": {
+      "ok": true
+    }
+  },
+  "_provenance": "Reduced historical Prompt26 report, validator-test data only; no current execution evidence."
+}

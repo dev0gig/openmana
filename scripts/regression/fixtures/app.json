@@ -1,0 +1,2554 @@
+{
+  "devServer": {},
+  "localData": {},
+  "localDataQuota": {},
+  "cardData": {},
+  "deckImport": {},
+  "deckLibrary": {},
+  "preferences": {
+    "workers": {
+      "maxAtOnce": 1
+    }
+  },
+  "replay": {},
+  "oryxCloud": {},
+  "oryxWebIntegration": {},
+  "failures": [],
+  "surfaces": [
+    {
+      "viewport": "small-phone",
+      "route": "/",
+      "violations": 0
+    },
+    {
+      "viewport": "small-phone",
+      "route": "/decks",
+      "violations": 0
+    },
+    {
+      "viewport": "small-phone",
+      "route": "/decks/import",
+      "violations": 0
+    },
+    {
+      "viewport": "small-phone",
+      "route": "/decks/00000000-0000-4000-8000-000000000000",
+      "violations": 0
+    },
+    {
+      "viewport": "small-phone",
+      "route": "/decks/00000000-0000-4000-8000-000000000000/import",
+      "violations": 0
+    },
+    {
+      "viewport": "small-phone",
+      "route": "/play",
+      "violations": 0
+    },
+    {
+      "viewport": "small-phone",
+      "route": "/play/game",
+      "violations": 0
+    },
+    {
+      "viewport": "small-phone",
+      "route": "/matches",
+      "violations": 0
+    },
+    {
+      "viewport": "small-phone",
+      "route": "/settings",
+      "violations": 0
+    },
+    {
+      "viewport": "small-phone",
+      "route": "/credits",
+      "violations": 0
+    },
+    {
+      "viewport": "small-phone",
+      "route": "/matches/missing",
+      "violations": 0
+    },
+    {
+      "viewport": "small-phone",
+      "route": "/missing",
+      "violations": 0
+    },
+    {
+      "viewport": "phone",
+      "route": "/",
+      "violations": 0
+    },
+    {
+      "viewport": "phone",
+      "route": "/decks",
+      "violations": 0
+    },
+    {
+      "viewport": "phone",
+      "route": "/decks/import",
+      "violations": 0
+    },
+    {
+      "viewport": "phone",
+      "route": "/decks/00000000-0000-4000-8000-000000000000",
+      "violations": 0
+    },
+    {
+      "viewport": "phone",
+      "route": "/decks/00000000-0000-4000-8000-000000000000/import",
+      "violations": 0
+    },
+    {
+      "viewport": "phone",
+      "route": "/play",
+      "violations": 0
+    },
+    {
+      "viewport": "phone",
+      "route": "/play/game",
+      "violations": 0
+    },
+    {
+      "viewport": "phone",
+      "route": "/matches",
+      "violations": 0
+    },
+    {
+      "viewport": "phone",
+      "route": "/settings",
+      "violations": 0
+    },
+    {
+      "viewport": "phone",
+      "route": "/credits",
+      "violations": 0
+    },
+    {
+      "viewport": "phone",
+      "route": "/matches/missing",
+      "violations": 0
+    },
+    {
+      "viewport": "phone",
+      "route": "/missing",
+      "violations": 0
+    },
+    {
+      "viewport": "phone-landscape",
+      "route": "/",
+      "violations": 0
+    },
+    {
+      "viewport": "phone-landscape",
+      "route": "/decks",
+      "violations": 0
+    },
+    {
+      "viewport": "phone-landscape",
+      "route": "/decks/import",
+      "violations": 0
+    },
+    {
+      "viewport": "phone-landscape",
+      "route": "/decks/00000000-0000-4000-8000-000000000000",
+      "violations": 0
+    },
+    {
+      "viewport": "phone-landscape",
+      "route": "/decks/00000000-0000-4000-8000-000000000000/import",
+      "violations": 0
+    },
+    {
+      "viewport": "phone-landscape",
+      "route": "/play",
+      "violations": 0
+    },
+    {
+      "viewport": "phone-landscape",
+      "route": "/play/game",
+      "violations": 0
+    },
+    {
+      "viewport": "phone-landscape",
+      "route": "/matches",
+      "violations": 0
+    },
+    {
+      "viewport": "phone-landscape",
+      "route": "/settings",
+      "violations": 0
+    },
+    {
+      "viewport": "phone-landscape",
+      "route": "/credits",
+      "violations": 0
+    },
+    {
+      "viewport": "phone-landscape",
+      "route": "/matches/missing",
+      "violations": 0
+    },
+    {
+      "viewport": "phone-landscape",
+      "route": "/missing",
+      "violations": 0
+    },
+    {
+      "viewport": "fold-portrait",
+      "route": "/",
+      "violations": 0
+    },
+    {
+      "viewport": "fold-portrait",
+      "route": "/decks",
+      "violations": 0
+    },
+    {
+      "viewport": "fold-portrait",
+      "route": "/decks/import",
+      "violations": 0
+    },
+    {
+      "viewport": "fold-portrait",
+      "route": "/decks/00000000-0000-4000-8000-000000000000",
+      "violations": 0
+    },
+    {
+      "viewport": "fold-portrait",
+      "route": "/decks/00000000-0000-4000-8000-000000000000/import",
+      "violations": 0
+    },
+    {
+      "viewport": "fold-portrait",
+      "route": "/play",
+      "violations": 0
+    },
+    {
+      "viewport": "fold-portrait",
+      "route": "/play/game",
+      "violations": 0
+    },
+    {
+      "viewport": "fold-portrait",
+      "route": "/matches",
+      "violations": 0
+    },
+    {
+      "viewport": "fold-portrait",
+      "route": "/settings",
+      "violations": 0
+    },
+    {
+      "viewport": "fold-portrait",
+      "route": "/credits",
+      "violations": 0
+    },
+    {
+      "viewport": "fold-portrait",
+      "route": "/matches/missing",
+      "violations": 0
+    },
+    {
+      "viewport": "fold-portrait",
+      "route": "/missing",
+      "violations": 0
+    },
+    {
+      "viewport": "fold-landscape",
+      "route": "/",
+      "violations": 0
+    },
+    {
+      "viewport": "fold-landscape",
+      "route": "/decks",
+      "violations": 0
+    },
+    {
+      "viewport": "fold-landscape",
+      "route": "/decks/import",
+      "violations": 0
+    },
+    {
+      "viewport": "fold-landscape",
+      "route": "/decks/00000000-0000-4000-8000-000000000000",
+      "violations": 0
+    },
+    {
+      "viewport": "fold-landscape",
+      "route": "/decks/00000000-0000-4000-8000-000000000000/import",
+      "violations": 0
+    },
+    {
+      "viewport": "fold-landscape",
+      "route": "/play",
+      "violations": 0
+    },
+    {
+      "viewport": "fold-landscape",
+      "route": "/play/game",
+      "violations": 0
+    },
+    {
+      "viewport": "fold-landscape",
+      "route": "/matches",
+      "violations": 0
+    },
+    {
+      "viewport": "fold-landscape",
+      "route": "/settings",
+      "violations": 0
+    },
+    {
+      "viewport": "fold-landscape",
+      "route": "/credits",
+      "violations": 0
+    },
+    {
+      "viewport": "fold-landscape",
+      "route": "/matches/missing",
+      "violations": 0
+    },
+    {
+      "viewport": "fold-landscape",
+      "route": "/missing",
+      "violations": 0
+    },
+    {
+      "viewport": "tablet",
+      "route": "/",
+      "violations": 0
+    },
+    {
+      "viewport": "tablet",
+      "route": "/decks",
+      "violations": 0
+    },
+    {
+      "viewport": "tablet",
+      "route": "/decks/import",
+      "violations": 0
+    },
+    {
+      "viewport": "tablet",
+      "route": "/decks/00000000-0000-4000-8000-000000000000",
+      "violations": 0
+    },
+    {
+      "viewport": "tablet",
+      "route": "/decks/00000000-0000-4000-8000-000000000000/import",
+      "violations": 0
+    },
+    {
+      "viewport": "tablet",
+      "route": "/play",
+      "violations": 0
+    },
+    {
+      "viewport": "tablet",
+      "route": "/play/game",
+      "violations": 0
+    },
+    {
+      "viewport": "tablet",
+      "route": "/matches",
+      "violations": 0
+    },
+    {
+      "viewport": "tablet",
+      "route": "/settings",
+      "violations": 0
+    },
+    {
+      "viewport": "tablet",
+      "route": "/credits",
+      "violations": 0
+    },
+    {
+      "viewport": "tablet",
+      "route": "/matches/missing",
+      "violations": 0
+    },
+    {
+      "viewport": "tablet",
+      "route": "/missing",
+      "violations": 0
+    },
+    {
+      "viewport": "tablet-landscape",
+      "route": "/",
+      "violations": 0
+    },
+    {
+      "viewport": "tablet-landscape",
+      "route": "/decks",
+      "violations": 0
+    },
+    {
+      "viewport": "tablet-landscape",
+      "route": "/decks/import",
+      "violations": 0
+    },
+    {
+      "viewport": "tablet-landscape",
+      "route": "/decks/00000000-0000-4000-8000-000000000000",
+      "violations": 0
+    },
+    {
+      "viewport": "tablet-landscape",
+      "route": "/decks/00000000-0000-4000-8000-000000000000/import",
+      "violations": 0
+    },
+    {
+      "viewport": "tablet-landscape",
+      "route": "/play",
+      "violations": 0
+    },
+    {
+      "viewport": "tablet-landscape",
+      "route": "/play/game",
+      "violations": 0
+    },
+    {
+      "viewport": "tablet-landscape",
+      "route": "/matches",
+      "violations": 0
+    },
+    {
+      "viewport": "tablet-landscape",
+      "route": "/settings",
+      "violations": 0
+    },
+    {
+      "viewport": "tablet-landscape",
+      "route": "/credits",
+      "violations": 0
+    },
+    {
+      "viewport": "tablet-landscape",
+      "route": "/matches/missing",
+      "violations": 0
+    },
+    {
+      "viewport": "tablet-landscape",
+      "route": "/missing",
+      "violations": 0
+    },
+    {
+      "viewport": "desktop",
+      "route": "/",
+      "violations": 0
+    },
+    {
+      "viewport": "desktop",
+      "route": "/decks",
+      "violations": 0
+    },
+    {
+      "viewport": "desktop",
+      "route": "/decks/import",
+      "violations": 0
+    },
+    {
+      "viewport": "desktop",
+      "route": "/decks/00000000-0000-4000-8000-000000000000",
+      "violations": 0
+    },
+    {
+      "viewport": "desktop",
+      "route": "/decks/00000000-0000-4000-8000-000000000000/import",
+      "violations": 0
+    },
+    {
+      "viewport": "desktop",
+      "route": "/play",
+      "violations": 0
+    },
+    {
+      "viewport": "desktop",
+      "route": "/play/game",
+      "violations": 0
+    },
+    {
+      "viewport": "desktop",
+      "route": "/matches",
+      "violations": 0
+    },
+    {
+      "viewport": "desktop",
+      "route": "/settings",
+      "violations": 0
+    },
+    {
+      "viewport": "desktop",
+      "route": "/credits",
+      "violations": 0
+    },
+    {
+      "viewport": "desktop",
+      "route": "/matches/missing",
+      "violations": 0
+    },
+    {
+      "viewport": "desktop",
+      "route": "/missing",
+      "violations": 0
+    }
+  ],
+  "responsive": [
+    {
+      "maximumConcurrentWorkers": 1
+    },
+    {
+      "maximumConcurrentWorkers": 1
+    },
+    {
+      "maximumConcurrentWorkers": 1
+    },
+    {
+      "maximumConcurrentWorkers": 1
+    },
+    {
+      "maximumConcurrentWorkers": 1
+    },
+    {
+      "maximumConcurrentWorkers": 1
+    },
+    {
+      "maximumConcurrentWorkers": 1
+    },
+    {
+      "maximumConcurrentWorkers": 1
+    }
+  ],
+  "engine": [
+    {},
+    {}
+  ],
+  "withoutIsolation": {
+    "isolated": false
+  },
+  "gameSession": {
+    "workers": {
+      "maxAtOnce": 1
+    },
+    "failures": {
+      "workers": {
+        "maxAtOnce": 1
+      }
+    },
+    "phone": {
+      "played": {},
+      "liveRecordingReplay": {
+        "noInput": true
+      },
+      "finishedRecording": {
+        "entries": 55
+      }
+    },
+    "played": {},
+    "liveRecordingReplay": {
+      "noInput": true
+    },
+    "finishedRecording": {
+      "entries": 18
+    }
+  },
+  "gameTable": {
+    "phone": {
+      "opening": {
+        "axe": 0
+      },
+      "main-phase": {
+        "axe": 0
+      },
+      "stack": {
+        "axe": 0
+      },
+      "blockers": {
+        "axe": 0
+      },
+      "defend": {
+        "axe": 0
+      },
+      "commander-late": {
+        "axe": 0
+      },
+      "command-effects": {
+        "axe": 0
+      },
+      "play-draw": {
+        "axe": 0
+      },
+      "target": {
+        "axe": 0
+      },
+      "target-player": {
+        "axe": 0
+      },
+      "yes-no": {
+        "axe": 0
+      },
+      "discard": {
+        "axe": 0
+      },
+      "choose-mode": {
+        "axe": 0
+      },
+      "scry": {
+        "axe": 0
+      },
+      "ability": {
+        "axe": 0
+      },
+      "damage": {
+        "axe": 0
+      },
+      "opponent-turn": {
+        "axe": 0
+      },
+      "respond": {
+        "axe": 0
+      },
+      "respond-own": {
+        "axe": 0
+      },
+      "target-both": {
+        "axe": 0
+      },
+      "payment": {
+        "axe": 0
+      },
+      "payment-pool": {
+        "axe": 0
+      },
+      "payment-life": {
+        "axe": 0
+      },
+      "cast-x": {
+        "axe": 0
+      },
+      "attack": {
+        "axe": 0
+      },
+      "attack-declared": {
+        "axe": 0
+      },
+      "attack-planeswalker": {
+        "axe": 0
+      },
+      "block-start": {
+        "axe": 0
+      },
+      "block-multiple": {
+        "axe": 0
+      },
+      "built:confirm": {
+        "axe": 0
+      },
+      "built:input": {
+        "axe": 0
+      },
+      "built:order": {
+        "axe": 0
+      },
+      "built:block-order": {
+        "axe": 0
+      },
+      "built:reveal": {
+        "axe": 0
+      },
+      "built:choose-many": {
+        "axe": 0
+      },
+      "built:select-outside": {
+        "axe": 0
+      },
+      "interaction": {},
+      "history": {
+        "axe": 0
+      }
+    },
+    "phone-landscape": {
+      "opening": {
+        "axe": 0
+      },
+      "main-phase": {
+        "axe": 0
+      },
+      "stack": {
+        "axe": 0
+      },
+      "blockers": {
+        "axe": 0
+      },
+      "defend": {
+        "axe": 0
+      },
+      "commander-late": {
+        "axe": 0
+      },
+      "command-effects": {
+        "axe": 0
+      },
+      "play-draw": {
+        "axe": 0
+      },
+      "target": {
+        "axe": 0
+      },
+      "target-player": {
+        "axe": 0
+      },
+      "yes-no": {
+        "axe": 0
+      },
+      "discard": {
+        "axe": 0
+      },
+      "choose-mode": {
+        "axe": 0
+      },
+      "scry": {
+        "axe": 0
+      },
+      "ability": {
+        "axe": 0
+      },
+      "damage": {
+        "axe": 0
+      },
+      "opponent-turn": {
+        "axe": 0
+      },
+      "respond": {
+        "axe": 0
+      },
+      "respond-own": {
+        "axe": 0
+      },
+      "target-both": {
+        "axe": 0
+      },
+      "payment": {
+        "axe": 0
+      },
+      "payment-pool": {
+        "axe": 0
+      },
+      "payment-life": {
+        "axe": 0
+      },
+      "cast-x": {
+        "axe": 0
+      },
+      "attack": {
+        "axe": 0
+      },
+      "attack-declared": {
+        "axe": 0
+      },
+      "attack-planeswalker": {
+        "axe": 0
+      },
+      "block-start": {
+        "axe": 0
+      },
+      "block-multiple": {
+        "axe": 0
+      },
+      "built:confirm": {
+        "axe": 0
+      },
+      "built:input": {
+        "axe": 0
+      },
+      "built:order": {
+        "axe": 0
+      },
+      "built:block-order": {
+        "axe": 0
+      },
+      "built:reveal": {
+        "axe": 0
+      },
+      "built:choose-many": {
+        "axe": 0
+      },
+      "built:select-outside": {
+        "axe": 0
+      },
+      "interaction": {},
+      "history": {
+        "axe": 0
+      },
+      "decisions": {}
+    },
+    "small-phone": {
+      "opening": {
+        "axe": 0
+      },
+      "main-phase": {
+        "axe": 0
+      },
+      "stack": {
+        "axe": 0
+      },
+      "blockers": {
+        "axe": 0
+      },
+      "defend": {
+        "axe": 0
+      },
+      "commander-late": {
+        "axe": 0
+      },
+      "command-effects": {
+        "axe": 0
+      },
+      "play-draw": {
+        "axe": 0
+      },
+      "target": {
+        "axe": 0
+      },
+      "target-player": {
+        "axe": 0
+      },
+      "yes-no": {
+        "axe": 0
+      },
+      "discard": {
+        "axe": 0
+      },
+      "choose-mode": {
+        "axe": 0
+      },
+      "scry": {
+        "axe": 0
+      },
+      "ability": {
+        "axe": 0
+      },
+      "damage": {
+        "axe": 0
+      },
+      "opponent-turn": {
+        "axe": 0
+      },
+      "respond": {
+        "axe": 0
+      },
+      "respond-own": {
+        "axe": 0
+      },
+      "target-both": {
+        "axe": 0
+      },
+      "payment": {
+        "axe": 0
+      },
+      "payment-pool": {
+        "axe": 0
+      },
+      "payment-life": {
+        "axe": 0
+      },
+      "cast-x": {
+        "axe": 0
+      },
+      "attack": {
+        "axe": 0
+      },
+      "attack-declared": {
+        "axe": 0
+      },
+      "attack-planeswalker": {
+        "axe": 0
+      },
+      "block-start": {
+        "axe": 0
+      },
+      "block-multiple": {
+        "axe": 0
+      },
+      "built:confirm": {
+        "axe": 0
+      },
+      "built:input": {
+        "axe": 0
+      },
+      "built:order": {
+        "axe": 0
+      },
+      "built:block-order": {
+        "axe": 0
+      },
+      "built:reveal": {
+        "axe": 0
+      },
+      "built:choose-many": {
+        "axe": 0
+      },
+      "built:select-outside": {
+        "axe": 0
+      },
+      "interaction": {},
+      "history": {
+        "axe": 0
+      },
+      "decisions": {}
+    },
+    "tablet": {
+      "opening": {
+        "axe": 0
+      },
+      "main-phase": {
+        "axe": 0
+      },
+      "stack": {
+        "axe": 0
+      },
+      "blockers": {
+        "axe": 0
+      },
+      "defend": {
+        "axe": 0
+      },
+      "commander-late": {
+        "axe": 0
+      },
+      "command-effects": {
+        "axe": 0
+      },
+      "play-draw": {
+        "axe": 0
+      },
+      "target": {
+        "axe": 0
+      },
+      "target-player": {
+        "axe": 0
+      },
+      "yes-no": {
+        "axe": 0
+      },
+      "discard": {
+        "axe": 0
+      },
+      "choose-mode": {
+        "axe": 0
+      },
+      "scry": {
+        "axe": 0
+      },
+      "ability": {
+        "axe": 0
+      },
+      "damage": {
+        "axe": 0
+      },
+      "opponent-turn": {
+        "axe": 0
+      },
+      "respond": {
+        "axe": 0
+      },
+      "respond-own": {
+        "axe": 0
+      },
+      "target-both": {
+        "axe": 0
+      },
+      "payment": {
+        "axe": 0
+      },
+      "payment-pool": {
+        "axe": 0
+      },
+      "payment-life": {
+        "axe": 0
+      },
+      "cast-x": {
+        "axe": 0
+      },
+      "attack": {
+        "axe": 0
+      },
+      "attack-declared": {
+        "axe": 0
+      },
+      "attack-planeswalker": {
+        "axe": 0
+      },
+      "block-start": {
+        "axe": 0
+      },
+      "block-multiple": {
+        "axe": 0
+      },
+      "built:confirm": {
+        "axe": 0
+      },
+      "built:input": {
+        "axe": 0
+      },
+      "built:order": {
+        "axe": 0
+      },
+      "built:block-order": {
+        "axe": 0
+      },
+      "built:reveal": {
+        "axe": 0
+      },
+      "built:choose-many": {
+        "axe": 0
+      },
+      "built:select-outside": {
+        "axe": 0
+      },
+      "interaction": {},
+      "history": {
+        "axe": 0
+      }
+    },
+    "tablet-landscape": {
+      "opening": {
+        "axe": 0
+      },
+      "main-phase": {
+        "axe": 0
+      },
+      "stack": {
+        "axe": 0
+      },
+      "blockers": {
+        "axe": 0
+      },
+      "defend": {
+        "axe": 0
+      },
+      "commander-late": {
+        "axe": 0
+      },
+      "command-effects": {
+        "axe": 0
+      },
+      "play-draw": {
+        "axe": 0
+      },
+      "target": {
+        "axe": 0
+      },
+      "target-player": {
+        "axe": 0
+      },
+      "yes-no": {
+        "axe": 0
+      },
+      "discard": {
+        "axe": 0
+      },
+      "choose-mode": {
+        "axe": 0
+      },
+      "scry": {
+        "axe": 0
+      },
+      "ability": {
+        "axe": 0
+      },
+      "damage": {
+        "axe": 0
+      },
+      "opponent-turn": {
+        "axe": 0
+      },
+      "respond": {
+        "axe": 0
+      },
+      "respond-own": {
+        "axe": 0
+      },
+      "target-both": {
+        "axe": 0
+      },
+      "payment": {
+        "axe": 0
+      },
+      "payment-pool": {
+        "axe": 0
+      },
+      "payment-life": {
+        "axe": 0
+      },
+      "cast-x": {
+        "axe": 0
+      },
+      "attack": {
+        "axe": 0
+      },
+      "attack-declared": {
+        "axe": 0
+      },
+      "attack-planeswalker": {
+        "axe": 0
+      },
+      "block-start": {
+        "axe": 0
+      },
+      "block-multiple": {
+        "axe": 0
+      },
+      "built:confirm": {
+        "axe": 0
+      },
+      "built:input": {
+        "axe": 0
+      },
+      "built:order": {
+        "axe": 0
+      },
+      "built:block-order": {
+        "axe": 0
+      },
+      "built:reveal": {
+        "axe": 0
+      },
+      "built:choose-many": {
+        "axe": 0
+      },
+      "built:select-outside": {
+        "axe": 0
+      },
+      "interaction": {},
+      "history": {
+        "axe": 0
+      }
+    },
+    "fold-portrait": {
+      "opening": {
+        "axe": 0
+      },
+      "main-phase": {
+        "axe": 0
+      },
+      "stack": {
+        "axe": 0
+      },
+      "blockers": {
+        "axe": 0
+      },
+      "defend": {
+        "axe": 0
+      },
+      "commander-late": {
+        "axe": 0
+      },
+      "command-effects": {
+        "axe": 0
+      },
+      "play-draw": {
+        "axe": 0
+      },
+      "target": {
+        "axe": 0
+      },
+      "target-player": {
+        "axe": 0
+      },
+      "yes-no": {
+        "axe": 0
+      },
+      "discard": {
+        "axe": 0
+      },
+      "choose-mode": {
+        "axe": 0
+      },
+      "scry": {
+        "axe": 0
+      },
+      "ability": {
+        "axe": 0
+      },
+      "damage": {
+        "axe": 0
+      },
+      "opponent-turn": {
+        "axe": 0
+      },
+      "respond": {
+        "axe": 0
+      },
+      "respond-own": {
+        "axe": 0
+      },
+      "target-both": {
+        "axe": 0
+      },
+      "payment": {
+        "axe": 0
+      },
+      "payment-pool": {
+        "axe": 0
+      },
+      "payment-life": {
+        "axe": 0
+      },
+      "cast-x": {
+        "axe": 0
+      },
+      "attack": {
+        "axe": 0
+      },
+      "attack-declared": {
+        "axe": 0
+      },
+      "attack-planeswalker": {
+        "axe": 0
+      },
+      "block-start": {
+        "axe": 0
+      },
+      "block-multiple": {
+        "axe": 0
+      },
+      "built:confirm": {
+        "axe": 0
+      },
+      "built:input": {
+        "axe": 0
+      },
+      "built:order": {
+        "axe": 0
+      },
+      "built:block-order": {
+        "axe": 0
+      },
+      "built:reveal": {
+        "axe": 0
+      },
+      "built:choose-many": {
+        "axe": 0
+      },
+      "built:select-outside": {
+        "axe": 0
+      },
+      "interaction": {},
+      "history": {
+        "axe": 0
+      }
+    },
+    "fold-landscape": {
+      "opening": {
+        "axe": 0
+      },
+      "main-phase": {
+        "axe": 0
+      },
+      "stack": {
+        "axe": 0
+      },
+      "blockers": {
+        "axe": 0
+      },
+      "defend": {
+        "axe": 0
+      },
+      "commander-late": {
+        "axe": 0
+      },
+      "command-effects": {
+        "axe": 0
+      },
+      "play-draw": {
+        "axe": 0
+      },
+      "target": {
+        "axe": 0
+      },
+      "target-player": {
+        "axe": 0
+      },
+      "yes-no": {
+        "axe": 0
+      },
+      "discard": {
+        "axe": 0
+      },
+      "choose-mode": {
+        "axe": 0
+      },
+      "scry": {
+        "axe": 0
+      },
+      "ability": {
+        "axe": 0
+      },
+      "damage": {
+        "axe": 0
+      },
+      "opponent-turn": {
+        "axe": 0
+      },
+      "respond": {
+        "axe": 0
+      },
+      "respond-own": {
+        "axe": 0
+      },
+      "target-both": {
+        "axe": 0
+      },
+      "payment": {
+        "axe": 0
+      },
+      "payment-pool": {
+        "axe": 0
+      },
+      "payment-life": {
+        "axe": 0
+      },
+      "cast-x": {
+        "axe": 0
+      },
+      "attack": {
+        "axe": 0
+      },
+      "attack-declared": {
+        "axe": 0
+      },
+      "attack-planeswalker": {
+        "axe": 0
+      },
+      "block-start": {
+        "axe": 0
+      },
+      "block-multiple": {
+        "axe": 0
+      },
+      "built:confirm": {
+        "axe": 0
+      },
+      "built:input": {
+        "axe": 0
+      },
+      "built:order": {
+        "axe": 0
+      },
+      "built:block-order": {
+        "axe": 0
+      },
+      "built:reveal": {
+        "axe": 0
+      },
+      "built:choose-many": {
+        "axe": 0
+      },
+      "built:select-outside": {
+        "axe": 0
+      },
+      "interaction": {},
+      "history": {
+        "axe": 0
+      }
+    },
+    "desktop": {
+      "opening": {
+        "axe": 0
+      },
+      "main-phase": {
+        "axe": 0
+      },
+      "stack": {
+        "axe": 0
+      },
+      "blockers": {
+        "axe": 0
+      },
+      "defend": {
+        "axe": 0
+      },
+      "commander-late": {
+        "axe": 0
+      },
+      "command-effects": {
+        "axe": 0
+      },
+      "play-draw": {
+        "axe": 0
+      },
+      "target": {
+        "axe": 0
+      },
+      "target-player": {
+        "axe": 0
+      },
+      "yes-no": {
+        "axe": 0
+      },
+      "discard": {
+        "axe": 0
+      },
+      "choose-mode": {
+        "axe": 0
+      },
+      "scry": {
+        "axe": 0
+      },
+      "ability": {
+        "axe": 0
+      },
+      "damage": {
+        "axe": 0
+      },
+      "opponent-turn": {
+        "axe": 0
+      },
+      "respond": {
+        "axe": 0
+      },
+      "respond-own": {
+        "axe": 0
+      },
+      "target-both": {
+        "axe": 0
+      },
+      "payment": {
+        "axe": 0
+      },
+      "payment-pool": {
+        "axe": 0
+      },
+      "payment-life": {
+        "axe": 0
+      },
+      "cast-x": {
+        "axe": 0
+      },
+      "attack": {
+        "axe": 0
+      },
+      "attack-declared": {
+        "axe": 0
+      },
+      "attack-planeswalker": {
+        "axe": 0
+      },
+      "block-start": {
+        "axe": 0
+      },
+      "block-multiple": {
+        "axe": 0
+      },
+      "built:confirm": {
+        "axe": 0
+      },
+      "built:input": {
+        "axe": 0
+      },
+      "built:order": {
+        "axe": 0
+      },
+      "built:block-order": {
+        "axe": 0
+      },
+      "built:reveal": {
+        "axe": 0
+      },
+      "built:choose-many": {
+        "axe": 0
+      },
+      "built:select-outside": {
+        "axe": 0
+      },
+      "interaction": {},
+      "history": {
+        "axe": 0
+      },
+      "decisions": {}
+    }
+  },
+  "additionalHistoricalMeasurements": [
+    {
+      "path": "/responsive/0/states/0/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/0/states/1/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/0/states/2/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/0/states/3/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/0/states/4/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/0/states/5/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/0/states/6/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/0/states/7/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/0/states/8/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/0/states/9/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/0/states/10/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/0/states/11/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/0/states/12/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/0/states/13/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/0/states/14/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/0/states/15/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/0/states/16/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/0/states/17/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/0/states/18/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/1/states/0/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/1/states/1/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/1/states/2/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/1/states/3/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/1/states/4/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/1/states/5/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/1/states/6/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/1/states/7/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/1/states/8/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/1/states/9/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/1/states/10/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/1/states/11/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/1/states/12/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/1/states/13/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/1/states/14/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/1/states/15/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/1/states/16/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/1/states/17/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/1/states/18/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/2/states/0/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/2/states/1/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/2/states/2/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/2/states/3/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/2/states/4/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/2/states/5/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/2/states/6/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/2/states/7/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/2/states/8/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/2/states/9/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/2/states/10/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/2/states/11/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/2/states/12/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/2/states/13/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/2/states/14/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/2/states/15/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/2/states/16/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/2/states/17/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/2/states/18/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/3/states/0/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/3/states/1/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/3/states/2/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/3/states/3/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/3/states/4/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/3/states/5/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/3/states/6/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/3/states/7/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/3/states/8/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/3/states/9/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/3/states/10/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/3/states/11/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/3/states/12/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/3/states/13/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/3/states/14/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/3/states/15/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/3/states/16/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/3/states/17/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/3/states/18/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/4/states/0/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/4/states/1/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/4/states/2/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/4/states/3/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/4/states/4/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/4/states/5/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/4/states/6/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/4/states/7/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/4/states/8/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/4/states/9/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/4/states/10/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/4/states/11/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/4/states/12/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/4/states/13/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/4/states/14/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/4/states/15/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/4/states/16/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/4/states/17/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/4/states/18/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/5/states/0/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/5/states/1/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/5/states/2/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/5/states/3/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/5/states/4/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/5/states/5/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/5/states/6/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/5/states/7/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/5/states/8/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/5/states/9/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/5/states/10/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/5/states/11/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/5/states/12/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/5/states/13/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/5/states/14/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/5/states/15/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/5/states/16/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/5/states/17/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/5/states/18/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/6/states/0/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/6/states/1/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/6/states/2/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/6/states/3/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/6/states/4/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/6/states/5/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/6/states/6/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/6/states/7/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/6/states/8/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/6/states/9/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/6/states/10/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/6/states/11/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/6/states/12/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/6/states/13/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/6/states/14/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/6/states/15/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/6/states/16/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/6/states/17/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/6/states/18/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/7/states/0/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/7/states/1/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/7/states/2/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/7/states/3/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/7/states/4/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/7/states/5/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/7/states/6/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/7/states/7/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/7/states/8/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/7/states/9/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/7/states/10/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/7/states/11/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/7/states/12/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/7/states/13/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/7/states/14/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/7/states/15/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/7/states/16/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/7/states/17/axe",
+      "axe": 0
+    },
+    {
+      "path": "/responsive/7/states/18/axe",
+      "axe": 0
+    },
+    {
+      "path": "/replay/phone-landscape/libraryAxe",
+      "axe": 0
+    },
+    {
+      "path": "/replay/phone-landscape/replayAxe",
+      "axe": 0
+    },
+    {
+      "path": "/replay/phone-landscape/menuAxe",
+      "axe": 0
+    },
+    {
+      "path": "/replay/small-phone/libraryAxe",
+      "axe": 0
+    },
+    {
+      "path": "/replay/small-phone/replayAxe",
+      "axe": 0
+    },
+    {
+      "path": "/replay/small-phone/menuAxe",
+      "axe": 0
+    },
+    {
+      "path": "/replay/desktop/libraryAxe",
+      "axe": 0
+    },
+    {
+      "path": "/replay/desktop/replayAxe",
+      "axe": 0
+    },
+    {
+      "path": "/replay/desktop/menuAxe",
+      "axe": 0
+    },
+    {
+      "path": "/localData/importDialogAxe",
+      "axe": 0
+    },
+    {
+      "path": "/localData/phoneImportDialogAxe",
+      "axe": 0
+    },
+    {
+      "path": "/localData/integrityAxe",
+      "axe": 0
+    },
+    {
+      "path": "/cardData/settingsAxe",
+      "axe": 0
+    },
+    {
+      "path": "/cardData/dialogAxe",
+      "axe": 0
+    },
+    {
+      "path": "/cardData/phoneDialogAxe",
+      "axe": 0
+    },
+    {
+      "path": "/deckLibrary/listAxe",
+      "axe": 0
+    },
+    {
+      "path": "/deckLibrary/cardAxe",
+      "axe": 0
+    },
+    {
+      "path": "/deckLibrary/detailsAxe",
+      "axe": 0
+    },
+    {
+      "path": "/deckLibrary/exportAxe",
+      "axe": 0
+    },
+    {
+      "path": "/deckLibrary/replaceAxe",
+      "axe": 0
+    },
+    {
+      "path": "/deckLibrary/deleteAxe",
+      "axe": 0
+    },
+    {
+      "path": "/deckLibrary/aiDialogAxe",
+      "axe": 0
+    },
+    {
+      "path": "/deckLibrary/playAxe",
+      "axe": 0
+    },
+    {
+      "path": "/deckLibrary/phoneDetailsAxe",
+      "axe": 0
+    },
+    {
+      "path": "/deckLibrary/phonePlayAxe",
+      "axe": 0
+    },
+    {
+      "path": "/deckLibrary/phoneListAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameSession/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameSession/playingAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameSession/look/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameSession/menuAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameSession/liveRecordingReplay/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameSession/concedeAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameSession/resultAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameSession/finishedHistory/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameSession/played/liveHistory/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameSession/playedAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameSession/failures/failedAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameSession/failures/refusedAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameSession/phone/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameSession/phone/playingAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameSession/phone/look/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameSession/phone/landscapeAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameSession/phone/played/liveHistory/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameSession/phone/liveRecordingReplay/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameSession/phone/resultAxe",
+      "axe": 0
+    },
+    {
+      "path": "/preferences/settingsAxe",
+      "axe": 0
+    },
+    {
+      "path": "/preferences/playingAxe",
+      "axe": 0
+    },
+    {
+      "path": "/preferences/profileDialogAxe",
+      "axe": 0
+    },
+    {
+      "path": "/preferences/diagnosticsAxe",
+      "axe": 0
+    },
+    {
+      "path": "/preferences/phone/axe",
+      "axe": 0
+    },
+    {
+      "path": "/deckImport/englishAxe",
+      "axe": 0
+    },
+    {
+      "path": "/deckImport/germanOpenAxe",
+      "axe": 0
+    },
+    {
+      "path": "/deckImport/phoneAxe",
+      "axe": 0
+    },
+    {
+      "path": "/deckImport/dialogAxe",
+      "axe": 0
+    },
+    {
+      "path": "/oryxCloud/guestAxe",
+      "axe": 0
+    },
+    {
+      "path": "/oryxCloud/connectedAxe",
+      "axe": 0
+    },
+    {
+      "path": "/oryxWebIntegration/results/0/axe",
+      "axe": 0
+    },
+    {
+      "path": "/oryxWebIntegration/results/1/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/phone/main-phase/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/phone/stack/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/phone/built:confirm/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/phone/built:choose-many/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/phone/interaction/viewAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/phone/interaction/stackViewAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/phone/history/cardAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/phone-landscape/main-phase/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/phone-landscape/stack/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/phone-landscape/built:confirm/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/phone-landscape/built:choose-many/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/phone-landscape/interaction/viewAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/phone-landscape/interaction/stackViewAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/phone-landscape/history/cardAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/phone-landscape/decisions/endTurnAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/small-phone/main-phase/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/small-phone/stack/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/small-phone/built:confirm/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/small-phone/built:choose-many/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/small-phone/interaction/viewAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/small-phone/interaction/stackViewAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/small-phone/history/cardAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/small-phone/decisions/endTurnAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/tablet/main-phase/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/tablet/stack/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/tablet/built:confirm/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/tablet/built:choose-many/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/tablet/interaction/viewAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/tablet/interaction/stackViewAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/tablet/history/cardAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/tablet-landscape/main-phase/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/tablet-landscape/stack/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/tablet-landscape/built:confirm/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/tablet-landscape/built:choose-many/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/tablet-landscape/interaction/viewAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/tablet-landscape/interaction/stackViewAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/tablet-landscape/history/cardAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/fold-portrait/main-phase/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/fold-portrait/stack/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/fold-portrait/built:confirm/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/fold-portrait/built:choose-many/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/fold-portrait/interaction/viewAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/fold-portrait/interaction/stackViewAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/fold-portrait/history/cardAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/fold-landscape/main-phase/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/fold-landscape/stack/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/fold-landscape/built:confirm/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/fold-landscape/built:choose-many/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/fold-landscape/interaction/viewAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/fold-landscape/interaction/stackViewAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/fold-landscape/history/cardAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/desktop/main-phase/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/desktop/stack/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/desktop/built:confirm/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/desktop/built:choose-many/help/axe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/desktop/interaction/viewAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/desktop/interaction/stackViewAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/desktop/history/cardAxe",
+      "axe": 0
+    },
+    {
+      "path": "/gameTable/desktop/decisions/endTurnAxe",
+      "axe": 0
+    }
+  ],
+  "_provenance": "Reduced actual Prompt28 report; structure/accessibility values only, historical validator-test data, not current execution or gameplay evidence."
+}

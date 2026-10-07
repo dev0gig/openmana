@@ -1,0 +1,60 @@
+{
+  "installability": {
+    "installabilityErrors": []
+  },
+  "corrupt": {
+    "ready": false,
+    "equalLengthHashCorruption": true
+  },
+  "interrupt": {
+    "ready": false,
+    "equalLengthHashCorruption": false
+  },
+  "engineCache": {
+    "urls": []
+  },
+  "offlineLegal": {
+    "documents": [
+      {},
+      {},
+      {}
+    ],
+    "actualServerStopped": true
+  },
+  "offlineGame": {
+    "headers": {},
+    "cacheCleared": true,
+    "networkOffline": true,
+    "actualServerStopped": true,
+    "workerStarts": 1,
+    "serverRequestsDuringOffline": 0
+  },
+  "failedShellUpdate": {
+    "versionUnchanged": true,
+    "originalTranscriptUnchanged": true
+  },
+  "update": {
+    "originalTranscriptUnchanged": true,
+    "closingOneTabKeptOldVersion": true,
+    "endedRecordingRetained": true,
+    "actualFinishedRecording": true,
+    "originalForgeOutcome": true,
+    "axeViolations": []
+  },
+  "eviction": {
+    "ready": false,
+    "userDataRetained": true
+  },
+  "initialInstallFailure": {
+    "noPublishedShell": true,
+    "visibleFailure": true,
+    "retrySucceeded": true,
+    "userDataRetained": true
+  },
+  "modulePreload": {
+    "crossWorldMismatches": []
+  },
+  "pageErrors": [],
+  "result": "passed",
+  "_provenance": "Reduced historical Prompt28 report, validator-test data only; no current execution evidence."
+}

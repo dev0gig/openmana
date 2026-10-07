@@ -49,6 +49,7 @@ Implementation has started; current implementation is tracked in [STATUS.md](STA
 - **Isolated Forge update pipeline done (prompt 26):** a dedicated update stays in `engine/**` with explicit versioned protocol exceptions. Fresh pinned builds, JVM/WASM/Chrome comparisons, a matching catalog and the complete app/PWA check gate the artifact lock. See the [maintainer procedure](engine/UPDATING.md) and [verification record](docs/implementation/26-forge-update-pipeline.md).
 - **Credits, licenses and notices (prompt 27):** Credits exposes the GPL text, full build-derived notices and source/release instructions. The inventory follows rendered app modules and the selected WASM image; legal documents are available offline. Oracle/GFTC, public Corresponding Source and icon redistribution rights remain publication gates. See [SOURCE.md](SOURCE.md) and [implementation evidence](docs/implementation/27-credits-licenses.md).
 - **ORYX web integration done (prompt 28):** Digital Asset Links for the shared signed ORYX TWA, trust metadata outside the offline cache and explicit same-tab return to `oryx.quest`; full local verification passed (898 tests, real Chrome/Forge and complete PWA suite). dev0gig deferred physical Android/ORYX acceptance until authorized publication; it remains mandatory for publication and final readiness. See [the concrete device checklist](docs/implementation/28-oryx-web-android.md). Anvil remains the reference until feature parity.
+- **Full regression done (prompt 29):** One sequential JVM/Node/Chrome and app/PWA acceptance command, fail-closed coverage gates and 40 new regression tests. Full local verification passed (95 engine / 76 JVM / 938 app tests, 78 differential outputs). See [commands and coverage](docs/QUALITY.md). Physical ORYX/Android acceptance and publication gates remain open.
 
 ## Develop
 
@@ -58,6 +59,7 @@ bash engine/scripts/build.sh         # build the Forge engine once (~6 min, see 
 npm run cards:build                  # build the card catalog from Scryfall's bulk data (~45 s, see cards/README.md)
 npm run dev                          # http://localhost:5173, cross-origin isolated
 npm run check                        # schemas, typecheck, lint, unit tests, full Chrome/Forge suite and real PWA offline/update checks
+npm run test:regression              # complete sequential JVM/Node/Chrome + app/PWA acceptance; select the locked build as in docs/QUALITY.md
 npm run test:pwa                     # production build + dedicated real Chrome offline/cache/update suite
 npm run generate                     # after changing a schema (src/storage/schema, src/cards/scryfall): regenerate types and validators
 ```

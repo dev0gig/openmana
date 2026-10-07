@@ -18,6 +18,7 @@
     "test:e2e": "node scripts/e2e/run.ts",
     "test:oryx": "node scripts/e2e/run.ts --oryx-only",
     "test:pwa": "node scripts/e2e/pwa.ts",
+    "test:regression": "node scripts/regression/run.ts",
     "generate": "node scripts/generate-schemas.ts",
     "cards:build": "node cards/scripts/build-catalog.ts",
     "icons": "python3 scripts/gen-app-icons.py",
