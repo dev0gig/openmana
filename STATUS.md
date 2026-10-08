@@ -1,6 +1,6 @@
 # OpenMana — Current Status
 
-Last repository review: 2026-10-08 (after Prompt 31)
+Last repository review: 2026-10-08 (after Prompt 32)
 
 Compact implementation map. This file deliberately does **not** replace the active queue ledger in `dev0gig/dropzone/workflow/tasks/INDEX.md`.
 
@@ -235,6 +235,11 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Evidence: full update pipeline for the shipped engine (96 engine unit, 85 JVM, 82 engine results, catalog, 957 app tests, complete Chrome/PWA suite); clean-clone rehearsal; live deployment headers/asset links/notices; Google asset-links check `linked: true`; a complete live game against Forge on the real address (`scripts/deploy/live-check.ts`). ORYX links `openmana.oryx.quest`; ORYX app 0.2.5 trusts it.
 - Physical device: started from ORYX 0.2.5 on the project owner's Fold7 with isolation and a running engine; the on-device game, rotation/background, return navigation and saved-match checks were **waived by the project owner (2026-10-08), not passed**. Details: `docs/implementation/31-production-vercel.md`.
 
+### Final readiness audit (Prompt 32)
+- `docs/READINESS.md` rates every success criterion of the Bible (§19) and every check of the prompt with PASS/FAIL and names the blockers. Verdict: functionally ready for the UI fine-polish. Not proven: a game on an Android phone inside ORYX (waived by the project owner on 2026-10-08) — required before calling OpenMana Android-ready or retiring Anvil on Android. Known limit: in a game, card names and texts follow Forge's German translation, with gaps (e.g. Forest).
+- New verification: `scripts/readiness/player.ts` plays complete games through the real table (only what the table offers, every input taken by Forge); `scripts/readiness/matches.ts` runs several with Arena import, IndexedDB, a reopened browser, recording, replay and portable JSON. The live check after a deployment plays with the same player — it had never cast a spell before (fixed). The complete regression keeps its scratch directory on disk (`/var/tmp`): in a RAM-backed `/tmp` Chrome could not store the engine and the PWA suite failed (fixed).
+- Evidence: 7 local games (10–47 turns, 587 player inputs, none refused, desktop/phone/foldable, all AI profiles, German and English) and a complete game on the production address; the complete regression on the locked build passed every phase (85 JVM tests, 96 engine unit tests, 82 engine runs on JVM/Node/Chrome, every replay matching the JVM reference, 957 app tests, the end-to-end and PWA suites); a trial Forge update to upstream `9fb01517` (+175 commits) needed changes only under `engine/` (local branch `forge-trial-32`, not merged).
+
 ### ORYX Cloud Sync (outside the queue, 2026-09-25)
 - The project owner's direct assignment, not a queue prompt (outside the numbered program): the player's collection syncs through their ORYX account (the launcher's Supabase cloud) with the vendored ORYX SDK 1.0.0 (`src/cloud/oryx-sdk.js` and `.d.ts`, byte-identical copies of `oryx-games/shared`, checksum-tested, excluded from lint only themselves). Active only on `https://openmana.vercel.app/`; locally, in tests and previews inactive (no request, nothing stored). Local stays the source of truth.
 - One slot `collection` = one document (`src/storage/collection.ts`, schema `CollectionDocument`, version = `SCHEMA_VERSION`): valid decks, deletion marks (90 days) and every setting except `display.*`; never caches, recorded matches or `meta`.
@@ -246,23 +251,20 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Evidence: 622 Vitest tests (63 new: merge and check, read/apply on fake-indexeddb, the real SDK against a stand-in ORYX cloud on the real storage session, the card and the return notice in the real app frame, the SDK checksum), `npm run check` with the end-to-end test in Chrome, including the new section 13: the build served as `https://openmana.vercel.app` with a stand-in ORYX cloud - the whole OAuth/PKCE round trip under COOP/COEP, the start's merge, uploads, disconnecting, axe, 360 px; plus the card absent and Web Storage empty off the real address, and the deletion mark in IndexedDB after deleting a deck. Limits: ORYX takes 1 MB per slot by default (≈ 146 Constructed or 48 Commander decks); ORYX needs an OAuth client for `openmana`; effective once deployed. Details: `docs/implementation/oryx-cloud-sync.md`.
 
 ## Currently In Progress
-Prompt **31** — production release is complete and public (2026-10-08). Prompt **32** (final readiness audit, Claude Opus 5.5 / effort max required) has not started; it must inspect the partially waived device acceptance.
+Nothing. Prompt **32** (final readiness audit) is complete (2026-10-08); the numbered program 00–32 is finished. Further work comes as new central tasks — next the UI fine-polish after the project owner's own concepts (first decide whether the shadcn/tokens rule is adapted for it, never break it silently).
 
 Any agent entering the repository must first reconcile this statement with the central Dropzone task state and Git state.
 
 ## Planned Numbered Program
-The remaining numbered queue contains:
-- Prompt 32: final OpenMana readiness audit.
-
-The central Dropzone queue defines execution order; reconcile it with the completed Prompt 30 evidence before starting another task. Prompts 26 and 30 required Astra/max; Prompt 32 requires Claude Opus 5.5 with effort max (model gate in `AGENTS.md`).
+None remains: Prompts 00–32 are complete. The central Dropzone queue defines what comes next.
 
 ## Not Yet Implemented
 At this review point:
-- the final readiness audit (Prompt 32) remains unstarted,
-- on-device game/navigation acceptance inside ORYX was waived, not performed; no individual Android artifact is planned,
+- a game on a physical Android phone inside ORYX, with rotation, background and navigation: waived by the project owner on 2026-10-08, not performed (`docs/READINESS.md`); no individual Android artifact is planned,
+- card names and rules texts in a game where Forge has no German translation (e.g. Forest) appear in English,
 - the ORYX cloud sync is live on both real addresses; a real connection with a Google account has not been exercised in automated checks.
 
-Anvil remains the comparison reference; the tested local functional baseline is recorded in `docs/ANVIL_PARITY.md`. Production and device readiness still require 31/32.
+Anvil remains the comparison reference; the tested functional baseline is recorded in `docs/ANVIL_PARITY.md`, the readiness for the fine-polish and the open Android gate in `docs/READINESS.md`.
 
 ## Architectural Guardrails
 - Forge alone decides Magic rules/legal actions/card behaviour/AI.

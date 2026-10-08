@@ -35,7 +35,11 @@ typecheck, lint, unit/component tests, production build, full Chrome app suite,
 full production PWA suite). Each phase is awaited before the next starts.
 The original locked reports and artifacts are preserved. Temporary browser
 files and this run's copied/compiled artifacts are removed on normal success
-or failure; raw logs, traces, original JVM XMLs and screenshots remain.
+or failure; raw logs, traces, original JVM XMLs and screenshots remain. Like
+the update pipeline, the runner keeps its scratch directory (`TMPDIR` of every
+step, Chrome's profiles included) short and disk-backed under `/var/tmp`: in a
+RAM-backed `/tmp` Chrome could not store the 79 MB engine in CacheStorage and
+the PWA suite reported a failed download (Prompt 32).
 
 Run one complete acceptance at a time in a checkout: the existing app/PWA
 tests use shared `dist/` and `reports/e2e/`, `reports/pwa/` outputs. The full
@@ -109,13 +113,39 @@ as documented in `engine/UPDATING.md`. Focused commands do not replace a full
 regression. Network Scryfall checks need API/image availability; failed live
 requests are not silently converted into passing stand-in results.
 
-## Publication gates remain open
+## Real games through the UI (Prompt 32)
 
-The project owner explicitly deferred physical Android/ORYX acceptance until authorized
-publication (2026-10-07). It is **not performed or passed**. Complete the real
-device/trust/provider/Forge/data/navigation/touch/background/offline checklist
-in `docs/implementation/28-oryx-web-android.md` before closing central Prompt31;
-Prompt32 must inspect that evidence. A successful local automated regression
-does not release this gate, the legal/source/icon gates from Prompt27, or the
-publication hold. No push, deployment, redeploy or independent APK is part of
-this suite. Recording/replay cannot recover a discarded live match.
+The regression proves the engine with scripted fixtures and the UI with
+recorded scenes and short live games. Complete games through the real table
+come from the readiness player (`scripts/readiness/player.ts`): it plays only
+what the table offers (lands and spells through the card view, Forge's
+marked targets, payments, attackers, blockers, every question kind through
+its own controls) and fails when Forge refuses an input, an action leaves the
+table unchanged, or no question comes for ten minutes.
+
+```bash
+# the locked engine and catalogue, as for the build
+OPENMANA_ENGINE_DIR=<build>/dist OPENMANA_CARDS_DIR=<build>/catalog npx vite build --outDir <dist>
+OPENMANA_ENGINE_DIR=<build>/dist OPENMANA_CARDS_DIR=<build>/catalog \
+  node scripts/readiness/matches.ts --serve <dist> --out reports/readiness/<new> [--games rakdos,commander] [--keep-going]
+node scripts/readiness/matches.ts --base https://openmana.oryx.quest --out reports/readiness/<new> --games live
+node scripts/deploy/live-check.ts https://openmana.oryx.quest     # after a deployment
+```
+
+Per game it also checks Forge's history, the recording in IndexedDB, the
+replay to its last step and (Commander or a single game) the portable JSON in
+a fresh profile; per run Chrome's installability check, the active service
+worker, the credits and the decks after reopening the browser. Results and
+limits: [READINESS.md](READINESS.md).
+
+## Remaining gates
+
+OpenMana is public since Prompt 31 (2026-10-08). Physical Android/ORYX
+acceptance: trust, isolation and the engine starting inside ORYX are proven on
+the project owner's Fold7; the on-device game, rotation, background and
+navigation were waived by the project owner on 2026-10-08 and are **not
+tested** ([READINESS.md](READINESS.md), checklist in
+`docs/implementation/28-oryx-web-android.md`). A successful automated
+regression does not replace that gate. No push, deployment, redeploy or
+independent APK is part of this suite. Recording/replay cannot recover a
+discarded live match.

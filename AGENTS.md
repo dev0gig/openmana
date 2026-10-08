@@ -218,7 +218,7 @@ The optional sync of the player's collection through their ORYX account (project
 The legacy local prompt workflow was removed upstream on 2026-09-28. Executable tasks and their lifecycle now live in `dev0gig/dropzone/workflow/tasks/`; implementation evidence remains in `docs/implementation/` and Git history.
 
 - Numbered prompts run strictly sequentially; resume `IN_PROGRESS` work and never skip a `BLOCKED` predecessor. Mark a task complete only after its requirements and verification pass.
-- Reconcile the central status with code and `STATUS.md` before selecting work. Prompts up to 31 are complete; OpenMana is public since Prompt 31 (2026-10-08). Prompt 32 (final readiness audit) is next and requires Claude Opus 5.5 with effort max under the model gate; it must inspect the device acceptance, whose on-device game/navigation part the project owner waived on 2026-10-08.
+- Reconcile the central status with code and `STATUS.md` before selecting work. Prompts 00–32 are complete; OpenMana is public since Prompt 31 (2026-10-08) and audited as functionally ready for the UI fine-polish in Prompt 32 (`docs/READINESS.md`). The on-device game/navigation inside ORYX was waived by the project owner on 2026-10-08 and is not tested: never call OpenMana Android-ready without it.
 - Run only the task assigned by the user; a single Dropmaster assignment ends after that task.
 - Update the central task and `STATUS.md` with verified evidence; do not recreate the removed local queue.
 
@@ -228,7 +228,7 @@ Before starting/resuming a numbered task, check the actual session model and rea
 
 - **26 — Isolated Forge update pipeline** (done): GPT-6 Astra with `max` reasoning.
 - **30 — Anvil parity audit and remediation** (done): GPT-6 Astra with `max` reasoning.
-- **32 — Final OpenMana readiness audit:** **Claude Opus 5.5 (`claude-opus-5-5`) in Claude Code with effort `max`** (project owner, 2026-10-08, replacing Astra: no Codex quota).
+- **32 — Final OpenMana readiness audit** (done): **Claude Opus 5.5 (`claude-opus-5-5`) in Claude Code with effort `max`** (project owner, 2026-10-08, replacing Astra: no Codex quota).
 
 If the session uses another model or effort, or these cannot be reliably established, stop before implementation and before moving the task to active. Tell the project owner the prompt number, required model/effort and why; do not silently continue or switch models. Resume only after the correct model/effort is confirmed, or the project owner explicitly overrides this gate for that task. Read-only task selection and the model check are permitted. The same gate applies to multi-master workers; a Sol worker may not execute these tasks.
 
@@ -238,6 +238,8 @@ For the remaining prompts, Sol with `high` reasoning is the normal recommendatio
 Use the exact verification required by the current prompt and affected subsystem. Never weaken/remove tests to obtain a green result and never present fake/mock results as real evidence.
 
 For relevant work this may include Forge/JVM/WASM differential tests, browser/Worker tests, TypeScript/build checks, protocol/integration tests and later UI/E2E checks.
+
+Complete games through the real table (Prompt 32, `docs/READINESS.md`): `node scripts/readiness/matches.ts --serve <built dist> --out <new dir>` plays several games with the readiness player (`scripts/readiness/player.ts`) - Arena import, IndexedDB, reopened browser, recording, replay, portable JSON. Run it after changes to the table, decisions, card interaction or the engine; a player action Forge refuses or that leaves the table unchanged fails. The post-deployment live check (`scripts/deploy/live-check.ts`) uses the same player and must cast a spell.
 
 ## Definition of Done
 Before declaring a task complete:
@@ -264,5 +266,5 @@ Do not duplicate detailed per-prompt history into root `STATUS.md`.
 - **Public since Prompt 31 (2026-10-08):** https://openmana.oryx.quest/ (fallback https://openmana.vercel.app/), public repository. Decision and the openly disclosed GraalVM/GFTC question: `docs/PUBLICATION.md`; deployment, releases and rollback: `docs/DEPLOYMENT.md`. Never write the project owner's civil name or private e-mail into files or commits (the history was rewritten for that).
 - **Commit, never push without an explicit instruction.** Every push to `main` triggers a Vercel production deployment and uses up the project owner's Vercel deployment quota. Commit finished work right away; push only when the project owner explicitly asks for it for the current task.
 - **Engine releases:** a new engine/catalog reaches production only as a new GitHub release named in `deploy/artifacts.json` (after `engine/UPDATING.md`); create the release before pushing `main`, never replace or delete release assets.
-- **Physical ORYX/Android acceptance** (deferred by the project owner on 2026-10-07 until publication) is part of Prompt 31's completion and is inspected by Prompt 32; see `docs/implementation/28-oryx-web-android.md` and `docs/implementation/31-production-vercel.md`.
+- **Physical ORYX/Android acceptance:** trust, isolation and the engine starting inside ORYX are proven on the project owner's Fold7 (Prompt 31); the on-device game, rotation, background and navigation were waived on 2026-10-08 and are **not tested** (Prompt 32, `docs/READINESS.md`; checklist in `docs/implementation/28-oryx-web-android.md`).
 - **No APKs.** On Android, OpenMana runs only inside the global ORYX app (Trusted Web Activity `net.tsnet.oryx`, which trusts `openmana.oryx.quest` and `openmana.vercel.app`). Do not build an own TWA, APK or Warehouse package.

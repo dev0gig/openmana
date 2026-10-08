@@ -433,6 +433,8 @@ A user can:
 9. Use the same web application as PWA and through ORYX on Android.
 10. Access clear credits/licenses for the projects/tools enabling OpenMana.
 
+The audited state of these criteria, with evidence and explicit blockers, is [READINESS.md](READINESS.md) (Prompt 32, 2026-10-08).
+
 ## 20. Initially out of scope
 
 - rewriting Magic rules in TypeScript
