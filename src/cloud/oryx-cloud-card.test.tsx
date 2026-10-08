@@ -30,7 +30,7 @@ async function cloudSync(
   options: { readonly href?: string; readonly storage?: MemoryStorage; readonly session?: MemoryStorage; readonly linked?: boolean } = {},
 ) {
   const { oryx, replaced } = testOryx(cloud, options)
-  const sync = new CloudSync(oryx, { address: () => options.href ?? "https://openmana.vercel.app/settings" })
+  const sync = new CloudSync(oryx, { address: () => options.href ?? "https://openmana.oryx.quest/settings" })
   await sync.start()
   if (options.linked) {
     const session = new StorageSession({ app: APP })
@@ -156,7 +156,7 @@ describe("in the app", () => {
     ["?error=access_denied&state=s1", "Nicht mit ORYX verbunden", /Du hast die Verbindung nicht erlaubt/],
     ["?code=abgelaufen&state=s1", "Verbinden mit ORYX hat nicht geklappt", /Versuche es in den Einstellungen erneut/],
   ])("coming back from ORYX's consent page (%s) is said once, on the start page", async (query, title, description) => {
-    const href = `https://openmana.vercel.app/${query}`
+    const href = `https://openmana.oryx.quest/${query}`
     const { sync } = await cloudSync(fakeOryxCloud(), { href, session: connectingSession("s1") })
     render(
       <CloudProvider cloud={sync}>

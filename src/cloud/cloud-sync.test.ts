@@ -19,7 +19,7 @@ import { writeSetting } from "@/storage/settings"
 import { StorageSession } from "@/storage/storage-session"
 import { APP, deck, putRaw, readRaw, setting } from "@/test/storage-fixtures"
 import { connectedStorage, connectingSession, fakeOryxCloud, LOCAL_ADDRESS, TEST_CODE, testOryx, type FakeOryxCloud, type MemoryStorage } from "@/test/oryx-fixtures"
-import { CloudSync, COLLECTION_SLOT } from "./cloud-sync"
+import { CloudSync, COLLECTION_SLOT, REAL_ADDRESSES, redirectUriFor } from "./cloud-sync"
 import type { OryxOptions, OryxPullResult } from "./oryx-sdk.js"
 
 const NOW = new Date("2026-09-25T12:00:00.000Z")
@@ -88,6 +88,17 @@ function collectionOf(parts: Partial<Collection>): Collection {
   return { schemaVersion: SCHEMA_VERSION, decks: [], deckTombstones: [], settings: [], ...parts }
 }
 
+describe("OpenMana's real addresses", () => {
+  it("returns to the real address the page runs on: the ORYX domain or the Vercel fallback", () => {
+    expect(REAL_ADDRESSES).toEqual(["https://openmana.oryx.quest/", "https://openmana.vercel.app/"])
+    expect(redirectUriFor("https://openmana.oryx.quest")).toBe("https://openmana.oryx.quest/")
+    expect(redirectUriFor("https://openmana.vercel.app")).toBe("https://openmana.vercel.app/")
+    // Anywhere else the SDK stays inactive; the ORYX domain is named, never the page's own origin.
+    expect(redirectUriFor("http://localhost:5173")).toBe("https://openmana.oryx.quest/")
+    expect(redirectUriFor(undefined)).toBe("https://openmana.oryx.quest/")
+  })
+})
+
 describe("off OpenMana's real address (locally, in tests, previews)", () => {
   it("stays inactive: no request, nothing stored, nothing to say", async () => {
     const cloud = fakeOryxCloud()
@@ -122,7 +133,7 @@ describe("a guest on OpenMana's real address", () => {
     expect(replaced).toHaveLength(1)
     const target = new URL(replaced[0]!)
     expect(`${target.origin}${target.pathname}`).toBe("https://fellumrfugohnnvtxxye.supabase.co/auth/v1/oauth/authorize")
-    expect(target.searchParams.get("redirect_uri")).toBe("https://openmana.vercel.app/")
+    expect(target.searchParams.get("redirect_uri")).toBe("https://openmana.oryx.quest/")
     expect(target.searchParams.get("response_type")).toBe("code")
     expect(target.searchParams.get("code_challenge_method")).toBe("S256")
     expect(target.searchParams.get("client_id")).toBe(cloud.clientId)
@@ -137,7 +148,7 @@ describe("a guest on OpenMana's real address", () => {
     ["no answer of ORYX at all", "", "s1", null],
   ] as const)("the return from ORYX's consent page with %s is said once (%s → %s)", async (_label, query, state, expected) => {
     const cloud = fakeOryxCloud()
-    const href = `https://openmana.vercel.app/${query}`
+    const href = `https://openmana.oryx.quest/${query}`
     const { oryx } = testOryx(cloud, { href, session: connectingSession(state) })
     const sync = new CloudSync(oryx, { now: () => NOW, address: () => href })
     expect(sync.getSnapshot().returned).toBeNull()

@@ -10,7 +10,7 @@ import { webcrypto } from "node:crypto"
 import { createOryx, type Oryx, type OryxOptions } from "@/cloud/oryx-sdk.js"
 import { ORYX_OPTIONS } from "@/cloud/cloud-sync"
 
-export const REAL_ADDRESS = "https://openmana.vercel.app/settings"
+export const REAL_ADDRESS = "https://openmana.oryx.quest/settings"
 export const LOCAL_ADDRESS = "http://localhost:5173/settings"
 const CLIENT_ID = "00000000-0000-4000-8000-00000000c11e"
 const ACCESS = "test-access-token"

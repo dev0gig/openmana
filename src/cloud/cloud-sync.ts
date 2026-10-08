@@ -27,9 +27,9 @@
  *   synced one first. Applying the cloud's collection never marks it changed
  *   (no endless round between devices), and changes of other tabs are theirs
  *   to upload.
- * - Only on OpenMana's real address (redirectUri's origin). Locally, in tests
- *   and previews the SDK stays "inactive": no request, nothing stored, and the
- *   settings card is not shown.
+ * - Only on OpenMana's real addresses (REAL_ADDRESSES: the page's own one is
+ *   the redirectUri). Locally, in tests and previews the SDK stays "inactive":
+ *   no request, nothing stored, and the settings card is not shown.
  */
 import { applyCollection, checkCollection, COLLECTION_STORES, mergeCollections, readCollection, summarizeCollection, type Collection } from "@/storage/collection"
 import type { LocalDatabase } from "@/storage/database"
@@ -38,13 +38,25 @@ import { SCHEMA_VERSION } from "@/storage/generated/constants"
 import type { StorageSession } from "@/storage/storage-session"
 import { canonicalJson, createOryx, type Oryx, type OryxNotice, type OryxOptions, type OryxPullResult, type OryxSlot, type OryxStatus } from "./oryx-sdk.js"
 
+/**
+ * OpenMana's real addresses, each registered for its OAuth client in ORYX: the
+ * ORYX domain (prompt 31, 2026-10-08) and the original Vercel address, kept as
+ * a fallback like the other ORYX games'. Each origin keeps its own local data.
+ */
+export const REAL_ADDRESSES = Object.freeze(["https://openmana.oryx.quest/", "https://openmana.vercel.app/"] as const)
+
+/** The address ORYX returns to: the real address the page runs on (anywhere else the SDK stays inactive). */
+export function redirectUriFor(origin: string | undefined): string {
+  return REAL_ADDRESSES.find((address) => new URL(address).origin === origin) ?? REAL_ADDRESSES[0]
+}
+
 /** OpenMana's entry in the ORYX cloud (games.id 'openmana'). The publishable key is public by design, no secret. */
 export const ORYX_OPTIONS: OryxOptions = {
   gameId: "openmana",
   supabaseUrl: "https://fellumrfugohnnvtxxye.supabase.co",
   publishableKey: "sb_publishable_PyrsaxhYoNHtFoGhR_cOzw_VXyjdadr",
   // Exactly as registered for OpenMana's OAuth client; the SDK is active only on this origin.
-  redirectUri: "https://openmana.vercel.app/",
+  redirectUri: redirectUriFor(globalThis.location?.origin),
   locale: "de",
   // No SDK dialog (not shadcn): the collection is merged, a deletion in the cloud is answered below.
   ui: false,
