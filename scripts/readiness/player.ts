@@ -53,6 +53,8 @@ export interface PlayResult extends GameStats {
   readonly bootMs: number | null
   readonly pictures: { readonly loaded: number; readonly broken: number } | null
   readonly languages: Record<string, unknown> | null
+  /** The page with its running engine worker in memory (Chrome's measureUserAgentSpecificMemory, from turn 5), bytes. */
+  readonly memoryInGame: number | null
 }
 
 /** A small deterministic random source per game (mulberry32): the policy's choices repeat with the seed. */
@@ -228,6 +230,7 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
   let maxTurn = 0
   let lastShotTurn = 0
   let languages: Record<string, unknown> | null = null
+  let memoryInGame: number | null = null
 
   for (let step = 0; step < 4000; step++) {
     if (Date.now() - started > game.maxMinutes * 60_000) {
@@ -280,6 +283,12 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
     }
     if (languages === null && view.turn >= 5 && view.kind === "Priorität") {
       languages = await cardLanguages(page).catch((error: Error) => ({ error: error.message }))
+      memoryInGame = await page
+        .evaluate(async () => {
+          const measure = (performance as unknown as { measureUserAgentSpecificMemory?: () => Promise<{ bytes: number }> }).measureUserAgentSpecificMemory
+          return measure === undefined ? null : (await measure.call(performance)).bytes
+        })
+        .catch(() => null)
     }
     stats.kinds[view.kind] = (stats.kinds[view.kind] ?? 0) + 1
     const before = await fingerprint(page)
@@ -690,7 +699,7 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
     }
   }
   await game.shot(`${game.id}-result`)
-  return { result: ended, turns: maxTurn, ms: Date.now() - started, bootMs, pictures, languages, ...stats }
+  return { result: ended, turns: maxTurn, ms: Date.now() - started, bootMs, pictures, languages, memoryInGame, ...stats }
 }
 
 // ── DE→EN: what the card view says about the catalog's languages ──────────

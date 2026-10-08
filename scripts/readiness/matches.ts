@@ -644,7 +644,8 @@ try {
         notices: gameWatch.notices,
       })
       Object.assign(entry, played)
-      entry["memoryBytes"] = await memory(page)
+      // After the game the spent engine worker is gone: the page alone.
+      entry["memoryAfterGameBytes"] = await memory(page)
       check(played.result !== null, `${game.id}: the game did not reach Forge's result`)
       Object.assign(entry, await afterGame(page, base, game, played))
       if (game.id === "commander" || (selected.length === 1 && entry["recording"])) {
