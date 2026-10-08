@@ -7,14 +7,16 @@
  * Checks: cross-origin isolation and SharedArrayBuffer; the card data install
  * from the deployment; two Arena lists imported; a complete game against
  * Forge's AI in the Forge WebAssembly engine, played through the table until
- * Forge names a result (keep, lands, spells Forge offers, attacks, blocks
- * declined, priority passed); Scryfall pictures under COEP; one engine worker
- * at a time; the legal documents naming the deployed commit. Writes
- * report.json and screenshots; exits non-zero on any failed check.
+ * Forge names a result by the readiness player (scripts/readiness/player.ts:
+ * lands, spells, targets, payments, attacks and blocks Forge offers, every
+ * input taken by Forge); Scryfall pictures under COEP; one engine worker at a
+ * time; the legal documents naming the deployed commit. Writes report.json and
+ * screenshots; exits non-zero on any failed check.
  */
 import fs from "node:fs"
 import path from "node:path"
-import { chromium, type Locator } from "playwright-core"
+import { chromium } from "playwright-core"
+import { playGame } from "../readiness/player.ts"
 
 const args = process.argv.slice(2)
 const outIndex = args.indexOf("--out")
@@ -26,7 +28,6 @@ const report: Record<string, unknown> = { base, startedAt: new Date().toISOStrin
 const failures: string[] = []
 function check(condition: unknown, message: string) { if (!condition) { failures.push(message); console.log(`  FAIL ${message}`) } }
 const log = (message: string) => console.log(`[live] ${message}`)
-const ARMED_AFTER_MS = 600
 
 const DECKS: Record<string, string> = {
   "Live Izzet": ["Deck", "4 Delver of Secrets", "4 Lightning Bolt", "2 Fire // Ice", "3 Bonecrusher Giant", "1 Valki, God of Lies", "20 Island", "26 Mountain"].join("\n"),
@@ -97,98 +98,38 @@ try {
   const started = Date.now()
   await page.getByRole("button", { name: "Partie starten" }).first().click()
   await page.waitForURL(/\/play\/game$/)
-  const decision = page.getByRole("region", { name: "Entscheidung" })
-  const answers = decision.getByRole("group", { name: "Antworten, die Forge anbietet" })
-  const hand = page.getByRole("region", { name: "Deine Hand" })
-  const result = page.getByRole("heading", { level: 2, name: /^(Gewonnen|Verloren|Unentschieden)$/ })
-  const presses: Record<string, number> = {}
-  const count = (name: string) => { presses[name] = (presses[name] ?? 0) + 1 }
-  let bootMs: number | null = null
-  let pictures: { loaded: number; broken: number } | null = null
-
-  /** Presses an armed, enabled button of Forge's answers; true if one was found. */
-  async function pressFirst(names: readonly (string | RegExp)[], scope: Locator = answers): Promise<boolean> {
-    for (const name of names) {
-      const button = scope.getByRole("button", { name, exact: typeof name === "string" })
-      if ((await button.count()) && (await button.first().isEnabled())) {
-        await page.waitForTimeout(ARMED_AFTER_MS)
-        await button.first().click()
-        count(String(name))
-        return true
-      }
-    }
-    return false
+  // The game itself: the readiness player (scripts/readiness/player.ts) plays it through the table - lands, spells,
+  // targets, payments, attacks and blocks Forge offers - until Forge names the result.
+  const forgeNotices: { at: number; text: string }[] = []
+  const played = await playGame(page, {
+    id: "live",
+    seed: 31,
+    touch: false,
+    mulligan: false,
+    maxMinutes: 30,
+    check: (condition, message) => {
+      check(condition, message)
+      return Boolean(condition)
+    },
+    shot,
+    notices: forgeNotices,
+  })
+  report["game"] = {
+    startMs: Date.now() - started,
+    bootMs: played.bootMs,
+    result: played.result,
+    turns: played.turns,
+    ms: played.ms,
+    actions: played.actions,
+    kinds: played.kinds,
+    noEffect: played.noEffect,
+    notices: forgeNotices.map((notice) => notice.text),
+    pictures: played.pictures,
   }
-  /** Opens a hand card's view and takes Forge's offer if its words match; closes it otherwise. */
-  async function takeFromHand(card: Locator, offer: RegExp): Promise<boolean> {
-    await card.click()
-    const view = page.getByRole("dialog")
-    await view.waitFor()
-    const button = view.getByRole("button", { name: offer })
-    if ((await button.count()) === 1 && (await button.isEnabled())) {
-      await page.waitForTimeout(ARMED_AFTER_MS)
-      await button.click()
-      await page.waitForFunction(() => !document.querySelector('[role="dialog"]'), undefined, { timeout: 30_000 })
-      return true
-    }
-    await page.keyboard.press("Escape")
-    await page.waitForFunction(() => !document.querySelector('[role="dialog"]'), undefined, { timeout: 30_000 })
-    return false
-  }
-
-  let landThisTurn = ""
-  for (let step = 0; step < 900 && Date.now() - started < 30 * 60_000; step++) {
-    const waiting = decision.getByRole("heading", { name: "Forge wartet auf deine Entscheidung" })
-    await Promise.race([waiting.waitFor({ timeout: 300_000 }), result.waitFor({ timeout: 300_000 })])
-    if (await result.count()) break
-    if (bootMs === null) { bootMs = Date.now() - started; await shot("first-decision") }
-    const question = await decision.locator('[data-slot="game-decision"]').getAttribute("data-question")
-    const kind = (((await decision.locator('[data-slot="game-decision-header"] p').first().textContent()) ?? "").split(" · ")[0] ?? "").trim()
-    const turn = ((await page.getByRole("region", { name: "Spielstand" }).textContent()) ?? "").slice(0, 40)
-    let acted = false
-    if (kind === "Priorität") {
-      const playable = hand.locator('button[data-slot="game-card"][aria-label$=", spielbar"]')
-      if (landThisTurn !== turn) {
-        for (let i = 0; i < (await playable.count()) && !acted; i++) if (await takeFromHand(playable.nth(i), /^Spiele ein Land$/)) { acted = true; landThisTurn = turn; count("land") }
-      }
-      for (let i = 0; i < (await playable.count()) && !acted; i++) if (await takeFromHand(playable.nth(i), /^(Wirke|Spiele|Beschwöre)/)) { acted = true; count("spell") }
-      if (!acted) acted = await pressFirst(["Weiter", "Verrechnen lassen", "OK"])
-    } else if (kind === "Auswahl" || kind === "Ziel wählen" || kind.startsWith("Ziel")) {
-      // A target or a choice: the AI's side first (its seat or a marked card), else whatever Forge marks usable.
-      const aiSeat = page.locator('[data-slot="game-player"][data-mark="usable"], button[data-slot="game-player"][data-mark="usable"]').first()
-      const usable = page.locator('button[data-slot="game-card"][data-mark="usable"]').first()
-      if (await aiSeat.count()) { await page.waitForTimeout(ARMED_AFTER_MS); await aiSeat.click(); count("target-player"); acted = true }
-      else if (await usable.count()) { await page.waitForTimeout(ARMED_AFTER_MS); await usable.click(); count("choose-card"); acted = true }
-      if (!acted) acted = await pressFirst(["OK", "Weiter", "Abbrechen"])
-    } else {
-      acted = await pressFirst(["Spielen", "Behalten", "Alle angreifen", /^Mit \d+ Kreaturen? angreifen$/, "Nicht angreifen", "Nicht blocken", "Blocks bestätigen", "Auto", "OK", "Weiter", "Ja", "Verrechnen lassen"])
-    }
-    // Revealed cards and other lists Forge only shows come with their own OK inside the decision.
-    if (!acted) acted = await pressFirst(["OK", "Weiter"], decision)
-    if (!acted) {
-      // A question kind this check does not answer: Forge's first enabled button keeps the game going.
-      const any = answers.getByRole("button")
-      for (let i = 0; i < (await any.count()) && !acted; i++) if (await any.nth(i).isEnabled()) { await page.waitForTimeout(ARMED_AFTER_MS); await any.nth(i).click(); count(`other:${kind}`); acted = true }
-    }
-    if (!acted) { check(false, `no way on in "${kind}"`); await shot("stuck"); break }
-    if (pictures === null && (presses["land"] ?? 0) >= 2) {
-      pictures = await page.evaluate(() => {
-        const images = [...document.querySelectorAll("img")].filter((img) => img.src.includes("scryfall.io"))
-        return { loaded: images.filter((img) => img.complete && img.naturalWidth > 0).length, broken: images.filter((img) => img.complete && img.naturalWidth === 0).length }
-      })
-      await shot("table")
-    }
-    await page.waitForFunction((before) => {
-      const current = document.querySelector('[data-slot="game-decision"]')?.getAttribute("data-question")
-      return current !== before || !!document.querySelector("h2")?.textContent?.match(/^(Gewonnen|Verloren|Unentschieden)$/)
-    }, question, { timeout: 300_000 }).catch(() => undefined)
-  }
-  const ended = (await result.count()) ? ((await result.first().textContent()) ?? "").trim() : null
-  await shot("result")
-  report["game"] = { bootMs, result: ended, ms: Date.now() - started, presses, pictures }
-  check(ended !== null, `the game reached Forge's result (presses ${JSON.stringify(presses)})`)
-  check((presses["land"] ?? 0) >= 1, "a land was played through the table")
-  check(pictures !== null && pictures.loaded > 0 && pictures.broken === 0, `Scryfall pictures under COEP ${JSON.stringify(pictures)}`)
+  check(played.result !== null, `the game reached Forge's result (actions ${JSON.stringify(played.actions)})`)
+  check((played.actions["land"] ?? 0) >= 1, "a land was played through the table")
+  check(Object.keys(played.actions).some((name) => name.startsWith("cast:") || name.startsWith("respond:")), `a spell was cast through the table (actions ${JSON.stringify(played.actions)})`)
+  check(played.pictures !== null && played.pictures.loaded > 0 && played.pictures.broken === 0, `Scryfall pictures under COEP ${JSON.stringify(played.pictures)}`)
 } catch (error) {
   failures.push(`aborted: ${(error as Error).message}`)
   await shot("aborted")
