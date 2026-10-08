@@ -35,7 +35,8 @@
  *
  * Watched all the time: page errors, Forge's notices (input.rejected among
  * them), at most one engine worker at a time, Scryfall pictures under COEP,
- * a player action Forge did not take (the table unchanged afterwards).
+ * a player action Forge did not take (the table unchanged afterwards, or
+ * input.rejected in the recording).
  * Writes <out>/report.json and screenshots; exits non-zero on any failure.
  */
 import { execFile } from "node:child_process"
@@ -460,6 +461,8 @@ async function afterGame(page: Page, base: string, game: GameSpec, played: PlayR
   check(log.every((entry, index) => entry.seq === index), `${game.id}: gap in the recording's reception order`)
   const types = [...new Set(log.map((entry) => entry.message.type))]
   for (const type of ["engine.ready", "match.start", "game.started", "state", "question", "events", "game.end", "match.finished"]) check(types.includes(type), `${game.id}: recording has no ${type}`)
+  const rejected = log.filter((entry) => entry.message.type === "input.rejected").length
+  check(rejected === 0, `${game.id}: Forge refused ${rejected} of the player's inputs (input.rejected in the recording)`)
   check(/^[0-9a-f]{64}$/.test(header!.engine.manifestSha256 ?? ""), `${game.id}: the engine manifest's SHA-256 is not recorded`)
   const shown = { Gewonnen: "win", Verloren: "loss", Unentschieden: "draw" }[String(played["result"])] ?? null
   check(shown !== null && header!.end?.result === shown, `${game.id}: the table said ${String(played["result"])}, the recording says ${String(header!.end?.result)}`)
@@ -663,6 +666,7 @@ try {
       })
       Object.assign(entry, played)
       check(played.result !== null, `${game.id}: the game did not reach Forge's result`)
+      check(played.noEffect === 0, `${game.id}: ${played.noEffect} actions left the table unchanged`)
       Object.assign(entry, await afterGame(page, base, game, played))
       if (game.id === "commander" || (selected.length === 1 && entry["recording"])) {
         const recording = entry["recording"] as { id: string } | undefined

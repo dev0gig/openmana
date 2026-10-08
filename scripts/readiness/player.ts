@@ -55,7 +55,7 @@ export interface PlayResult extends GameStats {
   readonly bootMs: number | null
   readonly pictures: { readonly loaded: number; readonly broken: number } | null
   readonly languages: Record<string, unknown> | null
-  /** What `measureMemory` reported with the engine running (from turn 5), bytes; null without it. */
+  /** The highest value `measureMemory` reported with the engine running (sampled every five turns from turn 5), bytes; null without it. */
   readonly memoryInGame: number | null
 }
 
@@ -233,6 +233,7 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
   let lastShotTurn = 0
   let languages: Record<string, unknown> | null = null
   let memoryInGame: number | null = null
+  let nextMemoryTurn = 5
 
   for (let step = 0; step < 4000; step++) {
     if (Date.now() - started > game.maxMinutes * 60_000) {
@@ -285,7 +286,12 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
     }
     if (languages === null && view.turn >= 5 && view.kind === "Priorität") {
       languages = await cardLanguages(page).catch((error: Error) => ({ error: error.message }))
-      memoryInGame = game.measureMemory === undefined ? null : await game.measureMemory().catch(() => null)
+    }
+    // Memory grows with the game: sampled every five turns, the highest value counts.
+    if (game.measureMemory !== undefined && view.turn >= nextMemoryTurn && view.kind === "Priorität") {
+      nextMemoryTurn = (Math.floor(view.turn / 5) + 1) * 5
+      const bytes = await game.measureMemory().catch(() => null)
+      if (bytes !== null && (memoryInGame === null || bytes > memoryInGame)) memoryInGame = bytes
     }
     stats.kinds[view.kind] = (stats.kinds[view.kind] ?? 0) + 1
     const before = await fingerprint(page)

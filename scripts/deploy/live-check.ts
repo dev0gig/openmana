@@ -130,6 +130,7 @@ try {
   check((played.actions["land"] ?? 0) >= 1, "a land was played through the table")
   check(Object.keys(played.actions).some((name) => name.startsWith("cast:") || name.startsWith("respond:")), `a spell was cast through the table (actions ${JSON.stringify(played.actions)})`)
   check(played.pictures !== null && played.pictures.loaded > 0 && played.pictures.broken === 0, `Scryfall pictures under COEP ${JSON.stringify(played.pictures)}`)
+  check(played.noEffect === 0, `every action changed the table (${played.noEffect} without effect)`)
 } catch (error) {
   failures.push(`aborted: ${(error as Error).message}`)
   await shot("aborted")

@@ -113,5 +113,5 @@ export function browserEvidence(appValue: unknown, pwaValue: unknown, requiredSc
   for (const name of ["originalTranscriptUnchanged", "closingOneTabKeptOldVersion", "endedRecordingRetained", "actualFinishedRecording", "originalForgeOutcome"]) yes(update[name], `update: ${name}`)
   for (const name of ["versionUnchanged", "originalTranscriptUnchanged"]) yes(object(pwa["failedShellUpdate"], "failed update")[name], `failed update: ${name}`)
   for (const name of ["visibleFailure", "noPublishedShell", "retrySucceeded", "userDataRetained"]) yes(object(pwa["initialInstallFailure"], "initial failure")[name], `initial failure: ${name}`)
-  return { viewports: VIEWPORTS.length, workerChecks, axeChecks, physicalAndroidAcceptance: "deferred, not passed; required before publication task31/final audit32" }
+  return { viewports: VIEWPORTS.length, workerChecks, axeChecks, physicalAndroidAcceptance: "on-device game inside ORYX waived by the project owner on 2026-10-08, not tested (docs/READINESS.md)" }
 }
