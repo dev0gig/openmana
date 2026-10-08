@@ -141,6 +141,14 @@ const DECKS: Readonly<Record<string, DeckSpec>> = {
       "4 Giant Spider",
     ),
   },
+  grixis: {
+    name: "Prüfung Grixis",
+    format: "constructed",
+    cards: 60,
+    // Scry (Opt, Magma Jet), cards back in any order and "you may shuffle" (Ponder), a "you may" trigger (Gravedigger),
+    // X spells (Blaze, Fireball: X and damage divided), Phyrexian mana (Gitaxian Probe, Phyrexian Rager's life loss).
+    list: lines("Deck", "8 Island", "8 Mountain", "8 Swamp", "4 Opt", "4 Magma Jet", "4 Ponder", "4 Gravedigger", "3 Blaze", "3 Fireball", "4 Lightning Bolt", "4 Hill Giant", "3 Phyrexian Rager", "3 Gitaxian Probe"),
+  },
   greenAttackers: {
     name: "Prüfung Grün Angreifer",
     format: "constructed",
@@ -220,6 +228,7 @@ const GAMES: readonly GameSpec[] = [
   { id: "commander", title: "Commander Krenko gegen Fynn (Vorsichtig), lange Partie", human: "krenko", ai: "fynn", profile: "Vorsichtig", cardLanguage: "Deutsch", viewport: DESKTOP, seed: 3, mulligan: false, maxMinutes: 90 },
   { id: "phone", title: "Grün Deutsch/Englisch gegen Rot (Experimentell), Handy mit Touch", human: "greenMixed", ai: "red", profile: "Experimentell", cardLanguage: "Deutsch", viewport: PHONE, seed: 4, mulligan: false, maxMinutes: 45 },
   { id: "walkers", title: "Grüne Angreifer gegen Planeswalker (Standard)", human: "greenAttackers", ai: "greenWalkers", profile: "Standard", cardLanguage: "Deutsch", viewport: DESKTOP, seed: 6, mulligan: false, maxMinutes: 45 },
+  { id: "grixis", title: "Grixis gegen Grün-Weiß (Standard): Vorschau, X-Zauber, Kann-Fähigkeiten", human: "grixis", ai: "gw", profile: "Standard", cardLanguage: "Deutsch", viewport: DESKTOP, seed: 8, mulligan: false, maxMinutes: 45 },
   { id: "fold", title: "Planeswalker gegen Rakdos-Ziele (Zufällig), Foldable quer mit Touch", human: "greenWalkers", ai: "rakdos", profile: "Zufällig", cardLanguage: "Deutsch", viewport: FOLD_LANDSCAPE, seed: 7, mulligan: true, maxMinutes: 45 },
   { id: "live", title: "Live: Rakdos-Ziele gegen Rot (Zufällig)", human: "rakdos", ai: "red", profile: "Zufällig", cardLanguage: "Deutsch", viewport: DESKTOP, seed: 5, mulligan: false, maxMinutes: 45 },
 ]
@@ -231,6 +240,8 @@ const executablePath = process.env["OPENMANA_CHROME"] || chromium.executablePath
 const profileDir = path.join(out, "profile")
 
 interface Watch {
+  /** Every host a request went to (no Odin, no Tailscale: Bible §19.1). */
+  readonly hosts: Set<string>
   readonly errors: string[]
   readonly notices: { readonly at: number; readonly text: string }[]
   workers: { created: number; alive: number; max: number }
@@ -238,6 +249,10 @@ interface Watch {
 }
 
 function watch(page: Page, into: Watch): void {
+  page.on("request", (request) => {
+    const url = new URL(request.url())
+    if (url.protocol === "http:" || url.protocol === "https:") into.hosts.add(url.host)
+  })
   page.on("pageerror", (error) => into.errors.push(error.message))
   page.on("worker", (worker) => {
     into.workers.created++
@@ -260,7 +275,7 @@ function watch(page: Page, into: Watch): void {
 }
 
 function newWatch(): Watch {
-  return { errors: [], notices: [], workers: { created: 0, alive: 0, max: 0 }, scryfall: { ok: 0, failed: 0 } }
+  return { hosts: new Set(), errors: [], notices: [], workers: { created: 0, alive: 0, max: 0 }, scryfall: { ok: 0, failed: 0 } }
 }
 
 async function openProfile(viewport: GameSpec["viewport"], dir = profileDir): Promise<BrowserContext> {
@@ -509,6 +524,50 @@ async function portableReplay(page: Page, base: string, matchId: string): Promis
 }
 
 
+// ── PWA, credits, memory ───────────────────────────────────────────────────
+
+/** Chrome's own installability check in this real profile (not incognito), the manifest Chrome read, the service worker. */
+async function pwaChecks(context: BrowserContext, page: Page): Promise<Record<string, unknown>> {
+  const cdp = await context.newCDPSession(page)
+  const manifest = (await cdp.send("Page.getAppManifest")) as { url: string; errors: { message: string }[] }
+  const installability = (await cdp.send("Page.getInstallabilityErrors")) as { installabilityErrors: { errorId: string }[] }
+  const worker = await page.evaluate(async () => {
+    const ready = await Promise.race([navigator.serviceWorker.ready, new Promise<null>((resolve) => setTimeout(() => resolve(null), 30_000))])
+    return ready === null ? null : { scope: ready.scope, state: ready.active?.state ?? null }
+  })
+  check(manifest.errors.length === 0, `PWA: manifest errors ${JSON.stringify(manifest.errors)}`)
+  check(installability.installabilityErrors.length === 0, `PWA: Chrome reports installability errors ${JSON.stringify(installability.installabilityErrors)}`)
+  check(worker !== null && worker.state === "activated", `PWA: no active service worker (${JSON.stringify(worker)})`)
+  await cdp.detach()
+  return { manifestUrl: manifest.url, manifestErrors: manifest.errors, installabilityErrors: installability.installabilityErrors, serviceWorker: worker }
+}
+
+/** The credits name who made OpenMana possible and link the legal documents, which are served. */
+async function creditsChecks(page: Page, base: string): Promise<Record<string, unknown>> {
+  await page.goto(new URL("/credits", base).href, { waitUntil: "networkidle" })
+  const text = (await page.locator("main").textContent()) ?? ""
+  const named = ["Forge", "ManaBrew", "Scryfall", "OpenAI", "ChatGPT", "Anthropic", "Claude"].filter((name) => text.includes(name))
+  check(named.length === 7, `credits name only ${named.join(", ")}`)
+  const documents: Record<string, number> = {}
+  for (const href of await page.locator('main a[href^="/legal/"]').evaluateAll((links) => links.map((link) => link.getAttribute("href") ?? ""))) {
+    const response = await page.request.get(new URL(href, base).href)
+    documents[href] = response.status()
+    check(response.ok() && (await response.text()).length > 1000, `legal document ${href}: HTTP ${response.status()}`)
+  }
+  check(Object.keys(documents).length >= 3, `credits link ${Object.keys(documents).length} legal documents`)
+  return { named, documents }
+}
+
+/** What the page (with its engine worker) takes in memory now: Chrome's own measurement (needs cross-origin isolation). */
+async function memory(page: Page): Promise<number | null> {
+  return page
+    .evaluate(async () => {
+      const measure = (performance as unknown as { measureUserAgentSpecificMemory?: () => Promise<{ bytes: number }> }).measureUserAgentSpecificMemory
+      return measure === undefined ? null : (await measure.call(performance)).bytes
+    })
+    .catch(() => null)
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────
 
 async function startServer(): Promise<{ base: string; close: () => Promise<void> }> {
@@ -539,6 +598,8 @@ try {
   report["environment"] = await page.evaluate(() => ({ isolated: globalThis.crossOriginIsolated, sab: typeof SharedArrayBuffer, ua: navigator.userAgent }))
   report["browser"] = context.browser()?.version() ?? null
   check((report["environment"] as { isolated: boolean }).isolated === true, "the page is not cross-origin isolated")
+  report["pwa"] = await pwaChecks(context, page)
+  report["credits"] = await creditsChecks(page, base)
   report["decks"] = await importDecks(page, base, needed)
   await context.close()
   // 2. The same browser opened again: the decks are still there.
@@ -583,7 +644,8 @@ try {
         notices: gameWatch.notices,
       })
       Object.assign(entry, played)
-      check(played["result"] !== null, `${game.id}: the game did not reach Forge's result`)
+      entry["memoryBytes"] = await memory(page)
+      check(played.result !== null, `${game.id}: the game did not reach Forge's result`)
       Object.assign(entry, await afterGame(page, base, game, played))
       if (game.id === "commander" || (selected.length === 1 && entry["recording"])) {
         const recording = entry["recording"] as { id: string } | undefined
@@ -594,6 +656,7 @@ try {
       await shot(page, `${game.id}-aborted`)
       if (!keepGoing) throw error
     } finally {
+      entry["hosts"] = [...gameWatch.hosts].sort()
       entry["pageErrors"] = gameWatch.errors
       entry["notices"] = gameWatch.notices.map((notice) => notice.text)
       entry["workers"] = gameWatch.workers
