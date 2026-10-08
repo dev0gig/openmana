@@ -110,7 +110,7 @@ constructed browser scenes. Current run paths and results are in
   malformed answers are rejected, not normalized. No meaningful decision is
   automatically taken merely because Forge suggested it.
 - **Devices/publication:** eight CSS/touch viewports are browser emulation.
-  dev0gig deferred physical Android/ORYX acceptance to publication Prompt31,
+  The project owner deferred physical Android/ORYX acceptance to publication Prompt31,
   with verification in Prompt32. That gate remains **not performed/not passed**,
   alongside source/license/icon/publication gates. No push, deployment or APK.
 

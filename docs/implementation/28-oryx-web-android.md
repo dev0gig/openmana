@@ -118,7 +118,7 @@ Die Aufzeichnungen sind keine wiederherstellbaren laufenden Spielstände.
 kein physisches Gerät (beim späteren Check lediglich einen fremden Emulator).
 Keine Veröffentlichung wurde ausgelöst.
 
-dev0gig hat am 07.10.2026 ausdrücklich entschieden, diese Abnahme bis zur
+Der Projektbesitzer hat am 07.10.2026 ausdrücklich entschieden, diese Abnahme bis zur
 freigegebenen Veröffentlichung zurückzustellen, und verlangt, sie festzuhalten.
 Prompt 28 darf nach vollständiger lokaler Web-/Browserprüfung completed werden;
 physische ORYX-Abnahme bleibt Voraussetzung des Veröffentlichungsabschlusses

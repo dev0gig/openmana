@@ -111,7 +111,7 @@ requests are not silently converted into passing stand-in results.
 
 ## Publication gates remain open
 
-dev0gig explicitly deferred physical Android/ORYX acceptance until authorized
+The project owner explicitly deferred physical Android/ORYX acceptance until authorized
 publication (2026-10-07). It is **not performed or passed**. Complete the real
 device/trust/provider/Forge/data/navigation/touch/background/offline checklist
 in `docs/implementation/28-oryx-web-android.md` before closing central Prompt31;

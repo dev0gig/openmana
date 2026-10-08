@@ -30,7 +30,7 @@ Der generische Hinweis der Kartenansicht behauptet jetzt nicht mehr, dass ein zw
 
 ## Verifikation
 
-dev0gig verlangte ausdrücklich kleine, speicherschonende Prüfungen. Alle Läufe fanden nacheinander statt; Vitest verwendete einen Worker und maximal 512 MiB JS-Heap. Die bestehenden Engine-/Katalogartefakte wurden wiederverwendet.
+Der Projektbesitzer verlangte ausdrücklich kleine, speicherschonende Prüfungen. Alle Läufe fanden nacheinander statt; Vitest verwendete einen Worker und maximal 512 MiB JS-Heap. Die bestehenden Engine-/Katalogartefakte wurden wiederverwendet.
 
 | Prüfung | Nachweis |
 |---|---|

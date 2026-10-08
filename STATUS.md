@@ -216,7 +216,7 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 ### Shared ORYX TWA web integration (Prompt 28)
 - Digital Asset Links uses the existing signed ORYX identity (`net.tsnet.oryx`), served unchanged as JSON outside SPA fallback and service-worker caching. Same-tab launcher return follows `https://oryx.quest/`; direct browser start and existing local records remain supported.
 - Evidence: full `npm run check`, 898/898 tests in 73 files, 96 route/152 populated-state/288 scene checks, 661 axe measurements without violations, strict max1 worker traces and complete real Forge/PWA offline/update checks. Independent source/artifact audit passed. Details and preserved logs: `docs/implementation/28-oryx-web-android.md`.
-- **Physical Android/ORYX acceptance was not performed. dev0gig explicitly deferred it until authorized publication (2026-10-07).** Prompt 31 must verify the live trust endpoint and installed APK identity, launch via ORYX on a physical device, isolation/Wasm/worker lifecycle, a real Forge match, saved local data and return/Back navigation, touch/orientation/background/offline behavior. Prompt 32 must inspect that evidence. Desktop/touch emulation is not device acceptance; no publication was triggered.
+- **Physical Android/ORYX acceptance was not performed. The project owner explicitly deferred it until authorized publication (2026-10-07).** Prompt 31 must verify the live trust endpoint and installed APK identity, launch via ORYX on a physical device, isolation/Wasm/worker lifecycle, a real Forge match, saved local data and return/Back navigation, touch/orientation/background/offline behavior. Prompt 32 must inspect that evidence. Desktop/touch emulation is not device acceptance; no publication was triggered.
 
 ### Full regression and E2E acceptance (Prompt 29)
 - `npm run test:regression` combines verified locked WASM, a fresh pinned/patched Forge/bridge JVM, all JVM/Node/Chrome differential scenarios and the complete application/PWA check. Semantic gates refuse focused/skipped/partial evidence; original build reports are preserved.
@@ -249,7 +249,7 @@ The remaining numbered queue contains:
 - Prompt 31: production/Vercel readiness, including the deferred physical ORYX/Android acceptance;
 - Prompt 32: final OpenMana readiness audit.
 
-The central Dropzone queue defines execution order; reconcile it with the completed Prompt 30 evidence before starting another task. Prompts 26, 30 and 32 require Astra with max reasoning under dev0gig's model gate in `AGENTS.md`.
+The central Dropzone queue defines execution order; reconcile it with the completed Prompt 30 evidence before starting another task. Prompts 26, 30 and 32 require Astra with max reasoning under the project owner's model gate in `AGENTS.md`.
 
 ## Not Yet Implemented
 At this review point:
@@ -271,7 +271,7 @@ Anvil remains the comparison reference; the tested local functional baseline is 
 ## Workflow Compatibility
 The legacy local prompt workflow was removed upstream on 2026-09-28. The current checkout incorporates that deletion while preserving all previously local Prompt 16 and ORYX-return commits. Central tasks live in `dev0gig/dropzone/workflow/tasks/`; detailed implementation evidence remains in `docs/implementation/` and Git history.
 
-Preserve sequential execution. Prompts 28 (locally verified web scope), 29 (full automated regression) and 30 (functional Anvil parity) are complete locally, not pushed; the publication hold through Prompt 31 remains. Prompt 28’s physical Android/ORYX Forge acceptance is explicitly deferred by dev0gig until authorized publication; the concrete mandatory checklist is in `docs/implementation/28-oryx-web-android.md` and central Prompt 31. Desktop/touch emulation does not satisfy it. Conservative choice: origin-trust metadata stays network-only; return follows the current ORYX canonical origin `oryx.quest` without changing SDK/cloud origins or the OpenMana storage origin.
+Preserve sequential execution. Prompts 28 (locally verified web scope), 29 (full automated regression) and 30 (functional Anvil parity) are complete locally, not pushed; the publication hold through Prompt 31 remains. Prompt 28’s physical Android/ORYX Forge acceptance is explicitly deferred by the project owner until authorized publication; the concrete mandatory checklist is in `docs/implementation/28-oryx-web-android.md` and central Prompt 31. Desktop/touch emulation does not satisfy it. Conservative choice: origin-trust metadata stays network-only; return follows the current ORYX canonical origin `oryx.quest` without changing SDK/cloud origins or the OpenMana storage origin.
 
 ## Maintenance
 Update this file only when the broad implementation state changes. Keep detailed prompt evidence, commit hashes, measurements and blockers in the central Dropzone task and implementation/research docs.

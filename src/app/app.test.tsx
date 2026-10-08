@@ -102,7 +102,7 @@ describe("no invented data", () => {
     }
     expect(screen.getByText(/noch nicht abschließend juristisch geklärt/)).toBeInTheDocument()
     expect(screen.getByText(/mit ChatGPT \(OpenAI\) erzeugt/)).toBeInTheDocument()
-    expect(screen.queryByText(/dev0gig/)).toBeNull()
+    expect(screen.queryByText(/Patri[c]k/)).toBeNull()
   })
 
   it("credits: links the public source of this very build", async () => {

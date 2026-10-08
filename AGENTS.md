@@ -218,19 +218,19 @@ The optional sync of the player's collection through their ORYX account (project
 The legacy local prompt workflow was removed upstream on 2026-09-28. Executable tasks and their lifecycle now live in `dev0gig/dropzone/workflow/tasks/`; implementation evidence remains in `docs/implementation/` and Git history.
 
 - Numbered prompts run strictly sequentially; resume `IN_PROGRESS` work and never skip a `BLOCKED` predecessor. Mark a task complete only after its requirements and verification pass.
-- Reconcile the central status with code and `STATUS.md` before selecting work. Prompt 28 web integration is complete after full local verification; physical ORYX/Android acceptance is explicitly deferred by dev0gig until authorized publication. Prompt 29 full local automated regression is complete; commands and coverage are in `docs/QUALITY.md`. Prompt 30 is next and unstarted and requires Astra/max under the model gate. The physical gate remains mandatory for Prompt 31/32.
+- Reconcile the central status with code and `STATUS.md` before selecting work. Prompt 28 web integration is complete after full local verification; physical ORYX/Android acceptance is explicitly deferred by the project owner until authorized publication. Prompt 29 full local automated regression is complete; commands and coverage are in `docs/QUALITY.md`. Prompt 30 is next and unstarted and requires Astra/max under the model gate. The physical gate remains mandatory for Prompt 31/32.
 - Run only the task assigned by the user; a single Dropmaster assignment ends after that task.
 - Update the central task and `STATUS.md` with verified evidence; do not recreate the removed local queue.
 
-## Model gate for numbered prompts (dev0gig, 2026-10-07)
+## Model gate for numbered prompts (project owner, 2026-10-07)
 
-Before starting/resuming a numbered task, check the actual session model and reasoning effort. dev0gig requires **GPT-6 Astra with `max` reasoning** for these prompts:
+Before starting/resuming a numbered task, check the actual session model and reasoning effort. The project owner requires **GPT-6 Astra with `max` reasoning** for these prompts:
 
 - **26 — Isolated Forge update pipeline:** pinned Forge/patch/toolchain changes and reproducibility across JVM/WASM.
 - **30 — Anvil parity audit and remediation:** cross-repository assessment of every gameplay/decision path.
 - **32 — Final OpenMana readiness audit:** final functional gate spanning the complete product.
 
-If the session uses another model or effort, or these cannot be reliably established, stop before implementation and before moving the task to active. Tell dev0gig the prompt number, required model/effort and why; do not silently continue or switch models. Resume only after the correct model/effort is confirmed, or dev0gig explicitly overrides this gate for that task. Read-only task selection and the model check are permitted. The same gate applies to multi-master workers; a Sol worker may not execute these tasks.
+If the session uses another model or effort, or these cannot be reliably established, stop before implementation and before moving the task to active. Tell the project owner the prompt number, required model/effort and why; do not silently continue or switch models. Resume only after the correct model/effort is confirmed, or the project owner explicitly overrides this gate for that task. Read-only task selection and the model check are permitted. The same gate applies to multi-master workers; a Sol worker may not execute these tasks.
 
 For the remaining prompts, Sol with `high` reasoning is the normal recommendation. Prompts 22 (recording/replay) and 25 (PWA updates/cache) merit particular care but do not require Astra Max by default. Model choice does not replace test evidence.
 
@@ -263,5 +263,5 @@ Do not duplicate detailed per-prompt history into root `STATUS.md`.
 ## Publishing and Android (project owner, 2026-09-25)
 - **Publication held until Prompt 31** (project owner, 2026-09-27). Keep the existing local Prompt-16 work and the ORYX return-navigation change committed locally. Do not push or deploy OpenMana as part of the cross-repository ORYX task. Prompt 31 still requires an explicit publication instruction under the global Vercel rule.
 - **Commit, never push.** Every push to `main` triggers a Vercel deployment and uses up the project owner's Vercel deployment quota. Commit finished work right away; push only when the project owner explicitly asks for it. This replaces the former "committed and pushed" completion rule of the numbered program.
-- **Deferred physical gate (dev0gig, 2026-10-07).** Prompt 28’s completed web scope does not prove physical Android/TWA behavior. Perform and document the real-device checklist in `docs/implementation/28-oryx-web-android.md` before closing publication Prompt 31; Prompt 32 must inspect it. The deferral does not authorize push/deployment.
+- **Deferred physical gate (project owner, 2026-10-07).** Prompt 28’s completed web scope does not prove physical Android/TWA behavior. Perform and document the real-device checklist in `docs/implementation/28-oryx-web-android.md` before closing publication Prompt 31; Prompt 32 must inspect it. The deferral does not authorize push/deployment.
 - **No APKs.** On Android, OpenMana runs only inside the global ORYX app (Trusted Web Activity `net.tsnet.oryx`, which already lists `openmana.vercel.app` as trusted). Do not build an own TWA, APK or Warehouse package. Prompt 28 verifies ORYX Digital Asset Links, isolation headers and real Forge WASM operation inside ORYX (`crossOriginIsolated`); it must not create a separate game package. The central cleanup task makes this scope authoritative.

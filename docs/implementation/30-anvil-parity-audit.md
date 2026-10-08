@@ -168,7 +168,7 @@ No skip/focused flag is used for acceptance.
 
 ## Remaining gates
 
-Physical Android/ORYX acceptance remains explicitly deferred by dev0gig to
+Physical Android/ORYX acceptance remains explicitly deferred by the project owner to
 Prompt31 and must be checked in Prompt32. It is **not performed or passed**.
 Keep the device checklist in [28](28-oryx-web-android.md), the legal/source/icon
 gates from 27, cloud activation requirements and explicit publication hold.

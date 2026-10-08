@@ -220,7 +220,7 @@ export async function generateNotices(root: string, moduleIds: readonly string[]
   const lines = ["# THIRD-PARTY-NOTICES", "", "Erzeugt aus den tatsächlich enthaltenen App-Modulen, CSS/Fonts, Generatorcode und der geprüften WASM-Typinventur.",
     published
       ? `Öffentliche Version. Quelltext genau dieses Builds: ${published.url}. Die Oracle-GraalVM-/GFTC-Frage ist nicht abschließend juristisch geklärt und offen dokumentiert (SOURCE.md, docs/PUBLICATION.md).`
-      : "Kein öffentlicher Build (OPENMANA_PUBLIC_RELEASE nicht gesetzt). Quelltext: SOURCE.md.",
+      : "Fassung ohne Build-Commit (lokaler Build oder Repository-Kopie); jede öffentliche Version nennt ihren genauen Quelltext-Commit. Quelltext und offene GraalVM-Frage: SOURCE.md.",
     "Originaltexte bleiben unverändert und in ihrer Originalsprache erhalten. Der vollständige Oracle-Distributionsanhang ist vorsorgliche Dokumentation; er ist keine Liste eingebauter Komponenten.", "",
     `Engine-Manifest SHA-256: ${summary.engineManifestSha256 ?? "keine Engine enthalten"}`, `WASM-Typen: ${summary.typeCount}`, "", "## Enthaltene Komponenten", "",
     "| Komponente | Version | Lizenz | Herkunft |", "|---|---|---|---|",

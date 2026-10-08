@@ -110,7 +110,7 @@ confirm/input/order/reveal/multi-select boundaries test UI behavior without
 claiming real game coverage. Scryfall requests are real; ORYX cloud and launcher
 services are controlled stand-ins. CSS/touch viewports are emulated devices.
 
-dev0gig's 2026-10-07 deferral remains authoritative: physical Android/ORYX
+The project owner's 2026-10-07 deferral remains authoritative: physical Android/ORYX
 acceptance has **not been performed or passed**. Complete the concrete device
 checklist in [implementation 28](28-oryx-web-android.md) before closing central
 Prompt31; Prompt32 must inspect it. Preserve the markers in `STATUS.md`,

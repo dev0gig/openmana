@@ -45,7 +45,7 @@ function headersFor(pathname: string): Record<string, string> {
 describe("vercel.json", () => {
   it("builds the public app from the repository root with the released, verified engine and catalog", () => {
     expect(vercel).toMatchObject({ framework: "vite", installCommand: "npm ci", outputDirectory: "dist",
-      buildCommand: "node scripts/deploy/fetch-artifacts.ts && OPENMANA_PUBLIC_RELEASE=1 OPENMANA_ENGINE_DIR=.artifacts/engine OPENMANA_CARDS_DIR=.artifacts/cards npm run build" })
+      buildCommand: "node scripts/deploy/fetch-artifacts.ts && OPENMANA_PUBLIC_RELEASE=1 OPENMANA_ENGINE_DIR=.artifacts/engine OPENMANA_CARDS_DIR=.artifacts/cards npm run build && node scripts/deploy/budgets.ts" })
   })
 
   it("deploys exactly the engine engine/engine.lock.json locks, from OpenMana's public releases", async () => {
@@ -58,6 +58,12 @@ describe("vercel.json", () => {
     const tampered = structuredClone(artifacts)
     tampered.engine["openmana-engine.js.wasm"].sha256 = "0".repeat(64)
     expect(() => checkAgainstLock(tampered, lock)).toThrow("not the locked engine file")
+  })
+
+  it("counts a chunk's static imports for the start budget, never its on-demand imports", async () => {
+    const { staticImports } = await import("../scripts/deploy/budgets.ts")
+    const code = 'import{a as e}from"./react-x.js";import"./side-y.js";const t=()=>import("./later-z.js");export{e}'
+    expect(staticImports(code)).toEqual(["./react-x.js", "./side-y.js"])
   })
 
   it("sends no content sniffing and a restrained referrer on every route", () => {
