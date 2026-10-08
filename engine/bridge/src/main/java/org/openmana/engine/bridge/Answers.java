@@ -105,8 +105,15 @@ final class Answers {
 
     /** input: {@code value} is a string, an integer if the question is numeric. */
     static String value(final JsonObject answer, final boolean numeric) throws InvalidAnswer {
+        return value(answer, numeric, false);
+    }
+
+    static String value(final JsonObject answer, final boolean numeric, final boolean cancellable) throws InvalidAnswer {
         final JsonElement e = answer.get("value");
-        if (e == null || !e.isJsonPrimitive()) {
+        if (e != null && e.isJsonNull() && cancellable) {
+            return null;
+        }
+        if (e == null || !e.isJsonPrimitive() || !e.getAsJsonPrimitive().isString()) {
             throw new InvalidAnswer("value is missing");
         }
         final String value = e.getAsString();
@@ -147,11 +154,32 @@ final class Answers {
     static final class Arrangement {
         final List<Integer> top;
         final List<Integer> bottom;
+        final List<Integer> positions;
 
         Arrangement(final List<Integer> top, final List<Integer> bottom) {
+            this(top, bottom, null);
+        }
+
+        Arrangement(final List<Integer> top, final List<Integer> bottom, final List<Integer> positions) {
             this.top = top;
             this.bottom = bottom;
+            this.positions = positions;
         }
+    }
+
+    static Arrangement arrange(final JsonObject answer, final int count, final boolean topAllowed,
+                               final boolean bottomAllowed, final boolean anywhere, final int others) throws InvalidAnswer {
+        if (!answer.has("positions")) {
+            return arrange(answer, count, topAllowed, bottomAllowed);
+        }
+        if (!anywhere || !array(answer, "top").isEmpty() || !array(answer, "bottom").isEmpty()) {
+            throw new InvalidAnswer("positions require toAnywhere and empty top/bottom lists");
+        }
+        final List<Integer> positions = choices(answer, "positions", Math.addExact(count, others));
+        if (positions.size() != count) {
+            throw new InvalidAnswer("each movable item needs exactly one position");
+        }
+        return new Arrangement(List.of(), List.of(), positions);
     }
 
     /**
@@ -187,7 +215,7 @@ final class Answers {
             throw new InvalidAnswer(array.size() + " amounts for " + count + " items");
         }
         final List<Integer> amounts = new ArrayList<>();
-        int sum = 0;
+        long sum = 0;
         for (final JsonElement e : array) {
             final int amount = asInt(e, "amounts");
             if (amount < min) {
@@ -200,6 +228,38 @@ final class Answers {
             throw new InvalidAnswer("amounts sum to " + sum + ", expected " + total);
         }
         return amounts;
+    }
+
+    /** Forge supplies caps/dependencies; the bridge checks the same numbers it sends. */
+    static List<Integer> distribution(final JsonObject answer, final JsonObject question) throws InvalidAnswer {
+        if (answer.has("skip")) {
+            if (!answer.get("skip").isJsonPrimitive() || !answer.get("skip").getAsJsonPrimitive().isBoolean()
+                    || !answer.get("skip").getAsBoolean() || !question.has("maySkip")
+                    || !question.get("maySkip").getAsBoolean() || !array(answer, "amounts").isEmpty()) {
+                throw new InvalidAnswer("this distribution cannot be postponed");
+            }
+            return null;
+        }
+        final List<Integer> result = amounts(answer, question.getAsJsonArray("items").size(),
+                question.get("total").getAsInt(), question.get("min").getAsInt());
+        if (question.has("maximums")) {
+            final JsonArray max = question.getAsJsonArray("maximums");
+            for (int i = 0; i < result.size(); i++) {
+                if (result.get(i) > max.get(i).getAsInt()) {
+                    throw new InvalidAnswer("amount exceeds Forge's maximum for item " + (i + 1));
+                }
+            }
+        }
+        if (question.has("prerequisites")) {
+            for (final JsonElement entry : question.getAsJsonArray("prerequisites")) {
+                final JsonObject p = entry.getAsJsonObject();
+                if (result.get(p.get("item").getAsInt() - 1) > 0
+                        && result.get(p.get("requires").getAsInt() - 1) < p.get("amount").getAsInt()) {
+                    throw new InvalidAnswer("Forge's assignment prerequisite is not met");
+                }
+            }
+        }
+        return result;
     }
 
     private static List<Integer> choices(final JsonObject answer, final String field, final int count) throws InvalidAnswer {

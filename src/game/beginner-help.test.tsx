@@ -47,6 +47,17 @@ describe("Forge bounds and static help", () => {
       expect(decisionHelp(built.questions).length).toBeGreaterThan(20)
     }
   })
+  it("explains the explicit parity bounds without inventing card rules", () => {
+    const scene = tableScene("main-phase")
+    const input = builtQuestion("input", scene).questions[0]!
+    expect(choiceClarity(input)).toBe("Abbrechen möglich")
+    expect(decisionHelp([input])).toContain("abbrechen")
+    const slots = builtQuestion("arrange-anywhere", scene).questions
+    expect(decisionHelp(slots)).toContain("Position 1")
+    const amounts = builtQuestion("distribute-limits", scene).questions
+    expect(choiceClarity(amounts[0]!)).toBe("Spätere Zuweisung möglich")
+    expect(decisionHelp(amounts)).toContain("Obergrenzen und Voraussetzungen")
+  })
 })
 
 describe("help inspection and live withdrawal", () => {

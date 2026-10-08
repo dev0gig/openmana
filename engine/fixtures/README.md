@@ -59,6 +59,11 @@ fixtures/
   beim Bezahlen nutzt er zuerst schwebendes Mana, das Forge nähme
   (`mana.use`), dann Leben, wo Forge es nimmt (Phyrexia-Mana).
   `concedeInTurn`: aufgeben ab diesem Zug (0 = nie).
+  Bei Verteilungen beachtet der Testspieler seit Prompt 30 ausschließlich
+  Forges mitgelieferte numerische Obergrenzen und Voraussetzungen. Bei
+  Voraussetzungen erfüllt er zuerst deren Schwellen und bevorzugt danach
+  den letzten Eintrag; sonst bleibt der erste Eintrag bevorzugt. Keine
+  Kartennamen oder Fähigkeiten steuern diese Wahl.
 - `engine`: Sprache (`en-US`, `de-DE`), Kartensprache (`cardLanguage`, Standard:
   die Sprache; die Karten in Forges Texten, seit Prompt 12) und Kartenladen
   (`eager`, `lazy`).
@@ -101,6 +106,7 @@ Unit-Test bei jedem Build).
 | `targets-payment` | Rakdos gegen Grün, Seed 6, deutsch | wählt zuerst Spieler (`target: players`) | Spieler als Ziel per Antippen, zwei Ziele, Mana aus dem Vorrat, Leben für Phyrexia-Mana, Entscheidungen beim Wirken (Prompt 17) |
 | `attackers` | Grün gegen grüne Planeswalker, Seed 8, deutsch | greift auf drei Arten an (`attack: guided`), ein Blocker je Kampf | Planeswalker angegriffen, Angriffsziel per Antippen gewechselt, „Alle angreifen“, „Zurückrufen“, Forges Gründe, warum eine Kreatur nicht angreifen kann: Einsatzverzögerung, getappt, Verteidiger (Prompt 18) |
 | `commander` | Krenko gegen Fynn (je 100 Karten, regelkonform), Seed 5 | greift an | Kommandant aus der Kommandozone, zurück dorthin, erneut mit Kommandantensteuer, Kommandantenschaden, 40 Leben, Sieg |
+| `parity-trample` | grünes Trample-Deck gegen Grün, Seed 3 | greift an, ordnet Blocker zu, beachtet Forges Verteilungsgrenzen | tatsächlich angenommener Schaden an den verteidigenden Spieler und Zuweisungen mit Forges Voraussetzungen, reguläres Spielende; Node lazy/eager und Chrome lazy (Prompt 30) |
 
 ## Eine Partie hinzufügen
 

@@ -1,0 +1,36 @@
+{
+  "description": "Anvil parity regression: Forge combat damage to the defending player, lethal prerequisites and natural game end. Scripted player obeys only question bounds.",
+  "match": {
+    "seed": 3,
+    "format": "constructed",
+    "human": {
+      "name": "Player",
+      "deck": "parity-trample"
+    },
+    "ai": {
+      "name": "Forge AI",
+      "profile": "Default",
+      "deck": "smoke-green"
+    }
+  },
+  "player": {
+    "attack": "all",
+    "block": "assign"
+  },
+  "wasm": {
+    "node": [
+      "lazy",
+      "eager"
+    ],
+    "browser": [
+      "lazy"
+    ]
+  },
+  "covers": [
+    "combat-defender-assignment",
+    "combat-lethal-assignment",
+    "decision-distribute",
+    "attack",
+    "end-life"
+  ]
+}

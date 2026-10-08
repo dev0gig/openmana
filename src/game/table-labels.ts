@@ -117,6 +117,10 @@ export function captionFacts(card: VisibleCard): string[] {
   if (card.power !== undefined && card.toughness !== undefined) facts.push(`${card.power}/${card.toughness}`)
   if (card.loyalty !== undefined && card.loyalty !== null) facts.push(`Loyalität ${card.loyalty}`)
   if (card.damage > 0) facts.push(`${card.damage} Schaden`)
+  if (card.colors !== undefined) {
+    const names = [...card.colors].map((color) => MANA_LABELS[color as ManaColor]).join(", ")
+    facts.push(`Farbe: ${names || "Farblos"}`)
+  }
   for (const [name, amount] of Object.entries(card.counters ?? {})) {
     if (amount === 0 || (name === "Loyalty" && card.loyalty !== undefined && card.loyalty !== null)) continue
     facts.push(`${counterLabel(name).text}: ${amount}`)

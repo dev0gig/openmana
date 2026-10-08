@@ -23,6 +23,7 @@ mkdir -p "$OM_WORK_DIR/forge"
 
 git -C "$OM_FORGE_SUBMODULE" archive --format=tar "$pinned" \
     pom.xml checkstyle.xml forge-core forge-game forge-ai forge-gui/pom.xml forge-gui/src \
+    forge-gui-desktop/src/main/java/forge/screens/match/VAssignCombatDamage.java \
     | tar -x -C "$OM_WORK_DIR/forge"
 
 # A throwaway repository makes `git apply` resolve paths against the Forge

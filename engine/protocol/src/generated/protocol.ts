@@ -5,9 +5,9 @@
  */
 
 /**
- * Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace). 4: card language (boot argument --card-language, BootReport.cardLanguage) and Forge's AI profiles (BootReport.aiProfiles; match.start with any other profile is refused). 5: priority, stack and phases (prompt 16): a stack item carries its card as Forge shows it (StackItem.card) and says whether it is an ability (StackItem.ability), its source id only for a card the player may see; Forge's buttons of the priority step say what they do (Button.meaning); a selection's cards are only those the player may see. 6: targets and cost payment (prompt 17): Forge's players a player.tap would take now (Player.selectable) and its highlight on chosen players (Player.highlighted); the payment in progress (GameState.payment: the mana still to pay, the pool's colours Forge would take now) and paying from the mana pool (mana.use); a player.tap or mana.use Forge would not take is refused (no-effect). 7: declaring attackers (prompt 18): the declaration in progress (GameState.attack: the defender a creature tapped now attacks, every defender Forge offers, and the player's creatures a tap would not declare now with Forge's reason), the defending players a player.tap would switch to (Player.selectable), and what Forge's buttons of the declaration do (Button.meaning declare, attackAll, callBack).
+ * Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace). 4: card language (boot argument --card-language, BootReport.cardLanguage) and Forge's AI profiles (BootReport.aiProfiles; match.start with any other profile is refused). 5: priority, stack and phases (prompt 16): a stack item carries its card as Forge shows it (StackItem.card) and says whether it is an ability (StackItem.ability), its source id only for a card the player may see; Forge's buttons of the priority step say what they do (Button.meaning); a selection's cards are only those the player may see. 6: targets and cost payment (prompt 17): Forge's players a player.tap would take now (Player.selectable) and its highlight on chosen players (Player.highlighted); the payment in progress (GameState.payment: the mana still to pay, the pool's colours Forge would take now) and paying from the mana pool (mana.use); a player.tap or mana.use Forge would not take is refused (no-effect). 7: declaring attackers (prompt 18): the declaration in progress (GameState.attack: the defender a creature tapped now attacks, every defender Forge offers, and the player's creatures a tap would not declare now with Forge's reason), the defending players a player.tap would switch to (Player.selectable), and what Forge's buttons of the declaration do (Button.meaning declare, attackAll, callBack). 8: Anvil parity (prompt 30): Forge distribution maximums/prerequisites and postponement, absolute arrangement positions, cancellable inputs with allowed values, and changed colors including colorless.
  */
-export type ProtocolVersion = 7;
+export type ProtocolVersion = 8;
 /**
  * Everything the worker posts to the page: lifecycle messages of the worker host (engine.*, match.finished, diagnostics.*) and the game messages of the bridge.
  */
@@ -185,6 +185,7 @@ export type QuestionKind =
   "select" | "choose" | "buttons" | "confirm" | "options" | "input" | "order" | "arrange" | "distribute";
 export type ButtonsPurpose =
   "priority" | "mulligan" | "mulliganBottom" | "payment" | "attack" | "attackDeclared" | "block";
+export type ItemNr = number;
 /**
  * What an item stands for: c<card id>, p<player id>, hidden (a card the player may not see) or #<item number> (only words).
  */
@@ -195,7 +196,7 @@ export type MatchFormat = "constructed" | "commander";
  */
 export type Card = VisibleCard | HiddenCard;
 /**
- * Colours as WUBRG letters in this order, at least one.
+ * Colours as WUBRG letters in this order; empty means colourless.
  */
 export type ColorLetters = string;
 export type MessageKind = "prompt" | "notice" | "error" | "incorrect-action";
@@ -216,7 +217,6 @@ export type Question =
  * One entry of a question's list, numbered from 1. A card the player may not see is only {nr, hidden: true}.
  */
 export type Item = VisibleItem | HiddenItem;
-export type ItemNr = number;
 /**
  * What one of Forge's buttons does, where the bridge knows it from Forge's own label keys. The priority step: pass = pass priority (Forge's OK), endTurn = pass priority until the end of this turn (Forge's End Turn), undo = take back the last action (Forge's Undo). The declaration of attackers (protocol 7): declare = attack with the creatures declared so far - none: no attack (Forge's OK), attackAll = declare every creature that can attack (Forge's Alpha Strike), callBack = take every declared attacker back (Forge's Call Back). Absent elsewhere.
  */
@@ -724,6 +724,9 @@ export interface TraceQuestion {
   min?: number;
   max?: number;
   total?: number;
+  maximums?: number[];
+  prerequisites?: DistributionPrerequisite[];
+  maySkip?: boolean;
   others?: number;
   remainingMin?: number;
   remainingMax?: number;
@@ -742,6 +745,11 @@ export interface TraceQuestion {
   buttons?: boolean[];
   items?: TraceItemRef[];
   revealed?: TraceItemRef[];
+}
+export interface DistributionPrerequisite {
+  item: ItemNr;
+  requires: ItemNr;
+  amount: number;
 }
 export interface GameStarted {
   type: "game.started";
@@ -1079,7 +1087,14 @@ export interface InputQuestion {
   blocking: true;
   text: string;
   numeric: boolean;
+  /**
+   * Forge accepts null to cancel this input dialog.
+   */
+  cancellable?: boolean;
   suggested: string | null;
+  /**
+   * When nonempty, the allowed input values from Forge; value must match an item text.
+   */
   items?: Item[];
 }
 /**
@@ -1111,7 +1126,7 @@ export interface ArrangeQuestion {
   toTop: boolean;
   toBottom: boolean;
   /**
-   * Forge would allow any position; not offered yet (prompt 15).
+   * Forge allows numbered positions within the pile, including between its hidden cards.
    */
   toAnywhere: boolean;
   others: number;
@@ -1125,6 +1140,18 @@ export interface DistributeQuestion {
   text: string;
   total: number;
   min: number;
+  /**
+   * Forge's upper bound per item, parallel to items.
+   */
+  maximums?: number[];
+  /**
+   * Forge requires these amounts before assigning anything to the named item. No client rule inference.
+   */
+  prerequisites?: DistributionPrerequisite[];
+  /**
+   * Forge allows postponing this combat assignment until other attackers assign their damage.
+   */
+  maySkip?: boolean;
   /**
    * @minItems 1
    */
@@ -1230,7 +1257,10 @@ export interface InputAnswer {
   seq: Seq;
   question: QuestionId;
   kind: "input";
-  value: string;
+  /**
+   * Null cancels only if the question is cancellable.
+   */
+  value: string | null;
 }
 /**
  * Chosen item numbers in order; the rest remains (see OrderQuestion).
@@ -1252,6 +1282,10 @@ export interface ArrangeAnswer {
   kind: "arrange";
   top: ItemNr[];
   bottom: ItemNr[];
+  /**
+   * When toAnywhere is true: final one-based slot for each item, parallel to items. Top and bottom must then be empty. Hidden remainder keeps its order.
+   */
+  positions?: number[];
 }
 /**
  * One amount per item (parallel to items), each at least min, summing to total.
@@ -1262,6 +1296,10 @@ export interface DistributeAnswer {
   question: QuestionId;
   kind: "distribute";
   amounts: number[];
+  /**
+   * Postpone only when maySkip; amounts must be empty.
+   */
+  skip?: true;
 }
 /**
  * Tap a card without being asked: this is how cards are played at priority, paid with, declared as attackers or blockers. Forge decides what the tap means.

@@ -192,6 +192,14 @@ engine/build/report/transcripts/human-3.json --feeding eager`. In Node:
 
 ## Grundsätze
 
+Prompt 30 verwendet Protokoll 8: Forges Verteilungsgrenzen und Voraussetzungen,
+Verteidiger als Schadensziel, explizites Verschieben der Zuweisung, freie
+Bibliothekspositionen sowie abbrechbare Eingaben mit erlaubten Werten. Patch
+`0009` teilt die bestehende Kampfzuweisung zwischen Forge-Desktop und Bridge.
+Die neue Partie `parity-trample` verlangt tatsächlich beobachtete Zuweisungen
+an den Verteidiger; Callback-Tests prüfen zusätzliche Grenzen. Vergleich und
+Nachweise: [`docs/ANVIL_PARITY.md`](../docs/ANVIL_PARITY.md).
+
 - **Laut scheitern:** Jede fehlende Voraussetzung (Toolchain, Prüfsumme,
   veränderter Forge-Checkout, nicht passender Patch, unbekanntes Launcher-Layout,
   Browser ohne Cross-Origin-Isolation oder ohne Wasm GC/exnref) bricht mit einer

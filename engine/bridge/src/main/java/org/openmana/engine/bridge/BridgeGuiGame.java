@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import forge.LobbyPlayer;
 import forge.deck.CardPool;
 import forge.game.GameEntityView;
+import forge.gamemodes.match.CombatDamageAssignment;
 import forge.game.GameLogEntry;
 import forge.game.GameLogVerbosity;
 import forge.game.GameOutcome;
@@ -424,6 +425,7 @@ final class BridgeGuiGame extends AbstractGuiGame {
     @Override
     public GameEntityView chooseSingleEntityForEffect(final String title, final List<? extends GameEntityView> optionList,
                                                       final DelayedReveal delayedReveal, final boolean isOptional) {
+        if (delayedReveal != null) reveal(delayedReveal.getMessagePrefix(), delayedReveal.getCards());
         final List<GameEntityView> list = new ArrayList<>(optionList);
         final int min = isOptional || list.isEmpty() ? 0 : 1;
         final JsonObject q = question(Protocol.KIND_CHOOSE, title);
@@ -440,6 +442,7 @@ final class BridgeGuiGame extends AbstractGuiGame {
     @Override
     public List<GameEntityView> chooseEntitiesForEffect(final String title, final List<? extends GameEntityView> optionList,
                                                         final int min, final int max, final DelayedReveal delayedReveal) {
+        if (delayedReveal != null) reveal(delayedReveal.getMessagePrefix(), delayedReveal.getCards());
         final List<GameEntityView> list = new ArrayList<>(optionList);
         final int upper = Math.min(max, list.size());
         final int lower = Math.max(0, Math.min(min, upper));
@@ -520,11 +523,18 @@ final class BridgeGuiGame extends AbstractGuiGame {
                                   final String initialInput, final List<String> inputOptions, final boolean isNumeric) {
         final JsonObject q = question(Protocol.KIND_INPUT, join(title, message));
         q.addProperty("numeric", isNumeric);
+        q.addProperty("cancellable", true);
         q.addProperty("suggested", initialInput);
         if (inputOptions != null && !inputOptions.isEmpty()) {
             q.add("items", items(inputOptions, null));
         }
-        return ask(q, a -> Answers.value(a, isNumeric), initialInput);
+        return ask(q, a -> {
+            final String value = Answers.value(a, isNumeric, true);
+            if (value != null && inputOptions != null && !inputOptions.isEmpty() && !inputOptions.contains(value)) {
+                throw new Answers.InvalidAnswer("value must be one of Forge's input options");
+            }
+            return value;
+        }, null);
     }
 
     /**
@@ -588,15 +598,23 @@ final class BridgeGuiGame extends AbstractGuiGame {
         final JsonObject q = question(Protocol.KIND_ARRANGE, title);
         q.addProperty("toTop", toTop);
         q.addProperty("toBottom", toBottom);
-        // Placing cards in the middle of the pile is not offered yet (spike);
-        // the flag shows when Forge would allow it.
         q.addProperty("toAnywhere", toAnywhere);
         q.addProperty("others", rest.size());
         q.add("items", items(movable, null));
-        final Answers.Arrangement arrangement = ask(q, a -> Answers.arrange(a, movable.size(), toTop, toBottom), null);
+        final Answers.Arrangement arrangement = ask(q, a -> Answers.arrange(a, movable.size(), toTop, toBottom, toAnywhere, rest.size()), null);
         final List<CardView> result = new ArrayList<>();
         if (arrangement == null) {
             cards.forEach(result::add);
+            return result;
+        }
+        if (arrangement.positions != null) {
+            // Only movable item numbers/slots crossed the boundary. The hidden
+            // remainder is restored here, in its original Forge order.
+            int nextRest = 0;
+            for (int position = 1; position <= movable.size() + rest.size(); position++) {
+                final int index = arrangement.positions.indexOf(position);
+                result.add(index < 0 ? rest.get(nextRest++) : movable.get(index));
+            }
             return result;
         }
         for (final int nr : arrangement.top) {
@@ -613,16 +631,31 @@ final class BridgeGuiGame extends AbstractGuiGame {
     public Map<CardView, Integer> assignCombatDamage(final CardView attacker, final List<CardView> blockers,
                                                      final int damage, final GameEntityView defender,
                                                      final boolean overrideOrder, final boolean maySkip) {
+        final CombatDamageAssignment policy = new CombatDamageAssignment(attacker, blockers, defender, overrideOrder);
+        final List<GameEntityView> targets = new ArrayList<>(blockers);
+        if (policy.defenderAllowed()) targets.add(defender);
         final JsonObject q = question(Protocol.KIND_DISTRIBUTE, Localizer.getInstance().getMessage("lblNCombatDamage", String.valueOf(damage)));
         attachCard(q, attacker);
         q.addProperty("total", damage);
         q.addProperty("min", 0);
-        q.add("items", items(blockers, null));
-        final List<Integer> amounts = ask(q, a -> Answers.amounts(a, blockers.size(), damage, 0), null);
+        q.add("items", items(targets, null));
+        q.addProperty("maySkip", maySkip);
+        final JsonArray prerequisites = new JsonArray();
+        for (final CombatDamageAssignment.Prerequisite p : policy.prerequisites()) {
+            final JsonObject entry = new JsonObject();
+            entry.addProperty("item", p.item() + 1);
+            entry.addProperty("requires", p.requires() + 1);
+            entry.addProperty("amount", p.amount());
+            prerequisites.add(entry);
+        }
+        q.add("prerequisites", prerequisites);
+        final List<Integer> amounts = ask(q, a -> Answers.distribution(a, q), null);
+        if (amounts == null) return null; // Forge's explicit postpone, or game ended.
         final Map<CardView, Integer> result = new LinkedHashMap<>();
         for (int i = 0; i < blockers.size(); i++) {
-            result.put(blockers.get(i), amounts == null ? (i == 0 ? damage : 0) : amounts.get(i));
+            result.put(blockers.get(i), amounts.get(i));
         }
+        if (policy.defenderAllowed()) result.put(null, amounts.get(blockers.size()));
         return result;
     }
 
@@ -636,15 +669,21 @@ final class BridgeGuiGame extends AbstractGuiGame {
         q.addProperty("total", amount);
         q.addProperty("min", min);
         q.add("items", items(targets, null));
-        final List<Integer> amounts = ask(q, a -> Answers.amounts(a, targets.size(), amount, min), null);
+        final JsonArray maximums = new JsonArray();
+        for (final Object t : targets) maximums.add(target.get(t) == null ? amount : target.get(t));
+        q.add("maximums", maximums);
+        final List<Integer> amounts = ask(q, a -> Answers.distribution(a, q), null);
         final Map<Object, Integer> result = new LinkedHashMap<>();
+        int remaining = amount - min * targets.size();
         for (int i = 0; i < targets.size(); i++) {
-            result.put(targets.get(i), amounts == null ? (i == 0 ? amount - min * (targets.size() - 1) : min) : amounts.get(i));
+            final int extra = Math.min(Math.max(0, remaining), Math.max(0, maximums.get(i).getAsInt() - min));
+            result.put(targets.get(i), amounts == null ? min + extra : amounts.get(i));
+            remaining -= extra;
         }
         return result;
     }
 
-    /** Sideboarding between games is not part of the spike; the deck stays as it is. */
+    /** The supported match has one game; there is no between-game sideboarding. */
     @Override
     public List<PaperCard> sideboard(final CardPool sideboard, final CardPool main, final String message) {
         return null;

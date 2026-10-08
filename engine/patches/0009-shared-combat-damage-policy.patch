@@ -1,0 +1,220 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: dev0gig <115336867+dev0gig@users.noreply.github.com>
+Date: Thu, 8 Oct 2026 05:34:07 +0200
+Subject: [PATCH 9/9] Share desktop combat damage assignment policy with
+ headless GUIs
+
+Extract the defender eligibility and lethal-damage/order prerequisites from
+VAssignCombatDamage into forge-gui CombatDamageAssignment. The desktop
+dialog and OpenMana bridge now ask this one Forge policy, so clients need
+only transport and validate its numeric bounds. Preserve Forge lethal damage,
+deathtouch, free division and modern unordered blocker assignment.
+
+Source: Card-Forge/forge ed0333fecb1fea0671b3e50cadc1da4f71db5798,
+forge-gui-desktop VAssignCombatDamage. No TypeScript or bridge card rules.
+The desktop source is patched for shared ownership; the browser build still
+compiles only forge-core, forge-game, forge-ai and forge-gui.
+
+Written for OpenMana on 2026-10-08 (Prompt 30).
+---
+ .../screens/match/VAssignCombatDamage.java    | 47 +++++---------
+ .../match/CombatDamageAssignment.java         | 61 +++++++++++++++++++
+ 2 files changed, 75 insertions(+), 33 deletions(-)
+ create mode 100644 forge-gui/src/main/java/forge/gamemodes/match/CombatDamageAssignment.java
+
+diff --git a/forge-gui-desktop/src/main/java/forge/screens/match/VAssignCombatDamage.java b/forge-gui-desktop/src/main/java/forge/screens/match/VAssignCombatDamage.java
+index 9bbcb5a..5248d3e 100644
+--- a/forge-gui-desktop/src/main/java/forge/screens/match/VAssignCombatDamage.java
++++ b/forge-gui-desktop/src/main/java/forge/screens/match/VAssignCombatDamage.java
+@@ -17,6 +17,8 @@
+  */
+ package forge.screens.match;
+ 
++// OpenMana patch 0009 (2026-10-08): share assignment bounds with headless GUIs.
++
+ import java.awt.Dialog.ModalityType;
+ import java.awt.Dimension;
+ import java.awt.event.MouseAdapter;
+@@ -34,6 +36,7 @@ import com.google.common.collect.Lists;
+ import com.google.common.collect.Maps;
+ 
+ import forge.game.GameEntityView;
++import forge.gamemodes.match.CombatDamageAssignment;
+ import forge.game.card.CardView;
+ import forge.game.card.CounterEnumType;
+ import forge.game.player.PlayerView;
+@@ -73,11 +76,10 @@ public class VAssignCombatDamage {
+     private final int totalDamageToAssign;
+ 
+     private boolean attackerHasDeathtouch = false;
+-    private boolean attackerHasDivideDamage = false; // Creatures with this can assign to defender
+-    private boolean attackerHasTrample = false;
+     private boolean attackerHasInfect = false;
+     private boolean overrideCombatantOrder = false;
+     private boolean skip = false;
++    private final CombatDamageAssignment assignment;
+ 
+     private final GameEntityView defender;
+ 
+@@ -106,12 +108,10 @@ public class VAssignCombatDamage {
+     private final Map<CardView, DamageTarget> damage = Maps.newHashMap(); // NULL in this map means defender
+ 
+     private boolean canAssignTo(final CardView card) {
+-        for (DamageTarget dt : defenders) {
+-            if (dt.card == card) return true;
+-            if (getDamageToKill(dt.card) > dt.damage)
+-                return false;
+-        }
+-        throw new RuntimeException("Asking to assign damage to object which is not present in defenders list");
++        int index = -1;
++        for (int i = 0; i < defenders.size(); i++) if (defenders.get(i).card == card) index = i;
++        if (index < 0) throw new IllegalArgumentException("Unknown combat damage target");
++        return assignment.mayAssignTo(index, defenders.stream().map(dt -> dt.damage).toList());
+     }
+ 
+     // Mouse actions
+@@ -162,9 +162,8 @@ public class VAssignCombatDamage {
+         defender = defender0;
+         attackerHasDeathtouch = attacker.getCurrentState().hasDeathtouch();
+         attackerHasInfect = attacker.getCurrentState().hasInfect();
+-        attackerHasTrample = defender != null && attacker.getCurrentState().hasTrample();
+-        attackerHasDivideDamage = attacker.getCurrentState().hasDivideDamage();
+         overrideCombatantOrder = overrideOrder;
++        assignment = new CombatDamageAssignment(attacker, blockers, defender, overrideOrder);
+ 
+         // Top-level UI stuff
+         final JPanel overlay = SOverlayUtils.genericOverlay();
+@@ -185,7 +184,7 @@ public class VAssignCombatDamage {
+         // Defenders area
+         final JPanel pnlDefenders = new JPanel();
+         pnlDefenders.setOpaque(false);
+-        int cols = attackerHasTrample || (attackerHasDivideDamage && overrideCombatantOrder) ? blockers.size() + 1 : blockers.size();
++        int cols = assignment.defenderAllowed() ? blockers.size() + 1 : blockers.size();
+         final String wrap = "wrap " + cols;
+         pnlDefenders.setLayout(new MigLayout("insets 0, gap 0, ax center, " + wrap));
+ 
+@@ -199,7 +198,7 @@ public class VAssignCombatDamage {
+             addPanelForDefender(pnlDefenders, c);
+         }
+ 
+-        if (attackerHasTrample || (attackerHasDivideDamage && overrideCombatantOrder)) {
++        if (assignment.defenderAllowed()) {
+             final DamageTarget dt = new DamageTarget(null, new FLabel.Builder().text("0").fontSize(18).fontAlign(SwingConstants.CENTER).build());
+             damage.put(null, dt);
+             defenders.add(dt);
+@@ -287,8 +286,7 @@ public class VAssignCombatDamage {
+ 
+         // If trying to assign to the defender, follow the normal assignment rules
+         // No need to check for "active" creature assignee when overriding combatant order
+-        if (!attackerHasDivideDamage && (source == null || source == defender || !overrideCombatantOrder) && isAdding &&
+-                !VAssignCombatDamage.this.canAssignTo(source)) {
++        if (isAdding && !canAssignTo(source)) {
+             return;
+         }
+ 
+@@ -330,20 +328,8 @@ public class VAssignCombatDamage {
+     }
+ 
+     private void checkDamageQueue() {
+-        if (overrideCombatantOrder && attackerHasDivideDamage) {
+-            return;
+-        }
+-        // Clear out any Damage that shouldn't be assigned to other combatants
+-        boolean hasAliveEnemy = false;
+         for (DamageTarget dt : defenders) {
+-            int lethal = getDamageToKill(dt.card);
+-            int damage = dt.damage;
+-            // If overriding combatant order, make sure everything has lethal if defender has damage assigned to it
+-            // Otherwise, follow normal combatant order
+-            if (hasAliveEnemy && (!overrideCombatantOrder || dt.card == null || dt.card == defender))
+-                dt.damage = 0;
+-            else
+-                hasAliveEnemy |= damage < lethal;
++            if (!canAssignTo(dt.card)) dt.damage = 0;
+         }
+     }
+ 
+@@ -468,12 +454,7 @@ public class VAssignCombatDamage {
+                 lethalDamage = Integer.parseInt(pw.getCurrentState().getLoyalty());
+             }
+         } else {
+-            lethalDamage = Math.max(0, card.getLethalDamage());
+-            if (card.getCurrentState().isPlaneswalker()) {
+-                lethalDamage = Integer.parseInt(card.getCurrentState().getLoyalty());
+-            } else if (attackerHasDeathtouch) {
+-                lethalDamage = Math.min(lethalDamage, 1);
+-            }
++            lethalDamage = CombatDamageAssignment.lethal(card, attackerHasDeathtouch);
+         }
+         return lethalDamage;
+     }
+diff --git a/forge-gui/src/main/java/forge/gamemodes/match/CombatDamageAssignment.java b/forge-gui/src/main/java/forge/gamemodes/match/CombatDamageAssignment.java
+new file mode 100644
+index 0000000..06a519f
+--- /dev/null
++++ b/forge-gui/src/main/java/forge/gamemodes/match/CombatDamageAssignment.java
+@@ -0,0 +1,61 @@
++/*
++ * Forge: Play Magic: the Gathering.
++ * Copyright (C) 2011 Forge Team
++ * SPDX-License-Identifier: GPL-3.0-or-later
++ *
++ * OpenMana patch 0009 (2026-10-08): shared read-only assignment policy.
++ *
++ * Assignment policy extracted from the desktop VAssignCombatDamage dialog.
++ * Both that dialog and headless clients use these answers; clients do not
++ * reproduce lethal-damage, trample or combatant-order rules.
++ */
++package forge.gamemodes.match;
++
++import forge.game.GameEntityView;
++import forge.game.card.CardView;
++import java.util.ArrayList;
++import java.util.List;
++
++public final class CombatDamageAssignment {
++    /** Zero-based item indices; before item receives damage, requires needs amount. */
++    public record Prerequisite(int item, int requires, int amount) { }
++
++    private final boolean defenderAllowed;
++    private final List<Prerequisite> prerequisites = new ArrayList<>();
++
++    public CombatDamageAssignment(final CardView attacker, final List<CardView> blockers,
++                                  final GameEntityView defender, final boolean overrideOrder) {
++        final boolean divide = attacker.getCurrentState().hasDivideDamage();
++        defenderAllowed = defender != null && (attacker.getCurrentState().hasTrample() || (divide && overrideOrder));
++        final int count = blockers.size() + (defenderAllowed ? 1 : 0);
++        for (int i = 0; i < count; i++) {
++            if (divide && overrideOrder) continue;
++            if (overrideOrder && i < blockers.size()) continue;
++            for (int j = 0; j < i; j++) {
++                prerequisites.add(new Prerequisite(i, j,
++                        lethal(blockers.get(j), attacker.getCurrentState().hasDeathtouch())));
++            }
++        }
++    }
++
++    public boolean defenderAllowed() { return defenderAllowed; }
++    public List<Prerequisite> prerequisites() { return List.copyOf(prerequisites); }
++
++    public boolean mayAssignTo(final int item, final List<Integer> amounts) {
++        for (final Prerequisite p : prerequisites) {
++            if (p.item() == item && amounts.get(p.requires()) < p.amount()) return false;
++        }
++        return true;
++    }
++
++    /** Forge's view already includes marked/assigned damage and current toughness. */
++    public static int lethal(final CardView card, final boolean deathtouch) {
++        int result = Math.max(0, card.getLethalDamage());
++        if (card.getCurrentState().isPlaneswalker()) {
++            result = Integer.parseInt(card.getCurrentState().getLoyalty());
++        } else if (deathtouch) {
++            result = Math.min(result, 1);
++        }
++        return result;
++    }
++}
+-- 
+2.47.3
+

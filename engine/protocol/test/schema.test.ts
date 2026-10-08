@@ -150,7 +150,7 @@ describe("full snapshots", () => {
   test("card markers are Forge's flags, present only when true", () => {
     checkEngineMessage({ type: "message", kind: "prompt", text: "", card: card.id, cardView: card });
     refused(checkEngineMessage, { type: "message", kind: "prompt", text: "", cardView: { ...card, playable: false } }, /playable must be true/);
-    refused(checkEngineMessage, { type: "message", kind: "prompt", text: "", cardView: { ...card, colors: "" } }, /colors/);
+    checkEngineMessage({ type: "message", kind: "prompt", text: "", cardView: { ...card, colors: "", printedColors: "G" } });
     refused(checkEngineMessage, { type: "message", kind: "prompt", text: "", cardView: { ...card, colors: "RW" } }, /colors/);
     checkEngineMessage({ type: "message", kind: "prompt", text: "", cardView: { ...card, colors: "WR", printedColors: "" } });
   });

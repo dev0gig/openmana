@@ -595,10 +595,42 @@ public final class ScriptedHuman implements EngineHost {
                 final int n = q.getAsJsonArray("items").size();
                 final int total = q.get("total").getAsInt();
                 final int min = q.get("min").getAsInt();
-                final JsonArray amounts = new JsonArray();
-                for (int i = 0; i < n; i++) {
-                    amounts.add(i == 0 ? total - min * (n - 1) : min);
+                final int[] assigned = new int[n];
+                java.util.Arrays.fill(assigned, min);
+                int remaining = total - min * n;
+                // Test-player policy uses only question bounds, never card mechanics.
+                // Prefer the last item when Forge supplies conditional thresholds;
+                // otherwise keep the historical first-item policy, now respecting caps.
+                final boolean constrained = q.has("prerequisites") && !q.getAsJsonArray("prerequisites").isEmpty();
+                if (constrained) {
+                    final int[] needed = new int[n];
+                    for (final JsonElement entry : q.getAsJsonArray("prerequisites")) {
+                        final JsonObject p = entry.getAsJsonObject();
+                        final int i = p.get("requires").getAsInt() - 1;
+                        needed[i] = Math.max(needed[i], p.get("amount").getAsInt());
+                    }
+                    for (int i = 0; i < n; i++) {
+                        final int add = Math.min(remaining, Math.max(0, needed[i] - assigned[i]));
+                        assigned[i] += add;
+                        remaining -= add;
+                    }
                 }
+                for (int step = 0; step < n && remaining > 0; step++) {
+                    final int i = constrained ? n - step - 1 : step;
+                    boolean permitted = true;
+                    if (q.has("prerequisites")) for (final JsonElement entry : q.getAsJsonArray("prerequisites")) {
+                        final JsonObject p = entry.getAsJsonObject();
+                        if (p.get("item").getAsInt() == i + 1 && assigned[p.get("requires").getAsInt() - 1] < p.get("amount").getAsInt()) permitted = false;
+                    }
+                    if (!permitted) continue;
+                    final int cap = q.has("maximums") ? q.getAsJsonArray("maximums").get(i).getAsInt() : total;
+                    final int add = Math.min(remaining, Math.max(0, cap - assigned[i]));
+                    assigned[i] += add;
+                    remaining -= add;
+                }
+                if (remaining != 0) throw new IllegalStateException("test player cannot satisfy distribution: " + q);
+                final JsonArray amounts = new JsonArray();
+                for (final int value : assigned) amounts.add(value);
                 a.add("amounts", amounts);
             }
             default -> throw new IllegalStateException("unexpected blocking question " + q);

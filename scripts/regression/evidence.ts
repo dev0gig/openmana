@@ -3,7 +3,7 @@
  */
 import assert from "node:assert/strict"
 import { REQUIRED_COVERAGE } from "../../engine/wasm/spike/trace.ts"
-import { loadFixtures } from "../../engine/wasm/test/fixtures.ts"
+import { loadFixtures, type Fixture } from "../../engine/wasm/test/fixtures.ts"
 
 type Json = Record<string, unknown>
 function object(value: unknown, label: string): Json {
@@ -19,7 +19,9 @@ function empty(value: unknown, label: string) {
 }
 function yes(value: unknown, label: string) { assert.equal(value, true, label) }
 
-export function engineEvidence(value: unknown, manifestSha256: string) {
+// Tests can explicitly use archived requirements to validate archived report
+// shapes. The runner always uses the current fixtures and required coverage.
+export function engineEvidence(value: unknown, manifestSha256: string, requirements: { fixtures: readonly Pick<Fixture, "name" | "wasm" | "covers" | "sameGameAs">[], coverage: readonly string[] } = { fixtures: loadFixtures(), coverage: REQUIRED_COVERAGE }) {
   const report = object(value, "engine")
   assert.equal(report["format"], "openmana-engine-tests/1")
   assert.equal(report["manifestSha256"], manifestSha256, "engine: different artifact set")
@@ -32,7 +34,7 @@ export function engineEvidence(value: unknown, manifestSha256: string) {
   const traces = object(runs["jvm-traces"], "traces")
   empty(traces["problems"], "trace problems")
   const coverage = array(traces["fixtures"], "trace fixtures").map((v) => object(v, "fixture"))
-  const fixtures = loadFixtures()
+  const fixtures = requirements.fixtures
   for (const fixture of fixtures) {
     const found = coverage.filter((v) => v["name"] === fixture.name)
     assert.equal(found.length, 1, `missing/duplicate fixture ${fixture.name}`)
@@ -52,14 +54,14 @@ export function engineEvidence(value: unknown, manifestSha256: string) {
       for (const category of fixture.covers) assert((observed[category] as number) > 0, `${fixture.name}: missing ${category}`)
     }
   }
-  for (const category of REQUIRED_COVERAGE) assert(coverage.some((v) => (object(v["coverage"], "coverage")[category] as number) > 0), `missing engine coverage ${category}`)
-  return { runs: Object.keys(runs).length, fixtures: fixtures.length, requiredCoverage: [...REQUIRED_COVERAGE], completeResults: [...new Set(coverage.map((v) => v["result"]))] }
+  for (const category of requirements.coverage) assert(coverage.some((v) => (object(v["coverage"], "coverage")[category] as number) > 0), `missing engine coverage ${category}`)
+  return { runs: Object.keys(runs).length, fixtures: fixtures.length, requiredCoverage: [...requirements.coverage], completeResults: [...new Set(coverage.map((v) => v["result"]))] }
 }
 
 export const VIEWPORTS = ["small-phone", "phone", "phone-landscape", "fold-portrait", "fold-landscape", "tablet", "tablet-landscape", "desktop"] as const
-const SCENES = ["opening", "main-phase", "stack", "blockers", "defend", "commander-late", "command-effects", "play-draw", "target", "target-player", "yes-no", "discard", "choose-mode", "scry", "ability", "damage", "opponent-turn", "respond", "respond-own", "target-both", "payment", "payment-pool", "payment-life", "cast-x", "attack", "attack-declared", "attack-planeswalker", "block-start", "block-multiple", "built:confirm", "built:input", "built:order", "built:block-order", "built:reveal", "built:choose-many", "built:select-outside"]
+const SCENES = ["opening", "main-phase", "stack", "blockers", "defend", "commander-late", "command-effects", "play-draw", "target", "target-player", "yes-no", "discard", "choose-mode", "scry", "ability", "damage", "opponent-turn", "respond", "respond-own", "target-both", "payment", "payment-pool", "payment-life", "cast-x", "attack", "attack-declared", "attack-planeswalker", "block-start", "block-multiple", "built:confirm", "built:input", "built:order", "built:block-order", "built:reveal", "built:choose-many", "built:select-outside", "built:arrange-anywhere", "built:distribute-limits"]
 
-export function browserEvidence(appValue: unknown, pwaValue: unknown) {
+export function browserEvidence(appValue: unknown, pwaValue: unknown, requiredScenes: readonly string[] = SCENES) {
   const app = object(appValue, "app")
   const pwa = object(pwaValue, "PWA")
   assert.equal(app["scope"], undefined, "focused E2E is not a full regression")
@@ -78,7 +80,7 @@ export function browserEvidence(appValue: unknown, pwaValue: unknown) {
   const table = object(app["gameTable"], "table")
   for (const viewport of VIEWPORTS) {
     const scenes = object(table[viewport], viewport)
-    for (const scene of SCENES) object(scenes[scene], `${viewport}/${scene}`)
+    for (const scene of requiredScenes) object(scenes[scene], `${viewport}/${scene}`)
     object(scenes["interaction"], `${viewport}/interaction`)
     object(scenes["history"], `${viewport}/history`)
   }

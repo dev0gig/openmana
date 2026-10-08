@@ -255,6 +255,11 @@ Carry forward:
 
 Anvil decision families include card/selectable selection, buttons, yes/no, options, numeric input, ordering and distribution. The bridge must cover every Forge path required by supported formats.
 
+The functional comparison, repaired boundary cases and intentional differences
+are recorded in [ANVIL_PARITY.md](ANVIL_PARITY.md). Distribution constraints and
+free-position/cancellation options remain Forge data; the app never derives
+card rules to fill a missing protocol field.
+
 How the player answers each of them on the game table - the decision region above the hand, nothing answered for the player, drafts checked only against the question's own numbers, armed sending buttons, withdrawn questions, refused answers shown - is described in [implementation/15-forge-decisions.md](implementation/15-forge-decisions.md).
 
 ## 10. Beginner friendliness

@@ -23,6 +23,7 @@ import {
   checkDistribution,
   checkInput,
   checkOrder,
+  checkPositions,
   chooseAnswer,
   confirmLabels,
   countRule,
@@ -41,12 +42,32 @@ import {
   orderAnswer,
   orderRule,
   paymentView,
+  positionsAnswer,
   questionCards,
   selectAnswer,
   selectView,
   toggleChoice,
   type BlockingQuestion,
 } from "./decision-model"
+
+describe("parity: bounds supplied by Forge", () => {
+  it("arbitrary slots expose no hidden identities and require a unique valid slot for every item", () => {
+    const q: ArrangeQuestion = { type: "question", kind: "arrange", id: 90, blocking: true, text: "Place", toTop: false, toBottom: false, toAnywhere: true, others: 20, items: [{ nr: 1, text: "A" }, { nr: 2, text: "B" }] }
+    expect(checkPositions(q, [2, 21]).ok).toBe(true)
+    for (const positions of [[2, 2], [0, 1], [1, 23], [1], [1, NaN], [1.5, 2]]) expect(checkPositions(q, positions).ok).toBe(false)
+    expect(checkPositions({ ...q, toAnywhere: false }, [1, 2]).ok).toBe(false)
+    expect(valid(q.id, positionsAnswer([2, 21]))).toBe(true)
+  })
+
+  it("caps and conditional minimums are checked without interpreting cards or damage rules", () => {
+    const q: DistributeQuestion = { type: "question", kind: "distribute", id: 91, blocking: true, text: "Assign", total: 5, min: 0, items: [{ nr: 1, text: "A" }, { nr: 2, text: "B" }], maximums: [4, 5], prerequisites: [{ item: 2, requires: 1, amount: 3 }], maySkip: true }
+    expect(checkDistribution(q, [3, 2]).ok).toBe(true)
+    for (const amounts of [[2, 3], [5, 0], [3.5, 1.5], [NaN, NaN], [1, 1], [3, 3]]) expect(checkDistribution(q, amounts).ok).toBe(false)
+    expect(changeAmount(q, [4, 0], 0, 1)).toEqual([4, 0])
+    expect(valid(q.id, { kind: "distribute", amounts: [], skip: true })).toBe(true)
+    expect(valid(q.id, { kind: "input", value: null })).toBe(true)
+  })
+})
 
 /** A list with at least one entry, as the schema wants some lists (items of choose, options, distribute). */
 function nonEmpty<T>(list: readonly T[]): [T, ...T[]] {
@@ -291,6 +312,14 @@ describe("input (built: the recorded games reach none)", () => {
     expect(inputAnswer(text, " Name ")).toEqual({ kind: "input", value: " Name " })
     expect(valid(text.id, inputAnswer(text, "x"))).toBe(true)
   })
+
+  it("a bounded input accepts only Forge's offered values", () => {
+    const choice = { ...numeric, numeric: false, items: [{ nr: 1, text: "Elf" }, { nr: 2, text: "Goblin" }] }
+    expect(checkInput(choice, "Dragon").ok).toBe(false)
+    expect(checkInput(choice, "Elf").ok).toBe(true)
+    const numericChoice = { ...numeric, items: [{ nr: 1, text: " 3 " }] }
+    expect(inputAnswer(numericChoice, " 3 ").value).toBe(" 3 ")
+  })
 })
 
 describe("order (built: the recorded games reach none)", () => {
@@ -381,6 +410,6 @@ describe("the built questions of the end-to-end test's harness (src/test/built-q
       for (const question of questions) expect(() => checkEngineMessage(question), name).not.toThrow()
       return currentDecision(questions).kind === "blocking" ? (currentDecision(questions) as { question: Question }).question.kind : "select"
     })
-    expect(kinds).toEqual(["confirm", "input", "order", "order", "options", "choose", "select"])
+    expect(kinds).toEqual(["confirm", "input", "order", "order", "options", "choose", "select", "arrange", "distribute"])
   })
 })

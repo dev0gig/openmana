@@ -250,7 +250,8 @@ public final class EngineTrace {
         final JsonObject o = new JsonObject();
         // not "text", button labels, "top" (the order dialog's list title) or card views: Forge's words
         copy(q, o, "id", "kind", "blocking", "purpose", "card", "cards", "min", "max", "total", "numeric", "cancellable",
-                "remainingMin", "remainingMax", "toTop", "toBottom", "toAnywhere", "others");
+                "remainingMin", "remainingMax", "toTop", "toBottom", "toAnywhere", "others",
+                "maximums", "prerequisites", "maySkip");
         if (q.has("suggested") && !isText(q.get("suggested"))) {
             o.add("suggested", q.get("suggested").deepCopy());
         }

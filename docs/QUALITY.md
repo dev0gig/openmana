@@ -12,16 +12,16 @@ From the repository root, with Node >=22.18, installed app/engine dependencies,
 Chrome for Testing and the pinned engine toolchain:
 
 ```bash
-OPENMANA_ENGINE_BUILD_DIR=engine/build/update-26-20261007-final \
-OPENMANA_TOOLCHAIN_DIR="$PWD/engine/build/update-26-20261007-final/toolchain" \
-OPENMANA_CARDS_DIR=engine/build/update-26-20261007-final/catalog \
+OPENMANA_ENGINE_BUILD_DIR=engine/build/parity-30-accepted \
+OPENMANA_TOOLCHAIN_DIR="$PWD/engine/build/parity-30-accepted/toolchain" \
+OPENMANA_CARDS_DIR=engine/build/parity-30-accepted/catalog \
 NODE_OPTIONS=--max-old-space-size=2048 \
 JDK_JAVA_OPTIONS=-Xmx512m MAVEN_OPTS=-Xmx768m \
 npm run test:regression -- --out reports/regression/my-new-run
 ```
 
 Choose the current locked build and its matching catalog, not an arbitrary old
-directory. The example is the preserved Prompt26 build. Missing artifacts,
+directory. The example is the accepted protocol-8 Prompt30 build. Missing artifacts,
 changed source inputs or a catalog with the wrong Forge/schema version fail.
 Use `engine/UPDATING.md` for an actual engine update; this command does not
 change a pin, rebuild WASM or promote a lock. `OPENMANA_CHROME` may select the
@@ -62,10 +62,10 @@ available-action checks and unsupported behavior fail rather than fall back.
 | Arena and deck library | `src/decks/*.test.*`; English/German/Commander file/paste imports, library and real Forge validation of saved names | Unresolved lines, ambiguous translation, bad syntax, no silent omission, unknown Forge card, deletion races/tombstones, explicit replacement |
 | Protocol/queue/worker | `engine/protocol/test`, `engine/client/test`, `engine/wasm/test/worker-host.test.ts`; actual Node/Chrome transport | Version/schema/sequence mismatch, stale/withdrawn questions, disabled input, bounded SAB wrap/full queue, ready timeout/stall, worker abort |
 | Forge bridge/JVM/WASM | Fresh Maven bridge tests; `engine/scripts/test-engine.sh` on JVM, Node and Chrome; every declared feeding | Trace equality entry by entry, altered-trace negative tests, invalid deck then real retry, engine logging, no timed-out APINA; all scripts and layouts probed |
-| Complete games/AI/formats | Fourteen trace fixtures; Constructed natural wins/losses, legal 100-card Commander win/tax/return/damage, concession; AI-vs-AI fixed seeds | Each fixture's promised coverage must actually occur; German/lazy variants match the same trace; incomplete game/absent replay fails |
-| Decisions | JVM `AnswersTest`/`ProtocolContractTest`, `decision-model`/`decision-panel` tests, full eight-size table checks | Buttons, yes/no, confirm, options, multi-choice, select, numeric/text input, order, arrange and distribution; bounds, arming, withdrawn/live questions, blocking |
+| Complete games/AI/formats | Fifteen trace fixtures; Constructed natural wins/losses, legal 100-card Commander win/tax/return/damage, concession; AI-vs-AI fixed seeds | Each fixture's promised coverage must actually occur; German/lazy variants match the same trace; incomplete game/absent replay fails |
+| Decisions | JVM `AnswersTest`/`DecisionParityTest`/`ProtocolContractTest`, `decision-model`/`decision-panel` tests, full eight-size table checks | Buttons, yes/no, confirm, options, multi-choice, select, numeric/text input, order, arrange and distribution; bounds, arming, withdrawn/live questions, blocking |
 | Priority/stack/targets/payment | `priority`, card interaction/view/use tests; `priority-respond`, `stack-response`, `targets-payment` real games/scenes | Response on opponent's turn, stack targets/order/resolution, nested X/kicker/sacrifice, card/player/multi-target, floating mana/life/manual/automatic costs; no UI legality inference |
-| Attack/block/combat | `attack`/`block` tests; `attackers`, `blocks-multi`, `blocks-double` real games and table interactions | Selected defender/planeswalker, Alpha Strike/Call Back, sick/tapped/restricted attackers, per-attacker blockers, double block, order and damage distribution |
+| Attack/block/combat | `attack`/`block` tests; `attackers`, `blocks-multi`, `blocks-double`, `parity-trample` real games and table interactions | Selected defender/planeswalker, Alpha Strike/Call Back, sick/tapped/restricted attackers, per-attacker blockers, double block, order and damage distribution |
 | Zones/full viewer | `card-view`, table/catalog tests; full table zones/DFC/piles at mobile and desktop sizes | Hidden identities stay hidden; current IDs/question sources, withdrawn cards, safe navigation, catalog-only side inspection, live rearming, replay read-only |
 | Session/recording/history/replay | `engine-session`, `recording`, `history` tests; real Chrome playing/conceding sessions and original recordings; portable JSON round trip | Refused start/retry, max1 lifecycle, accepted input envelopes, terminal original Forge result, storage failures, retention/conflicts/corrupt/old protocol; replay sends no input |
 | PWA/offline/update | `vite/pwa`, `src/pwa` tests; `scripts/e2e/pwa.ts`, actual CacheStorage/IndexedDB/Forge | Equal-length corrupted bytes, interrupted download, failed shell/initial install, retry, native waiting update while real game/question lives, data/recording retained, eviction; HTTP cache cleared, network off and server stopped |
@@ -73,18 +73,20 @@ available-action checks and unsupported behavior fail rather than fall back.
 | Responsive/accessibility/ORYX web | Complete Chrome route/populated-state/table suite across eight CSS viewports, keyboard/touch/arming; ORYX navigation/local data/network DAL | No axe violations, 44px coarse targets and bounded table; live resize does not change original transcript; direct start, same-tab return/Back and retained records |
 | Acceptance itself | `scripts/regression/evidence.test.ts`, `run.test.ts`, `assets.test.ts` | Mutated reports reject missing games/coverage/families, foreign builds, skipped Chrome, partial UI, concurrent workers, replay input, masked offline and lost recording; prior failures retained |
 
-The engine trace contract currently requires 43 observed paths. Fourteen
-fixtures include three language/loading variants; these are not fourteen
+The engine trace contract currently requires 45 observed paths. Fifteen
+fixtures include three language/loading variants; these are not fifteen
 independent mechanics or proof of every Magic card. UI tests cover all generic
 decision families; confirm/input/order/reveal/choose-many/select-outside and
-block-order scenes are explicitly constructed boundaries where the recorded
+block-order, arrange-anywhere and distribute-limits scenes are explicitly constructed boundaries where the recorded
 games do not supply them. Constructed scenes never count as real Forge traces.
 The eight viewports are CSS/touch emulation, including fold-like dimensions,
 not physical devices. ORYX cloud/launcher test services are controlled stand-ins.
 
 `scripts/regression/fixtures/*.json` are reduced historical engine26/browser28
 report samples for acceptance-validator mutation tests. Their original
-measurements are preserved; they are never used by the full runner as evidence
+measurements are preserved, together with the explicit historical requirements
+used to check their report shapes. Tests reject those samples against current
+parity requirements. They are never used by the full runner as evidence
 of the current execution. Unit tests use fake IndexedDB/workers where labelled;
 the separate real suites establish the integration behavior.
 

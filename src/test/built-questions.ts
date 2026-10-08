@@ -14,7 +14,7 @@ import type { Item, Question, VisibleCard } from "@openmana/engine-protocol"
 import { isVisible, visibleCards } from "@/game/table-model"
 import type { TableScene } from "./table-scenes"
 
-export const BUILT_QUESTIONS = ["confirm", "input", "order", "block-order", "reveal", "choose-many", "select-outside"] as const
+export const BUILT_QUESTIONS = ["confirm", "input", "order", "block-order", "reveal", "choose-many", "select-outside", "arrange-anywhere", "distribute-limits"] as const
 
 export type BuiltQuestionName = (typeof BUILT_QUESTIONS)[number]
 
@@ -61,7 +61,13 @@ export function builtQuestion(name: BuiltQuestionName, scene: TableScene): { rea
       question = { type: "question", kind: "confirm", id: 900, blocking: true, text: `${first.name ?? first.key} - Möchtest du die Fähigkeit nutzen?`, suggested: true, card: first.id, cardView: first }
       break
     case "input":
-      question = { type: "question", kind: "input", id: 901, blocking: true, text: "Wähle einen Wert für X", numeric: true, suggested: "0" }
+      question = { type: "question", kind: "input", id: 901, blocking: true, text: "Wähle einen Wert für X", numeric: true, suggested: "0", cancellable: true }
+      break
+    case "arrange-anywhere":
+      question = { type: "question", kind: "arrange", id: 908, blocking: true, text: "Lege Karten in die Bibliothek", items: [cardItem(first, 1), cardItem(second, 2)], others: 8, toTop: false, toBottom: false, toAnywhere: true }
+      break
+    case "distribute-limits":
+      question = { type: "question", kind: "distribute", id: 909, blocking: true, text: "Verteile Kampfschaden", items: items(["Blocker", "Verteidiger"]), total: 3, min: 0, maximums: [2, 3], prerequisites: [{ item: 2, requires: 1, amount: 2 }], maySkip: true }
       break
     case "order":
       question = {

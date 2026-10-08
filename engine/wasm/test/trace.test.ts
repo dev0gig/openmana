@@ -122,6 +122,22 @@ describe("coverage", () => {
   const q = (id: number, purpose: string) => ({ e: "question" as const, id, kind: "buttons", blocking: false, purpose, buttons: [true, true] });
   const input = (seq: number, body: Record<string, unknown>) => ({ e: "input" as const, input: { seq, ...body } });
 
+  test("combat assignment coverage needs an accepted allocation, not a rejected answer or postponement", () => {
+    const question = { id: 1, kind: "distribute" as const, blocking: true, items: ["c2", "p1"], total: 5, min: 0, prerequisites: [{ item: 2, requires: 1, amount: 3 }] };
+    const start = entry(1, [{ e: "question", ...question }], { questions: [question] });
+    const answer = (amounts: number[]) => input(1, { type: "answer", question: 1, kind: "distribute", amounts });
+    const accepted = traceCoverage([start, entry(2, [answer([3, 2]), { e: "answered", id: 1, seq: 1 }])]);
+    assert.equal(accepted["combat-defender-assignment"], 1);
+    assert.equal(accepted["combat-lethal-assignment"], 1);
+    for (const trace of [
+      [start, entry(2, [answer([0, 5]), { e: "rejected", seq: 1, reason: "invalid-answer" }])],
+      [start, entry(2, [input(1, { type: "answer", question: 1, kind: "distribute", amounts: [], skip: true }), { e: "answered", id: 1, seq: 1 }])],
+    ]) {
+      assert.equal(traceCoverage(trace)["combat-defender-assignment"], undefined);
+      assert.equal(traceCoverage(trace)["combat-lethal-assignment"], undefined);
+    }
+  });
+
   test("what the player did: mulligan, lands and spells, priority, payment, targets, stack, combat, zones, end", () => {
     // As the bridge records it: one input at the start of each entry (a
     // checkpoint comes before every input), one buttons question open at a

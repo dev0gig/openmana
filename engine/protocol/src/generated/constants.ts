@@ -7,7 +7,7 @@
 import type * as P from "./protocol.ts";
 
 /** Version of the UI<->engine contract (must equal the bridge's Protocol.VERSION). */
-export const PROTOCOL_VERSION = 7 as const satisfies P.ProtocolVersion;
+export const PROTOCOL_VERSION = 8 as const satisfies P.ProtocolVersion;
 
 /** Every value of BootPhase. */
 export const BOOT_PHASES = ["worker-features","launcher-load","wasm-fetch-compile","java-main"] as const satisfies readonly P.BootPhase[];

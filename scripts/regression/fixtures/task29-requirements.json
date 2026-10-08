@@ -1,0 +1,400 @@
+{
+  "provenance": "Requirements at 5f86ff3d8aa8509881d708890405ff4510d1f53f for the reduced historical reports only; never used by the regression runner.",
+  "fixtures": [
+    {
+      "name": "attackers",
+      "wasm": {
+        "node": [
+          "lazy"
+        ],
+        "browser": [
+          "lazy"
+        ]
+      },
+      "covers": [
+        "attack",
+        "attack-planeswalker",
+        "attack-defender",
+        "attack-all",
+        "attack-call-back",
+        "attack-unavailable-sick",
+        "attack-unavailable-tapped",
+        "attack-unavailable-restricted"
+      ],
+      "sameGameAs": null
+    },
+    {
+      "name": "blocks-double",
+      "wasm": {
+        "node": [
+          "lazy",
+          "eager"
+        ],
+        "browser": [
+          "lazy"
+        ]
+      },
+      "covers": [
+        "block",
+        "block-double",
+        "attack",
+        "decision-distribute",
+        "end-concede",
+        "end-loss"
+      ],
+      "sameGameAs": null
+    },
+    {
+      "name": "blocks-multi",
+      "wasm": {
+        "node": [
+          "lazy",
+          "eager"
+        ],
+        "browser": [
+          "lazy"
+        ]
+      },
+      "covers": [
+        "mulligan",
+        "land",
+        "spell",
+        "priority-play",
+        "payment-auto",
+        "payment-manual",
+        "attack",
+        "block",
+        "block-multi",
+        "decision-distribute",
+        "zone:Stack->Battlefield",
+        "end-loss",
+        "end-life"
+      ],
+      "sameGameAs": null
+    },
+    {
+      "name": "commander",
+      "wasm": {
+        "node": [
+          "lazy",
+          "eager"
+        ],
+        "browser": [
+          "lazy"
+        ]
+      },
+      "covers": [
+        "commander-cast",
+        "commander-tax",
+        "commander-return",
+        "commander-damage",
+        "trigger",
+        "attack",
+        "target-player",
+        "zone:Command->Stack",
+        "zone:Graveyard->Command",
+        "end-win",
+        "end-life"
+      ],
+      "sameGameAs": null
+    },
+    {
+      "name": "human-11",
+      "wasm": {
+        "node": [
+          "lazy",
+          "eager"
+        ],
+        "browser": [
+          "lazy",
+          "eager"
+        ]
+      },
+      "covers": [
+        "mulligan",
+        "land",
+        "spell",
+        "priority-play",
+        "payment-auto",
+        "payment-manual",
+        "target-card",
+        "target-player",
+        "attack",
+        "decision-options",
+        "decision-arrange",
+        "decision-select",
+        "zone:Library->Hand",
+        "zone:Hand->Graveyard",
+        "zone:Stack->Exile",
+        "end-loss",
+        "end-life"
+      ],
+      "sameGameAs": null
+    },
+    {
+      "name": "human-3-concede",
+      "wasm": {
+        "node": [
+          "lazy",
+          "eager"
+        ],
+        "browser": [
+          "lazy"
+        ]
+      },
+      "covers": [
+        "mulligan",
+        "end-concede",
+        "end-loss"
+      ],
+      "sameGameAs": null
+    },
+    {
+      "name": "human-3-de-cards-en",
+      "wasm": {
+        "node": [
+          "lazy"
+        ],
+        "browser": []
+      },
+      "covers": [],
+      "sameGameAs": "human-3"
+    },
+    {
+      "name": "human-3-de",
+      "wasm": {
+        "node": [
+          "lazy"
+        ],
+        "browser": []
+      },
+      "covers": [],
+      "sameGameAs": "human-3"
+    },
+    {
+      "name": "human-3-lazy",
+      "wasm": {
+        "node": [],
+        "browser": []
+      },
+      "covers": [],
+      "sameGameAs": "human-3"
+    },
+    {
+      "name": "human-3",
+      "wasm": {
+        "node": [
+          "lazy",
+          "eager"
+        ],
+        "browser": [
+          "lazy",
+          "eager"
+        ]
+      },
+      "covers": [
+        "mulligan",
+        "land",
+        "spell",
+        "priority-play",
+        "payment-auto",
+        "payment-manual",
+        "target-card",
+        "target-player",
+        "trigger",
+        "stack-resolve",
+        "attack",
+        "decision-arrange",
+        "decision-choose",
+        "decision-select",
+        "input-rejected",
+        "state-request",
+        "zone:Library->Hand",
+        "zone:Hand->Battlefield",
+        "zone:Hand->Stack",
+        "zone:Stack->Graveyard",
+        "zone:Battlefield->Graveyard",
+        "end-loss",
+        "end-life"
+      ],
+      "sameGameAs": null
+    },
+    {
+      "name": "human-5-defend",
+      "wasm": {
+        "node": [
+          "lazy",
+          "eager"
+        ],
+        "browser": [
+          "lazy"
+        ]
+      },
+      "covers": [
+        "mulligan",
+        "priority-pass",
+        "priority-play",
+        "payment-auto",
+        "payment-manual",
+        "block",
+        "decision-choose",
+        "trigger",
+        "end-loss",
+        "end-life"
+      ],
+      "sameGameAs": null
+    },
+    {
+      "name": "priority-respond",
+      "wasm": {
+        "node": [
+          "lazy"
+        ],
+        "browser": [
+          "lazy"
+        ]
+      },
+      "covers": [
+        "priority-opponent-turn",
+        "priority-response",
+        "priority-pass",
+        "stack-response",
+        "stack-resolve",
+        "land",
+        "spell",
+        "target-card",
+        "end-loss"
+      ],
+      "sameGameAs": null
+    },
+    {
+      "name": "stack-response",
+      "wasm": {
+        "node": [
+          "lazy",
+          "eager"
+        ],
+        "browser": [
+          "lazy"
+        ]
+      },
+      "covers": [
+        "stack-response",
+        "stack-resolve",
+        "spell",
+        "attack",
+        "end-win",
+        "end-life"
+      ],
+      "sameGameAs": null
+    },
+    {
+      "name": "targets-payment",
+      "wasm": {
+        "node": [
+          "lazy"
+        ],
+        "browser": [
+          "lazy"
+        ]
+      },
+      "covers": [
+        "target-player-tap",
+        "target-multi",
+        "payment-pool",
+        "payment-life",
+        "cast-nested",
+        "target-player",
+        "target-card",
+        "payment-manual",
+        "payment-auto",
+        "spell",
+        "land"
+      ],
+      "sameGameAs": null
+    }
+  ],
+  "coverage": [
+    "mulligan",
+    "land",
+    "spell",
+    "priority-pass",
+    "priority-play",
+    "priority-response",
+    "priority-opponent-turn",
+    "payment-auto",
+    "payment-manual",
+    "target-card",
+    "target-player",
+    "target-player-tap",
+    "target-multi",
+    "payment-pool",
+    "payment-life",
+    "cast-nested",
+    "trigger",
+    "stack-resolve",
+    "stack-response",
+    "attack",
+    "attack-planeswalker",
+    "attack-defender",
+    "attack-all",
+    "attack-call-back",
+    "attack-unavailable-sick",
+    "attack-unavailable-tapped",
+    "attack-unavailable-restricted",
+    "block",
+    "block-multi",
+    "block-double",
+    "zone:Library->Hand",
+    "zone:Hand->Battlefield",
+    "zone:Hand->Stack",
+    "zone:Stack->Graveyard",
+    "zone:Battlefield->Graveyard",
+    "end-win",
+    "end-loss",
+    "end-life",
+    "end-concede",
+    "commander-cast",
+    "commander-tax",
+    "commander-return",
+    "commander-damage"
+  ],
+  "scenes": [
+    "opening",
+    "main-phase",
+    "stack",
+    "blockers",
+    "defend",
+    "commander-late",
+    "command-effects",
+    "play-draw",
+    "target",
+    "target-player",
+    "yes-no",
+    "discard",
+    "choose-mode",
+    "scry",
+    "ability",
+    "damage",
+    "opponent-turn",
+    "respond",
+    "respond-own",
+    "target-both",
+    "payment",
+    "payment-pool",
+    "payment-life",
+    "cast-x",
+    "attack",
+    "attack-declared",
+    "attack-planeswalker",
+    "block-start",
+    "block-multiple",
+    "built:confirm",
+    "built:input",
+    "built:order",
+    "built:block-order",
+    "built:reveal",
+    "built:choose-many",
+    "built:select-outside"
+  ]
+}

@@ -327,7 +327,7 @@ final class StateBuilder {
         }
         final String now = colorLetters(state.getOriginalColors());
         final String printed = colorLetters(state.getColors());
-        if (now.isEmpty() || now.equals(printed)) {
+        if (now.equals(printed)) {
             return;
         }
         o.addProperty("colors", now);

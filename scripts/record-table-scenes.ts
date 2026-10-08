@@ -12,7 +12,7 @@
  * the rules below, from the structured messages only (never from texts),
  * so running this again on the same transcripts gives the same file.
  *
- *   node scripts/record-table-scenes.ts [--transcripts <dir>] [--out <file>]
+ *   node scripts/record-table-scenes.ts [--transcripts <dir>] [--manifest <file>] [--out <file>]
  *
  * Output: src/test/fixtures/table-scenes.json (used by the unit tests of the
  * table and by the end-to-end test's table harness).
@@ -164,7 +164,11 @@ const RULES: readonly SceneRule[] = [
     name: "commander-late",
     description: "A late Commander turn while the player declares attackers: the most permanents with the most attackers (tokens, counters, poison, commander tax and damage) (commander).",
     fixture: "commander",
-    fits: (m) => m.state.running && m.state.phase === "COMBAT_DECLARE_ATTACKERS" && m.state.combat.length > 0 && m.questions.length > 0,
+    // An attack trigger can create new, nonattacking tokens before the phase
+    // changes. This scene is the declaration with every creature attacking,
+    // not that later trigger snapshot with more permanents.
+    fits: (m) => m.state.running && m.state.phase === "COMBAT_DECLARE_ATTACKERS" && m.state.combat.length > 0 && declaring(m) &&
+      (me(m.state)?.zones.battlefield.every((card) => !("power" in card) || card.attacking === true) ?? false),
     best: (a, b) => permanents(b.state) - permanents(a.state) || b.state.combat.length - a.state.combat.length,
   },
   {
@@ -333,11 +337,12 @@ const scenes = RULES.map((rule) => {
   }
 })
 
-const manifest = JSON.parse(fs.readFileSync(path.join(root, "engine/build/dist/engine-manifest.json"), "utf8")) as {
+const manifest = JSON.parse(fs.readFileSync(option("--manifest", path.join(root, "engine/build/dist/engine-manifest.json")), "utf8")) as {
   readonly builtAt: string
   readonly forge: { readonly commit: string }
   readonly protocol: { readonly version: number }
 }
+if (scenes.some((scene) => scene.game.protocol !== manifest.protocol.version)) throw new Error("Recorded scenes and selected engine manifest have different protocol versions")
 const output = {
   source: "Protocol messages of the fixture games of engine/scripts/test-engine.sh (JVM run, scripted rule-free test player), folded like EngineSession folds them; see scripts/record-table-scenes.ts.",
   engine: { builtAt: manifest.builtAt, forgeCommit: manifest.forge.commit, protocol: manifest.protocol.version },

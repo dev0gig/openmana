@@ -1,4 +1,4 @@
-# OpenMana-Protokoll (Version 7)
+# OpenMana-Protokoll (Version 8)
 
 Der **einzige Vertrag** zwischen der OpenMana-Oberfläche und der Engine (Forge
 im Dedicated Worker). Die Oberfläche sieht keine Forge-Klassen und rechnet
@@ -10,7 +10,8 @@ Version 3 mit Prompt 05 (siehe [unten](#änderungen-in-version-3-prompt-05)),
 Version 4 mit Prompt 12 (siehe [unten](#änderungen-in-version-4-prompt-12)),
 Version 5 mit Prompt 16 (siehe [unten](#änderungen-in-version-5-prompt-16)),
 Version 6 mit Prompt 17 (siehe [unten](#änderungen-in-version-6-prompt-17)),
-Version 7 mit Prompt 18 (siehe [unten](#änderungen-in-version-7-prompt-18)).
+Version 7 mit Prompt 18 (siehe [unten](#änderungen-in-version-7-prompt-18)),
+Version 8 mit Prompt 30 (siehe [unten](#änderungen-in-version-8-prompt-30)).
 
 ```
  UI ──ruft──▶ EngineClient (Main Thread) ──WorkerCommand (postMessage, nur wenn der Worker frei ist)──▶ Worker-Host
@@ -114,10 +115,10 @@ Start ab (`engine.abort`, `boot-failed`):
 | `choose` | ja | `choices` (min..max, verschieden) |
 | `confirm` | ja | `yes` |
 | `options` | ja | `option` (0 = abbrechen, nur wenn `cancellable`) |
-| `input` | ja | `value` (Text, bei `numeric` eine ganze Zahl) |
+| `input` | ja | `value` (Text, bei `numeric` eine ganze Zahl; `null` nur wenn `cancellable`; angebotene Werte sind bindend) |
 | `order` | ja | `order` (Forges Doppelliste mit `remainingMin/Max`) |
-| `arrange` | ja | `top` und `bottom`, jede Karte genau einmal |
-| `distribute` | ja | `amounts` parallel zu `items`, Summe = `total` |
+| `arrange` | ja | `top` und `bottom`, jede Karte genau einmal; bei `toAnywhere` alternativ `positions` parallel zu `items` mit leeren Seitenlisten |
+| `distribute` | ja | `amounts` parallel zu `items`, Summe = `total`, Forges Grenzen/Voraussetzungen; bei `maySkip` alternativ `skip: true` mit leeren `amounts` |
 
 - **Lebenszyklus:** Jede Frage wird von **genau einer** Nachricht geschlossen:
   `question.answered` (die Antwort mit dieser `seq` wurde angenommen) oder
@@ -253,6 +254,31 @@ die Hand der KI).
 
 Vergleich, Prüfsumme und Abdeckung: [`engine/wasm/spike/trace.ts`](../wasm/spike/trace.ts);
 die Testpartien: [`engine/fixtures`](../fixtures/README.md).
+
+## Änderungen in Version 8 (Prompt 30)
+
+- **Verteilung:** `maximums` enthält Forges Obergrenze je Eintrag;
+  `prerequisites` enthält `{item, requires, amount}` mit 1-basierten
+  Eintragsnummern. Sobald `item` einen positiven Wert erhält, muss `requires`
+  mindestens `amount` erhalten. Diese Zahlen kommen aus Forges gemeinsamem
+  Desktop-/Bridge-Helfer (Patch 0009), niemals aus Kartenregeln der UI.
+  Ein angebotener Verteidiger ist ein normaler Eintrag der Frage; die Bridge
+  übersetzt seine Antwort in Forges `null`-Schlüssel. `maySkip` erlaubt ein
+  ausdrückliches Verschieben: `skip: true`, `amounts: []`.
+- **Freie Positionen:** Bei `toAnywhere` kann die Antwort jeder beweglichen
+  Karte eine eindeutige absolute Position von 1 bis `items.length + others`
+  geben. `positions` ist parallel zu `items`, `top` und `bottom` bleiben leer.
+  Die Identität der übrigen Karten verlässt die Engine nicht; ihre relative
+  Reihenfolge bleibt erhalten.
+- **Eingabe:** `cancellable` erlaubt `value: null`. Eine nichtleere `items`-Liste
+  legt die erlaubten Textwerte fest; numeric-Eingaben bleiben ganze Zahlen.
+  Keine Annahme eines Vorschlags ohne ausdrückliche Bestätigung.
+- **Farben:** `ColorLetters` erlaubt die leere Zeichenfolge für farblos, auch
+  wenn Forge eine vorher farbige Karte zu farblos verändert.
+- Die Engine-Spur transportiert dieselben Verteilungsgrenzen. Die neuen
+  Abdeckungsmarker zählen erst nach einer angenommenen Zuweisung; eine
+  Ablehnung oder Verschiebung genügt nicht. Nachweise: `DecisionParityTest`,
+  `parity-trample` und [ANVIL_PARITY.md](../../docs/ANVIL_PARITY.md).
 
 ## Änderungen in Version 7 (Prompt 18)
 

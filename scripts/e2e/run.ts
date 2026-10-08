@@ -3096,7 +3096,7 @@ const TABLE_SCENES = [
 ] as const
 
 /** Forge's questions the recorded games do not reach, built after the schema on the recorded "main-phase" state (src/test/built-questions.ts) - marked as built. */
-const BUILT_SCENES = ["confirm", "input", "order", "block-order", "reveal", "choose-many", "select-outside"] as const
+const BUILT_SCENES = ["confirm", "input", "order", "block-order", "reveal", "choose-many", "select-outside", "arrange-anywhere", "distribute-limits"] as const
 
 /** The sizes at which every kind of question is also answered (decisionInteractions); the layout is checked at all. */
 const DECISION_VIEWPORTS: readonly string[] = ["small-phone", "phone-landscape", "desktop"]
@@ -3634,6 +3634,32 @@ async function decisionInteractions(page: Page, base: string, viewport: Viewport
     await page.waitForTimeout(ARMED_AFTER_MS)
     await field.press("Enter")
     await expectLast("input (built)", { kind: "input", value: "3" })
+
+    await scene("main-phase", "input")
+    await armed(button("Abbrechen"))
+    await expectLast("input cancelled (built)", { kind: "input", value: null })
+
+    await scene("main-phase", "arrange-anywhere")
+    const positions = decision.getByRole("textbox", { name: /^Position von / })
+    await positions.nth(0).fill("8")
+    await positions.nth(1).fill("8")
+    check(await button("Bestätigen").isDisabled(), `${label}: duplicate library slots accepted`)
+    await positions.nth(1).fill("2")
+    await armed(button("Bestätigen"))
+    await expectLast("arbitrary library positions (built)", { kind: "arrange", top: [], bottom: [], positions: [8, 2] })
+
+    await scene("main-phase", "distribute-limits")
+    await activate(button("Bei Verteidiger einen mehr"))
+    check(await button("Bestätigen").isDisabled(), `${label}: unmet distribution prerequisite accepted`)
+    await activate(button("Bei Blocker einen mehr"))
+    await activate(button("Bei Blocker einen mehr"))
+    check(await button("Bei Blocker einen mehr").isDisabled(), `${label}: distribution cap ignored`)
+    await armed(button("Bestätigen"))
+    await expectLast("distribution limits (built)", { kind: "distribute", amounts: [2, 1] })
+
+    await scene("main-phase", "distribute-limits")
+    await armed(button("Später zuweisen"))
+    await expectLast("postpone combat assignment (built)", { kind: "distribute", amounts: [], skip: true })
 
     await scene("main-phase", "order")
     const third = (await decision.getByRole("region", { name: "Reihenfolge" }).getByRole("listitem").nth(2).locator('[data-slot="item-title"]').textContent())?.replace(/^3\. /, "").trim() ?? ""
@@ -4373,14 +4399,22 @@ async function replayLibrary(browser: Browser, base: string): Promise<Record<str
       await page.getByRole("alertdialog").getByRole("button", { name: "Ändern und ältere entfernen" }).click()
       const second = structuredClone(fixture.replay)
       second.match.id = "00000000-0000-4000-8000-000000000023"
-      second.match.startedAt = "2026-10-07T01:00:00.000Z"
-      second.match.endedAt = "2026-10-07T01:01:00.000Z"
+      // Keep this recording newer even after the original fixture is re-recorded.
+      second.match.startedAt = new Date(Date.parse(fixture.replay.match.startedAt) + 3_600_000).toISOString()
+      second.match.endedAt = new Date(Date.parse(fixture.replay.match.endedAt) + 3_600_000).toISOString()
       second.log.forEach((e: { matchId: string }) => { e.matchId = second.match.id })
       await file.setInputFiles({ name: "second.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(second)) })
-      await page.waitForFunction((id) => new Promise<boolean>((resolve) => { const request = indexedDB.open("openmana"); request.onsuccess = () => { const db = request.result; const get = db.transaction("matches").objectStore("matches").getAll(); get.onsuccess = () => { resolve(get.result.length === 1 && get.result[0].id === id); db.close() } } }), second.match.id)
-      const retained = await dumpDatabase(page)
+      // waitForFunction treats a returned Promise as truthy; poll the resolved DB snapshot instead.
+      const retentionDeadline = Date.now() + 10_000
+      let retained: Record<string, unknown[]>
+      while (true) {
+        retained = await dumpDatabase(page, ["matches", "matchLog"])
+        if (JSON.stringify(retained["matches"]) === JSON.stringify([second.match])) break
+        if (Date.now() >= retentionDeadline) throw new Error(`replay ${viewport.name}: retention did not keep the newer recording`)
+        await page.waitForTimeout(100)
+      }
       log(`Replay ${viewport.name}: retention log ids ${JSON.stringify([...new Set((retained["matchLog"] ?? []).map((e) => (e as { matchId: string }).matchId))])}`)
-      check((retained["matchLog"] ?? []).every((e) => (e as { matchId: string }).matchId === second.match.id), `replay ${viewport.name}: retention left orphaned messages`)
+      check(JSON.stringify(retained["matchLog"]) === JSON.stringify(second.log), `replay ${viewport.name}: retention lost or left foreign messages`)
       await page.getByRole("button", { name: "Alle Partien löschen" }).click()
       await page.getByRole("alertdialog").getByRole("button", { name: "Endgültig entfernen" }).click()
       await page.getByText("Noch keine Partien", { exact: true }).waitFor()
@@ -4501,7 +4535,7 @@ async function main(): Promise<void> {
     } else if (replayOnly) {
       report["replay"] = await replayLibrary(browser, base)
     } else if (focusedTable || tableOnly) {
-      report["scope"] = tableOnly ? "All 288 recorded/built scene/viewport checks and every original table/history/decision/combat/zone interaction; no fresh engine boot or complete application suite." : helpOnly ? "Recorded Forge scenes and explicitly built question families; help, target markings, three viewports; no engine boot or full application suite." : historyOnly ? "Recorded real Forge log entries and current card inspection, three viewports; no engine boot or full application suite." : zonesOnly ? "Recorded Forge zones and explicitly built DFC presentation, three viewports, one page at a time; no engine boot or complete application regression suite." : "Recorded Forge combat scenes and one built order request, three viewports, one page at a time; no engine boot or complete application regression suite."
+      report["scope"] = tableOnly ? `All ${(TABLE_SCENES.length + BUILT_SCENES.length) * TABLE_VIEWPORTS.length} recorded/built scene/viewport checks and every original table/history/decision/combat/zone interaction; no fresh engine boot or complete application suite.` : helpOnly ? "Recorded Forge scenes and explicitly built question families; help, target markings, three viewports; no engine boot or full application suite." : historyOnly ? "Recorded real Forge log entries and current card inspection, three viewports; no engine boot or full application suite." : zonesOnly ? "Recorded Forge zones and explicitly built DFC presentation, three viewports, one page at a time; no engine boot or complete application regression suite." : "Recorded Forge combat scenes and one built order request, three viewports, one page at a time; no engine boot or complete application regression suite."
       await browser.close()
       report["gameTable"] = await tableHarness(executablePath)
     } else {

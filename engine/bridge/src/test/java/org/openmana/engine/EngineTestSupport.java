@@ -13,14 +13,14 @@ import static org.testng.Assert.fail;
  * Boots Forge once per test JVM: Forge's model is static, so all test classes
  * share one engine (as all games in one browser worker would).
  */
-final class EngineTestSupport {
+public final class EngineTestSupport {
 
     private static JsonObject bootReport;
 
     private EngineTestSupport() {
     }
 
-    static synchronized JsonObject boot() throws Exception {
+    public static synchronized JsonObject boot() throws Exception {
         if (bootReport != null) {
             return bootReport;
         }

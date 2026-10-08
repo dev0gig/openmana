@@ -1,5 +1,5 @@
 {
- "provenance": "Original Forge JVM messages of human-3-concede from Prompt21, diagnostics.trace excluded; all other messages and their reception order unchanged. Portable header/times constructed for UI testing; this fixture has no player-input interleaving and is not a live MatchRecorder capture.",
+ "provenance": "Original Forge JVM messages freshly recorded for Prompt30 from human-3-concede, diagnostics.trace excluded; every other message and reception order unchanged. Portable header/times constructed for UI testing; no player-input interleaving and not a live MatchRecorder capture. Compiler/artifact provenance: engine/build/parity-30-scenes; original streams: reports/parity-30/new-transcripts. Manifest SHA-256 9f6796558909f44fe4d1e8a8de0ed60595592c931aa02d1b65076d4e4d6ad240.",
  "replay": {
   "format": "openmana-replay",
   "version": 1,
@@ -9,20 +9,20 @@
    "status": "finished",
    "format": "constructed",
    "seed": 3,
-   "startedAt": "2026-10-07T00:00:00.000Z",
-   "endedAt": "2026-10-07T00:01:00.000Z",
+   "startedAt": "2026-10-08T00:00:00.000Z",
+   "endedAt": "2026-10-08T00:01:00.000Z",
    "app": {
     "version": "0.1.0-test-recorded",
     "commit": null
    },
    "engine": {
-    "id": "0123456789abcdef",
-    "protocol": 7,
-    "forgeVersion": "GIT",
+    "id": "9f6796558909f44f",
+    "protocol": 8,
+    "forgeVersion": "2.0.15",
     "forgeCommit": "ed0333fecb1fea0671b3e50cadc1da4f71db5798",
-    "buildCommit": "2d4f9ff5e0460d85ab03bf84450df2c742872198",
+    "buildCommit": "5f86ff3d8aa8509881d708890405ff4510d1f53f",
     "sourcesModified": true,
-    "manifestSha256": "83eb79b25bf4bf92d24fc0962155b8450538b64f28bf3d7e56b95b42a27c1505"
+    "manifestSha256": "9f6796558909f44fe4d1e8a8de0ed60595592c931aa02d1b65076d4e4d6ad240"
    },
    "human": {
     "name": "Player",
@@ -162,7 +162,7 @@
     "from": "engine",
     "message": {
      "type": "game.started",
-     "protocol": 7,
+     "protocol": 8,
      "human": "Player",
      "ai": "Forge AI",
      "aiProfile": "Default",
@@ -1731,7 +1731,7 @@
        "ai": false,
        "me": true,
        "life": 20,
-       "hasPriority": false,
+       "hasPriority": true,
        "canAct": false,
        "lost": false,
        "maxHandSize": 7,
@@ -1850,7 +1850,7 @@
        "ai": true,
        "me": false,
        "life": 20,
-       "hasPriority": true,
+       "hasPriority": false,
        "canAct": false,
        "lost": false,
        "maxHandSize": 7,

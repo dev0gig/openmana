@@ -11,8 +11,8 @@
   "$defs": {
     "ProtocolVersion": {
       "title": "ProtocolVersion",
-      "description": "Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace). 4: card language (boot argument --card-language, BootReport.cardLanguage) and Forge's AI profiles (BootReport.aiProfiles; match.start with any other profile is refused). 5: priority, stack and phases (prompt 16): a stack item carries its card as Forge shows it (StackItem.card) and says whether it is an ability (StackItem.ability), its source id only for a card the player may see; Forge's buttons of the priority step say what they do (Button.meaning); a selection's cards are only those the player may see. 6: targets and cost payment (prompt 17): Forge's players a player.tap would take now (Player.selectable) and its highlight on chosen players (Player.highlighted); the payment in progress (GameState.payment: the mana still to pay, the pool's colours Forge would take now) and paying from the mana pool (mana.use); a player.tap or mana.use Forge would not take is refused (no-effect). 7: declaring attackers (prompt 18): the declaration in progress (GameState.attack: the defender a creature tapped now attacks, every defender Forge offers, and the player's creatures a tap would not declare now with Forge's reason), the defending players a player.tap would switch to (Player.selectable), and what Forge's buttons of the declaration do (Button.meaning declare, attackAll, callBack).",
-      "const": 7
+      "description": "Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace). 4: card language (boot argument --card-language, BootReport.cardLanguage) and Forge's AI profiles (BootReport.aiProfiles; match.start with any other profile is refused). 5: priority, stack and phases (prompt 16): a stack item carries its card as Forge shows it (StackItem.card) and says whether it is an ability (StackItem.ability), its source id only for a card the player may see; Forge's buttons of the priority step say what they do (Button.meaning); a selection's cards are only those the player may see. 6: targets and cost payment (prompt 17): Forge's players a player.tap would take now (Player.selectable) and its highlight on chosen players (Player.highlighted); the payment in progress (GameState.payment: the mana still to pay, the pool's colours Forge would take now) and paying from the mana pool (mana.use); a player.tap or mana.use Forge would not take is refused (no-effect). 7: declaring attackers (prompt 18): the declaration in progress (GameState.attack: the defender a creature tapped now attacks, every defender Forge offers, and the player's creatures a tap would not declare now with Forge's reason), the defending players a player.tap would switch to (Player.selectable), and what Forge's buttons of the declaration do (Button.meaning declare, attackAll, callBack). 8: Anvil parity (prompt 30): Forge distribution maximums/prerequisites and postponement, absolute arrangement positions, cancellable inputs with allowed values, and changed colors including colorless.",
+      "const": 8
     },
 
     "EngineMessage": {
@@ -491,6 +491,9 @@
         "min": { "type": "integer" },
         "max": { "type": "integer" },
         "total": { "type": "integer" },
+        "maximums": { "type": "array", "items": { "type": "integer", "minimum": 0 } },
+        "prerequisites": { "type": "array", "items": { "$ref": "#/$defs/DistributionPrerequisite" } },
+        "maySkip": { "type": "boolean" },
         "others": { "type": "integer" },
         "remainingMin": { "type": "integer" },
         "remainingMax": { "type": "integer" },
@@ -918,9 +921,9 @@
     },
     "ColorLetters": {
       "title": "ColorLetters",
-      "description": "Colours as WUBRG letters in this order, at least one.",
+      "description": "Colours as WUBRG letters in this order; empty means colourless.",
       "type": "string",
-      "pattern": "^(?=[WUBRG])W?U?B?R?G?$"
+      "pattern": "^W?U?B?R?G?$"
     },
     "StackItem": {
       "title": "StackItem",
@@ -1177,8 +1180,9 @@
         "blocking": { "const": true },
         "text": { "type": "string" },
         "numeric": { "type": "boolean" },
+        "cancellable": { "type": "boolean", "description": "Forge accepts null to cancel this input dialog." },
         "suggested": { "type": ["string", "null"] },
-        "items": { "type": "array", "items": { "$ref": "#/$defs/Item" } }
+        "items": { "type": "array", "items": { "$ref": "#/$defs/Item" }, "description": "When nonempty, the allowed input values from Forge; value must match an item text." }
       }
     },
     "OrderQuestion": {
@@ -1216,7 +1220,7 @@
         "text": { "type": "string" },
         "toTop": { "type": "boolean" },
         "toBottom": { "type": "boolean" },
-        "toAnywhere": { "type": "boolean", "description": "Forge would allow any position; not offered yet (prompt 15)." },
+        "toAnywhere": { "type": "boolean", "description": "Forge allows numbered positions within the pile, including between its hidden cards." },
         "others": { "type": "integer", "minimum": 0 },
         "items": { "type": "array", "items": { "$ref": "#/$defs/Item" } }
       }
@@ -1234,9 +1238,23 @@
         "text": { "type": "string" },
         "total": { "type": "integer", "minimum": 0 },
         "min": { "type": "integer", "minimum": 0 },
+        "maximums": { "type": "array", "items": { "type": "integer", "minimum": 0 }, "description": "Forge's upper bound per item, parallel to items." },
+        "prerequisites": { "type": "array", "items": { "$ref": "#/$defs/DistributionPrerequisite" }, "description": "Forge requires these amounts before assigning anything to the named item. No client rule inference." },
+        "maySkip": { "type": "boolean", "description": "Forge allows postponing this combat assignment until other attackers assign their damage." },
         "items": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/Item" } },
         "card": { "$ref": "#/$defs/CardId" },
         "cardView": { "$ref": "#/$defs/VisibleCard" }
+      }
+    },
+    "DistributionPrerequisite": {
+      "title": "DistributionPrerequisite",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item", "requires", "amount"],
+      "properties": {
+        "item": { "$ref": "#/$defs/ItemNr" },
+        "requires": { "$ref": "#/$defs/ItemNr" },
+        "amount": { "type": "integer", "minimum": 0 }
       }
     },
     "Item": {
@@ -1456,7 +1474,7 @@
         "seq": { "$ref": "#/$defs/Seq" },
         "question": { "$ref": "#/$defs/QuestionId" },
         "kind": { "const": "input" },
-        "value": { "type": "string" }
+        "value": { "type": ["string", "null"], "description": "Null cancels only if the question is cancellable." }
       }
     },
     "OrderAnswer": {
@@ -1485,7 +1503,8 @@
         "question": { "$ref": "#/$defs/QuestionId" },
         "kind": { "const": "arrange" },
         "top": { "type": "array", "items": { "$ref": "#/$defs/ItemNr" } },
-        "bottom": { "type": "array", "items": { "$ref": "#/$defs/ItemNr" } }
+        "bottom": { "type": "array", "items": { "$ref": "#/$defs/ItemNr" } },
+        "positions": { "type": "array", "items": { "type": "integer", "minimum": 1 }, "description": "When toAnywhere is true: final one-based slot for each item, parallel to items. Top and bottom must then be empty. Hidden remainder keeps its order." }
       }
     },
     "DistributeAnswer": {
@@ -1499,7 +1518,8 @@
         "seq": { "$ref": "#/$defs/Seq" },
         "question": { "$ref": "#/$defs/QuestionId" },
         "kind": { "const": "distribute" },
-        "amounts": { "type": "array", "items": { "type": "integer", "minimum": 0 } }
+        "amounts": { "type": "array", "items": { "type": "integer", "minimum": 0 } },
+        "skip": { "const": true, "description": "Postpone only when maySkip; amounts must be empty." }
       }
     },
     "CardTapInput": {

@@ -36,10 +36,10 @@ export function choiceClarity(question: Question): string | null {
     case "choose": return question.min === 0 ? "Auswahl optional" : "Auswahl erforderlich"
     case "confirm": return "Ja oder Nein"
     case "options": return question.cancellable === true ? "Abbrechen möglich" : "Antwort erforderlich"
-    case "input": return "Eingabe erforderlich"
+    case "input": return question.cancellable === true ? "Abbrechen möglich" : "Eingabe erforderlich"
     case "order": return orderRule(question).pickMin === 0 ? "Auswahl optional" : "Reihenfolge erforderlich"
     case "arrange": return "Anordnung bestätigen"
-    case "distribute": return "Verteilung erforderlich"
+    case "distribute": return question.maySkip === true ? "Spätere Zuweisung möglich" : "Verteilung erforderlich"
     case "buttons": return null
   }
 }
@@ -50,10 +50,10 @@ function questionHelp(question: Question): string {
     case "choose": return `Forge verlangt ${countRule(question.min, question.max, 0)} Einträge. ${question.min === 0 ? "Du darfst auch nichts auswählen; die Entscheidung musst du trotzdem abschließen." : "Eine leere Auswahl genügt dieser Frage nicht."} ${question.kind === "select" ? "Forges Grenzen gelten für Karten und Spieler zusammen. Die Markierungen zeigen Forges aktuelle Auswahl." : "Ein Vorschlag ist nur ein Entwurf; erst dein Bestätigen sendet ihn."}`
     case "confirm": return "Diese Frage braucht eine Antwort. Ja und Nein sind zwei Entscheidungen; eine vorgeschlagene Antwort wird niemals von selbst gesendet. Ob ein Effekt optional ist, sagen Forges Frage und die Karte."
     case "options": return question.revealed !== undefined ? "Forge zeigt aufgedeckte Einträge. Lies sie und bestätige mit dem angebotenen Button." : `Wähle eine der Möglichkeiten, die Forge anbietet. ${question.cancellable === true ? "Forge erlaubt hier auch Abbrechen." : "Forge bietet für diese Frage kein Abbrechen an."}`
-    case "input": return `Forge verlangt ${question.numeric ? "eine ganze Zahl" : "einen Text"}. Ein vorgefüllter Vorschlag wird erst durch dein Bestätigen gesendet.`
+    case "input": return `Forge verlangt ${question.items?.length ? "einen der angebotenen Werte" : question.numeric ? "eine ganze Zahl" : "einen Text"}. Ein vorgefüllter Vorschlag wird erst durch dein Bestätigen gesendet.${question.cancellable === true ? " Du kannst diese Eingabe abbrechen." : ""}`
     case "order": { const rule = orderRule(question); return rule.all ? "Bringe alle Einträge in die verlangte Reihenfolge. Die Pfeile ändern nur deinen Entwurf; erst Bestätigen sendet ihn." : `Ordne ${countRule(rule.pickMin, rule.pickMax, question.items.length)} Einträge. Die übrigen bleiben in der anderen Liste. Erst Bestätigen sendet deine Reihenfolge.` }
-    case "arrange": return "Verschiebe die gezeigten Karten auf die Seiten, die Forge anbietet, und ordne sie mit den Pfeilen. Du kannst den Entwurf unverändert bestätigen."
-    case "distribute": return `Verteile insgesamt ${question.total}, mit mindestens ${question.min} je Eintrag. Diese Zahlen kommen von Forge. Erst Bestätigen sendet die Verteilung.`
+    case "arrange": return question.toAnywhere ? "Gib jeder gezeigten Karte eine eigene Position in der Bibliothek. Position 1 liegt oben; die übrigen Karten behalten ihre Reihenfolge. Erst Bestätigen sendet die Anordnung." : "Verschiebe die gezeigten Karten auf die Seiten, die Forge anbietet, und ordne sie mit den Pfeilen. Du kannst den Entwurf unverändert bestätigen."
+    case "distribute": return `Verteile insgesamt ${question.total}, mit mindestens ${question.min} je Eintrag. Beachte die angezeigten Obergrenzen und Voraussetzungen von Forge. Erst Bestätigen sendet die Verteilung.${question.maySkip === true ? " Forge erlaubt auch, diese Zuweisung auf später zu verschieben." : ""}`
     case "buttons": switch (question.purpose) {
       case "priority": return "Du kannst eine von Forge angebotene Aktion ausführen oder Priorität abgeben. „Zug beenden“ gibt weitere Gelegenheiten in diesem Zug ab und fragt deshalb vorher nach."
       case "attack":

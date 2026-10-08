@@ -309,6 +309,7 @@ export function initialInput(question: InputQuestion): string {
 
 /** Whether a typed answer fits: a whole number where Forge asks for one (what Forge can read, Java's int). */
 export function checkInput(question: InputQuestion, value: string): Check {
+  if (question.items !== undefined && question.items.length > 0 && !question.items.some((item) => "text" in item && item.text === value)) return problem("Wähle einen der Werte, die Forge anbietet.")
   if (!question.numeric) return OK
   const text = value.trim()
   if (text === "") return problem("Gib eine ganze Zahl ein.")
@@ -319,7 +320,7 @@ export function checkInput(question: InputQuestion, value: string): Check {
 }
 
 export function inputAnswer(question: InputQuestion, value: string): AnswerBodyFor<"input"> {
-  return { kind: "input", value: question.numeric ? value.trim() : value }
+  return { kind: "input", value: question.numeric && !question.items?.length ? value.trim() : value }
 }
 
 // ── order ──────────────────────────────────────────────────────────────────
@@ -408,6 +409,21 @@ export function arrangeAnswer(arrangement: Arrangement): AnswerBodyFor<"arrange"
   return { kind: "arrange", top: [...arrangement.top], bottom: [...arrangement.bottom] }
 }
 
+/** Absolute slots are presentation bounds from Forge, not identities of hidden cards. */
+export function checkPositions(question: ArrangeQuestion, positions: readonly number[]): Check {
+  const count = question.items.length + question.others
+  if (!question.toAnywhere) return problem("Forge erlaubt hier nur oben oder unten.")
+  if (positions.length !== question.items.length || positions.some((position) => !Number.isInteger(position) || position < 1 || position > count)) {
+    return problem(`Jede Karte braucht eine ganze Position von 1 bis ${count}.`)
+  }
+  if (new Set(positions).size !== positions.length) return problem("Jede Position darf nur einmal belegt sein.")
+  return OK
+}
+
+export function positionsAnswer(positions: readonly number[]): AnswerBodyFor<"arrange"> {
+  return { kind: "arrange", top: [], bottom: [], positions: [...positions] }
+}
+
 // ── distribute ─────────────────────────────────────────────────────────────
 
 /** The first draft: every item at Forge's minimum; the player gives out the rest. */
@@ -426,7 +442,15 @@ export function checkDistribution(question: DistributeQuestion, amounts: readonl
   const open = question.total - sum
   const base = { sum, open }
   if (amounts.length !== question.items.length) return { ...base, ok: false, reason: "Jedes Ziel braucht einen Wert." }
+  if (amounts.some((amount) => !Number.isSafeInteger(amount))) return { ...base, ok: false, reason: "Nur ganze Werte sind möglich." }
   if (amounts.some((amount) => amount < question.min)) return { ...base, ok: false, reason: `Jedes Ziel bekommt mindestens ${question.min}.` }
+  if (question.maximums !== undefined && amounts.some((amount, index) => amount > (question.maximums?.[index] ?? -1))) {
+    return { ...base, ok: false, reason: "Ein Wert überschreitet Forges Obergrenze für dieses Ziel." }
+  }
+  const prerequisite = question.prerequisites?.find((p) => (amounts[p.item - 1] ?? 0) > 0 && (amounts[p.requires - 1] ?? 0) < p.amount)
+  if (prerequisite !== undefined) {
+    return { ...base, ok: false, reason: `Forge verlangt mindestens ${prerequisite.amount} bei Ziel ${prerequisite.requires}, bevor Ziel ${prerequisite.item} etwas bekommt.` }
+  }
   if (open > 0) return { ...base, ok: false, reason: open === 1 ? "Noch 1 zu verteilen." : `Noch ${open} zu verteilen.` }
   if (open < 0) return { ...base, ok: false, reason: `${-open} zu viel verteilt.` }
   return { ...base, ok: true, reason: null }
@@ -437,7 +461,8 @@ export function changeAmount(question: DistributeQuestion, amounts: readonly num
   const current = amounts[index]
   if (current === undefined || delta === 0) return amounts
   const { open } = checkDistribution(question, amounts)
-  const next = delta > 0 ? current + Math.min(delta, Math.max(open, 0)) : Math.max(question.min, current + delta)
+  const maximum = question.maximums?.[index] ?? question.total
+  const next = delta > 0 ? current + Math.min(delta, Math.max(open, 0), Math.max(0, maximum - current)) : Math.max(question.min, current + delta)
   return next === current ? amounts : amounts.map((amount, i) => (i === index ? next : amount))
 }
 

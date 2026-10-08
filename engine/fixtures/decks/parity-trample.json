@@ -1,0 +1,45 @@
+{
+  "name": "Parity trample",
+  "main": [
+    {
+      "card": "Forest",
+      "count": 24
+    },
+    {
+      "card": "Llanowar Elves",
+      "count": 4
+    },
+    {
+      "card": "Garruk's Companion",
+      "count": 4
+    },
+    {
+      "card": "Colossal Dreadmaw",
+      "count": 4
+    },
+    {
+      "card": "Primal Huntbeast",
+      "count": 4
+    },
+    {
+      "card": "Rampant Growth",
+      "count": 4
+    },
+    {
+      "card": "Craw Wurm",
+      "count": 4
+    },
+    {
+      "card": "Nessian Courser",
+      "count": 4
+    },
+    {
+      "card": "Trained Armodon",
+      "count": 4
+    },
+    {
+      "card": "Giant Spider",
+      "count": 4
+    }
+  ]
+}

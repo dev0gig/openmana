@@ -7,12 +7,12 @@
   },
   "sources": {
     "format": "openmana-engine-inputs/1",
-    "sha256": "7fd4ae7e681be1b79b6293fed3d32e9605ff5853aa1efec33012542ce0552e4f",
-    "files": 164
+    "sha256": "b03f87ff9c782eb03b773cee3943d902e4baccc34ad770273ff473d935d688eb",
+    "files": 168
   },
   "patches": {
-    "count": 8,
-    "sha256": "2418d61b64ee88438d80e557b866ba77123bdf9d614f118dd383653bfb829e8a",
+    "count": 9,
+    "sha256": "8a1be17be0952433d24fa23cdbaef51a77269791022117bc31c740066dcfcce1",
     "files": [
       "0001-forge-synchronous-mode.patch",
       "0002-ai-cooperative-deadline.patch",
@@ -21,13 +21,14 @@
       "0005-sync-no-comfort-timers.patch",
       "0006-local-games-without-server-manager.patch",
       "0007-gui-read-only-answers.patch",
-      "0008-gui-attack-answers.patch"
+      "0008-gui-attack-answers.patch",
+      "0009-shared-combat-damage-policy.patch"
     ]
   },
   "protocol": {
-    "version": 7,
+    "version": 8,
     "schema": "engine/protocol/schema/protocol.schema.json",
-    "sha256": "7c4aa3ee480998e8ef9b2f38fa75038769ee392aae56909c9a6d8e47d8afb866"
+    "sha256": "bfce2b1989cc6967f3a7be35e241a075630eeb862c2929319aabde9ac7fde2d1"
   },
   "toolchain": {
     "graalvm": "25.4.4.1.1",
@@ -51,21 +52,21 @@
   },
   "manifest": {
     "file": "engine-manifest.json",
-    "bytes": 5754,
-    "sha256": "dd33caca4339210f51f87d60a115a70e1b4a5e6934c08404cca5950896314d2c"
+    "bytes": 5802,
+    "sha256": "a6d2368d9c4e06b229228c4581311b4f649cd92a7d815cdc1ccb57c3936bf629"
   },
   "artefacts": {
     "engine-worker.js": {
-      "bytes": 424323,
-      "sha256": "5f5a01247c045ee4b3fc5798b2ad2243e031d78f9a816e81ced7e63da7003257"
+      "bytes": 431692,
+      "sha256": "35d655bc2a8c6b65c92a24f958bdeddb1968d4e15d6ef2a3f41c1510a0f9c5e1"
     },
     "openmana-engine.js": {
       "bytes": 112916,
       "sha256": "edf456327b91601ab3ded0f35c6b1429adca8141a9fdd7d67849065185d72b42"
     },
     "openmana-engine.js.wasm": {
-      "bytes": 79117883,
-      "sha256": "ed45e5c62730e9c71187f6a689c29dee68e02a5edec9ceaeb79bbefbd7147be4"
+      "bytes": 79039283,
+      "sha256": "b465b77aaec667c74180680cf974457ab8c3c16f580088214ea08431ab75c27d"
     },
     "forge-res.inventory.json": {
       "bytes": 4278015,
@@ -73,45 +74,69 @@
     }
   },
   "verification": {
-    "base": "2d97a021675b1cdc15bc350d1c24dedb13487f37",
+    "base": "5f86ff3d8aa8509881d708890405ff4510d1f53f",
     "protocol": {
       "before": 7,
-      "after": 7,
-      "changed": false,
-      "reason": "",
-      "adaptationPaths": []
+      "after": 8,
+      "changed": true,
+      "reason": "Prompt 30 explicitly requires fixing Anvil parity: structured Forge distribution bounds/postponement, library positions, cancellable/allowed inputs, colorless changes and their UI, fixtures, regression evidence and documentation.",
+      "adaptationPaths": [
+        "AGENTS.md",
+        "README.md",
+        "STATUS.md",
+        "docs/ANVIL_PARITY.md",
+        "docs/BIBLE.md",
+        "docs/QUALITY.md",
+        "docs/implementation/30-anvil-parity-audit.md",
+        "scripts/e2e/run.ts",
+        "scripts/record-table-scenes.ts",
+        "scripts/regression/evidence.test.ts",
+        "scripts/regression/evidence.ts",
+        "scripts/regression/fixtures/task29-requirements.json",
+        "src/game/beginner-help.test.tsx",
+        "src/game/beginner-help.ts",
+        "src/game/decision-model.test.ts",
+        "src/game/decision-model.ts",
+        "src/game/decision-panel.test.tsx",
+        "src/game/decision-panel.tsx",
+        "src/game/table-labels.test.ts",
+        "src/game/table-labels.ts",
+        "src/test/built-questions.ts",
+        "src/test/fixtures/replay.json",
+        "src/test/fixtures/table-scenes.json"
+      ]
     },
-    "engineRuns": 78,
-    "browserRuns": 22,
+    "engineRuns": 82,
+    "browserRuns": 23,
     "browserSkipped": false,
     "reports": {
       "pipeline.json": {
-        "bytes": 3582,
-        "sha256": "5cad21aa3e5e759b9f96a37992e89acd8edf60f4ddfe5df76121d46f6fba89e1"
+        "bytes": 6844,
+        "sha256": "409dbfb45a2b937b0d946ac720f8b397f66a594cfb83652a4d17fdb23e71ac43"
       },
       "report/build-report.json": {
-        "bytes": 7427,
-        "sha256": "0eae8510ea780f539e11e0e8160ffa99a6537edec736bb55f5f593f341fa40db"
+        "bytes": 7471,
+        "sha256": "d0bc615bf85b1b2cf678cbe2bfb9379a615f2c520fb8e187b020cac28666d406"
       },
       "report/jvm-tests.json": {
         "bytes": 261,
-        "sha256": "20fdf430e29ce5f31d1fb19c05653581c4b0fcf51862f4ea7124305d18df579b"
+        "sha256": "f3bdb87353c976c6e7620575bddc48e214a4147f8f07f70c483cdb575e7aacb5"
       },
       "report/test-report.json": {
-        "bytes": 1102388,
-        "sha256": "c54f0b3545f9947fc2fa317efdf9c8d8694396ef4f91a5bd2ed4debae038e400"
+        "bytes": 1135282,
+        "sha256": "d83e936161b762c3086308140c2d81dafa2628213ac6f3444253b64b5bdfa603"
       },
       "report/source-inputs.json": {
-        "bytes": 34233,
-        "sha256": "1ad4548fda044b83af4eed606a22e889cc08776cd86b22c2c9e4e106a7607ee8"
+        "bytes": 35101,
+        "sha256": "3043e23974dd8f9a155d5019d8043c654592aae82017a2c877aadfb6ebb3ae92"
       },
       "report/unit-tests.xml": {
-        "bytes": 14522,
-        "sha256": "67a3cf78780638792caf080a7b2ef6098623630bcb9e5a4fe7c0ac0d842d9e10"
+        "bytes": 14670,
+        "sha256": "679f9ef2f1bfde193afc310d59acaaed32520f6a405449d4bab4363d1d63e9ed"
       },
       "catalog/card-catalog-manifest.json": {
         "bytes": 1302,
-        "sha256": "139e3accaa79d2003c0ab071331c62dbb73831af405d68cd9e8f5f1f9a897d88"
+        "sha256": "7828a8e832bd8c574812944bda8278b45108f399fdfb34c24e01ce2a91972fd4"
       }
     }
   }

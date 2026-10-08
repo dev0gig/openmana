@@ -269,6 +269,8 @@ export const COVERAGE: Readonly<Record<string, string>> = {
   "decision-confirm": "a yes/no question (confirm)",
   "decision-order": "an ordering (order)",
   "decision-distribute": "an amount distributed (distribute)",
+  "combat-defender-assignment": "Forge accepted a combat distribution with positive damage to the defending player",
+  "combat-lethal-assignment": "Forge accepted a distribution with its lethal-assignment prerequisites",
   "decision-input": "a number or text entered (input)",
   "decision-select": "cards selected on the table (select)",
   "question-withdrawn": "Forge withdrew a question",
@@ -330,6 +332,8 @@ export const REQUIRED_COVERAGE: readonly string[] = [
   "block",
   "block-multi",
   "block-double",
+  "combat-defender-assignment",
+  "combat-lethal-assignment",
   "zone:Library->Hand",
   "zone:Hand->Battlefield",
   "zone:Hand->Stack",
@@ -375,6 +379,7 @@ export function traceCoverage(entries: readonly TraceEntry[]): Record<string, nu
   };
   const human = entries.find((e) => e.snapshot.human !== undefined && e.snapshot.human !== null)?.snapshot.human ?? null;
   const questions = new Map<number, TraceQuestion | TraceEvent>();
+  const answers = new Map<number, Record<string, unknown>>();
   let open = new Map<number, TraceQuestion | TraceEvent>();
   /** Card, player and mana taps by input seq and what they were for; a rejected tap does not count. */
   const taps = new Map<number, readonly string[]>();
@@ -407,12 +412,19 @@ export function traceCoverage(entries: readonly TraceEntry[]): Record<string, nu
         case "answered": {
           const q = questions.get(num(e["id"]) ?? -1);
           if (q && q["blocking"] === true) hit(`decision-${String(q["kind"])}`);
+          if (q?.["kind"] === "distribute" && Array.isArray(q["prerequisites"])) {
+            const values = answers.get(num(e["seq"]) ?? -1)?.["amounts"];
+            if (Array.isArray(values) && Array.isArray(q["items"]) && q["items"].some((ref, i) => typeof ref === "string" && ref.startsWith("p") && Number(values[i]) > 0)) hit("combat-defender-assignment");
+            if (Array.isArray(values) && values.length > 0 && q["prerequisites"].length > 0) hit("combat-lethal-assignment");
+          }
+          answers.delete(num(e["seq"]) ?? -1);
           if (q && q["blocking"] === true && casting !== null) hit("cast-nested");
           open.delete(num(e["id"]) ?? -1);
           break;
         }
         case "rejected":
           hit("input-rejected");
+          answers.delete(num(e["seq"]) ?? -1);
           taps.delete(num(e["seq"]) ?? -1);
           if (casting === num(e["seq"])) casting = null;
           break;
@@ -420,6 +432,7 @@ export function traceCoverage(entries: readonly TraceEntry[]): Record<string, nu
           const input = isObject(e["input"]) ? e["input"] : {};
           const purposes = openPurposes();
           if (input["type"] === "answer") {
+            answers.set(num(input["seq"]) ?? -1, input);
             const q = open.get(num(input["question"]) ?? -1);
             if (q && q["kind"] === "buttons") {
               if (q["purpose"] === "priority" && input["button"] === 1) hit("priority-pass");

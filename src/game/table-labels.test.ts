@@ -23,6 +23,11 @@ describe("counters", () => {
 })
 
 describe("a card's facts", () => {
+  it("shows Forge's changed colours including a change to colourless", () => {
+    expect(captionFacts(card(1, "Bear", { colors: "UR", printedColors: "G" }))).toEqual(["Farbe: Blau, Rot"])
+    expect(captionFacts(card(1, "Bear", { colors: "", printedColors: "G" }))).toEqual(["Farbe: Farblos"])
+  })
+
   it("in words below the card: power/toughness, loyalty, damage, counters, face-down, phased out - Forge's values, nothing computed", () => {
     const bear = card(1, "Grizzly Bears", { power: 3, toughness: 3, damage: 2, counters: { "+1/+1": 1 } })
     expect(captionFacts(bear)).toEqual(["3/3", "2 Schaden", "+1/+1: 1"])

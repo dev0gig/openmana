@@ -223,6 +223,12 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Evidence: 95 engine unit tests, 76 JVM tests, 78 differential outputs (14 fixtures, all 43 observed paths), 938 app tests in 77 files, full real Chrome app/PWA suite; 96 route/152 populated-state/288 scene checks, 661 zero-violation axe measurements including PWA and 11 max1 worker values. Independent audit confirmed 558 unchanged technical inputs and cleanup. Commands/matrix: `docs/QUALITY.md`; details: `docs/implementation/29-regression-suite.md`.
 - Conservative scope: consolidate existing rigorous suites without altering product/rules/protocol; build fresh JVM while reusing independently verified WASM. Historical report samples, controlled capability scopes and built UI scenes are labelled and never count as current Forge gameplay. Physical ORYX/Android acceptance remains deferred, not passed; publication/source/icon gates remain open.
 
+### Anvil functional parity (Prompt 30)
+- Systematic comparison against Anvil source/protocol/audit, the Bible and Anvil lessons is documented in `docs/ANVIL_PARITY.md`, including decision-family coverage, intentional differences and evidence limits.
+- Protocol 8 repairs defender combat damage, Forge assignment prerequisites/postponement, generic amount caps, free library positions, delayed reveal, input cancellation/allowed values and changed-color display. Forge patch `0009` shares desktop combat policy with the bridge; the UI validates supplied numbers and flags.
+- Evidence: fresh complete update pipeline and independent artifact/source/browser audit passed; 96 engine unit tests, 85 JVM tests, 82 engine results (15 fixtures, all 45 observed paths), 948 app tests and complete Chrome/PWA acceptance. Browser evidence includes 96 route/152 populated-state/304 scene checks, 678 zero-violation accessibility measurements and 11 max1-worker measurements. The new real trample game covers defender assignment and lethal prerequisites. Details: `docs/implementation/30-anvil-parity-audit.md`.
+- Current protocol-8 lock and matching build/catalog: `engine/build/parity-30-accepted/`. Only local implementation and verification are complete; physical ORYX/Android and publication gates remain mandatory in 31/32.
+
 ### ORYX Cloud Sync (outside the queue, 2026-09-25)
 - The project owner's direct assignment, not a queue prompt (outside the numbered program): the player's collection syncs through their ORYX account (the launcher's Supabase cloud) with the vendored ORYX SDK 1.0.0 (`src/cloud/oryx-sdk.js` and `.d.ts`, byte-identical copies of `oryx-games/shared`, checksum-tested, excluded from lint only themselves). Active only on `https://openmana.vercel.app/`; locally, in tests and previews inactive (no request, nothing stored). Local stays the source of truth.
 - One slot `collection` = one document (`src/storage/collection.ts`, schema `CollectionDocument`, version = `SCHEMA_VERSION`): valid decks, deletion marks (90 days) and every setting except `display.*`; never caches, recorded matches or `meta`.
@@ -234,34 +240,24 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Evidence: 622 Vitest tests (63 new: merge and check, read/apply on fake-indexeddb, the real SDK against a stand-in ORYX cloud on the real storage session, the card and the return notice in the real app frame, the SDK checksum), `npm run check` with the end-to-end test in Chrome, including the new section 13: the build served as `https://openmana.vercel.app` with a stand-in ORYX cloud - the whole OAuth/PKCE round trip under COOP/COEP, the start's merge, uploads, disconnecting, axe, 360 px; plus the card absent and Web Storage empty off the real address, and the deletion mark in IndexedDB after deleting a deck. Limits: ORYX takes 1 MB per slot by default (≈ 146 Constructed or 48 Commander decks); ORYX needs an OAuth client for `openmana`; effective once deployed. Details: `docs/implementation/oryx-cloud-sync.md`.
 
 ## Currently In Progress
-No numbered prompt is active in this checkout at the end of Prompt 29. Prompts **28** (local web scope) and **29** (complete local automated suite) are complete. Prompt **30** is next and unstarted; it requires Astra/max under the model gate. The deferred physical gate remains mandatory in Prompt 31/32; public Oracle/source/icon gates remain open.
+Prompt **30** — Anvil parity audit and remediation is complete locally (required `gpt-6-astra` / `max` verified). Prompts **31/32** have not started. The deferred physical gate remains mandatory in Prompt 31/32; public Oracle/source/icon gates remain open.
 
 Any agent entering the repository must first reconcile this statement with the central Dropzone task state and Git state.
 
 ## Planned Numbered Program
-The existing queue covers the path from bridge/Worker/resource/differential engine work through:
-- web/PWA skeleton,
-- IndexedDB,
-- Scryfall data,
-- Arena deck import/library,
-- game session and Forge AI profiles,
-- battlefield/cards/decisions/priority/targeting/combat/zones/history,
-- match recording/replay and beginner QoL,
-- responsive polish/PWA lifecycle,
-- Forge update pipeline,
-- credits/licenses,
-- Android via the global ORYX app (no own APK),
-- regression/parity/production/readiness audits.
+The remaining numbered queue contains:
+- Prompt 31: production/Vercel readiness, including the deferred physical ORYX/Android acceptance;
+- Prompt 32: final OpenMana readiness audit.
 
-The central Dropzone queue defines execution order; reconcile it with the completed Prompt 29 evidence before starting another task. Prompts 26, 30 and 32 require Astra with max reasoning under dev0gig's model gate in `AGENTS.md`.
+The central Dropzone queue defines execution order; reconcile it with the completed Prompt 30 evidence before starting another task. Prompts 26, 30 and 32 require Astra with max reasoning under dev0gig's model gate in `AGENTS.md`.
 
 ## Not Yet Implemented
 At this review point:
-- prompts 30 onward remain unstarted,
+- production/readiness Prompts 31/32 remain unstarted,
 - no production deployment or physical ORYX/device proof yet; no individual Android artifact is planned,
 - the ORYX cloud sync is built but inactive until OpenMana runs at `openmana.vercel.app` and ORYX has an OAuth client for it.
 
-Anvil remains the working reference implementation until OpenMana reaches the intended parity.
+Anvil remains the comparison reference; the tested local functional baseline is recorded in `docs/ANVIL_PARITY.md`. Production and device readiness still require 31/32.
 
 ## Architectural Guardrails
 - Forge alone decides Magic rules/legal actions/card behaviour/AI.
@@ -275,7 +271,7 @@ Anvil remains the working reference implementation until OpenMana reaches the in
 ## Workflow Compatibility
 The legacy local prompt workflow was removed upstream on 2026-09-28. The current checkout incorporates that deletion while preserving all previously local Prompt 16 and ORYX-return commits. Central tasks live in `dev0gig/dropzone/workflow/tasks/`; detailed implementation evidence remains in `docs/implementation/` and Git history.
 
-Preserve sequential execution. Prompts 28 (locally verified web scope) and 29 (full automated regression) are complete locally, not pushed; the publication hold through Prompt 31 remains. Prompt 28’s physical Android/ORYX Forge acceptance is explicitly deferred by dev0gig until authorized publication; the concrete mandatory checklist is in `docs/implementation/28-oryx-web-android.md` and central Prompt 31. Desktop/touch emulation does not satisfy it. Conservative choice: origin-trust metadata stays network-only; return follows the current ORYX canonical origin `oryx.quest` without changing SDK/cloud origins or the OpenMana storage origin.
+Preserve sequential execution. Prompts 28 (locally verified web scope), 29 (full automated regression) and 30 (functional Anvil parity) are complete locally, not pushed; the publication hold through Prompt 31 remains. Prompt 28’s physical Android/ORYX Forge acceptance is explicitly deferred by dev0gig until authorized publication; the concrete mandatory checklist is in `docs/implementation/28-oryx-web-android.md` and central Prompt 31. Desktop/touch emulation does not satisfy it. Conservative choice: origin-trust metadata stays network-only; return follows the current ORYX canonical origin `oryx.quest` without changing SDK/cloud origins or the OpenMana storage origin.
 
 ## Maintenance
 Update this file only when the broad implementation state changes. Keep detailed prompt evidence, commit hashes, measurements and blockers in the central Dropzone task and implementation/research docs.

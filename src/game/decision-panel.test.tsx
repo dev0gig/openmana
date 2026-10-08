@@ -11,7 +11,7 @@
  * player; a draft that does not fit is never sent; sending buttons are armed
  * ARMING_MS after they appear.
  */
-import { inputProblems, type AnswerBody, type ArrangeQuestion, type GameState, type OrderQuestion, type Question, type SelectQuestion, type VisibleCard } from "@openmana/engine-protocol"
+import { inputProblems, type AnswerBody, type ArrangeQuestion, type DistributeQuestion, type GameState, type OrderQuestion, type Question, type SelectQuestion, type VisibleCard } from "@openmana/engine-protocol"
 import { fireEvent, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
@@ -78,6 +78,57 @@ function answers(onAnswer: ReturnType<typeof vi.fn>): [number, AnswerBody][] {
   for (const [question, body] of calls) expect(inputProblems({ type: "answer", seq: 1, question, ...body })).toBeNull()
   return calls
 }
+
+describe("parity decision paths", () => {
+  it("lets the player place cards between hidden cards; duplicate slots cannot be sent", async () => {
+    const user = userEvent.setup()
+    const q: ArrangeQuestion = { type: "question", kind: "arrange", id: 900, blocking: true, text: "Einordnen", toTop: false, toBottom: false, toAnywhere: true, others: 5, items: [{ nr: 1, text: "A" }, { nr: 2, text: "B" }] }
+    const { onAnswer, rerender } = built(q)
+    const a = within(decision()).getByRole("textbox", { name: "Position von A" })
+    const b = within(decision()).getByRole("textbox", { name: "Position von B" })
+    fireEvent.change(a, { target: { value: "3" } })
+    fireEvent.change(b, { target: { value: "3" } })
+    expect(within(decision()).getByRole("button", { name: "Bestätigen" })).toBeDisabled()
+    fireEvent.change(b, { target: { value: "7" } })
+    await user.click(within(decision()).getByRole("button", { name: "Bestätigen" }))
+    expect(onAnswer).not.toHaveBeenCalled()
+    wait()
+    await user.click(within(decision()).getByRole("button", { name: "Bestätigen" }))
+    expect(answers(onAnswer)).toEqual([[900, { kind: "arrange", top: [], bottom: [], positions: [3, 7] }]])
+    rerender({ questions: [] })
+    expect(screen.queryByRole("textbox", { name: "Position von A" })).not.toBeInTheDocument()
+  })
+
+  it("shows cap and prerequisite failures, and only offers Forge's explicit postpone", async () => {
+    const user = userEvent.setup()
+    const q: DistributeQuestion = { type: "question", kind: "distribute", id: 901, blocking: true, text: "Verteilen", total: 3, min: 0, items: [{ nr: 1, text: "A" }, { nr: 2, text: "B" }], maximums: [2, 3], prerequisites: [{ item: 2, requires: 1, amount: 2 }], maySkip: true }
+    const { onAnswer, rerender } = built(q)
+    await user.click(within(decision()).getByRole("button", { name: "Bei B einen mehr" }))
+    expect(within(decision()).getByText(/Forge verlangt mindestens 2/)).toBeInTheDocument()
+    for (let n = 0; n < 2; n++) await user.click(within(decision()).getByRole("button", { name: "Bei A einen mehr" }))
+    expect(within(decision()).getByRole("button", { name: "Bei A einen mehr" })).toBeDisabled()
+    wait()
+    await user.click(within(decision()).getByRole("button", { name: "Bestätigen" }))
+    expect(answers(onAnswer)).toEqual([[901, { kind: "distribute", amounts: [2, 1] }]])
+    await user.click(within(decision()).getByRole("button", { name: "Später zuweisen" }))
+    expect(answers(onAnswer).at(-1)).toEqual([901, { kind: "distribute", amounts: [], skip: true }])
+    rerender({ questions: [{ ...q, id: 902, maySkip: false }] })
+    expect(screen.queryByRole("button", { name: "Später zuweisen" })).not.toBeInTheDocument()
+  })
+
+  it.each(["", "7"])("cancels input %j only with explicit permission and armed controls, without submitting its draft", async (suggested) => {
+    const user = userEvent.setup()
+    const q: Question = { type: "question", kind: "input", id: 903, blocking: true, text: "Zahl", numeric: true, suggested, cancellable: true }
+    const { onAnswer, rerender } = built(q)
+    await user.click(within(decision()).getByRole("button", { name: "Abbrechen" }))
+    expect(onAnswer).not.toHaveBeenCalled()
+    wait()
+    await user.click(within(decision()).getByRole("button", { name: "Abbrechen" }))
+    expect(answers(onAnswer)).toEqual([[903, { kind: "input", value: null }]])
+    rerender({ questions: [{ ...q, id: 904, cancellable: false }] })
+    expect(screen.queryByRole("button", { name: "Abbrechen" })).not.toBeInTheDocument()
+  })
+})
 
 describe("Forge's buttons (a running step)", () => {
   it("the mulligan: Forge's words, its prompt line, the kind; a press is sent only once the buttons are armed", async () => {
@@ -483,10 +534,12 @@ describe("input (built)", () => {
     expect(answers(onAnswer)).toEqual([[100, { kind: "input", value: "4" }]])
   })
 
-  it("Forge's suggestions fill the field; only the button sends", async () => {
+  it("Forge's offered values fill the field; an arbitrary value cannot be sent", async () => {
     const user = userEvent.setup()
     const question: Question = { type: "question", kind: "input", id: 101, blocking: true, text: "Nenne einen Kreaturentyp", numeric: false, suggested: null, items: [{ nr: 1, text: "Goblin" }, { nr: 2, text: "Elf" }] }
     const { onAnswer } = built(question)
+    await user.type(within(decision()).getByRole("textbox", { name: "Deine Antwort" }), "Dragon")
+    expect(within(decision()).getByRole("button", { name: "Bestätigen" })).toBeDisabled()
     await user.click(within(decision()).getByRole("button", { name: "Elf" }))
     expect(within(decision()).getByRole("textbox", { name: "Deine Antwort" })).toHaveValue("Elf")
     expect(onAnswer).not.toHaveBeenCalled()

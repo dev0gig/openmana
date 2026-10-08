@@ -116,6 +116,8 @@ import { blockView, type BlockView } from "./block-model"
 import { directTaps, playerUse, tapBlocked, type TableMoment } from "./card-use"
 import {
   arrangeAnswer,
+  checkPositions,
+  positionsAnswer,
   buttonsAnswer,
   buttonText,
   cardItems,
@@ -1263,6 +1265,7 @@ function InputBody({ question }: { question: InputQuestion }) {
         <Input
           id={id}
           value={value}
+          onKeyDown={(event) => event.key === "Enter" && event.repeat && event.preventDefault()}
           onChange={(event) => setValue(event.target.value)}
           {...(question.numeric ? { inputMode: "numeric" as const } : {})}
           autoComplete="off"
@@ -1270,11 +1273,11 @@ function InputBody({ question }: { question: InputQuestion }) {
           {...(check.ok ? {} : { "aria-describedby": reasonId })}
         />
         {question.items !== undefined && question.items.length > 0 ? (
-          <FieldDescription>Forges Vorschläge übernehmen den Wert ins Feld; gesendet wird erst mit „Bestätigen“.</FieldDescription>
+          <FieldDescription>Wähle einen der angebotenen Werte. Gesendet wird erst mit „Bestätigen“.</FieldDescription>
         ) : null}
       </Field>
       {question.items !== undefined && question.items.length > 0 ? (
-        <div role="group" aria-label="Forges Vorschläge" className="flex flex-wrap gap-2">
+        <div role="group" aria-label="Forges angebotene Werte" className="flex flex-wrap gap-2">
           {question.items.map((item) => {
             const text = itemLabel(item, state)
             return (
@@ -1297,6 +1300,11 @@ function InputBody({ question }: { question: InputQuestion }) {
         >
           Bestätigen
         </Button>
+        {question.cancellable === true ? (
+          <SendButton type="button" armKey={question.id} variant="outline" onSend={() => answer(question.id, { kind: "input", value: null })}>
+            Abbrechen
+          </SendButton>
+        ) : null}
       </GameDecisionActions>
     </form>
   )
@@ -1424,6 +1432,44 @@ const SIDE_TITLES: Readonly<Record<PileSide, string>> = {
 }
 
 function ArrangeBody({ question }: { question: ArrangeQuestion }) {
+  return question.toAnywhere ? <ArrangePositionsBody question={question} /> : <ArrangeSidesBody question={question} />
+}
+
+function ArrangePositionsBody({ question }: { question: ArrangeQuestion }) {
+  const { answer, state } = useDecision()
+  const [positions, setPositions] = useState<readonly string[]>(() => question.items.map((_, index) => String(index + 1)))
+  const values = positions.map((value) => value.trim() === "" ? NaN : Number(value))
+  const check = checkPositions(question, values)
+  const reasonId = useId()
+  const count = question.items.length + question.others
+  return (
+    <>
+      <GameDecisionNote>Lege für jede Karte ihre Position von 1 bis {count} fest. Position 1 liegt ganz oben. Die {question.others} übrigen Karten behalten ihre Reihenfolge.</GameDecisionNote>
+      <ul className="flex flex-col gap-1">
+        {question.items.map((item, index) => (
+          <ListRow key={item.nr} item={item}>
+            <Input
+              inputMode="numeric"
+              aria-label={`Position von ${itemLabel(item, state)}`}
+              value={positions[index] ?? ""}
+              onChange={(event) => setPositions((previous) => previous.map((value, i) => i === index ? event.target.value : value))}
+              aria-describedby={check.ok ? undefined : reasonId}
+            />
+          </ListRow>
+        ))}
+      </ul>
+      <CheckNote id={reasonId} reason={check.reason} />
+      <BlockedNote />
+      <GameDecisionActions>
+        <SendButton armKey={question.id} disabled={!check.ok} reasonId={check.ok ? undefined : reasonId} onSend={() => answer(question.id, positionsAnswer(values))}>
+          Bestätigen
+        </SendButton>
+      </GameDecisionActions>
+    </>
+  )
+}
+
+function ArrangeSidesBody({ question }: { question: ArrangeQuestion }) {
   const { answer, state } = useDecision()
   const [arrangement, setArrangement] = useState<Arrangement>(() => initialArrangement(question))
   const check = checkArrangement(question, arrangement)
@@ -1508,9 +1554,10 @@ function DistributeBody({ question }: { question: DistributeQuestion }) {
               <output className="min-w-8 text-center text-base font-semibold tabular-nums" aria-label={`${name}: ${amount}`}>
                 {amount}
               </output>
-              <Button type="button" variant="outline" size="icon" aria-label={`Bei ${name} einen mehr`} disabled={check.open <= 0} onClick={() => setAmounts((previous) => changeAmount(question, previous, index, 1))}>
+              <Button type="button" variant="outline" size="icon" aria-label={`Bei ${name} einen mehr`} disabled={check.open <= 0 || amount >= (question.maximums?.[index] ?? question.total)} onClick={() => setAmounts((previous) => changeAmount(question, previous, index, 1))}>
                 <Plus aria-hidden />
               </Button>
+              {question.maximums !== undefined ? <span className="text-xs text-muted-foreground">Höchstens {question.maximums[index]}</span> : null}
             </ListRow>
           )
         })}
@@ -1521,6 +1568,11 @@ function DistributeBody({ question }: { question: DistributeQuestion }) {
         <SendButton armKey={question.id} disabled={!check.ok} reasonId={check.ok ? undefined : reasonId} onSend={() => answer(question.id, distributeAnswer(amounts))}>
           Bestätigen
         </SendButton>
+        {question.maySkip === true ? (
+          <SendButton armKey={question.id} variant="outline" onSend={() => answer(question.id, { kind: "distribute", amounts: [], skip: true })}>
+            Später zuweisen
+          </SendButton>
+        ) : null}
       </GameDecisionActions>
     </>
   )

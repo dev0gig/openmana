@@ -16,14 +16,16 @@ selbst bleibt unverändert.
 | 0006 | `0006-local-games-without-server-manager.patch` | Neu `FServerManager.getInstanceIfCreated()`; `HostedMatch.startGame` und `InputPassPriority.showAndWait` fragen nur einen **vorhandenen** Netzwerk-Manager. Vorher baute jede lokale Partie Netty-Event-Loops (zwei Thread-Gruppen) und Netzwerk-Einstellungen auf, die sie nie nutzte | OpenMana, Prompt 02 |
 | 0007 | `0007-gui-read-only-answers.patch` | **Nur lesende Auskünfte für die Oberfläche:** `InputSelectTargets.isSelectablePlayer` (würde ein Klick diesen Spieler als Ziel nehmen oder zurücknehmen?), `InputPayMana.getRemainingManaCost` (was noch zu zahlen ist, wie Forges Anweisung es zeigt), `InputPayMana.canUseManaFromPool` + `ManaPool.canPayCostWithColor` (würde Mana dieser Farbe aus dem Vorrat bezahlen?), `InputPayMana.isSelectablePlayer` (in `InputPayManaOfCostPayment`: Leben für Phyrexia-Mana). Die bisherigen Prüfungen sind unverändert in gemeinsame Methoden verschoben (`playerRefusal`, `manaToPayWithColor`), die der Klick und die neue Auskunft beide nutzen | OpenMana, Prompt 17 |
 | 0008 | `0008-gui-attack-answers.patch` | **Nur lesende Auskünfte zum Angreifen:** `CombatUtil.attackRefusal` (warum `canAttack` eine Kreatur ablehnt – getappt, Einsatzverzögerung, ausgephast, aufgestachelt, ein Effekt, zu spät; `canAttack` ist jetzt `attackRefusal == null`, die Prüfungen unverändert in derselben Reihenfolge verschoben, die zusammengefasste Grundprüfung in Einzelprüfungen zerlegt), `InputAttack.getCurrentDefender` (wen eine jetzt deklarierte Kreatur angreift), `InputAttack.isSelectablePlayer` (würde ein Klick diesen Spieler zum Ziel machen; die Prüfung aus `onPlayerSelected`/`onCardSelected` in `isDefender` verschoben) | OpenMana, Prompt 18 |
+| 0009 | `0009-shared-combat-damage-policy.patch` | **Gemeinsame Grenzen der Schadenszuweisung:** `CombatDamageAssignment` übernimmt aus `VAssignCombatDamage` die Zulässigkeit des Verteidigers und Forges Voraussetzungen für weitere Ziele. Desktopdialog und Bridge fragen dieselbe Implementierung; nur Zahlen gelangen in die UI. Tödlicher Schaden, Todesberührung, freie Verteilung und ungeordnete Blocker bleiben Forge-Aufgaben. Die Desktopdatei wird gepatcht, aber nicht in WASM gebaut. | OpenMana, Prompt 30; upstream `VAssignCombatDamage` am gepinnten Stand |
 
 0001–0003 stammen aus ManaBrews Forge-Fork (GPL-3.0-or-later wie Forge selbst,
 siehe `docs/research/LICENSES.md`) und sind auf `Card-Forge/forge@ed0333f`
-angepasst. 0004–0008 sind für OpenMana neu geschrieben (Begründung in der
+angepasst. 0004–0009 sind für OpenMana neu geschrieben (Begründung in der
 jeweiligen Patch-Beschreibung, Nachweise in
 [`docs/implementation/02-anvil-bridge.md`](../../docs/implementation/02-anvil-bridge.md)).
-Jede geänderte Stelle trägt im Quelltext den Vermerk
-`OpenMana patch NNNN (2026-09-24, …)` (GPLv3 §5a: Änderungshinweis mit Datum).
+Die Änderungen tragen im Quelltext einen Vermerk `OpenMana patch NNNN` mit
+ihrem Änderungsdatum (GPLv3 §5a). Den Vergleich und die Callback-/Spielnachweise
+für 0009 dokumentiert [ANVIL_PARITY.md](../../docs/ANVIL_PARITY.md).
 
 **Ohne** `-Dforge.synchronous=true` verhält sich Forge mit diesen Patches wie
 upstream — mit zwei Ausnahmen: Die kooperative Zeitgrenze aus 0002 gilt immer,
@@ -40,7 +42,7 @@ beide Laufzeiten dieselben Pfade nehmen (Voraussetzung für den JVM/Wasm-Verglei
   eine **nur lesende Auskunft**, die die Oberfläche braucht, um Forges eigene
   Entscheidung vorher zu zeigen statt nachher zu raten (0007: welche Spieler
   ein Klick nähme, was noch zu zahlen ist; 0008: warum eine Kreatur nicht
-  angreifen kann). Solch eine Auskunft stellt dieselbe
+  angreifen kann; 0009: welche Schadenszuweisung der Desktopdialog erlaubt). Solch eine Auskunft stellt dieselbe
   Prüfung wie Forges Klick – die Prüfung wird dafür in eine gemeinsame Methode
   verschoben, nie abgeschrieben – und verändert nichts. Keine Regel-, Karten-
   oder KI-Änderungen „nebenbei“ (Bible §2). ManaBrews verhaltensändernde Patches

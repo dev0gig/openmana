@@ -10,12 +10,17 @@ import { engineEvidence, browserEvidence } from "./evidence.ts"
 
 type Sample = Record<string, any> // report mutation deliberately exercises invalid shapes
 const sample = (name: string): Sample => JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "fixtures", `${name}.json`), "utf8"))
+const archived = sample("task29-requirements") as unknown as NonNullable<Parameters<typeof engineEvidence>[2]> & { scenes: string[] }
 const manifest = sample("engine")["manifestSha256"] as string
 
 describe("full regression evidence", () => {
+  it("refuses historical reports as evidence for the new parity requirements", () => {
+    expect(() => engineEvidence(sample("engine"), manifest)).toThrow(/parity-trample/)
+    expect(() => browserEvidence(sample("app"), sample("pwa"))).toThrow(/arrange-anywhere/)
+  })
   it("accepts the complete historical report shapes, without calling them a new run", () => {
-    expect(engineEvidence(sample("engine"), manifest)).toMatchObject({ fixtures: 14, completeResults: ["loss", "win"] })
-    expect(browserEvidence(sample("app"), sample("pwa"))).toMatchObject({ viewports: 8, workerChecks: 11 })
+    expect(engineEvidence(sample("engine"), manifest, archived)).toMatchObject({ fixtures: 14, completeResults: ["loss", "win"] })
+    expect(browserEvidence(sample("app"), sample("pwa"), archived.scenes)).toMatchObject({ viewports: 8, workerChecks: 11 })
   })
   it.each([
     ["skipped Chrome", (r: Sample) => { r["browserSkipped"] = true }],
@@ -31,7 +36,7 @@ describe("full regression evidence", () => {
     ["trace divergence hidden", (r: Sample) => { r["runs"]["node-divergence"]["ok"] = false }],
   ] as const)("rejects engine: %s", (_, mutate) => {
     const r = sample("engine"); mutate(r)
-    expect(() => engineEvidence(r, manifest)).toThrow()
+    expect(() => engineEvidence(r, manifest, archived)).toThrow()
   })
   it.each([
     ["focused UI run", (r: Sample) => { r["scope"] = "table-only" }],
@@ -44,7 +49,7 @@ describe("full regression evidence", () => {
     ["replay input leakage", (r: Sample) => { r["gameSession"]["liveRecordingReplay"]["noInput"] = false }],
   ] as const)("rejects app: %s", (_, mutate) => {
     const r = sample("app"); mutate(r)
-    expect(() => browserEvidence(r, sample("pwa"))).toThrow()
+    expect(() => browserEvidence(r, sample("pwa"), archived.scenes)).toThrow()
   })
   it.each([
     ["missing offline run", (r: Sample) => { delete r["offlineGame"] }],
@@ -57,6 +62,6 @@ describe("full regression evidence", () => {
     ["installation failure swallowed", (r: Sample) => { r["initialInstallFailure"]["visibleFailure"] = false }],
   ] as const)("rejects PWA: %s", (_, mutate) => {
     const r = sample("pwa"); mutate(r)
-    expect(() => browserEvidence(sample("app"), r)).toThrow()
+    expect(() => browserEvidence(sample("app"), r, archived.scenes)).toThrow()
   })
 })
