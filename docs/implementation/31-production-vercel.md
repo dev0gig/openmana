@@ -94,6 +94,10 @@ scheitert es (Unit-Tests `vite/notices.test.ts`).
   11 Kartenbilder geladen/0 defekt, 31 Scryfall-Bildantworten/0 Fehler, ein
   Engine-Worker (max. 1 gleichzeitig), keine Seitenfehler. Die Partie spielt
   bewusst passiv; Zauber, Ziele und Kampf deckt die Engine-/App-Suite ab.
+  *Nachtrag Prompt 32:* Passiv war sie nicht mit Absicht – das Prüfskript
+  erkannte Forges deutsche Aktionsworte („Einen Zauberspruch sprechen“) nicht
+  und wirkte deshalb nie einen Zauber. Behoben; Zauber, Ziele und Kampf über
+  die echte Oberfläche belegt jetzt `docs/READINESS.md`.
 
 ### ORYX
 

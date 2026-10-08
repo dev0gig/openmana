@@ -81,7 +81,15 @@ node scripts/deploy/budgets.ts
 - `/.well-known/assetlinks.json` 200, `application/json`, keine Umleitung.
 - `/legal/THIRD-PARTY-NOTICES.txt` nennt den ausgelieferten Commit.
 - Eine echte Partie gegen Forge im Browser bis zum Ergebnis; Kartenbilder von
-  Scryfall laden unter COEP (CORS-Modus).
+  Scryfall laden unter COEP (CORS-Modus). Automatisch:
+  `node scripts/deploy/live-check.ts https://openmana.oryx.quest` – prüft
+  Isolation, Hinweise mit Commit, Kartendaten, zwei Arena-Importe und spielt
+  die Partie mit dem Prüfspieler (`scripts/readiness/player.ts`: Länder,
+  Zauber, Ziele, Bezahlen, Angriff, Blocken); verlangt mindestens einen
+  gewirkten Zauber, höchstens einen Engine-Worker und null fehlerhafte
+  Kartenbilder. Mehrere Partien samt Aufzeichnung und Wiedergabe:
+  `node scripts/readiness/matches.ts --base <url> --out <neuer Ordner> --games live`
+  (siehe `docs/READINESS.md`).
 - Service Worker: Ein neues Deployment wartet, bis alle alten Tabs zu sind
   (Prompt 25); nie erzwingen.
 
