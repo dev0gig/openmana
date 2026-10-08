@@ -3,7 +3,6 @@
  */
 import fs from "node:fs"
 import path from "node:path"
-import os from "node:os"
 import { createHash } from "node:crypto"
 import { spawn } from "node:child_process"
 import { engineEvidence, browserEvidence } from "./evidence.ts"
@@ -25,7 +24,10 @@ const out = path.resolve(args[1] ?? path.join(root, "reports/regression", new Da
 // Never overwrite a prior result (including failed runs).
 fs.mkdirSync(path.dirname(out), { recursive: true })
 fs.mkdirSync(out)
-const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "om29-"))
+// Like the update pipeline (engine/scripts/validate-forge-update.mjs): short and disk-backed. Chrome's profiles live
+// under TMPDIR, and in a RAM-backed /tmp (tmpfs) Chrome failed to store the 79 MB engine in CacheStorage
+// ("Cache.put() encountered a network error", Prompt 32), which the PWA suite then reports as a failed download.
+const scratch = fs.mkdtempSync("/var/tmp/om29-")
 const engine = path.join(out, "engine")
 const env = { ...process.env, TMPDIR: scratch, OPENMANA_ENGINE_BUILD_DIR: engine, OPENMANA_ENGINE_DIR: path.join(engine, "dist"), OPENMANA_CARDS_DIR: path.resolve(catalog), VITEST_MAX_WORKERS: process.env["VITEST_MAX_WORKERS"] ?? "1" }
 const result: { format: string; status: string; startedAt: string; finishedAt?: string; engineBuild: string; catalog: string; steps: { name: string; command: string[]; exitCode: number | null; signal: string | null; log: string; logSha256: string }[]; coverage?: unknown; error?: string } = { format: "openmana-regression/1", status: "running", startedAt: new Date().toISOString(), engineBuild: original, catalog: env.OPENMANA_CARDS_DIR, steps: [] }
