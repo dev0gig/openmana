@@ -7,12 +7,12 @@
   },
   "sources": {
     "format": "openmana-engine-inputs/1",
-    "sha256": "b03f87ff9c782eb03b773cee3943d902e4baccc34ad770273ff473d935d688eb",
+    "sha256": "e3c1114dc221872fd970f047212fb2edd38e510c47f552dec1e723ec5679b1b1",
     "files": 168
   },
   "patches": {
     "count": 9,
-    "sha256": "8a1be17be0952433d24fa23cdbaef51a77269791022117bc31c740066dcfcce1",
+    "sha256": "9049fca28aa4ca99fca9da1a47dddec830df32b3aee0a1ee964520d2bc06104a",
     "files": [
       "0001-forge-synchronous-mode.patch",
       "0002-ai-cooperative-deadline.patch",
@@ -53,7 +53,7 @@
   "manifest": {
     "file": "engine-manifest.json",
     "bytes": 5802,
-    "sha256": "a6d2368d9c4e06b229228c4581311b4f649cd92a7d815cdc1ccb57c3936bf629"
+    "sha256": "2b0da7a21935a6eaf23eb93715a0e68b94d2d0b19e413c02330eebaa7c8d67fa"
   },
   "artefacts": {
     "engine-worker.js": {
@@ -65,8 +65,8 @@
       "sha256": "edf456327b91601ab3ded0f35c6b1429adca8141a9fdd7d67849065185d72b42"
     },
     "openmana-engine.js.wasm": {
-      "bytes": 79039283,
-      "sha256": "b465b77aaec667c74180680cf974457ab8c3c16f580088214ea08431ab75c27d"
+      "bytes": 79010169,
+      "sha256": "0b7687f8f2cfc6e9a8738b08e29220f240bdb7dfd2b762e2a44ba00040e31876"
     },
     "forge-res.inventory.json": {
       "bytes": 4278015,
@@ -74,69 +74,45 @@
     }
   },
   "verification": {
-    "base": "5f86ff3d8aa8509881d708890405ff4510d1f53f",
+    "base": "7d9a4d77f15949cd4ab38238f4347fdda5db53ab",
     "protocol": {
-      "before": 7,
+      "before": 8,
       "after": 8,
-      "changed": true,
-      "reason": "Prompt 30 explicitly requires fixing Anvil parity: structured Forge distribution bounds/postponement, library positions, cancellable/allowed inputs, colorless changes and their UI, fixtures, regression evidence and documentation.",
-      "adaptationPaths": [
-        "AGENTS.md",
-        "README.md",
-        "STATUS.md",
-        "docs/ANVIL_PARITY.md",
-        "docs/BIBLE.md",
-        "docs/QUALITY.md",
-        "docs/implementation/30-anvil-parity-audit.md",
-        "scripts/e2e/run.ts",
-        "scripts/record-table-scenes.ts",
-        "scripts/regression/evidence.test.ts",
-        "scripts/regression/evidence.ts",
-        "scripts/regression/fixtures/task29-requirements.json",
-        "src/game/beginner-help.test.tsx",
-        "src/game/beginner-help.ts",
-        "src/game/decision-model.test.ts",
-        "src/game/decision-model.ts",
-        "src/game/decision-panel.test.tsx",
-        "src/game/decision-panel.tsx",
-        "src/game/table-labels.test.ts",
-        "src/game/table-labels.ts",
-        "src/test/built-questions.ts",
-        "src/test/fixtures/replay.json",
-        "src/test/fixtures/table-scenes.json"
-      ]
+      "changed": false,
+      "reason": "",
+      "adaptationPaths": []
     },
     "engineRuns": 82,
     "browserRuns": 23,
     "browserSkipped": false,
     "reports": {
       "pipeline.json": {
-        "bytes": 6844,
-        "sha256": "409dbfb45a2b937b0d946ac720f8b397f66a594cfb83652a4d17fdb23e71ac43"
+        "bytes": 3637,
+        "sha256": "955d4d2f70d15037f024c9592bf27d2c1bb322cf762cc9db9d136cb94c5bd088"
       },
       "report/build-report.json": {
-        "bytes": 7471,
-        "sha256": "d0bc615bf85b1b2cf678cbe2bfb9379a615f2c520fb8e187b020cac28666d406"
+        "bytes": 7477,
+        "sha256": "f5d2983784440f9b35035a40e60a9b9f33a0d6d21fa2dfc7157ee2730705c19b"
       },
       "report/jvm-tests.json": {
         "bytes": 261,
-        "sha256": "f3bdb87353c976c6e7620575bddc48e214a4147f8f07f70c483cdb575e7aacb5"
+        "sha256": "76717ebb22acafc21311752f348734a3fe9f46e5e25fcf135afe8a02ec210fd6"
       },
       "report/test-report.json": {
-        "bytes": 1135282,
-        "sha256": "d83e936161b762c3086308140c2d81dafa2628213ac6f3444253b64b5bdfa603"
+        "bytes": 1135869,
+        "sha256": "2eee53ad4d8433a71ceb597f13bdbf4ffc1b71fde1a4910b8c85f6ddda2fa2d1"
       },
       "report/source-inputs.json": {
         "bytes": 35101,
-        "sha256": "3043e23974dd8f9a155d5019d8043c654592aae82017a2c877aadfb6ebb3ae92"
+        "sha256": "ca4da41bd36f10d9729c38bb5e67bc0c9821dae50e6194dbf079c4f3e10668d4"
       },
       "report/unit-tests.xml": {
-        "bytes": 14670,
-        "sha256": "679f9ef2f1bfde193afc310d59acaaed32520f6a405449d4bab4363d1d63e9ed"
+        "bytes": 14671,
+        "sha256": "680ac24ad04097a2abb3d9b1fef1ee2c49b2e33e0a20f378a45dc4f1c08fc4ab"
       },
       "catalog/card-catalog-manifest.json": {
         "bytes": 1302,
-        "sha256": "7828a8e832bd8c574812944bda8278b45108f399fdfb34c24e01ce2a91972fd4"
+        "sha256": "58d8af3d7a0d91f3573591e70f289d1020a26ea9d76bccd47f0db175f49cf14b"
       }
     }
   }
