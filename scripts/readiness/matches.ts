@@ -531,9 +531,16 @@ async function pwaChecks(context: BrowserContext, page: Page): Promise<Record<st
   const cdp = await context.newCDPSession(page)
   const manifest = (await cdp.send("Page.getAppManifest")) as { url: string; errors: { message: string }[] }
   const installability = (await cdp.send("Page.getInstallabilityErrors")) as { installabilityErrors: { errorId: string }[] }
+  // `ready` resolves with an active worker that may still be activating (it checks every byte of the shell first).
   const worker = await page.evaluate(async () => {
-    const ready = await Promise.race([navigator.serviceWorker.ready, new Promise<null>((resolve) => setTimeout(() => resolve(null), 30_000))])
-    return ready === null ? null : { scope: ready.scope, state: ready.active?.state ?? null }
+    const timeout = <T,>(ms: number, value: T) => new Promise<T>((resolve) => setTimeout(() => resolve(value), ms))
+    const ready = await Promise.race([navigator.serviceWorker.ready, timeout(60_000, null)])
+    if (ready === null || ready.active === null) return null
+    const active = ready.active
+    if (active.state !== "activated") {
+      await Promise.race([new Promise<void>((resolve) => active.addEventListener("statechange", () => active.state === "activated" && resolve())), timeout(120_000, undefined)])
+    }
+    return { scope: ready.scope, state: active.state }
   })
   check(manifest.errors.length === 0, `PWA: manifest errors ${JSON.stringify(manifest.errors)}`)
   check(installability.installabilityErrors.length === 0, `PWA: Chrome reports installability errors ${JSON.stringify(installability.installabilityErrors)}`)
