@@ -1,8 +1,8 @@
 {
   "format": "openmana-notices-engine/1",
-  "manifestSha256": "a6d2368d9c4e06b229228c4581311b4f649cd92a7d815cdc1ccb57c3936bf629",
-  "sbomSha256": "2d18ec9db20a0855f16222582cf94d81485eb557e795e3c92aead5bbbb348e8b",
-  "fatJarSha256": "2c101cd688589bc7c1c0cd225f98a3a160a35e9efd0d1a5d3b28eefa3e5c6892",
+  "manifestSha256": "2b0da7a21935a6eaf23eb93715a0e68b94d2d0b19e413c02330eebaa7c8d67fa",
+  "sbomSha256": "1b899b789ca7d624eab1c1a60245e969b56bcb96f96a5f22430456fa8b0d1b70",
+  "fatJarSha256": "13051f50d94773a35d9ab929f07d75d989beb7188cea88295207f4dec7cde386",
   "forge": {
     "repository": "https://github.com/Card-Forge/forge",
     "commit": "ed0333fecb1fea0671b3e50cadc1da4f71db5798",

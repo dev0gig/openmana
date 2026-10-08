@@ -1,11 +1,11 @@
 # THIRD-PARTY-NOTICES
 
 Erzeugt aus den tatsächlich enthaltenen App-Modulen, CSS/Fonts, Generatorcode und der geprüften WASM-Typinventur.
-Keine öffentliche Freigabe: Oracle GraalVM/GFTC und öffentlich zugänglicher Corresponding Source bleiben offen. Siehe SOURCE.md.
+Fassung ohne Build-Commit (lokaler Build oder Repository-Kopie); jede öffentliche Version nennt ihren genauen Quelltext-Commit. Quelltext und offene GraalVM-Frage: SOURCE.md.
 Originaltexte bleiben unverändert und in ihrer Originalsprache erhalten. Der vollständige Oracle-Distributionsanhang ist vorsorgliche Dokumentation; er ist keine Liste eingebauter Komponenten.
 
-Engine-Manifest SHA-256: dd33caca4339210f51f87d60a115a70e1b4a5e6934c08404cca5950896314d2c
-WASM-Typen: 7818
+Engine-Manifest SHA-256: 2b0da7a21935a6eaf23eb93715a0e68b94d2d0b19e413c02330eebaa7c8d67fa
+WASM-Typen: 7821
 
 ## Enthaltene Komponenten
 
@@ -87,9 +87,9 @@ WASM-Typen: 7818
 | com.google.guava:guava | 33.3.1-android | Apache-2.0 | WASM types / original dependency bytes (507 Typen) |
 | com.google.guava:guava | 33.4.8-jre | Apache-2.0 | WASM types / original dependency bytes (192 Typen) |
 | com.google.jimfs:jimfs | 1.3.0-c7a51a6e2109ff7e391815ba34ad404ac8a375c6 | Apache-2.0 | WASM types / original dependency bytes (78 Typen) |
-| com.oracle:Oracle GraalVM | 25.0.4.1.1+1-LTS | UNRESOLVED: GFTC / separate runtime terms | WASM types / original dependency bytes (3953 Typen) |
+| com.oracle:Oracle GraalVM | 25.0.4.1.1+1-LTS | UNRESOLVED: GFTC / separate runtime terms | WASM types / original dependency bytes (3955 Typen) |
 | com.thoughtworks.xstream:xstream | 1.4.21 | BSD-3-Clause | WASM types / original dependency bytes (209 Typen) |
-| forge:forge | ed0333fecb1fea0671b3e50cadc1da4f71db5798 | GPL-3.0-or-later | WASM types / original dependency bytes (1805 Typen) |
+| forge:forge | ed0333fecb1fea0671b3e50cadc1da4f71db5798 | GPL-3.0-or-later | WASM types / original dependency bytes (1806 Typen) |
 | io.github.x-stream:mxparser | 1.2.2 | Indiana University Extreme! Lab 1.2 | WASM types / original dependency bytes (1 Typen) |
 | io.sentry:sentry | 8.21.1 | MIT | WASM types / original dependency bytes (239 Typen) |
 | org.apache.commons:commons-lang3 | 3.18.0 | Apache-2.0 | WASM types / original dependency bytes (33 Typen) |
@@ -110,7 +110,7 @@ WASM-Typen: 7818
 ## Credits und Herkunft
 
 Forge/Card-Forge: Regeln, Kartenskripte, KI (GPL-3.0-or-later). ManaBrew: technische Referenz; drei GPL-Patches aus seinem Forge-Fork (khaliostr, JacopoMadaluni). Kein ManaBrew-Hauptrepo-/AGPL-Code übernommen.
-Scryfall: Kartendaten und -bilder. Wizards of the Coast: Kartenrechte/Marken, inoffizieller Fan-Inhalt. OpenAI ChatGPT und Anthropic Claude: KI-Unterstützung. ORYX-SDK und vorläufiges Anvil-Icon: Quellen des Projektbesitzers.
+Scryfall: Kartendaten und -bilder. Wizards of the Coast: Kartenrechte/Marken, inoffizieller Fan-Inhalt. Entwickelt mit umfassender generativer KI (OpenAI ChatGPT/Codex, Anthropic Claude), siehe TRANSPARENCY.md. ORYX-SDK: Quelle des Projektbesitzers. App-Icon: vom Projektbesitzer mit ChatGPT erzeugt.
 
 ## Quellen und Freigabegate
 
@@ -124,61 +124,60 @@ die Einzelheiten und Rechte zur Weitergabe und Änderung stehen in der Lizenz.
 Fremde Software behält ihre eigenen Copyright-Hinweise und Lizenzbedingungen.
 Die Lizenz erfasst keine fremden Kartenbilder oder Marken.
 
-Das Entwicklungsrepository ist https://github.com/dev0gig/openmana und derzeit
-nicht öffentlich zugänglich. Dieser Link ist **kein öffentliches Quellangebot**.
-Es gibt noch keine öffentliche OpenMana-Veröffentlichung und kein öffentliches
-Quellarchiv für das geprüfte Engine-Artefakt.
+## Öffentlicher Quelltext
 
-## Vor jeder öffentlichen Auslieferung
+Der vollständige Quelltext liegt öffentlich unter
+https://github.com/dev0gig/openmana. Jede öffentliche Version nennt ihren
+genauen Commit (Credits-Seite, `/legal/THIRD-PARTY-NOTICES.txt`); dort ist der
+Stand mit Lizenztexten, Hinweisen, Lockdateien und Bauanleitung abrufbar.
 
-Die GraalVM-Web-Image-/GFTC-Frage bleibt offen. Oracle-Anteile im erzeugten
-Launcher/WASM und separat lizenzierte Laufzeitteile sind noch nicht abschließend
-zugeordnet. Die erhaltenen Oracle-Lizenztexte und der vollständige
-Distributionsanhang sind Hinweise, keine rechtliche Freigabe. Siehe
-`docs/research/LICENSES.md` und die darin verlinkten Originalquellen.
+Das Engine-Modul (Forge als WebAssembly) und der Kartenkatalog stammen aus
+einem GitHub-Release dieses Repositorys (`deploy/artifacts.json` nennt Tag,
+Größen und SHA-256). Jedes Release enthält zusätzlich:
 
-Die Build-Option `OPENMANA_PUBLIC_RELEASE=1` bricht derzeit immer ab; eine bloße
-Änderung des Policy-Flags hebt das Gate nicht auf. Dessen spätere Aufhebung
-benötigt eine gesondert geprüfte Implementierung mit Nachweisen.
-Ein normaler lokaler Build ist keine
-Veröffentlichungsfreigabe. Die bestehenden Push-/Deployment-Regeln gelten weiter.
+1. ein **vollständiges Quellarchiv** des getaggten Commits einschließlich des
+   **Forge-Quellstands am gitlink** (`engine/forge`; `git archive` allein
+   enthält den Submodule-Inhalt nicht), der unveränderten Patch-Queue
+   (`engine/patches/`, Herkunft je Patch), Bridge, Protokoll, Ressourcenliste,
+   Build-Skripten, Konfiguration und Lockdateien;
+2. die **Quellen von JGraphT 1.5.2**, das unter der LGPL-2.1-or-later-Option
+   verwendet wird (`jgrapht-core-1.5.2-sources.jar` von Maven Central);
+3. `engine.lock.json`, das Engine-Manifest und die Ressourceninventur.
 
-Vor einer Freigabe müssen für **genau dieselben ausgelieferten Bytes**:
+Die übrigen eingebauten Java-/JavaScript-Bibliotheken stehen unter
+Apache-2.0/MIT/BSD-artigen Lizenzen; ihre Texte, Copyrights und NOTICE-Dateien
+sind in `THIRD-PARTY-NOTICES.md` und `notices/licenses/` erhalten.
 
-1. Die Oracle-/GFTC-/GPL-Kompatibilität fachkundig geklärt und mit überprüfbaren
-   Nachweisen dokumentiert werden; keine bloße Änderung eines Booleschen Werts.
-2. Ein öffentlich erreichbarer Corresponding Source mit gleichwertigem Zugang
-   bereitstehen: OpenMana-Quellen, **vollständiger Forge-Quellstand am gitlink**,
-   unveränderte Patch-Queue mit Datums-/Herkunftshinweisen, Bridge/Protokoll,
-   Ressourcen, Build-Skripte, Konfiguration, Lockdateien und Bauanleitung.
-   `git archive` allein enthält den Forge-Submodule-Inhalt nicht.
-3. Die Quellen der eingebauten Java-/JS-Bibliotheken und der genau verwendeten
-   Oracle-Laufzeit verfügbar sein, soweit ihre Lizenz dies verlangt. Insbesondere
-   JGraphT wird unter der **LGPL-2.1-or-later-Option** verwendet; die passende
-   Bibliotheksquelle und ein überprüfter Weg zum Neubau mit geänderter Bibliothek
-   gehören zur Abnahme. Der bisherige Engine-Build ist kein Relinking-Nachweis.
-4. Lizenztexte, Copyrights, Apache-NOTICE-Dateien und die erzeugten
-   `THIRD-PARTY-NOTICES` neben der App erhalten bleiben. Die UI muss direkt zum
-   passenden öffentlichen Quellstand führen; Hinweise/Downloads müssen auch
-   ohne Konto zugänglich sein. Aufbewahrung und Verfügbarkeit gemäß den Lizenzen.
-5. App-/Engine-/Katalog-Hashes und der öffentlich angebotene Quellstand
-   abgeglichen werden. Erst danach ist das Gate mit Nachweisen neu zu prüfen.
+## Offene Rechtsfrage: Oracle GraalVM / GFTC
 
-Die vorläufige Icon-Herkunft ist bis zu dev0gigs ursprünglichem Anvil-Upload
-nachvollziehbar und bytegleich geprüft. Ein ursprünglicher Urheber bzw. eine
-separate Bildlizenz ist in der Quelle nicht dokumentiert; die Software-GPL
-entscheidet diese Bildrechte nicht. Die Berechtigung zur öffentlichen
-Bildweitergabe gehört ebenfalls zur Freigabe (siehe
-`assets/app-icon/PROVENANCE.md`).
+Die GraalVM-Web-Image-/GFTC-Frage ist **nicht juristisch geklärt**: Oracle-Anteile
+im erzeugten Launcher/WASM stehen laut Oracles GraalVM Free Terms and
+Conditions unter deren Bedingungen; ob das mit der GPL von Forge vereinbar ist
+(„System Libraries“ des Compilers oder nicht), ist offen. Der Quelltext der
+Web-Image-Laufzeit ist bei Oracle unter GPLv2 mit Classpath Exception
+veröffentlicht (https://github.com/oracle/graal, Ordner `web-image`). Die
+erhaltenen Oracle-Lizenztexte und der vollständige Distributionsanhang sind
+Hinweise, keine rechtliche Freigabe. Herleitung mit Quellen:
+`docs/research/LICENSES.md`.
+
+Der Projektbesitzer hat am 2026-10-08 entschieden, OpenMana trotzdem offen und
+mit diesem Hinweis zu veröffentlichen (`docs/PUBLICATION.md`). Ein
+Produktionsbuild (`OPENMANA_PUBLIC_RELEASE=1`) prüft diese dokumentierte
+Entscheidung, das Quellangebot hier und den genauen Commit; ein bloß
+umgestellter Wahrheitswert reicht nicht.
+
+Das App-Icon hat der Projektbesitzer selbst mit ChatGPT erzeugt und zur
+Weitergabe mit OpenMana freigegeben (`assets/app-icon/PROVENANCE.md`). Wie
+OpenMana mit generativer KI entstand: `TRANSPARENCY.md`.
 
 ## Lokaler Neubau und Herkunft
 
-`engine/engine.lock.json` bindet den geprüften Forge-Pin, die acht Patches,
+`engine/engine.lock.json` bindet den geprüften Forge-Pin, die neun Patches,
 Toolchain, Protokoll und Artefakte. `engine/UPDATING.md` beschreibt den vollständigen
 Neubau und JVM-/WASM-/Chrome-Vergleich. `cards/README.md` beschreibt die
 Scryfall-Katalogerzeugung. Root-`package-lock.json` und `engine/package-lock.json`
 pinnen die npm-Versionen. Originale Änderungen bleiben in `engine/patches/`;
-0001–0003 stammen aus ManaBrews GPL-Forge-Fork, 0004–0008 aus OpenMana.
+0001–0003 stammen aus ManaBrews GPL-Forge-Fork, 0004–0009 aus OpenMana.
 
 Die App generiert bei jedem Produktionsbuild ihre Hinweise aus den tatsächlich
 enthaltenen Bundle-Modulen, den CSS-/Font- und Generatorquellen sowie der gegen
@@ -198,7 +197,8 @@ der Original-JAR-Bytes zu und lehnt unbekannte sowie Netzwerk-/CDDL-Typen ab.
 
 ManaBrews Hauptrepository ist technische Referenz, kein übernommener
 AGPL-Anwendungscode. Scryfall liefert Kartendaten/-bilder; Forge entscheidet
-die Regeln. OpenAI ChatGPT und Anthropic Claude unterstützten die Entwicklung.
+die Regeln. OpenMana wurde mit umfassender generativer KI (OpenAI
+ChatGPT/Codex, Anthropic Claude) entwickelt, siehe `TRANSPARENCY.md`.
 
 ## Lizenztexte und erhaltene Originalhinweise
 
@@ -1816,10 +1816,10 @@ SOFTWARE.
 ### assets/app-icon/PROVENANCE.md
 
 Quelle: assets/app-icon/PROVENANCE.md
-SHA-256: 1692157af88d24d28f1a6f1800f0658816ec26afbc6bdb237ac3b6cb73eecc36
+SHA-256: 9bc390f237afa9e221fda620a4eb7ba87cd924972793da22e29166f23bbc961f
 
 ````
-# Herkunft des vorläufigen App-Icons
+# Herkunft des App-Icons
 
 `anvil-icon.png` ist das offizielle App-Icon von **Anvil**, dem Vorgänger von
 OpenMana. Prompt 06 übernimmt es **unverändert** als vorläufiges Icon und
@@ -1855,15 +1855,20 @@ Android-Icon dasselbe Bild vollflächig als Vordergrundebene nutzt.
 
 ## Rechte
 
-Das Bild stammt aus dem Upload des Projektbesitzers für Anvil und wird hier
-auf dessen Anweisung weiterverwendet. Anvil hat keine eigene Lizenzdatei.
-Prompt 27 hat den Bytehash und Anvils `ICON.md` abgeglichen: Die Herkunft ist
-bis zu diesem Upload nachvollziehbar. Ein ursprünglicher Urheber oder eine
-separate Bildlizenz ist dort nicht dokumentiert; es wird keine erfundene
-Bildlizenz oder Übernahme unter die Software-GPL behauptet. Vor einer
-öffentlichen Veröffentlichung ist die Berechtigung zur Bildweitergabe Teil
-der Freigabe gemäß `SOURCE.md`. Auf Android nutzt die gemeinsame ORYX-TWA
-dieselbe Web-App; es gibt kein eigenes OpenMana-Android-Paket.
+Das Bild hat der Projektbesitzer selbst mit **ChatGPT (OpenAI)** erzeugt
+(Angabe des Projektbesitzers, 2026-10-08); der Dateiname
+`file_00000000d0a882439efb0abe11f0f596.png` passt zum Namensmuster von
+ChatGPT-Bilddownloads. Es ist ein KI-generiertes Bild ohne weiteren
+menschlichen Urheber und ohne fremde Vorlage, soweit dem Projektbesitzer
+bekannt. Der Projektbesitzer gibt es als Teil von OpenMana zur Weitergabe frei;
+es wird mit OpenMana unter **GPL-3.0-or-later** weitergegeben. Ob und wie weit
+an einem KI-generierten Bild überhaupt Urheberrechte bestehen, wird hier nicht
+bewertet.
+
+Prompt 27 hat den Bytehash und Anvils `ICON.md` abgeglichen: Die Kette
+ChatGPT-Download → Anvil → OpenMana ist bytegleich nachvollziehbar. Auf Android
+nutzt die gemeinsame ORYX-TWA dieselbe Web-App; es gibt kein eigenes
+OpenMana-Android-Paket.
 
 ````
 
@@ -2857,7 +2862,7 @@ Copyright 2010-2012 CS Systèmes d'Information
 ### engine/patches/README.md
 
 Quelle: engine/patches/README.md
-SHA-256: e04a585b0698dc961915c62b4218a24dc2b0d21ebbe1835a107ac10d1ea9d4f2
+SHA-256: 467d6a3b638f0a30dc34a3e9ad79e9992e2bb5226469d0af79197cd88f01ccbc
 
 ````
 # Forge-Patch-Queue
@@ -2878,14 +2883,16 @@ selbst bleibt unverändert.
 | 0006 | `0006-local-games-without-server-manager.patch` | Neu `FServerManager.getInstanceIfCreated()`; `HostedMatch.startGame` und `InputPassPriority.showAndWait` fragen nur einen **vorhandenen** Netzwerk-Manager. Vorher baute jede lokale Partie Netty-Event-Loops (zwei Thread-Gruppen) und Netzwerk-Einstellungen auf, die sie nie nutzte | OpenMana, Prompt 02 |
 | 0007 | `0007-gui-read-only-answers.patch` | **Nur lesende Auskünfte für die Oberfläche:** `InputSelectTargets.isSelectablePlayer` (würde ein Klick diesen Spieler als Ziel nehmen oder zurücknehmen?), `InputPayMana.getRemainingManaCost` (was noch zu zahlen ist, wie Forges Anweisung es zeigt), `InputPayMana.canUseManaFromPool` + `ManaPool.canPayCostWithColor` (würde Mana dieser Farbe aus dem Vorrat bezahlen?), `InputPayMana.isSelectablePlayer` (in `InputPayManaOfCostPayment`: Leben für Phyrexia-Mana). Die bisherigen Prüfungen sind unverändert in gemeinsame Methoden verschoben (`playerRefusal`, `manaToPayWithColor`), die der Klick und die neue Auskunft beide nutzen | OpenMana, Prompt 17 |
 | 0008 | `0008-gui-attack-answers.patch` | **Nur lesende Auskünfte zum Angreifen:** `CombatUtil.attackRefusal` (warum `canAttack` eine Kreatur ablehnt – getappt, Einsatzverzögerung, ausgephast, aufgestachelt, ein Effekt, zu spät; `canAttack` ist jetzt `attackRefusal == null`, die Prüfungen unverändert in derselben Reihenfolge verschoben, die zusammengefasste Grundprüfung in Einzelprüfungen zerlegt), `InputAttack.getCurrentDefender` (wen eine jetzt deklarierte Kreatur angreift), `InputAttack.isSelectablePlayer` (würde ein Klick diesen Spieler zum Ziel machen; die Prüfung aus `onPlayerSelected`/`onCardSelected` in `isDefender` verschoben) | OpenMana, Prompt 18 |
+| 0009 | `0009-shared-combat-damage-policy.patch` | **Gemeinsame Grenzen der Schadenszuweisung:** `CombatDamageAssignment` übernimmt aus `VAssignCombatDamage` die Zulässigkeit des Verteidigers und Forges Voraussetzungen für weitere Ziele. Desktopdialog und Bridge fragen dieselbe Implementierung; nur Zahlen gelangen in die UI. Tödlicher Schaden, Todesberührung, freie Verteilung und ungeordnete Blocker bleiben Forge-Aufgaben. Die Desktopdatei wird gepatcht, aber nicht in WASM gebaut. | OpenMana, Prompt 30; upstream `VAssignCombatDamage` am gepinnten Stand |
 
 0001–0003 stammen aus ManaBrews Forge-Fork (GPL-3.0-or-later wie Forge selbst,
 siehe `docs/research/LICENSES.md`) und sind auf `Card-Forge/forge@ed0333f`
-angepasst. 0004–0008 sind für OpenMana neu geschrieben (Begründung in der
+angepasst. 0004–0009 sind für OpenMana neu geschrieben (Begründung in der
 jeweiligen Patch-Beschreibung, Nachweise in
 [`docs/implementation/02-anvil-bridge.md`](../../docs/implementation/02-anvil-bridge.md)).
-Jede geänderte Stelle trägt im Quelltext den Vermerk
-`OpenMana patch NNNN (2026-09-24, …)` (GPLv3 §5a: Änderungshinweis mit Datum).
+Die Änderungen tragen im Quelltext einen Vermerk `OpenMana patch NNNN` mit
+ihrem Änderungsdatum (GPLv3 §5a). Den Vergleich und die Callback-/Spielnachweise
+für 0009 dokumentiert [ANVIL_PARITY.md](../../docs/ANVIL_PARITY.md).
 
 **Ohne** `-Dforge.synchronous=true` verhält sich Forge mit diesen Patches wie
 upstream — mit zwei Ausnahmen: Die kooperative Zeitgrenze aus 0002 gilt immer,
@@ -2902,7 +2909,7 @@ beide Laufzeiten dieselben Pfade nehmen (Voraussetzung für den JVM/Wasm-Verglei
   eine **nur lesende Auskunft**, die die Oberfläche braucht, um Forges eigene
   Entscheidung vorher zu zeigen statt nachher zu raten (0007: welche Spieler
   ein Klick nähme, was noch zu zahlen ist; 0008: warum eine Kreatur nicht
-  angreifen kann). Solch eine Auskunft stellt dieselbe
+  angreifen kann; 0009: welche Schadenszuweisung der Desktopdialog erlaubt). Solch eine Auskunft stellt dieselbe
   Prüfung wie Forges Klick – die Prüfung wird dafür in eine gemeinsame Methode
   verschoben, nie abgeschrieben – und verändert nichts. Keine Regel-, Karten-
   oder KI-Änderungen „nebenbei“ (Bible §2). ManaBrews verhaltensändernde Patches
@@ -38564,6 +38571,80 @@ SHA-256: 0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594
       of your accepting any such warranty or additional liability.
 
    END OF TERMS AND CONDITIONS
+
+````
+
+### TRANSPARENCY.md
+
+Quelle: TRANSPARENCY.md
+SHA-256: f699286c233c13c9af55ae1c4e6fc1f959d0f077a4712518e1eac439b6534609
+
+````
+# Herkunft und KI-Transparenz
+
+Was in OpenMana steckt, wer es gemacht hat und wie. Ohne Rechtsbewertung –
+nur, was tatsächlich passiert ist. Die Lizenzen stehen in `LICENSE`,
+`THIRD-PARTY-NOTICES.md`, `notices/licenses/` und `SOURCE.md`.
+
+## Idee und Leitung
+
+Idee, Richtung, Prioritäten und jede Freigabe stammen vom Projektbesitzer
+(GitHub: **dev0gig**). Er hat jede Aufgabe gestellt, Ergebnisse geprüft und
+entschieden, was veröffentlicht wird.
+
+## Mit generativer KI entwickelt
+
+OpenMana wurde mit **umfassender Unterstützung durch generative künstliche
+Intelligenz** entwickelt und ausgearbeitet. Praktisch der gesamte eigene
+Programmcode, die Tests, Build- und Prüfskripte, Recherche, Dokumentation und
+die deutschen Oberflächentexte wurden von KI-Agenten geschrieben, nach den
+Aufgaben und Vorgaben des Projektbesitzers:
+
+- **OpenAI** – ChatGPT und Codex (GPT-Modelle): Programmcode, Recherche,
+  Dokumentation; außerdem das App-Icon (siehe unten).
+- **Anthropic** – Claude (Claude Code): Programmcode, Recherche,
+  Dokumentation.
+
+Die Aufträge liegen als nummerierte Aufgaben (Prompts 00–32) vor; was je
+Aufgabe gebaut und geprüft wurde, steht in `docs/implementation/`. Commits
+dieser Agenten tragen teils einen `Co-Authored-By`-Vermerk des jeweiligen
+Modells.
+
+## Nicht von KI
+
+- **Magic-Regeln, Kartenverhalten und Gegner-KI:** Forge (Card-Forge-Community,
+  https://github.com/Card-Forge/forge, GPL-3.0-or-later), unverändert bis auf
+  die Patch-Reihe in `engine/patches/` (Herkunft je Patch dort). Die
+  „KI“-Gegner in Partien sind Forges eigene, regelbasierte Spieler – keine
+  generative KI.
+- **Kartentexte, Kartenbilder, Set-Angaben:** Scryfall (https://scryfall.com),
+  Rechte bei Wizards of the Coast; OpenMana ist inoffizieller Fan-Inhalt unter
+  deren Fan Content Policy. Kartenbilder werden nie verändert oder erzeugt.
+- **Bibliotheken und Schriften:** siehe `THIRD-PARTY-NOTICES.md`.
+- **WebAssembly-Übersetzung:** Oracle GraalVM Web Image (Werkzeug); Teile
+  seiner Laufzeit stecken im Engine-Modul (siehe `SOURCE.md`).
+- **Technische Vorlage:** ManaBrew (https://github.com/witchesofthehill/manabrew)
+  zeigte, dass Forge als WebAssembly im Browser läuft. Drei Forge-Patches
+  stammen aus ManaBrews Forge-Fork (GPL); Code aus ManaBrews AGPL-Hauptrepository
+  wurde nicht übernommen.
+- **ORYX-SDK** (`src/cloud/oryx-sdk.js`): unveränderte Kopie aus dem ORYX-Projekt
+  desselben Projektbesitzers.
+
+## App-Icon
+
+Vom Projektbesitzer selbst mit **ChatGPT (OpenAI)** erzeugt, zuerst als Icon
+von Anvil (OpenManas Vorgänger) verwendet, bytegleich übernommen. Es wird mit
+OpenMana unter GPL-3.0-or-later weitergegeben. Einzelheiten:
+`assets/app-icon/PROVENANCE.md`.
+
+## Daten und Netz
+
+OpenMana läuft im Browser. Decks, Einstellungen und Partien bleiben lokal
+(IndexedDB). Es gibt keine Analyse, kein Tracking und keine versteckte
+Fehlerübertragung; ein Diagnosebericht wird nur angezeigt und auf Wunsch
+kopiert. Netzanfragen gehen an die eigene Seite, an Scryfall (Kartenbilder,
+einzelne Drucke) und – nur wenn du dich mit ORYX verbindest – an die ORYX-Cloud
+(Deck-Sammlung, Anmeldung über Google bei ORYX).
 
 ````
 
