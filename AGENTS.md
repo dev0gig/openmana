@@ -218,17 +218,17 @@ The optional sync of the player's collection through their ORYX account (project
 The legacy local prompt workflow was removed upstream on 2026-09-28. Executable tasks and their lifecycle now live in `dev0gig/dropzone/workflow/tasks/`; implementation evidence remains in `docs/implementation/` and Git history.
 
 - Numbered prompts run strictly sequentially; resume `IN_PROGRESS` work and never skip a `BLOCKED` predecessor. Mark a task complete only after its requirements and verification pass.
-- Reconcile the central status with code and `STATUS.md` before selecting work. Prompts up to 31 are complete; OpenMana is public since Prompt 31 (2026-10-08). Prompt 32 (final readiness audit) is next and requires Astra/max under the model gate; it must inspect the device acceptance, whose on-device game/navigation part the project owner waived on 2026-10-08.
+- Reconcile the central status with code and `STATUS.md` before selecting work. Prompts up to 31 are complete; OpenMana is public since Prompt 31 (2026-10-08). Prompt 32 (final readiness audit) is next and requires Claude Opus 5.5 with effort max under the model gate; it must inspect the device acceptance, whose on-device game/navigation part the project owner waived on 2026-10-08.
 - Run only the task assigned by the user; a single Dropmaster assignment ends after that task.
 - Update the central task and `STATUS.md` with verified evidence; do not recreate the removed local queue.
 
-## Model gate for numbered prompts (project owner, 2026-10-07)
+## Model gate for numbered prompts (project owner, 2026-10-07; Prompt 32 changed 2026-10-08)
 
-Before starting/resuming a numbered task, check the actual session model and reasoning effort. The project owner requires **GPT-6 Astra with `max` reasoning** for these prompts:
+Before starting/resuming a numbered task, check the actual session model and reasoning effort. The project owner requires:
 
-- **26 — Isolated Forge update pipeline:** pinned Forge/patch/toolchain changes and reproducibility across JVM/WASM.
-- **30 — Anvil parity audit and remediation:** cross-repository assessment of every gameplay/decision path.
-- **32 — Final OpenMana readiness audit:** final functional gate spanning the complete product.
+- **26 — Isolated Forge update pipeline** (done): GPT-6 Astra with `max` reasoning.
+- **30 — Anvil parity audit and remediation** (done): GPT-6 Astra with `max` reasoning.
+- **32 — Final OpenMana readiness audit:** **Claude Opus 5.5 (`claude-opus-5-5`) in Claude Code with effort `max`** (project owner, 2026-10-08, replacing Astra: no Codex quota).
 
 If the session uses another model or effort, or these cannot be reliably established, stop before implementation and before moving the task to active. Tell the project owner the prompt number, required model/effort and why; do not silently continue or switch models. Resume only after the correct model/effort is confirmed, or the project owner explicitly overrides this gate for that task. Read-only task selection and the model check are permitted. The same gate applies to multi-master workers; a Sol worker may not execute these tasks.
 

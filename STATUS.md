@@ -246,7 +246,7 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Evidence: 622 Vitest tests (63 new: merge and check, read/apply on fake-indexeddb, the real SDK against a stand-in ORYX cloud on the real storage session, the card and the return notice in the real app frame, the SDK checksum), `npm run check` with the end-to-end test in Chrome, including the new section 13: the build served as `https://openmana.vercel.app` with a stand-in ORYX cloud - the whole OAuth/PKCE round trip under COOP/COEP, the start's merge, uploads, disconnecting, axe, 360 px; plus the card absent and Web Storage empty off the real address, and the deletion mark in IndexedDB after deleting a deck. Limits: ORYX takes 1 MB per slot by default (≈ 146 Constructed or 48 Commander decks); ORYX needs an OAuth client for `openmana`; effective once deployed. Details: `docs/implementation/oryx-cloud-sync.md`.
 
 ## Currently In Progress
-Prompt **31** — production release is complete and public (2026-10-08). Prompt **32** (final readiness audit, Astra/max required) has not started; it must inspect the partially waived device acceptance.
+Prompt **31** — production release is complete and public (2026-10-08). Prompt **32** (final readiness audit, Claude Opus 5.5 / effort max required) has not started; it must inspect the partially waived device acceptance.
 
 Any agent entering the repository must first reconcile this statement with the central Dropzone task state and Git state.
 
@@ -254,7 +254,7 @@ Any agent entering the repository must first reconcile this statement with the c
 The remaining numbered queue contains:
 - Prompt 32: final OpenMana readiness audit.
 
-The central Dropzone queue defines execution order; reconcile it with the completed Prompt 30 evidence before starting another task. Prompts 26, 30 and 32 require Astra with max reasoning under the project owner's model gate in `AGENTS.md`.
+The central Dropzone queue defines execution order; reconcile it with the completed Prompt 30 evidence before starting another task. Prompts 26 and 30 required Astra/max; Prompt 32 requires Claude Opus 5.5 with effort max (model gate in `AGENTS.md`).
 
 ## Not Yet Implemented
 At this review point:
