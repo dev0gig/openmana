@@ -14,7 +14,7 @@ import { ISOLATION_HEADERS } from "./isolation-headers.ts"
 interface LicenseFile { file: string; sha256: string; source: string }
 interface Policy {
   engineInventorySha256: string
-  publicRelease: { cleared: boolean; reason: string }
+  publicRelease: { cleared: boolean; reason: string; decision?: string }
   engineComponents: Record<string, { license: string; texts: string[] }>
   npmSupplements: Record<string, string[]>
   generatedComponents: string[]
@@ -52,13 +52,35 @@ export async function packageDirectory(id: string): Promise<string | undefined> 
   }
 }
 
+/** OpenMana's public repository: SOURCE.md must name it, and a public build names its exact commit there. */
+export const PUBLIC_REPOSITORY = "https://github.com/dev0gig/openmana"
+
+/**
+ * A public build (OPENMANA_PUBLIC_RELEASE=1, the production deployment) needs
+ * more than a boolean: the project owner's recorded decision (prompt 31,
+ * docs/PUBLICATION.md), source instructions that offer the public source, and
+ * the exact commit this build comes from. Anything missing fails the build.
+ */
+async function publicSource(root: string, policy: Policy): Promise<{ commit: string; url: string } | null> {
+  if (process.env["OPENMANA_PUBLIC_RELEASE"] !== "1") return null
+  const decision = policy.publicRelease.decision
+  if (!policy.publicRelease.cleared || !decision || decision.includes("..")) throw new Error(`Public release gate is closed: ${policy.publicRelease.reason}`)
+  let record = ""
+  try { record = await fs.readFile(path.join(root, decision), "utf8") } catch { /* reported below */ }
+  if (!record.includes("Entscheidung des Projektbesitzers")) throw new Error(`Public release needs the project owner's recorded decision in ${decision}`)
+  const source = await fs.readFile(path.join(root, "SOURCE.md"), "utf8")
+  if (!source.includes(PUBLIC_REPOSITORY) || /kein öffentliches Quellangebot/i.test(source)) throw new Error("SOURCE.md must offer the public source before a public release")
+  let commit = process.env["VERCEL_GIT_COMMIT_SHA"] ?? ""
+  if (!commit) {
+    try { commit = (await runFile("git", ["-C", root, "rev-parse", "HEAD"])).stdout.trim() } catch { /* reported below */ }
+  }
+  if (!/^[0-9a-f]{40}$/.test(commit)) throw new Error("A public release must name the exact source commit (Git or VERCEL_GIT_COMMIT_SHA)")
+  return { commit, url: `${PUBLIC_REPOSITORY}/tree/${commit}` }
+}
+
 export async function generateNotices(root: string, moduleIds: readonly string[], engineDir?: string) {
   const policy = await readJson<Policy>(path.join(root, "notices/policy.json"))
-  if (process.env["OPENMANA_PUBLIC_RELEASE"] === "1") {
-    // This task supplies notices, not evidence clearing Oracle/source release.
-    // A boolean alone is deliberately insufficient to authorize publication.
-    throw new Error(`Public release gate remains closed: ${policy.publicRelease.reason}`)
-  }
+  const published = await publicSource(root, policy)
   const catalog = await readJson<Record<string, LicenseFile>>(path.join(root, "notices/license-files.json"))
   let overrides: EngineOverrides = { engineComponents: {}, licenseFiles: {}, unattributedDependencies: [] }
   try {
@@ -181,13 +203,14 @@ export async function generateNotices(root: string, moduleIds: readonly string[]
   }
   // Vendor copies and own-source provenance: preserved headers and source
   // pointers, not invented npm dependencies or copied ManaBrew AGPL code.
-  const vendor = ["src/cloud/oryx-sdk.js", "assets/app-icon/PROVENANCE.md", "engine/patches/README.md"]
+  const vendor = ["src/cloud/oryx-sdk.js", "assets/app-icon/PROVENANCE.md", "engine/patches/README.md", "TRANSPARENCY.md"]
   for (const file of vendor) {
     const content = await fs.readFile(path.join(root, file), "utf8")
     texts.set(file, { source: file, content: file.endsWith(".js") ? content.slice(0, content.indexOf("*/") + 2) : content })
   }
   await catalogText("gpl-3.0")
-  const summary = { format: "openmana-third-party-notices/1", publicReleaseCleared: false,
+  const summary = { format: "openmana-third-party-notices/1", publicReleaseCleared: published !== null,
+    sourceCommit: published?.commit ?? null, sourceUrl: published?.url ?? null,
     engineManifestSha256: inventory?.manifestSha256 ?? null, typeCount: inventory?.typeCount ?? 0,
     sbomSha256: inventory?.sbomSha256 ?? null, fatJarSha256: inventory?.fatJarSha256 ?? null,
     components, texts: Object.fromEntries([...texts].sort(([a], [b]) => a.localeCompare(b)).map(([id, item]) => [id, { source: item.source, sha256: digest(item.content) }])) }
@@ -195,13 +218,15 @@ export async function generateNotices(root: string, moduleIds: readonly string[]
   const gpl = await fs.readFile(path.join(root, "LICENSE"), "utf8")
   if (digest(gpl) !== catalog["gpl-3.0"]?.sha256) throw new Error("Repository GPL text differs from reviewed license")
   const lines = ["# THIRD-PARTY-NOTICES", "", "Erzeugt aus den tatsächlich enthaltenen App-Modulen, CSS/Fonts, Generatorcode und der geprüften WASM-Typinventur.",
-    "Keine öffentliche Freigabe: Oracle GraalVM/GFTC und öffentlich zugänglicher Corresponding Source bleiben offen. Siehe SOURCE.md.",
+    published
+      ? `Öffentliche Version. Quelltext genau dieses Builds: ${published.url}. Die Oracle-GraalVM-/GFTC-Frage ist nicht abschließend juristisch geklärt und offen dokumentiert (SOURCE.md, docs/PUBLICATION.md).`
+      : "Kein öffentlicher Build (OPENMANA_PUBLIC_RELEASE nicht gesetzt). Quelltext: SOURCE.md.",
     "Originaltexte bleiben unverändert und in ihrer Originalsprache erhalten. Der vollständige Oracle-Distributionsanhang ist vorsorgliche Dokumentation; er ist keine Liste eingebauter Komponenten.", "",
     `Engine-Manifest SHA-256: ${summary.engineManifestSha256 ?? "keine Engine enthalten"}`, `WASM-Typen: ${summary.typeCount}`, "", "## Enthaltene Komponenten", "",
     "| Komponente | Version | Lizenz | Herkunft |", "|---|---|---|---|",
     ...components.map((c) => `| ${c.name} | ${c.version} | ${c.license} | ${c.origin}${c.types ? ` (${c.types} Typen)` : ""} |`), "",
     "## Credits und Herkunft", "", "Forge/Card-Forge: Regeln, Kartenskripte, KI (GPL-3.0-or-later). ManaBrew: technische Referenz; drei GPL-Patches aus seinem Forge-Fork (khaliostr, JacopoMadaluni). Kein ManaBrew-Hauptrepo-/AGPL-Code übernommen.",
-    "Scryfall: Kartendaten und -bilder. Wizards of the Coast: Kartenrechte/Marken, inoffizieller Fan-Inhalt. OpenAI ChatGPT und Anthropic Claude: KI-Unterstützung. ORYX-SDK und vorläufiges Anvil-Icon: Quellen des Projektbesitzers.", "", "## Quellen und Freigabegate", "", source,
+    "Scryfall: Kartendaten und -bilder. Wizards of the Coast: Kartenrechte/Marken, inoffizieller Fan-Inhalt. Entwickelt mit umfassender generativer KI (OpenAI ChatGPT/Codex, Anthropic Claude), siehe TRANSPARENCY.md. ORYX-SDK: Quelle des Projektbesitzers. App-Icon: vom Projektbesitzer mit ChatGPT erzeugt.", "", "## Quellen und Freigabegate", "", source,
     "## Lizenztexte und erhaltene Originalhinweise", ""]
   for (const [id, item] of [...texts].sort(([a], [b]) => a.localeCompare(b))) {
     lines.push(`### ${id}`, "", `Quelle: ${item.source}`, `SHA-256: ${digest(item.content)}`, "", "````", item.content, "````", "")

@@ -1,8 +1,8 @@
 {
   "format": "openmana-notices-engine/1",
-  "manifestSha256": "dd33caca4339210f51f87d60a115a70e1b4a5e6934c08404cca5950896314d2c",
-  "sbomSha256": "5f6a2f4295eab0f5c53612ef3f536b0da2d63ff63404261073602e6e88dc663a",
-  "fatJarSha256": "929fb43ea2ea1cddc1aa80fa5ed7adb6a59b58e644e5f62659e4da6fcd2d9108",
+  "manifestSha256": "a6d2368d9c4e06b229228c4581311b4f649cd92a7d815cdc1ccb57c3936bf629",
+  "sbomSha256": "2d18ec9db20a0855f16222582cf94d81485eb557e795e3c92aead5bbbb348e8b",
+  "fatJarSha256": "2c101cd688589bc7c1c0cd225f98a3a160a35e9efd0d1a5d3b28eefa3e5c6892",
   "forge": {
     "repository": "https://github.com/Card-Forge/forge",
     "commit": "ed0333fecb1fea0671b3e50cadc1da4f71db5798",
@@ -29,7 +29,7 @@
     }
   },
   "resourcesSha256": "7e8aebee24e13111188a163cd5f7162ded2411728a85c6abc9ac2f5d5a0e6053",
-  "typeCount": 7818,
+  "typeCount": 7821,
   "forbiddenTypes": [],
   "originalJars": {
     "com.google.code.findbugs:jsr305:3.0.2": "766ad2a0783f2687962c8ad74ceecc38a28b9f72a2d085ee438b7813e928d0c7",
@@ -2312,7 +2312,9 @@
       "java.lang.invoke.LambdaForm$DMH/s1007055f",
       "java.lang.invoke.LambdaForm$DMH/s13bff18e",
       "java.lang.invoke.LambdaForm$DMH/s2ace7a58",
+      "java.lang.invoke.LambdaForm$DMH/s2d246e82",
       "java.lang.invoke.LambdaForm$DMH/s313b3826",
+      "java.lang.invoke.LambdaForm$DMH/s3789d15d",
       "java.lang.invoke.LambdaForm$DMH/s384ff554",
       "java.lang.invoke.LambdaForm$DMH/s3baea026",
       "java.lang.invoke.LambdaForm$DMH/s41312b42",
@@ -6454,6 +6456,7 @@
       "forge.gamemodes.match.AbstractGuiGame$1",
       "forge.gamemodes.match.AbstractGuiGame$2",
       "forge.gamemodes.match.AbstractGuiGame$3",
+      "forge.gamemodes.match.CombatDamageAssignment",
       "forge.gamemodes.match.DrawOfferCoordinator",
       "forge.gamemodes.match.DrawOfferMessage",
       "forge.gamemodes.match.GameLobby",

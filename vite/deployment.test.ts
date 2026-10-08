@@ -43,8 +43,27 @@ function headersFor(pathname: string): Record<string, string> {
 }
 
 describe("vercel.json", () => {
-  it("builds the Vite app from the repository root", () => {
-    expect(vercel).toMatchObject({ framework: "vite", installCommand: "npm ci", buildCommand: "npm run build", outputDirectory: "dist" })
+  it("builds the public app from the repository root with the released, verified engine and catalog", () => {
+    expect(vercel).toMatchObject({ framework: "vite", installCommand: "npm ci", outputDirectory: "dist",
+      buildCommand: "node scripts/deploy/fetch-artifacts.ts && OPENMANA_PUBLIC_RELEASE=1 OPENMANA_ENGINE_DIR=.artifacts/engine OPENMANA_CARDS_DIR=.artifacts/cards npm run build" })
+  })
+
+  it("deploys exactly the engine engine/engine.lock.json locks, from OpenMana's public releases", async () => {
+    const { checkAgainstLock } = await import("../scripts/deploy/fetch-artifacts.ts")
+    const artifacts = JSON.parse(readFileSync(path.join(root, "deploy/artifacts.json"), "utf8"))
+    const lock = JSON.parse(readFileSync(path.join(root, "engine/engine.lock.json"), "utf8"))
+    expect(() => checkAgainstLock(artifacts, lock)).not.toThrow()
+    expect(artifacts.release.baseUrl).toBe(`https://github.com/dev0gig/openmana/releases/download/${artifacts.release.tag}/`)
+    expect(Object.keys(artifacts.cards).sort()).toEqual(["card-catalog-manifest.json", "card-catalog.jsonl.gz"])
+    const tampered = structuredClone(artifacts)
+    tampered.engine["openmana-engine.js.wasm"].sha256 = "0".repeat(64)
+    expect(() => checkAgainstLock(tampered, lock)).toThrow("not the locked engine file")
+  })
+
+  it("sends no content sniffing and a restrained referrer on every route", () => {
+    for (const pathname of ["/", "/play", "/assets/index-abc.js", "/engine/0123456789abcdef/openmana-engine.js.wasm"]) {
+      expect(headersFor(pathname)).toMatchObject({ "X-Content-Type-Options": "nosniff", "Referrer-Policy": "strict-origin-when-cross-origin" })
+    }
   })
 
   it.each(["/", "/index.html", "/play", "/decks", "/manifest.webmanifest", "/.well-known/assetlinks.json", "/icons/icon-192.png", "/assets/index-abc.js", "/engine/0123456789abcdef/openmana-engine.js.wasm", "/cards/0123456789abcdef/card-catalog.jsonl.gz"])(

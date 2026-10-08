@@ -8,8 +8,9 @@
     "org.checkerframework:checker-qual:3.43.0"
   ],
   "publicRelease": {
-    "cleared": false,
-    "reason": "Oracle GraalVM Web Image / GFTC output licensing and public Corresponding Source remain unresolved. See SOURCE.md and docs/research/LICENSES.md."
+    "cleared": true,
+    "decision": "docs/PUBLICATION.md",
+    "reason": "Published by the project owner's decision of 2026-10-08 with public Corresponding Source. The Oracle GraalVM Web Image / GFTC output question is not legally settled; it is disclosed openly in docs/PUBLICATION.md, SOURCE.md and docs/research/LICENSES.md."
   },
   "engineComponents": {
     "com.google.guava:guava:33.3.1-android": {
@@ -206,5 +207,5 @@
     "@fontsource-variable/inter",
     "@fontsource-variable/cinzel"
   ],
-  "engineInventorySha256": "2a077e0aec3a6cbfaafc95f65d92a831ce9cca80b05d10270e5243ba18b51719"
+  "engineInventorySha256": "b2ff9d0bceb6759ac5e0ed649f8b2a8dd9b49d22b1b71423cf6357e1ee946514"
 }

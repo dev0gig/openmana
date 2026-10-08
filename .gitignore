@@ -7,3 +7,6 @@
 
 # Card catalog build (cards/scripts): Scryfall downloads and the built catalog.
 /cards/build/
+
+# Verified release artifacts fetched for a production build (scripts/deploy/fetch-artifacts.ts).
+/.artifacts/

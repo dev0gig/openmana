@@ -103,7 +103,7 @@
  *     piles, a stack, blockers, fourteen attackers, the command zone) in the
  *     real table at eight sizes (tableHarness), each with axe-core.
  * 13. The ORYX cloud on OpenMana's real address (Playwright serves the build
- *     as https://openmana.vercel.app; the ORYX cloud is a stand-in): a guest
+ *     as https://openmana.oryx.quest; the ORYX cloud is a stand-in): a guest
  *     sees the card and sends nothing; connecting leaves for the consent page
  *     with PKCE; coming back exchanges the code, cleans the address, says
  *     so and merges this device's decks with the cloud's; a changed AI profile goes
@@ -488,7 +488,9 @@ async function surfaces(executablePath: string, base: string, id: string): Promi
                 check(Boolean(rect && rect.width >= 44 && rect.height >= 44), `${label}: ${name} touch target`)
               }
             }
-            check(await page.getByText(/Noch keine öffentliche Veröffentlichung/).isVisible(), `${label}: unresolved release status visible`)
+            const source = page.getByRole("link", { name: "Quelltext dieser Version auf GitHub", exact: true })
+            check(/^https:\/\/github\.com\/dev0gig\/openmana(\/tree\/[0-9a-f]{40})?$/.test((await source.getAttribute("href")) ?? ""), `${label}: public source link`)
+            check(await page.getByText(/nicht abschließend juristisch geklärt/).first().isVisible(), `${label}: open license question visible`)
           }
           const tabBar = page.getByRole("navigation", { name: "Hauptnavigation" })
           const sidebarStart = page.locator('[data-slot="sidebar"] a', { hasText: "Start" })
@@ -4055,7 +4057,7 @@ async function zoneInteractions(parent: Page, base: string, viewport: Viewport):
 
 // ── 13. The ORYX cloud on OpenMana's real address ─────────────────────────
 
-const REAL_ORIGIN = "https://openmana.vercel.app"
+const REAL_ORIGIN = "https://openmana.oryx.quest"
 const SUPABASE = "https://fellumrfugohnnvtxxye.supabase.co"
 const STAND_IN_CLIENT = "00000000-0000-4000-8000-00000000c11e"
 
@@ -4158,7 +4160,7 @@ function standInCloud(): {
 
 /**
  * The build as OpenMana's real address serves it: Playwright answers every
- * request to https://openmana.vercel.app from the running preview (with its
+ * request to https://openmana.oryx.quest from the running preview (with its
  * COOP/COEP headers), so the ORYX SDK is active exactly as on the real site.
  */
 async function servedAsReal(context: BrowserContext, base: string): Promise<void> {

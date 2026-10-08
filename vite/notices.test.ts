@@ -13,13 +13,13 @@ async function fixture() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "openmana-legal-"))
   roots.push(root)
   async function write(file: string, text: string) { await fs.mkdir(path.dirname(path.join(root, file)), { recursive: true }); await fs.writeFile(path.join(root, file), text) }
-  const policy = { publicRelease: { cleared: false, reason: "Oracle / source gate" }, engineInventorySha256: "",
+  const policy = { publicRelease: { cleared: false, reason: "Oracle / source gate" } as { cleared: boolean; reason: string; decision?: string }, engineInventorySha256: "",
     engineComponents: {} as Record<string, { license: string; texts: string[] }>, npmSupplements: {}, generatedComponents: [], cssComponents: [] }
   await write("LICENSE", "Test GPL text")
   await write("notices/license-files.json", JSON.stringify({ "gpl-3.0": { file: "LICENSE", sha256: hash("Test GPL text"), source: "Test source" } }))
   await write("SOURCE.md", "Test source / no public source offer")
   await write("src/index.css", "")
-  for (const file of ["src/cloud/oryx-sdk.js", "assets/app-icon/PROVENANCE.md", "engine/patches/README.md"]) await write(file, "/* Test provenance */")
+  for (const file of ["src/cloud/oryx-sdk.js", "assets/app-icon/PROVENANCE.md", "engine/patches/README.md", "TRANSPARENCY.md"]) await write(file, "/* Test provenance */")
   await write("node_modules/library/package.json", JSON.stringify({ name: "library", version: "1.0.0", license: "MIT" }))
   await write("node_modules/library/LICENSE", "Copyright Test Author. MIT test text.")
   await write("node_modules/library/NOTICE", "Original NOTICE must survive")
@@ -75,12 +75,45 @@ describe("build-derived license notices", () => {
     await f.write("src/index.css", '@import "unreviewed-font";')
     await expect(generateNotices(f.root, f.ids)).rejects.toThrow("Unreviewed CSS/font import")
   })
-  it("blocks a public build even when someone flips the unproven boolean", async () => {
+  it("blocks a public build when someone only flips the boolean", async () => {
     const f = await fixture()
     f.policy.publicRelease.cleared = true
     await f.savePolicy()
     vi.stubEnv("OPENMANA_PUBLIC_RELEASE", "1")
-    await expect(generateNotices(f.root, f.ids)).rejects.toThrow("Public release gate remains closed")
+    await expect(generateNotices(f.root, f.ids)).rejects.toThrow("Public release gate is closed")
+  })
+  async function publishable() {
+    const f = await fixture()
+    f.policy.publicRelease = { cleared: true, reason: "Owner decision", decision: "docs/PUBLICATION.md" }
+    await f.savePolicy()
+    await f.write("docs/PUBLICATION.md", "# Veröffentlichung\n\nEntscheidung des Projektbesitzers: öffentlich.")
+    await f.write("SOURCE.md", "Quelltext: https://github.com/dev0gig/openmana")
+    vi.stubEnv("OPENMANA_PUBLIC_RELEASE", "1")
+    return f
+  }
+  it("blocks a public build without the project owner's recorded decision", async () => {
+    const f = await publishable()
+    await fs.rm(path.join(f.root, "docs/PUBLICATION.md"))
+    await expect(generateNotices(f.root, f.ids)).rejects.toThrow("recorded decision")
+  })
+  it("blocks a public build whose source instructions offer no public source", async () => {
+    const f = await publishable()
+    await f.write("SOURCE.md", "Test source / kein öffentliches Quellangebot")
+    await expect(generateNotices(f.root, f.ids)).rejects.toThrow("public source")
+  })
+  it("blocks a public build that cannot name its exact commit", async () => {
+    const f = await publishable()
+    vi.stubEnv("VERCEL_GIT_COMMIT_SHA", "")
+    await expect(generateNotices(f.root, f.ids)).rejects.toThrow("exact source commit")
+  })
+  it("a public build names the exact public source commit", async () => {
+    const f = await publishable()
+    const commit = "0123456789abcdef0123456789abcdef01234567"
+    vi.stubEnv("VERCEL_GIT_COMMIT_SHA", commit)
+    const result = await generateNotices(f.root, f.ids)
+    expect(result.summary.publicReleaseCleared).toBe(true)
+    expect(result.summary.sourceUrl).toBe(`https://github.com/dev0gig/openmana/tree/${commit}`)
+    expect(result.text).toContain(`Quelltext genau dieses Builds: https://github.com/dev0gig/openmana/tree/${commit}`)
   })
   it("rejects an engine manifest without matching reviewed inventory", async () => {
     const f = await fixture()

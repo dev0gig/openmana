@@ -97,10 +97,19 @@ describe("no invented data", () => {
 
   it("credits: separates software, reference and AI assistance", async () => {
     renderAt("/credits")
-    for (const name of ["Forge – die Card-Forge-Community", "ManaBrew", "OpenAI ChatGPT", "Anthropic Claude", "Oracle GraalVM Web Image"]) {
+    for (const name of ["Forge – die Card-Forge-Community", "ManaBrew", "OpenAI ChatGPT und Codex", "Anthropic Claude", "Oracle GraalVM Web Image"]) {
       expect(await screen.findByText(name)).toBeInTheDocument()
     }
-    expect(screen.getByText(/noch nicht abschließend geklärt/)).toBeInTheDocument()
+    expect(screen.getByText(/noch nicht abschließend juristisch geklärt/)).toBeInTheDocument()
+    expect(screen.getByText(/mit ChatGPT \(OpenAI\) erzeugt/)).toBeInTheDocument()
+    expect(screen.queryByText(/dev0gig/)).toBeNull()
+  })
+
+  it("credits: links the public source of this very build", async () => {
+    renderAt("/credits")
+    const link = await screen.findByRole("link", { name: "Quelltext dieser Version auf GitHub" })
+    expect(link.getAttribute("href")).toMatch(/^https:\/\/github\.com\/dev0gig\/openmana(\/tree\/[0-9a-f]{40})?$/)
+    expect(screen.getByText(/Der komplette Quelltext ist öffentlich/)).toBeInTheDocument()
   })
 })
 

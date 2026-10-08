@@ -1,4 +1,4 @@
-# Herkunft des vorläufigen App-Icons
+# Herkunft des App-Icons
 
 `anvil-icon.png` ist das offizielle App-Icon von **Anvil**, dem Vorgänger von
 OpenMana. Prompt 06 übernimmt es **unverändert** als vorläufiges Icon und
@@ -34,12 +34,17 @@ Android-Icon dasselbe Bild vollflächig als Vordergrundebene nutzt.
 
 ## Rechte
 
-Das Bild stammt aus dem Upload des Projektbesitzers für Anvil und wird hier
-auf dessen Anweisung weiterverwendet. Anvil hat keine eigene Lizenzdatei.
-Prompt 27 hat den Bytehash und Anvils `ICON.md` abgeglichen: Die Herkunft ist
-bis zu diesem Upload nachvollziehbar. Ein ursprünglicher Urheber oder eine
-separate Bildlizenz ist dort nicht dokumentiert; es wird keine erfundene
-Bildlizenz oder Übernahme unter die Software-GPL behauptet. Vor einer
-öffentlichen Veröffentlichung ist die Berechtigung zur Bildweitergabe Teil
-der Freigabe gemäß `SOURCE.md`. Auf Android nutzt die gemeinsame ORYX-TWA
-dieselbe Web-App; es gibt kein eigenes OpenMana-Android-Paket.
+Das Bild hat der Projektbesitzer selbst mit **ChatGPT (OpenAI)** erzeugt
+(Angabe des Projektbesitzers, 2026-10-08); der Dateiname
+`file_00000000d0a882439efb0abe11f0f596.png` passt zum Namensmuster von
+ChatGPT-Bilddownloads. Es ist ein KI-generiertes Bild ohne weiteren
+menschlichen Urheber und ohne fremde Vorlage, soweit dem Projektbesitzer
+bekannt. Der Projektbesitzer gibt es als Teil von OpenMana zur Weitergabe frei;
+es wird mit OpenMana unter **GPL-3.0-or-later** weitergegeben. Ob und wie weit
+an einem KI-generierten Bild überhaupt Urheberrechte bestehen, wird hier nicht
+bewertet.
+
+Prompt 27 hat den Bytehash und Anvils `ICON.md` abgeglichen: Die Kette
+ChatGPT-Download → Anvil → OpenMana ist bytegleich nachvollziehbar. Auf Android
+nutzt die gemeinsame ORYX-TWA dieselbe Web-App; es gibt kein eigenes
+OpenMana-Android-Paket.

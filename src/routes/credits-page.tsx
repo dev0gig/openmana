@@ -1,9 +1,10 @@
 /*
  * Credits (Bible §14): software OpenMana incorporates, data providers,
- * inspiration and reference, AI assistance, the temporary icon. Kinds are
- * kept apart. Build-generated legal assets are local/offline available; the
- * open GraalVM license
- * question stays open here too (docs/research/LICENSES.md).
+ * inspiration and reference, how generative AI made OpenMana, the icon. Kinds
+ * are kept apart. Build-generated legal assets are local/offline available;
+ * the public source is the exact commit of this build. The GraalVM license
+ * question is published openly, not claimed as settled (docs/PUBLICATION.md,
+ * TRANSPARENCY.md).
  *
  * Scryfall (prompt 08) is named as the source of card data and pictures -
  * without its logo and without implying that Scryfall endorses OpenMana, as
@@ -21,6 +22,11 @@ import { formatDate } from "@/cards/card-labels"
 import { engineAssets } from "@/engine/engine-assets"
 import { shortCommit } from "@/engine/engine-labels"
 import { Button } from "@/components/ui/button"
+import { buildInfo } from "@/app/build-info"
+
+/** The public repository; a build names its exact commit there (SOURCE.md). */
+export const SOURCE_REPOSITORY = "https://github.com/dev0gig/openmana"
+const sourceHref = buildInfo.commit ? `${SOURCE_REPOSITORY}/tree/${buildInfo.commit}` : SOURCE_REPOSITORY
 
 function CreditEntry({ name, href, license, children }: { name: string; href?: string; license?: string; children: ReactNode }) {
   return (
@@ -78,10 +84,20 @@ export function CreditsPage() {
             <li><Button variant="outline" asChild><a href="/legal/LICENSE.txt">GPL-Lizenztext</a></Button></li>
             <li><Button variant="outline" asChild><a href="/legal/THIRD-PARTY-NOTICES.txt">Alle Drittanbieter-Lizenzen und Hinweise</a></Button></li>
             <li><Button variant="outline" asChild><a href="/legal/SOURCE.txt">Quelltext und Veröffentlichungsstand</a></Button></li>
+            <li>
+              <Button variant="outline" asChild>
+                <a href={sourceHref} target="_blank" rel="noreferrer">
+                  Quelltext dieser Version auf GitHub
+                  <ExternalLink aria-hidden />
+                </a>
+              </Button>
+            </li>
           </ul>
           <p className="text-sm text-muted-foreground">
-            Noch keine öffentliche Veröffentlichung: Die Weitergabe der GraalVM-Laufzeit ist nicht abschließend geklärt.
-            Ein öffentlich zugänglicher Quellstand für diese Version steht noch aus.
+            Der komplette Quelltext ist öffentlich{buildInfo.commit ? ` (diese Version: ${shortCommit(buildInfo.commit)})` : ""}; zu jeder
+            Engine-Version gibt es dort ein Quellarchiv samt Forge-Quellstand. Offen bleibt eine Rechtsfrage: Ob die
+            GraalVM-Laufzeitteile im Engine-Modul zur GPL passen, ist nicht abschließend juristisch geklärt. OpenMana ist trotzdem
+            bewusst und offen veröffentlicht; die Einzelheiten stehen im Quelltext-Dokument.
           </p>
         </CardContent>
       </Card>
@@ -98,7 +114,7 @@ export function CreditsPage() {
           </CreditEntry>
           <CreditEntry name="Oracle GraalVM Web Image" href="https://www.graalvm.org/">
             Übersetzt Forge nach WebAssembly; Teile seiner Laufzeit stecken im Engine-Modul. Unter welchen Bedingungen diese
-            Teile öffentlich weitergegeben werden dürfen, ist noch nicht abschließend geklärt.
+            Teile weitergegeben werden dürfen, ist noch nicht abschließend juristisch geklärt – offen dokumentiert, nicht verschwiegen.
           </CreditEntry>
           <Separator />
           <div className="flex flex-col gap-3">
@@ -155,11 +171,18 @@ export function CreditsPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Entwickelt mit KI-Unterstützung</CardTitle>
+            <CardTitle>Entwickelt mit generativer KI</CardTitle>
+            <CardDescription>Idee und Leitung: dev0gig. Ausgearbeitet und programmiert mit KI.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-5">
-            <CreditEntry name="OpenAI ChatGPT">Unterstützung bei Entwicklung und Gestaltung.</CreditEntry>
-            <CreditEntry name="Anthropic Claude">Unterstützung bei der Entwicklung.</CreditEntry>
+            <p className="text-sm text-muted-foreground">
+              OpenMana wurde mit umfassender Unterstützung durch generative künstliche Intelligenz entwickelt: Programmcode,
+              Tests, Recherche, Dokumentation, Oberflächentexte und das App-Icon. Die Idee, die Richtung und jede Freigabe stammen
+              vom Projektbesitzer. Nicht von KI stammen die Magic-Regeln und die Gegner-KI (Forge) sowie Kartentexte und Kartenbilder
+              (Scryfall, Wizards of the Coast).
+            </p>
+            <CreditEntry name="OpenAI ChatGPT und Codex">Programmcode, Recherche, Dokumentation und das App-Icon.</CreditEntry>
+            <CreditEntry name="Anthropic Claude">Programmcode, Recherche und Dokumentation.</CreditEntry>
           </CardContent>
         </Card>
       </div>
@@ -170,7 +193,8 @@ export function CreditsPage() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Das vorläufige Icon stammt unverändert aus Anvil, dem Vorgänger von OpenMana.
+            Das Icon hat der Projektbesitzer selbst mit ChatGPT (OpenAI) erzeugt; zuerst war es das Icon von Anvil, dem Vorgänger
+            von OpenMana. Es wird mit OpenMana unter dessen Lizenz weitergegeben.
           </p>
         </CardContent>
       </Card>
