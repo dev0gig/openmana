@@ -269,8 +269,8 @@ async function httpChecks(base: string, id: string): Promise<void> {
   await checkAssetLinks(base, "preview")
   await (await checkHeaders(base, "preview", "/manifest.webmanifest", /^application\/manifest\+json/)).arrayBuffer()
   await (await checkHeaders(base, "preview", "/icons/icon-192.png", /^image\/png/)).arrayBuffer()
-  const legalFiles = { "/legal/LICENSE.txt": "GNU GENERAL PUBLIC LICENSE", "/legal/SOURCE.txt": "kein öffentliches Quellangebot",
-    "/legal/THIRD-PARTY-NOTICES.txt": "Oracle GraalVM/GFTC" }
+  const legalFiles = { "/legal/LICENSE.txt": "GNU GENERAL PUBLIC LICENSE", "/legal/SOURCE.txt": "https://github.com/dev0gig/openmana",
+    "/legal/THIRD-PARTY-NOTICES.txt": "Oracle GraalVM / GFTC" }
   for (const [pathname, required] of Object.entries(legalFiles)) {
     const text = await (await checkHeaders(base, "preview", pathname, /^text\/plain; charset=utf-8/)).text()
     check(text.includes(required), `${pathname}: original legal document is served`)

@@ -140,6 +140,6 @@ erteilt aber keine Veröffentlichungsfreigabe. Einrichtung von Branch Protection
 und ein tatsächlicher Hosted-Runner-Lauf sind separate Betreiberaktionen.
 
 Nach grüner Prüfung Diff einschließlich Lock und Berichten reviewen und lokal
-committen. Push, Release-Upload oder Deployment nur nach dev0gigs ausdrücklicher
-Freigabe für den jeweiligen Auftrag. Prompt 31 behandelt die Veröffentlichung;
+committen. Push, Release-Upload oder Deployment nur nach ausdrücklicher
+Freigabe des Projektbesitzers für den jeweiligen Auftrag. Prompt 31 behandelt die Veröffentlichung;
 dieser Ablauf baut und validiert ausschließlich.

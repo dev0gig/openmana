@@ -10,12 +10,15 @@ Die folgenden ursprünglichen Abschnitte dokumentieren den Recherchezeitpunkt.
 Inzwischen enthält das Repository `LICENSE` (GPLv3-Text, Versionswahl
 GPL-3.0-or-later in `SOURCE.md`/Paketmetadaten), eine sichtbare Open-Source-Seite
 in Credits und aus dem Build erzeugte `THIRD-PARTY-NOTICES.md`.
-Die Oracle-/GFTC-Frage ist **weiter offen**. Das private Entwicklungsrepository
-wird ausdrücklich nicht als öffentliches Quellangebot ausgegeben.
+Die Oracle-/GFTC-Frage ist **weiter juristisch offen**. Am 2026-10-08 hat der
+Projektbesitzer entschieden, OpenMana trotzdem offen und mit diesem Hinweis zu
+veröffentlichen, mit öffentlichem Repository und vollständigem Quellarchiv je
+Engine-Release (`docs/PUBLICATION.md`, `SOURCE.md`). Diese Entscheidung ist
+keine Klärung der Frage.
 
-Die Engine-Inventur beruht auf dem erfolgreich geprüften Prompt-26-Artefakt
-(Manifest-SHA-256 `dd33caca4339210f51f87d60a115a70e1b4a5e6934c08404cca5950896314d2c`).
-Sie erfasst **7.818 Typen**: Klassen, Interfaces und Annotationen. Die ältere
+Die Engine-Inventur beruht ursprünglich auf dem Prompt-26-Artefakt; seit Prompt 31
+gilt die Inventur des ausgelieferten Protokoll-8-Artefakts (`notices/engine-inventory.json`,
+gleiche Komponenten, 7.821 statt 7.818 Typen). Sie erfasst Typen: Klassen, Interfaces und Annotationen. Die ältere
 Buildstatistik mit 6.898 Klassen zählte nur die SBOM-Eigenschaft `class`.
 Die SBOM-Liste aller Classpath-Bibliotheken ist keine Auslieferungsliste:
 Typen mit Compiler-Zuordnung behalten diese; andere werden mit Original-JARs
