@@ -14,7 +14,7 @@
  */
 import fs from "node:fs"
 import path from "node:path"
-import { chromium, type Locator, type Page } from "playwright-core"
+import { chromium, type Locator } from "playwright-core"
 
 const args = process.argv.slice(2)
 const outIndex = args.indexOf("--out")
@@ -120,7 +120,7 @@ try {
     return false
   }
   /** Opens a hand card's view and takes Forge's offer if its words match; closes it otherwise. */
-  async function useFromHand(card: Locator, offer: RegExp): Promise<boolean> {
+  async function takeFromHand(card: Locator, offer: RegExp): Promise<boolean> {
     await card.click()
     const view = page.getByRole("dialog")
     await view.waitFor()
@@ -149,9 +149,9 @@ try {
     if (kind === "Priorität") {
       const playable = hand.locator('button[data-slot="game-card"][aria-label$=", spielbar"]')
       if (landThisTurn !== turn) {
-        for (let i = 0; i < (await playable.count()) && !acted; i++) if (await useFromHand(playable.nth(i), /^Spiele ein Land$/)) { acted = true; landThisTurn = turn; count("land") }
+        for (let i = 0; i < (await playable.count()) && !acted; i++) if (await takeFromHand(playable.nth(i), /^Spiele ein Land$/)) { acted = true; landThisTurn = turn; count("land") }
       }
-      for (let i = 0; i < (await playable.count()) && !acted; i++) if (await useFromHand(playable.nth(i), /^(Wirke|Spiele|Beschwöre)/)) { acted = true; count("spell") }
+      for (let i = 0; i < (await playable.count()) && !acted; i++) if (await takeFromHand(playable.nth(i), /^(Wirke|Spiele|Beschwöre)/)) { acted = true; count("spell") }
       if (!acted) acted = await pressFirst(["Weiter", "Verrechnen lassen", "OK"])
     } else if (kind === "Auswahl" || kind === "Ziel wählen" || kind.startsWith("Ziel")) {
       // A target or a choice: the AI's side first (its seat or a marked card), else whatever Forge marks usable.

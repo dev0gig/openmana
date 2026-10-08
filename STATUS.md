@@ -1,6 +1,6 @@
 # OpenMana — Current Status
 
-Last repository review: 2026-10-08
+Last repository review: 2026-10-08 (after Prompt 31)
 
 Compact implementation map. This file deliberately does **not** replace the active queue ledger in `dev0gig/dropzone/workflow/tasks/INDEX.md`.
 
@@ -229,6 +229,12 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Evidence: fresh complete update pipeline and independent artifact/source/browser audit passed; 96 engine unit tests, 85 JVM tests, 82 engine results (15 fixtures, all 45 observed paths), 948 app tests and complete Chrome/PWA acceptance. Browser evidence includes 96 route/152 populated-state/304 scene checks, 678 zero-violation accessibility measurements and 11 max1-worker measurements. The new real trample game covers defender assignment and lethal prerequisites. Details: `docs/implementation/30-anvil-parity-audit.md`.
 - Current protocol-8 lock and matching build/catalog: `engine/build/parity-30-accepted/`. Only local implementation and verification are complete; physical ORYX/Android and publication gates remain mandatory in 31/32.
 
+### Production release (Prompt 31)
+- **Public** since 2026-10-08: https://openmana.oryx.quest/ (Vercel, fallback https://openmana.vercel.app/), public repository https://github.com/dev0gig/openmana with rewritten history (no civil name/private e-mail). Decision and the openly disclosed GraalVM/GFTC question: `docs/PUBLICATION.md`; origin and AI development: `TRANSPARENCY.md`; deployment/rollback: `docs/DEPLOYMENT.md`.
+- Vercel fetches the locked engine and catalog from GitHub release `engine-p8-2b0da7a21935` (`deploy/artifacts.json`, size/SHA-256 against the lock), builds with the publication gate (owner decision + public source offer + exact commit) and enforces size budgets. Each engine release carries a complete source archive including Forge's tree and the JGraphT sources.
+- Evidence: full update pipeline for the shipped engine (96 engine unit, 85 JVM, 82 engine results, catalog, 957 app tests, complete Chrome/PWA suite); clean-clone rehearsal; live deployment headers/asset links/notices; Google asset-links check `linked: true`; a complete live game against Forge on the real address (`scripts/deploy/live-check.ts`). ORYX links `openmana.oryx.quest`; ORYX app 0.2.5 trusts it.
+- Physical device: started from ORYX 0.2.5 on the project owner's Fold7 with isolation and a running engine; the on-device game, rotation/background, return navigation and saved-match checks were **waived by the project owner (2026-10-08), not passed**. Details: `docs/implementation/31-production-vercel.md`.
+
 ### ORYX Cloud Sync (outside the queue, 2026-09-25)
 - The project owner's direct assignment, not a queue prompt (outside the numbered program): the player's collection syncs through their ORYX account (the launcher's Supabase cloud) with the vendored ORYX SDK 1.0.0 (`src/cloud/oryx-sdk.js` and `.d.ts`, byte-identical copies of `oryx-games/shared`, checksum-tested, excluded from lint only themselves). Active only on `https://openmana.vercel.app/`; locally, in tests and previews inactive (no request, nothing stored). Local stays the source of truth.
 - One slot `collection` = one document (`src/storage/collection.ts`, schema `CollectionDocument`, version = `SCHEMA_VERSION`): valid decks, deletion marks (90 days) and every setting except `display.*`; never caches, recorded matches or `meta`.
@@ -240,22 +246,21 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Evidence: 622 Vitest tests (63 new: merge and check, read/apply on fake-indexeddb, the real SDK against a stand-in ORYX cloud on the real storage session, the card and the return notice in the real app frame, the SDK checksum), `npm run check` with the end-to-end test in Chrome, including the new section 13: the build served as `https://openmana.vercel.app` with a stand-in ORYX cloud - the whole OAuth/PKCE round trip under COOP/COEP, the start's merge, uploads, disconnecting, axe, 360 px; plus the card absent and Web Storage empty off the real address, and the deletion mark in IndexedDB after deleting a deck. Limits: ORYX takes 1 MB per slot by default (≈ 146 Constructed or 48 Commander decks); ORYX needs an OAuth client for `openmana`; effective once deployed. Details: `docs/implementation/oryx-cloud-sync.md`.
 
 ## Currently In Progress
-Prompt **30** — Anvil parity audit and remediation is complete locally (required `gpt-6-astra` / `max` verified). Prompts **31/32** have not started. The deferred physical gate remains mandatory in Prompt 31/32; public Oracle/source/icon gates remain open.
+Prompt **31** — production release is complete and public (2026-10-08). Prompt **32** (final readiness audit, Astra/max required) has not started; it must inspect the partially waived device acceptance.
 
 Any agent entering the repository must first reconcile this statement with the central Dropzone task state and Git state.
 
 ## Planned Numbered Program
 The remaining numbered queue contains:
-- Prompt 31: production/Vercel readiness, including the deferred physical ORYX/Android acceptance;
 - Prompt 32: final OpenMana readiness audit.
 
 The central Dropzone queue defines execution order; reconcile it with the completed Prompt 30 evidence before starting another task. Prompts 26, 30 and 32 require Astra with max reasoning under the project owner's model gate in `AGENTS.md`.
 
 ## Not Yet Implemented
 At this review point:
-- production/readiness Prompts 31/32 remain unstarted,
-- no production deployment or physical ORYX/device proof yet; no individual Android artifact is planned,
-- the ORYX cloud sync is built but inactive until OpenMana runs at `openmana.vercel.app` and ORYX has an OAuth client for it.
+- the final readiness audit (Prompt 32) remains unstarted,
+- on-device game/navigation acceptance inside ORYX was waived, not performed; no individual Android artifact is planned,
+- the ORYX cloud sync is live on both real addresses; a real connection with a Google account has not been exercised in automated checks.
 
 Anvil remains the comparison reference; the tested local functional baseline is recorded in `docs/ANVIL_PARITY.md`. Production and device readiness still require 31/32.
 

@@ -111,6 +111,18 @@ Emulation. Sie belegen weder eine TWA-Vertrauensentscheidung noch Android-
 Speicherlimits, physische Geräteperformance oder tatsächliche Hintergrundverwerfung.
 Die Aufzeichnungen sind keine wiederherstellbaren laufenden Spielstände.
 
+## Nachtrag Prompt 31 (2026-10-08): Geräteabnahme teilweise, Rest erlassen
+
+Nach der Veröffentlichung auf `https://openmana.oryx.quest/` startete der
+Projektbesitzer OpenMana auf seinem Fold7 aus der regulär installierten
+ORYX-App 0.2.5: Diagnose „Isoliert (COOP/COEP): ja“, Engine spielt, Forge
+2.0.15/Protokoll 8, Kartendaten eingerichtet; Googles Digital-Asset-Links-
+Prüfung `linked: true` für beide Adressen. Die echte Partie am Gerät,
+Drehen/Klappen, Hintergrund, „Zurück zu ORYX“ mit Rückfrage, Rückkehr,
+gespeicherte Partie und Android-Zurück hat der Projektbesitzer am 2026-10-08
+ausdrücklich erlassen – **nicht geprüft, nicht bestanden**. Einzelheiten:
+`31-production-vercel.md`. Der ursprüngliche Vermerk folgt unverändert.
+
 ## Verbindlich offen: physische ORYX-/Android-Abnahme
 
 **Nicht durchgeführt und nicht bestanden.** ADB ist vorhanden, aber

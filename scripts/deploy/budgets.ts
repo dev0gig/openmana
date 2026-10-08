@@ -14,7 +14,7 @@ import path from "node:path"
 import { gzipSync } from "node:zlib"
 import { fileURLToPath } from "node:url"
 
-/** Budgets in bytes; measured on 2026-10-08 (start JS 260 kB in 12 chunks, CSS 23 kB gzip; engine 79 MB; catalog 10.9 MB) plus headroom. */
+/** Budgets in bytes; measured on 2026-10-08 (start JS 260 kB in 12 chunks, CSS 18 kB gzip on Vercel; engine 79 MB; catalog 10.9 MB) plus headroom. */
 export const BUDGETS = {
   startScriptGzip: 300_000,
   startStyleGzip: 32_000,

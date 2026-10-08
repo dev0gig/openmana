@@ -218,7 +218,7 @@ The optional sync of the player's collection through their ORYX account (project
 The legacy local prompt workflow was removed upstream on 2026-09-28. Executable tasks and their lifecycle now live in `dev0gig/dropzone/workflow/tasks/`; implementation evidence remains in `docs/implementation/` and Git history.
 
 - Numbered prompts run strictly sequentially; resume `IN_PROGRESS` work and never skip a `BLOCKED` predecessor. Mark a task complete only after its requirements and verification pass.
-- Reconcile the central status with code and `STATUS.md` before selecting work. Prompt 28 web integration is complete after full local verification; physical ORYX/Android acceptance is explicitly deferred by the project owner until authorized publication. Prompt 29 full local automated regression is complete; commands and coverage are in `docs/QUALITY.md`. Prompt 30 is next and unstarted and requires Astra/max under the model gate. The physical gate remains mandatory for Prompt 31/32.
+- Reconcile the central status with code and `STATUS.md` before selecting work. Prompts up to 31 are complete; OpenMana is public since Prompt 31 (2026-10-08). Prompt 32 (final readiness audit) is next and requires Astra/max under the model gate; it must inspect the device acceptance, whose on-device game/navigation part the project owner waived on 2026-10-08.
 - Run only the task assigned by the user; a single Dropmaster assignment ends after that task.
 - Update the central task and `STATUS.md` with verified evidence; do not recreate the removed local queue.
 
