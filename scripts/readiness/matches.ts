@@ -38,6 +38,7 @@
  * a player action Forge did not take (the table unchanged afterwards).
  * Writes <out>/report.json and screenshots; exits non-zero on any failure.
  */
+import { execFile } from "node:child_process"
 import fs from "node:fs"
 import path from "node:path"
 import { chromium, type BrowserContext, type Page } from "playwright-core"
@@ -565,14 +566,23 @@ async function creditsChecks(page: Page, base: string): Promise<Record<string, u
   return { named, documents }
 }
 
-/** What the page (with its engine worker) takes in memory now: Chrome's own measurement (needs cross-origin isolation). */
-async function memory(page: Page): Promise<number | null> {
-  return page
-    .evaluate(async () => {
-      const measure = (performance as unknown as { measureUserAgentSpecificMemory?: () => Promise<{ bytes: number }> }).measureUserAgentSpecificMemory
-      return measure === undefined ? null : (await measure.call(performance)).bytes
+/**
+ * What this browser profile's renderer processes take in memory now (resident set, Linux): the page and its
+ * dedicated engine worker run there. Chrome's measureUserAgentSpecificMemory leaves the worker's heap out (it
+ * reported 13 MB with Forge running), so the operating system's figure is used.
+ */
+function rendererMemory(): Promise<number | null> {
+  return new Promise((resolve) => {
+    execFile("ps", ["-eo", "rss=,args="], { maxBuffer: 16 * 1024 * 1024 }, (error, stdout) => {
+      if (error) return resolve(null)
+      let kib = 0
+      for (const line of stdout.split("\n")) {
+        const match = /^\s*(\d+)\s+(.*)$/.exec(line)
+        if (match && match[2]!.includes(`--user-data-dir=${profileDir}`) && match[2]!.includes("--type=renderer")) kib += Number(match[1])
+      }
+      resolve(kib === 0 ? null : kib * 1024)
     })
-    .catch(() => null)
+  })
 }
 
 // ── Main ───────────────────────────────────────────────────────────────────
@@ -649,10 +659,9 @@ try {
         check,
         shot: (name) => shot(page, name),
         notices: gameWatch.notices,
+        measureMemory: rendererMemory,
       })
       Object.assign(entry, played)
-      // After the game the spent engine worker is gone: the page alone.
-      entry["memoryAfterGameBytes"] = await memory(page)
       check(played.result !== null, `${game.id}: the game did not reach Forge's result`)
       Object.assign(entry, await afterGame(page, base, game, played))
       if (game.id === "commander" || (selected.length === 1 && entry["recording"])) {

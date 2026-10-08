@@ -42,6 +42,8 @@ export interface PlayOptions {
   readonly shot: (name: string) => Promise<void>
   /** Forge's notices seen during the game (toasts), appended here. */
   readonly notices: { at: number; text: string }[]
+  /** Measures what the page with its running engine takes in memory (bytes), once from turn 5; optional. */
+  readonly measureMemory?: () => Promise<number | null>
 }
 
 export interface PlayResult extends GameStats {
@@ -53,7 +55,7 @@ export interface PlayResult extends GameStats {
   readonly bootMs: number | null
   readonly pictures: { readonly loaded: number; readonly broken: number } | null
   readonly languages: Record<string, unknown> | null
-  /** The page with its running engine worker in memory (Chrome's measureUserAgentSpecificMemory, from turn 5), bytes. */
+  /** What `measureMemory` reported with the engine running (from turn 5), bytes; null without it. */
   readonly memoryInGame: number | null
 }
 
@@ -283,12 +285,7 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
     }
     if (languages === null && view.turn >= 5 && view.kind === "Priorität") {
       languages = await cardLanguages(page).catch((error: Error) => ({ error: error.message }))
-      memoryInGame = await page
-        .evaluate(async () => {
-          const measure = (performance as unknown as { measureUserAgentSpecificMemory?: () => Promise<{ bytes: number }> }).measureUserAgentSpecificMemory
-          return measure === undefined ? null : (await measure.call(performance)).bytes
-        })
-        .catch(() => null)
+      memoryInGame = game.measureMemory === undefined ? null : await game.measureMemory().catch(() => null)
     }
     stats.kinds[view.kind] = (stats.kinds[view.kind] ?? 0) + 1
     const before = await fingerprint(page)
