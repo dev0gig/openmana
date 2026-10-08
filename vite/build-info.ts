@@ -19,7 +19,9 @@ export function readBuildInfo(root: string, version: string, env: NodeJS.Process
       version,
       commit: git("rev-parse", "HEAD"),
       commitDate: git("log", "-1", "--format=%cI"),
-      modified: git("status", "--porcelain").length > 0,
+      // The Forge submodule never enters the app bundle (the engine is a verified
+      // artifact), and Vercel's clone leaves it differing from the gitlink.
+      modified: git("status", "--porcelain", "--ignore-submodules=all").length > 0,
     }
   } catch {
     return { version, commit: env["VERCEL_GIT_COMMIT_SHA"] || null, commitDate: null, modified: null }
