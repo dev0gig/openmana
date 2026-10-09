@@ -16,9 +16,11 @@
 # How the unchanged engine scripts find the open toolchain: lib.sh looks for
 # the tool homes named in engine/toolchain.lock.json under
 # $OPENMANA_TOOLCHAIN_DIR. This script points OPENMANA_TOOLCHAIN_DIR at
-# <build>/toolchain, where the GraalVM home entry is a symlink to the open
-# GraalVM CE home; the other three are unpacked there. No Oracle archive is
-# copied, read or unpacked. write-manifest.mjs copies the toolchain facts of
+# <build>/toolchain. There the GraalVM home entry (it keeps the directory name
+# of the standard pin, which lib.sh expects) is a directory of symlinks into
+# the open GraalVM CE home, except bin/native-image: that is native-image.sh,
+# which replaces the Oracle-only class-level SBOM (see there). The other three
+# tools are unpacked there. No Oracle archive is copied, read or unpacked. write-manifest.mjs copies the toolchain facts of
 # engine/toolchain.lock.json into the manifest; afterwards they are replaced by
 # the open pins (manifest-toolchain.mjs), so the manifest names what was used.
 set -euo pipefail
@@ -38,9 +40,24 @@ standard_downloads="${OPENMANA_STANDARD_TOOLCHAIN_DIR:-${XDG_CACHE_HOME:-$HOME/.
 
 setup_open_toolchain() {
     local home tool archive file
+    local shim entry
     home="$(bash "$here/setup.sh" | tail -1)"
-    mkdir -p "$OM_TOOLCHAIN_DIR"
-    ln -sfn "$home" "$(om_graalvm_home)"
+    shim="$(om_graalvm_home)"
+    rm -rf "$shim"
+    mkdir -p "$shim/bin"
+    for entry in "$home"/* "$home"/.[!.]*; do
+        [ -e "$entry" ] && [ "$(basename "$entry")" != bin ] && ln -s "$entry" "$shim/$(basename "$entry")"
+    done
+    for entry in "$home"/bin/*; do
+        [ "$(basename "$entry")" = native-image ] || ln -s "$entry" "$shim/bin/$(basename "$entry")"
+    done
+    ln -s "$here/native-image.sh" "$shim/bin/native-image"
+    export OPENMANA_OPEN_GRAALVM_HOME="$home"
+    export OPENMANA_OPEN_TOOLCHAIN_DIR="${OPENMANA_OPEN_TOOLCHAIN_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/openmana/open-toolchain}"
+    export OPENMANA_OPEN_FEATURE_DIR="$OM_BUILD_DIR/open-feature"
+    rm -rf "$OPENMANA_OPEN_FEATURE_DIR"
+    "$home/bin/javac" --add-modules org.graalvm.nativeimage -d "$OPENMANA_OPEN_FEATURE_DIR" \
+        "$here/feature/org/openmana/opentoolchain/ReachableTypesFeature.java"
     for tool in binaryen maven node; do
         archive="$(om_lock "lock.$tool.archive")"
         file="$standard_downloads/$archive"
@@ -70,6 +87,7 @@ setup_open_toolchain() {
 }
 
 om_timed setup-open-toolchain setup_open_toolchain
+export OPENMANA_OPEN_GRAALVM_HOME OPENMANA_OPEN_TOOLCHAIN_DIR OPENMANA_OPEN_FEATURE_DIR
 om_use_toolchain
 node "$scripts/update-policy.mjs" sources > "$OM_REPORT_DIR/source-inputs.json"
 om_timed build-host bash "$scripts/build-host.sh"
