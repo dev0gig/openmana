@@ -137,16 +137,22 @@ def sbom(types_file, checkout, jdk_home, jdk_version):
         found = lookup(name, jdk, graal)
         groups[None if found is None else found[1]].append(name)
 
+    def props(names):
+        return [{'name': 'interface' if n in interfaces else 'class', 'value': n} for n in names]
+
+    # Same nesting as Oracle's class-level SBOM (component -> module -> types):
+    # scripts/notices/engine-inventory.py owns the types of components that
+    # have a group and child components.
     def component(ref, group, cname, version, names):
-        kind = lambda n: 'interface' if n in interfaces else 'class'
         return {'type': 'library', 'bom-ref': ref, 'group': group, 'name': cname, 'version': version,
-                'properties': [{'name': kind(n), 'value': n} for n in names]}
+                'components': [{'type': 'library', 'name': cname, 'properties': props(names)}]}
 
     components = []
     for origin, names in sorted(groups.items(), key=lambda kv: (kv[0] is None, kv[0] or '')):
         if origin is None:
-            components.append({'type': 'library', 'name': 'class-level metadata that could not be associated with a component',
-                               'properties': [{'name': 'interface' if n in interfaces else 'class', 'value': n} for n in names]})
+            name = 'class-level metadata that could not be associated with a component'
+            components.append({'type': 'data', 'bom-ref': name, 'name': name,
+                               'components': [{'type': 'library', 'name': 'unassociated', 'properties': props(names)}]})
         elif origin == 'jdk':
             components.append(component(f'open:labsjdk-ce:{jdk_version}', 'open', 'labsjdk-ce', jdk_version, names))
         else:
