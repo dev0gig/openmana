@@ -9,19 +9,32 @@
 //   - engine/engine.lock.json is NEVER promoted or written: the open build is a
 //     candidate for a separate, explicitly approved switch, not production.
 //
-//   node scripts/open-toolchain/validate.mjs --out engine/build/<new dir> [--bulk <cached bulk.jsonl.gz>]
+//   node scripts/open-toolchain/validate.mjs --out engine/build/<new dir> [--bulk <cached bulk.jsonl.gz>] [--provisional-notices]
+//
+// The app build only ships an engine whose components have a reviewed entry in
+// notices/policy.json; the open toolchain's components ("open:...") have none,
+// so the app build stops at that license gate - on purpose: a new toolchain
+// needs a license review (separate task). Step notices-gate records exactly
+// that stop. With --provisional-notices the full app check then runs with a
+// TEMPORARY, clearly marked override in engine/NOTICES.md and license texts
+// taken from the open sources (engine/OPEN34-PROVISIONAL-*.md). Both are
+// Markdown (outside the engine and app source identities), are restored/deleted
+// right after the step and never committed. This is a functional test of the
+// app with the open engine, not a license review.
 //
 // Writes <out>/pipeline.json (format openmana-open-toolchain/1) and step logs.
 import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { appIdentity, checkForge, fileDigest, readJson, repoDir, sourceIdentity } from "../../engine/scripts/update-policy.mjs";
+import { appIdentity, checkForge, fileDigest, readJson, repoDir, sha256, sourceIdentity } from "../../engine/scripts/update-policy.mjs";
 import { verifyArtifacts } from "../../engine/scripts/engine-lock.mjs";
 
 const args = process.argv.slice(2);
 let out, bulk;
+let provisionalNotices = false;
 for (let i = 0; i < args.length; i++) {
   const flag = args[i];
+  if (flag === "--provisional-notices") { provisionalNotices = true; continue; }
   if (!args[i + 1] || args[i + 1].startsWith("--")) throw new Error(`Missing value for ${flag}`);
   const value = args[++i];
   if (flag === "--out") out = path.resolve(value);
@@ -67,7 +80,7 @@ const env = {
   VITEST_MAX_WORKERS: "1",
 };
 
-async function run(name, command, commandArgs, cwd = repoDir) {
+async function run(name, command, commandArgs, cwd = repoDir, { expectFailure = null } = {}) {
   const log = `logs/${name}.log`;
   const fd = fs.openSync(path.join(out, log), "wx");
   const step = { name, command: [command, ...commandArgs], log, startedAt: new Date().toISOString(), exitCode: null };
@@ -87,7 +100,61 @@ async function run(name, command, commandArgs, cwd = repoDir) {
     step.logSha256 = fileDigest(path.join(out, log)).sha256;
     save();
   }
+  if (expectFailure) {
+    const text = fs.readFileSync(path.join(out, log), "utf8");
+    step.expectedFailure = expectFailure.source;
+    step.expectedFailureSeen = step.exitCode !== 0 && expectFailure.test(text);
+    save();
+    if (!step.expectedFailureSeen) throw new Error(`${name}: expected failure ${expectFailure} did not happen; see ${path.join(out, log)}`);
+    return;
+  }
   if (step.exitCode !== 0) throw new Error(`${name} failed; see ${path.join(out, log)}`);
+}
+
+// Temporary license override for the functional app check (see header).
+const OPEN_TOOLCHAIN = path.join(process.env.OPENMANA_OPEN_TOOLCHAIN_DIR || path.join(process.env.XDG_CACHE_HOME || path.join(process.env.HOME, ".cache"), "openmana/open-toolchain"));
+async function withProvisionalNotices(action) {
+  const notices = path.join(engine, "NOTICES.md");
+  const original = fs.readFileSync(notices, "utf8");
+  const openLock = readJson(path.join(repoDir, "scripts/open-toolchain/toolchain.open.lock.json"));
+  const sources = {
+    "open34-provisional-jdk-gpl2-cpe": [path.join(OPEN_TOOLCHAIN, openLock.jdk.home, "legal/java.base/LICENSE"), `labsjdk-ce ${openLock.jdk.version} legal/java.base/LICENSE`],
+    "open34-provisional-graal-gpl2-cpe": [path.join(OPEN_TOOLCHAIN, "graal/substratevm/LICENSE"), `oracle/graal@${openLock.graal.commit} substratevm/LICENSE`],
+    "open34-provisional-graal-upl": [path.join(OPEN_TOOLCHAIN, "graal/sdk/LICENSE.md"), `oracle/graal@${openLock.graal.commit} sdk/LICENSE.md`],
+  };
+  const licenseFiles = {};
+  const written = [];
+  for (const [id, [file, source]] of Object.entries(sources)) {
+    const target = path.join(engine, `OPEN34-PROVISIONAL-${id}.md`);
+    const content = fs.readFileSync(file, "utf8");
+    fs.writeFileSync(target, content, { flag: "wx" });
+    written.push(target);
+    licenseFiles[id] = { file: path.relative(repoDir, target), sha256: sha256(content), source: `PROVISIONAL, Prompt 34 functional test only, not reviewed: ${source}` };
+  }
+  const label = (license) => `PROVISIONAL (Prompt 34 functional test, not reviewed): ${license}`;
+  const commit = openLock.graal.commit;
+  const engineComponents = {
+    [`open:labsjdk-ce:${openLock.jdk.version}`]: { license: label("GPL-2.0-only WITH Classpath-exception-2.0, parts Apache-2.0; JVMCI GPL-2.0-only"), texts: ["open34-provisional-jdk-gpl2-cpe"] },
+    [`open:graalvm-ce-compiler:${commit}`]: { license: label("GPL-2.0-only WITH Classpath-exception-2.0"), texts: ["open34-provisional-graal-gpl2-cpe"] },
+    [`open:graalvm-ce-substratevm:${commit}`]: { license: label("GPL-2.0-only WITH Classpath-exception-2.0"), texts: ["open34-provisional-graal-gpl2-cpe"] },
+    [`open:graalvm-ce-web-image:${commit}`]: { license: label("GPL-2.0-only WITH Classpath-exception-2.0"), texts: ["open34-provisional-graal-gpl2-cpe"] },
+    [`open:graalvm-ce-espresso-shared:${commit}`]: { license: label("GPL-2.0-only WITH Classpath-exception-2.0"), texts: ["open34-provisional-graal-gpl2-cpe"] },
+    [`open:graalvm-ce-sdk:${commit}`]: { license: label("UPL-1.0"), texts: ["open34-provisional-graal-upl"] },
+    [`open:graalvm-ce-shaded-google:${commit}`]: { license: label("Apache-2.0 (shaded Guava, Jimfs)"), texts: ["guava", "jimfs"] },
+  };
+  const block = /```json\n[\s\S]*?\n```/;
+  const current = JSON.parse(/```json\n([\s\S]*?)\n```/.exec(original)[1]);
+  const merged = { ...current, engineComponents: { ...current.engineComponents, ...engineComponents }, licenseFiles: { ...current.licenseFiles, ...licenseFiles } };
+  try {
+    fs.writeFileSync(notices, original.replace(block, "```json\n" + JSON.stringify(merged, null, 2) + "\n```"));
+    report.provisionalNotices = { components: Object.keys(engineComponents), licenseFiles };
+    save();
+    await action();
+  } finally {
+    fs.writeFileSync(notices, original);
+    for (const file of written) fs.rmSync(file, { force: true });
+  }
+  if (fs.readFileSync(notices, "utf8") !== original || written.some((file) => fs.existsSync(file))) throw new Error("Provisional notices could not be restored");
 }
 
 try {
@@ -99,7 +166,10 @@ try {
   if (manifest.sources.sha256 !== input.sha256 || manifest.forge.commit !== forge || manifest.toolchain.variant !== "open") throw new Error("Built engine differs from the selected inputs or is not an open build");
   await run("engine-tests", "bash", ["engine/scripts/test-engine.sh"]);
   await run("catalog", "npm", ["run", "cards:build", "--", ...(bulk ? ["--bulk", bulk] : []), "--out", path.join(out, "catalog")]);
-  await run("app-check", "npm", ["run", "check"]);
+  // The license gate must stop the unchanged app build for the open engine.
+  await run("notices-gate", "npx", ["vite", "build", "--outDir", path.join(temporaryDir, "notices-gate")], repoDir, { expectFailure: /Unreviewed shipped engine component: open:/ });
+  if (provisionalNotices) await withProvisionalNotices(() => run("app-check", "npm", ["run", "check"]));
+  else await run("app-check", "npm", ["run", "check"]);
   if (appIdentity() !== appInputsSha256 || sourceIdentity().sha256 !== input.sha256) throw new Error("Sources changed during validation");
   if (fileDigest(path.join(engine, "engine.lock.json")).sha256 !== lockBefore) throw new Error("engine/engine.lock.json changed during validation");
   report.status = "passed";

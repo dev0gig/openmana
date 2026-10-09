@@ -39,6 +39,10 @@ OPEN = ('GPL-2.0-only WITH Classpath-exception-2.0', 'UPL-1.0', 'Apache-2.0', GE
 SHADED = 'org.graalvm.shadowed.com.google.'
 # SubstrateVM ships Espresso's class-file parser renamed from com.oracle.truffle.espresso.
 ESPRESSO = ('com.oracle.svm.espresso.', 'com.oracle.truffle.espresso.')
+# Hidden classes the JVM generates while building (lambdas: Host$$Lambda/0x...).
+# Oracle's class-level SBOM leaves them out as well; they are code of their host
+# class and are counted separately (metadata.hiddenTypes).
+HIDDEN = re.compile(r'/0x[0-9a-f]+$')
 PROXY = re.compile(r'(^|\.)\$Proxy\d+$')
 
 
@@ -122,10 +126,14 @@ def git_head(checkout):
 def sbom(types_file, checkout, jdk_home, jdk_version):
     interfaces = set()
     reachable = []
+    hidden = []
     for line in Path(types_file).read_text('utf-8').splitlines():
         kind, _, name = line.partition(' ')
         if kind not in ('class', 'interface') or not name:
             raise ValueError(f'unexpected line in {types_file}: {line!r}')
+        if HIDDEN.search(name):
+            hidden.append(name)
+            continue
         reachable.append(name)
         if kind == 'interface':
             interfaces.add(name)
@@ -159,7 +167,9 @@ def sbom(types_file, checkout, jdk_home, jdk_version):
             components.append(component(f'open:graalvm-ce-{origin}:{commit}', 'open', f'graalvm-ce-{origin}', commit, names))
     json.dump({'bomFormat': 'CycloneDX', 'specVersion': '1.5', 'version': 1,
                'metadata': {'tools': [{'name': 'scripts/open-toolchain/inventory.py sbom', 'source': 'ReachableTypesFeature (GraalVM CE analysis universe)'}],
-                            'graalCommit': commit, 'types': Path(types_file).name},
+                            'graalCommit': commit, 'types': Path(types_file).name,
+                            'hiddenTypes': len(hidden),
+                            'hiddenByHostPackage': dict(Counter(h.split('$$')[0].rsplit('.', 1)[0] for h in hidden).most_common())},
                'components': components}, sys.stdout, indent=1)
     sys.stdout.write('\n')
 
