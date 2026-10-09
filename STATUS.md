@@ -21,6 +21,7 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - ManaBrew/Forge browser-WASM approach researched.
 - Current direction: Oracle GraalVM Web Image, pinned Forge upstream plus a small GPL patch queue.
 - Toolchain/build/license/feasibility findings documented under `docs/research/`.
+- Prompt 34 (2026-10-10): an engine built only from open sources (GraalVM CE from `oracle/graal` on labsjdk-ce, `scripts/open-toolchain/`) passes every check and limit; result TEILWEISE only because 13 JVMCI types (also in the Oracle build) are GPLv2 without Classpath Exception (`docs/research/OPEN_WEB_IMAGE_BUILD_2026-10-09.md`); production unchanged.
 
 ### Forge WASM Engine Spike (Prompt 01)
 - Pinned Forge engine runs as WebAssembly in a Dedicated Worker.
