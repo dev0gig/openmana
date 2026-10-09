@@ -25,7 +25,7 @@ Annahme trifft nachweislich nicht zu.
 | A8 | Oracles Lizenzhandbuch (LIUM) zu GraalVM 25.4.4.1.1 weist für Native Image nur **Fremdkomponenten** als separat lizenziert aus (LLVM, simdjson, onnxruntime, capnproto-java, packageurl-java, Guava, Jimfs). Oracles eigene GraalVM- und JDK-Bestandteile werden dort nicht als GPL-lizenziert ausgewiesen; das Wort „Classpath“ kommt im LIUM nicht vor. | NACHGEWIESEN |
 | A9 | Ob die GPLv2+CPE-Dateiheader im Output und der offene Quelltext ausreichen, damit diese Teile als „Separately Licensed Technology“ unter Separate Terms gelten und nicht unter GFTC/NFTC. | OFFEN (juristisch) |
 | A10 | Ob die Oracle-Teile als „System Libraries“ (GPLv3 §1) gelten und eine Weitergabe zusammen mit Forge trotz §10 („no further restrictions“) erlauben. | OFFEN (juristisch) |
-| A11 | Annahme „die Vercel-Pause nimmt die Engine aus der Öffentlichkeit“. Das GitHub-Release-Asset `openmana-engine.js.wasm` ist weiterhin anonym abrufbar (HTTP 200, 79.010.169 Bytes, Prüfsumme passt). | WIDERLEGT |
+| A11 | Annahme „die Vercel-Pause nimmt die Engine aus der Öffentlichkeit“. Das GitHub-Release-Asset `openmana-engine.js.wasm` war weiterhin anonym abrufbar (HTTP 200, 79.010.169 Bytes, Prüfsumme passt). Am selben Tag hat der Projektbesitzer das Release auf Entwurf stellen lassen (Abschnitt 8, Nachtrag). | WIDERLEGT |
 | A12 | Annahme „Oracle-Anteile im Output = Web-Image-Laufzeit, deren Quelle GPLv2+CPE ist“ (so verkürzt in `docs/PUBLICATION.md`). Die Mehrheit der Oracle-Typen ist die JDK-Bibliothek unter NFTC (A3). | WIDERLEGT als vollständige Beschreibung |
 | A13 | Es gibt einen dokumentierten Weg, Web Image allein aus offenen Quellen zu bauen (`oracle/graal/web-image`, `mx build`). Die fertige GraalVM Community Edition 25.4.4.1.1 enthält Web Image **nicht**. Ob OpenMana mit einem Selbstbau funktioniert und gleich schnell bleibt, ist **ungeprüft**. | OFFEN (technisch prüfbar) |
 | A14 | Laufzeitbibliotheken, die mit dem Programm selbst verteilt werden, gelten nach FSF-Auslegung nicht als System Libraries (GPL-FAQ `#WindowsRuntimeAndGPL`). Die Oracle-Teile werden im Wasm-Modul mitgeliefert. | NACHGEWIESEN (Wortlaut); Anwendung OFFEN (juristisch) |
@@ -393,6 +393,20 @@ Nur GET/HEAD und lesende Vercel-/GitHub-Abfragen; nichts verändert.
 Die Vercel-Pause macht also die App unerreichbar, nicht aber die Engine:
 Solange das Release-Asset öffentlich ist, wird das Modul weiterhin verteilt.
 Weitere Kopien bei Dritten (die 4 Downloads) lassen sich nicht erfassen.
+
+**Nachtrag 2026-10-09 (nach dem Bericht, auf Anweisung des Projektbesitzers):**
+- Das Release `engine-p8-2b0da7a21935` ist jetzt ein **Entwurf**. Alle 13
+  Dateien bleiben unverändert erhalten; es wurde nichts gelöscht oder
+  ersetzt. Der Tag `engine-p8-2b0da7a21935` besteht weiter.
+- Anonym geprüft: Die Download-Adressen der Engine, des Launchers und des
+  Quellarchivs sowie die Release-API antworten mit 404. Die Tag-Seite verlinkt
+  keine Engine-Datei mehr.
+- Damit liefert keine öffentliche Fläche mehr die Engine aus. Ausnahmen sind
+  die bereits erfolgten Downloads und Caches bei Nutzern.
+- Folge: `scripts/deploy/fetch-artifacts.ts` kann die Dateien ohne Anmeldung
+  nicht mehr laden. Ein neuer Produktionsbuild braucht vorher eine
+  Entscheidung (Release wieder veröffentlichen oder eine neue Engine nach
+  Abschnitt 10).
 
 ## 9. Fragen nur für Oracle oder Rechtsberatung
 
