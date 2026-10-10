@@ -122,9 +122,22 @@ storage, recording or replay change. No pictures: everything is SVG and CSS.
 
 ## Measurement
 
-See the prompt's report for the numbers of the final run (Chrome with 4× CPU
-throttling, 412×915, 20 state changes): no long task over 200 ms caused by the
-surface.
+Chrome 153 with 4× CPU throttling at 412×915, 20 state changes of the
+recorded game human-3-de (end-to-end section 12, `npm run check` of
+2026-10-10):
+
+| | with surface | without surface |
+|---|---|---|
+| long tasks (> 50 ms) | none | none |
+| longest animation frame | 71 ms | 54 ms |
+| its rendering part | 38 ms | 18 ms |
+
+- The 20 changes gave 20 new playing-area sizes (7 different boards): the board
+  was drawn 20 times at 2.6-4.1 ms of script each; the desk was **never**
+  redrawn. Five new states of one size: no drawing at all.
+- So no long task over 200 ms is caused by the surface; the separate
+  `--table-only` run measured the same (longest frame 74 against 59 ms,
+  rendering 28 against 28 ms).
 
 ## Limits
 
