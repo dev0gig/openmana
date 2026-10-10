@@ -108,15 +108,16 @@ export function refName(ref: PlayerRef | CardRef): string {
 }
 
 /**
- * What the caption strip below a card says in words: power/toughness or
- * loyalty, damage, counters, face-down, phased out. Forge's values, nothing
- * computed (never "toughness left").
+ * A card's facts in words: power/toughness or loyalty, damage, counters,
+ * face-down, phased out (the card view's "Zustand", and - split into the value
+ * plaque and the chips - what the table shows at a card on the battlefield).
+ * Forge's values, nothing computed (never "toughness left").
  */
 export function captionFacts(card: VisibleCard): string[] {
   const facts: string[] = []
   if (card.power !== undefined && card.toughness !== undefined) facts.push(`${card.power}/${card.toughness}`)
   if (card.loyalty !== undefined && card.loyalty !== null) facts.push(`Loyalität ${card.loyalty}`)
-  if (card.damage > 0) facts.push(`${card.damage} Schaden`)
+  if (card.damage > 0) facts.push(damageLabel(card.damage))
   if (card.colors !== undefined) {
     const names = [...card.colors].map((color) => MANA_LABELS[color as ManaColor]).join(", ")
     facts.push(`Farbe: ${names || "Farblos"}`)
@@ -128,6 +129,38 @@ export function captionFacts(card: VisibleCard): string[] {
   if (card.faceDown) facts.push("verdeckt")
   if (card.phasedOut === true) facts.push("ausgephast")
   return facts
+}
+
+/** Forge's damage on a card in words ("2 Schaden"). */
+export function damageLabel(amount: number): string {
+  return `${amount} Schaden`
+}
+
+/** What the value plaque on a card's printed value box shows (prompt 40): Forge's power/toughness, else its loyalty. */
+export type PlaqueValue = { readonly kind: "power"; readonly text: string } | { readonly kind: "loyalty"; readonly text: string }
+
+/**
+ * The plaque's value (prompt 40, docs/design/SPIELTISCH.md §4.7): power and
+ * toughness exactly as Forge sends them ("2/2"), else the loyalty Forge sends
+ * - nothing computed, no printed value compared (Forge sends none); null when
+ * Forge sends neither.
+ */
+export function plaqueValue(card: VisibleCard): PlaqueValue | null {
+  if (card.power !== undefined && card.toughness !== undefined) return { kind: "power", text: `${card.power}/${card.toughness}` }
+  if (card.loyalty !== undefined && card.loyalty !== null) return { kind: "loyalty", text: card.loyalty }
+  return null
+}
+
+/**
+ * The facts a card on the battlefield shows as chips outside its picture
+ * (prompt 40): captionFacts without what the plaque shows - damage, counters,
+ * a changed colour, face-down, phased out (and the loyalty of a card whose
+ * plaque shows its power).
+ */
+export function chipFacts(card: VisibleCard): string[] {
+  const plaque = plaqueValue(card)
+  const shown = plaque === null ? [] : plaque.kind === "power" ? [plaque.text] : [`Loyalität ${plaque.text}`]
+  return captionFacts(card).filter((fact) => !shown.includes(fact))
 }
 
 /**

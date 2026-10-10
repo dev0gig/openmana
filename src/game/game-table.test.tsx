@@ -1,7 +1,8 @@
 /*
  * The game table (game-table.tsx) on real states of recorded games
  * (src/test/table-scenes.ts): its regions, what each shows, what stays
- * hidden, the cards' facts below their pictures, stack, combat and Forge's
+ * hidden, the cards' facts (the value plaque on the picture, chips above it -
+ * prompt 40), stack, combat and Forge's
  * decision in Forge's words. Layout itself (fitting the screen at every
  * size) is checked in Chrome by the end-to-end test.
  */
@@ -241,9 +242,18 @@ describe("the battlefields", () => {
     expect(rows.map((row) => row.getAttribute("role"))).toEqual([null, "toolbar"])
     const lands = within(rows[1]!).getAllByRole("button")
     expect(lands).toHaveLength(1)
-    expect(lands[0]!.querySelector('[data-slot="game-card-caption"]')).toHaveTextContent(/^6×/)
+    // Prompt 40: the pile's count as a chip above it ("×6"), two equal cards drawn behind the front one.
+    expect(lands[0]!.querySelector('[data-slot="game-card-caption"]')).toHaveTextContent(/^×6$/)
     expect(lands[0]!.querySelector('[data-slot="game-card-caption"]')).toHaveAttribute("title", "Gebirge · 6 Karten")
     expect(lands[0]).toHaveAccessibleName("Gebirge, 6 Karten")
+    expect(lands[0]!.querySelector('[data-slot="game-card-pile"]')).toHaveStyle({ "--layers": "2" })
+    expect(lands[0]!.querySelectorAll('[data-slot="game-card-layer"]')).toHaveLength(2)
+    // A land has no plaque; the rows say table.css what to size by (one pile of six: 1 + 2 × 0.12 card widths, one card).
+    expect(lands[0]!.querySelector('[data-slot="game-card-plaque"]')).toBeNull()
+    expect(rows[1]).toHaveClass("table-field-row")
+    expect(rows[1]).toHaveStyle({ "--u": "1.24", "--c": "1" })
+    // No line between the rows any more (prompt 40): the chips and the rows' gaps part them.
+    expect(mine.querySelector('[data-slot="separator"]')).toBeNull()
 
     const theirs = region("Spielfeld der Forge-KI")
     // The opponent's creatures lie next to the middle too: below their lands.
@@ -253,13 +263,44 @@ describe("the battlefields", () => {
     expect(spiders.querySelector('[data-slot="game-card-caption"]')).toHaveAttribute("title", "Riesenspinne · 2 Karten · getappt · 2/4")
   })
 
-  it("a creature's facts below its picture: power/toughness and damage from Forge; the target of a spell stays single", () => {
+  it("a creature's facts: power/toughness on the plaque, damage and the target as chips above the picture; the target of a spell stays single", () => {
     renderScene("stack")
     const arsonist = region("Dein Spielfeld").querySelector('[data-card="55"]')!
-    expect(arsonist.querySelector('[data-slot="game-card-caption"]')).toHaveAttribute("title", "Goblin-Brandstifter · 1/1 · 2 Schaden · Ziel auf dem Stapel")
-    expect(arsonist.querySelector('[data-slot="game-card-caption"]')).toHaveTextContent("1/1 · 2 Schaden")
+    const caption = arsonist.querySelector('[data-slot="game-card-caption"]')!
+    expect(caption).toHaveAttribute("title", "Goblin-Brandstifter · 1/1 · 2 Schaden · Ziel auf dem Stapel")
+    // Prompt 40: Forge's power/toughness on the plaque in the card's face, hidden from screen readers (the name says it).
+    const plaque = arsonist.querySelector('[data-slot="game-card-face"] [data-slot="game-card-plaque"]')!
+    expect(plaque).toHaveTextContent(/^1\/1$/)
+    expect(plaque).toHaveAttribute("data-kind", "power")
+    expect(plaque).toHaveAttribute("aria-hidden", "true")
+    expect(caption).not.toHaveTextContent("1/1")
+    // The chips: "Ziel" and the damage, each its own chip; the chip line comes before the picture (above it).
+    expect([...caption.querySelectorAll(".table-card-chip")].map((chip) => chip.textContent)).toEqual(["Ziel", "2 Schaden"])
+    expect(arsonist.firstElementChild).toBe(caption)
     expect(arsonist).toHaveAttribute("data-stack-target", "true")
-    expect(arsonist.querySelector('[data-slot="game-card-caption"]')).toHaveTextContent("Ziel")
+    expect(arsonist).toHaveAccessibleName(/1\/1, 2 Schaden/)
+  })
+
+  it("a planeswalker's loyalty on the plaque, with the shield; its counters are not repeated as chips", () => {
+    renderScene("attack-planeswalker")
+    const garruk = region("Spielfeld der Forge-KI").querySelector('[data-card="68"]')!
+    const plaque = garruk.querySelector('[data-slot="game-card-plaque"]')!
+    expect(plaque).toHaveAttribute("data-kind", "loyalty")
+    expect(plaque).toHaveTextContent(/^1$/)
+    expect(plaque.querySelector("svg")).not.toBeNull()
+    expect(garruk.querySelector('[data-slot="game-card-caption"]')).toHaveAttribute("title", "Garruk Wildsprecher · Loyalität 1")
+    expect(garruk.querySelectorAll('[data-slot="game-card-caption"] .table-card-chip')).toHaveLength(0)
+    // A creature with a +1/+1 counter: Forge's power on the plaque, the counter as a chip.
+    const spider = region("Spielfeld der Forge-KI").querySelector('[data-card="79"]')!
+    expect(spider.querySelector('[data-slot="game-card-plaque"]')).toHaveTextContent(/^3\/5$/)
+    expect(spider.querySelector('[data-slot="game-card-caption"]')).toHaveTextContent(/^\+1\/\+1: 1$/)
+  })
+
+  it("combat on the cards: attackers and blockers carry Forge's combat fact for their frame (table.css)", () => {
+    renderScene("defend")
+    expect(region("Dein Spielfeld").querySelector('[data-card="58"]')).toHaveAttribute("data-combat", "blocking")
+    expect(region("Spielfeld der Forge-KI").querySelector('[data-card="80"]')).toHaveAttribute("data-combat", "attacking")
+    expect(region("Spielfeld der Forge-KI").querySelector('[data-card="80"] .table-card-chip[data-tone="attack"] svg')).not.toBeNull()
   })
 
   it("combat and summoning sickness on the cards: signs, said in the card's name for screen readers", () => {

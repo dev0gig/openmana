@@ -128,10 +128,298 @@
   border-color: var(--table-gold-line);
 }
 
-/* The facts below a card picture lie on the board: the same panel tone behind them (an empty caption stays invisible). */
-[data-slot="game-board"] [data-slot="game-card-caption"]:has(> :not(.sr-only, :empty)) {
-  border-radius: 0.375rem;
+/* ---------- Cards (prompt 40): fact chips, the value plaque, piles, marks, battlefield rows ---------- */
+
+/* A fact in the chip line above a card's picture (GameCardCaption): small, on the panel tone with a gold hairline - never on the picture. */
+[data-slot="game-board"] .table-card-chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.125rem;
+  height: 0.8125rem;
+  padding: 0 0.25rem;
+  border: 1px solid var(--table-gold-line);
+  border-radius: 0.25rem;
   background: color-mix(in oklch, var(--table-panel) 90%, transparent);
+  color: var(--muted-foreground);
+  font-size: 0.625rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+[data-slot="game-board"] .table-card-chip > svg {
+  width: 0.625rem;
+  height: 0.625rem;
+  flex: none;
+}
+
+/* How many equal cards lie on a pile ("×6"; the mockup's .stapel-zahl): gold, above the pile. */
+[data-slot="game-board"] .table-card-chip[data-tone="pile"] {
+  color: var(--table-gold-light);
+  font-family: var(--font-heading);
+  font-weight: 700;
+}
+
+[data-slot="game-board"] .table-card-chip[data-tone="strong"] {
+  color: var(--foreground);
+}
+
+[data-slot="game-board"] .table-card-chip[data-tone="danger"] {
+  border-color: var(--table-danger);
+  color: var(--foreground);
+}
+
+[data-slot="game-board"] .table-card-chip[data-tone="danger"] > svg {
+  color: var(--table-danger);
+}
+
+[data-slot="game-board"] .table-card-chip[data-tone="attack"] {
+  border-color: var(--table-attack);
+  color: var(--table-attack);
+}
+
+[data-slot="game-board"] .table-card-chip[data-tone="block"] {
+  border-color: var(--table-mana);
+  color: var(--foreground);
+}
+
+[data-slot="game-board"] .table-card-chip[data-tone="block"] > svg {
+  color: var(--table-mana);
+}
+
+/*
+ * The value plaque (the mockup's .werte): Forge's power/toughness or loyalty
+ * on the card's own printed value box at the bottom right - right 3 % of the
+ * card's width, bottom 4.3 % of its height, inside CardPicture's 1 px border,
+ * so the artist and copyright line below the box stays free. Placed in the
+ * card's face (the picture's box, a size container: 1cqw = 1 % of the card's
+ * width), never turned: on a tapped card it stands upright where the turned
+ * box lies (bottom left), clear of the copyright edge (now the left one).
+ */
+[data-slot="game-board"] .table-plaque {
+  position: absolute;
+  z-index: 1;
+  right: calc(1px + 3%);
+  bottom: calc(1px + 4.3%);
+  min-width: 27%;
+  padding: 0 4%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1em;
+  border: 1px solid color-mix(in oklch, var(--primary) 85%, transparent);
+  border-radius: 0.2rem;
+  background: linear-gradient(180deg, var(--table-plaque), color-mix(in oklch, var(--table-plaque), black 60%));
+  box-shadow: 0 0 0 1px oklch(0 0 0 / 0.8), 0 0.1rem 0.35rem oklch(0 0 0 / 0.7);
+  color: var(--foreground);
+  font-family: var(--font-heading);
+  font-size: clamp(0.5625rem, 13cqw, 0.95rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Loyalty: the shield and a mana-blue rim. */
+[data-slot="game-board"] .table-plaque[data-kind="loyalty"] {
+  border-color: color-mix(in oklch, var(--table-mana) 85%, transparent);
+}
+
+[data-slot="game-board"] .table-plaque-symbol {
+  width: 0.85em;
+  height: 0.85em;
+  flex: none;
+  color: var(--table-mana);
+}
+
+[data-slot="game-board"] [data-tapped="true"] .table-plaque {
+  right: auto;
+  left: 6%;
+  bottom: 10%;
+  min-width: 19.3%;
+  font-size: clamp(0.5625rem, calc(13cqw * 63 / 88), 0.95rem);
+}
+
+/*
+ * Readable from a card width of 44 px; below that the values live in the
+ * card's title, name and card view. A tapped card's face is as wide as the
+ * card is tall: 44 px wide is 61.46 px tall (88 : 63).
+ */
+@container table-card (width < 44px) {
+  [data-slot="game-board"] [data-tapped="false"] .table-plaque {
+    display: none;
+  }
+}
+
+@container table-card (width < 61.4px) {
+  [data-slot="game-board"] [data-tapped="true"] .table-plaque {
+    display: none;
+  }
+}
+
+/*
+ * A battlefield row (Field in game-table.tsx: class table-field-row, --u the cards'
+ * width in card widths, --c how many cards it draws; the mockup's .reihe): the
+ * card width --kw is the least of what the row's height leaves (below the chip
+ * line and the frame), the free width per card and an upper bound - the free
+ * width never below --kw-min (44 px, the plaque's and a finger's size); only
+ * below that does the row scroll sideways. Every card of a row has the same
+ * width. The row's padding on the opponent's side keeps room for an attacker
+ * moving towards them; the chip line lies in the row, above each card.
+ * (--kw's cq units resolve where it is used, against the row - a size
+ * container -, so it is used only outside a card's face: the face is a
+ * container itself, inside it 1cqw is 1 % of the face's width.)
+ */
+[data-slot="game-board"] .table-field-row {
+  --chip-room: 0.875rem;
+  --gap: 0.375rem;
+  --advance: 0.375rem;
+  --kw-min: 2.75rem;
+  --kw-max: 9.5rem;
+  --kw: min(calc((100cqh - var(--chip-room) - 0.125rem - 4px) * 63 / 88), max(var(--kw-min), calc((100cqw - var(--c, 1) * 4px - (var(--c, 1) - 1) * var(--gap)) / var(--u, 1))), var(--kw-max));
+  --kh: calc(var(--kw) * 88 / 63);
+  container-type: size;
+  align-items: center;
+  gap: var(--gap);
+  padding-block: 2px;
+}
+
+[data-slot="game-board"] [data-area="field"] .table-field-row {
+  padding-top: calc(var(--advance) + 2px);
+}
+
+[data-slot="game-board"] [data-area="opponent-field"] .table-field-row {
+  padding-bottom: calc(var(--advance) + 2px);
+}
+
+[data-slot="game-board"] .table-field-row > li,
+[data-slot="game-board"] .table-field-row [data-slot="game-card"],
+[data-slot="game-board"] .table-field-row [data-slot="game-card-group"] {
+  height: auto;
+}
+
+/* The card's face: the picture's box and the frame's room around it; a container for the plaque's size. */
+[data-slot="game-board"] .table-field-row [data-slot="game-card-face"] {
+  width: calc(var(--kw) + 4px);
+  height: calc(var(--kh) + 4px);
+  aspect-ratio: auto;
+  border-radius: calc(var(--kw) * 0.048 + 2px);
+  container: table-card / inline-size;
+}
+
+[data-slot="game-board"] .table-field-row [data-tapped="true"] [data-slot="game-card-face"] {
+  width: calc(var(--kh) + 4px);
+  height: calc(var(--kw) + 4px);
+}
+
+/* Turned: the picture is as tall as the face is wide (inside the face 1cqw is 1 % of its width; --kw would mix in the face's own width). */
+[data-slot="game-board"] .table-field-row [data-tapped="true"] [data-slot="game-card-picture"] {
+  height: 100cqw;
+}
+
+/* The picture's corners as a card's (the mockup's 4.8 % of its width), not the app's large radius. */
+[data-slot="game-board"] .table-field-row [data-slot="game-card-picture"] > [data-slot="card-picture"],
+[data-slot="game-board"] .table-field-row [data-slot="game-card-picture"] > [data-slot="skeleton"] {
+  border-radius: 4.8cqw;
+}
+
+[data-slot="game-board"] .table-field-row [data-tapped="true"] [data-slot="game-card-picture"] > :is([data-slot="card-picture"], [data-slot="skeleton"]) {
+  border-radius: calc(4.8cqw * 63 / 88);
+}
+
+/* A pile: up to two equal cards behind the front one, offset to the left (the mockup's .karte-flaeche --n) - plates in the panel tone, not more pictures. */
+[data-slot="game-board"] .table-field-row [data-slot="game-card-pile"] {
+  padding-left: calc(var(--kw) * 0.12 * var(--layers));
+}
+
+[data-slot="game-board"] .table-field-row [data-slot="game-card-layer"] {
+  position: absolute;
+  top: 0;
+  left: calc(var(--kw) * 0.12 * var(--k));
+  width: calc(var(--kw) + 4px);
+  height: calc(var(--kh) + 4px);
+  border: 2px solid transparent;
+  border-radius: calc(var(--kw) * 0.048 + 2px);
+  background: linear-gradient(90deg, color-mix(in oklch, var(--table-panel), black 35%), var(--table-panel)) padding-box;
+  box-shadow: inset 0 0 0 1px var(--table-gold-line), 0.15rem 0.2rem 0.4rem oklch(0 0 0 / 0.6);
+}
+
+[data-slot="game-board"] .table-field-row [data-tapped="true"] [data-slot="game-card-layer"] {
+  width: calc(var(--kh) + 4px);
+  height: calc(var(--kw) + 4px);
+}
+
+/* A card with what is attached to it: together on a plate (no frame that takes room). */
+[data-slot="game-board"] .table-field-row [data-slot="game-card-group"] {
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.5rem;
+  background: color-mix(in oklch, var(--table-panel) 55%, transparent);
+}
+
+/* An attacker moves towards its opponent (the mockup's .angriff): up on your battlefield, down on the AI's - into the row's padding. */
+[data-slot="game-board"] [data-area="field"] .table-field-row [data-combat="attacking"] {
+  translate: 0 calc(-1 * var(--advance));
+}
+
+[data-slot="game-board"] [data-area="opponent-field"] .table-field-row [data-combat="attacking"] {
+  translate: 0 var(--advance);
+}
+
+/*
+ * Forge's marks (docs/design/SPIELTISCH.md §4.9): frames and glows around the
+ * picture, never on it; data-mark stays the truth. Usable gold with a glow,
+ * chosen a strong light frame (thicker: a second ring), a stack target red
+ * with a gentle pulse (a glow layer whose opacity pulses; still under less
+ * motion), attacking amber, blocking mana blue - the last two only where no
+ * mark of Forge's applies (usable/chosen take precedence).
+ */
+[data-slot="game-board"] [data-slot="game-card-face"][data-mark="usable"] {
+  border-color: var(--primary);
+  box-shadow: 0 0 0.55rem 0.05rem color-mix(in oklch, var(--primary) 60%, transparent);
+}
+
+[data-slot="game-board"] [data-slot="game-card-face"][data-mark="selected"] {
+  border-color: var(--foreground);
+  box-shadow: 0 0 0 1px var(--foreground), 0 0 0.45rem color-mix(in oklch, var(--foreground) 40%, transparent);
+}
+
+[data-slot="game-board"] [data-slot="game-card-face"][data-mark="target"] {
+  border-color: var(--table-danger);
+}
+
+[data-slot="game-board"] [data-slot="game-card-face"][data-mark="target"]::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  box-shadow: 0 0 0.6rem 0.15rem color-mix(in oklch, var(--table-danger) 80%, transparent);
+  opacity: 0.85;
+  pointer-events: none;
+  animation: table-target-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes table-target-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+[data-slot="game-board"] [data-combat="attacking"] [data-slot="game-card-face"]:not([data-mark]) {
+  border-color: var(--table-attack);
+  box-shadow: 0 0 0.65rem 0.1rem color-mix(in oklch, var(--table-attack) 60%, transparent);
+}
+
+[data-slot="game-board"] [data-combat="blocking"] [data-slot="game-card-face"]:not([data-mark]) {
+  border-color: var(--table-mana);
+  box-shadow: 0 0 0.5rem color-mix(in oklch, var(--table-mana) 50%, transparent);
 }
 
 /* ---------- The header (prompt 39): emblem and wordmark (the mockup's .marke) ---------- */

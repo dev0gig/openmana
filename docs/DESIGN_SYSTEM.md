@@ -238,7 +238,7 @@ the word.
 | `DropdownMenu`, `Select`, `ToggleGroup` (+ `Toggle` it needs) | shadcn/ui registry (`radix-maia`, prompt 10) | a deck's actions (menu „Mehr“, not modal so a dialog opened from it gets the focus), sorting and the format filter of the deck library |
 | `Switch` | shadcn/ui registry (`radix-maia`, prompt 12) | an on/off preference („Bewegungen reduzieren“), inside a `FieldLabel` row so the whole row is the touch target; one-of-several preferences (AI profile, card language) are a `RadioGroup` of choice cards like the backup import. Preferences are saved the moment they change (no save button) |
 | `GameBoard`, `GameBoardArea` | `src/components/ui/game-board.tsx`, built the shadcn way (prompt 13) | the game table's frame: eight named regions in a grid, arranged by the table layout (§4, prompt 38: `hoch`, `quadrat`, `breit`, `breit` + `short`), never scrolling itself |
-| `GameCard`, `GameCardCaption`, `GameCardGroup` | `src/components/ui/game-card.tsx`, built the shadcn way (prompt 13) | a card on the game table, sized by its row's height (63 × 88): its `CardPicture`, turned a quarter when tapped (square place), its facts in the caption strip below the picture (prompt 40: chips outside the picture and the value plaque on the printed value box, §9 - nothing else on it, Scryfall forbids covering card images); a card with its attachments in one dashed frame. Cards Forge hides are the table's `TableCardBack` since prompt 39 (below) |
+| `GameCard`, `GameCardCaption`, `GameCardGroup` | `src/components/ui/game-card.tsx`, built the shadcn way (prompt 13) | a card on the game table, sized by its row (63 × 88; a battlefield row by its height and width since prompt 40): its `CardPicture`, turned a quarter when tapped, its facts as chips in the line above the picture and - on the battlefield - the value plaque on the printed value box (`plaque`, prompt 40, §9 - nothing else on it, Scryfall forbids covering card images), a pile as cards behind it (`pile`); a card with its attachments together (on a plate on the table). Cards Forge hides are the table's `TableCardBack` since prompt 39 (below) |
 | `GameCardButton`, `GameCardRow`, `GameCardRowItem`, `GameCardRowButton`; the `mark` of `GameCard`/`GameCardButton` | `src/components/ui/game-card.tsx`, built the shadcn way (prompt 14) on Radix `Toolbar` (from `radix-ui`) | a card as a control: a button with shadcn's focus ring around the whole card, no image menu or text selection on a long press; Forge's state as a frame around the picture in the room every card keeps (`mark`: usable = dashed `--primary`, chosen = solid `--foreground` - prompt 40 restyles them after §9); a row of such cards as a toolbar (roving focus), else a focusable list |
 | `useTableLayout()`, `tableLayoutOf()`; variants `hoch:`, `quadrat:`, `breit:` | `src/game/table/use-table-layout.ts`, `table-layout.ts`, `src/index.css` (prompt 36) | the game table's layout by aspect ratio (§4, §9); not used by the table before prompt 38 |
 | `src/game/table/table.css`, `--table-*` tokens | prompt 36 (§9) | the game table's own stylesheet (imported by `TableSurface` since prompt 37) and colours |
@@ -276,18 +276,21 @@ the word.
   filters) except, on the game table, the **value plaque**: Forge's
   power/toughness or loyalty on the card's own printed value box at the bottom
   right, never over the artist and copyright line (§9). Every other fact goes
-  outside the picture - the caption strip below it (`GameCardCaption`), from
-  prompt 40 small chips at its top edge -, a state that changes the card itself
-  (tapped) is a quarter turn of the whole card (prompt 13), and Forge's marks
-  are frames and glows around the picture (prompt 14).
-- Card states (prompt 14): "usable now" is the one accent for "do this"
-  (`--primary`), "chosen" the strongest contrast there is (`--foreground`);
-  dashed against solid tells them apart today. The table redesign gives
-  targets, attackers and blockers colours of their own (`--table-danger`,
-  `--table-attack`, `--table-mana`) and may draw usable as a glowing gold
-  frame (§9); `data-mark` stays the truth, every state keeps its words (chips,
-  names), so none is told by colour alone (WCAG 1.4.1), and every mark reaches
-  3:1 on the table's surfaces (1.4.11, checked by `design-tokens.test.ts`).
+  outside the picture - since prompt 40 small chips in the chip line above it
+  (`GameCardCaption`, before: a caption strip below it) -, a state that
+  changes the card itself (tapped) is a quarter turn of the whole card (prompt
+  13), and Forge's marks are frames and glows around the picture (prompt 14).
+- Card states (prompt 14; their look since prompt 40): "usable now" is the
+  one accent for "do this" (`--primary`, a gold frame with a glow), "chosen"
+  the strongest contrast there is (`--foreground`, a thicker light frame).
+  Targets, attackers and blockers have colours of their own (`--table-danger`
+  with a glow that pulses, `--table-attack` and moved towards the opponent,
+  `--table-mana`; §9). Glow against a thicker frame, the pulse and the
+  movement tell them apart beyond colour; `data-mark` and Forge's combat facts
+  stay the truth, every state keeps its words (chips, names), so none is told
+  by colour alone (WCAG 1.4.1), and every mark reaches 3:1 on the table's
+  surfaces (1.4.11, checked by `design-tokens.test.ts`). The words the app
+  uses for usable cards say "gold umrandet".
 
 ## 7. Beginner help and target emphasis (prompt 23)
 
@@ -296,13 +299,14 @@ the side in `quadrat` and `breit` (prompt 38; before: by orientation). The help 
 closing restores the opener's focus. Required/optional selection words join the
 existing decision heading instead of adding a tall guidance panel.
 
-Already named stack targets use the existing `--primary` in a **double** frame
-(prompt 40 turns it into a `--table-danger` frame with a gentle pulse, §9),
-an explicit accessible “Ziel” label and a crosshair on player seats.
-Battlefield captions retain their original statistics space; the viewer/title names the target. No tint
-or text covers a picture. Usable dashed / selected solid frames take precedence
-while the target words remain; a target relationship alone never offers a tap.
-No new colour tokens are needed. Player seats use the same double inset outline.
+Already named stack targets have a `--table-danger` frame with a gentle pulse
+(prompt 40, §9; before: a double `--primary` frame), a “Ziel” chip with a
+crosshair above the card, an explicit accessible “Ziel” label and a crosshair
+on player seats. The card's other chips stay; the viewer/title names the
+target. No tint or text covers a picture. Usable / selected frames take
+precedence while the target words remain; a target relationship alone never
+offers a tap. Player seats use a double inset outline in `--table-danger`
+(prompt 39).
 
 ## 8. Responsive pass (prompt 24)
 
@@ -342,6 +346,13 @@ target (example data only).
 - **Card pictures:** whole, never cropped, blurred, darkened, colour-shifted or
   filtered; on them only the value plaque (above). Facts as chips outside the
   picture, Forge's short words and numbers only.
+- **Cards on the battlefield** (prompt 40, [design/SPIELTISCH.md](design/SPIELTISCH.md)
+  §4.7-4.9): the plaque (Cinzel, `--foreground` on `--table-plaque`, a gold
+  rim; loyalty with a shield and a `--table-mana` rim) from a card width of
+  44 px, upright on a tapped card; the chips in the line above the picture;
+  a pile as up to two cards behind the front one with "×N"; rows that size
+  their cards by height and width (at least 44 px wide, then scrolling); no
+  line between a battlefield's two rows.
 - **Hand as a fan** (prompt 42): overlapping, the card under the mouse or the
   swiping thumb (or with keyboard focus) rises; a long press opens the card
   view; the toolbar's keyboard stays.

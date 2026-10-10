@@ -50,17 +50,24 @@
  * (table/use-table-layout.ts). A new size only changes the arrangement,
  * never the game.
  *
+ * Cards on the battlefield (prompt 40, table/card-parts.tsx, table.css):
+ * Forge's power/toughness or loyalty on a plaque on the card's printed value
+ * box - the one thing on a picture -, every other fact as a chip above it,
+ * piles as cards behind each other with "×N", Forge's marks and combat as
+ * frames and glows; a row sizes its cards by its height and width and scrolls
+ * only below the minimum.
+ *
  * Targets and payment (prompt 17): a player Forge's running input would take
  * - a target, a choice, the one paying life for Phyrexian mana - is a control
  * too: their name and life total carry Forge's mark and tap at once
  * (onTapPlayer, Forge's player.tap), like the cards of a selection. The card
  * the running step is about (the spell being cast, an ability's source) says
- * so below its picture ("Quelle"). The decision region shows the payment:
+ * so in a chip above its picture ("Quelle"). The decision region shows the payment:
  * what is still to pay, floating mana to pay with (onUseMana).
  */
 import { CircleSlash, Crosshair, Crown, Hourglass, Layers, ScrollText, Shield, Swords } from "lucide-react"
 import { cn } from "cn"
-import { createContext, use, useCallback, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { createContext, use, useCallback, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react"
 import type { AnswerBody, Card, GameEvent, GameState, ManaColor, Question, VisibleCard } from "@openmana/engine-protocol"
 import { Badge } from "@/components/ui/badge"
 import { GameBoard, GameBoardArea, type GameBoardDecision } from "@/components/ui/game-board"
@@ -89,13 +96,15 @@ import type { TableCardLookup } from "./table-cards"
 import {
   attackLine,
   blockLine,
-  captionFacts,
   cardButtonLabel,
   cardFacts,
   cardName,
+  chipFacts,
+  damageLabel,
   counterLabel,
   MANA_LABELS,
   placeLabel,
+  plaqueValue,
   playerButtonLabel,
   seatName,
   SOURCE_LABEL,
@@ -105,6 +114,7 @@ import {
 } from "./table-labels"
 import { pileOf, isVisible, tableView, type BoardEntry, type CombatView, type Seat, type StackEntryView, type TableSide, type TableView } from "./table-model"
 import { TablePicture } from "./table-picture"
+import { CardChip, rowSize, ValuePlaque } from "./table/card-parts"
 import { TableArt, TableCardBack, TableEmblem } from "./table/table-art"
 import { MedallionFace, StripChip, ZoneCount, ZoneCounter, ZonePile } from "./table/strip-parts"
 import { TableSurface } from "./table/table-surface"
@@ -630,7 +640,27 @@ function OpponentHand({ cards, pictures }: { cards: readonly Card[]; pictures: T
  * mark is its frame; its name says the mark and, where it taps at once, what
  * the tap does. Always inside a GameCardRow with controls.
  */
-function TableCard({ card, place, pictures, count = 1, note, caption }: { card: VisibleCard; place: CardPlace; pictures: TableCardLookup; count?: number; note?: string; caption?: ReactNode }) {
+function TableCard({
+  card,
+  place,
+  pictures,
+  count = 1,
+  note,
+  caption,
+  plaque,
+  combat,
+}: {
+  card: VisibleCard
+  place: CardPlace
+  pictures: TableCardLookup
+  count?: number
+  note?: string
+  caption?: ReactNode
+  /** The value plaque on the picture (battlefield cards, prompt 40). */
+  plaque?: ReactNode
+  /** Forge's combat fact: the frame's colour, an attacker moved towards its opponent (table.css). */
+  combat?: "attacking" | "blocking"
+}) {
   const controls = use(CardControlsContext)
   if (controls === null) throw new Error("TableCard outside GameTable")
   const found = cardUse(card, place, controls.moment)
@@ -644,12 +674,15 @@ function TableCard({ card, place, pictures, count = 1, note, caption }: { card: 
       <GameCardButton
         tapped={card.tapped}
         mark={usage.mark ?? (target ? "target" : null)}
+        {...(plaque !== undefined ? { plaque } : {})}
+        pile={count}
         data-stack-target={target || undefined}
+        data-combat={combat}
         data-card={card.id}
         aria-label={label}
         title={label}
         {...(usage.primary === "look" ? { "aria-haspopup": "dialog" as const } : {})}
-        {...(caption !== undefined ? { caption } : target ? { caption: <GameCardCaption title={STACK_TARGET_LABEL}><Crosshair aria-hidden /><span>Ziel</span></GameCardCaption> } : {})}
+        {...(caption !== undefined ? { caption } : target ? { caption: <GameCardCaption title={STACK_TARGET_LABEL}><TargetChip /></GameCardCaption> } : {})}
         {...press}
       >
         <TablePicture card={card} pictures={pictures} />
@@ -658,21 +691,36 @@ function TableCard({ card, place, pictures, count = 1, note, caption }: { card: 
   )
 }
 
+/** The chip of a card a spell on the stack targets (prompt 23): the crosshair and "Ziel". */
+function TargetChip() {
+  return (
+    <CardChip tone="danger">
+      <Crosshair aria-hidden />
+      <span>Ziel</span>
+    </CardChip>
+  )
+}
+
 /**
- * A card on the battlefield with its facts in the caption strip (never on the
- * picture): the pile's size and combat as signs, the rest in words; the whole
- * of it in the card's name for screen readers.
+ * A card on the battlefield (prompt 40, docs/design/SPIELTISCH.md §4.7):
+ * Forge's power/toughness or loyalty as the plaque on its printed value box,
+ * every other fact as a chip above the picture - the pile's size, "Ziel",
+ * "Quelle", Forge's reason it would not attack, the block step's words,
+ * combat and summoning sickness as signs, damage, counters and the rest in
+ * words -, the whole of it in the chip line's title and the card's name for
+ * screen readers.
  */
 function FieldCard({ card, count, pictures, seat, note }: { card: VisibleCard; count: number; pictures: TableCardLookup; seat: Seat; note?: string }) {
   const controls = use(CardControlsContext)
   // The card the running step is about (an ability's source while its targets or costs are chosen - prompt 17).
   const target = controls?.targets.cards.has(card.id) ?? false
   const source = controls !== null && stepSource(controls.moment.questions) === card.id
-  // While attackers are declared: why Forge would not declare this creature (prompt 18) - said in the caption, in place of its facts.
+  // While attackers are declared: why Forge would not declare this creature (prompt 18).
   const usage = controls === null ? null : cardUse(card, { zone: "battlefield", mine: seat === "me" }, controls.moment)
   const unavailable = usage?.unavailable ?? null
   const blockLabel = controls !== null && currentStep(controls.moment.questions) === "block" && openSelection(controls.moment.questions) === null ? usage?.markLabel ?? null : null
   const title = [cardName(card), ...cardFacts(card, count), ...(note ? [note] : []), ...(source ? [SOURCE_LABEL] : []), ...(target ? [STACK_TARGET_LABEL] : []), ...(blockLabel !== null ? [blockLabel] : []), ...(unavailable !== null ? [`kann nicht angreifen: ${unavailable.short}`] : [])].join(" · ")
+  const value = plaqueValue(card)
   return (
     <TableCard
       card={card}
@@ -680,16 +728,44 @@ function FieldCard({ card, count, pictures, seat, note }: { card: VisibleCard; c
       pictures={pictures}
       count={count}
       {...(note ? { note } : {})}
+      {...(value !== null ? { plaque: <ValuePlaque value={value} /> } : {})}
+      {...(card.attacking === true ? { combat: "attacking" as const } : card.blocking === true ? { combat: "blocking" as const } : {})}
       caption={
         <GameCardCaption title={title}>
-          {count > 1 ? <span className="font-medium text-foreground">{count}×</span> : null}
-          {card.attacking === true ? <Swords aria-hidden /> : null}
-          {card.blocking === true ? <Shield aria-hidden /> : null}
-          {card.sick ? <Hourglass aria-hidden /> : null}
-          {target ? <span className="sr-only">Ziel</span> : null}
-          {source ? <span className="font-medium text-foreground">{SOURCE_LABEL}</span> : null}
-          {unavailable !== null ? <CircleSlash aria-hidden /> : null}
-          <span className="truncate">{unavailable !== null ? unavailable.short : blockLabel ?? captionFacts(card).join(" · ")}</span>
+          {count > 1 ? <CardChip tone="pile">×{count}</CardChip> : null}
+          {target ? <TargetChip /> : null}
+          {source ? <CardChip tone="strong">{SOURCE_LABEL}</CardChip> : null}
+          {unavailable !== null ? (
+            <CardChip>
+              <CircleSlash aria-hidden />
+              <span>{unavailable.short}</span>
+            </CardChip>
+          ) : null}
+          {blockLabel !== null ? (
+            <CardChip tone="block">
+              {card.blocking === true ? <Shield aria-hidden /> : null}
+              <span>{blockLabel}</span>
+            </CardChip>
+          ) : card.blocking === true ? (
+            <CardChip tone="block">
+              <Shield aria-hidden />
+            </CardChip>
+          ) : null}
+          {card.attacking === true ? (
+            <CardChip tone="attack">
+              <Swords aria-hidden />
+            </CardChip>
+          ) : null}
+          {card.sick ? (
+            <CardChip>
+              <Hourglass aria-hidden />
+            </CardChip>
+          ) : null}
+          {chipFacts(card).map((fact) => (
+            <CardChip key={fact} {...(card.damage > 0 && fact === damageLabel(card.damage) ? { tone: "danger" as const } : {})}>
+              {fact}
+            </CardChip>
+          ))}
         </GameCardCaption>
       }
     />
@@ -704,7 +780,7 @@ function Entry({ entry, pictures, seat }: { entry: BoardEntry; pictures: TableCa
         <GameCard
           caption={
             <GameCardCaption title="verdeckt">
-              <span className="truncate">verdeckt</span>
+              <CardChip>verdeckt</CardChip>
             </GameCardCaption>
           }
         >
@@ -727,6 +803,27 @@ function Entry({ entry, pictures, seat }: { entry: BoardEntry; pictures: TableCa
       </GameCardGroup>
     </GameCardRowItem>
   )
+}
+
+/** The chip of a card in the command zone (its place in the battlefield's outer row). */
+function CommandChip() {
+  return (
+    <CardChip>
+      <Crown aria-hidden />
+      <span>Kommandozone</span>
+    </CardChip>
+  )
+}
+
+/**
+ * A battlefield row's size for table.css (prompt 40, the mockup's `--u`/`--c`):
+ * its cards' width in card widths and how many cards it draws - the card width
+ * is the least of the row's height, the free width per card and an upper
+ * bound, never below the minimum; only below that does the row scroll.
+ */
+function rowStyle(entries: readonly BoardEntry[], command = 0): CSSProperties {
+  const { units, places } = rowSize(entries, command)
+  return { "--u": Number(units.toFixed(3)), "--c": places } as CSSProperties
 }
 
 /** Whether a row shows a card the player may see (then it is a toolbar of cards; see GameCardRow). */
@@ -764,8 +861,7 @@ function Field({ side, pictures, nearRow, owner }: { side: TableSide; pictures: 
           note="Kommandozone"
           caption={
             <GameCardCaption title={`${cardName(card)} · Kommandozone`}>
-              <Crown aria-hidden />
-              <span className="truncate">Kommandozone</span>
+              <CommandChip />
             </GameCardCaption>
           }
         />
@@ -773,8 +869,7 @@ function Field({ side, pictures, nearRow, owner }: { side: TableSide; pictures: 
         <GameCard
           caption={
             <GameCardCaption title="Kommandozone">
-              <Crown aria-hidden />
-              <span className="truncate">Kommandozone</span>
+              <CommandChip />
             </GameCardCaption>
           }
         >
@@ -790,7 +885,7 @@ function Field({ side, pictures, nearRow, owner }: { side: TableSide; pictures: 
   if (empty) rows = <FieldEmpty text={`Auf dem Spielfeld von ${owner === "dir" ? "dir" : "der Forge-KI"} liegt nichts.`} />
   else if (!twoRows) {
     rows = (
-      <GameCardRow aria-label={`Bleibende Karten von ${owner}`} controls={hasCards([...creatures, ...others], command)}>
+      <GameCardRow aria-label={`Bleibende Karten von ${owner}`} controls={hasCards([...creatures, ...others], command)} className="table-field-row" style={rowStyle([...creatures, ...others], command.length)}>
         {commandItems}
         {entries(creatures)}
         {entries(others)}
@@ -798,12 +893,12 @@ function Field({ side, pictures, nearRow, owner }: { side: TableSide; pictures: 
     )
   } else {
     const near = (
-      <GameCardRow key="near" aria-label={`Kreaturen von ${owner}`} controls={hasCards(creatures)}>
+      <GameCardRow key="near" aria-label={`Kreaturen von ${owner}`} controls={hasCards(creatures)} className="table-field-row" style={rowStyle(creatures)}>
         {creatures.length > 0 ? entries(creatures) : <GameCardRowItem className={cn("m-auto h-auto px-2 text-xs text-muted-foreground", BOARD_TEXT)}>Keine Kreaturen</GameCardRowItem>}
       </GameCardRow>
     )
     const outer = (
-      <GameCardRow key="outer" aria-label={`Länder und weitere bleibende Karten von ${owner}`} controls={hasCards(others, command)}>
+      <GameCardRow key="outer" aria-label={`Länder und weitere bleibende Karten von ${owner}`} controls={hasCards(others, command)} className="table-field-row" style={rowStyle(others, command.length)}>
         {commandItems}
         {others.length > 0 ? (
           entries(others)
@@ -812,7 +907,8 @@ function Field({ side, pictures, nearRow, owner }: { side: TableSide; pictures: 
         ) : null}
       </GameCardRow>
     )
-    rows = nearRow === "top" ? [near, <Separator key="line" />, outer] : [outer, <Separator key="line" />, near]
+    // No line between the rows (prompt 40): the chips and the rows' gaps part them, as in the mockup.
+    rows = nearRow === "top" ? [near, outer] : [outer, near]
   }
   return (
     <div ref={ref} className="flex min-h-0 flex-1 flex-col">

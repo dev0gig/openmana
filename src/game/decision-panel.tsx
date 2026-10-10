@@ -897,7 +897,7 @@ function SelectPart({ question, view }: { question: SelectQuestion; view: Select
   }
   const parts = [`Wähle ${view.rule}`]
   if (view.chosen !== null) parts.push(`${view.chosen} gewählt`)
-  if (view.onTable > 0) parts.push(view.onTable === 1 ? "1 Karte davon liegt auf dem Tisch (gold gestrichelt)" : `${view.onTable} Karten davon liegen auf dem Tisch (gold gestrichelt)`)
+  if (view.onTable > 0) parts.push(view.onTable === 1 ? "1 Karte davon liegt auf dem Tisch (gold umrandet)" : `${view.onTable} Karten davon liegen auf dem Tisch (gold umrandet)`)
   const cards = visibleCardsById(state)
   return (
     <>
@@ -957,7 +957,7 @@ function PlayerChoices({ players, label }: { players: readonly GameState["player
  * mana symbols (spoken as words), the floating mana Forge would take from the
  * pool - a button per colour, it pays at once (mana.use) - and, for
  * Phyrexian mana, the player's life (their seat, Forge's player.tap). Mana
- * sources on the table are tapped there (gold dashed). Forge's Cancel takes
+ * sources on the table are tapped there (gold frames). Forge's Cancel takes
  * the whole payment back.
  */
 function PaymentPart() {
@@ -970,7 +970,7 @@ function PaymentPart() {
     <>
       <GameDecisionNote>
         Noch zu zahlen: <span className="font-medium text-foreground tabular-nums" aria-hidden>{view.cost}</span>
-        <span className="sr-only">{manaSymbolsText(view.cost)}</span>.{sources ? " Manaquellen auf dem Tisch (gold gestrichelt) bezahlen beim Antippen." : null}
+        <span className="sr-only">{manaSymbolsText(view.cost)}</span>.{sources ? " Manaquellen auf dem Tisch (gold umrandet) bezahlen beim Antippen." : null}
       </GameDecisionNote>
       {view.pool.length > 0 ? <PoolChoices view={view} /> : null}
       {view.life !== null ? <PlayerChoices players={[view.life]} label="Mit Leben statt Mana bezahlen" /> : null}

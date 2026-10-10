@@ -3311,6 +3311,87 @@ async function cardTargets(page: Page, label: string): Promise<{ readonly count:
 }
 
 /**
+ * The cards on the battlefields (prompt 40, docs/design/SPIELTISCH.md §4.7-4.8) at one size: every card keeps to its
+ * row - its chips above the picture, never on it, and an attacker moved towards its opponent too -, a pile says "×N"
+ * above it and draws the cards behind its front card, Forge's values lie on the plaque on the printed value box
+ * (bottom right; turned: bottom left, upright) clear of the artist and copyright line, shown from a card width of 44 px
+ * and hidden below; the cards of a row share one width, and a row scrolls sideways only once its cards are at the
+ * minimum of 44 px (or smaller, where the row's height allows no more).
+ */
+async function cardFaces(page: Page, label: string): Promise<Record<string, unknown>> {
+  const rows = await page.evaluate(() => {
+    const box = (element: Element) => {
+      const r = element.getBoundingClientRect()
+      return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height }
+    }
+    return [...document.querySelectorAll('[data-slot="game-board-area"] .table-field-row')]
+      .filter((row) => row.checkVisibility())
+      .map((row) => ({
+        label: row.getAttribute("aria-label") ?? "",
+        box: box(row),
+        scrolls: row.scrollWidth > row.clientWidth + 1,
+        cards: [...row.querySelectorAll('[data-slot="game-card"]')].map((card) => {
+          const caption = card.querySelector('[data-slot="game-card-caption"]')
+          const plaque = card.querySelector('[data-slot="game-card-plaque"]')
+          return {
+            id: card.getAttribute("data-card") ?? "hidden",
+            tapped: card.getAttribute("data-tapped") === "true",
+            card: box(card),
+            picture: box(card.querySelector('[data-slot="game-card-picture"]')!),
+            caption: caption === null ? null : box(caption),
+            chips: caption?.textContent ?? "",
+            pile: Number(/(\d+) Karten/.exec(caption?.getAttribute("title") ?? "")?.[1] ?? 1),
+            layers: card.querySelectorAll('[data-slot="game-card-layer"]').length,
+            plaque: plaque === null ? null : { shown: plaque.checkVisibility(), ...box(plaque) },
+          }
+        }),
+      }))
+  })
+  let plaques = 0
+  let hidden = 0
+  let smallest = Number.POSITIVE_INFINITY
+  for (const row of rows) {
+    const widths: number[] = []
+    for (const card of row.cards) {
+      const where = `${label}: ${row.label}, card ${card.id}`
+      const picture = card.picture
+      // The card's width: a tapped card lies turned, its picture's box is as tall as the card is wide.
+      const width = card.tapped ? picture.height : picture.width
+      widths.push(width)
+      check(card.card.top >= row.box.top - 1 && card.card.bottom <= row.box.bottom + 1, `${where}: leaves its row ${JSON.stringify({ card: card.card, row: row.box })}`)
+      check(card.caption === null || card.caption.bottom <= picture.top + 1, `${where}: the chips lie on the picture ${JSON.stringify({ caption: card.caption, picture })}`)
+      if (card.pile > 1) check(card.chips.startsWith(`×${card.pile}`) && card.layers === Math.min(card.pile, 3) - 1, `${where}: a pile of ${card.pile} shows "${card.chips}" and ${card.layers} cards behind`)
+      if (card.plaque === null) continue
+      const plaque = card.plaque
+      if (width >= 44.5) check(plaque.shown, `${where}: no plaque on a card ${width.toFixed(1)}px wide`)
+      if (width < 43.5) check(!plaque.shown, `${where}: a plaque on a card only ${width.toFixed(1)}px wide`)
+      if (!plaque.shown) {
+        hidden++
+        continue
+      }
+      plaques++
+      check(plaque.left >= picture.left - 0.5 && plaque.right <= picture.right + 0.5 && plaque.top >= picture.top - 0.5 && plaque.bottom <= picture.bottom + 0.5, `${where}: the plaque leaves the picture ${JSON.stringify({ plaque, picture })}`)
+      const fromRight = picture.right - plaque.right
+      const fromLeft = plaque.left - picture.left
+      const fromBottom = picture.bottom - plaque.bottom
+      if (!card.tapped) {
+        // On the printed value box at the bottom right; below it the artist and copyright line (the bottom 4 %) stays free.
+        check(fromRight <= 0.03 * picture.width + 2 && fromBottom >= 0.04 * picture.height && fromBottom <= 0.043 * picture.height + 2, `${where}: the plaque is not on the value box ${JSON.stringify({ fromRight, fromBottom, picture })}`)
+      } else {
+        // Turned: the box lies at the bottom left, upright; the copyright edge (now the left 4.3 %) stays free.
+        check(fromLeft >= 0.05 * picture.width && fromLeft <= 0.06 * picture.width + 2 && fromBottom >= 0.09 * picture.height && fromBottom <= 0.1 * picture.height + 2, `${where}: the plaque is not on the turned value box ${JSON.stringify({ fromLeft, fromBottom, picture })}`)
+      }
+    }
+    if (widths.length === 0) continue
+    const least = Math.min(...widths)
+    smallest = Math.min(smallest, least)
+    check(Math.max(...widths) - least <= 1, `${label}: ${row.label}: cards of different widths ${JSON.stringify(widths)}`)
+    check(!row.scrolls || least <= 44.5, `${label}: ${row.label} scrolls sideways with cards ${least.toFixed(1)}px wide`)
+  }
+  return { rows: rows.length, cards: rows.reduce((sum, row) => sum + row.cards.length, 0), plaques, hidden, smallest: Number.isFinite(smallest) ? Math.round(smallest * 10) / 10 : null }
+}
+
+/**
  * The strips and the header of prompt 39 at one size: each player is a life medallion (the ring drawn, Forge's life in
  * `[title="Lebenspunkte"] .tabular-nums`), the zones are piles and counters; every one of them - and the header's zone,
  * history and help buttons - is at least 44 px on a touch screen, inside the window and inside its strip, and no strip
@@ -4052,6 +4133,7 @@ async function tableHarness(executablePath: string): Promise<Record<string, unkn
           const menu = viewport.touch ? await layoutHeight(page.getByRole("button", { name: "Menü" })) : null
           if (menu !== null) check(menu >= 44, `${label}: the menu button ${menu}px high`)
           const cards = await cardTargets(page, label)
+          const faces = await cardFaces(page, label)
           const marks = await page.evaluate(() => ({
             usable: document.querySelectorAll('button[data-slot="game-card"][data-mark="usable"]').length,
             selected: document.querySelectorAll('button[data-slot="game-card"][data-mark="selected"]').length,
@@ -4089,7 +4171,7 @@ async function tableHarness(executablePath: string): Promise<Record<string, unkn
           const axe = await accessibility(page, label)
           await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-${built === null ? scene : `built-${built}`}.png`) })
           const help = helpOnly || ["main-phase", "stack", "built:choose-many", "built:confirm"].includes(name) ? await helpInteractions(page, `${viewport.name}-${name}`, viewport) : null
-          scenes[name] = { help, areas: layout["areas"], arrangement: layout["arrangement"], pictures, rows, menu, cards, marks, decision, surface, strips, axe }
+          scenes[name] = { help, areas: layout["areas"], arrangement: layout["arrangement"], pictures, rows, menu, cards, faces, marks, decision, surface, strips, axe }
           for (const error of pageLog.errors) check(false, `${label}: ${error}`)
           await page.close()
         }
@@ -4370,11 +4452,12 @@ async function tableFoldSizes(executablePath: string, base: string): Promise<Rec
         const layout = await checkTableFits(page, label)
         const pictures = await tablePictures(page, label)
         const cards = await cardTargets(page, label)
+        const faces = await cardFaces(page, label)
         const strips = await stripFacts(page, label, viewport.touch)
         const decision = await decisionFits(page, label, viewport)
         const axe = await accessibility(page, label)
         await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-${built === null ? scene : `built-${built}`}.png`) })
-        scenes[name] = { areas: layout["areas"], arrangement: layout["arrangement"], pictures, cards, strips, decision, axe }
+        scenes[name] = { areas: layout["areas"], arrangement: layout["arrangement"], pictures, cards, faces, strips, decision, axe }
         for (const error of pageLog.errors) check(false, `${label}: ${error}`)
         await page.close()
       }

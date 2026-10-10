@@ -162,7 +162,7 @@ describe("the decision region while attackers are declared", () => {
     const back = decision().querySelector("[data-attack-unavailable]")!
     for (const { card, words } of view.unavailable) expect(back).toHaveTextContent(`${card.name} (${words.short})`)
     expect(within(decision()).queryByRole("group", { name: "Wen greifst du an?" })).not.toBeInTheDocument()
-    expect(within(decision()).getByText(/^1 Kreatur kann angreifen \(gold gestrichelt\)\. Antippen lässt eine Kreatur angreifen, ein zweiter Tipp nimmt sie zurück\./)).toBeInTheDocument()
+    expect(within(decision()).getByText(/^1 Kreatur kann angreifen \(gold umrandet\)\. Antippen lässt eine Kreatur angreifen, ein zweiter Tipp nimmt sie zurück\./)).toBeInTheDocument()
   })
 
   it("Forge's buttons by meaning: 'Nicht angreifen' without attackers, 'Alle angreifen' - each sent once armed", async () => {

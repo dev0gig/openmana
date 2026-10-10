@@ -222,7 +222,7 @@ describe("select (Forge's selectable cards)", () => {
   it("a target on the table (recorded): how many, where they are, Forge's prompt - not the step's stale text", () => {
     table("target")
     const note = within(decision()).getByText(/^Wähle genau 1/)
-    expect(note).toHaveTextContent("Wähle genau 1 · 0 gewählt · 5 Karten davon liegen auf dem Tisch (gold gestrichelt).")
+    expect(note).toHaveTextContent("Wähle genau 1 · 0 gewählt · 5 Karten davon liegen auf dem Tisch (gold umrandet).")
     expect(within(decision()).getByText(/^Zergliedern \(31\) - Target creature gets -5\/-5/)).toBeInTheDocument()
     // The cards lie on the table: no second row of them here; no player is taken.
     expect(decision().querySelector('[data-slot="game-decision-row"]')).toBeNull()
@@ -257,14 +257,14 @@ describe("select (Forge's selectable cards)", () => {
 
   it("any target (recorded): the creatures on the table and the players, counted together in Forge's numbers", () => {
     const { scene } = table("target-both")
-    expect(within(decision()).getByText("Wähle genau 1 · 0 gewählt · 2 Karten davon liegen auf dem Tisch (gold gestrichelt).")).toBeInTheDocument()
+    expect(within(decision()).getByText("Wähle genau 1 · 0 gewählt · 2 Karten davon liegen auf dem Tisch (gold umrandet).")).toBeInTheDocument()
     expect(within(within(decision()).getByRole("group", { name: "Spieler, die Forge hier nimmt" })).getAllByRole("button")).toHaveLength(2)
     expect(document.querySelectorAll('button[data-slot="game-player"][data-player][data-mark="usable"]')).toHaveLength(scene.state.players.length)
   })
 
   it("two cards to discard (recorded): no buttons - Forge ends the step itself", () => {
     table("discard")
-    expect(within(decision()).getByText("Wähle genau 2 · 0 gewählt · 3 Karten davon liegen auf dem Tisch (gold gestrichelt).")).toBeInTheDocument()
+    expect(within(decision()).getByText("Wähle genau 2 · 0 gewählt · 3 Karten davon liegen auf dem Tisch (gold umrandet).")).toBeInTheDocument()
     expect(within(decision()).queryByRole("group", { name: "Antworten, die Forge anbietet" })).not.toBeInTheDocument()
   })
 
@@ -321,7 +321,7 @@ describe("paying a cost (prompt 17)", () => {
   it("by hand (recorded): what is still to pay in Forge's symbols (words for screen readers), the source, the mana sources on the table tap at once", async () => {
     const user = userEvent.setup()
     const { scene, onTapCard } = table("payment")
-    expect(within(decision()).getByText(/^Noch zu zahlen:/)).toHaveTextContent("Noch zu zahlen: {R}Rot. Manaquellen auf dem Tisch (gold gestrichelt) bezahlen beim Antippen.")
+    expect(within(decision()).getByText(/^Noch zu zahlen:/)).toHaveTextContent("Noch zu zahlen: {R}Rot. Manaquellen auf dem Tisch (gold umrandet) bezahlen beim Antippen.")
     expect(within(decision()).getByText("Kosten bezahlen · Schock")).toBeInTheDocument()
     expect(within(decision()).queryByRole("group", { name: "Aus deinem Manavorrat bezahlen" })).not.toBeInTheDocument()
     expect(within(decision()).queryByRole("group", { name: "Mit Leben statt Mana bezahlen" })).not.toBeInTheDocument()

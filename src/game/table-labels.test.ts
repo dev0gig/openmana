@@ -4,7 +4,7 @@
  */
 import type { VisibleCard } from "@openmana/engine-protocol"
 import { describe, expect, it } from "vitest"
-import { attackLine, blockLine, captionFacts, cardFacts, cardName, counterLabel, manaSymbolsText, playerButtonLabel, seatName, spokenFacts, stackTargets } from "./table-labels"
+import { attackLine, blockLine, captionFacts, cardFacts, cardName, chipFacts, counterLabel, manaSymbolsText, plaqueValue, playerButtonLabel, seatName, spokenFacts, stackTargets } from "./table-labels"
 import type { CombatView } from "./table-model"
 
 function card(id: number, key: string, overrides: Partial<VisibleCard> = {}): VisibleCard {
@@ -28,7 +28,24 @@ describe("a card's facts", () => {
     expect(captionFacts(card(1, "Bear", { colors: "", printedColors: "G" }))).toEqual(["Farbe: Farblos"])
   })
 
-  it("in words below the card: power/toughness, loyalty, damage, counters, face-down, phased out - Forge's values, nothing computed", () => {
+  it("the plaque (prompt 40): Forge's power/toughness as sent, else its loyalty; the chips the rest - nothing computed", () => {
+    const bear = card(1, "Grizzly Bears", { power: 3, toughness: 3, damage: 2, counters: { "+1/+1": 1 } })
+    expect(plaqueValue(bear)).toEqual({ kind: "power", text: "3/3" })
+    expect(chipFacts(bear)).toEqual(["2 Schaden", "+1/+1: 1"])
+    const walker = card(2, "Jace", { loyalty: "4", counters: { Loyalty: 4, Charge: 1 } })
+    expect(plaqueValue(walker)).toEqual({ kind: "loyalty", text: "4" })
+    expect(chipFacts(walker)).toEqual(["Ladung: 1"])
+    // A planeswalker that is a creature too: its power on the plaque, its loyalty as a chip.
+    const both = card(3, "Gideon", { power: 5, toughness: 5, loyalty: "3" })
+    expect(plaqueValue(both)).toEqual({ kind: "power", text: "5/5" })
+    expect(chipFacts(both)).toEqual(["Loyalität 3"])
+    // Forge's values as they are, also a negative power; no plaque without values.
+    expect(plaqueValue(card(4, "Shrunk", { power: -1, toughness: 0 }))).toEqual({ kind: "power", text: "-1/0" })
+    expect(plaqueValue(card(5, "Mountain"))).toBeNull()
+    expect(chipFacts(card(6, "Morph", { faceDown: true, phasedOut: true }))).toEqual(["verdeckt", "ausgephast"])
+  })
+
+  it("in words (the card view's state; on the table split into plaque and chips): power/toughness, loyalty, damage, counters, face-down, phased out - Forge's values, nothing computed", () => {
     const bear = card(1, "Grizzly Bears", { power: 3, toughness: 3, damage: 2, counters: { "+1/+1": 1 } })
     expect(captionFacts(bear)).toEqual(["3/3", "2 Schaden", "+1/+1: 1"])
     const walker = card(2, "Jace", { loyalty: "4", counters: { Loyalty: 4, Charge: 1 } })

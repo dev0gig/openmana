@@ -41,11 +41,11 @@ export const SICK_NOTE =
 
 /**
  * How many creatures a tap would declare (the attack model's `ready`: Forge's
- * marker, gold dashed on the table) - said before the first attacker, while
+ * marker, a glowing gold frame on the table) - said before the first attacker, while
  * the region has room (see AttackDecision).
  */
 export function readyText(ready: number): string {
-  return `${ready === 1 ? "1 Kreatur kann" : `${ready} Kreaturen können`} angreifen (gold gestrichelt).`
+  return `${ready === 1 ? "1 Kreatur kann" : `${ready} Kreaturen können`} angreifen (gold umrandet).`
 }
 
 /**

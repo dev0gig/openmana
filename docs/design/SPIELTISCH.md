@@ -337,7 +337,7 @@ anchors it keeps and the prompt that builds it.
   lie on the board, their words on chips); the centre line's emblem lies under the
   stack bar in `hoch` while the stack has items (as §3.1 intends); the emblem
   does not glimmer (only the ring moves); the row separators of the
-  battlefields stay visible across the board until prompt 40.
+  battlefields stayed visible across the board until prompt 40 (gone since).
 
 ### 4.2 Header bar (prompt 39)
 - Mockup: `.kopf`, `.marke` (emblem + Cinzel wordmark in gold), `.kopf-nav`,
@@ -491,12 +491,71 @@ anchors it keeps and the prompt that builds it.
   minimum always); only below that the row scrolls sideways. Tapped cards and
   piles count (`--u`: width in card widths, tapped ≈ 1.4, a pile + 0.12 per
   card; `--c`: number of places).
+- **Built (prompt 40):** `FieldCard` (`game-table.tsx`) with the parts in
+  `src/game/table/card-parts.tsx` and the rules in `table.css`:
+  - **Plaque** (`ValuePlaque`, slot `game-card-plaque`, `aria-hidden` - the
+    card's name says the values): `plaqueValue()` (`table-labels.ts`) gives
+    Forge's power/toughness as `"${power}/${toughness}"` or, without them, the
+    loyalty; a card with both shows its power and its loyalty as a chip. It
+    lies in the card's face (`GameCard` `plaque`, outside the turned picture,
+    so it stays upright): right `1px + 3 %`, bottom `1px + 4.3 %` of the
+    picture's box (CardPicture's 1 px border included), at least 27 % wide,
+    Cinzel `clamp(9px, 13 % of the card width, 0.95rem)`, `--foreground` on a
+    `--table-plaque` gradient with a gold rim; loyalty with lucide's shield in
+    `--table-mana` and a mana-blue rim. Tapped: left 6 %, bottom 10 % of the
+    turned box (the mockup's), clear of the copyright edge, which is the left
+    4.3 % then. The card's face is a size container (`table-card`); the
+    plaque is hidden on a card narrower than 44 px (turned: a face narrower
+    than 61.4 px). Forge sends no printed value (`VisibleCard` has none), so
+    nothing is compared or highlighted.
+  - **Chips** (`CardChip`, class `table-card-chip`, in `GameCardCaption` -
+    slot `game-card-caption`, whose `title` keeps every fact as before): the
+    chip line is the first part of the card (0.875 rem, `h-3.5`), above the
+    picture, chips 13 px high with 10 px words on the panel tone and a gold
+    hairline; in this order: the pile ("×N", gold Cinzel), "Ziel" (crosshair,
+    danger rim), "Quelle", Forge's refusal (circle-slash and the short
+    reason), the block step's words (with the shield when blocking) or the
+    blocking shield, the attacking swords (amber), the hourglass, then
+    `chipFacts()` - damage (danger rim), counters, a changed colour,
+    "verdeckt", "ausgephast". The line never widens the card and is cut at
+    its end. Hidden cards say "verdeckt", the command zone's cards
+    "Kommandozone" (crown) as chips too.
+  - **Rows** (class `table-field-row` on `Field`'s rows, inline `--u` and
+    `--c` from `rowSize()`): `--kw = min((row height - chip line - 2 px - the
+    4 px frame) × 63/88, max(2.75rem, (row width - 4 px × c - gap × (c - 1)) /
+    u), 9.5rem)`, `--kh = --kw × 88/63`; a card's face is `--kw + 4 px` wide
+    (the 2 px frame room on each side), a tapped one `--kh + 4 px`. Tapped
+    adds 88/63, a pile 0.12 per drawn card behind (at most two), attachments
+    count as cards. Cards are centred in the row, gap 0.375 rem; the row's
+    padding on the opponent's side holds `--advance` (0.375 rem) for
+    attackers. No line between a battlefield's two rows any more (the
+    mockup has none; the chips and the gap part them).
+  - **Tapped:** the quarter turn, the face as wide as the card is tall
+    (landscape, no square place any more), nothing darkened.
+  - **Attachments:** `GameCardGroup` keeps host and attachments together, on
+    a plate of the panel tone (55 %) instead of a dashed frame that took
+    room.
+- **Deviations (prompt 40):** chips at the top edge are not in the mockup
+  (it shows no facts besides the plaque and the pile's count); the pile's
+  cards behind the front one are plates in the panel tone with a gold
+  hairline, not further copies of the picture (no extra picture loads, nothing
+  laid over a picture); a pile draws at most two cards behind (the mockup
+  draws every card - a pile of 20 lands would be three cards wide); the pile's
+  count is a chip above the pile, not on its corner; both rows of a
+  battlefield are equally high (the mockup gives the creatures 58 %) - the
+  measured two-row threshold of prompt 38 builds on it; cards are centred in
+  their row (mockup: at its bottom); the picture's corners follow the card
+  (4.8 % of its width) inside the table's rows.
 
 ### 4.8 Pile count (prompt 40)
 - Mockup: `.stapel-zahl`, `.karte-flaeche --n`. Several equal cards lie
   offset behind each other; "×N" as a badge **above** the pile, never on the
   front card. The pile logic of `table-model.ts` is unchanged; the card view
   steps through the pile as today.
+- **Built (prompt 40):** `GameCard` `pile` (the pile's size) draws up to two
+  `game-card-layer` plates behind the front card inside `game-card-pile`
+  (offset 0.12 card widths each to the left, `--layers`/`--k`); "×N" is the
+  first chip. `table-model.ts` and the card view are unchanged.
 
 ### 4.9 Marks (prompt 40, arrows in 43)
 `data-mark` (`usable`, `selected`, `target`) and the combat facts stay the
@@ -515,6 +574,21 @@ Usable/chosen frames take precedence where several apply; the words
 ("Ziel", "greift an", "blockt") stay in chips and names, so no state is told
 by colour alone (WCAG 1.4.1). Contrast: every mark reaches 3:1 on the board,
 the desk and the panels (`design-tokens.test.ts`).
+
+**Built (prompt 40)** - `table.css` on `[data-slot="game-card-face"]`
+(`GameCard`'s base classes give the frame's colour, table.css the rest):
+usable a `--primary` frame with a glow (no longer dashed); chosen a
+`--foreground` frame and a second 1 px ring (thicker) with a light glow;
+target a `--table-danger` frame and a glow layer (`::after`) whose opacity
+pulses (`table-target-pulse`, 1.4 s, 0.45-1; 0.85 and still under less
+motion); attacking and blocking by Forge's combat facts on the card
+(`data-combat="attacking" | "blocking"`, a new anchor), only where no mark of
+Forge's applies: attacking a `--table-attack` frame and glow, blocking
+`--table-mana` (the proposal, taken). An attacker moves 0.375 rem towards its
+opponent (`translate`: up on your battlefield, down on the AI's) - also while
+chosen. The words: "Ziel", the swords, the shield and the block step's words
+as chips, everything in the card's name. The decision region's words for
+usable cards now say "gold umrandet" (were "gold gestrichelt").
 
 ### 4.10 Fanned hand (prompt 42)
 - Mockup: `.hand`, `.hand-karte` (`--hw` card width from the hand's height,
@@ -756,6 +830,10 @@ From the shared rules of the series - end-to-end section 12,
 - since prompt 39 `data-strip-fact="profile"` (the AI profile Forge
   confirmed, read by the end-to-end test and the readiness games instead of
   the former badge) and `data-zone-pile` on the strips' piles and counters;
+- since prompt 40 `data-combat` on battlefield cards and the card slots
+  `game-card-plaque`, `game-card-picture`, `game-card-pile`,
+  `game-card-layer`; the chip line keeps `game-card-caption` with every fact
+  in its `title` (the end-to-end test's counts read "N Karten" there);
 - the toolbars' names.
 
 The regression evidence stays complete (8 sizes × 38 scenes, at least 600
@@ -802,3 +880,10 @@ a push.
   back for every hidden card (§4.5) and the opponent's hand as backs (§4.6);
   the strips lie on the board. Cards, chronicle, panels and hand unchanged
   (prompts 40-42).
+- 2026-10-10, prompt 40: the cards on the battlefields (§4.7-4.9) - the
+  plaque with Forge's power/toughness or loyalty on the printed value box
+  (upright when tapped, from 44 px), the facts as chips above the picture,
+  piles as cards behind each other with "×N", marks as glowing frames
+  (target pulsing, attacking amber and moved forward, blocking mana blue),
+  rows sizing their cards by height and width; no line between the rows.
+  Chronicle, panels and hand unchanged (prompts 41-42).
