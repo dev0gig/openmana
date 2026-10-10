@@ -222,6 +222,44 @@ anchors it keeps and the prompt that builds it.
   (opacity); both stop under less motion.
 - Region backgrounds become transparent or subtle so the board shows; text
   stays readable (panel tokens where needed).
+- **Built (prompt 37):** `src/game/table/table-surface.tsx` (`TableSurface`,
+  first child of `GameBoard` in `game-table.tsx`, so also in the replay) and
+  `src/game/table/surface-drawing.ts` (pure geometry and markup after
+  `arkan.js`). The playing area is the battlefields' column; a strip counts
+  only where it stands in that column (it overlaps at least half its width) -
+  until prompt 38 the strips of the landscape layout stand beside the
+  battlefields, so there the board spans the battlefields alone. The board:
+  6 px from the screen's sides, 2 px inside the area's ends; frame
+  `clamp(10, 2.2 % of the shorter side, 18)` px; circle radius
+  `min(46 % of the width, 44 % of the height)`; no circle below a radius of
+  48 px. Three layers, each its own compositor layer (`will-change`): the
+  desk (`data-surface="desk"`, one SVG 1:1 over the game board: wood grain,
+  plank joints, vignette), drawn only when the **screen's** size changes - a
+  region that grows with a question never recomputes its full-screen grain;
+  the board (`data-surface="board"`, an SVG at the board's corner: frame,
+  brass, leather, circle, centre line, emblem, corner plates; its shadow
+  reaches out of it), drawn only when the **playing area's** size or place
+  changes (layout key `data-board`); and the rune ring
+  (`data-surface="ring"`, a square around the circle, drawn with the board)
+  that table.css turns (`table-ring-turn`, 360 s) and lets glimmer
+  (`table-ring-glimmer`, opacity 0.75-1 as the mockup's `glimmen`, 4 s; 0.85
+  still); both stop under less motion. Desk and board have their own ids
+  (the frame repeats the desk's grain filter). Each drawing is one User
+  Timing measure
+  `openmana:table-surface`. Colours from tokens only: grain via `feFlood` with
+  a token (the mockup's colour matrices work in linear light, so their grain
+  is lighter than its numbers read: wood grain = `--table-wood-frame` mixed
+  half with `--table-gold-light`, leather grain = `--foreground` at 14 %),
+  depth mixed with black. Regions: header a panel band with a gold hairline,
+  strips, stack/combat and the decision on `--table-panel` at 90 %, region
+  lines `--table-gold-line`; on the board the caption strips (when not empty)
+  and the battlefields' words ("Keine Kreaturen" …) on the same panel tone.
+- **Deliberate deviations from the mockup (prompt 37):** the strips cover the
+  board's top and bottom frame with their panel tone (they carry text until
+  prompt 39 makes them medallions); the centre line's emblem lies under the
+  stack bar in `hoch` while the stack has items (as §3.1 intends); the emblem
+  does not glimmer (only the ring moves); the row separators of the
+  battlefields stay visible across the board until prompt 40.
 
 ### 4.2 Header bar (prompt 39)
 - Mockup: `.kopf`, `.marke` (emblem + Cinzel wordmark in gold), `.kopf-nav`,
@@ -593,3 +631,7 @@ a push.
   (`hoch:`/`quadrat:`/`breit:`, `useTableLayout`) and the table's motion and
   stylesheet checks in place; `table.css` exists but is not imported; the
   table looks as before.
+- 2026-10-10, prompt 37: the table surface (§4.1) in game and replay -
+  wooden desk, board with frame, brass corners, leather, rune ring (turning,
+  glimmering), centre line with diamonds and emblem; regions on panel tones;
+  table.css imported. Regions still where they were (prompt 38).

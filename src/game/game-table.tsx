@@ -39,6 +39,10 @@
  * "Weiter" or "Verrechnen lassen". Cards are played by tapping them, as
  * always - never through a question the app makes up.
  *
+ * The surface (prompt 37, table/table-surface.tsx): a wooden desk with the
+ * board set into it lies behind the regions - decoration, redrawn only when a
+ * size changes, never by a new state.
+ *
  * Targets and payment (prompt 17): a player Forge's running input would take
  * - a target, a choice, the one paying life for Phyrexian mana - is a control
  * too: their name and life total carry Forge's mark and tap at once
@@ -93,6 +97,7 @@ import {
 } from "./table-labels"
 import { pileOf, isVisible, tableView, type BoardEntry, type CombatView, type Seat, type StackEntryView, type TableSide, type TableView } from "./table-model"
 import { TablePicture } from "./table-picture"
+import { TableSurface } from "./table/table-surface"
 import { TURN_PHASES, turnSteps } from "./turn-model"
 
 /** Below this height a battlefield shows its cards in one row instead of two (px, measured). */
@@ -262,6 +267,7 @@ export function GameTable({ replay = false,
     <CardControlsContext value={controls}>
       <GameBoard decision={room}>
         <title>Partie · OpenMana</title>
+        <TableSurface />
         <GameBoardArea area="header" aria-label="Spielstand" className="flex items-center gap-2 px-2 py-1">
           {menu}
           <GameZoneButton aria-label="Zonen ansehen" title="Zonen ansehen" aria-haspopup="dialog" disabled={state.players.length === 0} onClick={() => { const player = state.players.find((p) => p.me) ?? state.players[0]; if (player !== undefined) setZone({ kind: "zone", player: player.id, zone: "graveyard" }) }}>
@@ -665,8 +671,11 @@ function hasCards(entries: readonly BoardEntry[], command: readonly Card[] = [])
   return entries.some((entry) => entry.kind === "card") || command.some(isVisible)
 }
 
+/** Words on the board (prompt 37): on the panel tone, readable over the leather, the circle and its runes. */
+const BOARD_TEXT = "rounded-md bg-table-panel/90 py-1"
+
 function FieldEmpty({ text }: { text: string }) {
-  return <p className="m-auto px-3 text-center text-xs text-muted-foreground">{text}</p>
+  return <p className={cn("m-auto px-3 text-center text-xs text-muted-foreground", BOARD_TEXT)}>{text}</p>
 }
 
 /**
@@ -727,7 +736,7 @@ function Field({ side, pictures, nearRow, owner }: { side: TableSide; pictures: 
   } else {
     const near = (
       <GameCardRow key="near" aria-label={`Kreaturen von ${owner}`} controls={hasCards(creatures)}>
-        {creatures.length > 0 ? entries(creatures) : <GameCardRowItem className="m-auto h-auto text-xs text-muted-foreground">Keine Kreaturen</GameCardRowItem>}
+        {creatures.length > 0 ? entries(creatures) : <GameCardRowItem className={cn("m-auto h-auto px-2 text-xs text-muted-foreground", BOARD_TEXT)}>Keine Kreaturen</GameCardRowItem>}
       </GameCardRow>
     )
     const outer = (
@@ -736,7 +745,7 @@ function Field({ side, pictures, nearRow, owner }: { side: TableSide; pictures: 
         {others.length > 0 ? (
           entries(others)
         ) : command.length === 0 ? (
-          <GameCardRowItem className="m-auto h-auto text-xs text-muted-foreground">Keine weiteren Karten</GameCardRowItem>
+          <GameCardRowItem className={cn("m-auto h-auto px-2 text-xs text-muted-foreground", BOARD_TEXT)}>Keine weiteren Karten</GameCardRowItem>
         ) : null}
       </GameCardRow>
     )

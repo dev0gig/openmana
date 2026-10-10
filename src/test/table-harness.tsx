@@ -23,6 +23,11 @@
  * it pays with go to recorders as well (window.__openmanaPlayerTaps: player
  * ids; window.__openmanaMana: colours).
  *
+ * The surface (prompt 37): window.__openmanaShowScene(name) puts another
+ * recorded scene's state on the table (a fresh copy, as a new state of Forge
+ * would be) - the test measures what 20 such changes cost and that the table
+ * surface is not drawn again for them.
+ *
  * Not part of the app: only the test's dev server serves it,
  * /scripts/e2e/table-harness.html?scene=<name>[&built=<question>][&language=en][&waiting=0].
  */
@@ -52,6 +57,8 @@ declare global {
     __openmanaPlayerTaps?: number[]
     /** The floating mana the table paid with, in order (prompt 17). */
     __openmanaMana?: ManaColor[]
+    /** Shows another recorded scene's state (prompt 37: state changes for the surface's measurement). */
+    __openmanaShowScene?: (name: TableSceneName) => void
   }
 }
 
@@ -113,7 +120,13 @@ function Harness() {
   const recorded = tableScene((params.get("scene") ?? "opening") as TableSceneName)
   // Explicitly built presentation boundary: real catalog DFC, no claim of a Forge transform.
   const presentation = params.get("presentation")
-  const [scene] = useState(() => presentationScene(recorded, presentation))
+  const [scene, setScene] = useState(() => presentationScene(recorded, presentation))
+  useEffect(() => {
+    window.__openmanaShowScene = (name) => setScene(structuredClone(tableScene(name)))
+    return () => {
+      delete window.__openmanaShowScene
+    }
+  }, [])
   const builtName = params.get("built")
   const built = builtName !== null && (BUILT_QUESTIONS as readonly string[]).includes(builtName) ? builtQuestion(builtName as BuiltQuestionName, scene) : null
   const language = params.get("language") === "en" ? "en" : "de"

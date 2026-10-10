@@ -283,7 +283,7 @@ describe("less motion on the game table", () => {
     expect(files.length).toBeGreaterThan(0)
   })
 
-  // The checks above must find what they look for (the table has no motion yet in prompt 36): built examples.
+  // The checks above must find what they look for (the table's first motion, the rune ring, came in prompt 37): built examples.
   it("the stylesheet check accepts allowed motion and finds every kind of violation", () => {
     const allowed = `
       ${BOARD} .hand-card { transition: transform 0.22s ease-out, opacity 0.2s; }

@@ -127,6 +127,24 @@ describe("design tokens", () => {
     expect(contrast(foreground, background)).toBeGreaterThanOrEqual(4.5)
   })
 
+  // Prompt 37: regions full of text and the words on the board lie on --table-panel at 90 % (table.css, BOARD_TEXT in
+  // game-table.tsx); below them may lie the board's brightest decoration - brass and rune gold - or the desk.
+  it.each(
+    ["foreground", "muted-foreground", "primary", "table-gold-light"].flatMap((text) =>
+      ["table-gold-light", "table-wood-frame", "table-leather", "table-wood"].map((under) => [text, under] as const),
+    ),
+  )("table text %s on the panel tone (90 %%) over %s reaches 4.5:1", (text, under) => {
+    expect(ratio(token(text), over("table-panel", 0.9, under))).toBeGreaterThanOrEqual(4.5)
+  })
+
+  // Text straight on the desk (the hand's row) and the board's leather.
+  it.each([
+    ["muted-foreground", "table-wood"],
+    ["muted-foreground", "table-wood-frame"],
+  ])("table text %s on %s reaches 4.5:1", (text, surface) => {
+    expect(contrast(text, surface)).toBeGreaterThanOrEqual(4.5)
+  })
+
   // The table's marks, plaque rims and arrows (WCAG 1.4.11, 3:1): usable/chosen gold, target and danger red, attack
   // amber, loyalty's mana blue - on the board (leather), on the desk (wood frame) and on the panels. The marks differ by
   // more than colour (glow against frame, an arrow, the chips' words), as WCAG 1.4.1 asks.

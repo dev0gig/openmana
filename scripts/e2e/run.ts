@@ -3804,6 +3804,7 @@ async function tableHarness(executablePath: string): Promise<Record<string, unkn
   const results: Record<string, unknown> = {}
   try {
     results["layouts"] = await tableLayoutClasses(executablePath, base)
+    if (!focusedTable) results["surface"] = await tableSurface(executablePath, base)
     for (const viewport of focusedTable ? TABLE_VIEWPORTS.filter((v) => DECISION_VIEWPORTS.includes(v.name)) : TABLE_VIEWPORTS) {
       log(`  ${viewport.name} (${viewport.width}x${viewport.height}${viewport.touch ? ", touch" : ""})`)
       // Bound Chromium's lifetime per viewport: closing pages/contexts alone did
@@ -3877,11 +3878,12 @@ async function tableHarness(executablePath: string): Promise<Record<string, unkn
             }, targetRefs)
             check(targetCheck.length === 0, `${label}: exact stack target markings differ ${JSON.stringify(targetCheck)}`)
           }
+          const surface = await surfaceFacts(page, label)
           const decision = await decisionFits(page, label, viewport)
           const axe = await accessibility(page, label)
           await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-${built === null ? scene : `built-${built}`}.png`) })
           const help = helpOnly || ["main-phase", "stack", "built:choose-many", "built:confirm"].includes(name) ? await helpInteractions(page, `${viewport.name}-${name}`, viewport) : null
-          scenes[name] = { help, areas: layout["areas"], pictures, rows, menu, cards, marks, decision, axe }
+          scenes[name] = { help, areas: layout["areas"], pictures, rows, menu, cards, marks, decision, surface, axe }
           for (const error of pageLog.errors) check(false, `${label}: ${error}`)
           await page.close()
         }
@@ -3925,7 +3927,9 @@ async function tableLayoutClasses(executablePath: string, base: string): Promise
     const context = await newContext(probeBrowser, VIEWPORTS[2]!)
     const page = await context.newPage()
     const pageLog = watch(page)
-    await page.goto(new URL("/scripts/e2e/table-layout-probe.html", base).href, { waitUntil: "domcontentloaded" })
+    // The first page of a fresh dev server: Vite pre-bundles the dependencies first, which can take longer than
+    // Playwright's 30 s on a busy machine (the table pages wait up to 300 s for the same reason).
+    await page.goto(new URL("/scripts/e2e/table-layout-probe.html", base).href, { waitUntil: "domcontentloaded", timeout: 300_000 })
     const probe = page.locator('[data-harness="table-layout"]')
     await probe.waitFor({ timeout: 60_000 })
     const order: Readonly<Record<string, TableLayout>> = { "1": "hoch", "2": "quadrat", "3": "breit" }
@@ -3957,6 +3961,178 @@ async function tableLayoutClasses(executablePath: string, base: string): Promise
     await context.close()
   } finally {
     await probeBrowser.close()
+  }
+  return results
+}
+
+/**
+ * The table surface (prompt 37, docs/design/SPIELTISCH.md §4.1) as the page shows it: first in the board behind the
+ * regions, hidden from screen readers, no pointer events (what a pointer hits on the board is never the surface), the
+ * desk drawn 1:1 over the board, the board inside the window, its circle round and the rune ring a square around it.
+ */
+async function surfaceFacts(page: Page, label: string): Promise<Record<string, unknown>> {
+  const facts = await page.evaluate(() => {
+    const surface = document.querySelector<HTMLElement>('[data-slot="game-board"] > [data-slot="table-surface"]')
+    if (surface === null) return null
+    const board = surface.parentElement!
+    const area = board.getBoundingClientRect()
+    const desk = surface.querySelector<SVGSVGElement>('[data-surface="desk"]')!.getBoundingClientRect()
+    const ring = surface.querySelector<HTMLElement>('[data-surface="ring"]')!
+    const circle = surface.querySelector('[data-surface="circle"]')?.getBoundingClientRect() ?? null
+    const key = (surface.dataset["board"] ?? "").split(" ").map(Number)
+    const drawn = key.length === 6 ? { left: area.left + key[2]!, top: area.top + key[3]!, width: key[4]!, height: key[5]! } : null
+    const points = drawn === null ? [] : [[0.5, 0.5], [0.08, 0.08], [0.92, 0.92], [0.5, 0.25], [0.5, 0.75], [0.15, 0.5]].map(([x, y]) => document.elementFromPoint(drawn.left + drawn.width * x!, drawn.top + drawn.height * y!))
+    const style = getComputedStyle(surface)
+    return {
+      first: [...board.children].find((child) => child.tagName !== "TITLE") === surface,
+      ariaHidden: surface.getAttribute("aria-hidden"),
+      pointerEvents: style.pointerEvents,
+      window: [window.innerWidth, window.innerHeight],
+      boardSize: [Math.round(area.width), Math.round(area.height)],
+      viewBox: surface.querySelector('[data-surface="desk"]')!.getAttribute("viewBox"),
+      desk: [desk.width, desk.height],
+      drawn,
+      circle: circle === null ? null : { width: circle.width, height: circle.height, x: circle.left + circle.width / 2, y: circle.top + circle.height / 2 },
+      ring: ring.hidden ? null : { width: ring.offsetWidth, height: ring.offsetHeight, x: area.left + ring.offsetLeft + ring.offsetWidth / 2, y: area.top + ring.offsetTop + ring.offsetHeight / 2 },
+      surfaceHit: points.filter((element) => element !== null && surface.contains(element)).length,
+      points: points.length,
+    }
+  })
+  check(facts !== null, `${label}: no table surface in the board`)
+  if (facts === null) return {}
+  const [width, height] = facts.window as [number, number]
+  check(facts.first && facts.ariaHidden === "true" && facts.pointerEvents === "none" && facts.surfaceHit === 0, `${label}: the surface is not decoration behind the regions ${JSON.stringify(facts)}`)
+  check(facts.viewBox === `0 0 ${facts.boardSize[0]} ${facts.boardSize[1]}` && Math.abs(facts.desk[0]! - facts.boardSize[0]!) <= 1 && Math.abs(facts.desk[1]! - facts.boardSize[1]!) <= 1, `${label}: the desk is not drawn 1:1 over the board ${JSON.stringify(facts)}`)
+  check(facts.drawn !== null, `${label}: no board drawn`)
+  if (facts.drawn !== null) {
+    const { left, top, width: w, height: h } = facts.drawn
+    check(left >= 0 && top >= 0 && left + w <= width && top + h <= height, `${label}: the board leaves the window ${JSON.stringify(facts.drawn)}`)
+  }
+  if (facts.circle !== null) {
+    check(Math.abs(facts.circle.width - facts.circle.height) <= 1, `${label}: the circle is not round ${JSON.stringify(facts.circle)}`)
+    check(facts.ring !== null && facts.ring.width === facts.ring.height && Math.abs(facts.ring.x - facts.circle.x) <= 1 && Math.abs(facts.ring.y - facts.circle.y) <= 1, `${label}: the rune ring is not a square around the circle ${JSON.stringify(facts)}`)
+  }
+  return facts
+}
+
+/** The recorded game human-3-de in its order: the moments the surface measurement switches between (prompt 37). */
+const SURFACE_GAME = ["opening", "target-player", "target-both", "stack", "scry", "yes-no", "choose-mode", "main-phase"] as const
+
+/**
+ * The table surface beyond single scenes (prompt 37): round and inside the window at every test size including the
+ * foldable's (11 sizes), the ring turning and glimmering - and standing still under less motion, the device's and the
+ * player's -, and the cost of 20 state changes in Chrome with 4x CPU throttling at 412 x 915: no new drawing of the
+ * surface while its sizes stay, each drawing far below 200 ms, and the long tasks with and without the surface (paint
+ * included) side by side as the measurement.
+ */
+async function tableSurface(executablePath: string, base: string): Promise<Record<string, unknown>> {
+  log("  table surface (sizes, motion, cost of state changes)")
+  const surfaceBrowser = await launchBrowser(executablePath)
+  const results: Record<string, unknown> = {}
+  try {
+    const context = await newContext(surfaceBrowser, VIEWPORTS[0]!)
+    const page = await context.newPage()
+    const pageLog = watch(page)
+    await page.goto(new URL("/scripts/e2e/table-harness.html?scene=main-phase", base).href, { waitUntil: "domcontentloaded", timeout: 300_000 })
+    await page.locator('[data-harness="table"]').waitFor({ timeout: 300_000 })
+    const sizes: Record<string, unknown> = {}
+    for (const [name, width, height] of TABLE_LAYOUT_SIZES.filter(([size]) => !size.startsWith("border"))) {
+      await page.setViewportSize({ width, height })
+      await page.waitForFunction((prefix) => document.querySelector<HTMLElement>('[data-slot="table-surface"]')?.dataset["board"]?.startsWith(prefix) === true, `${width} ${height} `, { timeout: 10_000 }).catch(() => undefined)
+      sizes[name] = await surfaceFacts(page, `table surface (${name} ${width}x${height})`)
+    }
+    results["sizes"] = sizes
+    check(Object.keys(sizes).length === 11, `table surface: ${Object.keys(sizes).length} sizes checked, expected 11`)
+    await page.setViewportSize({ width: VIEWPORTS[0]!.width, height: VIEWPORTS[0]!.height })
+
+    // Motion: the ring turns (about 6 minutes a turn) and glimmers; under less motion nothing of the surface moves.
+    const motion = () => page.evaluate(() => document.getAnimations().filter((animation) => (animation.effect as KeyframeEffect | null)?.target?.closest('[data-slot="table-surface"]')).map((animation) => ({ name: (animation as CSSAnimation).animationName, duration: animation.effect?.getTiming().duration, state: animation.playState })))
+    const moving = await motion()
+    check(moving.some((animation) => animation.name === "table-ring-turn" && animation.duration === 360_000 && animation.state === "running") && moving.some((animation) => animation.name === "table-ring-glimmer" && animation.state === "running"), `table surface: the ring does not turn and glimmer ${JSON.stringify(moving)}`)
+    await page.emulateMedia({ reducedMotion: "reduce" })
+    const reducedDevice = await motion()
+    await page.emulateMedia({ reducedMotion: "no-preference" })
+    await page.evaluate(() => document.documentElement.setAttribute("data-reduced-motion", ""))
+    const reducedSetting = await motion()
+    await page.evaluate(() => document.documentElement.removeAttribute("data-reduced-motion"))
+    check(reducedDevice.length === 0 && reducedSetting.length === 0, `table surface: the ring moves under less motion ${JSON.stringify({ reducedDevice, reducedSetting })}`)
+    results["motion"] = { moving, reducedDevice, reducedSetting }
+
+    // Cost: 20 state changes of one recorded game, 4x CPU throttling, the phone's size.
+    const step = (name: string) => page.evaluate((scene) => new Promise<string>((resolve) => {
+      (window as unknown as { __openmanaShowScene: (name: string) => void }).__openmanaShowScene(scene)
+      requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => resolve(document.querySelector<HTMLElement>('[data-slot="table-surface"]')?.dataset["board"] ?? ""), 50)))
+    }), name)
+    for (const name of SURFACE_GAME) await step(name)
+    const cdp = await context.newCDPSession(page)
+    await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 })
+    const run = async (surface: boolean) => {
+      await page.evaluate((shown) => {
+        document.querySelector<HTMLElement>('[data-slot="table-surface"]')!.style.display = shown ? "" : "none"
+        const w = window as unknown as { __longTasks: number[]; __frames: number[][]; __surfaceDraws: number[]; __observer?: PerformanceObserver; __deskDrawing: Element | null }
+        // The desk's drawing before the changes: the screen keeps its size, so the very same drawing must stay.
+        w.__deskDrawing = document.querySelector('[data-slot="table-surface"] [data-surface="desk"]')!.firstElementChild
+        w.__observer?.disconnect()
+        w.__longTasks = []
+        w.__frames = []
+        w.__surfaceDraws = []
+        w.__observer = new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) {
+            if (entry.entryType === "longtask") w.__longTasks.push(entry.duration)
+            // A long animation frame: its whole length and its rendering part (style, layout, paint).
+            else if (entry.entryType === "long-animation-frame") {
+              const frame = entry as PerformanceEntry & { renderStart: number; styleAndLayoutStart: number }
+              w.__frames.push([entry.duration, frame.renderStart > 0 ? entry.startTime + entry.duration - frame.renderStart : 0])
+            } else if (entry.name === "openmana:table-surface") w.__surfaceDraws.push(entry.duration)
+          }
+        })
+        w.__observer.observe({ entryTypes: ["longtask", "long-animation-frame", "measure"] })
+      }, surface)
+      const keys: string[] = []
+      for (let i = 0; i < 20; i++) keys.push(await step(SURFACE_GAME[i % SURFACE_GAME.length]!))
+      await page.waitForTimeout(500)
+      const measured = await page.evaluate(() => {
+        const w = window as unknown as { __longTasks: number[]; __frames: number[][]; __surfaceDraws: number[]; __deskDrawing: Element | null }
+        const deskKept = w.__deskDrawing !== null && document.querySelector('[data-slot="table-surface"] [data-surface="desk"]')!.firstElementChild === w.__deskDrawing
+        return { longTasks: w.__longTasks.map(Math.round), frames: w.__frames.map(([duration, render]) => [Math.round(duration!), Math.round(render!)]), surfaceDraws: w.__surfaceDraws.map((duration) => Math.round(duration * 10) / 10), deskKept }
+      })
+      const sizeChanges = keys.filter((key, i) => key !== (i === 0 ? keys[keys.length - 1] : keys[i - 1])).length
+      return {
+        ...measured,
+        longest: Math.max(0, ...measured.longTasks),
+        over200: measured.longTasks.filter((duration) => duration > 200).length,
+        longestFrame: Math.max(0, ...measured.frames.map(([duration]) => duration!)),
+        longestRender: Math.max(0, ...measured.frames.map(([, render]) => render!)),
+        boards: [...new Set(keys)],
+        sizeChanges,
+      }
+    }
+    const withSurface = await run(true)
+    const withoutSurface = await run(false)
+    // A new state of the same moment (a fresh copy, as Forge sends one) five times: the sizes stay, nothing is drawn.
+    await page.evaluate(() => { document.querySelector<HTMLElement>('[data-slot="table-surface"]')!.style.display = "" })
+    await step("main-phase")
+    const before = await page.evaluate(() => (window as unknown as { __surfaceDraws: number[] }).__surfaceDraws.length)
+    const repeatedKeys: string[] = []
+    for (let i = 0; i < 5; i++) repeatedKeys.push(await step("main-phase"))
+    await page.waitForTimeout(300)
+    const repeatedDraws = (await page.evaluate(() => (window as unknown as { __surfaceDraws: number[] }).__surfaceDraws.length)) - before
+    check(new Set(repeatedKeys).size === 1 && repeatedDraws === 0, `table surface: drawn ${repeatedDraws} times for five new states of the same size ${JSON.stringify(repeatedKeys)}`)
+    await page.evaluate(() => { document.querySelector<HTMLElement>('[data-slot="table-surface"]')!.style.display = "" })
+    await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 })
+    await cdp.detach()
+    // Drawn again only for a new board size (the 20 changes return to their start), each drawing well below a long task.
+    check(withSurface.surfaceDraws.length <= withSurface.sizeChanges, `table surface: drawn ${withSurface.surfaceDraws.length} times for ${withSurface.sizeChanges} size changes`)
+    check(withSurface.surfaceDraws.every((duration) => duration < 200), `table surface: a drawing took ${Math.max(...withSurface.surfaceDraws)} ms`)
+    // The board follows the playing area; the desk's full-screen grain is never recomputed while the screen keeps its size.
+    check(withSurface.deskKept, "table surface: the desk was drawn again although the screen kept its size")
+    log(`    20 state changes, 4x CPU, 412x915: long tasks with surface ${JSON.stringify(withSurface.longTasks)} (longest ${withSurface.longest} ms, longest frame ${withSurface.longestFrame} ms, rendering ${withSurface.longestRender} ms), without ${JSON.stringify(withoutSurface.longTasks)} (longest ${withoutSurface.longest} ms, frame ${withoutSurface.longestFrame} ms, rendering ${withoutSurface.longestRender} ms); surface drawn ${withSurface.surfaceDraws.length}x ${JSON.stringify(withSurface.surfaceDraws)} ms for ${withSurface.sizeChanges} size changes (${withSurface.boards.length} board sizes, desk kept: ${withSurface.deskKept}); 5 new states of one size: drawn ${repeatedDraws}x`)
+    results["performance"] = { viewport: "412x915", throttling: 4, changes: 20, scenes: SURFACE_GAME, withSurface, withoutSurface, repeated: { states: 5, draws: repeatedDraws } }
+    // Pictures a state change took off the table stop loading (aborted); every other request failure counts.
+    for (const error of pageLog.errors) if (!/^\[requestfailed\] https:\/\/cards\.scryfall\.io\/.* net::ERR_ABORTED$/.test(error)) check(false, `table surface: ${error}`)
+    await context.close()
+  } finally {
+    await surfaceBrowser.close()
   }
   return results
 }
