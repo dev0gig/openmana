@@ -7,8 +7,8 @@
   },
   "sources": {
     "format": "openmana-engine-inputs/1",
-    "sha256": "e3c1114dc221872fd970f047212fb2edd38e510c47f552dec1e723ec5679b1b1",
-    "files": 168
+    "sha256": "9d3cdc3b1bb85dce6d67a769df9da33f3be2ba2737040e6e93efeff9fad0e9fb",
+    "files": 171
   },
   "patches": {
     "count": 9,
@@ -31,9 +31,12 @@
     "sha256": "bfce2b1989cc6967f3a7be35e241a075630eeb862c2929319aabde9ac7fde2d1"
   },
   "toolchain": {
-    "graalvm": "25.4.4.1.1",
+    "graalvm": "GraalVM CE 25.4.4.1.1 (oracle/graal@95ce1499c8c9)",
     "graalvmJava": "25.0.4.1.1",
-    "graalvmSha256": "4fcc632cfc68e98f49f9316f8a3588bafe4f5289f120104e2d290a75cf33e28e",
+    "graalvmCommit": "95ce1499c8c96ab7d5a6697c5b4bf42160f3b68b",
+    "mxCommit": "2675b13e58f97d6d37a4090cdcb5a52c280e1d8c",
+    "jdk": "25.0.4.1.1+1-jvmci-25.4-b23",
+    "jdkSha256": "871a0de0c24c35cbc17b364f9c3e322c709a85edd52d7ad5143bbb302c41232f",
     "binaryen": "123",
     "binaryenSha256": "e959f2170af4c20c552e9de3a0253704d6a9d2766e8fdb88e4d6ac4bae9388fe",
     "maven": "3.9.16",
@@ -41,7 +44,7 @@
     "node": "22.22.3",
     "nodeSha256": "2e5d13569282d016861fae7c8f935e741693c269101a5bebcf761a5376d1f99f",
     "npmVersion": "10.9.8",
-    "lockSha256": "e514541dbf4c10d1ef699f893ab3a5a5776a8e5c204899f7ed4685c34c2fe3d4",
+    "lockSha256": "157090ba30673c34aadbdfce491a50e9386efa3a62022723bf17deab86a7c5c4",
     "packageLockSha256": "ff09f60a6f98b4ca5362d7aaebeee0f1e722e63319ad26defe88fa5bb01dff35",
     "npm": {
       "typescript": "7.0.2",
@@ -52,8 +55,8 @@
   },
   "manifest": {
     "file": "engine-manifest.json",
-    "bytes": 5802,
-    "sha256": "2b0da7a21935a6eaf23eb93715a0e68b94d2d0b19e413c02330eebaa7c8d67fa"
+    "bytes": 6047,
+    "sha256": "a9b4c26b1244eeebafc4f490e7166458319d663e00846bc421a5dc8dfc35fedd"
   },
   "artefacts": {
     "engine-worker.js": {
@@ -65,8 +68,8 @@
       "sha256": "edf456327b91601ab3ded0f35c6b1429adca8141a9fdd7d67849065185d72b42"
     },
     "openmana-engine.js.wasm": {
-      "bytes": 79010169,
-      "sha256": "0b7687f8f2cfc6e9a8738b08e29220f240bdb7dfd2b762e2a44ba00040e31876"
+      "bytes": 78972017,
+      "sha256": "4f45086e13cb0db6873f0f150aabfcdda5ef049bd45fe3c25fa82be429f17ec4"
     },
     "forge-res.inventory.json": {
       "bytes": 4278015,
@@ -74,7 +77,7 @@
     }
   },
   "verification": {
-    "base": "7d9a4d77f15949cd4ab38238f4347fdda5db53ab",
+    "base": "e511e7395bb6be528cfe23b3494facb054d1721e",
     "protocol": {
       "before": 8,
       "after": 8,
@@ -87,32 +90,32 @@
     "browserSkipped": false,
     "reports": {
       "pipeline.json": {
-        "bytes": 3637,
-        "sha256": "955d4d2f70d15037f024c9592bf27d2c1bb322cf762cc9db9d136cb94c5bd088"
+        "bytes": 3592,
+        "sha256": "bea1ef77e736418e5c15b44510bcbe365e6a4eef07ab97c9deba8032ae1f439d"
       },
       "report/build-report.json": {
-        "bytes": 7477,
-        "sha256": "f5d2983784440f9b35035a40e60a9b9f33a0d6d21fa2dfc7157ee2730705c19b"
+        "bytes": 7729,
+        "sha256": "1e758c250e5a75e76fc10e86e73e3106d528f1cbf1b4216cdfdfbc2cf0a94d8c"
       },
       "report/jvm-tests.json": {
         "bytes": 261,
-        "sha256": "76717ebb22acafc21311752f348734a3fe9f46e5e25fcf135afe8a02ec210fd6"
+        "sha256": "9b657b8de1760d1663835638334ba60903c6c1e3cac01963ce088733876692c7"
       },
       "report/test-report.json": {
-        "bytes": 1135869,
-        "sha256": "2eee53ad4d8433a71ceb597f13bdbf4ffc1b71fde1a4910b8c85f6ddda2fa2d1"
+        "bytes": 1135881,
+        "sha256": "ae9b33e02309edb4d5bbff0cb844cb203318cb3193803a521e7b568849782746"
       },
       "report/source-inputs.json": {
-        "bytes": 35101,
-        "sha256": "ca4da41bd36f10d9729c38bb5e67bc0c9821dae50e6194dbf079c4f3e10668d4"
+        "bytes": 35705,
+        "sha256": "418d95c87b7434a46f3562c62c253912814d4cee6b896265008680ccae62cbf5"
       },
       "report/unit-tests.xml": {
         "bytes": 14671,
-        "sha256": "680ac24ad04097a2abb3d9b1fef1ee2c49b2e33e0a20f378a45dc4f1c08fc4ab"
+        "sha256": "09cd33e5761eba81b14e2e57a0417a11bd2b8c71f1d08e325bcb3743a5811f05"
       },
       "catalog/card-catalog-manifest.json": {
         "bytes": 1302,
-        "sha256": "58d8af3d7a0d91f3573591e70f289d1020a26ea9d76bccd47f0db175f49cf14b"
+        "sha256": "d640933b95e9fbef493d1bc2894f9ba557d7c2cd88bee04c2b6c19757779bea1"
       }
     }
   }
