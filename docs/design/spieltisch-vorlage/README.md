@@ -3,9 +3,9 @@
 A static visual mockup of the redesigned game table, built from Patrick's
 concept image (2026-10-10). No game logic: `vorlage.js` only draws two
 example scenes ("Konzept" and a crowded "Voller Tisch") on one of three
-table variants (`tischflaeche.js`: astrolabium, matte, runen; `arkan.js`:
-the arcanist's desk – one board set into a wooden desk, books, candles,
-inkwell, scroll and astrolabe in the free spots; the default). The menu
+table variants (`tischflaeche.js`: astrolabium, matte, runen). A drawn
+"arcanist's desk" with SVG props was tried and rejected as too flat
+(2026-10-10): the concept's depth needs painted/rendered raster art. The menu
 button opens a mockup menu to switch both; or `?szene=voll&tisch=runen`. It exists to agree on the look before the
 redesign prompts are written.
 

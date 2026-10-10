@@ -476,5 +476,3 @@ button { font: inherit; color: inherit; }
 .vorlage-menue button { min-height: 2.75rem; padding: 0 0.8rem; border-radius: 0.5rem; border: 1px solid var(--gold-linie); background: oklch(0.12 0.02 262); cursor: pointer; }
 .vorlage-menue button[aria-pressed="true"] { border-color: var(--gold); color: #1d1406; background: linear-gradient(180deg, var(--gold-hell), var(--gold)); font-weight: 600; }
 
-.tisch[data-tisch="arkan"] .tisch-grund { background: #1b110a; }
-.tisch[data-tisch="arkan"] .deko { display: none; }

@@ -184,15 +184,12 @@ const Tischflaeche = (() => {
   const VARIANTEN = { astrolabium, matte, runen };
   return {
     // flaeche: the playing area (both players' strips and battlefields) the variant is laid out on.
-    varianten: VARIANTEN,
-    // plaetze: free spots around the playing area (screen coordinates) for decoration.
-    zeichnen(svg, variante, flaeche, plaetze = {}) {
+    zeichnen(svg, variante, flaeche) {
       const aussen = svg.getBoundingClientRect(), b = flaeche.getBoundingClientRect();
       if (!aussen.width || !b.width) return;
       const ox = b.left - aussen.left, oy = b.top - aussen.top;
-      const frei = Object.fromEntries(Object.entries(plaetze).map(([k, r]) => [k, { x: r.x - aussen.left, y: r.y - aussen.top, w: r.w, h: r.h }]));
       svg.setAttribute("viewBox", `0 0 ${f(aussen.width)} ${f(aussen.height)}`);
-      svg.innerHTML = `<g transform="translate(${f(ox)} ${f(oy)})">${VARIANTEN[variante](b.width, b.height, aussen.width, aussen.height, ox, oy, frei)}</g>`;
+      svg.innerHTML = `<g transform="translate(${f(ox)} ${f(oy)})">${VARIANTEN[variante](b.width, b.height, aussen.width, aussen.height, ox, oy)}</g>`;
     },
   };
 })();

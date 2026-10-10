@@ -198,7 +198,7 @@ function pfeil() {
   });
 }
 
-const zustand = { szene: "konzept", tisch: "arkan" };
+const zustand = { szene: "konzept", tisch: "astrolabium" };
 
 function waehle(gruppe, wert) {
   if (gruppe === "szene") render(wert);
@@ -216,22 +216,7 @@ document.querySelectorAll(".vorlage-menue [data-gruppe] button").forEach((b) => 
 function tischZeichnen() {
   const a = $("leiste-gegner").getBoundingClientRect(), b = $("leiste-ich").getBoundingClientRect();
   const flaeche = { getBoundingClientRect: () => ({ left: a.left, top: a.top, width: a.width, height: b.bottom - a.top }) };
-  // Free spots around the board for the desk's decoration.
-  const T = $("tisch").getBoundingClientRect(), kopf = document.querySelector(".kopf").getBoundingClientRect();
-  const chr = $("chronik").getBoundingClientRect(), ph = $("phasen").getBoundingClientRect(), hand = $("hand").getBoundingClientRect();
-  const karten = [...document.querySelectorAll(".hand-karte:not(.gehoben)")].map((k) => k.getBoundingClientRect());
-  const handL = karten.length ? Math.min(...karten.map((r) => r.left)) : hand.left, handR = karten.length ? Math.max(...karten.map((r) => r.right)) : hand.right;
-  const breit = matchMedia("(min-aspect-ratio: 13/10)").matches, quadrat = !breit && matchMedia("(min-aspect-ratio: 3/4)").matches;
-  const plaetze = {
-    untenLinks: { x: T.left, y: hand.top - 6, w: handL - T.left - 6, h: T.bottom - hand.top + 6 },
-    untenRechts: { x: handR + 6, y: hand.top - 6, w: T.right - handR - 6, h: T.bottom - hand.top + 6 },
-  };
-  if (breit) {
-    plaetze.links = { x: T.left + 4, y: chr.bottom + 6, w: a.left - T.left - 10, h: hand.top - chr.bottom - 6 };
-    plaetze.rechtsOben = { x: a.right + 6, y: kopf.bottom + 4, w: T.right - a.right - 12, h: ph.top - kopf.bottom - 10 };
-  }
-  if (quadrat) plaetze.seite = { x: chr.left, y: chr.bottom + 4, w: chr.width, h: ph.top - chr.bottom - 10 };
-  Tischflaeche.zeichnen($("tischflaeche"), zustand.tisch, flaeche, plaetze);
+  Tischflaeche.zeichnen($("tischflaeche"), zustand.tisch, flaeche);
 }
 
 // Thumb over the hand: the card nearest to the finger (by its resting position) is lifted.
@@ -253,5 +238,5 @@ new ResizeObserver(tischZeichnen).observe($("tisch"));
 addEventListener("resize", () => requestAnimationFrame(pfeil));
 addEventListener("load", pfeil);
 const parameter = new URLSearchParams(location.search);
-waehle("tisch", ["arkan", "astrolabium", "matte", "runen"].includes(parameter.get("tisch")) ? parameter.get("tisch") : "arkan");
+waehle("tisch", ["astrolabium", "matte", "runen"].includes(parameter.get("tisch")) ? parameter.get("tisch") : "astrolabium");
 waehle("szene", parameter.get("szene") === "voll" ? "voll" : "konzept");
