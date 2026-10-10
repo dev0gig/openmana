@@ -1,13 +1,13 @@
 {
   "format": "openmana-deploy-artifacts/1",
   "release": {
-    "tag": "engine-p8-2b0da7a21935",
-    "baseUrl": "https://github.com/dev0gig/openmana/releases/download/engine-p8-2b0da7a21935/"
+    "tag": "engine-p8-a9b4c26b1244",
+    "baseUrl": "https://github.com/dev0gig/openmana/releases/download/engine-p8-a9b4c26b1244/"
   },
   "engine": {
     "engine-manifest.json": {
-      "bytes": 5802,
-      "sha256": "2b0da7a21935a6eaf23eb93715a0e68b94d2d0b19e413c02330eebaa7c8d67fa"
+      "bytes": 6047,
+      "sha256": "a9b4c26b1244eeebafc4f490e7166458319d663e00846bc421a5dc8dfc35fedd"
     },
     "engine-worker.js": {
       "bytes": 431692,
@@ -18,8 +18,8 @@
       "sha256": "edf456327b91601ab3ded0f35c6b1429adca8141a9fdd7d67849065185d72b42"
     },
     "openmana-engine.js.wasm": {
-      "bytes": 79010169,
-      "sha256": "0b7687f8f2cfc6e9a8738b08e29220f240bdb7dfd2b762e2a44ba00040e31876"
+      "bytes": 78972017,
+      "sha256": "4f45086e13cb0db6873f0f150aabfcdda5ef049bd45fe3c25fa82be429f17ec4"
     },
     "forge-res.inventory.json": {
       "bytes": 4278015,
@@ -33,7 +33,7 @@
     },
     "card-catalog-manifest.json": {
       "bytes": 1302,
-      "sha256": "58d8af3d7a0d91f3573591e70f289d1020a26ea9d76bccd47f0db175f49cf14b"
+      "sha256": "d640933b95e9fbef493d1bc2894f9ba557d7c2cd88bee04c2b6c19757779bea1"
     }
   }
 }

@@ -22,6 +22,7 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Current direction: GraalVM Community Edition Web Image built from open sources (Oracle GraalVM until Prompt 34), pinned Forge upstream plus a small GPL patch queue.
 - Toolchain/build/license/feasibility findings documented under `docs/research/`.
 - Prompt 34 (2026-10-10): an engine built only from open sources (GraalVM CE from `oracle/graal` on labsjdk-ce, `scripts/open-toolchain/`) passes every check and limit; result TEILWEISE only because 13 JVMCI types (also in the Oracle build) are GPLv2 without Classpath Exception (`docs/research/OPEN_WEB_IMAGE_BUILD_2026-10-09.md`); production unchanged.
+- Prompt 35 (2026-10-10): GraalVM Community Edition from open sources is the regular engine toolchain (`engine/toolchain.lock.json`, `engine/scripts/setup-toolchain.sh`, SBOM replacement `engine/scripts/sbom/`); notices list the open components; the JVMCI remainder is accepted by the project owner (`docs/PUBLICATION.md`); republished with release `engine-p8-a9b4c26b1244`.
 
 ### Forge WASM Engine Spike (Prompt 01)
 - Pinned Forge engine runs as WebAssembly in a Dedicated Worker.
@@ -232,7 +233,7 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 
 ### Production release (Prompt 31)
 - **Public** since 2026-10-08: https://openmana.oryx.quest/ (Vercel, fallback https://openmana.vercel.app/), public repository https://github.com/dev0gig/openmana with rewritten history (no civil name/private e-mail). Decision and the openly disclosed GraalVM/GFTC question: `docs/PUBLICATION.md`; origin and AI development: `TRANSPARENCY.md`; deployment/rollback: `docs/DEPLOYMENT.md`.
-- Vercel fetches the locked engine and catalog from GitHub release `engine-p8-2b0da7a21935` (`deploy/artifacts.json`, size/SHA-256 against the lock), builds with the publication gate (owner decision + public source offer + exact commit) and enforces size budgets. Each engine release carries a complete source archive including Forge's tree and the JGraphT sources.
+- Vercel fetches the locked engine and catalog from GitHub release `engine-p8-a9b4c26b1244` (since Prompt 35; the Oracle-built `engine-p8-2b0da7a21935` stays a draft) (`deploy/artifacts.json`, size/SHA-256 against the lock), builds with the publication gate (owner decision + public source offer + exact commit) and enforces size budgets. Each engine release carries a complete source archive including Forge's tree and the JGraphT sources.
 - Evidence: full update pipeline for the shipped engine (96 engine unit, 85 JVM, 82 engine results, catalog, 957 app tests, complete Chrome/PWA suite); clean-clone rehearsal; live deployment headers/asset links/notices; Google asset-links check `linked: true`; a complete live game against Forge on the real address (`scripts/deploy/live-check.ts`). ORYX links `openmana.oryx.quest`; ORYX app 0.2.5 trusts it.
 - Physical device: started from ORYX 0.2.5 on the project owner's Fold7 with isolation and a running engine; the on-device game, rotation/background, return navigation and saved-match checks were **waived by the project owner (2026-10-08), not passed**. Details: `docs/implementation/31-production-vercel.md`.
 
