@@ -43,6 +43,7 @@ ESPRESSO = ('com.oracle.svm.espresso.', 'com.oracle.truffle.espresso.')
 # Oracle's class-level SBOM leaves them out as well; they are code of their host
 # class and are counted separately (metadata.hiddenTypes).
 HIDDEN = re.compile(r'/0x[0-9a-f]+$')
+GRAAL_PACKAGES = ('jdk.graal.', 'org.graalvm.', 'com.oracle.svm.', 'com.oracle.graal.', 'com.oracle.truffle.')
 PROXY = re.compile(r'(^|\.)\$Proxy\d+$')
 
 
@@ -112,7 +113,13 @@ def lookup(type_name, jdk, graal):
         return ('dynamic proxy class generated while building', 'jdk', GENERATED_PROXY)
     if type_name.startswith(ESPRESSO[0]):
         type_name = ESPRESSO[1] + type_name[len(ESPRESSO[0]):]
-    hit = jdk.find(type_name) or graal.find(type_name)
+    # The GraalVM home's src.zip also carries GraalVM's own modules (compiler,
+    # SDK): their packages belong to the oracle/graal suite. Everything else is
+    # looked up in the JDK first (oracle/graal holds copies of some JDK classes).
+    if type_name.startswith(GRAAL_PACKAGES):
+        hit = graal.find(type_name) or jdk.find(type_name)
+    else:
+        hit = jdk.find(type_name) or graal.find(type_name)
     if hit is None:
         return None
     return (hit[0], hit[1], classify(hit[2]()))
