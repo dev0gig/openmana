@@ -490,7 +490,7 @@ async function surfaces(executablePath: string, base: string, id: string): Promi
             }
             const source = page.getByRole("link", { name: "Quelltext dieser Version auf GitHub", exact: true })
             check(/^https:\/\/github\.com\/dev0gig\/openmana(\/tree\/[0-9a-f]{40})?$/.test((await source.getAttribute("href")) ?? ""), `${label}: public source link`)
-            check(await page.getByText(/nicht abschließend juristisch geklärt/).first().isVisible(), `${label}: open license question visible`)
+            check(await page.getByText(/aus offenem Quelltext, ohne Oracle-Lizenzteile/).first().isVisible(), `${label}: open toolchain and JVMCI note visible`)
           }
           const tabBar = page.getByRole("navigation", { name: "Hauptnavigation" })
           const sidebarStart = page.locator('[data-slot="sidebar"] a', { hasText: "Start" })

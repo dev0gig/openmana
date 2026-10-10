@@ -100,7 +100,8 @@ describe("no invented data", () => {
     for (const name of ["Forge – die Card-Forge-Community", "ManaBrew", "OpenAI ChatGPT und Codex", "Anthropic Claude", "GraalVM Community Edition (Web Image)"]) {
       expect(await screen.findByText(name)).toBeInTheDocument()
     }
-    expect(screen.getByText(/noch nicht abschließend juristisch geklärt/)).toBeInTheDocument()
+    expect(screen.getByText(/aus dem offenen Quelltext gebaut/)).toBeInTheDocument()
+    expect(screen.getByText(/JVMCI/)).toBeInTheDocument()
     expect(screen.getByText(/mit ChatGPT \(OpenAI\) erzeugt/)).toBeInTheDocument()
     expect(screen.queryByText(/Patri[c]k/)).toBeNull()
   })
