@@ -208,7 +208,8 @@ that answers none of the three queries):
   header to the bottom (the mockup lets its hand row span all three columns
   under them): the decision gets the full height, the hand stands between
   the columns, as the region table says.
-- Heights stay today's: strips `auto` (they carry text until prompt 39),
+- Heights stay today's: strips `auto` (since prompt 39 the medallion's height,
+  a second line of chips only for longer facts),
   hand `clamp(6rem, 14dvh, 9rem)` in every layout (the fan of prompt 42 may
   change it). `env(safe-area-inset-bottom)` is not added: the app's viewport
   has no `viewport-fit=cover`, so the inset is always 0.
@@ -331,9 +332,9 @@ anchors it keeps and the prompt that builds it.
   strips, stack/combat and the decision on `--table-panel` at 90 %, region
   lines `--table-gold-line`; on the board the caption strips (when not empty)
   and the battlefields' words ("Keine Kreaturen" …) on the same panel tone.
-- **Deliberate deviations from the mockup (prompt 37):** the strips cover the
-  board's top and bottom frame with their panel tone (they carry text until
-  prompt 39 makes them medallions); the centre line's emblem lies under the
+- **Deliberate deviations from the mockup (prompt 37):** the strips covered the
+  board's top and bottom frame with their panel tone until prompt 39 (now they
+  lie on the board, their words on chips); the centre line's emblem lies under the
   stack bar in `hoch` while the stack has items (as §3.1 intends); the emblem
   does not glimmer (only the ring moves); the row separators of the
   battlefields stay visible across the board until prompt 40.
@@ -349,6 +350,27 @@ anchors it keeps and the prompt that builds it.
   "Exil" buttons are not taken over as such: zones open through the zone
   piles and "Zonen ansehen".
 - Region `header` "Spielstand".
+- **Built (prompt 39):** emblem (`TableEmblem`, the symbol of `TableArt`) and
+  the gold Cinzel wordmark "OpenMana" (`.table-wordmark`, a logotype:
+  `aria-hidden`; the page's `h1` names the game) - the wordmark from
+  `quadrat` up (not in a low `breit` window), the emblem everywhere except a
+  `hoch` screen narrower than 400 px; "Zonen ansehen" (`Layers`) and
+  "Spielverlauf ansehen" (`ScrollText`) as `GameZoneButton`s with the words
+  "Zonen" and "Spielverlauf" in `breit` (not low); the help button keeps the
+  turn and step (Beginner Help Rules: help opens from the turn/phase area):
+  first line the turn line `Zug N · Dein Zug` / `Zug N · Forge-KI am Zug`
+  (`turnOwnerLabel`, the number in gold; before the first turn "Die
+  Starthände werden gezogen"), second line the `PhaseTrack` and Forge's step
+  (`span[id][title]`, the anchor the end-to-end test reads), the word "Hilfe"
+  beside its symbol in `breit`; the status badge; the menu at the right end
+  (a Sheet from the left as before, conceding confirmed). On a `hoch` screen
+  narrower than 400 px the track gives way to the step's words (the track is
+  their picture; prompt 41 brings the compact phases to the action bar).
+- **Deviations (prompt 39):** the history keeps its name "Spielverlauf"
+  (the mockup's "Protokoll"; the button's name is "Spielverlauf ansehen" and
+  its words must be part of it); the turn line stands inside the help button
+  in the header's middle, not at the right end next to the menu; the
+  mockup's "Einstellungen" is not taken over (the menu leads there).
 
 ### 4.3 Life medallion (prompt 39)
 - Mockup: SVG `#medaillon` (gold ring with ticks, four gems, a dark inner
@@ -362,6 +384,19 @@ anchors it keeps and the prompt that builds it.
   `data-mark` and red while a spell targets the player (`data-stack-target`,
   a crosshair as today).
 - Anchors: `title="Lebenspunkte"` with the number in `.tabular-nums`.
+- **Built (prompt 39):** `MedallionFace` (`src/game/table/strip-parts.tsx`)
+  inside `GamePlayer`/`GamePlayerButton` with the class `table-medallion`:
+  the ring (`TableArt`'s symbol after `#medaillon`, colours from tokens), the
+  life total in Cinzel (`--foreground`, 38 % of the medallion), the name band
+  ("Du" / "Forge-KI" - the app's word for the AI seat, never Forge's player
+  name; `--foreground` on `--table-plaque`). Size `--medallion`: 2.75 rem in
+  `hoch` and a low `breit` window (44 px, the touch minimum), 3.5 rem in
+  `quadrat`, 3.75 rem in `breit`. Whose turn it is: the ring glows
+  (`data-active`, a drop shadow - static) and the medallion says ", am Zug"
+  to screen readers. Marks: GamePlayer's inset outline (usable dashed gold,
+  chosen solid light, a stack target double `--table-danger`) plus a glow in
+  the mark's colour; a crosshair at the ring while a spell targets the
+  player.
 
 ### 4.4 Zone piles (prompt 39)
 - Mockup: `.zone`, `.zone-karte.bibliothek` (own back, stacked shadow),
@@ -372,16 +407,56 @@ anchors it keeps and the prompt that builds it.
   player and zone - looking only, nothing sent.
 - Anchors: the zone titles "Hand", "Bibliothek", "Friedhof", "Exil",
   "Kommandozone".
-
-### 4.5 Card back (prompt 39)
+- **Built (prompt 39):** a strip (`PlayerBar` in `game-table.tsx`, class
+  `table-strip`) is a grid `1fr | medallion | 1fr` (the right column at
+  least as wide as its piles): left the hand's count (`ZoneCount` "Hand", the
+  opponent's hidden hand as backs before it), the AI profile, "Priorität" and
+  "verloren" as chips; right the library (`ZonePile` "Bibliothek": OpenMana's
+  back with a stacked edge and Forge's number - a count to read, not a
+  control: Forge never shows the library), the graveyard (`ZonePile`
+  "Friedhof": its top card - the last card of Forge's list, Forge's
+  `Zone.add` appends - with a stacked edge, or a dashed empty place; a
+  button), exile and, when Forge shows one, the command zone (`ZoneCounter`:
+  a chip with the number, a button whose touch area is at least 44 px). A
+  pile or counter opens `ZoneSheet` for that player and zone (looking only,
+  focus back on the pile); its name says the zone, the count and the top
+  card. Below, only when Forge reports any, a line of chips: the mana pool,
+  the player's counters (poison …), commander tax and damage - the facts of
+  the old strip, none left out ("am Zug" is the medallion's glow and the
+  header's words). Pile size `--pile`: 1.4 rem (`hoch`, low `breit`),
+  1.85 rem (`quadrat`), 2 rem (`breit`); the zone's name under the number
+  only from `quadrat` up. Every count is an element with the zone's title
+  whose text ends with the number (name first in the page, the number shown
+  first by `row-reverse` - the mockup's "7 Hand"). The strips lie on the
+  board (no panel tone of their own), their words on chips of the panel tone.
+- **Deviations (prompt 39):** exile and the command zone are counters on the
+  right next to the piles (the mockup shows "0 Exil" as words on the left of
+  the player's strip only); the strips keep the medallion inside them instead
+  of letting it reach into the battlefield (a small phone has no height to
+  spare); facts the mockup does not show (profile, priority, lost, mana,
+  counters, commander values) are chips.
 - Mockup: SVG `#rueckseite` - night-blue gradient, gold frame, the emblem.
   OpenMana's own back; never Wizards' back. Used for hidden cards (the AI's
   hand, face-down permanents, the library); a `HiddenCard` stays a back and
   a count, never told apart.
+- **Built (prompt 39):** `TableArt` (`src/game/table/table-art.tsx`) defines
+  the emblem, the medallion ring and the back once per table as SVG symbols
+  (fixed ids `table-art-*`, like the surface's; one table per page) with
+  gold and night-blue gradients from the tokens; `TableCardBack` (slot
+  `game-card-back`) draws the back with `<use>` for every hidden card on the
+  table - the opponent's hand, face-down permanents and hidden commanders,
+  hidden stack items, hidden cards of Forge's questions, the library pile.
+  It replaces `GameCardBack` (removed). The card view never shows it as a
+  card's picture.
 
 ### 4.6 Opponent's hand (prompt 39)
 - Mockup: `.rueckseiten` (overlapping backs) with "N Hand". Cards Forge
   reveals stay an operable toolbar as today, in the table's style.
+- **Built (prompt 39):** one `TableCardBack` per hidden card in the list "Hand
+  der Forge-KI: N Karten", overlapping (1 rem each), clipped beyond 9 rem;
+  where the strip is narrower than 28 rem (a phone, the low side column) the
+  backs give way to the count beside them ("6 Hand"), as before. Revealed
+  cards stay a toolbar of card buttons.
 
 ### 4.7 Card on the battlefield: plaque and fact chips (prompt 40)
 - Mockup: `.reihe` (row sizing with `--u`/`--c`), `.karte`, `.karte-bild`,
@@ -678,6 +753,9 @@ From the shared rules of the series - end-to-end section 12,
 - `data-mark`, `data-tapped`, `data-card`, `data-player`,
   `data-stack-target`, `data-meaning`;
 - `title="Lebenspunkte"` and the zone titles;
+- since prompt 39 `data-strip-fact="profile"` (the AI profile Forge
+  confirmed, read by the end-to-end test and the readiness games instead of
+  the former badge) and `data-zone-pile` on the strips' piles and counters;
 - the toolbars' names.
 
 The regression evidence stays complete (8 sizes × 38 scenes, at least 600
@@ -718,3 +796,9 @@ a push.
   the surface's centre line on the gap between the battlefields; the
   foldable's three sizes checked in every scene. Look of cards, strips, hand
   and chronicle unchanged (prompts 39-42).
+- 2026-10-10, prompt 39: the header (§4.2: emblem, wordmark, symbol buttons,
+  turn line "Zug N · Dein Zug"), the strips with the life medallion (§4.3),
+  zone piles and counters that open the zone view (§4.4), OpenMana's card
+  back for every hidden card (§4.5) and the opponent's hand as backs (§4.6);
+  the strips lie on the board. Cards, chronicle, panels and hand unchanged
+  (prompts 40-42).

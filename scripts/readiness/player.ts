@@ -115,7 +115,7 @@ export function readTable(page: Page): Promise<TableView> {
       answers: [...(group?.querySelectorAll("button") ?? [])].map((button) => ({ name: (button.textContent ?? "").trim(), enabled: !(button as HTMLButtonElement).disabled, meaning: button.getAttribute("data-meaning") })),
       buttons: [...(decision?.querySelectorAll('[data-slot="game-decision-actions"] button') ?? [])].map((button) => ({ name: (button.getAttribute("aria-label") ?? button.textContent ?? "").trim(), enabled: !(button as HTMLButtonElement).disabled })),
       phase: document.querySelector('[data-slot="phase-track"]')?.getAttribute("data-phase") ?? null,
-      owner: headerText.includes("Du bist am Zug") ? "me" : headerText.includes("Forge-KI am Zug") ? "ai" : "none",
+      owner: headerText.includes("Dein Zug") ? "me" : headerText.includes("Forge-KI am Zug") ? "ai" : "none",
       turn: Number(/Zug (\d+)/.exec(headerText)?.[1] ?? 0),
       hand: cards('section[aria-label="Deine Hand"] button[data-slot="game-card"][data-card]'),
       mine: cards('section[aria-label="Dein Spielfeld"] button[data-slot="game-card"][data-card]'),

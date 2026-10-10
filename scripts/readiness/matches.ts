@@ -649,7 +649,7 @@ try {
       // The AI profile Forge confirmed (the table's opponent bar names it).
       await page.getByRole("heading", { name: "Forge wartet auf deine Entscheidung" }).waitFor({ timeout: 300_000 })
       const opponent = page.getByRole("region", { name: "Forge-KI", exact: true })
-      const confirmed = ((await opponent.locator('[data-slot="badge"]').first().textContent()) ?? "").trim()
+      const confirmed = ((await opponent.locator('[data-strip-fact="profile"]').first().textContent()) ?? "").trim()
       entry["confirmedProfile"] = confirmed
       check(game.profile === "Zufällig" ? confirmed.endsWith(" (zufällig)") : confirmed === game.profile, `${game.id}: the table names AI profile "${confirmed}", chosen was ${game.profile}`)
       entry["startMs"] = Date.now() - startedAt

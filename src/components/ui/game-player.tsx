@@ -11,8 +11,11 @@
  * takes no room: the player's bar keeps its height, marked or not (on a
  * small phone every pixel of it is the battlefields').
  *
- * Prompt 23 adds a double gold outline for an exact named stack target;
+ * Prompt 23 adds a double outline for an exact named stack target - red
+ * (--table-danger) since prompt 39, the table's colour for targets;
  * usable/selected takes precedence and targeting alone never enables a tap.
+ * On the game table the player is the life medallion (prompt 39,
+ * src/game/table/strip-parts.tsx; its look in table.css).
  *
  * - GamePlayer: name and life to read (no tap offered), with a mark if any.
  * - GamePlayerButton: the same as a button (a tap Forge would take).
@@ -26,7 +29,7 @@ const ROOT = "inline-flex items-center gap-1.5 rounded-xl px-1.5"
 const MARKS: Readonly<Record<GameCardMark, string>> = {
   usable: "outline-2 -outline-offset-2 outline-dashed outline-primary",
   selected: "outline-2 -outline-offset-2 outline-solid outline-foreground",
-  target: "outline-4 -outline-offset-4 outline-double outline-primary",
+  target: "outline-4 -outline-offset-4 outline-double outline-table-danger",
 }
 
 function GamePlayer({ className, mark = null, ...props }: React.ComponentProps<"span"> & { mark?: GameCardMark | null }) {

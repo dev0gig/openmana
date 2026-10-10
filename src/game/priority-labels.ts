@@ -21,7 +21,7 @@ export const TURN_PHASE_LABELS: Readonly<Record<TurnPhaseKey, string>> = {
 
 /** Whose turn it is, short enough for the header of a small phone. */
 export function turnOwnerLabel(seat: Seat | null): string {
-  return seat === "me" ? "Du bist am Zug" : seat === "opponent" ? "Forge-KI am Zug" : "Die Starthände werden gezogen"
+  return seat === "me" ? "Dein Zug" : seat === "opponent" ? "Forge-KI am Zug" : "Die Starthände werden gezogen"
 }
 
 /** What a stack item is, in the words of Magic's German rules. */

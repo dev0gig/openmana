@@ -3050,7 +3050,8 @@ async function preferences(browser: Browser, base: string, id: string, decks: re
 
     // 4. A game: Forge confirms the profile it plays (game.started), shown on the AI's side.
     results["startMs"] = await startAndWait(page)
-    const aiBadges = await page.getByRole("region", { name: "Forge-KI" }).locator('[data-slot="badge"]').allTextContents()
+    // Prompt 39: the profile is a chip of the AI's strip (data-strip-fact="profile"), no longer a badge.
+    const aiBadges = await page.getByRole("region", { name: "Forge-KI" }).locator('[data-strip-fact="profile"]').allTextContents()
     results["aiBadges"] = aiBadges
     check(aiBadges[0] === "Waghalsig", `preferences: the AI's profile on the table ${JSON.stringify(aiBadges)}`)
     results["playingAxe"] = await accessibility(page, "preferences: running game")
@@ -3075,7 +3076,7 @@ async function preferences(browser: Browser, base: string, id: string, decks: re
     await dialog.getByRole("button", { name: "Fertig" }).click()
     await overlaysGone(page)
     await startAndWait(page)
-    const drawnBadges = await page.getByRole("region", { name: "Forge-KI" }).locator('[data-slot="badge"]').allTextContents()
+    const drawnBadges = await page.getByRole("region", { name: "Forge-KI" }).locator('[data-strip-fact="profile"]').allTextContents()
     results["drawnBadges"] = drawnBadges
     check(/^(Standard|Vorsichtig|Waghalsig|Experimentell) \(zufällig\)$/.test(drawnBadges[0] ?? ""), `preferences: the drawn profile ${JSON.stringify(drawnBadges)}`)
     await concedeGame(page)
@@ -3307,6 +3308,95 @@ async function cardTargets(page: Page, label: string): Promise<{ readonly count:
   const smallest = { width: Math.min(...boxes.map((box) => box.width)), height: Math.min(...boxes.map((box) => box.height)) }
   check(smallest.width >= 24 && smallest.height >= 24, `${label}: a card target of ${smallest.width}×${smallest.height}px`)
   return { count: boxes.length, smallest }
+}
+
+/**
+ * The strips and the header of prompt 39 at one size: each player is a life medallion (the ring drawn, Forge's life in
+ * `[title="Lebenspunkte"] .tabular-nums`), the zones are piles and counters; every one of them - and the header's zone,
+ * history and help buttons - is at least 44 px on a touch screen, inside the window and inside its strip, and no strip
+ * spills sideways.
+ */
+async function stripFacts(page: Page, label: string, touch: boolean): Promise<Record<string, unknown>> {
+  const facts = await page.evaluate(() => {
+    const box = (element: Element) => {
+      const r = element.getBoundingClientRect()
+      return { width: Math.round(r.width), height: Math.round(r.height), left: Math.round(r.left), right: Math.round(r.right), top: Math.round(r.top), bottom: Math.round(r.bottom) }
+    }
+    const sides = ["Forge-KI", "Du"].map((name) => {
+      const region = document.querySelector(`section[aria-label="${name}"]`)
+      const medallion = region?.querySelector('[data-slot="game-player"].table-medallion') ?? null
+      const strip = region?.querySelector(".table-strip") ?? null
+      return {
+        name,
+        region: region === null ? null : box(region),
+        medallion: medallion === null ? null : { ...box(medallion), life: medallion.querySelector('[title="Lebenspunkte"] .tabular-nums')?.textContent ?? null, ring: medallion.querySelector('use[href="#table-art-medallion"]') !== null },
+        library: region?.querySelector('[data-zone-pile="Bibliothek"]') !== null,
+        piles: [...(region?.querySelectorAll("button[data-zone-pile]") ?? [])].map((pile) => ({ zone: pile.getAttribute("data-zone-pile"), ...box(pile) })),
+        spills: strip === null ? true : strip.scrollWidth > strip.clientWidth + 1,
+      }
+    })
+    const header = document.querySelector('section[aria-label="Spielstand"]')
+    const buttons = ["Zonen ansehen", "Spielverlauf ansehen", "Hilfe am Spieltisch"].map((name) => {
+      const button = header?.querySelector(`button[aria-label="${name}"]`)
+      return { name, ...(button ? box(button) : { width: 0, height: 0, left: 0, right: 0, top: 0, bottom: 0 }) }
+    })
+    return { sides, buttons, symbols: document.querySelectorAll("#table-art-back, #table-art-medallion, #table-art-emblem").length, view: { width: innerWidth, height: innerHeight } }
+  })
+  const inside = (b: { left: number; right: number; top: number; bottom: number }) => b.left >= -1 && b.top >= -1 && b.right <= facts.view.width + 1 && b.bottom <= facts.view.height + 1
+  check(facts.symbols === 3, `${label}: the table's drawn pieces are defined ${facts.symbols} times (expected once each)`)
+  for (const side of facts.sides) {
+    const where = `${label}: ${side.name}`
+    check(side.medallion !== null && side.medallion.ring && side.medallion.life !== null && /^-?\d+$/.test(side.medallion.life.trim()), `${where}: no life medallion ${JSON.stringify(side.medallion)}`)
+    check(side.library, `${where}: no library pile`)
+    check(!side.spills, `${where}: the strip spills sideways`)
+    for (const control of [...(side.medallion === null ? [] : [{ zone: "medallion", ...side.medallion }]), ...side.piles]) {
+      check(inside(control), `${where}: ${control.zone} outside the window ${JSON.stringify(control)}`)
+      if (side.region !== null) check(control.left >= side.region.left - 1 && control.right <= side.region.right + 1, `${where}: ${control.zone} outside its strip ${JSON.stringify(control)}`)
+      // At least 44 px on a touch screen, at least the 24 px of WCAG 2.5.8 everywhere.
+      const least = touch ? 44 : 24
+      check(control.width >= least && control.height >= least, `${where}: ${control.zone} only ${control.width}×${control.height}px`)
+    }
+  }
+  for (const button of facts.buttons) {
+    check(button.width > 0 && inside(button), `${label}: header button ${button.name} missing or outside ${JSON.stringify(button)}`)
+    if (touch) check(button.width >= 44 && button.height >= 44, `${label}: header button ${button.name} only ${button.width}×${button.height}px`)
+  }
+  return facts
+}
+
+/**
+ * Prompt 39: a tap on a strip's pile or counter opens the zone view of that player and zone - looking only (nothing
+ * reaches the harness's recorders) - and the focus returns to it.
+ */
+async function pileInteractions(parent: Page, base: string, viewport: Viewport): Promise<Record<string, unknown>> {
+  const label = `piles (${viewport.name})`
+  const results: Record<string, unknown> = {}
+  for (const [scene, region, zone, title] of [
+    ["main-phase", "Forge-KI", "Friedhof", "Friedhof der Forge-KI"],
+    ["main-phase", "Du", "Exil", "Dein Exil"],
+    ["command-effects", "Du", "Kommandozone", "Deine Kommandozone"],
+  ] as const) {
+    const page = await parent.context().newPage()
+    const pageLog = watch(page)
+    try {
+      await openScene(page, base, scene)
+      const pile = page.getByRole("region", { name: region, exact: true }).locator(`button[data-zone-pile="${zone}"]`)
+      if (viewport.touch) await pile.tap()
+      else await pile.click()
+      const view = page.getByRole("dialog", { name: title, exact: true })
+      await view.waitFor()
+      await accessibility(page, `${label}: ${title}`)
+      await view.getByRole("button", { name: "Schließen", exact: true }).click()
+      await view.waitFor({ state: "hidden" })
+      check(await pile.evaluate((node) => document.activeElement === node), `${label}: focus not back on the ${zone} pile`)
+      check((await harnessTaps(page)).length === 0 && (await harnessAnswers(page)).length === 0 && (await harnessPlayerTaps(page)).length === 0, `${label}: looking at ${title} sent an input`)
+      results[`${region}:${zone}`] = true
+      for (const error of pageLog.errors) check(false, `${label}: ${error}`)
+    } finally {
+      await page.close()
+    }
+  }
+  return results
 }
 
 /** The cards the harness's table tapped so far (window.__openmanaTaps). */
@@ -3994,11 +4084,12 @@ async function tableHarness(executablePath: string): Promise<Record<string, unkn
             check(targetCheck.length === 0, `${label}: exact stack target markings differ ${JSON.stringify(targetCheck)}`)
           }
           const surface = await surfaceFacts(page, label)
+          const strips = await stripFacts(page, label, viewport.touch)
           const decision = await decisionFits(page, label, viewport)
           const axe = await accessibility(page, label)
           await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-${built === null ? scene : `built-${built}`}.png`) })
           const help = helpOnly || ["main-phase", "stack", "built:choose-many", "built:confirm"].includes(name) ? await helpInteractions(page, `${viewport.name}-${name}`, viewport) : null
-          scenes[name] = { help, areas: layout["areas"], arrangement: layout["arrangement"], pictures, rows, menu, cards, marks, decision, surface, axe }
+          scenes[name] = { help, areas: layout["areas"], arrangement: layout["arrangement"], pictures, rows, menu, cards, marks, decision, surface, strips, axe }
           for (const error of pageLog.errors) check(false, `${label}: ${error}`)
           await page.close()
         }
@@ -4006,6 +4097,7 @@ async function tableHarness(executablePath: string): Promise<Record<string, unkn
         const pageLog = watch(page)
         scenes["interaction"] = helpOnly ? { scope: "Help interactions checked for every selected recorded/built scene above" } : historyOnly ? await historyInteractions(page, base, viewport) : zonesOnly ? await zoneInteractions(page, base, viewport) : combatOnly ? await blockInteractions(page, base, viewport) : await tableInteractions(page, base, viewport)
         if (!focusedTable) scenes["history"] = await historyInteractions(page, base, viewport)
+        if (!focusedTable || zonesOnly) scenes["piles"] = await pileInteractions(page, base, viewport)
         await page.close()
         // Answering every kind (prompt 15) where it is tightest and on the desktop: a small phone, a phone turned, a mouse.
         if (!focusedTable && DECISION_VIEWPORTS.includes(viewport.name)) {
@@ -4278,10 +4370,11 @@ async function tableFoldSizes(executablePath: string, base: string): Promise<Rec
         const layout = await checkTableFits(page, label)
         const pictures = await tablePictures(page, label)
         const cards = await cardTargets(page, label)
+        const strips = await stripFacts(page, label, viewport.touch)
         const decision = await decisionFits(page, label, viewport)
         const axe = await accessibility(page, label)
         await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-${built === null ? scene : `built-${built}`}.png`) })
-        scenes[name] = { areas: layout["areas"], arrangement: layout["arrangement"], pictures, cards, decision, axe }
+        scenes[name] = { areas: layout["areas"], arrangement: layout["arrangement"], pictures, cards, strips, decision, axe }
         for (const error of pageLog.errors) check(false, `${label}: ${error}`)
         await page.close()
       }

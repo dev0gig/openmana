@@ -58,13 +58,13 @@
  * so below its picture ("Quelle"). The decision region shows the payment:
  * what is still to pay, floating mana to pay with (onUseMana).
  */
-import { Ban, CircleSlash, Crosshair, Crown, Hand as HandIcon, Heart, History, Hourglass, Library, Shield, Skull, Swords, type LucideIcon } from "lucide-react"
+import { CircleSlash, Crosshair, Crown, Hourglass, Layers, ScrollText, Shield, Swords } from "lucide-react"
 import { cn } from "cn"
 import { createContext, use, useCallback, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import type { AnswerBody, Card, GameEvent, GameState, ManaColor, Question, VisibleCard } from "@openmana/engine-protocol"
 import { Badge } from "@/components/ui/badge"
 import { GameBoard, GameBoardArea, type GameBoardDecision } from "@/components/ui/game-board"
-import { GameCard, GameCardBack, GameCardButton, GameCardCaption, GameCardGroup, GameCardRow, GameCardRowButton, GameCardRowItem } from "@/components/ui/game-card"
+import { GameCard, GameCardButton, GameCardCaption, GameCardGroup, GameCardRow, GameCardRowButton, GameCardRowItem } from "@/components/ui/game-card"
 import { GameHelpButton } from "@/components/ui/game-help-button"
 import { GameZoneButton } from "@/components/ui/game-zone-button"
 import { GamePlayer, GamePlayerButton } from "@/components/ui/game-player"
@@ -95,6 +95,7 @@ import {
   cardName,
   counterLabel,
   MANA_LABELS,
+  placeLabel,
   playerButtonLabel,
   seatName,
   SOURCE_LABEL,
@@ -104,6 +105,8 @@ import {
 } from "./table-labels"
 import { pileOf, isVisible, tableView, type BoardEntry, type CombatView, type Seat, type StackEntryView, type TableSide, type TableView } from "./table-model"
 import { TablePicture } from "./table-picture"
+import { TableArt, TableCardBack, TableEmblem } from "./table/table-art"
+import { MedallionFace, StripChip, ZoneCount, ZoneCounter, ZonePile } from "./table/strip-parts"
 import { TableSurface } from "./table/table-surface"
 import { TURN_PHASES, turnSteps } from "./turn-model"
 
@@ -162,7 +165,12 @@ interface CardControls {
   readonly primary: (card: VisibleCard, use: CardUse) => void
   /** Taps a player (prompt 17); null: the table is only looked at. */
   readonly tapPlayer: ((player: number) => void) | null
+  /** Opens the zone view of a player's zone (prompt 39: the strip's piles) - looking only. */
+  readonly lookZone: (player: number, zone: StripZone) => void
 }
+
+/** The zones a strip's pile or counter opens in the zone view. */
+type StripZone = "graveyard" | "exile" | "command"
 
 const CardControlsContext = createContext<CardControls | null>(null)
 
@@ -269,6 +277,7 @@ export function GameTable({ replay = false,
         onTapCard(card.id)
       },
       tapPlayer: onTapPlayer === undefined ? null : tapPlayer,
+      lookZone: (player, zone) => setZone({ kind: "zone", player, zone }),
     }
   }, [moment, targets, onTapCard, onTapPlayer, tapPlayer, openCard])
   return (
@@ -276,20 +285,35 @@ export function GameTable({ replay = false,
       <GameBoard decision={room}>
         <title>Partie · OpenMana</title>
         <TableSurface />
-        <GameBoardArea area="header" aria-label="Spielstand" className="flex items-center gap-2 px-2 py-1">
-          {menu}
-          <GameZoneButton aria-label="Zonen ansehen" title="Zonen ansehen" aria-haspopup="dialog" disabled={state.players.length === 0} onClick={() => { const player = state.players.find((p) => p.me) ?? state.players[0]; if (player !== undefined) setZone({ kind: "zone", player: player.id, zone: "graveyard" }) }}>
-            <Library aria-hidden />
+        <TableArt />
+        {/*
+          The header bar (prompt 39): the emblem and wordmark, the zones and the history as symbol buttons (with words in
+          breit), the turn and step - the help opens from there -, whether Forge waits, the menu.
+        */}
+        <GameBoardArea area="header" aria-label="Spielstand" className="flex items-center gap-1 px-2 py-0.5 quadrat:gap-2 quadrat:py-1 breit:gap-2 breit:px-3 breit:py-1">
+          <span aria-hidden className="table-brand hidden shrink-0 items-center gap-2 pe-1 min-[25rem]:flex quadrat:flex breit:flex">
+            <TableEmblem className="size-6 quadrat:size-8 breit:size-9 breit:short:size-7" />
+            <span className="table-wordmark hidden font-heading text-xl font-semibold quadrat:inline breit:inline breit:text-2xl breit:short:hidden">OpenMana</span>
+          </span>
+          <GameZoneButton aria-label="Zonen ansehen" title="Zonen ansehen" aria-haspopup="dialog" className="breit:w-auto breit:gap-2 breit:px-3 breit:short:w-10 breit:short:px-0" disabled={state.players.length === 0} onClick={() => { const player = state.players.find((p) => p.me) ?? state.players[0]; if (player !== undefined) setZone({ kind: "zone", player: player.id, zone: "graveyard" }) }}>
+            <Layers aria-hidden />
+            <span className="hidden breit:inline breit:short:hidden">Zonen</span>
           </GameZoneButton>
-          <GameZoneButton aria-label="Spielverlauf ansehen" title={`Spielverlauf: ${history.length} Einträge`} aria-haspopup="dialog" onClick={() => setHistoryOpen(true)}><History aria-hidden /></GameZoneButton>
+          <GameZoneButton aria-label="Spielverlauf ansehen" title={`Spielverlauf: ${history.length} Einträge`} aria-haspopup="dialog" className="breit:w-auto breit:gap-2 breit:px-3 breit:short:w-10 breit:short:px-0" onClick={() => setHistoryOpen(true)}>
+            <ScrollText aria-hidden />
+            <span className="hidden breit:inline breit:short:hidden">Spielverlauf</span>
+          </GameZoneButton>
           <h1 className="sr-only">{replay ? "Wiedergabe" : "Partie"}</h1>
-          <GameHelpButton aria-label="Hilfe am Spieltisch" aria-describedby={`${helpPhaseId} ${helpOwnerId}`} title="Hilfe am Spieltisch" aria-haspopup="dialog" onClick={() => setHelpOpen(true)}>
-            <span id={helpPhaseId} className="line-clamp-2 text-xs leading-tight font-medium quadrat:text-sm breit:text-sm" title={turnLine(view.turn, state.phase)}>
-              {turnLine(view.turn, state.phase)}
+          <GameHelpButton aria-label="Hilfe am Spieltisch" aria-describedby={`${helpOwnerId} ${helpPhaseId}`} title="Hilfe am Spieltisch" aria-haspopup="dialog" hint={<span className="hidden text-sm breit:inline breit:short:hidden">Hilfe</span>} onClick={() => setHelpOpen(true)}>
+            <span id={helpOwnerId} className="line-clamp-2 text-xs leading-tight text-muted-foreground quadrat:truncate quadrat:text-sm breit:truncate breit:text-sm breit:short:text-xs">
+              <TurnInfo turn={view.turn} seat={view.activeSeat} />
             </span>
             <span className="flex min-w-0 items-center gap-2">
-              <TurnTrack phase={state.phase} />
-              <span id={helpOwnerId} className="truncate text-xs text-muted-foreground">{turnOwnerLabel(view.activeSeat)}</span>
+              {/* On a phone narrower than 400 px the track (a picture of the step's words) gives way to the words themselves. */}
+              <TurnTrack phase={state.phase} className="hoch:max-[25rem]:hidden" />
+              <span id={helpPhaseId} className="truncate text-xs leading-tight font-medium" title={phaseLabel(state.phase)}>
+                {phaseLabel(state.phase)}
+              </span>
             </span>
           </GameHelpButton>
           {replay ? <Badge variant="secondary">Wiedergabe</Badge> : conceding ? (
@@ -305,6 +329,7 @@ export function GameTable({ replay = false,
               Forge rechnet
             </Badge>
           )}
+          {menu}
         </GameBoardArea>
 
         <GameBoardArea area="opponent" aria-label="Forge-KI" className="flex flex-col">
@@ -370,9 +395,18 @@ export function GameTable({ replay = false,
   )
 }
 
-/** "Zug 3 · Erste Hauptphase", before the first turn "Vor dem ersten Zug". */
-function turnLine(turn: number, phase: GameState["phase"]): string {
-  return turn > 0 ? `Zug ${turn} · ${phaseLabel(phase)}` : phaseLabel(phase)
+/**
+ * The turn and whose it is (the mockup's `.zug-info`): "Zug 14 · Dein Zug",
+ * "Zug 15 · Forge-KI am Zug" - the number in gold; before the first turn
+ * "Die Starthände werden gezogen".
+ */
+function TurnInfo({ turn, seat }: { turn: number; seat: Seat | null }) {
+  if (turn <= 0 || seat === null) return <>{turnOwnerLabel(seat)}</>
+  return (
+    <>
+      Zug <b className="font-semibold text-primary tabular-nums">{turn}</b> · {turnOwnerLabel(seat)}
+    </>
+  )
 }
 
 /**
@@ -381,11 +415,11 @@ function turnLine(turn: number, phase: GameState["phase"]): string {
  * header's words (each bar names its step as a tooltip). Before the first
  * turn there is none.
  */
-function TurnTrack({ phase }: { phase: GameState["phase"] }) {
+function TurnTrack({ phase, className }: { phase: GameState["phase"]; className?: string }) {
   if (phase === null) return null
   const steps = turnSteps(phase)
   return (
-    <PhaseTrack data-phase={phase}>
+    <PhaseTrack data-phase={phase} className={className}>
       {TURN_PHASES.map((group) => (
         <PhaseTrackGroup key={group.key} title={TURN_PHASE_LABELS[group.key]}>
           {steps
@@ -400,75 +434,101 @@ function TurnTrack({ phase }: { phase: GameState["phase"] }) {
 }
 
 /**
- * A zone's size with its word ("Hand 7"). Where the bar is narrow (a phone,
- * the side column) the word gives way to its symbol; screen readers and the
- * tooltip keep the word.
+ * A player's strip (prompt 39, docs/design/SPIELTISCH.md §4.3-4.6; the
+ * mockup's `.leiste`): the life medallion in the middle - the player's
+ * control -, on the left the hand (the opponent's as overlapping backs) and
+ * the short facts, on the right the zones - the library as OpenMana's back
+ * with Forge's number, the graveyard with its top card, exile and the command
+ * zone as counters; a tap on one of them opens the zone view (looking only).
+ * The longer facts (mana pool, the player's counters such as poison,
+ * commander tax and damage) follow below in a line of chips of their own,
+ * only when Forge reports any. Nothing is left out that the strip showed
+ * before; whose turn it is glows on the medallion and stands in the header.
  */
-function Count({ label, value, icon: Icon }: { label: string; value: number; icon: LucideIcon }) {
-  return (
-    <span className="flex items-center gap-1 whitespace-nowrap" title={label}>
-      <Icon aria-hidden className="size-3.5" />
-      <span className="sr-only @md:not-sr-only">{label} </span>
-      <span className="font-medium text-foreground tabular-nums">{value}</span>
-    </span>
-  )
-}
-
-/** A player's line: who, life, the sizes of the zones, mana, counters, commanders - and the opponent's hand as backs. */
 function PlayerBar({ side, profile, pictures }: { side: TableSide; profile: string | null; pictures: TableCardLookup }) {
+  const controls = use(CardControlsContext)
+  if (controls === null) throw new Error("PlayerBar outside GameTable")
   const { player, counts } = side
   const me = side.seat === "me"
+  const seat = me ? "me" : "opponent"
+  const open = (zone: StripZone) => () => controls.lookZone(player.id, zone)
+  const zoneLabel = (zone: StripZone, count: number) => `${placeLabel(zone, seat)} ansehen: ${count === 1 ? "1 Karte" : `${count} Karten`}`
+  const graveyard = player.zones.graveyard
+  // Forge adds a card to the end of a zone's list (Zone.add), so the graveyard's last card is the one put there last: its top.
+  const top = graveyard.at(-1)
+  const topCard = top !== undefined && isVisible(top) ? top : null
+  const facts = side.mana.length > 0 || side.counters.length > 0 || player.commanders.length > 0
   return (
-    <div className="@container flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 text-xs text-muted-foreground">
-      <SeatPlayer side={side} />
-      {profile !== null || side.active || player.hasPriority || player.lost ? (
-        <span className="flex items-center gap-1.5">
-          {profile !== null ? <Badge variant="secondary">{profile}</Badge> : null}
-          {side.active ? <Badge variant="outline">am Zug</Badge> : null}
-          {player.hasPriority ? <Badge variant="outline">Priorität</Badge> : null}
-          {player.lost ? <Badge variant="destructive">verloren</Badge> : null}
-        </span>
+    <div className="table-strip @container flex flex-col gap-0.5 px-2 text-xs text-muted-foreground quadrat:py-0.5 breit:py-0.5">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(max-content,1fr)] items-center gap-x-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 justify-self-start">
+          {me ? null : <OpponentHand cards={side.hand} pictures={pictures} />}
+          <ZoneCount name="Hand" count={counts.hand} />
+          {profile !== null ? <StripChip data-strip-fact="profile">{profile}</StripChip> : null}
+          {player.hasPriority ? <StripChip data-strip-fact="priority">Priorität</StripChip> : null}
+          {player.lost ? <StripChip data-strip-fact="lost" tone="danger">verloren</StripChip> : null}
+        </div>
+        <SeatPlayer side={side} />
+        <div className="flex items-center gap-1 justify-self-end">
+          <ZonePile name="Bibliothek" count={counts.library} card={counts.library > 0 ? <TableArtBack /> : null} empty={counts.library === 0} />
+          <ZonePile
+            name="Friedhof"
+            count={counts.graveyard}
+            label={`${zoneLabel("graveyard", counts.graveyard)}${topCard !== null ? `, oben: ${cardName(topCard)}` : ""}`}
+            card={topCard !== null ? <TablePicture card={topCard} pictures={pictures} /> : null}
+            empty={topCard === null}
+            onOpen={open("graveyard")}
+          />
+          <ZoneCounter name="Exil" count={counts.exile} label={zoneLabel("exile", counts.exile)} icon={null} onOpen={open("exile")} />
+          {counts.command > 0 ? (
+            <ZoneCounter name="Kommandozone" count={counts.command} label={zoneLabel("command", counts.command)} icon={<Crown aria-hidden />} nameClassName="sr-only breit:not-sr-only breit:short:sr-only" onOpen={open("command")} />
+          ) : null}
+        </div>
+      </div>
+      {facts ? (
+        <div className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 pb-0.5">
+          {side.mana.length > 0 ? (
+            <StripChip>
+              Manavorrat{" "}
+              <span className="font-medium text-foreground">{side.mana.map(({ color, amount }) => `${amount} ${MANA_LABELS[color]}`).join(", ")}</span>
+            </StripChip>
+          ) : null}
+          {side.counters.map(({ name, amount }) => {
+            const label = counterLabel(name)
+            return (
+              <StripChip key={name}>
+                <span {...(label.english ? { lang: "en" } : {})}>{label.text}</span> <span className="font-medium text-foreground tabular-nums">{amount}</span>
+              </StripChip>
+            )
+          })}
+          {player.commanders.map((commander, index) => (
+            <CommanderFacts
+              key={isVisible(commander.card) ? commander.card.id : `hidden:${index}`}
+              commander={commander}
+              playerId={player.id}
+              me={me}
+              // One commander needs no name (its card lies on the table); partners do.
+              named={player.commanders.length > 1}
+            />
+          ))}
+        </div>
       ) : null}
-      <Count label="Hand" value={counts.hand} icon={HandIcon} />
-      <Count label="Bibliothek" value={counts.library} icon={Library} />
-      <Count label="Friedhof" value={counts.graveyard} icon={Skull} />
-      <Count label="Exil" value={counts.exile} icon={Ban} />
-      {counts.command > 0 ? <Count label="Kommandozone" value={counts.command} icon={Crown} /> : null}
-      {side.mana.length > 0 ? (
-        <span className="whitespace-nowrap">
-          Manavorrat{" "}
-          <span className="font-medium text-foreground">{side.mana.map(({ color, amount }) => `${amount} ${MANA_LABELS[color]}`).join(", ")}</span>
-        </span>
-      ) : null}
-      {side.counters.map(({ name, amount }) => {
-        const label = counterLabel(name)
-        return (
-          <span key={name} className="whitespace-nowrap">
-            <span {...(label.english ? { lang: "en" } : {})}>{label.text}</span> <span className="font-medium text-foreground tabular-nums">{amount}</span>
-          </span>
-        )
-      })}
-      {player.commanders.map((commander, index) => (
-        <CommanderFacts
-          key={isVisible(commander.card) ? commander.card.id : `hidden:${index}`}
-          commander={commander}
-          playerId={player.id}
-          me={me}
-          // One commander needs no name (its card lies on the table); partners do.
-          named={player.commanders.length > 1}
-        />
-      ))}
-      {me ? null : <OpponentHand cards={side.hand} pictures={pictures} />}
     </div>
   )
 }
 
+/** The library's card: OpenMana's back (Forge sends only the library's size). */
+function TableArtBack() {
+  return <TableCardBack className="h-auto w-full" />
+}
+
 /**
- * Who a seat is and their life total - and, where Forge's running input
- * would take the player (a target, a choice, life for mana; card-use.ts
- * playerUse), the button for it with Forge's mark: it taps at once, like the
- * cards of a selection. Without a tap it is only read, with Forge's
- * highlight (chosen) if any.
+ * Who a seat is and their life total, as the life medallion (prompt 39) -
+ * and, where Forge's running input would take the player (a target, a choice,
+ * life for mana; card-use.ts playerUse), the button for it with Forge's mark
+ * (a ring around the medallion, red for a target): it taps at once, like the
+ * cards of a selection. Without a tap it is only read, with Forge's highlight
+ * (chosen) if any. Whose turn it is glows.
  */
 function SeatPlayer({ side }: { side: TableSide }) {
   const controls = use(CardControlsContext)
@@ -478,21 +538,12 @@ function SeatPlayer({ side }: { side: TableSide }) {
   const target = controls.targets.players.has(player.id)
   const mark = usage.mark ?? (target ? "target" : null)
   const name = side.seat === "me" ? "Du" : seatName(side.seat)
-  const content = (
-    <>
-      {target ? <Crosshair aria-hidden className="size-3.5" /> : null}
-      <span className="font-heading text-sm font-semibold text-foreground">{name}</span>
-      <span className="flex items-center gap-1 text-foreground" title="Lebenspunkte">
-        <Heart aria-hidden className="size-4" />
-        <span className="text-base font-semibold tabular-nums">{player.life}</span>
-        <span className="sr-only">Lebenspunkte</span>
-      </span>
-    </>
-  )
+  const content = <MedallionFace name={name} life={player.life} target={target} active={side.active} />
+  const medallion = "table-medallion"
   const tapPlayer = controls.tapPlayer
   if (usage.tap === null || tapPlayer === null) {
     return (
-      <GamePlayer data-player={player.id} data-stack-target={target || undefined} mark={mark} title={[name, usage.markLabel, target ? STACK_TARGET_LABEL : null].filter(Boolean).join(": ")}>
+      <GamePlayer className={medallion} data-player={player.id} data-active={side.active || undefined} data-stack-target={target || undefined} mark={mark} title={[name, usage.markLabel, target ? STACK_TARGET_LABEL : null].filter(Boolean).join(": ")}>
         {content}
         {usage.markLabel !== null ? <span className="sr-only">, {usage.markLabel}</span> : null}
         {target ? <span className="sr-only">, {STACK_TARGET_LABEL}</span> : null}
@@ -502,7 +553,9 @@ function SeatPlayer({ side }: { side: TableSide }) {
   const label = [playerButtonLabel(name, player.life, usage), ...(target ? [STACK_TARGET_LABEL] : [])].join(", ")
   return (
     <GamePlayerButton
+      className={medallion}
       data-player={player.id}
+      data-active={side.active || undefined}
       mark={mark}
       data-stack-target={target || undefined}
       aria-label={label}
@@ -522,25 +575,26 @@ function SeatPlayer({ side }: { side: TableSide }) {
 function CommanderFacts({ commander, playerId, me, named }: { commander: TableSide["player"]["commanders"][number]; playerId: number; me: boolean; named: boolean }) {
   return (
     <>
-      <span className="whitespace-nowrap">
+      <StripChip>
         {named ? `${isVisible(commander.card) ? cardName(commander.card) : "Verdeckter Kommandeur"}: ` : null}Kommandeursteuer{" "}
         <span className="font-medium text-foreground tabular-nums">{commander.tax}</span>
-      </span>
+      </StripChip>
       {commander.damage.map((dealt) => (
-        <span key={dealt.player} className="whitespace-nowrap">
+        <StripChip key={dealt.player}>
           <span className="font-medium text-foreground tabular-nums">{dealt.amount}</span> Kommandeurschaden{" "}
           {dealt.player === playerId ? "an sich" : me ? "an Forge-KI" : "an dich"}
-        </span>
+        </StripChip>
       ))}
     </>
   )
 }
 
 /**
- * The opponent's hand: backs for what Forge hides, the card for what it
- * reveals (a card to look at). Where the bar is narrow (a phone, the side
- * column) only revealed cards take a row - the backs would only repeat the
- * hand's size shown beside them.
+ * The opponent's hand (prompt 39, the mockup's `.rueckseiten`): overlapping
+ * backs for what Forge hides - one per card, never told apart -, the card for
+ * what it reveals (a card to look at, a toolbar as before). Where the strip
+ * is narrow (a phone, the side column) the hidden backs give way: the hand's
+ * size stands beside them ("6 Hand").
  */
 function OpponentHand({ cards, pictures }: { cards: readonly Card[]; pictures: TableCardLookup }) {
   if (cards.length === 0) return null
@@ -548,13 +602,13 @@ function OpponentHand({ cards, pictures }: { cards: readonly Card[]; pictures: T
   const label = `Hand der Forge-KI: ${cards.length === 1 ? "1 Karte" : `${cards.length} Karten`}`
   // Revealed cards take their own place (no overlap) and a height a finger can hit (WCAG 2.5.8: 24 px).
   const items = cards.map((card, index) => (
-    <GameCardRowItem key={isVisible(card) ? card.id : `hidden:${index}`} className={cn(revealed ? null : "-ml-2.5 first:ml-0", isVisible(card) ? null : "hidden @md:block")}>
+    <GameCardRowItem key={isVisible(card) ? card.id : `hidden:${index}`} className={cn(revealed ? null : "table-hand-back", isVisible(card) ? null : "hidden @md:block")}>
       {isVisible(card) ? (
         <TableCard card={card} place={{ zone: "hand", mine: false }} pictures={pictures} />
       ) : (
-        <GameCardBack>
+        <TableCardBack>
           <span className="sr-only">verdeckte Karte</span>
-        </GameCardBack>
+        </TableCardBack>
       )}
     </GameCardRowItem>
   ))
@@ -563,7 +617,7 @@ function OpponentHand({ cards, pictures }: { cards: readonly Card[]; pictures: T
       {items}
     </GameCardRow>
   ) : (
-    <ul aria-label={label} className="hidden h-7 items-center @md:flex">
+    <ul aria-label={label} className="table-hand-backs hidden h-8 items-center @md:flex quadrat:h-9 breit:h-10 breit:short:h-8">
       {items}
     </ul>
   )
@@ -654,9 +708,9 @@ function Entry({ entry, pictures, seat }: { entry: BoardEntry; pictures: TableCa
             </GameCardCaption>
           }
         >
-          <GameCardBack>
+          <TableCardBack>
             <span className="sr-only">verdeckte Karte</span>
-          </GameCardBack>
+          </TableCardBack>
         </GameCard>
       </GameCardRowItem>
     )
@@ -724,9 +778,9 @@ function Field({ side, pictures, nearRow, owner }: { side: TableSide; pictures: 
             </GameCardCaption>
           }
         >
-          <GameCardBack>
+          <TableCardBack>
             <span className="sr-only">verdeckte Karte</span>
-          </GameCardBack>
+          </TableCardBack>
         </GameCard>
       )}
     </GameCardRowItem>
@@ -853,9 +907,9 @@ function StackEntry({ entry, top, pictures }: { entry: StackEntryView; top: bool
                 <TablePicture card={card} pictures={pictures} />
               </GameCardButton>
             ) : (
-              <GameCardBack>
+              <TableCardBack>
                 <span className="sr-only">verdeckte Karte</span>
-              </GameCardBack>
+              </TableCardBack>
             )}
           </ItemMedia>
         ) : null}
@@ -904,9 +958,9 @@ function Hand({ cards, pictures }: { cards: readonly Card[]; pictures: TableCard
           {isVisible(card) ? (
             <TableCard card={card} place={{ zone: "hand", mine: true }} pictures={pictures} />
           ) : (
-            <GameCardBack>
+            <TableCardBack>
               <span className="sr-only">verdeckte Karte</span>
-            </GameCardBack>
+            </TableCardBack>
           )}
         </GameCardRowItem>
       ))}

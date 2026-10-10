@@ -6,11 +6,13 @@
  * size) is checked in Chrome by the end-to-end test.
  */
 import type { VisibleCard } from "@openmana/engine-protocol"
-import { render, screen, within } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { fireEvent, render, screen, within } from "@testing-library/react"
+import { describe, expect, it, vi } from "vitest"
 import { tableScene, type TableSceneName } from "@/test/table-scenes"
 import { GameTable } from "./game-table"
 import { NO_PICTURES, type TableCardLookup } from "./table-cards"
+import { cardName } from "./table-labels"
+import { isVisible } from "./table-model"
 
 function renderScene(name: TableSceneName, options: { pictures?: TableCardLookup; waiting?: boolean } = {}) {
   const scene = tableScene(name)
@@ -57,8 +59,11 @@ describe("the regions", () => {
   it("the header: turn and step in German, whose turn, whether Forge waits for the player", () => {
     renderScene("main-phase")
     const header = region("Spielstand")
-    expect(within(header).getByText("Zug 14 · Erste Hauptphase")).toBeInTheDocument()
-    expect(within(header).getByText("Du bist am Zug")).toBeInTheDocument()
+    // Prompt 39: "Zug 14 · Dein Zug" (the number in gold) and the step beside the track, both inside the help button.
+    const help = within(header).getByRole("button", { name: "Hilfe am Spieltisch" })
+    expect(within(help).getByText((_, element) => element?.id !== "" && element?.textContent === "Zug 14 · Dein Zug")).toBeInTheDocument()
+    expect(help.querySelector("span[id][title]")).toHaveTextContent(/^Erste Hauptphase$/)
+    expect(help).toHaveAccessibleDescription("Zug 14 · Dein Zug Erste Hauptphase")
     expect(within(header).getByText("Du bist dran")).toBeInTheDocument()
     expect(within(header).getByRole("button", { name: "Menü" })).toBeInTheDocument()
   })
@@ -116,6 +121,113 @@ describe("what each player shows", () => {
     expect(within(me).getByText(/Kommandeurschaden/)).toHaveTextContent("9 Kommandeurschaden an Forge-KI")
     expect(within(region("Forge-KI")).getByText(/^Kommandeursteuer/)).toHaveTextContent("Kommandeursteuer 4")
     expect(within(region("Forge-KI")).getByText(/Kommandeurschaden/)).toHaveTextContent("3 Kommandeurschaden an dich")
+  })
+})
+
+describe("the strips and the header (prompt 39)", () => {
+  const medallion = (name: string) => region(name).querySelector<HTMLElement>('[data-slot="game-player"].table-medallion')!
+  const pile = (name: string, zone: string) => region(name).querySelector<HTMLElement>(`[data-zone-pile="${zone}"]`)!
+
+  it("each player is a life medallion: Forge's life total, the name band, the glow on whose turn it is", () => {
+    const scene = renderScene("main-phase")
+    const [me, ai] = [scene.state.players.find((p) => p.me)!, scene.state.players.find((p) => !p.me)!]
+    for (const [name, player, band] of [["Du", me, "Du"], ["Forge-KI", ai, "Forge-KI"]] as const) {
+      const seat = medallion(name)
+      expect(seat).toHaveAttribute("data-player", String(player.id))
+      expect(seat.querySelector('[title="Lebenspunkte"] .tabular-nums')).toHaveTextContent(String(player.life))
+      expect(within(seat).getByText(band)).toHaveClass("table-medallion-band")
+      expect(seat.querySelector('use[href="#table-art-medallion"]')).not.toBeNull()
+      // The turn is the player's in this scene: only their medallion glows, and says so to screen readers.
+      expect(seat.hasAttribute("data-active")).toBe(player.id === scene.state.activePlayer)
+    }
+    expect(within(medallion("Du")).getByText(", am Zug")).toHaveClass("sr-only")
+  })
+
+  it("the zones: the library as OpenMana's back with Forge's number, the graveyard with its top card, exile as a counter", () => {
+    const scene = renderScene("main-phase")
+    const ai = scene.state.players.find((p) => !p.me)!
+    const library = pile("Forge-KI", "Bibliothek")
+    // Forge sends only the library's size: a count to read, never a control, never a card.
+    expect(library.tagName).toBe("SPAN")
+    expect(library).toHaveTextContent(`Bibliothek ${ai.library}`)
+    expect(library.querySelector('use[href="#table-art-back"]')).not.toBeNull()
+    const graveyard = pile("Forge-KI", "Friedhof")
+    const top = ai.zones.graveyard.at(-1)!
+    expect(isVisible(top)).toBe(true)
+    // Forge appends to a zone's list: its last card is the one put there last, the top of the pile.
+    expect(graveyard).toHaveAccessibleName(`Friedhof der Forge-KI ansehen: ${ai.zones.graveyard.length} Karten, oben: ${cardName(top as VisibleCard)}`)
+    expect(graveyard).toHaveTextContent(new RegExp(`Friedhof ${ai.zones.graveyard.length}$`))
+    expect(pile("Forge-KI", "Exil")).toHaveAccessibleName(`Exil der Forge-KI ansehen: ${ai.zones.exile.length === 1 ? "1 Karte" : `${ai.zones.exile.length} Karten`}`)
+    expect(region("Forge-KI").querySelector('[data-zone-pile="Kommandozone"]')).toBeNull()
+  })
+
+  it("an empty graveyard stays an empty place, nothing invented", () => {
+    renderScene("opening")
+    const graveyard = pile("Du", "Friedhof")
+    expect(graveyard.querySelector(".table-pile-empty")).not.toBeNull()
+    expect(graveyard.querySelector('[data-slot="card-picture"], [data-slot="game-card-back"]')).toBeNull()
+    expect(graveyard).toHaveTextContent(/Friedhof 0$/)
+  })
+
+  it("a tap on a pile opens the zone view for that player and zone - looking only, focus back on the pile", async () => {
+    const scene = tableScene("main-phase")
+    const tap = (): void => {
+      throw new Error("a pile sent a tap")
+    }
+    render(<GameTable state={scene.state} questions={scene.questions} prompt={scene.prompt} waiting aiProfile={scene.game.aiProfile} pictures={NO_PICTURES} menu={null} onTapCard={tap} onTapPlayer={tap} onAnswer={tap} />)
+    const graveyard = pile("Forge-KI", "Friedhof")
+    graveyard.focus()
+    fireEvent.click(graveyard)
+    expect(await screen.findByRole("dialog", { name: "Friedhof der Forge-KI" })).toBeInTheDocument()
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Schließen" }))
+    await vi.waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+    await vi.waitFor(() => expect(graveyard).toHaveFocus())
+    fireEvent.click(pile("Du", "Exil"))
+    expect(await screen.findByRole("dialog", { name: "Dein Exil" })).toBeInTheDocument()
+  })
+
+  it("the command zone as a counter when Forge shows one; it opens that zone", async () => {
+    renderScene("command-effects")
+    const command = pile("Du", "Kommandozone")
+    expect(command).toHaveTextContent(/Kommandozone 2$/)
+    fireEvent.click(command)
+    expect(await screen.findByRole("dialog", { name: "Deine Kommandozone" })).toBeInTheDocument()
+  })
+
+  it("the opponent's hand: one back per hidden card, OpenMana's own (drawn once for the table)", () => {
+    renderScene("opening")
+    const hidden = within(region("Forge-KI")).getByRole("list", { name: "Hand der Forge-KI: 7 Karten" })
+    expect(hidden.querySelectorAll('[data-slot="game-card-back"] use[href="#table-art-back"]')).toHaveLength(7)
+    expect(document.querySelectorAll("#table-art-back")).toHaveLength(1)
+    expect(document.querySelector('[data-slot="table-art"]')).toHaveAttribute("aria-hidden", "true")
+  })
+
+  it("facts as chips: the AI profile, priority and lost on the strip's line, longer facts on a line below", () => {
+    renderScene("commander-late")
+    expect(within(region("Forge-KI")).getByText("Standard")).toHaveClass("table-chip")
+    // The anchor the end-to-end test and the readiness games read the confirmed profile by.
+    expect(region("Forge-KI").querySelector('[data-strip-fact="profile"]')).toHaveTextContent(/^Standard$/)
+    expect(within(region("Du")).getByText(/^Kommandeursteuer/)).toHaveClass("table-chip")
+  })
+
+  it("a stack target: the medallion's ring is red (data-mark target) with a crosshair", () => {
+    const scene = renderScene("target-player")
+    const targets = scene.state.stack.flatMap((item) => item.targets).filter((target) => target.kind === "player").map((target) => target.id)
+    for (const id of targets) {
+      const seat = document.querySelector<HTMLElement>(`[data-slot="game-player"][data-player="${id}"]`)!
+      expect(seat).toHaveAttribute("data-stack-target", "true")
+      expect(seat.querySelector(".table-medallion-target")).not.toBeNull()
+    }
+  })
+
+  it("the header: emblem and wordmark as decoration, zones and history as symbol buttons, the menu", () => {
+    renderScene("main-phase")
+    const header = region("Spielstand")
+    expect(header.querySelector(".table-brand")).toHaveAttribute("aria-hidden", "true")
+    expect(header.querySelector('.table-brand use[href="#table-art-emblem"]')).not.toBeNull()
+    expect(within(header).getByRole("button", { name: "Zonen ansehen" })).toHaveTextContent("Zonen")
+    expect(within(header).getByRole("button", { name: "Spielverlauf ansehen" })).toHaveTextContent("Spielverlauf")
+    expect(within(header).getByRole("button", { name: "Hilfe am Spieltisch" })).toHaveTextContent(/Hilfe$/)
   })
 })
 

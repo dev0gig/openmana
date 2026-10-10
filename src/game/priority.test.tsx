@@ -126,7 +126,7 @@ describe("the player's priority", () => {
 
   it("in the AI's turn (recorded): Forge asks only because the player holds an answer - the header and the words say whose turn it is", () => {
     table("opponent-turn")
-    expect(within(header()).getByText("Forge-KI am Zug")).toBeInTheDocument()
+    expect(within(header()).getByText((_, element) => element?.id !== "" && /^Zug \d+ · Forge-KI am Zug$/.test(element?.textContent ?? ""))).toBeInTheDocument()
     expect(within(decision()).getByText("Zug der Forge-KI: Du kannst jetzt etwas spielen – oder weitergeben.")).toBeInTheDocument()
     expect(within(answersGroup()).getAllByRole("button").map((button) => button.textContent)).toEqual(["Weiter", "Zug beenden …"])
   })

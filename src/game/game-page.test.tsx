@@ -408,8 +408,9 @@ describe("the game page: priority, stack and phases (prompt 16)", () => {
     engine.worker().priority()
     renderAt("/play/game", engine)
     const header = await screen.findByRole("region", { name: "Spielstand" })
-    expect(await within(header).findByText("Zug 1 · Erste Hauptphase")).toBeInTheDocument()
-    expect(within(header).getByText("Du bist am Zug")).toBeInTheDocument()
+    // Prompt 39: the turn and whose it is ("Zug 1 · Dein Zug"), the step beside the track.
+    expect(await within(header).findByText((_, element) => element?.id !== "" && element?.textContent === "Zug 1 · Dein Zug")).toBeInTheDocument()
+    expect(within(header).getByRole("button", { name: "Hilfe am Spieltisch" }).querySelector("span[id][title]")).toHaveTextContent(/^Erste Hauptphase$/)
     const track = header.querySelector('[data-slot="phase-track"]')
     expect(track).toHaveAttribute("data-phase", "MAIN1")
     expect(track).toHaveAttribute("aria-hidden", "true")

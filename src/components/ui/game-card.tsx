@@ -25,8 +25,9 @@
  *   a double gold frame for a named stack target, never an action offer.
  *   Usable/selected frames take precedence. Every card keeps
  *   the frame's room, marked or not, so a mark never moves a row.
- * - GameCardBack: a card whose face the player may not see (Forge's hidden
- *   cards): OpenMana's own back, never Wizards' card back.
+ * - A card whose face the player may not see (Forge's hidden cards) is the
+ *   table's own back since prompt 39 (TableCardBack, src/game/table/
+ *   table-art.tsx: OpenMana's back, never Wizards'), slot game-card-back.
  * - GameCardGroup: a card with what is attached to it (auras, equipment),
  *   side by side in one frame.
  * - GameCardRow / GameCardRowItem (prompt 14): a row of cards that scrolls
@@ -38,7 +39,6 @@
  */
 import * as React from "react"
 import { cn } from "cn"
-import { Layers } from "lucide-react"
 import { Toolbar as ToolbarPrimitive } from "radix-ui"
 
 /** How much of the card's height the caption strip takes (h-5 below). */
@@ -135,20 +135,6 @@ function GameCardCaption({ className, ...props }: React.ComponentProps<"figcapti
   )
 }
 
-/** A card the player may not see: only that it is there (children: what a screen reader hears). */
-function GameCardBack({ className, children, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="game-card-back"
-      className={cn("flex aspect-63/88 h-full items-center justify-center rounded-xl border bg-secondary text-muted-foreground [&_svg]:size-1/3 [&_svg]:max-h-6", className)}
-      {...props}
-    >
-      <Layers aria-hidden />
-      {children}
-    </div>
-  )
-}
-
 /** A card and its attachments in one frame. */
 function GameCardGroup({ className, ...props }: React.ComponentProps<"div">) {
   return <div data-slot="game-card-group" className={cn("flex h-full shrink-0 gap-1 rounded-2xl border border-dashed p-0.5", className)} {...props} />
@@ -189,4 +175,4 @@ function GameCardRowButton(props: React.ComponentProps<typeof ToolbarPrimitive.B
   return <ToolbarPrimitive.Button asChild {...props} />
 }
 
-export { GameCard, GameCardBack, GameCardButton, GameCardCaption, GameCardGroup, GameCardRow, GameCardRowButton, GameCardRowItem }
+export { GameCard, GameCardButton, GameCardCaption, GameCardGroup, GameCardRow, GameCardRowButton, GameCardRowItem }

@@ -141,7 +141,7 @@ describe("Forge's second button", () => {
 
 describe("whose turn", () => {
   it("in words short enough for a small phone's header", () => {
-    expect(turnOwnerLabel("me")).toBe("Du bist am Zug")
+    expect(turnOwnerLabel("me")).toBe("Dein Zug")
     expect(turnOwnerLabel("opponent")).toBe("Forge-KI am Zug")
     expect(turnOwnerLabel(null)).toBe("Die Starthände werden gezogen")
     expect(turnSeat(gameState(1))).toBeNull()

@@ -101,7 +101,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Field, FieldContent, FieldDescription, FieldLabel, FieldTitle } from "@/components/ui/field"
-import { GameCardBack, GameCardButton, GameCardRow, GameCardRowButton, GameCardRowItem, type GameCardMark } from "@/components/ui/game-card"
+import { GameCardButton, GameCardRow, GameCardRowButton, GameCardRowItem, type GameCardMark } from "@/components/ui/game-card"
 import { GameDecision, GameDecisionActions, GameDecisionHeader, GameDecisionNote, GameDecisionRow, GameDecisionSource } from "@/components/ui/game-decision"
 import { GamePlayer, GamePlayerButton } from "@/components/ui/game-player"
 import { Input } from "@/components/ui/input"
@@ -166,6 +166,7 @@ import { endTurnText, PASS_LABELS, PASS_NOTES, priorityText } from "./priority-l
 import type { TableCardLookup } from "./table-cards"
 import { cardName, MANA_LABELS, manaSymbolsText, playerButtonLabel, seatName } from "./table-labels"
 import { TablePicture } from "./table-picture"
+import { TableCardBack } from "./table/table-art"
 import { priorityHolder, priorityMoment, type PriorityMoment } from "./turn-model"
 
 /** From this many entries a list gets a search field. */
@@ -416,9 +417,9 @@ function ItemThumb({ item }: { item: Item }) {
   const { pictures, look } = useDecision()
   if (!isVisibleItem(item)) {
     return (
-      <GameCardBack>
+      <TableCardBack>
         <span className="sr-only">verdeckte Karte</span>
-      </GameCardBack>
+      </TableCardBack>
     )
   }
   if (item.cardView === undefined || item.card === undefined) return null
@@ -511,9 +512,9 @@ function ItemCard({ item, mark, label, active, onPrimary }: { item: Item; mark: 
         {visible !== null ? (
           <TablePicture card={visible.card} pictures={pictures} />
         ) : (
-          <GameCardBack>
+          <TableCardBack>
             <span className="sr-only">verdeckte Karte</span>
-          </GameCardBack>
+          </TableCardBack>
         )}
       </GameCardButton>
     </GameCardRowButton>
