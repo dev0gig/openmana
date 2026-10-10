@@ -21,12 +21,6 @@
     <radialGradient id="medaillon-innen" cx=".5" cy=".38" r=".7">
       <stop offset="0" stop-color="#26324a"/><stop offset=".7" stop-color="#101724"/><stop offset="1" stop-color="#05080e"/>
     </radialGradient>
-    <linearGradient id="kristall" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#d6f1ff"/><stop offset=".35" stop-color="#5fb4ff"/><stop offset="1" stop-color="#1a3fa8"/>
-    </linearGradient>
-    <linearGradient id="kristall-dunkel" x1="1" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#7cc6ff"/><stop offset="1" stop-color="#10286e"/>
-    </linearGradient>
     <linearGradient id="kerze" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0" stop-color="#8f7a5c"/><stop offset=".4" stop-color="#efe1c4"/><stop offset="1" stop-color="#7a6447"/>
     </linearGradient>
@@ -41,6 +35,9 @@
     </linearGradient>
     <linearGradient id="pfeil-verlauf" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#ffb35c"/><stop offset="1" stop-color="#ff4d2e"/>
+    </linearGradient>
+    <linearGradient id="angriff-verlauf" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#ffe2a0"/><stop offset="1" stop-color="#ff9a2e"/>
     </linearGradient>
     <linearGradient id="blatt" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#2f5a35"/><stop offset="1" stop-color="#112417"/>
@@ -76,20 +73,6 @@
       <use href="#emblem" x="14" y="26.5" width="35" height="35"/>
     </symbol>
 
-    <!-- Mana crystal cluster. -->
-    <symbol id="kristall-gruppe" viewBox="0 0 120 140">
-      <path d="M58 2 74 40 68 128 48 128 42 40Z" fill="url(#kristall)"/>
-      <path d="M58 2 74 40 58 128Z" fill="#ffffff" opacity=".18"/>
-      <path d="M58 2 42 40 50 128Z" fill="#0a1d5c" opacity=".3"/>
-      <path d="M28 48 42 70 40 130 22 130 18 72Z" fill="url(#kristall-dunkel)"/>
-      <path d="M28 48 42 70 32 130Z" fill="#fff" opacity=".14"/>
-      <path d="M92 58 104 84 98 132 82 132 80 84Z" fill="url(#kristall-dunkel)"/>
-      <path d="M92 58 104 84 92 132Z" fill="#fff" opacity=".16"/>
-      <path d="M8 112 20 104 30 134 6 134Z" fill="url(#kristall)" opacity=".85"/>
-      <path d="M104 116 116 110 118 136 102 136Z" fill="url(#kristall)" opacity=".8"/>
-      <ellipse cx="60" cy="134" rx="58" ry="6" fill="#0a0d14" opacity=".9"/>
-    </symbol>
-
     <!-- Candle: flame and glow animate in CSS. -->
     <symbol id="kerze-symbol" viewBox="0 0 60 140" overflow="visible">
       <circle class="kerzen-schein" cx="30" cy="38" r="34" fill="url(#schein)"/>
@@ -117,26 +100,13 @@
       </g>
     </symbol>
 
-    <!-- Large oval ornament across both battlefields (stretched; strokes stay thin). -->
-    <symbol id="tisch-ornament" viewBox="0 0 1000 600" preserveAspectRatio="none">
-      <g fill="none" stroke="#d9ac5c" vector-effect="non-scaling-stroke">
-        <ellipse cx="500" cy="300" rx="480" ry="285" stroke-width="1.5" opacity=".5" vector-effect="non-scaling-stroke"/>
-        <ellipse cx="500" cy="300" rx="455" ry="262" stroke-width="1" opacity=".3" stroke-dasharray="2 7" vector-effect="non-scaling-stroke"/>
-        <ellipse cx="500" cy="300" rx="300" ry="170" stroke-width="1" opacity=".18" vector-effect="non-scaling-stroke"/>
-        <path d="M20 300H980M500 15V585" stroke-width="1" opacity=".18" vector-effect="non-scaling-stroke"/>
-        <path d="M160 100 840 500M160 500 840 100" stroke-width="1" opacity=".08" vector-effect="non-scaling-stroke"/>
-      </g>
-    </symbol>
   </defs>
 </svg>
 
-<main class="tisch" id="tisch" data-szene="konzept">
+<main class="tisch" id="tisch" data-szene="konzept" data-tisch="astrolabium">
   <div class="tisch-grund" aria-hidden="true"></div>
-  <svg class="tisch-ornament" aria-hidden="true"><use href="#tisch-ornament"/></svg>
+  <svg class="tischflaeche" id="tischflaeche" aria-hidden="true"></svg>
   <div class="deko" aria-hidden="true">
-    <svg class="deko-kristall k1"><use href="#kristall-gruppe"/></svg>
-    <svg class="deko-kristall k2"><use href="#kristall-gruppe"/></svg>
-    <svg class="deko-kristall k3"><use href="#kristall-gruppe"/></svg>
     <svg class="deko-kerze c1"><use href="#kerze-symbol"/></svg>
     <svg class="deko-kerze c2"><use href="#kerze-symbol"/></svg>
     <svg class="deko-ranke r1"><use href="#ranke"/></svg>
@@ -148,7 +118,7 @@
     <nav class="kopf-nav" id="kopf-nav"></nav>
     <div class="kopf-rechts">
       <span class="zug-info" id="zug-info"></span>
-      <button class="symbol-knopf" type="button" aria-label="Menü (in der Vorlage: Beispiel wechseln)" title="Vorlage: Beispiel wechseln" data-icon="menu"></button>
+      <button class="symbol-knopf" type="button" aria-label="Menü" aria-controls="vorlage-menue" data-icon="menu"></button>
     </div>
   </header>
 
@@ -168,12 +138,23 @@
       <marker id="pfeilspitze" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse">
         <path d="M0 0 10 5 0 10 3 5Z" fill="#ff5a32"/>
       </marker>
+      <marker id="pfeilspitze-angriff" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+        <path d="M0 0 10 5 0 10 3 5Z" fill="#ffb347"/>
+      </marker>
     </defs>
   </svg>
 </main>
 
 
+<!-- Mockup menu (not part of the design): example scene and table variant. -->
+<div class="vorlage-menue" id="vorlage-menue" hidden>
+  <p>Nur in der Vorlage: Beispiel und Tisch wechseln.</p>
+  <h3>Beispiel</h3><div class="wahl" data-gruppe="szene"><button type="button" data-wert="konzept">Konzept</button><button type="button" data-wert="voll">Voller Tisch</button></div>
+  <h3>Tisch</h3><div class="wahl" data-gruppe="tisch"><button type="button" data-wert="astrolabium">Astrolabium</button><button type="button" data-wert="matte">Spielmatte</button><button type="button" data-wert="runen">Runenkreis</button></div>
+</div>
+
 <script src="karten.js"></script>
+<script src="tischflaeche.js"></script>
 <script src="vorlage.js"></script>
 </body>
 </html>

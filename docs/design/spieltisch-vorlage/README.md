@@ -2,8 +2,9 @@
 
 A static visual mockup of the redesigned game table, built from Patrick's
 concept image (2026-10-10). No game logic: `vorlage.js` only draws two
-example scenes ("Konzept" and a crowded "Voller Tisch"; the menu button
-switches, or `?szene=voll`). It exists to agree on the look before the
+example scenes ("Konzept" and a crowded "Voller Tisch") on one of three
+table variants (`tischflaeche.js`: astrolabium, matte, runen). The menu
+button opens a mockup menu to switch both; or `?szene=voll&tisch=runen`. It exists to agree on the look before the
 redesign prompts are written.
 
 - Everything is HTML/CSS/SVG and scales with the window: emblem, life
@@ -12,9 +13,16 @@ redesign prompts are written.
 - Three layouts by aspect ratio, not by device: `hoch` (< 3:4, folded
   foldable, phones), `quadrat` (3:4 – 13:10, unfolded foldable either way),
   `breit` (> 13:10, desktop, tablets turned).
-- Card pictures are Scryfall's (German printings), never cropped or covered:
-  power/toughness, loyalty, pile size and attacking sit on a plinth below the
-  card; marks are frames around it; the targeting arrow ends beside the card.
+- Card pictures are Scryfall's (German printings), never cropped, blurred or
+  colour-shifted. Forge's power/toughness and loyalty sit as a plaque on the
+  card's own printed box (bottom right, Patrick's decision 2026-10-10), never
+  on the artist/copyright line; this changes the rule "nothing drawn over a
+  card picture" in AGENTS.md for exactly that box and must be written there
+  when the redesign is built. Pile size sits above the pile; marks are frames
+  around the card; arrows (target red, attack amber) end beside cards.
+- The table surface is one SVG drawn for the actual size of the playing area
+  (circles stay circles), so variants can be swapped without touching the
+  rest of the table.
 - The game table is the approved exception to the shadcn-only rule (own CSS
   allowed); the rest of the app stays shadcn.
 - Fonts: Cinzel and Inter (SIL OFL), copied from `@fontsource-variable`.

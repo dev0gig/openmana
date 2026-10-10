@@ -56,7 +56,7 @@ const SZENEN = {
     },
     ich: {
       leben: 13, bibliothek: 24, friedhof: { anzahl: 15, oben: "Fatal Push" }, exil: 2,
-      kreaturen: [{ k: "Llanowar Elves", pt: "1/1", n: 2 }, { k: "Tarmogoyf", pt: "5/6", getappt: true, angriff: true }, { k: "Questing Beast", pt: "4/4", getappt: true, angriff: true }, { k: "Courser of Kruphix", pt: "2/4" }, { k: "Tireless Tracker", pt: "3/2" }, { k: "Lotus Cobra", pt: "2/1" }, { k: "Shivan Dragon", pt: "5/5" }, { k: "Grizzly Bears", pt: "2/2" }],
+      kreaturen: [{ k: "Llanowar Elves", pt: "1/1", n: 2 }, { k: "Tarmogoyf", pt: "5/6", getappt: true, angriff: true }, { k: "Questing Beast", pt: "4/4", getappt: true, angriff: "Jace, the Mind Sculptor" }, { k: "Courser of Kruphix", pt: "2/4" }, { k: "Tireless Tracker", pt: "3/2" }, { k: "Lotus Cobra", pt: "2/1" }, { k: "Shivan Dragon", pt: "5/5" }, { k: "Grizzly Bears", pt: "2/2" }],
       andere: [{ k: "Oko, Thief of Crowns", treue: 5 }, { k: "Sol Ring", getappt: true }, { k: "Forest", n: 4 }, { k: "Island", n: 2, getappt: true }, { k: "Swamp" }, { k: "Breeding Pool", n: 2 }, { k: "Steam Vents", getappt: true }],
     },
     hand: [["Thoughtseize"], ["Lightning Bolt", 1], ["Counterspell", 1], ["Supreme Verdict"], ["Growth Spiral", 1], ["Fatal Push", 1], ["Brainstorm", 1], ["Llanowar Elves"], ["Serra Angel"]],
@@ -89,9 +89,9 @@ function karte(c) {
   const klassen = ["karte", c.getappt && "getappt", c.angriff && "angriff", c.ziel && "ziel"].filter(Boolean).join(" ");
   let schichten = "";
   for (let i = 0; i < n; i++) schichten += `<img class="karte-bild" style="--k:${i}" src="${bild(c.k)}" alt="${i === n - 1 ? de(c.k) : ""}" decoding="async">`;
-  const links = [n > 1 ? `×${n}` : "", c.angriff ? ico("swords") : ""].join("");
   const werte = c.pt ? `<span class="werte">${c.pt}</span>` : c.treue ? `<span class="werte treue">${ico("shield")}${c.treue}</span>` : "";
-  return `<div class="${klassen}"${c.ziel ? " data-pfeil-ziel" : ""}><div class="karte-flaeche" style="--n:${n}">${schichten}</div><div class="sockel"><span class="sockel-links">${links}</span>${werte}</div></div>`;
+  const angriff = c.angriff ? ` data-angriff="${c.angriff === true ? "spieler" : c.angriff}"` : "";
+  return `<div class="${klassen}" data-k="${c.k}"${c.ziel ? " data-pfeil-ziel" : ""}${angriff}><div class="karte-flaeche" style="--n:${n}">${n > 1 ? `<span class="stapel-zahl">×${n}</span>` : ""}${schichten}${werte}</div></div>`;
 }
 
 function reihe(karten, art) {
@@ -105,7 +105,7 @@ function feld(seite) {
 }
 
 function medaillon(leben, band, amZug) {
-  return `<div class="medaillon${amZug ? " am-zug" : ""}"><svg viewBox="0 0 120 120"><use href="#medaillon"/></svg><span class="leben">${leben}</span><span class="medaillon-band">${band}</span></div>`;
+  return `<div id="medaillon-${band === "Du" ? "ich" : "gegner"}" class="medaillon${amZug ? " am-zug" : ""}"><svg viewBox="0 0 120 120"><use href="#medaillon"/></svg><span class="leben">${leben}</span><span class="medaillon-band">${band}</span></div>`;
 }
 
 function zonen(seite) {
@@ -116,6 +116,7 @@ function zonen(seite) {
 function render(name) {
   const s = SZENEN[name];
   $("tisch").dataset.szene = name;
+  zustand.szene = name;
   $("zug-info").innerHTML = `Zug <b>${s.zug}</b> · ${s.amZug === "ich" ? "Dein Zug" : "Gegner am Zug"}`;
   $("kopf-nav").innerHTML = [["skull", "Friedhof"], ["ghost", "Exil"], ["scroll-text", "Protokoll"], ["settings", "Einstellungen"]]
     .map(([i, t]) => `<button type="button">${ico(i)}<span>${t}</span></button>`).join("");
@@ -162,31 +163,64 @@ function render(name) {
   requestAnimationFrame(pfeil);
 }
 
-// The targeting arrow: from the spell in the Zauberchronik to its target on the table.
+// Arrows: the spell in the Zauberchronik to its target (red), attackers to whom they attack (amber).
 function pfeil() {
   const svg = $("pfeile");
   svg.querySelectorAll("path.pfeil-linie, path.pfeil-glut").forEach((p) => p.remove());
-  const start = document.querySelector("[data-pfeil-start]");
-  const ziel = document.querySelector("[data-pfeil-ziel] .karte-bild:last-child");
-  if (!start || !ziel || !start.offsetParent) return;
-  const t = $("tisch").getBoundingClientRect(), a = start.getBoundingClientRect(), b = ziel.getBoundingClientRect();
+  const t = $("tisch").getBoundingClientRect();
   const hoch = matchMedia("(max-aspect-ratio: 3/4)").matches;
-  // Leaves the Zauberchronik on the side facing the target and ends beside the card, never on its picture.
-  const links = b.left + b.width / 2 < a.left + a.width / 2;
-  const x1 = hoch ? a.left + a.width * 0.3 - t.left : (links ? a.left - t.left + 4 : a.right - t.left - 4);
-  const y1 = hoch ? a.top - t.top + 4 : a.top + a.height / 2 - t.top;
-  const x2 = (links && !hoch ? b.right + 6 : b.left - 6) - t.left, y2 = b.top + b.height / 2 - t.top;
-  const cx = hoch ? Math.min(x1, x2) - 50 : (x1 + x2) / 2, cy = hoch ? (y1 + y2) / 2 + 20 : Math.min(y1, y2) - 50;
-  const d = `M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}`;
-  svg.insertAdjacentHTML("beforeend", `<path class="pfeil-glut" d="${d}"/><path class="pfeil-linie" d="${d}" marker-end="url(#pfeilspitze)"/>`);
+  const zeichne = (d, art) => svg.insertAdjacentHTML("beforeend",
+    `<path class="pfeil-glut ${art}" d="${d}"/><path class="pfeil-linie ${art}" d="${d}" marker-end="url(#${art === "angriff" ? "pfeilspitze-angriff" : "pfeilspitze"})"/>`);
+  const vorne = (karte) => karte.querySelector(".karte-bild:last-of-type").getBoundingClientRect();
+
+  const start = document.querySelector("[data-pfeil-start]");
+  const ziel = document.querySelector("[data-pfeil-ziel]");
+  if (start && ziel && start.offsetParent) {
+    const a = start.getBoundingClientRect(), b = vorne(ziel);
+    // Leaves the Zauberchronik on the side facing the target and ends beside the card, never on its picture.
+    const links = b.left + b.width / 2 < a.left + a.width / 2;
+    const x1 = hoch ? a.left + a.width * 0.3 - t.left : (links ? a.left - t.left + 4 : a.right - t.left - 4);
+    const y1 = hoch ? a.top - t.top + 4 : a.top + a.height / 2 - t.top;
+    const x2 = (links && !hoch ? b.right + 6 : b.left - 6) - t.left, y2 = b.top + b.height / 2 - t.top;
+    const cx = hoch ? Math.min(x1, x2) - 50 : (x1 + x2) / 2, cy = hoch ? (y1 + y2) / 2 + 20 : Math.min(y1, y2) - 50;
+    zeichne(`M${x1} ${y1} Q${cx} ${cy} ${x2} ${y2}`, "ziel");
+  }
+
+  document.querySelectorAll("#feld-ich [data-angriff]").forEach((karte, i) => {
+    const a = vorne(karte);
+    const wen = karte.dataset.angriff;
+    const zielKarte = wen === "spieler" ? null : document.querySelector(`#feld-gegner [data-k="${CSS.escape(wen)}"]`);
+    const b = zielKarte ? vorne(zielKarte) : $("medaillon-gegner").getBoundingClientRect();
+    const x1 = a.left + a.width / 2 - t.left, y1 = a.top - t.top - 6;
+    const x2 = b.left + b.width / 2 - t.left, y2 = b.bottom - t.top + (zielKarte ? 8 : 14);
+    const bogen = (i % 2 ? 1 : -1) * Math.min(80, Math.abs(y1 - y2) * 0.15);
+    zeichne(`M${x1} ${y1} Q${(x1 + x2) / 2 + bogen} ${(y1 + y2) / 2} ${x2} ${y2}`, "angriff");
+  });
 }
 
-// In the mockup the menu button switches between the two example scenes.
-document.querySelector('[data-icon="menu"]').addEventListener("click", () => {
-  const naechste = $("tisch").dataset.szene === "voll" ? "konzept" : "voll";
-  history.replaceState(null, "", naechste === "voll" ? "?szene=voll" : "?");
-  render(naechste);
-});
+const zustand = { szene: "konzept", tisch: "astrolabium" };
+
+function waehle(gruppe, wert) {
+  if (gruppe === "szene") render(wert);
+  else { zustand.tisch = wert; $("tisch").dataset.tisch = wert; tischZeichnen(); }
+  history.replaceState(null, "", `?szene=${zustand.szene}&tisch=${zustand.tisch}`);
+  document.querySelectorAll(".vorlage-menue [data-gruppe] button").forEach((b) =>
+    b.setAttribute("aria-pressed", String(zustand[b.parentElement.dataset.gruppe] === b.dataset.wert)));
+}
+
+// In the mockup the menu button opens the mockup menu.
+document.querySelector('[data-icon="menu"]').addEventListener("click", (e) => { e.stopPropagation(); $("vorlage-menue").hidden = !$("vorlage-menue").hidden; });
+document.addEventListener("click", (e) => { if (!$("vorlage-menue").contains(e.target)) $("vorlage-menue").hidden = true; });
+document.querySelectorAll(".vorlage-menue [data-gruppe] button").forEach((b) => b.addEventListener("click", () => waehle(b.parentElement.dataset.gruppe, b.dataset.wert)));
+// The playing area: from the opponent's strip to yours, in the battlefields' column.
+function tischZeichnen() {
+  const a = $("leiste-gegner").getBoundingClientRect(), b = $("leiste-ich").getBoundingClientRect();
+  const flaeche = { getBoundingClientRect: () => ({ left: a.left, top: a.top, width: a.width, height: b.bottom - a.top }) };
+  Tischflaeche.zeichnen($("tischflaeche"), zustand.tisch, flaeche);
+}
+new ResizeObserver(tischZeichnen).observe($("tisch"));
 addEventListener("resize", () => requestAnimationFrame(pfeil));
 addEventListener("load", pfeil);
-render(new URLSearchParams(location.search).get("szene") === "voll" ? "voll" : "konzept");
+const parameter = new URLSearchParams(location.search);
+waehle("tisch", ["astrolabium", "matte", "runen"].includes(parameter.get("tisch")) ? parameter.get("tisch") : "astrolabium");
+waehle("szene", parameter.get("szene") === "voll" ? "voll" : "konzept");

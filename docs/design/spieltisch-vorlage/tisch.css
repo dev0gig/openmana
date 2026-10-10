@@ -24,7 +24,6 @@
   --gefahr: oklch(0.68 0.2 35);
   --tafel: linear-gradient(180deg, oklch(0.22 0.025 262 / 0.94), oklch(0.15 0.02 262 / 0.94));
   --schatten: 0 0.6rem 1.8rem oklch(0 0 0 / 0.55);
-  --sockel: 1.3rem;
   --kg: 0.45rem;
   --kw-min: 3.3rem;
   --kw-max: 9.5rem;
@@ -63,20 +62,23 @@ button { font: inherit; color: inherit; }
   background-size: auto, auto, 24rem 15rem, 30rem 30rem, 10rem 10rem, auto;
 }
 
-.tisch-ornament { position: relative; z-index: 1 !important; width: 100%; height: 100%; pointer-events: none; filter: drop-shadow(0 0 6px oklch(0.8 0.12 80 / 0.25)); }
+.tischflaeche { position: absolute !important; inset: 0; z-index: 1 !important; width: 100%; height: 100%; pointer-events: none; overflow: hidden; }
+.drehen { animation: drehen 360s linear infinite; }
+.drehen-zurueck { animation: drehen 520s linear infinite reverse; }
+@keyframes drehen { to { transform: rotate(360deg); } }
+.ader { animation: ader 7s linear infinite; }
+@keyframes ader { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -400; } }
+.runen-glut { animation: glimmen 4s ease-in-out infinite; }
 
 /* ---------- Decoration (never in the way, never interactive) ---------- */
 
 .deko { position: absolute !important; inset: 0; z-index: 1 !important; pointer-events: none; }
 .deko svg { position: absolute; overflow: visible; }
-.deko-kristall { width: 5.5rem; height: 6.4rem; filter: drop-shadow(0 0 0.9rem oklch(0.7 0.16 240 / 0.75)); animation: glimmen 5s ease-in-out infinite; }
-.deko-kristall.k2 { animation-delay: -1.7s; }
-.deko-kristall.k3 { animation-delay: -3.1s; width: 4rem; height: 4.7rem; }
 .deko-kerze { width: 2.6rem; height: 6rem; }
 .deko-ranke { width: 13rem; height: 8rem; opacity: 0.85; }
 .kerzen-flamme { transform-origin: 30px 44px; animation: flackern 1.6s ease-in-out infinite; }
 .kerzen-schein { animation: schein 2.4s ease-in-out infinite; }
-@keyframes glimmen { 0%, 100% { filter: drop-shadow(0 0 0.7rem oklch(0.7 0.16 240 / 0.55)); } 50% { filter: drop-shadow(0 0 1.4rem oklch(0.75 0.17 235 / 0.95)); } }
+@keyframes glimmen { 0%, 100% { opacity: 0.75; } 50% { opacity: 1; } }
 @keyframes flackern { 0%, 100% { transform: scale(1, 1) skewX(0); } 30% { transform: scale(0.94, 1.06) skewX(2deg); } 60% { transform: scale(1.04, 0.95) skewX(-2deg); } }
 @keyframes schein { 0%, 100% { opacity: 0.85; } 50% { opacity: 1; } }
 
@@ -145,7 +147,7 @@ button { font: inherit; color: inherit; }
 .zone-karte { position: relative; width: 2.3rem; aspect-ratio: 63 / 88; }
 .zone-karte > svg, .zone-karte > img { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 0.14rem; }
 .zone-karte.bibliothek { filter: drop-shadow(0.1rem 0.1rem 0 #05080e) drop-shadow(0.1rem 0.1rem 0 #1a2338) drop-shadow(0.15rem 0.2rem 0.3rem oklch(0 0 0 / 0.7)); }
-.zone-karte.friedhof img { box-shadow: 0.12rem 0.12rem 0 #05080e, 0.22rem 0.22rem 0 #222, 0.2rem 0.3rem 0.5rem oklch(0 0 0 / 0.7); filter: saturate(0.75) brightness(0.9); }
+.zone-karte.friedhof img { box-shadow: 0.12rem 0.12rem 0 #05080e, 0.22rem 0.22rem 0 #222, 0.2rem 0.3rem 0.5rem oklch(0 0 0 / 0.7); }
 .zone-zahl { font-family: var(--heading); font-weight: 700; font-size: 0.82rem; line-height: 1; }
 .zone-name { font-size: 0.6rem; letter-spacing: 0.05em; color: var(--gedaempft); text-transform: uppercase; }
 
@@ -155,7 +157,7 @@ button { font: inherit; color: inherit; }
 .feld-gegner { flex-direction: column-reverse; }
 .reihe {
   --kw: max(var(--kw-min), min(
-    calc((100cqh * var(--anteil) - var(--sockel) - 1.1rem) * 63 / 88),
+    calc((100cqh * var(--anteil) - 1.3rem) * 63 / 88),
     calc((100cqw - 1.2rem - (var(--c) - 1) * var(--kg)) / var(--u)),
     var(--kw-max)));
   --kh: calc(var(--kw) * 88 / 63);
@@ -182,7 +184,6 @@ button { font: inherit; color: inherit; }
   top: calc(var(--kw) * 0.06 * (var(--n) - 1 - var(--k)) + (var(--kw) - var(--kh)) / 2);
   transform: rotate(90deg);
 }
-.karte.getappt .karte-bild { filter: brightness(0.82); }
 
 /* Marks are frames around the picture, never on it. */
 .karte.spielbar .karte-bild { outline: 0.14rem solid var(--gold); box-shadow: 0 0 0 1px #000, 0 0 0.9rem 0.15rem oklch(0.82 0.13 80 / 0.55); }
@@ -192,22 +193,33 @@ button { font: inherit; color: inherit; }
 .karte.angriff .karte-bild { outline: 0.14rem solid oklch(0.75 0.17 50); box-shadow: 0 0 0 1px #000, 0 0 1.1rem 0.2rem oklch(0.7 0.19 45 / 0.6); }
 @keyframes zielpuls { 0%, 100% { box-shadow: 0 0 0 1px #000, 0 0 0.6rem 0.1rem oklch(0.68 0.2 35 / 0.5); } 50% { box-shadow: 0 0 0 1px #000, 0 0 1.4rem 0.35rem oklch(0.68 0.2 35 / 0.9); } }
 
-/* The plinth under every card carries its facts: power/toughness, loyalty, pile size, attacking. */
-.sockel {
-  height: var(--sockel); margin-top: 0.22rem;
-  display: flex; align-items: center; justify-content: space-between; gap: 0.2rem;
-  font-size: clamp(0.62rem, calc(var(--kw) * 0.14), 0.85rem);
-}
-.sockel-links { display: inline-flex; align-items: center; gap: 0.2rem; color: var(--gedaempft); font-weight: 600; }
-.sockel-links .ico { color: oklch(0.78 0.16 50); }
+/*
+ * Forge's current values sit on the card's own printed P/T or loyalty box
+ * (bottom right) - never on the artist and copyright line below it. A tapped
+ * card keeps the plaque upright, clear of the (now left) copyright edge.
+ */
 .werte {
-  margin-left: auto; padding: 0.05rem 0.45rem; border-radius: 0.35rem;
-  font-family: var(--heading); font-weight: 700; letter-spacing: 0.02em;
-  background: linear-gradient(180deg, #2b2418, #0f0c07); border: 1px solid oklch(0.8 0.12 80 / 0.6);
-  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.08), 0 0.1rem 0.3rem oklch(0 0 0 / 0.6);
+  position: absolute; z-index: 2;
+  right: calc(var(--kw) * 0.03); bottom: calc(var(--kh) * 0.043 + var(--kw) * 0.06 * (var(--n) - 1));
+  min-width: calc(var(--kw) * 0.27); padding: 0 calc(var(--kw) * 0.04);
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.1em;
+  font-family: var(--heading); font-weight: 700; letter-spacing: 0.02em; line-height: 1.35;
+  font-size: clamp(0.6rem, calc(var(--kw) * 0.13), 0.95rem);
+  border-radius: calc(var(--kw) * 0.04);
+  color: var(--pergament);
+  background: linear-gradient(180deg, #2f2719, #0f0c07); border: 1px solid oklch(0.82 0.12 80 / 0.85);
+  box-shadow: 0 0 0 1px #000, 0 0.1rem 0.35rem oklch(0 0 0 / 0.7);
 }
-.werte.treue { display: inline-flex; align-items: center; gap: 0.15rem; border-color: oklch(0.78 0.13 235 / 0.7); background: linear-gradient(180deg, #1a2740, #0a0f1a); }
+.karte.getappt .werte { right: auto; left: calc(var(--kh) * 0.06 + var(--kw) * 0.12 * (var(--n) - 1)); bottom: calc(var(--kw) * 0.1); }
+.werte.treue { border-color: oklch(0.78 0.13 235 / 0.85); background: linear-gradient(180deg, #1a2740, #0a0f1a); }
 .werte.treue .ico { width: 0.85em; height: 0.85em; color: var(--mana); }
+.werte.veraendert { color: oklch(0.85 0.15 145); }
+/* How many equal cards lie on a pile: above the pile, never on the front card. */
+.stapel-zahl {
+  position: absolute; z-index: 2; left: -0.25rem; top: -0.55rem;
+  padding: 0 0.35rem; border-radius: 0.6rem; font-size: 0.68rem; font-weight: 700; line-height: 1.3;
+  background: oklch(0.12 0.02 262); border: 1px solid var(--gold-linie); color: var(--gold-hell);
+}
 
 /* ---------- Centre line ---------- */
 
@@ -217,7 +229,8 @@ button { font: inherit; color: inherit; }
 
 /* ---------- Hand ---------- */
 
-.hand { grid-area: hand; container-type: size; display: flex; justify-content: center; align-items: flex-start; padding: 0.7rem 1rem 0; overflow: hidden; }
+.hand { grid-area: hand; container-type: size; display: flex; justify-content: center; align-items: flex-start; padding: 0.7rem 1rem 0; clip-path: inset(-100vh -100vw 0 -100vw); }
+.hand:has(.hand-karte:hover) { z-index: 6 !important; }
 .hand-karte {
   --hw: min(calc(100cqh * 1.1 * 63 / 88), 11.5rem);
   flex: none; width: var(--hw); aspect-ratio: 63 / 88;
@@ -230,7 +243,7 @@ button { font: inherit; color: inherit; }
 .hand-karte:first-child { margin-left: 0; }
 .hand-karte img { display: block; width: 100%; height: 100%; border-radius: calc(var(--hw) * 0.048); box-shadow: 0 0 0 1px #000, -0.3rem 0.2rem 0.9rem oklch(0 0 0 / 0.7); outline: 0 solid transparent; outline-offset: 0.15rem; }
 .hand-karte.spielbar img { outline: 0.15rem solid var(--gold); box-shadow: 0 0 0 1px #000, 0 0 1rem 0.2rem oklch(0.82 0.13 80 / 0.55); }
-.hand-karte:hover { transform: translateY(calc(var(--dy) - 18%)) rotate(0deg) scale(1.08); z-index: 5; }
+.hand-karte:hover { transform: translateY(calc(-100% + 100cqh - 0.4rem)) rotate(0deg) scale(1.12); z-index: 5; }
 
 /* ---------- Panels: Zauberchronik (stack), phases ---------- */
 
@@ -307,6 +320,8 @@ button { font: inherit; color: inherit; }
 
 .pfeile { position: absolute !important; inset: 0; width: 100%; height: 100%; z-index: 30 !important; pointer-events: none; overflow: visible; }
 .pfeil-glut { fill: none; stroke: #ff6a3a; stroke-width: 9; stroke-linecap: round; opacity: 0.25; filter: blur(4px); }
+.pfeil-linie.angriff { stroke: url(#angriff-verlauf); stroke-width: 3.6; stroke-dasharray: 16 5; }
+.pfeil-glut.angriff { stroke: #ffb347; }
 .pfeil-linie { fill: none; stroke: url(#pfeil-verlauf); stroke-width: 3.2; stroke-linecap: round; stroke-dasharray: 10 7; animation: fliessen 0.9s linear infinite; }
 @keyframes fliessen { to { stroke-dashoffset: -17; } }
 
@@ -327,13 +342,9 @@ button { font: inherit; color: inherit; }
       "chronik ich phasen"
       "hand hand hand";
   }
-  .tisch-ornament { grid-column: 2; grid-row: 3 / 6; }
   .chronik { margin-top: 1.4rem; }
   .phasen { margin-right: 1rem; }
   .hand { margin: 0 14rem; }
-  .k1 { left: 1.5rem; bottom: 27%; }
-  .k2 { right: 2rem; top: 5.2rem; }
-  .k3 { left: 15%; bottom: 3%; }
   .c1 { left: 1.6rem; top: 60%; }
   .c2 { right: 1.4rem; bottom: 4%; }
   .r1 { left: -1rem; top: 3.4rem; transform: scaleY(-1); }
@@ -357,7 +368,6 @@ button { font: inherit; color: inherit; }
       "ich phasen"
       "hand phasen";
   }
-  .tisch-ornament { grid-column: 1; grid-row: 3 / 6; }
   .kopf-nav button span { display: none; }
   .kopf-nav button { padding: 0; }
   .medaillon { --m: 4rem; }
@@ -370,11 +380,7 @@ button { font: inherit; color: inherit; }
   .phasen { align-self: end; margin-bottom: 0.8rem; }
   .phase { padding: 0.3rem 0.45rem; font-size: 0.8rem; }
   .weiter { font-size: 1.2rem; min-height: 3rem; }
-  .deko-kristall { width: 3.6rem; height: 4.2rem; }
-  .k1 { left: calc(50% - 15rem); bottom: calc(clamp(7rem, 17vh, 11rem) + 0.4rem); }
-  .k2 { left: calc(50% - 18rem); top: 3.6rem; width: 3rem; height: 3.5rem; }
-  .k3 { display: none; }
-  .c1, .c2 { display: none; }
+    .c1, .c2 { display: none; }
   .r1 { left: -2rem; top: 3rem; transform: scaleY(-1); width: 10rem; }
   .r2 { display: none; }
 }
@@ -383,13 +389,12 @@ button { font: inherit; color: inherit; }
    hoch – folded foldable, phone, tablet upright
    ===================================================================== */
 @media (max-aspect-ratio: 3/4) {
-  :root { font-size: clamp(12px, 2.9vw, 17px); --sockel: 1.15rem; --kg: 0.3rem; --kw-min: 2.9rem; }
+  :root { font-size: clamp(12px, 2.9vw, 17px); --kg: 0.3rem; --kw-min: 2.9rem; }
   .tisch {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto 3.6rem minmax(0, 1fr) auto minmax(0, 1fr) 3.6rem clamp(6.5rem, 15vh, 10rem) auto;
     grid-template-areas: "kopf" "gegner" "feldg" "chronik" "feldi" "ich" "hand" "aktion";
   }
-  .tisch-ornament { grid-column: 1; grid-row: 3 / 6; }
   .kopf { padding: 0.35rem 0.6rem; }
   .marke-emblem { width: 1.9rem; height: 1.9rem; }
   .marke-name { font-size: 1.2rem; }
@@ -431,13 +436,40 @@ button { font: inherit; color: inherit; }
   .phasen-text b { color: var(--gold-hell); font-weight: 600; }
   .aktionsleiste .weiter { width: auto; min-width: 8.5rem; font-size: 1.15rem; min-height: 2.9rem; }
 
-  .deko-kristall { width: 2.4rem; height: 2.8rem; }
-  .k1 { left: calc(50% - 4.4rem); bottom: calc(clamp(6.5rem, 15vh, 10rem) + 4.4rem); }
-  .k2 { right: calc(50% - 4.4rem); bottom: calc(clamp(6.5rem, 15vh, 10rem) + 4.4rem); }
-  .k3, .c1, .c2, .r2 { display: none; }
+    .c1, .c2, .r2 { display: none; }
   .r1 { left: -3rem; top: 2.6rem; width: 8rem; transform: scaleY(-1); opacity: 0.6; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- Table variants (mockup: compare) ---------- */
+.tisch[data-tisch="astrolabium"] .tisch-grund {
+  background:
+    radial-gradient(ellipse 45% 35% at 30% 30%, oklch(0.35 0.08 290 / 0.35), transparent 70%),
+    radial-gradient(ellipse 50% 40% at 72% 68%, oklch(0.4 0.09 240 / 0.35), transparent 70%),
+    radial-gradient(ellipse 80% 75% at 50% 50%, transparent 35%, oklch(0 0 0 / 0.8) 100%),
+    linear-gradient(180deg, #0b1020, #070a14 60%, #0a0d1c);
+}
+.tisch[data-tisch="astrolabium"] .deko-kerze, .tisch[data-tisch="astrolabium"] .deko-ranke { display: none; }
+.tisch[data-tisch="matte"] .tisch-grund {
+  background:
+    radial-gradient(ellipse 80% 75% at 50% 50%, transparent 30%, oklch(0 0 0 / 0.85) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.008 .09' numOctaves='3' seed='3'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .3 0 0 0 0 .2 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    linear-gradient(180deg, #23180f, #160f09);
+  background-size: auto, 34rem 34rem, auto;
+}
+
+/* Mockup menu (not part of the design). */
+.vorlage-menue {
+  position: fixed; z-index: 60; top: 3.6rem; right: 0.6rem; width: min(19rem, calc(100vw - 1.2rem));
+  padding: 0.8rem; border-radius: 0.8rem; background: var(--tafel); border: 1px dashed oklch(0.75 0.03 250 / 0.6);
+  box-shadow: var(--schatten); font-size: 0.8rem;
+}
+.vorlage-menue[hidden] { display: none; }
+.vorlage-menue p { margin: 0 0 0.6rem; color: var(--gedaempft); }
+.vorlage-menue h3 { margin: 0.6rem 0 0.35rem; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gedaempft); }
+.vorlage-menue .wahl { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.vorlage-menue button { min-height: 2.75rem; padding: 0 0.8rem; border-radius: 0.5rem; border: 1px solid var(--gold-linie); background: oklch(0.12 0.02 262); cursor: pointer; }
+.vorlage-menue button[aria-pressed="true"] { border-color: var(--gold); color: #1d1406; background: linear-gradient(180deg, var(--gold-hell), var(--gold)); font-weight: 600; }
