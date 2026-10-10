@@ -47,7 +47,10 @@ kein Anspruch auf Funktion mit einer bestimmten kleinen Maschine.
 Jeder Lauf legt `engine/build/update-…/` neu an (oder `--out` mit einem noch
 nicht vorhandenen Unterverzeichnis von `engine/build`). Bestehende Builds und
 Nachweise bleiben erhalten. Nur Download-Archive werden aus dem Toolchaincache
-kopiert und erneut gehasht; die Werkzeuge werden frisch entpackt. `npm ci`
+kopiert und erneut gehasht; die Werkzeuge werden frisch entpackt. GraalVM
+Community Edition entsteht aus den gepinnten Quellen einmal je Pin in
+`~/.cache/openmana/open-toolchain` (`OPENMANA_GRAAL_SOURCE_DIR`) und wird bei
+jedem Lauf erneut geprüft (Commits, Community-Build, keine Enterprise-Teile). `npm ci`
 installiert beide gesperrten npm-Abhängigkeitsbäume. Maven darf seinen
 Downloadcache nutzen, nie frühere Forge-/Bridge-Klassen oder WASM-Artefakte.
 

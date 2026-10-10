@@ -12,6 +12,14 @@
 # (engine-sbom.class-level.json) and the list of every class in it
 # (image-classes.txt/.json, image-classes.mjs).
 #
+# The toolchain is GraalVM CE built from the pinned open sources
+# (setup-toolchain.sh). Its native-image has no class-level SBOM
+# (--enable-sbom is an Oracle GraalVM feature), so the build-time feature
+# sbom/ReachableTypesFeature.java writes the image's reachable types after the
+# analysis and sbom/inventory.py turns them into an SBOM of the same shape:
+# each type attributed to the JDK or the GraalVM suite whose source file it
+# comes from, Forge/OpenMana/library types left to the notices inventory.
+#
 # Flags follow ManaBrew's proven Web Image setup (docs/research/MANABREW_WASM.md
 # §2) plus -H:+FatalUnsupportedNodes: an unsupported compiler node stops the
 # build instead of silently becoming a no-op (research risk R6).
@@ -51,6 +59,9 @@ javac -parameters --add-modules org.graalvm.webimage.api \
 
 node "$OM_ENGINE_DIR/scripts/gen-reflection-config.mjs" "$jar" "$wasm_work/config/generated"
 
+# Build-time only: lists the reachable types (see the header). Never part of the module.
+javac --add-modules org.graalvm.nativeimage -d "$wasm_work/sbom-feature" "$OM_ENGINE_DIR/scripts/sbom/ReachableTypesFeature.java"
+
 # Resources embedded in the image: the Forge data bundle, and Forge's message
 # bundles on the classpath root, where Web Image's resource bundle support
 # finds them (Forge's Localizer asks for a bundle named after the language,
@@ -89,7 +100,7 @@ set +e
         -H:+FatalUnsupportedNodes \
         -H:WasmComments=NONE \
         -o openmana-engine \
-        -cp "$jar:$wasm_work/classes:$wasm_work/resources:$wasm_work/bundles" \
+        -cp "$jar:$wasm_work/classes:$wasm_work/resources:$wasm_work/bundles:$wasm_work/sbom-feature" \
         -H:IncludeResources='openmana/forge-res\.bin' \
         -H:IncludeResources='openmana/engine-build\.properties' \
         -H:IncludeResources='openmana/engine-resources\.properties' \
@@ -101,7 +112,10 @@ set +e
         -Djava.awt.headless=true \
         -H:ConfigurationFileDirectories="$OM_ENGINE_DIR/wasm/config/agent,$wasm_work/config/generated" \
         --exclude-config '.*openmana-engine-jvm\.jar' 'META-INF/native-image/io\.netty/.*' \
-        --enable-sbom=export,class-level \
+        --features=org.openmana.engine.sbom.ReachableTypesFeature \
+        -J-Dopenmana.open.reachableTypes="$wasm_work/out/reachable-types.txt" \
+        -J--add-exports=org.graalvm.nativeimage.builder/com.oracle.svm.hosted=ALL-UNNAMED \
+        -J--add-exports=org.graalvm.nativeimage.pointsto/com.oracle.graal.pointsto.meta=ALL-UNNAMED \
         "${extra[@]}" \
         org.openmana.engine.wasm.WasmMain
 ) 2>&1 | tee "$OM_REPORT_DIR/native-image.log"
@@ -124,9 +138,11 @@ node "$OM_ENGINE_DIR/scripts/postprocess-launcher.mjs" \
 cp "$wasm_work/out/openmana-engine.js.wasm" "$OM_DIST_DIR/openmana-engine.js.wasm"
 # The .wat text is a debug by-product of several GB; it is not an artefact.
 rm -f "$wasm_work/out/openmana-engine.js.wat"
-sbom="$(find "$wasm_work/out" -maxdepth 1 -name '*.sbom.json' | head -1)"
-[ -n "$sbom" ] || om_die "native-image hat keine SBOM geschrieben (--enable-sbom=export,class-level)"
-cp "$sbom" "$OM_REPORT_DIR/engine-sbom.class-level.json"
+[ -s "$wasm_work/out/reachable-types.txt" ] || om_die "ReachableTypesFeature hat keine Typenliste geschrieben"
+cp "$wasm_work/out/reachable-types.txt" "$OM_REPORT_DIR/reachable-types.txt"
+python3 -I "$OM_ENGINE_DIR/scripts/sbom/inventory.py" sbom "$wasm_work/out/reachable-types.txt" \
+    "$OM_TOOLCHAIN_DIR/graal-source" "$(om_graalvm_home)" "$(om_lock 'lock.jdk.version')" \
+    > "$OM_REPORT_DIR/engine-sbom.class-level.json" || om_die "Typen-Inventur (sbom/inventory.py) fehlgeschlagen"
 node "$OM_ENGINE_DIR/scripts/image-classes.mjs" "$OM_REPORT_DIR/engine-sbom.class-level.json" "$OM_REPORT_DIR"
 cp "$OM_BUILD_DIR/resources/forge-res.inventory.json" "$OM_DIST_DIR/forge-res.inventory.json"
 

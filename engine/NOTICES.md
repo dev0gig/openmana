@@ -19,7 +19,8 @@ keine `pom.properties` mitführen. Die Original-Klassenbytes müssen passen.
 Die `.md`-Dateien sind Lizenzdokumentation, keine kompilierten Eingaben;
 die bestehende `sourceIdentity` schließt Dokumentation bereits aus.
 Das Lizenzgate und die unveränderten App-Quellen bleiben verbindlich.
-Oracle-/GFTC-Freigabe und öffentliche Quellen sind damit nicht geklärt.
+Die Engine-Toolchain ist seit Prompt 35 GraalVM Community Edition aus offenem
+Quelltext; ihr offen benannter JVMCI-Rest steht in `SOURCE.md`.
 
 ```json
 {

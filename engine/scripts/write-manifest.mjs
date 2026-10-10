@@ -10,9 +10,10 @@
 //                per directory, languages, what was left out, and the
 //                complete inventory (forge-res.inventory.json: every file
 //                with size and SHA-256) by name and SHA-256
-//   toolchain    GraalVM, Binaryen, Maven (versions and archive hashes from
-//                toolchain.lock.json), Node and the npm tools that shape the
-//                worker bundle (package-lock.json)
+//   toolchain    GraalVM CE (version and the pinned oracle/graal and mx
+//                commits), labsjdk-ce, Binaryen, Maven (versions and archive
+//                hashes from toolchain.lock.json), Node and the npm tools that
+//                shape the worker bundle (package-lock.json)
 //   image        what native-image found reachable, the classes in the module
 //                (image-classes.mjs), the network libraries that are kept out
 //                (reachability gate and class check), the classes of Forge's
@@ -120,9 +121,12 @@ const manifest = {
     inventory: resources.inventory,
   },
   toolchain: {
-    graalvm: lock.graalvm.version,
+    graalvm: `GraalVM CE ${lock.graalvm.version} (oracle/graal@${lock.graalvm.commit.slice(0, 12)})`,
     graalvmJava: lock.graalvm.javaVersion,
-    graalvmSha256: lock.graalvm.sha256,
+    graalvmCommit: lock.graalvm.commit,
+    mxCommit: lock.graalvm.mx.commit,
+    jdk: lock.jdk.version,
+    jdkSha256: lock.jdk.sha256,
     binaryen: lock.binaryen.version,
     binaryenSha256: lock.binaryen.sha256,
     maven: lock.maven.version,

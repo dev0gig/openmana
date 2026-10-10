@@ -74,10 +74,15 @@ Browser-Artefakte) und `report/` (Zeiten, Speicher, Testergebnisse, Berichte von
   2 GB Plattenplatz im Bauordner.
 - Für den Browser-Test: Chrome for Testing 153 (`npx playwright-core install chromium`
   in `engine/`, oder `OPENMANA_CHROME=/pfad/zu/chrome`).
-- Die Toolchain selbst (Oracle GraalVM 25.4.4.1.1 mit Web Image, Binaryen 123,
-  Maven 3.9.16) lädt `scripts/setup-toolchain.sh` nach
-  `~/.cache/openmana/toolchain` (änderbar mit `OPENMANA_TOOLCHAIN_DIR`) und prüft
-  jede Datei per Prüfsumme.
+- Die Toolchain richtet `scripts/setup-toolchain.sh` ein: Binaryen 123, Maven
+  3.9.16 und Node laden und prüfen (nach `~/.cache/openmana/toolchain`, änderbar
+  mit `OPENMANA_TOOLCHAIN_DIR`), dazu **GraalVM Community Edition 25.4.4.1.1 mit
+  Web Image aus offenem Quelltext**: labsjdk-ce (Archiv mit Prüfsumme),
+  `oracle/graal` und `mx` an gepinnten Commits, gebaut mit `mx` (einmal je Pin in
+  `~/.cache/openmana/open-toolchain`, änderbar mit `OPENMANA_GRAAL_SOURCE_DIR`;
+  beim ersten Mal einige Minuten, ~8 GB, braucht gcc, zlib-Header und python3).
+  Kein Oracle-GraalVM-Paket (Prompt 35). Die Klassen-SBOM gibt es nur in Oracle
+  GraalVM; `build-wasm.sh` erzeugt den Ersatz über `scripts/sbom/`.
 
 ## Bauen und testen
 

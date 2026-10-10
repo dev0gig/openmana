@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Compares the engine results of two builds run by engine/scripts/test-engine.sh
-// (Prompt 34: Oracle build publish-31b against the open build). Every run of
+// (e.g. Prompt 34: the Oracle build publish-31b against the GraalVM CE build). Every run of
 // report/test-report.json must exist in both and agree in every field except
 // clocks, memory, runtime/browser strings and build identities (commit,
 // manifest): game results, inputs, log/protocol/trace digests and counts.
@@ -13,7 +13,7 @@
 // same sources and toolchain, differ in exactly these fields). The check fails
 // only on a difference in a result field.
 //
-//   node scripts/open-toolchain/compare-engine-results.mjs <old build dir> <new build dir>
+//   node engine/scripts/compare-engine-results.mjs <old build dir> <new build dir>
 import fs from "node:fs";
 import path from "node:path";
 

@@ -18,7 +18,7 @@ Start with [docs/BIBLE.md](docs/BIBLE.md).
 
 **Play:** https://openmana.oryx.quest/ (fallback https://openmana.vercel.app/) – in the browser or inside the ORYX app on Android. No account; decks stay on your device.
 
-**Licenses and origin:** GPL-3.0-or-later ([LICENSE](LICENSE), [SOURCE.md](SOURCE.md)); every third-party license and notice in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) and [notices/](notices/). OpenMana was developed with extensive use of generative AI (OpenAI ChatGPT/Codex, Anthropic Claude) under the project owner's direction; what came from where is in [TRANSPARENCY.md](TRANSPARENCY.md). The open Oracle GraalVM/GFTC licensing question is disclosed in [docs/PUBLICATION.md](docs/PUBLICATION.md). Deployment and rollback: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+**Licenses and origin:** GPL-3.0-or-later ([LICENSE](LICENSE), [SOURCE.md](SOURCE.md)); every third-party license and notice in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) and [notices/](notices/). OpenMana was developed with extensive use of generative AI (OpenAI ChatGPT/Codex, Anthropic Claude) under the project owner's direction; what came from where is in [TRANSPARENCY.md](TRANSPARENCY.md). The engine is built with GraalVM Community Edition from open sources (no Oracle GraalVM package); the remaining disclosed JVMCI note is in [SOURCE.md](SOURCE.md) and [docs/PUBLICATION.md](docs/PUBLICATION.md). Deployment and rollback: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Status
 

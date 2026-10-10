@@ -97,7 +97,7 @@ describe("no invented data", () => {
 
   it("credits: separates software, reference and AI assistance", async () => {
     renderAt("/credits")
-    for (const name of ["Forge – die Card-Forge-Community", "ManaBrew", "OpenAI ChatGPT und Codex", "Anthropic Claude", "Oracle GraalVM Web Image"]) {
+    for (const name of ["Forge – die Card-Forge-Community", "ManaBrew", "OpenAI ChatGPT und Codex", "Anthropic Claude", "GraalVM Community Edition (Web Image)"]) {
       expect(await screen.findByText(name)).toBeInTheDocument()
     }
     expect(screen.getByText(/noch nicht abschließend juristisch geklärt/)).toBeInTheDocument()

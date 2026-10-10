@@ -39,8 +39,9 @@ Modells.
   Rechte bei Wizards of the Coast; OpenMana ist inoffizieller Fan-Inhalt unter
   deren Fan Content Policy. Kartenbilder werden nie verändert oder erzeugt.
 - **Bibliotheken und Schriften:** siehe `THIRD-PARTY-NOTICES.md`.
-- **WebAssembly-Übersetzung:** Oracle GraalVM Web Image (Werkzeug); Teile
-  seiner Laufzeit stecken im Engine-Modul (siehe `SOURCE.md`).
+- **WebAssembly-Übersetzung:** GraalVM Community Edition mit Web Image, aus
+  offenem Quelltext gebaut (Werkzeug, seit Prompt 35; vorher Oracle GraalVM);
+  Teile seiner Laufzeit und des OpenJDK stecken im Engine-Modul (siehe `SOURCE.md`).
 - **Technische Vorlage:** ManaBrew (https://github.com/witchesofthehill/manabrew)
   zeigte, dass Forge als WebAssembly im Browser läuft. Drei Forge-Patches
   stammen aus ManaBrews Forge-Fork (GPL); Code aus ManaBrews AGPL-Hauptrepository

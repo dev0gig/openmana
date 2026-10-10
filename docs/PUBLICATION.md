@@ -20,25 +20,37 @@ Der Projektbesitzer (GitHub: dev0gig) hat am 2026-10-08 entschieden, OpenMana
 - **Versionsgeschichte umgeschrieben**, damit der bürgerliche Name des
   Projektbesitzers nicht in Commit-Nachrichten und alten Dateiständen steht.
 
-## Bewusst offen gelassen: die GraalVM-Frage
+## Entscheidung des Projektbesitzers (2026-10-10): offene Toolchain
 
-OpenMana übersetzt Forge mit **Oracle GraalVM Web Image** nach WebAssembly.
-Teile der GraalVM-Laufzeit landen dabei im ausgelieferten Engine-Modul. Oracle
-liefert GraalVM unter den **GraalVM Free Terms and Conditions (GFTC)**; diese
-erstrecken sich auf Oracle-Anteile im erzeugten Output. Forge steht unter der
-GPL-3.0-or-later, die keine zusätzlichen Einschränkungen erlaubt. Ob die
-betroffenen Laufzeitteile als „System Libraries“ des Compilers gelten oder ob
-die GFTC hier mit der GPL kollidiert, ist **nicht juristisch geklärt**. Der
-Quelltext der Web-Image-Laufzeit selbst ist bei Oracle unter GPLv2 mit
-Classpath Exception veröffentlicht (`oracle/graal`, Ordner `web-image`).
+Nach der Lizenzprüfung (Prompt 33) und dem Machbarkeitsversuch (Prompt 34,
+`docs/research/OPEN_WEB_IMAGE_BUILD_2026-10-09.md`) hat der Projektbesitzer am
+2026-10-10 entschieden:
 
-Der Projektbesitzer veröffentlicht trotzdem, **offen und mit diesem Hinweis**,
-statt die Frage zu verschweigen. Die vollständige Herleitung mit Quellen steht
-in `docs/research/LICENSES.md` §3.4. Wer Rechte an den betroffenen Teilen hat
-und Einwände sieht, erreicht den Projektbesitzer über die Issues des
-Repositorys; OpenMana wird dann angepasst oder zurückgezogen.
+- Die Engine wird nur noch mit **GraalVM Community Edition aus offenem
+  Quelltext** gebaut (`oracle/graal` auf labsjdk-ce, `engine/toolchain.lock.json`).
+  Keine Oracle-GraalVM-Teile, keine GFTC/NFTC-Bedingungen, kein geschlossener
+  Enterprise-Code im Bau oder im Modul.
+- Ein kleiner Rest wird **bewusst in Kauf genommen und offen benannt**: 13
+  Typen der Compiler-Schnittstelle JVMCI (`jdk.vm.ci.*`) aus dem OpenJDK stehen
+  unter „GPLv2 only“ ohne Classpath Exception. Die GraalVM-Laufzeit bringt sie
+  in jedes Native-Image-Modul ein (beim früheren Oracle-Build genauso). Ob das
+  mit Forges GPLv3 kollidiert, ist nicht juristisch geklärt.
+- OpenMana wird damit wieder öffentlich ausgeliefert wie vor der Pause.
 
-Diese Entscheidung ist keine Rechtsauskunft und behauptet keine Klärung.
+Wer Rechte an den betroffenen Teilen hat und Einwände sieht, erreicht den
+Projektbesitzer über die Issues des Repositorys; OpenMana wird dann angepasst
+oder zurückgezogen. Diese Entscheidung ist keine Rechtsauskunft und behauptet
+keine Klärung.
+
+### Frühere Fassung (2026-10-08 bis 2026-10-09): Oracle GraalVM
+
+Bis Prompt 34 übersetzte OpenMana Forge mit Oracle GraalVM Web Image (GFTC);
+Teile dieser Laufzeit und der Oracle-JDK-Bibliothek (NFTC) lagen im
+ausgelieferten Modul, die Verträglichkeit mit der GPL war offen
+(`docs/research/LICENSES.md` §3.4, `docs/research/GRAALVM_LICENSE_RESOLUTION_2026-10-08.md`).
+Am 2026-10-09 wurde die Auslieferung pausiert und das Engine-Release
+`engine-p8-2b0da7a21935` auf Entwurf gestellt; es bleibt unverändert als
+Entwurf erhalten.
 
 ## Was mit jeder öffentlichen Version bereitsteht
 
@@ -52,9 +64,10 @@ Diese Entscheidung ist keine Rechtsauskunft und behauptet keine Klärung.
 - Bauanleitung: `engine/UPDATING.md`, `engine/README.md`, `cards/README.md`,
   Auslieferung und Rückrollen: `docs/DEPLOYMENT.md`.
 
-Nicht mitgeliefert wird das Oracle-GraalVM-Archiv selbst (Oracle verteilt es
-unter der GFTC über https://www.oracle.com/java/technologies/downloads/; Version
-und SHA-256 stehen in `engine/engine.lock.json`). Ein Neubau mit einer
+Die Toolchain wird nicht als Binärpaket mitgeliefert, sondern aus offenen
+Quellen gebaut: labsjdk-ce (Archiv mit SHA-256), `oracle/graal` und `mx` an
+gepinnten Commits, alles in `engine/toolchain.lock.json`;
+`engine/scripts/setup-toolchain.sh` lädt, prüft und baut sie. Ein Neubau mit einer
 geänderten JGraphT-Bibliothek ist über `engine/UPDATING.md` möglich, wurde aber
 nicht eigens mit einer geänderten JGraphT-Version vorgeführt.
 

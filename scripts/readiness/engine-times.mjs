@@ -17,7 +17,7 @@
 // question of Forge, includes downloading/booting the engine) and the game's
 // total time.
 //
-//   node scripts/open-toolchain/engine-times.mjs <readiness-out-dir>... > times.json
+//   node scripts/readiness/engine-times.mjs <readiness-out-dir>... > times.json
 import fs from "node:fs";
 import path from "node:path";
 

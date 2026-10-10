@@ -2,9 +2,9 @@
  * Credits (Bible §14): software OpenMana incorporates, data providers,
  * inspiration and reference, how generative AI made OpenMana, the icon. Kinds
  * are kept apart. Build-generated legal assets are local/offline available;
- * the public source is the exact commit of this build. The GraalVM license
- * question is published openly, not claimed as settled (docs/PUBLICATION.md,
- * TRANSPARENCY.md).
+ * the public source is the exact commit of this build. The engine toolchain
+ * (GraalVM Community Edition from open sources) and the remaining JVMCI
+ * license note are published openly (docs/PUBLICATION.md, SOURCE.md).
  *
  * Scryfall (prompt 08) is named as the source of card data and pictures -
  * without its logo and without implying that Scryfall endorses OpenMana, as
@@ -95,9 +95,10 @@ export function CreditsPage() {
           </ul>
           <p className="text-sm text-muted-foreground">
             Der komplette Quelltext ist öffentlich{buildInfo.commit ? ` (diese Version: ${shortCommit(buildInfo.commit)})` : ""}; zu jeder
-            Engine-Version gibt es dort ein Quellarchiv samt Forge-Quellstand. Offen bleibt eine Rechtsfrage: Ob die
-            GraalVM-Laufzeitteile im Engine-Modul zur GPL passen, ist nicht abschließend juristisch geklärt. OpenMana ist trotzdem
-            bewusst und offen veröffentlicht; die Einzelheiten stehen im Quelltext-Dokument.
+            Engine-Version gibt es dort ein Quellarchiv samt Forge-Quellstand. Die Engine entsteht mit GraalVM Community Edition
+            aus offenem Quelltext, ohne Oracle-Lizenzteile. Offen benannt bleibt ein kleiner Rest: 13 Typen der
+            Java-Compilerschnittstelle (JVMCI) aus dem OpenJDK stehen unter GPLv2 ohne Classpath-Ausnahme; die Einzelheiten stehen
+            im Quelltext-Dokument.
           </p>
         </CardContent>
       </Card>
@@ -112,9 +113,9 @@ export function CreditsPage() {
             einer kleinen Patch-Reihe für den Betrieb im Browser.
             {engineAssets.available ? ` Enthaltener Forge-Stand: ${shortCommit(engineAssets.build.forgeCommit)}.` : null}
           </CreditEntry>
-          <CreditEntry name="Oracle GraalVM Web Image" href="https://www.graalvm.org/">
-            Übersetzt Forge nach WebAssembly; Teile seiner Laufzeit stecken im Engine-Modul. Unter welchen Bedingungen diese
-            Teile weitergegeben werden dürfen, ist noch nicht abschließend juristisch geklärt – offen dokumentiert, nicht verschwiegen.
+          <CreditEntry name="GraalVM Community Edition (Web Image)" href="https://github.com/oracle/graal" license="GPL-2.0 mit Classpath Exception, UPL-1.0">
+            Übersetzt Forge nach WebAssembly; aus dem offenen Quelltext gebaut, zusammen mit dem OpenJDK (labsjdk-ce). Teile der
+            Laufzeit und der Java-Klassenbibliothek stecken im Engine-Modul.
           </CreditEntry>
           <Separator />
           <div className="flex flex-col gap-3">

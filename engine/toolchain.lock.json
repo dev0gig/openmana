@@ -1,20 +1,43 @@
 {
-  "$comment": "Pinned build toolchain for the OpenMana Forge engine. engine/scripts/setup-toolchain.sh downloads, verifies and unpacks exactly these archives. Change only in a dedicated toolchain PR (docs/research/FORGE_BUILD.md §3, §6).",
+  "$comment": "Pinned build toolchain for the OpenMana Forge engine. engine/scripts/setup-toolchain.sh downloads and verifies the archives and builds GraalVM CE with Web Image from the pinned open sources (no Oracle GraalVM package, Prompt 35; docs/research/OPEN_WEB_IMAGE_BUILD_2026-10-09.md). Change only in a dedicated toolchain PR (docs/research/FORGE_BUILD.md §3, §6).",
   "platform": "linux-x64",
   "graalvm": {
-    "distribution": "Oracle GraalVM (GraalVM Free Terms and Conditions)",
+    "distribution": "GraalVM Community Edition with Web Image, built from source with mx on labsjdk-ce (no Oracle GraalVM package)",
+    "license": "GPL-2.0-only WITH Classpath-exception-2.0 (substratevm, web-image, compiler, espresso-shared); UPL-1.0 (sdk)",
     "version": "25.4.4.1.1",
     "javaVersion": "25.0.4.1.1",
-    "archive": "graalvm-jdk-25i4-25.0.4.1.1_linux-x64_bin.tar.gz",
-    "url": "https://gds.oracle.com/download/graal/25i4/archive/graalvm-jdk-25i4-25.0.4.1.1_linux-x64_bin.tar.gz",
-    "size": 384644784,
-    "sha256": "4fcc632cfc68e98f49f9316f8a3588bafe4f5289f120104e2d290a75cf33e28e",
-    "checksumSource": "Computed on the first download (2026-09-24). Oracle publishes no checksum next to this archive URL, so this value is the pin; keep an archived copy of the tarball.",
-    "home": "graalvm-25.4.4.1.1+1.1",
+    "repository": "https://github.com/oracle/graal",
+    "tag": "vm-25.4.4.1.1",
+    "commit": "95ce1499c8c96ab7d5a6697c5b4bf42160f3b68b",
+    "suite": "web-image",
+    "distributionName": "GRAALVM_E71CB7D492_JAVA25",
+    "homeRelative": "sdk/mxbuild/linux-amd64/GRAALVM_E71CB7D492_JAVA25/graalvm-e71cb7d492-java25-25.4.4.1.1",
+    "home": "graalvm-ce-25.4.4.1.1",
     "requiredFiles": [
       "lib/svm/tools/svm-wasm/builder/svm-wasm.jar",
-      "jmods/org.graalvm.webimage.api.jmod"
-    ]
+      "jmods/org.graalvm.webimage.api.jmod",
+      "lib/src.zip"
+    ],
+    "mx": {
+      "repository": "https://github.com/graalvm/mx",
+      "tag": "7.85.1",
+      "commit": "2675b13e58f97d6d37a4090cdcb5a52c280e1d8c"
+    }
+  },
+  "jdk": {
+    "distribution": "labsjdk-ce (OpenJDK with JVMCI, built by the GraalVM project)",
+    "license": "GPL-2.0-only WITH Classpath-exception-2.0",
+    "licenseEvidence": "legal/*/LICENSE in the archive: 69 identical files, SHA-256 4b9abebc4338048a7c2dc184e9f800deb349366bdf28eb23c2677a77b4c87726 (GPLv2 text with the Classpath exception); no file names the Oracle No-Fee Terms (NFTC) or the GraalVM Free Terms (GFTC)",
+    "legalLicenseSha256": "4b9abebc4338048a7c2dc184e9f800deb349366bdf28eb23c2677a77b4c87726",
+    "version": "25.0.4.1.1+1-jvmci-25.4-b23",
+    "versionSource": "oracle/graal common.json at vm-25.4.4.1.1: jdks.labsjdk-ce-latest",
+    "archive": "labsjdk-ce-25.0.4.1.1+1-jvmci-25.4-b23-linux-amd64.tar.gz",
+    "url": "https://github.com/graalvm/labs-openjdk/releases/download/jvmci-25.4-b23/labsjdk-ce-25.0.4.1.1+1-jvmci-25.4-b23-linux-amd64.tar.gz",
+    "size": 266161674,
+    "sha256": "871a0de0c24c35cbc17b364f9c3e322c709a85edd52d7ad5143bbb302c41232f",
+    "checksumSource": "GitHub release asset digest of graalvm/labs-openjdk jvmci-25.4-b23; matches the download (2026-10-09).",
+    "source": "https://github.com/graalvm/labs-openjdk (release file: SOURCE=\".:git:391a5a739cb6+ labsjdk-builder:f0467471911a1ea597fb14abb26828c0f78100ea\")",
+    "home": "labsjdk-ce-25.0.4.1.1-jvmci-25.4-b23"
   },
   "binaryen": {
     "version": "123",

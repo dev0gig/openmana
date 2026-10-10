@@ -103,7 +103,9 @@ async function run(name, command, commandArgs, cwd = repoDir, extraEnv = {}) {
 
 try {
   fs.mkdirSync(path.join(freshTools, "downloads"), { recursive: true });
-  for (const tool of [toolchain.graalvm, toolchain.binaryen, toolchain.maven, toolchain.node]) {
+  // GraalVM CE itself is built from source once per pin in its own cache and
+  // re-checked by setup-toolchain.sh (see there); the archives are copied.
+  for (const tool of [toolchain.binaryen, toolchain.maven, toolchain.node]) {
     const cached = path.join(cachedTools, "downloads", tool.archive);
     if (fs.existsSync(cached)) fs.copyFileSync(cached, path.join(freshTools, "downloads", tool.archive), fs.constants.COPYFILE_FICLONE);
   }

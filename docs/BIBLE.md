@@ -324,8 +324,9 @@ Credits should distinguish software incorporated, inspiration/reference, data pr
 Credits now links the repository GPL text, complete build-generated third-party
 notices and source/release instructions as same-origin, offline-cached documents.
 The inventory follows rendered app modules and actual WASM types, preserving
-copyrights and Apache notices. Oracle GraalVM/GFTC and public Corresponding
-Source remain release gates; the private development repository is not a public
+copyrights and Apache notices. The documented publication decision and public
+Corresponding Source remain release gates (the engine toolchain is GraalVM
+Community Edition from open sources since Prompt 35); the private development repository is not a public
 source offer. See [SOURCE.md](../SOURCE.md) and
 [implementation/27-credits-licenses.md](implementation/27-credits-licenses.md).
 

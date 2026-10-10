@@ -6,6 +6,15 @@
 > Freigabe.** Der Bericht belegt Lizenzen technisch (Dateien, Header, Hashes).
 > Produktion, Standard-Build, Engine-Lock, Lizenzhinweise, Release und Vercel
 > sind unverändert; nichts wurde gepusht oder veröffentlicht.
+>
+> **Nachtrag Prompt 35 (2026-10-10):** Der Projektbesitzer hat die offene
+> Toolchain übernommen und den JVMCI-Rest akzeptiert (`docs/PUBLICATION.md`).
+> Sie ist jetzt der reguläre Weg: Pin in `engine/toolchain.lock.json`, Aufbau in
+> `engine/scripts/setup-toolchain.sh`, Ersatz-SBOM in `engine/scripts/sbom/`
+> (`ReachableTypesFeature.java`, `inventory.py`), Vergleich
+> `engine/scripts/compare-engine-results.mjs`, Zeiten
+> `scripts/readiness/engine-times.mjs`. Die hier genannten Versuchsskripte unter
+> `scripts/open-toolchain/` sind damit entfallen (Git-Historie).
 
 ## 1. Ergebnis
 

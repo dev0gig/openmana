@@ -10,7 +10,7 @@
   "publicRelease": {
     "cleared": true,
     "decision": "docs/PUBLICATION.md",
-    "reason": "Published by the project owner's decision of 2026-10-08 with public Corresponding Source. The Oracle GraalVM Web Image / GFTC output question is not legally settled; it is disclosed openly in docs/PUBLICATION.md, SOURCE.md and docs/research/LICENSES.md."
+    "reason": "Published by the project owner's decisions of 2026-10-08 and 2026-10-10 with public Corresponding Source. Since Prompt 35 the engine is built with GraalVM Community Edition from open sources (no Oracle GraalVM package); 13 JVMCI types under GPL-2.0-only without Classpath Exception are disclosed and accepted (docs/PUBLICATION.md, SOURCE.md)."
   },
   "engineComponents": {
     "com.google.guava:guava:33.3.1-android": {
@@ -35,24 +35,6 @@
       "license": "Apache-2.0",
       "texts": [
         "gson"
-      ]
-    },
-    "org.graalvm.nativeimage:svm:25.0.4.1.1+1-LTS": {
-      "license": "UNRESOLVED: GFTC / separate runtime terms",
-      "texts": [
-        "oracle-gftc",
-        "oracle-runtime-modules",
-        "oracle-third-party",
-        "oracle-launcher"
-      ]
-    },
-    "com.oracle:Oracle GraalVM:25.0.4.1.1+1-LTS": {
-      "license": "UNRESOLVED: GFTC / separate runtime terms",
-      "texts": [
-        "oracle-gftc",
-        "oracle-runtime-modules",
-        "oracle-third-party",
-        "oracle-launcher"
       ]
     },
     "com.thoughtworks.xstream:xstream:1.4.21": {
@@ -106,54 +88,6 @@
         "checker-qual"
       ]
     },
-    "org.graalvm.sdk:collections:25.0.4.1.1+1-LTS": {
-      "license": "UNRESOLVED: GFTC / separate runtime terms",
-      "texts": [
-        "oracle-gftc",
-        "oracle-runtime-modules",
-        "oracle-third-party",
-        "oracle-launcher"
-      ]
-    },
-    "org.graalvm.sdk:nativeimage:25.0.4.1.1+1-LTS": {
-      "license": "UNRESOLVED: GFTC / separate runtime terms",
-      "texts": [
-        "oracle-gftc",
-        "oracle-runtime-modules",
-        "oracle-third-party",
-        "oracle-launcher"
-      ]
-    },
-    "com.google.guava:guava:33.4.8-jre": {
-      "license": "Apache-2.0",
-      "texts": [
-        "guava-runtime"
-      ]
-    },
-    "com.google.jimfs:jimfs:1.3.0-c7a51a6e2109ff7e391815ba34ad404ac8a375c6": {
-      "license": "Apache-2.0",
-      "texts": [
-        "jimfs"
-      ]
-    },
-    "org.graalvm.webimage:api:25.0.4.1.1+1-LTS": {
-      "license": "UNRESOLVED: GFTC / separate runtime terms",
-      "texts": [
-        "oracle-gftc",
-        "oracle-runtime-modules",
-        "oracle-third-party",
-        "oracle-launcher"
-      ]
-    },
-    "org.graalvm.sdk:word:25.0.4.1.1+1-LTS": {
-      "license": "UNRESOLVED: GFTC / separate runtime terms",
-      "texts": [
-        "oracle-gftc",
-        "oracle-runtime-modules",
-        "oracle-third-party",
-        "oracle-launcher"
-      ]
-    },
     "org.jgrapht:jgrapht-core:1.5.2": {
       "license": "LGPL-2.1-or-later",
       "texts": [
@@ -189,6 +123,49 @@
       "license": "Public Domain",
       "texts": [
         "xmlpull"
+      ]
+    },
+    "open:graalvm-ce-compiler:95ce1499c8c96ab7d5a6697c5b4bf42160f3b68b": {
+      "license": "GPL-2.0-only WITH Classpath-exception-2.0",
+      "texts": [
+        "graalvm-gpl2-cpe"
+      ]
+    },
+    "open:graalvm-ce-espresso-shared:95ce1499c8c96ab7d5a6697c5b4bf42160f3b68b": {
+      "license": "GPL-2.0-only WITH Classpath-exception-2.0",
+      "texts": [
+        "graalvm-gpl2-cpe"
+      ]
+    },
+    "open:graalvm-ce-sdk:95ce1499c8c96ab7d5a6697c5b4bf42160f3b68b": {
+      "license": "UPL-1.0",
+      "texts": [
+        "graalvm-upl"
+      ]
+    },
+    "open:graalvm-ce-shaded-google:95ce1499c8c96ab7d5a6697c5b4bf42160f3b68b": {
+      "license": "Apache-2.0 (Guava 33.4.8-jre and Jimfs 1.3.0, shaded by GraalVM)",
+      "texts": [
+        "guava-runtime",
+        "jimfs"
+      ]
+    },
+    "open:graalvm-ce-substratevm:95ce1499c8c96ab7d5a6697c5b4bf42160f3b68b": {
+      "license": "GPL-2.0-only WITH Classpath-exception-2.0",
+      "texts": [
+        "graalvm-gpl2-cpe"
+      ]
+    },
+    "open:graalvm-ce-web-image:95ce1499c8c96ab7d5a6697c5b4bf42160f3b68b": {
+      "license": "GPL-2.0-only WITH Classpath-exception-2.0",
+      "texts": [
+        "graalvm-gpl2-cpe"
+      ]
+    },
+    "open:labsjdk-ce:25.0.4.1.1+1-jvmci-25.4-b23": {
+      "license": "GPL-2.0-only WITH Classpath-exception-2.0; parts Apache-2.0 and others as listed in its legal/ notices; 13 JVMCI types (jdk.vm.ci.*) GPL-2.0-only without Classpath Exception (accepted by the project owner 2026-10-10, docs/PUBLICATION.md)",
+      "texts": [
+        "openjdk-runtime-modules"
       ]
     }
   },

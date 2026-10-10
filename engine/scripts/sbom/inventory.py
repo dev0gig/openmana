@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Type inventory and license evidence for an engine built with the OPEN
-toolchain (Prompt 34). Two commands:
+"""Type inventory and license evidence for the engine built with GraalVM CE
+(Prompts 34/35; engine/scripts/build-wasm.sh). Two commands:
 
   sbom      GraalVM CE has no class-level SBOM (--enable-sbom is an Oracle
             GraalVM feature). This builds its replacement from the list of
-            reachable types that feature/ReachableTypesFeature.java writes after
+            reachable types that engine/scripts/sbom/ReachableTypesFeature.java writes after
             the builder's analysis (the set Oracle's class-level SBOM lists), in the
             CycloneDX shape the engine scripts read (components with
             class/interface properties). Types whose source file exists in the
@@ -22,7 +22,7 @@ toolchain (Prompt 34). Two commands:
             Oracle's SBOM too (for comparison). Also checks the launcher's
             license headers and that the closed binary-load.js is absent.
 
-  python3 -I inventory.py sbom <reachable-types.txt> <graal-checkout> <jdk-home> <jdk-version> > x.sbom.json
+  python3 -I inventory.py sbom <reachable-types.txt> <graal-checkout> <java-home with lib/src.zip> <jdk-version> > x.sbom.json
   python3 -I inventory.py evidence <build-dir> <graal-checkout> <jdk-home> > license-evidence.json
 """
 import json
@@ -166,7 +166,7 @@ def sbom(types_file, checkout, jdk_home, jdk_version):
         else:
             components.append(component(f'open:graalvm-ce-{origin}:{commit}', 'open', f'graalvm-ce-{origin}', commit, names))
     json.dump({'bomFormat': 'CycloneDX', 'specVersion': '1.5', 'version': 1,
-               'metadata': {'tools': [{'name': 'scripts/open-toolchain/inventory.py sbom', 'source': 'ReachableTypesFeature (GraalVM CE analysis universe)'}],
+               'metadata': {'tools': [{'name': 'engine/scripts/sbom/inventory.py sbom', 'source': 'ReachableTypesFeature (GraalVM CE analysis universe)'}],
                             'graalCommit': commit, 'types': Path(types_file).name,
                             'hiddenTypes': len(hidden),
                             'hiddenByHostPackage': dict(Counter(h.split('$$')[0].rsplit('.', 1)[0] for h in hidden).most_common())},

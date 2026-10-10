@@ -32,23 +32,29 @@ Die übrigen eingebauten Java-/JavaScript-Bibliotheken stehen unter
 Apache-2.0/MIT/BSD-artigen Lizenzen; ihre Texte, Copyrights und NOTICE-Dateien
 sind in `THIRD-PARTY-NOTICES.md` und `notices/licenses/` erhalten.
 
-## Offene Rechtsfrage: Oracle GraalVM / GFTC
+## Engine-Toolchain: GraalVM Community Edition aus offenem Quelltext
 
-Die GraalVM-Web-Image-/GFTC-Frage ist **nicht juristisch geklärt**: Oracle-Anteile
-im erzeugten Launcher/WASM stehen laut Oracles GraalVM Free Terms and
-Conditions unter deren Bedingungen; ob das mit der GPL von Forge vereinbar ist
-(„System Libraries“ des Compilers oder nicht), ist offen. Der Quelltext der
-Web-Image-Laufzeit ist bei Oracle unter GPLv2 mit Classpath Exception
-veröffentlicht (https://github.com/oracle/graal, Ordner `web-image`). Die
-erhaltenen Oracle-Lizenztexte und der vollständige Distributionsanhang sind
-Hinweise, keine rechtliche Freigabe. Herleitung mit Quellen:
-`docs/research/LICENSES.md`.
+Seit Prompt 35 (2026-10-10) wird die Engine mit **GraalVM Community Edition**
+gebaut, die `engine/scripts/setup-toolchain.sh` selbst aus dem offenen
+Quelltext erzeugt: `oracle/graal` am gepinnten Commit (SubstrateVM, Web Image,
+Compiler: GPLv2 mit Classpath Exception; SDK: UPL-1.0), gebaut mit `mx` auf
+labsjdk-ce (OpenJDK, GPLv2 mit Classpath Exception). Kein Oracle-GraalVM-Paket,
+keine Teile unter Oracles GraalVM Free Terms (GFTC) oder No-Fee Terms (NFTC),
+kein geschlossener Enterprise-Code; jeder kann die Engine damit ohne
+Oracle-Produkt nachbauen. Pins und Prüfsummen: `engine/toolchain.lock.json`.
 
-Der Projektbesitzer hat am 2026-10-08 entschieden, OpenMana trotzdem offen und
-mit diesem Hinweis zu veröffentlichen (`docs/PUBLICATION.md`). Ein
-Produktionsbuild (`OPENMANA_PUBLIC_RELEASE=1`) prüft diese dokumentierte
-Entscheidung, das Quellangebot hier und den genauen Commit; ein bloß
-umgestellter Wahrheitswert reicht nicht.
+Offen benannt bleibt ein kleiner Rest: 13 Typen der Compiler-Schnittstelle
+JVMCI (`jdk.vm.ci.*`, 11 Quelldateien des OpenJDK) stehen unter „GPLv2 only“
+**ohne** Classpath Exception. Die GraalVM-Laufzeit selbst bringt sie in jedes
+Native-Image-Modul ein, unabhängig von Forge und OpenMana. Der Projektbesitzer
+nimmt das bewusst in Kauf (`docs/PUBLICATION.md`). Nachweise:
+`docs/research/OPEN_WEB_IMAGE_BUILD_2026-10-09.md`.
+
+Der Projektbesitzer hat am 2026-10-08 entschieden, OpenMana offen zu
+veröffentlichen, und am 2026-10-10 die Umstellung auf die offene Toolchain
+(`docs/PUBLICATION.md`). Ein Produktionsbuild (`OPENMANA_PUBLIC_RELEASE=1`)
+prüft diese dokumentierte Entscheidung, das Quellangebot hier und den genauen
+Commit; ein bloß umgestellter Wahrheitswert reicht nicht.
 
 Das App-Icon hat der Projektbesitzer selbst mit ChatGPT erzeugt und zur
 Weitergabe mit OpenMana freigegeben (`assets/app-icon/PROVENANCE.md`). Wie
@@ -66,9 +72,10 @@ pinnen die npm-Versionen. Originale Änderungen bleiben in `engine/patches/`;
 Die App generiert bei jedem Produktionsbuild ihre Hinweise aus den tatsächlich
 enthaltenen Bundle-Modulen, den CSS-/Font- und Generatorquellen sowie der gegen
 das ausgewählte Engine-Manifest geprüften Klasseninventur. Fehlt eine Zuordnung
-oder ein Lizenztext, scheitert der Build. Die komplette Oracle-Distributionsdokumentation
-ist ein vorsorglich erhaltener Anhang; sie behauptet nicht, dass sämtliche dort
-genannten Bibliotheken in OpenMana stecken.
+oder ein Lizenztext, scheitert der Build. Die Typen der Toolchain (JDK,
+GraalVM) ordnet `engine/scripts/sbom/inventory.py` über ihre Quelldateien am
+gepinnten Stand zu; die Hinweise der enthaltenen JDK-Module stammen
+unverändert aus deren `legal/`-Ordnern.
 
 Für einen neuen Engine-Build zuerst dessen Lock verifizieren und die App mit
 diesem Build und seinem Katalog bauen. Die neue Inventur wird unter

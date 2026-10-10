@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Lists the Java classes that ended up in the Wasm module and checks that no
-// network-play code is among them, from the class-level SBOM native-image
-// exports (--enable-sbom=export,class-level):
+// network-play code is among them, from the class-level
+// SBOM (built by build-wasm.sh from the builder's reachable types, sbom/):
 //
 //   <report>/image-classes.txt   every class in the module, sorted
 //   <report>/image-classes.json  counts per package root, network check
