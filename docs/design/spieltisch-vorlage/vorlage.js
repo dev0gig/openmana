@@ -198,7 +198,7 @@ function pfeil() {
   });
 }
 
-const zustand = { szene: "konzept", tisch: "astrolabium" };
+const zustand = { szene: "konzept", tisch: "arkan" };
 
 function waehle(gruppe, wert) {
   if (gruppe === "szene") render(wert);
@@ -238,5 +238,5 @@ new ResizeObserver(tischZeichnen).observe($("tisch"));
 addEventListener("resize", () => requestAnimationFrame(pfeil));
 addEventListener("load", pfeil);
 const parameter = new URLSearchParams(location.search);
-waehle("tisch", ["astrolabium", "matte", "runen"].includes(parameter.get("tisch")) ? parameter.get("tisch") : "astrolabium");
+waehle("tisch", ["arkan", "astrolabium", "matte", "runen"].includes(parameter.get("tisch")) ? parameter.get("tisch") : "arkan");
 waehle("szene", parameter.get("szene") === "voll" ? "voll" : "konzept");

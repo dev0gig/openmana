@@ -183,6 +183,7 @@ const Tischflaeche = (() => {
 
   const VARIANTEN = { astrolabium, matte, runen };
   return {
+    varianten: VARIANTEN,
     // flaeche: the playing area (both players' strips and battlefields) the variant is laid out on.
     zeichnen(svg, variante, flaeche) {
       const aussen = svg.getBoundingClientRect(), b = flaeche.getBoundingClientRect();
