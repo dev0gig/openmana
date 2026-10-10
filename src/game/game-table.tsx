@@ -875,7 +875,7 @@ function combatLines(combat: readonly CombatView[], blocking = false): { readonl
   return lines
 }
 
-/** Your hand, always at the bottom and fully visible - side by side, scrolling sideways, never fanned (Anvil lesson). */
+/** Your hand, always at the bottom and fully visible - side by side, scrolling sideways (the table redesign fans it, prompt 42: docs/design/SPIELTISCH.md). */
 function Hand({ cards, pictures }: { cards: readonly Card[]; pictures: TableCardLookup }) {
   if (cards.length === 0) return <FieldEmpty text="Deine Hand ist leer." />
   return (

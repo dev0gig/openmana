@@ -104,6 +104,48 @@ describe("design tokens", () => {
     expect(contrast(mark, surface)).toBeGreaterThanOrEqual(3)
   })
 
+  // The game table (prompt 36, docs/design/SPIELTISCH.md §5): text on its panels, the plaque on a card's value box,
+  // the board and the desk - each surface token is its lightest tone, the binding case for light text.
+  it.each([
+    ["foreground", "table-panel"],
+    ["muted-foreground", "table-panel"],
+    ["primary", "table-panel"],
+    ["table-gold-light", "table-panel"],
+    ["table-mana", "table-panel"],
+    ["foreground", "table-plaque"],
+    ["table-gold-light", "table-plaque"],
+    ["foreground", "table-leather"],
+    ["muted-foreground", "table-leather"],
+    ["table-gold-light", "table-leather"],
+    ["foreground", "table-wood"],
+    ["foreground", "table-wood-frame"],
+    ["table-gold-light", "table-wood-frame"],
+    // Text on gold (the main button, the current step): its lightest and its middle tone.
+    ["primary-foreground", "table-gold-light"],
+    ["primary-foreground", "primary"],
+  ])("table text %s on %s reaches 4.5:1", (foreground, background) => {
+    expect(contrast(foreground, background)).toBeGreaterThanOrEqual(4.5)
+  })
+
+  // The table's marks, plaque rims and arrows (WCAG 1.4.11, 3:1): usable/chosen gold, target and danger red, attack
+  // amber, loyalty's mana blue - on the board (leather), on the desk (wood frame) and on the panels. The marks differ by
+  // more than colour (glow against frame, an arrow, the chips' words), as WCAG 1.4.1 asks.
+  it.each(
+    ["primary", "foreground", "table-gold-light", "table-danger", "table-attack", "table-mana"].flatMap((mark) =>
+      ["table-leather", "table-wood-frame", "table-panel", "table-plaque"].map((surface) => [mark, surface] as const),
+    ),
+  )("the table mark %s on %s reaches 3:1", (mark, surface) => {
+    expect(contrast(mark, surface)).toBeGreaterThanOrEqual(3)
+  })
+
+  it("the table's tokens are all there and mapped for Tailwind", () => {
+    const names = ["gold-light", "gold-dark", "gold-line", "mana", "danger", "attack", "wood", "wood-frame", "leather", "panel", "plaque"]
+    for (const name of names) {
+      expect(rootBlock).toMatch(new RegExp(`--table-${name}:\\s*oklch\\(`))
+      expect(css).toContain(`--color-table-${name}: var(--table-${name});`)
+    }
+  })
+
   it("the manifest's theme colour is the background token", () => {
     expect(hex(srgb(tokens.get("background")!))).toBe("#0d121b")
   })

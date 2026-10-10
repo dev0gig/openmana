@@ -3,6 +3,8 @@
  * OpenMana tokens below. Pages and components use these tokens only
  * (bg-card, text-muted-foreground, border-border …); no page-level colours,
  * shadows or custom CSS. Rules and rationale: docs/DESIGN_SYSTEM.md.
+ * The one exception is the game table (docs/DESIGN_SYSTEM.md §9): its own
+ * stylesheet src/game/table/table.css, built on the --table-* tokens below.
  */
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -36,6 +38,19 @@
  */
 @custom-variant short (@media (max-height: 32rem));
 
+/*
+ * The game table's layouts (prompt 36, docs/design/SPIELTISCH.md §3): by the
+ * screen's aspect ratio, not by the device - hoch: narrower than 3:4 (folded
+ * foldable, phones, tablets upright), quadrat: 3:4 up to 13:10 (unfolded
+ * foldable either way round), breit: wider than 13:10 (desktop, tablets and
+ * phones turned; a phone turned sideways is also short:). Exactly one applies.
+ * The same queries as useTableLayout() (src/game/table/table-layout.ts; the
+ * test there keeps them identical).
+ */
+@custom-variant hoch (@media (aspect-ratio < 3/4));
+@custom-variant quadrat (@media (3/4 <= aspect-ratio <= 13/10));
+@custom-variant breit (@media (aspect-ratio > 13/10));
+
 @theme inline {
   --font-heading: "Cinzel Variable", ui-serif, Georgia, serif;
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
@@ -65,6 +80,17 @@
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
+  --color-table-gold-light: var(--table-gold-light);
+  --color-table-gold-dark: var(--table-gold-dark);
+  --color-table-gold-line: var(--table-gold-line);
+  --color-table-mana: var(--table-mana);
+  --color-table-danger: var(--table-danger);
+  --color-table-attack: var(--table-attack);
+  --color-table-wood: var(--table-wood);
+  --color-table-wood-frame: var(--table-wood-frame);
+  --color-table-leather: var(--table-leather);
+  --color-table-panel: var(--table-panel);
+  --color-table-plaque: var(--table-plaque);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -112,6 +138,27 @@
   --sidebar-accent-foreground: oklch(0.955 0.012 85);
   --sidebar-border: oklch(0.955 0.012 85 / 12%);
   --sidebar-ring: oklch(0.8 0.12 80);
+
+  /*
+   * The game table (prompt 36, docs/design/SPIELTISCH.md §5; the approved
+   * exception for the table, docs/DESIGN_SYSTEM.md §9): night blue and gold
+   * like the rest, plus the wooden desk, the leather board, the panels and the
+   * colours of its marks. Gold itself is --primary; text on gold is
+   * --primary-foreground. Surfaces are given at their lightest tone (the
+   * table darkens them towards its edges), so the contrasts checked in
+   * src/app/design-tokens.test.ts hold everywhere on them.
+   */
+  --table-gold-light: oklch(0.92 0.08 88);
+  --table-gold-dark: oklch(0.55 0.1 70);
+  --table-gold-line: oklch(0.8 0.12 80 / 38%);
+  --table-mana: oklch(0.78 0.13 235);
+  --table-danger: oklch(0.68 0.2 35);
+  --table-attack: oklch(0.75 0.17 50);
+  --table-wood: oklch(0.19 0.022 56);
+  --table-wood-frame: oklch(0.33 0.052 58);
+  --table-leather: oklch(0.28 0.045 261);
+  --table-panel: oklch(0.22 0.025 262);
+  --table-plaque: oklch(0.28 0.027 81);
 }
 
 @layer base {

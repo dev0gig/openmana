@@ -1,0 +1,51 @@
+/*
+ * The game table's own stylesheet (table redesign, prompts 36-45;
+ * docs/design/SPIELTISCH.md, docs/DESIGN_SYSTEM.md §9).
+ *
+ * The approved exception to the shadcn-only rule, and only for the game
+ * table (a running game and its replay): the wooden desk, the board, the
+ * medallions, the card backs, the plaque on a card's printed value box, the
+ * fanned hand, the panels, the main button and the arrows are drawn here and
+ * as SVG in the components of src/game/table/. Everything else - pages,
+ * Sheets, Dialogs, menus, the card view - stays shadcn.
+ *
+ * Rules for this file:
+ *  - Every rule sits under [data-slot="game-board"]; nothing here reaches
+ *    outside the table.
+ *  - What a colour means (gold, mana, danger/target, attack, wood, leather,
+ *    panel, plaque, text) comes from the --table-* tokens and the app's
+ *    tokens in src/index.css (contrast checked by
+ *    src/app/design-tokens.test.ts). Depth (shadows, grain, highlights) uses
+ *    black or white with transparency or tones mixed from those tokens.
+ *  - Nothing on a card picture except the plaque on its printed value box; no
+ *    filter (colour, brightness, blur) on a card picture.
+ *  - Motion only with transform and opacity, never delaying an input, and it
+ *    stops when less motion is asked for: the two blocks at the end of this
+ *    file switch every animation and transition of the table off for the
+ *    device's prefers-reduced-motion and the player's setting
+ *    (<html data-reduced-motion>, src/app/motion.ts). src/app/motion.test.ts
+ *    checks all of that (scope, the two blocks, the animated properties).
+ *
+ * Not imported yet: the first prompt that draws the table with it (37)
+ * imports it from the table's component.
+ */
+
+/* ---------- Less motion (keep both blocks; nothing else sets motion !important) ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="game-board"],
+  [data-slot="game-board"] *,
+  [data-slot="game-board"] *::before,
+  [data-slot="game-board"] *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+:where([data-reduced-motion]) [data-slot="game-board"],
+:where([data-reduced-motion]) [data-slot="game-board"] *,
+:where([data-reduced-motion]) [data-slot="game-board"] *::before,
+:where([data-reduced-motion]) [data-slot="game-board"] *::after {
+  animation: none !important;
+  transition: none !important;
+}

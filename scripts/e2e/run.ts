@@ -101,7 +101,11 @@
  *     and turning the phone re-lay the table without touching the game. And
  *     recorded real states of the engine's test games (full battlefields,
  *     piles, a stack, blockers, fourteen attackers, the command zone) in the
- *     real table at eight sizes (tableHarness), each with axe-core.
+ *     real table at eight sizes (tableHarness), each with axe-core. The
+ *     table's layout classes (prompt 36): at those sizes, the foldable's
+ *     three and the borders 3:4 and 13:10, useTableLayout(), the CSS
+ *     variants hoch:/quadrat:/breit: and the browser's media queries name
+ *     the layout docs/design/SPIELTISCH.md gives the size.
  * 13. The ORYX cloud on OpenMana's real address (Playwright serves the build
  *     as https://openmana.oryx.quest; the ORYX cloud is a stand-in): a guest
  *     sees the card and sends nothing; connecting leaves for the consent page
@@ -125,6 +129,7 @@ const NO_REAL_CLOUD = "--host-resolver-rules=MAP fellumrfugohnnvtxxye.supabase.c
 import { build, createServer, preview } from "vite"
 import { PROTOCOL_VERSION } from "../../engine/protocol/src/generated/constants.ts"
 import { SCHEMA_VERSION } from "../../src/storage/generated/constants.ts"
+import { TABLE_LAYOUT_QUERIES, TABLE_LAYOUTS, tableLayoutOf, type TableLayout } from "../../src/game/table/table-layout.ts"
 import { ISOLATION_HEADERS } from "../../vite/isolation-headers.ts"
 import { playDeck, type StoredDeck } from "./engine-decks.ts"
 
@@ -3116,6 +3121,28 @@ const TABLE_VIEWPORTS: readonly Viewport[] = [
 ]
 
 /**
+ * The table's layout by aspect ratio (prompt 36, docs/design/SPIELTISCH.md §3): the eight sizes above, the foldable
+ * (closed, open upright, open turned) and the borders - 3:4 and 13:10 themselves are quadrat, a pixel beyond is not.
+ */
+const TABLE_LAYOUT_SIZES: readonly (readonly [string, number, number, TableLayout])[] = [
+  ["small-phone", 360, 740, "hoch"],
+  ["phone", 412, 915, "hoch"],
+  ["phone-landscape", 915, 412, "breit"],
+  ["fold-portrait", 690, 829, "quadrat"],
+  ["fold-landscape", 829, 690, "quadrat"],
+  ["tablet", 884, 1104, "quadrat"],
+  ["tablet-landscape", 1104, 884, "quadrat"],
+  ["desktop", 1440, 900, "breit"],
+  ["fold-closed", 480, 1040, "hoch"],
+  ["fold-open", 870, 960, "quadrat"],
+  ["fold-open-turned", 960, 870, "quadrat"],
+  ["border-3:4-minus", 299, 400, "hoch"],
+  ["border-3:4", 300, 400, "quadrat"],
+  ["border-13:10", 1300, 1000, "quadrat"],
+  ["border-13:10-plus", 1301, 1000, "breit"],
+]
+
+/**
  * Forge's marks in the recorded scenes (prompt 14): the playable land, the attacker blockers go to, Krenko who can still
  * attack; since prompt 16 the answers the player holds in the AI's turn (four red instants, two once it answered); since
  * prompt 17 the players Forge takes or highlights (their seats).
@@ -3776,6 +3803,7 @@ async function tableHarness(executablePath: string): Promise<Record<string, unkn
   if (!base) throw new Error("the dev server did not report its URL")
   const results: Record<string, unknown> = {}
   try {
+    results["layouts"] = await tableLayoutClasses(executablePath, base)
     for (const viewport of focusedTable ? TABLE_VIEWPORTS.filter((v) => DECISION_VIEWPORTS.includes(v.name)) : TABLE_VIEWPORTS) {
       log(`  ${viewport.name} (${viewport.width}x${viewport.height}${viewport.touch ? ", touch" : ""})`)
       // Bound Chromium's lifetime per viewport: closing pages/contexts alone did
@@ -3879,6 +3907,56 @@ async function tableHarness(executablePath: string): Promise<Record<string, unkn
     }
   } finally {
     await server.close()
+  }
+  return results
+}
+
+/**
+ * The table's layout classes in real Chrome (prompt 36): the probe page (scripts/e2e/table-layout-probe.html) shows what
+ * useTableLayout() answers and carries hoch:order-1 quadrat:order-2 breit:order-3 - so the stylesheet Tailwind compiled
+ * names the applied variant. At every size of TABLE_LAYOUT_SIZES the hook, the CSS variant, the browser's own media
+ * queries (exactly one matches) and tableLayoutOf() agree with the layout the specification gives the size.
+ */
+async function tableLayoutClasses(executablePath: string, base: string): Promise<Record<string, unknown>> {
+  log("  table layout classes (hoch / quadrat / breit)")
+  const probeBrowser = await launchBrowser(executablePath)
+  const results: Record<string, unknown> = {}
+  try {
+    const context = await newContext(probeBrowser, VIEWPORTS[2]!)
+    const page = await context.newPage()
+    const pageLog = watch(page)
+    await page.goto(new URL("/scripts/e2e/table-layout-probe.html", base).href, { waitUntil: "domcontentloaded" })
+    const probe = page.locator('[data-harness="table-layout"]')
+    await probe.waitFor({ timeout: 60_000 })
+    const order: Readonly<Record<string, TableLayout>> = { "1": "hoch", "2": "quadrat", "3": "breit" }
+    for (const viewport of TABLE_VIEWPORTS) check(TABLE_LAYOUT_SIZES.some(([name, width, height]) => name === viewport.name && width === viewport.width && height === viewport.height), `table layout sizes miss the table size ${viewport.name}`)
+    for (const [name, width, height, expected] of TABLE_LAYOUT_SIZES) {
+      await page.setViewportSize({ width, height })
+      // The hook answers on the media queries' change event, a moment after the resize.
+      await page.waitForFunction((layout) => document.querySelector('[data-harness="table-layout"]')?.getAttribute("data-layout") === layout, expected, { timeout: 5_000 }).catch(() => undefined)
+      const seen = await page.evaluate(
+        ({ layouts, queries }) => {
+          const element = document.querySelector('[data-harness="table-layout"]')!
+          return {
+            window: [window.innerWidth, window.innerHeight],
+            hook: element.getAttribute("data-layout"),
+            order: getComputedStyle(element).order,
+            media: layouts.filter((layout) => window.matchMedia(queries[layout]).matches),
+          }
+        },
+        { layouts: TABLE_LAYOUTS, queries: TABLE_LAYOUT_QUERIES },
+      )
+      const css = order[seen.order] ?? `order ${seen.order}`
+      check(
+        seen.window[0] === width && seen.window[1] === height && tableLayoutOf(width, height) === expected && seen.hook === expected && css === expected && seen.media.length === 1 && seen.media[0] === expected,
+        `table layout at ${name} (${width}x${height}): expected ${expected}, saw ${JSON.stringify({ ...seen, css, code: tableLayoutOf(width, height) })}`,
+      )
+      results[name] = { width, height, layout: expected, hook: seen.hook, css, media: seen.media }
+    }
+    for (const error of pageLog.errors) check(false, `table layout classes: ${error}`)
+    await context.close()
+  } finally {
+    await probeBrowser.close()
   }
   return results
 }

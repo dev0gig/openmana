@@ -242,6 +242,13 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - New verification: `scripts/readiness/player.ts` plays complete games through the real table (only what the table offers, every input taken by Forge); `scripts/readiness/matches.ts` runs several with Arena import, IndexedDB, a reopened browser, recording, replay and portable JSON. The live check after a deployment plays with the same player — it had never cast a spell before (fixed). The complete regression keeps its scratch directory on disk (`/var/tmp`): in a RAM-backed `/tmp` Chrome could not store the engine and the PWA suite failed (fixed).
 - Evidence: 7 local games (10–47 turns, 587 player inputs, none refused, desktop/phone/foldable, all AI profiles, German and English) and a complete game on the production address; the complete regression on the locked build passed every phase (85 JVM tests, 96 engine unit tests, 82 engine runs on JVM/Node/Chrome, every replay matching the JVM reference, 957 app tests, the end-to-end and PWA suites); a trial Forge update to upstream `9fb01517` (+175 commits) needed changes only under `engine/` (local branch `forge-trial-32`, not merged).
 
+### Table redesign foundation (Prompt 36)
+- Start of the table redesign series 36–45 (project owner, 2026-10-10; mockup `docs/design/spieltisch-vorlage/`). Nothing on the table changed yet.
+- Specification `docs/design/SPIELTISCH.md` (layouts and region mapping, building blocks, tokens, motion, performance, anchors, prompts 37–45); rules in `AGENTS.md` and `docs/DESIGN_SYSTEM.md` §9 replaced accordingly: own CSS/SVG allowed for the game table only (`src/game/table/`, one stylesheet `src/game/table/table.css` under `[data-slot="game-board"]`), the value plaque as the one thing on a card picture, the hand as a fan, marks with own colours, motion with transform/opacity only.
+- Layout classes by aspect ratio `hoch` (< 3:4) / `quadrat` (3:4–13:10) / `breit` (> 13:10): `useTableLayout()`, `tableLayoutOf()`, variants `hoch:`/`quadrat:`/`breit:` - not used by the table before prompt 38. Table tokens `--table-*` with contrast tests; `motion.test.ts` covers `src/game/table/**` and `table.css` (not imported before prompt 37).
+- Assumptions (changeable): variant names = layout names, borders 3:4 and 13:10 belong to `quadrat`; `--table-danger` for target red, additional `--table-wood-frame` and `--table-plaque`; `--table-mana` proposed for blocking; the mockup's `box-shadow`/`stroke-dashoffset` animations get opacity-based equivalents. The static mockup is excluded from oxlint (it had broken `npm run check`).
+- Evidence: `docs/implementation/36-table-redesign-foundation.md`; the layout classes checked in real Chrome at 15 sizes (end-to-end section 12).
+
 ### ORYX Cloud Sync (outside the queue, 2026-09-25)
 - The project owner's direct assignment, not a queue prompt (outside the numbered program): the player's collection syncs through their ORYX account (the launcher's Supabase cloud) with the vendored ORYX SDK 1.0.0 (`src/cloud/oryx-sdk.js` and `.d.ts`, byte-identical copies of `oryx-games/shared`, checksum-tested, excluded from lint only themselves). Active only on `https://openmana.vercel.app/`; locally, in tests and previews inactive (no request, nothing stored). Local stays the source of truth.
 - One slot `collection` = one document (`src/storage/collection.ts`, schema `CollectionDocument`, version = `SCHEMA_VERSION`): valid decks, deletion marks (90 days) and every setting except `display.*`; never caches, recorded matches or `meta`.
@@ -253,12 +260,12 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Evidence: 622 Vitest tests (63 new: merge and check, read/apply on fake-indexeddb, the real SDK against a stand-in ORYX cloud on the real storage session, the card and the return notice in the real app frame, the SDK checksum), `npm run check` with the end-to-end test in Chrome, including the new section 13: the build served as `https://openmana.vercel.app` with a stand-in ORYX cloud - the whole OAuth/PKCE round trip under COOP/COEP, the start's merge, uploads, disconnecting, axe, 360 px; plus the card absent and Web Storage empty off the real address, and the deletion mark in IndexedDB after deleting a deck. Limits: ORYX takes 1 MB per slot by default (≈ 146 Constructed or 48 Commander decks); ORYX needs an OAuth client for `openmana`; effective once deployed. Details: `docs/implementation/oryx-cloud-sync.md`.
 
 ## Currently In Progress
-Nothing. Prompt **32** (final readiness audit) is complete (2026-10-08); the numbered program 00–32 is finished. Further work comes as new central tasks — next the UI fine-polish after the project owner's own concepts (first decide whether the shadcn/tokens rule is adapted for it, never break it silently).
+The table redesign, prompts **36–45** (central queue, strictly in order): 36 (foundation: specification, rules, tokens, layout classes) is complete; next 37 (table surface). The shadcn/tokens rule was adapted deliberately for the game table only (`docs/DESIGN_SYSTEM.md` §9).
 
 Any agent entering the repository must first reconcile this statement with the central Dropzone task state and Git state.
 
 ## Planned Numbered Program
-None remains: Prompts 00–32 are complete. The central Dropzone queue defines what comes next.
+Prompts 00–32 are complete (33–35 engine toolchain, done). The table redesign 37–45 follows `docs/design/SPIELTISCH.md` §13; the central Dropzone queue holds the tasks.
 
 ## Not Yet Implemented
 At this review point:

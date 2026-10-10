@@ -7,7 +7,8 @@
 
 ## 1. Foundations
 
-- **Components: shadcn/ui only.** Style `radix-maia` (soft, rounded, generous
+- **Components: shadcn/ui only** - everywhere except the game table, which
+  has its own CSS and SVG (§9). Style `radix-maia` (soft, rounded, generous
   spacing – touch-friendly), Radix primitives, Tailwind CSS 4, icons from
   Lucide. Components live in `src/components/ui/` and are added with the
   shadcn CLI (`components.json`). Pages compose them; they do not restyle them.
@@ -35,6 +36,7 @@ copying one (Bible §13): no Arena assets, layouts or typefaces.
 | Body | **Inter** (variable, SIL OFL), `--font-sans` | legible at small sizes, tabular digits for numbers |
 | Radius | `--radius` 0.625rem; Maia scales it (cards `rounded-2xl`, buttons pill-shaped) | soft, familiar from Material 3 on Android |
 | App icon | the Anvil icon, unchanged and temporary ([provenance](../assets/app-icon/PROVENANCE.md)) | prompt 06: no redesign yet |
+| Game table | a dark wooden desk with a board set into it - carved frame, brass corners, dark blue leather, a gold rune circle -, gold medallions and panels (`--table-*` tokens, §9) | the project owner's concept (2026-10-10), [design/SPIELTISCH.md](design/SPIELTISCH.md) |
 
 Fonts are bundled (Fontsource), never loaded from a font CDN: same-origin
 files work under COEP and nothing leaks to third parties (Bible §15).
@@ -44,7 +46,8 @@ files work under COEP and nothing leaks to third parties (Bible §15).
 1. **No custom CSS, no ad-hoc Tailwind styling.** Layout utilities (`flex`,
    `grid`, `gap-*`, `p-*`, `max-w-*`, responsive prefixes) compose
    components; colours, shadows, gradients, arbitrary values (`bg-[#…]`,
-   `w-[…]`) and page-level visual effects do not appear in pages.
+   `w-[…]`) and page-level visual effects do not appear in pages. The one
+   exception is the game table (§9); it does not extend to anything else.
 2. **A missing component is added as a shadcn component** – from the shadcn
    registry if it exists there, otherwise built the shadcn way in
    `src/components/ui/`: `data-slot`, `cn()`, `asChild` via Radix `Slot`,
@@ -116,12 +119,18 @@ files work under COEP and nothing leaks to third parties (Bible §15).
    transition, with `!` so it wins over the `data-open:`/`data-closed:`
    animations (`src/app/motion.test.ts` checks every file of
    `src/components/ui`; a component added later must follow). Spinners keep
-   turning: a loading indicator that stops looks like a frozen page. Code that
-   moves things itself (the game table's animations, when later prompts add
-   them - the table of prompts 13 and 14 has none: a tapped card turns at
-   once, a mark appears at once; the card view moves only as shadcn's `Sheet`)
-   asks `useDeviceReducedMotion()`/`reducedMotion()` in `src/app/motion.ts`
-   together with the preference.
+   turning: a loading indicator that stops looks like a frozen page. The game
+   table may move from the redesign on (prompts 37-45, §9 and
+   [design/SPIELTISCH.md](design/SPIELTISCH.md) §8) - cards travel, a tapped
+   card turns, the rune ring turns slowly -, but only with `transform` and
+   `opacity`, never delaying an input or a state, and not at all under less
+   motion: the table's stylesheet switches every animation and transition of
+   `[data-slot="game-board"]` off for both causes, its components carry the
+   `motion-reduce:` variant, and code that moves things itself asks
+   `useDeviceReducedMotion()`/`reducedMotion()` in `src/app/motion.ts`
+   together with the preference (`motion.test.ts` checks `src/game/table/**`
+   and `table.css` too). Until those prompts land, a tapped card turns at once
+   and a mark appears at once; the card view moves only as shadcn's `Sheet`.
 
 ## 4. Layout
 
@@ -142,12 +151,26 @@ app shell hides sidebar, top bar and tab bar until the game ends or the player
 leaves the page; the table's own menu (a `Sheet`) leads around the app, holds
 Forge's notices and conceding. `GameBoard` lays out eight fixed regions and
 never scrolls itself (Bible §6: no vertically endless table); what does not fit
-scrolls inside its region – card rows sideways, texts downwards:
+scrolls inside its region – card rows sideways, texts downwards.
 
-| Orientation | Regions |
-|---|---|
-| portrait (phones, folded foldables, tablets upright) | header · opponent (with their hand) · opponent's battlefield · stack and combat · your battlefield · you · decision · hand, top to bottom; stack/combat and decision capped (`max-h-32`, `max-h-44`) |
-| landscape (desktop, tablets, foldables and phones turned) | left: header, both battlefields, hand; right, a side column (15–24 rem): the opponent next to the header, stack and combat, the decision, you next to the hand |
+The regions are arranged by the window's **aspect ratio**, not by the device
+(prompt 36; plans and the region mapping in
+[design/SPIELTISCH.md](design/SPIELTISCH.md) §3) - the variants `hoch:`,
+`quadrat:`, `breit:` in `src/index.css` and `useTableLayout()`
+(`src/game/table/`), exactly one at any size:
+
+| Layout | Aspect ratio | Regions |
+|---|---|---|
+| `hoch` (folded foldable, phones) | narrower than 3:4 | one column: header · opponent · opponent's battlefield · stack and combat as a bar · your battlefield · you · hand · decision as an action bar at the very bottom, growing upwards for a question |
+| `quadrat` (unfolded foldable either way, most tablets) | 3:4 to 13:10 | left: header, both strips and battlefields, hand; right column: stack and combat (Zauberchronik) at the top, the decision (Phasen-Tafel) below |
+| `breit` (desktop, tablets and phones turned; `short:` for low windows) | wider than 13:10 | left column the Zauberchronik, middle the strips and battlefields, right column the Phasen-Tafel, the hand at the bottom |
+
+Until prompt 38 moves `GameBoard` to these layouts it keeps the arrangement of
+prompts 13-24 by orientation: portrait stacked (header · opponent ·
+opponent's battlefield · stack and combat · your battlefield · you · decision
+· hand; stack/combat and decision capped), landscape with a side column
+(15–24 rem: the opponent next to the header, stack and combat, the decision,
+you next to the hand).
 
 **Cards are controls** (prompt 14): every card the player may see is a
 `GameCardButton` in a `GameCardRow` toolbar (one Tab stop per row; arrow keys,
@@ -177,7 +200,8 @@ expanded decision takes both middle rows of the side column and stack and
 combat step aside. Sending buttons are armed a moment after they appear, like
 the card view's.
 
-**Priority, stack and phases** (prompt 16): the header shows where in its
+**Priority, stack and phases** (prompt 16; prompt 41 moves the steps into the
+Phasen-Tafel, [design/SPIELTISCH.md](design/SPIELTISCH.md) §4.13): the header shows where in its
 turn the game is - Forge's step in words ("Zug 3 · Erste Hauptphase") with a
 `PhaseTrack` beside the turn's owner: one short bar per step, grouped by the
 five phases, Forge's step wide in `--primary`, the steps before it in
@@ -208,9 +232,11 @@ the word.
 | `Textarea` | shadcn/ui registry (`radix-maia`, prompt 09) | pasting a deck list (grows with its content up to `max-h-96`, then scrolls) |
 | `DropdownMenu`, `Select`, `ToggleGroup` (+ `Toggle` it needs) | shadcn/ui registry (`radix-maia`, prompt 10) | a deck's actions (menu „Mehr“, not modal so a dialog opened from it gets the focus), sorting and the format filter of the deck library |
 | `Switch` | shadcn/ui registry (`radix-maia`, prompt 12) | an on/off preference („Bewegungen reduzieren“), inside a `FieldLabel` row so the whole row is the touch target; one-of-several preferences (AI profile, card language) are a `RadioGroup` of choice cards like the backup import. Preferences are saved the moment they change (no save button) |
-| `GameBoard`, `GameBoardArea` | `src/components/ui/game-board.tsx`, built the shadcn way (prompt 13) | the game table's frame: eight named regions in a grid, portrait and landscape arrangement (§4), never scrolling itself |
-| `GameCard`, `GameCardCaption`, `GameCardBack`, `GameCardGroup` | `src/components/ui/game-card.tsx`, built the shadcn way (prompt 13) | a card on the game table, sized by its row's height (63 × 88): its `CardPicture`, turned a quarter when tapped (square place), its facts in the caption strip **below** the picture (never on it: Scryfall forbids covering card images); OpenMana's own back for cards Forge hides (never Wizards' back); a card with its attachments in one dashed frame |
-| `GameCardButton`, `GameCardRow`, `GameCardRowItem`, `GameCardRowButton`; the `mark` of `GameCard`/`GameCardButton` | `src/components/ui/game-card.tsx`, built the shadcn way (prompt 14) on Radix `Toolbar` (from `radix-ui`) | a card as a control: a button with shadcn's focus ring around the whole card, no image menu or text selection on a long press; Forge's state as a frame around the picture in the room every card keeps (`mark`: usable = dashed `--primary`, chosen = solid `--foreground`); a row of such cards as a toolbar (roving focus), else a focusable list |
+| `GameBoard`, `GameBoardArea` | `src/components/ui/game-board.tsx`, built the shadcn way (prompt 13) | the game table's frame: eight named regions in a grid, arranged by layout (§4; portrait/landscape until prompt 38), never scrolling itself |
+| `GameCard`, `GameCardCaption`, `GameCardBack`, `GameCardGroup` | `src/components/ui/game-card.tsx`, built the shadcn way (prompt 13) | a card on the game table, sized by its row's height (63 × 88): its `CardPicture`, turned a quarter when tapped (square place), its facts in the caption strip below the picture (prompt 40: chips outside the picture and the value plaque on the printed value box, §9 - nothing else on it, Scryfall forbids covering card images); OpenMana's own back for cards Forge hides (never Wizards' back); a card with its attachments in one dashed frame |
+| `GameCardButton`, `GameCardRow`, `GameCardRowItem`, `GameCardRowButton`; the `mark` of `GameCard`/`GameCardButton` | `src/components/ui/game-card.tsx`, built the shadcn way (prompt 14) on Radix `Toolbar` (from `radix-ui`) | a card as a control: a button with shadcn's focus ring around the whole card, no image menu or text selection on a long press; Forge's state as a frame around the picture in the room every card keeps (`mark`: usable = dashed `--primary`, chosen = solid `--foreground` - prompt 40 restyles them after §9); a row of such cards as a toolbar (roving focus), else a focusable list |
+| `useTableLayout()`, `tableLayoutOf()`; variants `hoch:`, `quadrat:`, `breit:` | `src/game/table/use-table-layout.ts`, `table-layout.ts`, `src/index.css` (prompt 36) | the game table's layout by aspect ratio (§4, §9); not used by the table before prompt 38 |
+| `src/game/table/table.css`, `--table-*` tokens | prompt 36 (§9) | the game table's own stylesheet (not imported before prompt 37) and colours |
 | `Checkbox` | shadcn/ui registry (`radix-maia`, prompt 15; `motion-reduce` added) | several choices of one of Forge's questions, inside a `FieldLabel` choice card (the whole card is the touch target) |
 | `GameDecision`, `GameDecisionHeader`, `GameDecisionSource`, `GameDecisionRow`, `GameDecisionNote`, `GameDecisionActions`; `GameBoard`'s `decision` (`compact`/`tall`/`expanded`) | `src/components/ui/game-decision.tsx`, `game-board.tsx`, built the shadcn way (prompt 15) | the decision region's content: what Forge asks (the asking card as a small `GameCardButton`), a row of a question's cards at a hand's height, short lines (how many, why a button is off), the answer buttons sticking to the region's bottom; the region's growth (§4) |
 | `GameHelpButton` | built the shadcn way (prompt 23) | header turn/phase area as a 44 px contextual-help trigger; phase and turn owner are its accessible description, no extra wide icon on small phones |
@@ -238,17 +264,22 @@ the word.
 - Card-, mechanic- or name-specific styling is forbidden (Bible §2): what is
   playable, targetable or attacking comes from Forge's structured state, and
   the UI styles those states, not particular cards.
-- Nothing is drawn over a card picture (badges, counters, tints, blur): a
-  card's facts go into the caption strip below it (`GameCardCaption`), a state
-  that changes the card itself (tapped) is a quarter turn of the whole card
-  (prompt 13), and Forge's marks are a frame around the picture (prompt 14).
-- Card states (prompt 14) reuse the palette on purpose instead of new
-  colours: "usable now" is the one accent for "do this" (`--primary`, dashed),
-  "chosen" the strongest contrast there is (`--foreground`, solid). Dashed
-  against solid tells them apart without colour (WCAG 1.4.1); both reach 3:1
-  against the table's surfaces (1.4.11, checked by `design-tokens.test.ts`).
-  A state that needs a colour of its own later (targets, attackers - prompts
-  17-19) follows the token-pair rule above.
+- Nothing is drawn over a card picture (badges, counters, tints, blur,
+  filters) except, on the game table, the **value plaque**: Forge's
+  power/toughness or loyalty on the card's own printed value box at the bottom
+  right, never over the artist and copyright line (§9). Every other fact goes
+  outside the picture - the caption strip below it (`GameCardCaption`), from
+  prompt 40 small chips at its top edge -, a state that changes the card itself
+  (tapped) is a quarter turn of the whole card (prompt 13), and Forge's marks
+  are frames and glows around the picture (prompt 14).
+- Card states (prompt 14): "usable now" is the one accent for "do this"
+  (`--primary`), "chosen" the strongest contrast there is (`--foreground`);
+  dashed against solid tells them apart today. The table redesign gives
+  targets, attackers and blockers colours of their own (`--table-danger`,
+  `--table-attack`, `--table-mana`) and may draw usable as a glowing gold
+  frame (§9); `data-mark` stays the truth, every state keeps its words (chips,
+  names), so none is told by colour alone (WCAG 1.4.1), and every mark reaches
+  3:1 on the table's surfaces (1.4.11, checked by `design-tokens.test.ts`).
 
 ## 7. Beginner help and target emphasis (prompt 23)
 
@@ -257,7 +288,8 @@ the side in landscape. The help scrolls inside; its footer stays reachable and
 closing restores the opener's focus. Required/optional selection words join the
 existing decision heading instead of adding a tall guidance panel.
 
-Already named stack targets use the existing `--primary` in a **double** frame,
+Already named stack targets use the existing `--primary` in a **double** frame
+(prompt 40 turns it into a `--table-danger` frame with a gentle pulse, §9),
 an explicit accessible “Ziel” label and a crosshair on player seats.
 Battlefield captions retain their original statistics space; the viewer/title names the target. No tint
 or text covers a picture. Usable dashed / selected solid frames take precedence
@@ -270,4 +302,44 @@ User names must wrap inside the content column rather than widening the browser 
 
 `Dialog`/`Sheet` content wraps long text; `AlertDialog` confirmations scroll within the available screen height. Sheets are bounded by the dynamic viewport. Existing viewer/help/history/decision scroll regions and sticky footers remain reachable. The mobile brand link also has a 44 px target. Fine-pointer component sizes retain their registry dimensions.
 
-The audit checks eight CSS sizes from 360×740 through 1440×900, including fold-like 690×829 and 829×690. It keeps the original eight-region table allocation, card gestures, keyboard navigation and meaningful decisions. Resize preserves viewer identity/focus and live Forge transcripts. Screens are emulated Chrome evidence; no physical hinge behavior is implied. See [implementation/24-responsive-polish.md](implementation/24-responsive-polish.md).
+The audit checks eight CSS sizes from 360×740 through 1440×900, including fold-like 690×829 and 829×690. It keeps the eight table regions (their arrangement follows the layouts of §4 from prompt 38 on), card gestures, keyboard navigation and meaningful decisions. Resize preserves viewer identity/focus and live Forge transcripts. Screens are emulated Chrome evidence; no physical hinge behavior is implied. See [implementation/24-responsive-polish.md](implementation/24-responsive-polish.md).
+
+## 9. The game table (redesign, prompts 36–45)
+
+The project owner approved a game table with its own look (2026-10-10):
+[design/SPIELTISCH.md](design/SPIELTISCH.md) is its specification, the static
+mockup [design/spieltisch-vorlage/](design/spieltisch-vorlage/) its visual
+target (example data only).
+
+- **Own CSS and SVG - only here.** The exception covers the game table of a
+  running game and of its replay: components in `src/game/table/` and one
+  stylesheet, `src/game/table/table.css`, all of whose rules sit under
+  `[data-slot="game-board"]`. Pages outside the table stay shadcn-only (§1,
+  §3), and inside the game the Sheets, Dialogs, menus, toasts and the card
+  view stay shadcn components; they may take the table's look only through
+  tokens. `src/` holds no other stylesheet than `index.css` and `table.css`
+  (`motion.test.ts`).
+- **Tokens** (`:root` in `src/index.css`, mapped as `--color-table-*`):
+  `--table-gold-light`, `--table-gold-dark`, `--table-gold-line`,
+  `--table-mana`, `--table-danger`, `--table-attack`, `--table-wood`,
+  `--table-wood-frame`, `--table-leather`, `--table-panel`, `--table-plaque`;
+  gold itself stays `--primary`, text on gold `--primary-foreground`. Surface
+  tokens are their lightest tone. `design-tokens.test.ts` checks text (4.5:1)
+  and marks (3:1) on every table surface; values and uses:
+  [design/SPIELTISCH.md](design/SPIELTISCH.md) §5. A colour with a new meaning
+  gets a token and a test; depth effects use black/white with transparency or
+  mixes of these tokens.
+- **Layouts by aspect ratio:** `hoch` (< 3:4), `quadrat` (3:4–13:10), `breit`
+  (> 13:10), plus `short:` (§4).
+- **Card pictures:** whole, never cropped, blurred, darkened, colour-shifted or
+  filtered; on them only the value plaque (above). Facts as chips outside the
+  picture, Forge's short words and numbers only.
+- **Hand as a fan** (prompt 42): overlapping, the card under the mouse or the
+  swiping thumb (or with keyboard focus) rises; a long press opens the card
+  view; the toolbar's keyboard stays.
+- **Marks:** frames and glows around the picture after `data-mark` and the
+  combat facts - usable gold with a glow, chosen a strong light frame, target
+  red with a gentle pulse, attacking amber, blocking its own colour - each
+  with its words, each 3:1.
+- **Motion:** allowed on the table under rule 8 - `transform`/`opacity` only,
+  never delaying input or state, nothing under less motion.

@@ -1,0 +1,19 @@
+<!doctype html>
+<!--
+  The table's layout classes in the real browser (prompt 36, scripts/e2e/run.ts
+  section 12, src/test/table-layout-probe.tsx): useTableLayout() and the CSS
+  variants hoch:, quadrat:, breit:. Not part of the app - only the test's dev
+  server serves it: /scripts/e2e/table-layout-probe.html
+-->
+<html lang="de" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Tisch-Layout-Prüfstand</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/test/table-layout-probe.tsx"></script>
+  </body>
+</html>
