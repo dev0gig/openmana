@@ -3,7 +3,9 @@
 A static visual mockup of the redesigned game table, built from Patrick's
 concept image (2026-10-10). No game logic: `vorlage.js` only draws two
 example scenes ("Konzept" and a crowded "Voller Tisch") on one of three
-table variants (`tischflaeche.js`: astrolabium, matte, runen). The menu
+table variants (`tischflaeche.js`: astrolabium, matte, runen; `arkan.js`:
+the arcanist's desk – one board set into a wooden desk, books, candles,
+inkwell, scroll and astrolabe in the free spots; the default). The menu
 button opens a mockup menu to switch both; or `?szene=voll&tisch=runen`. It exists to agree on the look before the
 redesign prompts are written.
 
@@ -25,6 +27,7 @@ redesign prompts are written.
   rest of the table.
 - The game table is the approved exception to the shadcn-only rule (own CSS
   allowed); the rest of the app stays shadcn.
+- Swiping a thumb over the hand lifts the card under it, like the mouse.
 - Fonts: Cinzel and Inter (SIL OFL), copied from `@fontsource-variable`.
 
 View: serve this folder (`python3 -m http.server`) and open it at any size.

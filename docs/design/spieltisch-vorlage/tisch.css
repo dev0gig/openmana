@@ -230,7 +230,9 @@ button { font: inherit; color: inherit; }
 /* ---------- Hand ---------- */
 
 .hand { grid-area: hand; container-type: size; display: flex; justify-content: center; align-items: flex-start; padding: 0.7rem 1rem 0; clip-path: inset(-100vh -100vw 0 -100vw); }
-.hand:has(.hand-karte:hover) { z-index: 6 !important; }
+.hand:has(.hand-karte:hover, .hand-karte.gehoben) { z-index: 6 !important; }
+/* Swiping a thumb over the hand lifts the card under it (like the mouse). */
+.hand { touch-action: none; }
 .hand-karte {
   --hw: min(calc(100cqh * 1.1 * 63 / 88), 11.5rem);
   flex: none; width: var(--hw); aspect-ratio: 63 / 88;
@@ -243,7 +245,7 @@ button { font: inherit; color: inherit; }
 .hand-karte:first-child { margin-left: 0; }
 .hand-karte img { display: block; width: 100%; height: 100%; border-radius: calc(var(--hw) * 0.048); box-shadow: 0 0 0 1px #000, -0.3rem 0.2rem 0.9rem oklch(0 0 0 / 0.7); outline: 0 solid transparent; outline-offset: 0.15rem; }
 .hand-karte.spielbar img { outline: 0.15rem solid var(--gold); box-shadow: 0 0 0 1px #000, 0 0 1rem 0.2rem oklch(0.82 0.13 80 / 0.55); }
-.hand-karte:hover { transform: translateY(calc(-100% + 100cqh - 0.4rem)) rotate(0deg) scale(1.12); z-index: 5; }
+.hand-karte:hover, .hand-karte.gehoben { transform: translateY(calc(-100% + 100cqh - 0.4rem)) rotate(0deg) scale(1.12); z-index: 5; }
 
 /* ---------- Panels: Zauberchronik (stack), phases ---------- */
 
@@ -473,3 +475,6 @@ button { font: inherit; color: inherit; }
 .vorlage-menue .wahl { display: flex; flex-wrap: wrap; gap: 0.35rem; }
 .vorlage-menue button { min-height: 2.75rem; padding: 0 0.8rem; border-radius: 0.5rem; border: 1px solid var(--gold-linie); background: oklch(0.12 0.02 262); cursor: pointer; }
 .vorlage-menue button[aria-pressed="true"] { border-color: var(--gold); color: #1d1406; background: linear-gradient(180deg, var(--gold-hell), var(--gold)); font-weight: 600; }
+
+.tisch[data-tisch="arkan"] .tisch-grund { background: #1b110a; }
+.tisch[data-tisch="arkan"] .deko { display: none; }
