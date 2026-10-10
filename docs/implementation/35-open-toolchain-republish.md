@@ -64,8 +64,18 @@
   `fetch-artifacts.ts --from`, öffentlicher Build mit Gate, Größenbudgets
   eingehalten.
 - **Push:** `main` gepusht (`b52d658..6cd6367`).
-- **Vercel:** Das Produktionsdeployment zum Push steht wegen der Projektpause
-  auf `BLOCKED`. Die Pause konnte aus der Sitzung nicht aufgehoben werden: Die
-  Vercel-Verbindung darf das Projekt nur lesen (403), die Vercel-CLI ist nicht
-  installiert und ihr Token abgelaufen. Aufheben durch den Projektbesitzer im
-  Dashboard; danach baut das blockierte Deployment.
+- **Vercel:**
+  - Das Deployment zum Push blieb wegen der Projektpause `BLOCKED`. Die Pause
+    konnte aus der Sitzung nicht aufgehoben werden: Die Vercel-Verbindung darf
+    nur lesen (403), die Vercel-CLI fehlt und ihr Token war abgelaufen.
+  - Der Projektbesitzer hat die Pause am 2026-10-10 im Dashboard aufgehoben.
+    Der Push dieser Notiz (`0c002f8`) löste das neue Produktionsdeployment aus.
+- **Live seit 2026-10-10 09:43:**
+  - beide Adressen 200 mit COOP/COEP;
+  - Hinweise nennen den Commit `0c002f8` und das Engine-Manifest `a9b4c26b…`.
+- **Live-Prüfung** (`scripts/deploy/live-check.ts https://openmana.oryx.quest`)
+  bestanden:
+  - Isolation, Lizenzdokumente, Kartendaten, zwei Arena-Importe;
+  - eine vollständige Partie gegen Forges KI bis zum Ergebnis (8 Züge, drei
+    gewirkte Zauber, Ziele, Bezahlen);
+  - ein Engine-Worker, 26/26 Kartenbilder, keine Seitenfehler.
