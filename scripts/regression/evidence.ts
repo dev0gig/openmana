@@ -61,7 +61,10 @@ export function engineEvidence(value: unknown, manifestSha256: string, requireme
 export const VIEWPORTS = ["small-phone", "phone", "phone-landscape", "fold-portrait", "fold-landscape", "tablet", "tablet-landscape", "desktop"] as const
 const SCENES = ["opening", "main-phase", "stack", "blockers", "defend", "commander-late", "command-effects", "play-draw", "target", "target-player", "yes-no", "discard", "choose-mode", "scry", "ability", "damage", "opponent-turn", "respond", "respond-own", "target-both", "payment", "payment-pool", "payment-life", "cast-x", "attack", "attack-declared", "attack-planeswalker", "block-start", "block-multiple", "built:confirm", "built:input", "built:order", "built:block-order", "built:reveal", "built:choose-many", "built:select-outside", "built:arrange-anywhere", "built:distribute-limits"]
 
-export function browserEvidence(appValue: unknown, pwaValue: unknown, requiredScenes: readonly string[] = SCENES) {
+/** The foldable's sizes the table is also checked at in every scene since prompt 38 (scripts/e2e/run.ts FOLD_VIEWPORTS). */
+export const FOLD_SIZES = ["fold-closed", "fold-open", "fold-open-turned"] as const
+
+export function browserEvidence(appValue: unknown, pwaValue: unknown, requiredScenes: readonly string[] = SCENES, requiredFolds: readonly string[] = FOLD_SIZES) {
   const app = object(appValue, "app")
   const pwa = object(pwaValue, "PWA")
   assert.equal(app["scope"], undefined, "focused E2E is not a full regression")
@@ -83,6 +86,13 @@ export function browserEvidence(appValue: unknown, pwaValue: unknown, requiredSc
     for (const scene of requiredScenes) object(scenes[scene], `${viewport}/${scene}`)
     object(scenes["interaction"], `${viewport}/interaction`)
     object(scenes["history"], `${viewport}/history`)
+  }
+  if (requiredFolds.length > 0) {
+    const folds = object(table["folds"], "table at the foldable's sizes")
+    for (const size of requiredFolds) {
+      const scenes = object(folds[size], size)
+      for (const scene of requiredScenes) object(scenes[scene], `${size}/${scene}`)
+    }
   }
   let workerChecks = 0
   let axeChecks = 0

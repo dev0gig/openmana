@@ -13,8 +13,8 @@
  * - GameDecisionActions: the answers. They stick to the bottom of the
  *   region, so they stay in reach while a long list scrolls above them
  *   (Anvil lesson, Bible §16: primary actions stay reachable, never at the
- *   end of a long scroll), and in a tall region (landscape) they sit at its
- *   bottom, next to the player's hand.
+ *   end of a long scroll), and in a tall region (the column beside the
+ *   battlefields) they sit at its bottom, next to the player's hand.
  */
 import * as React from "react"
 import { cn } from "cn"

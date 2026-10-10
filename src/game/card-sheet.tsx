@@ -39,7 +39,6 @@ import { Button } from "@/components/ui/button"
 import { CardPicture } from "@/components/ui/card-picture"
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useLandscape } from "@/hooks/use-landscape"
 import { browseIds, questionCard, type CardBrowse } from "./card-view-model"
 import { SICK_LABEL, SICK_NOTE } from "./attack-labels"
 import { cardUse, type CardUse, type TableMoment } from "./card-use"
@@ -47,6 +46,7 @@ import { STACK_KIND_LABELS } from "./priority-labels"
 import type { TableCardLookup, TableCardPicture, TableFace, TablePictureData } from "./table-cards"
 import { captionFacts, cardName, placeLabel, spokenFacts, stackOwner, stackTargets } from "./table-labels"
 import { locateCard, pileOf, stackEntriesOf, visibleCards, type StackEntryView, type TableView } from "./table-model"
+import { useTableSheetSide } from "./table/use-table-layout"
 
 /** How long after the view opened (or its button changed) presses on the button - or outside the view - are ignored. */
 export const ARMING_MS = 500
@@ -74,7 +74,7 @@ export interface CardSheetProps {
 }
 
 export function CardSheet({ look, onOpenChange, onBrowse, state, view, moment, pictures, onTap }: CardSheetProps) {
-  const landscape = useLandscape()
+  const side = useTableSheetSide()
   const content = useRef<HTMLDivElement>(null)
   const openedAt = useRef(0)
   // What had the focus when the view opened: the card on the table, or the same card in Forge's question (the decision region).
@@ -84,7 +84,7 @@ export function CardSheet({ look, onOpenChange, onBrowse, state, view, moment, p
     <Sheet open={look?.open ?? false} onOpenChange={onOpenChange}>
       <SheetContent
         ref={content}
-        side={landscape ? "right" : "bottom"}
+        side={side}
         showCloseButton={false}
         className="max-h-dvh overflow-y-auto"
         onOpenAutoFocus={(event) => {
@@ -170,7 +170,7 @@ function CardView({
         {zone === "stack" && use.tap === null ? null : <ForgeOffer card={card} use={use} live={onTap !== undefined} />}
       </CardPresentation>
       {/* The buttons stay in view while the card scrolls above them (a phone turned sideways; Bible §6: the action stays easy to reach). */}
-      <SheetFooter className="sticky bottom-0 bg-popover landscape:flex-row landscape:flex-wrap">
+      <SheetFooter className="sticky bottom-0 bg-popover in-data-[side=right]:flex-row in-data-[side=right]:flex-wrap">
         {onTap !== undefined && use.tap !== null ? <TapButton identity={id} use={use} onTap={() => onTap(id)} onClose={onClose} /> : null}
         <CloseButton />
       </SheetFooter>
@@ -212,7 +212,7 @@ function QuestionCardView({ card, state, pictures }: { card: VisibleCard; state:
         <FactList facts={facts(card, state, null, pictures)} />
         <p className="text-sm text-muted-foreground">Wählen kannst du sie im Entscheidungsbereich, dort, wo Forge fragt.</p>
       </CardPresentation>
-      <SheetFooter className="sticky bottom-0 bg-popover landscape:flex-row landscape:flex-wrap">
+      <SheetFooter className="sticky bottom-0 bg-popover in-data-[side=right]:flex-row in-data-[side=right]:flex-wrap">
         <CloseButton />
       </SheetFooter>
     </>
@@ -229,8 +229,8 @@ function CardPresentation({ card, pictures, children }: { card: VisibleCard; pic
   const chosen = faces.find((f) => f.index === index) ?? null
   const alternate = chosen !== null && chosen.index !== activeFace
   return (
-    <div className="flex flex-row gap-4 px-6 landscape:flex-col">
-      <div className="w-32 shrink-0 sm:w-44 landscape:self-center">
+    <div className="flex flex-row gap-4 px-6 in-data-[side=right]:flex-col">
+      <div className="w-32 shrink-0 sm:w-44 in-data-[side=right]:self-center">
         <LargePicture card={card} picture={chosen === null ? picture : chosen.picture} name={chosen?.name.text} fallbackFace={chosen} />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-3">
@@ -255,7 +255,7 @@ function CardPresentation({ card, pictures, children }: { card: VisibleCard; pic
 function CloseButton() {
   return (
     <SheetClose asChild>
-      <Button size="lg" variant="outline" className="landscape:flex-1">
+      <Button size="lg" variant="outline" className="in-data-[side=right]:flex-1">
         Schließen
       </Button>
     </SheetClose>
@@ -393,7 +393,7 @@ function TapButton({ identity, use, onTap, onClose }: { identity: number; use: C
       <Button
         size="lg"
         variant={use.tap.marked ? "default" : "outline"}
-        className="landscape:flex-1"
+        className="in-data-[side=right]:flex-1"
         disabled={use.blocked !== null}
         {...(use.blocked !== null ? { "aria-describedby": reason } : {})}
         onKeyDown={(event) => {
@@ -408,7 +408,7 @@ function TapButton({ identity, use, onTap, onClose }: { identity: number; use: C
         {use.tap.label}
       </Button>
       {use.blocked !== null ? (
-        <p id={reason} className="text-sm text-muted-foreground landscape:order-last landscape:basis-full">
+        <p id={reason} className="text-sm text-muted-foreground in-data-[side=right]:order-last in-data-[side=right]:basis-full">
           {use.blocked}
         </p>
       ) : null}

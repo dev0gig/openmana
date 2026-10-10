@@ -39,6 +39,17 @@ describe("the regions", () => {
     for (const name of ["Spielstand", "Forge-KI", "Spielfeld der Forge-KI", "Stapel und Kampf", "Dein Spielfeld", "Du", "Entscheidung", "Deine Hand"]) {
       expect(region(name)).toBeInTheDocument()
     }
+    // The anchors (data-area, the names) and the reading and focus order (prompt 38: the order of hoch, the decision last).
+    expect([...document.querySelectorAll('[data-slot="game-board-area"]')].map((area) => [area.getAttribute("data-area"), area.getAttribute("aria-label")])).toEqual([
+      ["header", "Spielstand"],
+      ["opponent", "Forge-KI"],
+      ["opponent-field", "Spielfeld der Forge-KI"],
+      ["center", "Stapel und Kampf"],
+      ["field", "Dein Spielfeld"],
+      ["me", "Du"],
+      ["hand", "Deine Hand"],
+      ["decision", "Entscheidung"],
+    ])
     expect(screen.getByRole("heading", { level: 1, name: "Partie" })).toBeInTheDocument()
     expect(document.title).toBe("Partie · OpenMana")
   })

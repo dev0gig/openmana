@@ -1,6 +1,7 @@
 /*
- * Forge's decisions on the game table (prompt 15): the decision region, right
- * above the player's hand (beside the player's half in landscape), shows what
+ * Forge's decisions on the game table (prompt 15): the decision region - the
+ * action bar below the player's hand in hoch, the column beside the
+ * battlefields in quadrat and breit (prompt 38) -, shows what
  * Forge asks and lets the player answer it - every kind of question the
  * protocol knows (Anvil's decision families):
  *

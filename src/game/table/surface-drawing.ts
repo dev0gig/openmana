@@ -69,15 +69,24 @@ function usable(box: Box | null): box is Box {
   return box !== null && box.width > 0 && box.height > 0
 }
 
+/** The playing area: the board's rectangle and where the line between the two battlefields lies. */
+export interface PlayingArea extends Box {
+  /** The middle between the battlefields (surface coordinates; the centre line, prompt 38) - null without both. */
+  readonly middle: number | null
+}
+
 /**
  * The playing area (SPIELTISCH.md §4.1): the battlefields' column, from the
  * opponent's strip to yours. Horizontally it is the battlefields' extent;
  * a strip counts vertically only where it stands in that column (it overlaps
- * at least half its width) - so while the strips stand beside the
- * battlefields (today's landscape layout) the board spans the battlefields
- * alone. Null without a battlefield on screen.
+ * at least half its width) - so where the strips stand beside the
+ * battlefields (breit in a low window) the board spans the battlefields
+ * alone. Its middle is the middle of the gap between the battlefields (the
+ * grid's centre line row, or the stack bar in hoch), so the centre line lies
+ * there even when the strips are not equally high. Null without a
+ * battlefield on screen.
  */
-export function playingArea(regions: PlayingRegions): Box | null {
+export function playingArea(regions: PlayingRegions): PlayingArea | null {
   const fields = [regions.opponentField, regions.field].filter(usable)
   if (fields.length === 0) return null
   const left = Math.min(...fields.map((box) => box.x))
@@ -90,15 +99,21 @@ export function playingArea(regions: PlayingRegions): Box | null {
     top = Math.min(top, strip.y)
     bottom = Math.max(bottom, strip.y + strip.height)
   }
-  return { x: left, y: top, width: right - left, height: bottom - top }
+  const upper = regions.opponentField
+  const lower = regions.field
+  const middle = usable(upper) && usable(lower) && upper.y + upper.height <= lower.y + 1 ? (upper.y + upper.height + lower.y) / 2 : null
+  return { x: left, y: top, width: right - left, height: bottom - top, middle }
 }
 
 /**
  * The board in the screen (as the mockup's arkan(): 6 px from the screen's
- * sides, 2 px inside the playing area's ends) and its circle (as brett()).
- * Whole pixels, so equal sizes give equal layouts.
+ * sides, 2 px inside the playing area's ends) and its circle (as brett()):
+ * centred on the line between the battlefields (the area's middle, kept to
+ * the board's middle half) and as large as the board allows on both sides of
+ * it - on a board whose middle is its centre, min(46 % of the width, 44 % of
+ * the height). Whole pixels, so equal sizes give equal layouts.
  */
-export function surfaceLayout(width: number, height: number, area: Box): SurfaceLayout | null {
+export function surfaceLayout(width: number, height: number, area: Box & { readonly middle?: number | null }): SurfaceLayout | null {
   const W = Math.round(width)
   const H = Math.round(height)
   const left = Math.round(Math.max(area.x, SIDE_MARGIN))
@@ -109,8 +124,9 @@ export function surfaceLayout(width: number, height: number, area: Box): Surface
   const board = { x: left, y: top, width: right - left, height: bottom - top }
   const frame = Math.max(10, Math.min(18, Math.min(board.width, board.height) * 0.022))
   const cx = board.x + board.width / 2
-  const cy = board.y + board.height / 2
-  const radius = Math.min(board.width * 0.46, board.height * 0.44)
+  const centre = board.y + board.height / 2
+  const cy = area.middle === undefined || area.middle === null ? centre : Math.min(board.y + board.height * 0.75, Math.max(board.y + board.height * 0.25, Math.round(area.middle)))
+  const radius = Math.min(board.width * 0.46, Math.min(cy - board.y, board.y + board.height - cy) * 0.88)
   const side = Math.ceil(2 * (radius + RING_PAD))
   const ring = radius >= MIN_CIRCLE_RADIUS ? { x: cx - side / 2, y: cy - side / 2, width: side, height: side } : null
   return { width: W, height: H, board, cx, cy, radius, frame, ring }
@@ -123,8 +139,8 @@ export function deskKey(layout: SurfaceLayout): string {
 
 /** The key of a whole layout (desk and board): equal keys draw the same picture (TableSurface draws only when it changes). */
 export function layoutKey(layout: SurfaceLayout): string {
-  const { width, height, board } = layout
-  return [width, height, board.x, board.y, board.width, board.height].join(" ")
+  const { width, height, board, cy } = layout
+  return [width, height, board.x, board.y, board.width, board.height, cy].join(" ")
 }
 
 // ── Paint ────────────────────────────────────────────────────────────────
@@ -209,7 +225,8 @@ function board(layout: SurfaceLayout): string {
   const { width: w, height: h } = layout.board
   const rand = layout.frame
   const cx = w / 2
-  const cy = h / 2
+  // The line between the battlefields (surfaceLayout), in board coordinates.
+  const cy = layout.cy - layout.board.y
   const R = layout.radius
   const inner = { x: rand, y: rand, width: w - 2 * rand, height: h - 2 * rand }
   // Brass corner plates, mirrored into the four corners.

@@ -17,14 +17,29 @@ import { boardMarkup, deskKey, deskMarkup, layoutKey, MIN_CIRCLE_RADIUS, playing
 const box = (x: number, y: number, width: number, height: number): Box => ({ x, y, width, height })
 
 describe("where the board lies", () => {
-  it("upright: the battlefields' column from the opponent's strip to yours", () => {
+  it("one column (hoch): the battlefields' column from the opponent's strip to yours, its middle between the battlefields", () => {
     const area = playingArea({ opponent: box(0, 50, 412, 40), opponentField: box(0, 90, 412, 300), field: box(0, 400, 412, 300), me: box(0, 700, 412, 40) })
-    expect(area).toEqual(box(0, 50, 412, 690))
+    expect(area).toEqual({ ...box(0, 50, 412, 690), middle: 395 })
   })
 
-  it("strips beside the battlefields (today's landscape layout) do not stretch it", () => {
+  it("strips beside the battlefields (breit in a low window) do not stretch it", () => {
     const area = playingArea({ opponent: box(1056, 0, 384, 57), opponentField: box(0, 57, 1056, 359), field: box(0, 416, 1056, 359), me: box(1056, 775, 384, 125) })
-    expect(area).toEqual(box(0, 57, 1056, 718))
+    expect(area).toEqual({ ...box(0, 57, 1056, 718), middle: 416 })
+  })
+
+  it("strips of different heights above and below (quadrat, breit): the circle and the centre line stay on the line between the battlefields", () => {
+    // The opponent's strip wraps to two lines, yours keeps one; the centre line row lies between the battlefields.
+    const area = playingArea({ opponent: box(0, 53, 580, 68), opponentField: box(0, 121, 580, 206), field: box(0, 351, 580, 206), me: box(0, 557, 580, 36) })!
+    expect(area.middle).toBe(339)
+    const layout = surfaceLayout(829, 690, area)!
+    expect(layout.cy).toBe(339)
+    // The circle stays inside the board on both sides of the line.
+    expect(layout.cy - layout.radius).toBeGreaterThanOrEqual(layout.board.y)
+    expect(layout.cy + layout.radius).toBeLessThanOrEqual(layout.board.y + layout.board.height)
+    expect(layout.ring!.y + layout.ring!.height / 2).toBeCloseTo(layout.cy)
+    // Drawn into the board at that height; another middle is another board.
+    expect(boardMarkup(layout, "m")).toContain(`cy="${(339 - layout.board.y).toFixed(1)}"`)
+    expect(layoutKey(surfaceLayout(829, 690, { ...area, middle: 330 })!)).not.toBe(layoutKey(layout))
   })
 
   it("no battlefield on screen, no board", () => {
@@ -236,7 +251,8 @@ describe("TableSurface in the game table", () => {
     resize({ ...PORTRAIT, field: box(0, 402, 412, 250), me: box(0, 652, 412, 40), decision: box(0, 692, 412, 120) })
     expect(boardSvg.firstElementChild).not.toBe(boardDrawing)
     expect(desk.firstElementChild).toBe(deskDrawing)
-    expect(surface.dataset["board"]).toBe(layoutKey(surfaceLayout(412, 915, box(0, 60, 412, 632))!))
+    // The circle stays on the line between the battlefields (the stack bar), now below the board's centre.
+    expect(surface.dataset["board"]).toBe(layoutKey(surfaceLayout(412, 915, { ...box(0, 60, 412, 632), middle: 401 })!))
     // The window turned: the desk follows the screen.
     resize({ ...PORTRAIT, board: box(0, 0, 915, 412), "opponent-field": box(0, 60, 600, 150), field: box(0, 212, 600, 150), opponent: box(600, 0, 315, 60), me: box(600, 352, 315, 60) })
     expect(desk.getAttribute("viewBox")).toBe("0 0 915 412")

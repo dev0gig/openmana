@@ -4,14 +4,15 @@
  * queries shared with the CSS variants of src/index.css, and
  * useTableLayout() following the screen (a stand-in matchMedia that
  * evaluates exactly these queries; the real browser is checked by the
- * end-to-end test, section 12).
+ * end-to-end test, section 12) - and, since prompt 38, the side the table's
+ * Sheets come from.
  */
 import fs from "node:fs"
 import path from "node:path"
 import { act, renderHook } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { TABLE_LAYOUT_QUERIES, TABLE_LAYOUTS, tableLayoutOf, type TableLayout } from "./table-layout"
-import { useTableLayout } from "./use-table-layout"
+import { TABLE_LAYOUT_QUERIES, TABLE_LAYOUTS, tableLayoutOf, tableSheetSide, type TableLayout } from "./table-layout"
+import { useTableLayout, useTableSheetSide } from "./use-table-layout"
 
 /** The end-to-end test's eight sizes (scripts/e2e/run.ts) and the foldable's (docs/design/SPIELTISCH.md §3). */
 const SIZES: readonly (readonly [string, number, number, TableLayout])[] = [
@@ -158,5 +159,30 @@ describe("useTableLayout", () => {
   it("answers hoch without a screen to ask (jsdom's matchMedia answers no query)", () => {
     const { result } = renderHook(() => useTableLayout())
     expect(result.current).toBe("hoch")
+  })
+})
+
+describe("the side of the table's Sheets (prompt 38)", () => {
+  it("from the bottom in hoch, from the right in quadrat and breit", () => {
+    expect(TABLE_LAYOUTS.map(tableSheetSide)).toEqual(["bottom", "right", "right"])
+  })
+
+  it("follows the layout, not the orientation: the foldable opened upright is quadrat - from the right", () => {
+    const screen = fakeScreen(480, 1040)
+    const { result } = renderHook(() => useTableSheetSide())
+    expect(result.current).toBe("bottom")
+    act(() => screen.resize(870, 960))
+    expect(result.current).toBe("right")
+    act(() => screen.resize(690, 829))
+    expect(result.current).toBe("right")
+    act(() => screen.resize(915, 412))
+    expect(result.current).toBe("right")
+    act(() => screen.resize(360, 740))
+    expect(result.current).toBe("bottom")
+  })
+
+  it("from the bottom without a screen to ask (jsdom)", () => {
+    const { result } = renderHook(() => useTableSheetSide())
+    expect(result.current).toBe("bottom")
   })
 })

@@ -102,13 +102,12 @@ never by the device. Exactly one layout applies at any size.
 variants `hoch:`, `quadrat:`, `breit:` in `src/index.css` - the same three
 media queries (`(aspect-ratio < 3/4)`, `(3/4 <= aspect-ratio <= 13/10)`,
 `(aspect-ratio > 13/10)`), kept identical by
-`src/game/table/table-layout.test.tsx`. Prompt 36 does not use them on the
-table yet; prompt 38 switches `GameBoard` and the Sheets (card view from the
-bottom in `hoch`, from the side in `quadrat`/`breit`) from
-`portrait:`/`landscape:`/`useLandscape()` to them. Do not change the root
-font size per layout as the mockup does (it would resize the shadcn Sheets
-and Dialogs too); scale inside the board (container units or a custom
-property on `[data-slot="game-board"]`).
+`src/game/table/table-layout.test.tsx`. Since prompt 38 `GameBoard` and
+the Sheets use them (§3.4); nothing on the table is arranged by
+orientation any more (`portrait:`/`landscape:` and `useLandscape()` are
+gone). Do not change the root font size per layout as the mockup does (it
+would resize the shadcn Sheets and Dialogs too); scale inside the board
+(container units or a custom property on `[data-slot="game-board"]`).
 
 **The test sizes** (end-to-end section 12; the real browser checks every one
 of them and the borders 299/300 × 400 and 1300/1301 × 1000):
@@ -123,13 +122,16 @@ of them and the borders 299/300 × 400 and 1300/1301 × 1000):
 | tablet-landscape | 1104 × 884 | `quadrat` |
 | phone-landscape | 915 × 412 | `breit` (and `short`) |
 | desktop | 1440 × 900 | `breit` |
-| Fold closed / open / open turned | 480 × 1040, 870 × 960, 960 × 870 | `hoch`, `quadrat`, `quadrat` (image comparison; prompt 38 may add them to the checks) |
+| Fold closed / open / open turned | 480 × 1040, 870 × 960, 960 × 870 | `hoch`, `quadrat`, `quadrat` (since prompt 38 checked in every scene too, `tableFoldSizes`, and required by the regression evidence) |
 
 ### 3.1 The eight regions
 
 `GameBoard` keeps its eight regions (`data-slot="game-board-area"`,
 `data-area`, their `aria-label`s). The visible titles may change; the
-accessible names do not.
+accessible names do not. Their order in the page (prompt 38) is the order of
+`hoch` - header, opponent, opponent's battlefield, stack and combat, your
+battlefield, you, hand, decision -, the reading and focus order of every
+layout.
 
 | `data-area` | `aria-label` | Becomes | `breit` | `quadrat` | `hoch` |
 |---|---|---|---|---|---|
@@ -139,14 +141,14 @@ accessible names do not.
 | `center` | "Stapel und Kampf" | **Zauberchronik** (§4.11) | left column, full height | right column, top | a bar between the battlefields |
 | `field` | "Dein Spielfeld" | your battlefield | middle column | left column | full width |
 | `me` | "Du" | your strip | middle column, below your field | left column | above the hand |
-| `decision` | "Entscheidung" | **Phasen-Tafel** with Forge's question and the main button (§4.12–4.14) | right column, full height | right column, bottom | **action bar at the very bottom**, below the hand; grows upwards for questions |
-| `hand` | "Deine Hand" (name of its toolbar: "Deine Hand: N Karten") | fanned hand (§4.10) | bottom, between the side columns | left column, bottom | full width, above the action bar |
+| `decision` | "Entscheidung" | **Phasen-Tafel** with Forge's question and the main button (§4.12–4.14) | right column, full height | right column, from the centre line to the bottom (from the opponent's battlefield while `expanded`) | **action bar at the very bottom**, below the hand; grows upwards for questions |
+| `hand` | "Deine Hand" (name of its toolbar: "Deine Hand: N Karten") | fanned hand (§4.10) | bottom of the middle column, between the side columns | left column, bottom | full width, above the action bar |
 
 The centre line between the battlefields is part of the table surface
 (§4.1), not a region; the grid may keep a thin row for it (`breit`,
 `quadrat`). In `hoch` the Zauberchronik bar takes its place.
 
-### 3.2 Grid plans (from the mockup's `tisch.css`; prompt 38 settles the exact values)
+### 3.2 Grid plans (from the mockup's `tisch.css`; settled in prompt 38, see "Built")
 
 ```
 breit (> 13:10)                                   quadrat (3:4 … 13:10)            hoch (< 3:4)
@@ -177,25 +179,98 @@ breit (> 13:10)                                   quadrat (3:4 … 13:10)       
   expanded decision may use the whole right column (today's rule: stack and
   combat step aside in a low window - in `breit` the chronicle is in its own
   column, so it may stay, reduced to its title and count if the height needs
-  it).
+  it). **Prompt 38 decided otherwise** (its task: "short: wie heute"): see
+  "Built".
+
+**Built (prompt 38)** - `GameBoard` (`src/components/ui/game-board.tsx`),
+the classes without a variant are `hoch` (also the fallback of a browser
+that answers none of the three queries):
+
+| Layout | Columns | Rows | Areas |
+|---|---|---|---|
+| `hoch` | 1 | `auto auto 1fr auto 1fr auto auto auto` | header · opponent · opponent-field · center · field · me · hand · decision |
+| `quadrat` | `minmax(0,1fr) clamp(15rem,30vw,20rem)` | `auto auto 1fr 1.5rem 1fr auto auto` | header across; left opponent, opponent-field, (centre line), field, me, hand; right `center` next to the opponent's half (strip and battlefield), `decision` from the centre line to the bottom |
+| `quadrat`, `expanded` | as above | as above | `center` only next to the opponent's strip (capped `clamp(3rem,10dvh,5rem)`, scrolls), `decision` from the opponent's battlefield to the bottom |
+| `breit` | `clamp(12rem,20vw,18rem) minmax(0,1fr) clamp(15rem,22vw,18rem)` | `auto auto 1fr 1.5rem 1fr auto auto` | header across; left `center`, right `decision`, both from the header to the bottom; middle opponent, opponent-field, (centre line), field, me, hand |
+| `breit` + `short` | `minmax(0,1fr) minmax(15rem,24rem)` | `auto 1fr 1fr auto` | the side column of prompts 13–24: header \| opponent, opponent-field \| center, field \| decision, hand \| me; `expanded`: the decision takes both middle rows, `center` is hidden |
+
+- The centre line row (1.5 rem, an empty grid cell) separates the halves in
+  `quadrat` and `breit`. The table surface puts its centre line, the circle
+  and the emblem on the **middle of the gap between the battlefields**
+  (`playingArea().middle`, prompt 38), not on the board's centre, so they
+  stay there when the strips are not equally high (the opponent's strip
+  wraps more often). In `hoch` that gap is the stack bar.
+- Widths deviate from the mockup on purpose: the decision column keeps
+  today's minimum of 15 rem (240 px) in `quadrat` and `breit`, because
+  Forge's questions - lists, forms, card rows, amounts - must stay operable
+  with 44 px controls (the mockup's 11.5–14 rem have no room for them). The
+  chronicle column of `breit` is 12–18 rem. Both side columns run from the
+  header to the bottom (the mockup lets its hand row span all three columns
+  under them): the decision gets the full height, the hand stands between
+  the columns, as the region table says.
+- Heights stay today's: strips `auto` (they carry text until prompt 39),
+  hand `clamp(6rem, 14dvh, 9rem)` in every layout (the fan of prompt 42 may
+  change it). `env(safe-area-inset-bottom)` is not added: the app's viewport
+  has no `viewport-fit=cover`, so the inset is always 0.
+- `short` + `breit` keeps the arrangement of prompts 13–24 (assumption from
+  the task's "wie heute"): in a phone turned sideways (915 × 412) it leaves
+  the battlefields about 130 px each, three columns would leave about 100.
+  Prompt 41 may revisit it with the Phasen-Tafel.
 
 ### 3.3 Room for Forge's questions
 
 The mockup has no room for Forge's questions; the table must. The decision
 region keeps its growth (`GameBoard decision`: `compact | tall | expanded`,
-measured by `decisionNeedsRoom` in `decision-panel.tsx`):
+measured by `decisionNeedsRoom` in `decision-panel.tsx` and, for words that
+do not fit, by `GameTable` once per set of open questions):
 
 - `breit`/`quadrat`: the question, its parts and buttons stand in the
-  Phasen-Tafel below the phases; a question that needs room folds the phases
-  to one line (group and step) and scrolls inside the panel; the answer
-  buttons stick to its bottom.
+  Phasen-Tafel below the phases (prompt 41); a question that needs room folds
+  the phases to one line (group and step) and scrolls inside the panel; the
+  answer buttons stick to its bottom.
 - `hoch`: the action bar shows the compact phases and the main button; for a
   question it grows **upwards** - `tall` up to ≈ 28 %, `expanded` up to ≈
   36 % of the height, as today - and the battlefields keep at least one row
   of cards (end-to-end: 80 px, 64 px while `expanded`).
 - Two rows per battlefield stay a measured threshold (`TWO_ROWS_MIN_HEIGHT`,
-  176 px today; prompt 38 checks it for the new grid). Creatures lie next to
+  176 px; checked in prompt 38 for the new grid and kept). Creatures lie next to
   the middle.
+
+**Built (prompt 38)** - what the three states do in each layout:
+
+| | `compact` | `tall` (words that do not fit) | `expanded` (a list, a form, cards outside the table, or words while stack and combat are empty) |
+|---|---|---|---|
+| `hoch` | action bar up to `clamp(7rem,18dvh,11rem)`; stack bar up to `clamp(5rem,15dvh,8rem)` | action bar up to `clamp(9rem,28dvh,20rem)`; the stack stays (the player may answer it) | action bar up to `clamp(9rem,36dvh,26rem)`; stack bar down to `clamp(3rem,10dvh,5rem)` |
+| `quadrat` | right column from the centre line down | the same (its column is tall already; words scroll inside) | the decision from the opponent's battlefield down, the chronicle a small strip next to the opponent's strip |
+| `breit` | right column, full height | the same | the same (nothing to gain) |
+| `breit` + `short` | side column next to your battlefield | the same | both middle rows of the side column; stack and combat step aside |
+
+The measurement is unchanged: a question that would not fit the compact
+region once is `tall` (or `expanded` when the centre is quiet) until its set
+of questions changes, so the region never flips back and forth - also not
+when the window changes size meanwhile.
+
+The battlefields' heights measured at the test sizes (scene `main-phase`,
+prompt 38): `hoch` 164 px (small phone, one row each) to 283 px (Fold
+closed); `quadrat` 206–404 px; `breit` 311 px (desktop) and 130 px in a low
+window (one row). From 176 px two rows (creatures next to the middle) still
+leave cards of at least about 80 px - the threshold stays. The end-to-end
+test checks for every scene and size that a battlefield above 176 px shows
+two rows with the creatures' row next to the middle, below one
+(`checkTableArrangement`).
+
+### 3.4 Sheets by layout (prompt 38)
+
+The table's Sheets - the card view, zones, history, help, also the card view
+and history after a game - come from the **bottom in `hoch`** (thumb reach)
+and from the **right in `quadrat` and `breit`** (`tableSheetSide`,
+`useTableSheetSide()` in `src/game/table/`), no longer by orientation: the
+unfolded foldable upright (870 × 960) gets them from the side. What their
+content arranges by side (the card view's picture above its text, its two
+buttons side by side, the history's kind and number) follows the Sheet's
+own `data-side` (`in-data-[side=right]:`), so content and side always agree.
+Focus returns to the card that opened the view, as before
+(`card-sheet.tsx`); a size change while a Sheet is open only moves it.
 
 ## 4. Building blocks
 
@@ -227,11 +302,13 @@ anchors it keeps and the prompt that builds it.
   `src/game/table/surface-drawing.ts` (pure geometry and markup after
   `arkan.js`). The playing area is the battlefields' column; a strip counts
   only where it stands in that column (it overlaps at least half its width) -
-  until prompt 38 the strips of the landscape layout stand beside the
+  since prompt 38 only `breit` in a low window has its strips beside the
   battlefields, so there the board spans the battlefields alone. The board:
   6 px from the screen's sides, 2 px inside the area's ends; frame
   `clamp(10, 2.2 % of the shorter side, 18)` px; circle radius
-  `min(46 % of the width, 44 % of the height)`; no circle below a radius of
+  `min(46 % of the width, 44 % of the height)` - since prompt 38 centred on
+  the middle between the battlefields and limited to 88 % of the distance to
+  the nearer end (the same on a symmetric board); no circle below a radius of
   48 px. Three layers, each its own compositor layer (`will-change`): the
   desk (`data-surface="desk"`, one SVG 1:1 over the game board: wood grain,
   plank joints, vignette), drawn only when the **screen's** size changes - a
@@ -635,3 +712,9 @@ a push.
   wooden desk, board with frame, brass corners, leather, rune ring (turning,
   glimmering), centre line with diamonds and emblem; regions on panel tones;
   table.css imported. Regions still where they were (prompt 38).
+- 2026-10-10, prompt 38: the three layouts on `GameBoard` (§3.2 "Built"),
+  `breit` in a low window as before; the decision's growth per layout
+  (§3.3); the Sheets by layout (§3.4); the regions' page order = `hoch`'s;
+  the surface's centre line on the gap between the battlefields; the
+  foldable's three sizes checked in every scene. Look of cards, strips, hand
+  and chronicle unchanged (prompts 39-42).

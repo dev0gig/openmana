@@ -4,11 +4,11 @@
  * queries as the CSS variants hoch:, quadrat: and breit: (src/index.css), for
  * what CSS alone cannot place (for example from which side a Sheet comes).
  *
- * "hoch" where there is no screen or no query answers (tests in jsdom), like
- * useLandscape() answers portrait there.
+ * "hoch" where there is no screen or no query answers (tests in jsdom) - the
+ * Sheets then come from the bottom.
  */
 import { useSyncExternalStore } from "react"
-import { TABLE_LAYOUT_QUERIES, TABLE_LAYOUTS, type TableLayout } from "./table-layout"
+import { TABLE_LAYOUT_QUERIES, TABLE_LAYOUTS, tableSheetSide, type TableLayout, type TableSheetSide } from "./table-layout"
 
 /** The three media query lists, asked once per matchMedia (a test may swap it). */
 let asked: { readonly matchMedia: typeof window.matchMedia; readonly lists: readonly MediaQueryList[] } | null = null
@@ -37,4 +37,9 @@ function layout(): TableLayout {
 
 export function useTableLayout(): TableLayout {
   return useSyncExternalStore(subscribe, layout, () => "hoch")
+}
+
+/** From where the table's Sheets come now (prompt 38): from the bottom in hoch, from the right in quadrat and breit. */
+export function useTableSheetSide(): TableSheetSide {
+  return tableSheetSide(useTableLayout())
 }

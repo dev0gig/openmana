@@ -24,8 +24,9 @@
  * London mulligan, a selection). Forge's markers show as a frame around the
  * picture (usable, chosen), never on it.
  *
- * Forge's decisions (prompt 15): the decision region above the hand shows
- * what Forge asks and lets the player answer it (decision-panel.tsx) - the
+ * Forge's decisions (prompt 15): the decision region (the action bar below the
+ * hand in hoch, the column beside the battlefields otherwise - prompt 38)
+ * shows what Forge asks and lets the player answer it (decision-panel.tsx) - the
  * page sends the answers (onAnswer), like the taps. A decision that needs
  * room gets it (GameBoard decision="expanded"); a card of a question that
  * lies in no zone of the table opens the card view as the question shows it.
@@ -42,6 +43,12 @@
  * The surface (prompt 37, table/table-surface.tsx): a wooden desk with the
  * board set into it lies behind the regions - decoration, redrawn only when a
  * size changes, never by a new state.
+ *
+ * The layouts (prompt 38): GameBoard arranges the regions by the window's
+ * aspect ratio - hoch, quadrat, breit (docs/design/SPIELTISCH.md §3) -, and
+ * the Sheets come from the bottom in hoch, from the side otherwise
+ * (table/use-table-layout.ts). A new size only changes the arrangement,
+ * never the game.
  *
  * Targets and payment (prompt 17): a player Forge's running input would take
  * - a target, a choice, the one paying life for Phyrexian mana - is a control
@@ -203,7 +210,8 @@ export function GameTable({ replay = false,
   const decisionArea = useRef<HTMLElement>(null)
   const decisionKey = questions.map((question) => question.id).join(",")
   const [overflowed, setOverflowed] = useState<string | null>(null)
-  // Words that do not fit may take the stack's place too where it has nothing to show (a low landscape window).
+  // Words that do not fit may take the stack's room too where it has nothing to show (GameBoard: a smaller strip in hoch
+  // and quadrat, its place in a low breit window).
   const quietCenter = state.stack.length === 0 && state.combat.length === 0
   const room: GameBoardDecision = decisionNeedsRoom(currentDecision(questions), state)
     ? "expanded"
@@ -276,7 +284,7 @@ export function GameTable({ replay = false,
           <GameZoneButton aria-label="Spielverlauf ansehen" title={`Spielverlauf: ${history.length} Einträge`} aria-haspopup="dialog" onClick={() => setHistoryOpen(true)}><History aria-hidden /></GameZoneButton>
           <h1 className="sr-only">{replay ? "Wiedergabe" : "Partie"}</h1>
           <GameHelpButton aria-label="Hilfe am Spieltisch" aria-describedby={`${helpPhaseId} ${helpOwnerId}`} title="Hilfe am Spieltisch" aria-haspopup="dialog" onClick={() => setHelpOpen(true)}>
-            <span id={helpPhaseId} className="line-clamp-2 text-xs leading-tight font-medium landscape:text-sm" title={turnLine(view.turn, state.phase)}>
+            <span id={helpPhaseId} className="line-clamp-2 text-xs leading-tight font-medium quadrat:text-sm breit:text-sm" title={turnLine(view.turn, state.phase)}>
               {turnLine(view.turn, state.phase)}
             </span>
             <span className="flex min-w-0 items-center gap-2">
@@ -323,6 +331,11 @@ export function GameTable({ replay = false,
           {view.me ? <PlayerBar side={view.me} profile={null} pictures={pictures} /> : null}
         </GameBoardArea>
 
+        <GameBoardArea area="hand" aria-label="Deine Hand">
+          <Hand cards={view.me?.hand ?? []} pictures={pictures} />
+        </GameBoardArea>
+
+        {/* The decision last: the order of hoch (its action bar at the very bottom) is the reading and focus order of every layout. */}
         <GameBoardArea ref={decisionArea} area="decision" aria-label="Entscheidung" tabIndex={0}>
           <DecisionPanel
             state={state}
@@ -338,10 +351,6 @@ export function GameTable({ replay = false,
             {...(onTapCard !== undefined ? { onTapCard: tapCardNow } : {})}
             {...(onUseMana !== undefined ? { onUseMana } : {})}
           />
-        </GameBoardArea>
-
-        <GameBoardArea area="hand" aria-label="Deine Hand">
-          <Hand cards={view.me?.hand ?? []} pictures={pictures} />
         </GameBoardArea>
         <HelpSheet open={helpOpen} onOpenChange={setHelpOpen} state={state} questions={questions} replay={replay} waiting={waiting} conceding={conceding} />
         <ZoneSheet onSourceChange={setZone} source={zone} state={state} pictures={pictures} onClose={() => setZone(null)} onLook={openCard} />
@@ -766,8 +775,9 @@ function StackAndCombat({ view, pictures }: { view: TableView; pictures: TableCa
   if (stack.length === 0 && combat.length === 0) {
     return (
       <div className="flex h-full flex-col justify-center">
-        <Separator className="landscape:hidden" />
-        <p className="px-3 py-2 text-xs text-muted-foreground portrait:sr-only">Der Stapel ist leer, niemand kämpft.</p>
+        {/* In hoch a bar between the battlefields: an empty one is a line (its words for screen readers); in a column its words. */}
+        <Separator className="quadrat:hidden breit:hidden" />
+        <p className="px-3 py-2 text-xs text-muted-foreground hoch:sr-only">Der Stapel ist leer, niemand kämpft.</p>
       </div>
     )
   }

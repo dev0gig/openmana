@@ -167,6 +167,16 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
     else await locator.click()
   }
   const cardButton = (id: number) => page.locator(`button[data-slot="game-card"][data-card="${id}"]`).first()
+  // The table counts a second tap on the same card within ARMING_MS once (its double-tap guard, never weakened for a
+  // test): a player who taps the same card again - its view right after choosing it in a selection - waits that long,
+  // as a person would. Without it the second tap was rightly dropped and the view never opened (prompt 38's runs).
+  let lastCardTap: { readonly id: number; readonly at: number } | null = null
+  const tapCard = async (id: number) => {
+    const since = lastCardTap !== null && lastCardTap.id === id ? Date.now() - lastCardTap.at : Infinity
+    if (since < ARMED_AFTER_MS) await page.waitForTimeout(ARMED_AFTER_MS - since)
+    await activate(cardButton(id))
+    lastCardTap = { id, at: Date.now() }
+  }
 
   /** Presses a send button of the decision once armed. */
   const press = async (locator: Locator, name: string) => {
@@ -185,7 +195,7 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
    * otherwise. Returns the words pressed, or null.
    */
   const throughView = async (id: number, want: (words: string) => boolean): Promise<string | null> => {
-    await activate(cardButton(id))
+    await tapCard(id)
     const view = page.getByRole("dialog")
     await view.waitFor({ timeout: 10_000 })
     const buttons = view.locator('[data-slot="sheet-footer"] button')
@@ -345,7 +355,7 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
           }
           const card = view.hand.find((candidate) => candidate.mark !== "selected")
           if (card !== undefined) {
-            await activate(cardButton(card.id))
+            await tapCard(card.id)
             count("mulligan-bottom-card")
             return true
           }
@@ -464,7 +474,7 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
         // Now and then by hand: a land Forge marks on the player's battlefield, floating mana, life for Phyrexian mana.
         const sources = usableIn(current.mine)
         if (paymentTurns % 3 === 0 && sources.length > 0) {
-          await activate(cardButton(sources[0]!.id))
+          await tapCard(sources[0]!.id)
           count("pay:source")
           return true
         }
@@ -486,7 +496,7 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
           return true
         }
         if (sources.length > 0) {
-          await activate(cardButton(sources[0]!.id))
+          await tapCard(sources[0]!.id)
           count("pay:source")
           return true
         }
@@ -521,7 +531,7 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
           if (!attackDecided.has(card.id)) attackDecided.set(card.id, random() < 0.75)
           if (attackDecided.get(card.id) === true) {
             attackDecided.set(card.id, false)
-            await activate(cardButton(card.id))
+            await tapCard(card.id)
             count("attack:creature")
             return true
           }
@@ -541,14 +551,14 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
         const blocker = current.mine.find((card) => card.mark === "usable" && card.label.includes("kann diesen Angreifer blocken"))
         if (blocker !== undefined && blocksThisCombat < 2 && random() < 0.6) {
           blocksThisCombat++
-          await activate(cardButton(blocker.id))
+          await tapCard(blocker.id)
           count("block:assign")
           return true
         }
         const other = current.theirs.find((card) => card.mark === "usable" && card.label.includes("Blocker zuweisen") && !blockTargetsVisited.has(card.id))
         if (other !== undefined && blocksThisCombat < 2) {
           blockTargetsVisited.add(other.id)
-          await activate(cardButton(other.id))
+          await tapCard(other.id)
           count("block:target")
           return true
         }
@@ -567,9 +577,9 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
           const aiPlayer = current.players.find((player) => player.mark === "usable" && /Forge-KI/.test(player.label))
           const choices: (() => Promise<void>)[] = []
           if (aiPlayer !== undefined) choices.push(async () => activate(aiPlayer.choice ? decision.locator(`[data-player-choice="${aiPlayer.id}"]`) : page.locator(`button[data-slot="game-player"][data-player="${aiPlayer.id}"]`).first()))
-          for (const card of usableIn(current.theirs)) choices.push(async () => activate(cardButton(card.id)))
-          for (const card of usableIn(current.mine)) choices.push(async () => activate(cardButton(card.id)))
-          for (const card of usableIn(current.hand)) choices.push(async () => activate(cardButton(card.id)))
+          for (const card of usableIn(current.theirs)) choices.push(async () => tapCard(card.id))
+          for (const card of usableIn(current.mine)) choices.push(async () => tapCard(card.id))
+          for (const card of usableIn(current.hand)) choices.push(async () => tapCard(card.id))
           for (const card of usableIn(current.offTable)) choices.push(async () => activate(decision.locator(`button[data-item="${card.id}"]`).first()))
           const me = current.players.find((player) => player.mark === "usable" && !/Forge-KI/.test(player.label))
           if (me !== undefined) choices.push(async () => activate(me.choice ? decision.locator(`[data-player-choice="${me.id}"]`) : page.locator(`button[data-slot="game-player"][data-player="${me.id}"]`).first()))

@@ -3,19 +3,19 @@ import type { GameState, Question } from "@openmana/engine-protocol"
 import { Button } from "@/components/ui/button"
 import { Item, ItemContent, ItemDescription, ItemTitle } from "@/components/ui/item"
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { useLandscape } from "@/hooks/use-landscape"
 import { phaseLabel } from "./game-labels"
 import { decisionHelp, PHASE_HELP, TERMS } from "./beginner-help"
+import { useTableSheetSide } from "./table/use-table-layout"
 
 export function HelpSheet({ open, onOpenChange, state, questions, replay, waiting, conceding }: {
   open: boolean; onOpenChange: (open: boolean) => void; state: GameState; questions: readonly Question[];
   replay: boolean; waiting: boolean; conceding: boolean;
 }) {
-  const landscape = useLandscape()
+  const side = useTableSheetSide()
   const opener = useRef<HTMLElement | null>(null)
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side={landscape ? "right" : "bottom"} showCloseButton={false} className="max-h-dvh data-[side=right]:sm:max-w-xl" onOpenAutoFocus={() => { opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null }} onCloseAutoFocus={(event) => { event.preventDefault(); if (opener.current?.isConnected) opener.current.focus() }}>
+      <SheetContent side={side} showCloseButton={false} className="max-h-dvh data-[side=right]:sm:max-w-xl" onOpenAutoFocus={() => { opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null }} onCloseAutoFocus={(event) => { event.preventDefault(); if (opener.current?.isConnected) opener.current.focus() }}>
         <SheetHeader className="shrink-0">
           <SheetTitle>Hilfe am Spieltisch</SheetTitle>
           <SheetDescription>Erklärungen zum angezeigten Zustand und zu Begriffen. Forge bestimmt die Regeln und verfügbaren Aktionen.</SheetDescription>

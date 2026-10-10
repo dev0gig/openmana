@@ -20,7 +20,9 @@ describe("full regression evidence", () => {
   })
   it("accepts the complete historical report shapes, without calling them a new run", () => {
     expect(engineEvidence(sample("engine"), manifest, archived)).toMatchObject({ fixtures: 14, completeResults: ["loss", "win"] })
-    expect(browserEvidence(sample("app"), sample("pwa"), archived.scenes)).toMatchObject({ viewports: 8, workerChecks: 11 })
+    // The historical reports predate the foldable's sizes (prompt 38); a new run must have them.
+    expect(() => browserEvidence(sample("app"), sample("pwa"), archived.scenes)).toThrow(/foldable/)
+    expect(browserEvidence(sample("app"), sample("pwa"), archived.scenes, [])).toMatchObject({ viewports: 8, workerChecks: 11 })
   })
   it.each([
     ["skipped Chrome", (r: Sample) => { r["browserSkipped"] = true }],
@@ -49,7 +51,15 @@ describe("full regression evidence", () => {
     ["replay input leakage", (r: Sample) => { r["gameSession"]["liveRecordingReplay"]["noInput"] = false }],
   ] as const)("rejects app: %s", (_, mutate) => {
     const r = sample("app"); mutate(r)
-    expect(() => browserEvidence(r, sample("pwa"), archived.scenes)).toThrow()
+    expect(() => browserEvidence(r, sample("pwa"), archived.scenes, [])).toThrow()
+  })
+  it("rejects a run without a scene at one of the foldable's sizes", () => {
+    const r = sample("app")
+    const scenes = Object.fromEntries(archived.scenes.map((scene) => [scene, {}]))
+    r["gameTable"]["folds"] = { "fold-closed": scenes, "fold-open": scenes, "fold-open-turned": { ...scenes } }
+    expect(browserEvidence(r, sample("pwa"), archived.scenes)).toMatchObject({ viewports: 8 })
+    delete r["gameTable"]["folds"]["fold-open-turned"]["built:input"]
+    expect(() => browserEvidence(r, sample("pwa"), archived.scenes)).toThrow(/fold-open-turned\/built:input/)
   })
   it.each([
     ["missing offline run", (r: Sample) => { delete r["offlineGame"] }],
@@ -62,6 +72,6 @@ describe("full regression evidence", () => {
     ["installation failure swallowed", (r: Sample) => { r["initialInstallFailure"]["visibleFailure"] = false }],
   ] as const)("rejects PWA: %s", (_, mutate) => {
     const r = sample("pwa"); mutate(r)
-    expect(() => browserEvidence(sample("app"), r, archived.scenes)).toThrow()
+    expect(() => browserEvidence(sample("app"), r, archived.scenes, [])).toThrow()
   })
 })

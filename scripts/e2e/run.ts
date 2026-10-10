@@ -129,7 +129,7 @@ const NO_REAL_CLOUD = "--host-resolver-rules=MAP fellumrfugohnnvtxxye.supabase.c
 import { build, createServer, preview } from "vite"
 import { PROTOCOL_VERSION } from "../../engine/protocol/src/generated/constants.ts"
 import { SCHEMA_VERSION } from "../../src/storage/generated/constants.ts"
-import { TABLE_LAYOUT_QUERIES, TABLE_LAYOUTS, tableLayoutOf, type TableLayout } from "../../src/game/table/table-layout.ts"
+import { TABLE_LAYOUT_QUERIES, TABLE_LAYOUTS, tableLayoutOf, tableSheetSide, type TableLayout } from "../../src/game/table/table-layout.ts"
 import { ISOLATION_HEADERS } from "../../vite/isolation-headers.ts"
 import { playDeck, type StoredDeck } from "./engine-decks.ts"
 
@@ -173,6 +173,17 @@ const RESPONSIVE_VIEWPORTS: readonly Viewport[] = [
   VIEWPORTS[1]!,
   { name: "tablet-landscape", width: 1104, height: 884, touch: true, scale: 2 },
   VIEWPORTS[2]!,
+]
+
+/**
+ * The foldable (prompt 38, docs/design/SPIELTISCH.md §3): closed (hoch), open upright and open turned (both quadrat) -
+ * besides the eight sizes the table's layout is checked at these in every scene (tableFoldSizes), the live game is
+ * resized through them (liveResizeCheck), and an open card view follows them.
+ */
+const FOLD_VIEWPORTS: readonly Viewport[] = [
+  { name: "fold-closed", width: 480, height: 1040, touch: true, scale: 2.25 },
+  { name: "fold-open", width: 870, height: 960, touch: true, scale: 2.25 },
+  { name: "fold-open-turned", width: 960, height: 870, touch: true, scale: 2.25 },
 ]
 
 const ROUTES = [
@@ -2105,9 +2116,10 @@ async function tableFacts(page: Page): Promise<{ readonly me: SideFacts; readonl
 
 /**
  * The table fits the screen (Bible §6): the page itself never scrolls, the
- * app's frame is gone (the table's own menu leads around the app), and every
- * region lies inside the window with room to show something. Returns the
- * regions' boxes.
+ * app's frame is gone (the table's own menu leads around the app), every
+ * region lies inside the window with room to show something - and where the
+ * table layout of the window's aspect ratio puts it (prompt 38,
+ * checkTableArrangement). Returns the regions' boxes and the arrangement.
  */
 async function checkTableFits(page: Page, label: string): Promise<Record<string, unknown>> {
   const layout = await page.evaluate(() => {
@@ -2117,6 +2129,13 @@ async function checkTableFits(page: Page, label: string): Promise<Record<string,
         return [(area as HTMLElement).dataset["area"] ?? "?", { top: Math.round(box.top), left: Math.round(box.left), width: Math.round(box.width), height: Math.round(box.height) }]
       }),
     )
+    // The rows of each battlefield, top to bottom (prompt 38: two rows from TWO_ROWS_MIN_HEIGHT, creatures next to the middle).
+    const rows = Object.fromEntries(
+      ["opponent-field", "field"].map((name) => [
+        name,
+        [...document.querySelectorAll(`[data-area="${name}"] [data-slot="game-card-row"]`)].map((row) => ({ label: row.getAttribute("aria-label") ?? "", top: Math.round(row.getBoundingClientRect().top) })).sort((a, b) => a.top - b.top).map((row) => row.label),
+      ]),
+    )
     return {
       window: { width: window.innerWidth, height: window.innerHeight },
       scroll: { width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight },
@@ -2124,7 +2143,9 @@ async function checkTableFits(page: Page, label: string): Promise<Record<string,
         tabBar: document.querySelectorAll('nav[aria-label="Hauptnavigation"]').length,
         sidebar: document.querySelectorAll('[data-slot="sidebar"]').length,
       },
+      decision: document.querySelector('[data-slot="game-board"]')?.getAttribute("data-decision") ?? null,
       areas,
+      rows,
     }
   })
   const { window: view, scroll, frame, areas } = layout
@@ -2132,9 +2153,9 @@ async function checkTableFits(page: Page, label: string): Promise<Record<string,
   check(frame.tabBar === 0 && frame.sidebar === 0, `${label}: the app's frame is still there ${JSON.stringify(frame)}`)
   const names = ["header", "opponent", "opponent-field", "center", "field", "me", "decision", "hand"]
   check(names.every((name) => name in areas), `${label}: regions ${Object.keys(areas).join(", ")}`)
-  // In a low landscape window a decision that needs room takes the stack's place (prompt 15): stack and combat step aside.
-  const board = await page.locator('[data-slot="game-board"]').getAttribute("data-decision")
-  const aside = board === "expanded" && view.width > view.height && view.height <= 512
+  // In a low breit window a decision that needs room takes the stack's place (prompt 15): stack and combat step aside.
+  const expanded = layout.decision === "expanded"
+  const aside = expanded && tableLayoutOf(view.width, view.height) === "breit" && view.height <= SHORT_HEIGHT
   for (const [name, box] of Object.entries(areas)) {
     if (aside && name === "center") {
       check(box.height === 0, `${label}: stack and combat did not step aside for the decision ${JSON.stringify(box)}`)
@@ -2146,11 +2167,101 @@ async function checkTableFits(page: Page, label: string): Promise<Record<string,
   // (prompt 15: GameBoard decision="expanded") leaves them at least a row of cards.
   const opponentField = areas["opponent-field"]
   const field = areas["field"]
-  const expanded = (await page.locator('[data-slot="game-board"]').getAttribute("data-decision")) === "expanded"
   const least = expanded ? 64 : 80
   check(opponentField !== undefined && field !== undefined && Math.min(opponentField.height, field.height) >= least, `${label}: battlefields ${opponentField?.height}/${field?.height}px high`)
   check((areas["hand"]?.height ?? 0) >= 80, `${label}: the hand ${areas["hand"]?.height}px high`)
-  return layout
+  const arrangement = checkTableArrangement(label, view, areas, layout.decision, layout.rows)
+  return { ...layout, arrangement }
+}
+
+/** The short: variant (src/index.css: at most 32rem high) in CSS pixels. */
+const SHORT_HEIGHT = 512
+/** The battlefield's height from which it shows two rows (TWO_ROWS_MIN_HEIGHT in src/game/game-table.tsx). */
+const TWO_ROWS_MIN_HEIGHT = 176
+
+type AreaBox = { readonly top: number; readonly left: number; readonly width: number; readonly height: number }
+
+/**
+ * The regions where the table layout of the window puts them (prompt 38,
+ * docs/design/SPIELTISCH.md §3; layout from tableLayoutOf, the same decision
+ * as the CSS variants): hoch one column with the decision at the very bottom;
+ * quadrat the battlefields' column with the hand and a right column -
+ * Zauberchronik next to the opponent, decision below (from the opponent's
+ * battlefield down while expanded); breit a column on each side of the
+ * battlefields; breit in a low window the side column of prompts 13-24. And
+ * every battlefield shows two rows from TWO_ROWS_MIN_HEIGHT, its creatures
+ * next to the middle, one row below.
+ */
+function checkTableArrangement(label: string, view: { readonly width: number; readonly height: number }, areas: Record<string, AreaBox>, decision: string | null, rows: Record<string, string[]>): Record<string, unknown> {
+  const layout = tableLayoutOf(view.width, view.height)
+  const short = view.height <= SHORT_HEIGHT
+  const name = layout === "breit" && short ? "breit-short" : layout
+  const a = (area: string) => areas[area]!
+  const bottom = (area: string) => a(area).top + a(area).height
+  const right = (area: string) => a(area).left + a(area).width
+  const near = (x: number, y: number) => Math.abs(x - y) <= 1
+  const failures: string[] = []
+  const expect = (ok: boolean, what: string) => {
+    if (!ok) failures.push(what)
+  }
+  /** These regions lie one below the other in this order (each starts where the one before ends, or below). */
+  const stacked = (...order: string[]) => {
+    for (let i = 1; i < order.length; i++) expect(a(order[i]!).top >= bottom(order[i - 1]!) - 1, `${order[i]} below ${order[i - 1]}`)
+  }
+  /** These regions share one column (same left edge and width). */
+  const column = (...members: string[]) => {
+    for (const member of members.slice(1)) expect(near(a(member).left, a(members[0]!).left) && near(a(member).width, a(members[0]!).width), `${member} in the column of ${members[0]}`)
+  }
+  expect(a("header").top === 0, "header at the top")
+  if (layout === "hoch") {
+    for (const area of Object.keys(areas)) expect(near(a(area).left, 0) && near(a(area).width, view.width), `${area} across the window`)
+    stacked("header", "opponent", "opponent-field", "center", "field", "me", "hand", "decision")
+    expect(near(bottom("decision"), view.height), "the decision at the very bottom")
+  } else if (layout === "quadrat") {
+    expect(near(a("header").width, view.width), "header across the window")
+    column("opponent-field", "opponent", "field", "me", "hand")
+    expect(near(a("opponent-field").left, 0), "the battlefields on the left")
+    stacked("header", "opponent", "opponent-field", "field", "me", "hand")
+    expect(near(bottom("hand"), view.height), "the hand at the bottom")
+    column("center", "decision")
+    expect(near(a("center").left, right("opponent-field")) && near(right("center"), view.width), "stack and combat in the right column")
+    expect(near(a("center").top, a("opponent").top), "stack and combat next to the opponent")
+    stacked("center", "decision")
+    expect(near(bottom("decision"), view.height), "the decision down to the bottom")
+    if (decision === "expanded") expect(near(a("decision").top, a("opponent-field").top), "an expanded decision from the opponent's battlefield down")
+    else expect(a("decision").top >= bottom("opponent-field") - 1 && a("decision").top <= a("field").top + 1, "the decision from the centre line down")
+  } else if (!short) {
+    expect(near(a("header").width, view.width), "header across the window")
+    column("opponent-field", "opponent", "field", "me", "hand")
+    stacked("header", "opponent", "opponent-field", "field", "me", "hand")
+    expect(near(bottom("hand"), view.height), "the hand at the bottom")
+    expect(near(a("center").left, 0) && near(right("center"), a("opponent-field").left), "stack and combat in the left column")
+    expect(near(a("decision").left, right("opponent-field")) && near(right("decision"), view.width), "the decision in the right column")
+    for (const side of ["center", "decision"]) expect(near(a(side).top, bottom("header")) && near(bottom(side), view.height), `${side} from the header to the bottom`)
+  } else {
+    column("opponent-field", "header", "field", "hand")
+    expect(near(a("opponent-field").left, 0), "the battlefields on the left")
+    stacked("header", "opponent-field", "field", "hand")
+    expect(near(bottom("hand"), view.height), "the hand at the bottom")
+    const side = right("opponent-field")
+    for (const area of ["opponent", "decision", "me", ...(a("center").height > 0 ? ["center"] : [])]) expect(near(a(area).left, side) && near(right(area), view.width), `${area} in the side column`)
+    expect(near(a("opponent").top, 0) && near(bottom("me"), view.height), "the opponent next to the header, you next to the hand")
+    if (decision === "expanded") expect(near(a("decision").top, a("opponent-field").top) && near(bottom("decision"), a("me").top), "an expanded decision takes both middle rows")
+    else stacked("opponent", "center", "decision", "me")
+  }
+  // Two rows from TWO_ROWS_MIN_HEIGHT (a pixel's leeway at the threshold), the creatures' row next to the middle.
+  for (const [area, labels] of Object.entries(rows)) {
+    if (labels.length === 0) continue
+    const height = a(area).height
+    if (Math.abs(height - TWO_ROWS_MIN_HEIGHT) <= 1) continue
+    if (height > TWO_ROWS_MIN_HEIGHT) {
+      expect(labels.length === 2, `${area} (${height}px) shows two rows ${JSON.stringify(labels)}`)
+      const creatures = labels.findIndex((row) => row.startsWith("Kreaturen"))
+      expect(creatures === (area === "field" ? 0 : 1), `${area}: the creatures' row next to the middle ${JSON.stringify(labels)}`)
+    } else expect(labels.length === 1, `${area} (${height}px) shows one row ${JSON.stringify(labels)}`)
+  }
+  check(failures.length === 0, `${label}: not the ${name} layout - ${failures.join("; ")} ${JSON.stringify(areas)}`)
+  return { layout: name, decision, rows }
 }
 
 /**
@@ -2252,7 +2363,8 @@ async function liveResizeCheck(page: Page, label: string): Promise<Record<string
   const original = page.viewportSize()!
   const layouts: unknown[] = []
   try {
-    for (const viewport of RESPONSIVE_VIEWPORTS) {
+    // The eight sizes and the foldable closed, opened and turned (prompt 38): only the arrangement changes.
+    for (const viewport of [...RESPONSIVE_VIEWPORTS, ...FOLD_VIEWPORTS]) {
       await page.setViewportSize({ width: viewport.width, height: viewport.height })
       await page.waitForTimeout(100)
       const layout = await checkTableFits(page, `${label} resize ${viewport.name}`)
@@ -3381,7 +3493,8 @@ async function tableInteractions(parent: Page, base: string, viewport: Viewport)
   try {
     const label = `game table (${viewport.name})`
     const results: Record<string, unknown> = {}
-    const landscape = viewport.width > viewport.height
+    // The Sheets follow the table layout (prompt 38): from the bottom in hoch, from the right in quadrat and breit.
+    const sheetSide = tableSheetSide(tableLayoutOf(viewport.width, viewport.height))
 
     // Priority: look first, the view's button taps - armed.
     await scene("main-phase")
@@ -3391,7 +3504,7 @@ async function tableInteractions(parent: Page, base: string, viewport: Viewport)
     const view = page.getByRole("dialog", { name: "Gebirge" })
     await view.waitFor()
     const side = await page.locator('[data-slot="sheet-content"]').getAttribute("data-side")
-    check(side === (landscape ? "right" : "bottom"), `${label}: the card view comes from "${side}"`)
+    check(side === sheetSide, `${label}: the card view comes from "${side}", expected "${sheetSide}"`)
     check((await harnessTaps(page)).length === 0, `${label}: looking at the land tapped it`)
     await animationsDone(view)
     results["viewAxe"] = await accessibility(page, `${label}: card view`)
@@ -3427,13 +3540,14 @@ async function tableInteractions(parent: Page, base: string, viewport: Viewport)
     await page.locator('button[data-card="25"]').click()
     await page.getByRole("dialog", { name: "Gebirge" }).waitFor()
     const resized: unknown[] = []
-    for (const size of [RESPONSIVE_VIEWPORTS[3]!, RESPONSIVE_VIEWPORTS[4]!, viewport]) {
+    // The foldable closed and opened (prompt 38: bottom in hoch, right in quadrat), then turned, then back.
+    for (const size of [FOLD_VIEWPORTS[0]!, FOLD_VIEWPORTS[1]!, RESPONSIVE_VIEWPORTS[4]!, viewport]) {
       await page.setViewportSize({ width: size.width, height: size.height })
       await page.waitForTimeout(100)
       const sheet = page.getByRole("dialog", { name: "Gebirge" })
       await animationsDone(sheet)
       const side = await sheet.getAttribute("data-side")
-      check(side === (size.width > size.height ? "right" : "bottom"), `${label}: resized card view on wrong side ${side}`)
+      check(side === tableSheetSide(tableLayoutOf(size.width, size.height)), `${label}: resized card view on wrong side ${side}`)
       check(await sheet.evaluate((node) => node.contains(document.activeElement)), `${label}: resized viewer lost focus`)
       const close = sheet.getByRole("button", { name: "Schließen", exact: true })
       const box = await close.boundingBox()
@@ -3805,6 +3919,7 @@ async function tableHarness(executablePath: string): Promise<Record<string, unkn
   try {
     results["layouts"] = await tableLayoutClasses(executablePath, base)
     if (!focusedTable) results["surface"] = await tableSurface(executablePath, base)
+    if (!focusedTable) results["folds"] = await tableFoldSizes(executablePath, base)
     for (const viewport of focusedTable ? TABLE_VIEWPORTS.filter((v) => DECISION_VIEWPORTS.includes(v.name)) : TABLE_VIEWPORTS) {
       log(`  ${viewport.name} (${viewport.width}x${viewport.height}${viewport.touch ? ", touch" : ""})`)
       // Bound Chromium's lifetime per viewport: closing pages/contexts alone did
@@ -3883,7 +3998,7 @@ async function tableHarness(executablePath: string): Promise<Record<string, unkn
           const axe = await accessibility(page, label)
           await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-${built === null ? scene : `built-${built}`}.png`) })
           const help = helpOnly || ["main-phase", "stack", "built:choose-many", "built:confirm"].includes(name) ? await helpInteractions(page, `${viewport.name}-${name}`, viewport) : null
-          scenes[name] = { help, areas: layout["areas"], pictures, rows, menu, cards, marks, decision, surface, axe }
+          scenes[name] = { help, areas: layout["areas"], arrangement: layout["arrangement"], pictures, rows, menu, cards, marks, decision, surface, axe }
           for (const error of pageLog.errors) check(false, `${label}: ${error}`)
           await page.close()
         }
@@ -3980,7 +4095,7 @@ async function surfaceFacts(page: Page, label: string): Promise<Record<string, u
     const ring = surface.querySelector<HTMLElement>('[data-surface="ring"]')!
     const circle = surface.querySelector('[data-surface="circle"]')?.getBoundingClientRect() ?? null
     const key = (surface.dataset["board"] ?? "").split(" ").map(Number)
-    const drawn = key.length === 6 ? { left: area.left + key[2]!, top: area.top + key[3]!, width: key[4]!, height: key[5]! } : null
+    const drawn = key.length >= 6 ? { left: area.left + key[2]!, top: area.top + key[3]!, width: key[4]!, height: key[5]! } : null
     const points = drawn === null ? [] : [[0.5, 0.5], [0.08, 0.08], [0.92, 0.92], [0.5, 0.25], [0.5, 0.75], [0.15, 0.5]].map(([x, y]) => document.elementFromPoint(drawn.left + drawn.width * x!, drawn.top + drawn.height * y!))
     const style = getComputedStyle(surface)
     return {
@@ -4133,6 +4248,48 @@ async function tableSurface(executablePath: string, base: string): Promise<Recor
     await context.close()
   } finally {
     await surfaceBrowser.close()
+  }
+  return results
+}
+
+/**
+ * The foldable's sizes (prompt 38, FOLD_VIEWPORTS): closed, open upright and open turned, every recorded and built
+ * scene in the real table as at the eight sizes - the page never scrolls, every region where its layout puts it
+ * (checkTableFits), pictures, card targets, the decision's controls touch-sized, axe-core. The screenshots are the
+ * image comparison's pictures of the foldable.
+ */
+async function tableFoldSizes(executablePath: string, base: string): Promise<Record<string, unknown>> {
+  const results: Record<string, unknown> = {}
+  for (const viewport of FOLD_VIEWPORTS) {
+    log(`  ${viewport.name} (${viewport.width}x${viewport.height}, touch): every scene`)
+    const foldBrowser = await launchBrowser(executablePath)
+    const context = await newContext(foldBrowser, viewport)
+    const scenes: Record<string, unknown> = {}
+    try {
+      const runs = [...TABLE_SCENES.map((scene) => ({ scene: scene as string, built: null as string | null })), ...BUILT_SCENES.map((built) => ({ scene: built === "block-order" ? "block-multiple" : "main-phase", built: built as string | null }))]
+      for (const { scene, built } of runs) {
+        const name = built === null ? scene : `built:${built}`
+        const label = `game table (${viewport.name}, ${name})`
+        // A fresh page per scene, as at the eight sizes.
+        const page = await context.newPage()
+        const pageLog = watch(page)
+        await page.goto(new URL(`/scripts/e2e/table-harness.html?scene=${scene}${built === null ? "" : `&built=${built}`}`, base).href, { waitUntil: "domcontentloaded", timeout: 300_000 })
+        await page.locator('[data-harness="table"]').waitFor({ timeout: 300_000 })
+        const layout = await checkTableFits(page, label)
+        const pictures = await tablePictures(page, label)
+        const cards = await cardTargets(page, label)
+        const decision = await decisionFits(page, label, viewport)
+        const axe = await accessibility(page, label)
+        await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-${built === null ? scene : `built-${built}`}.png`) })
+        scenes[name] = { areas: layout["areas"], arrangement: layout["arrangement"], pictures, cards, decision, axe }
+        for (const error of pageLog.errors) check(false, `${label}: ${error}`)
+        await page.close()
+      }
+    } finally {
+      await context.close()
+      await foldBrowser.close()
+    }
+    results[viewport.name] = scenes
   }
   return results
 }

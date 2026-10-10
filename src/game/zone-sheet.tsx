@@ -4,16 +4,16 @@ import type { GameState } from "@openmana/engine-protocol"
 import { Button } from "@/components/ui/button"
 import { CardPicture } from "@/components/ui/card-picture"
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { useLandscape } from "@/hooks/use-landscape"
 import type { CardBrowse } from "./card-view-model"
 import type { TableCardLookup } from "./table-cards"
 import { cardName, placeLabel } from "./table-labels"
 import { isVisible } from "./table-model"
+import { useTableSheetSide } from "./table/use-table-layout"
 
 export type ZoneLook = Extract<CardBrowse, { kind: "zone" }> | { readonly kind: "stack" }
 
 export function ZoneSheet({ source, state, pictures, onClose, onLook, onSourceChange }: { source: ZoneLook | null; state: GameState; pictures: TableCardLookup; onClose: () => void; onLook: (id: number, source: CardBrowse) => void; onSourceChange: (source: ZoneLook) => void }) {
-  const landscape = useLandscape()
+  const side = useTableSheetSide()
   const opener = useRef<HTMLElement | null>(null)
   const player = source?.kind === "zone" ? state.players.find((p) => p.id === source.player) : null
   const cards = source?.kind === "zone" ? player?.zones[source.zone] ?? [] : state.stack.flatMap((item) => item.card === null ? [] : [item.card])
@@ -22,7 +22,7 @@ export function ZoneSheet({ source, state, pictures, onClose, onLook, onSourceCh
   const title = source?.kind === "zone" ? placeLabel(source.zone, player?.me ? "me" : "opponent") : "Karten auf dem Stapel"
   return (
     <Sheet open={source !== null} onOpenChange={(open) => { if (!open) onClose() }}>
-      <SheetContent side={landscape ? "right" : "bottom"} showCloseButton={false} className="max-h-dvh overflow-y-auto" onOpenAutoFocus={() => { opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null }} onCloseAutoFocus={(e) => { e.preventDefault(); if (opener.current?.isConnected) opener.current.focus() }}>
+      <SheetContent side={side} showCloseButton={false} className="max-h-dvh overflow-y-auto" onOpenAutoFocus={() => { opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null }} onCloseAutoFocus={(e) => { e.preventDefault(); if (opener.current?.isConnected) opener.current.focus() }}>
         <SheetHeader>
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription>{cards.length} Karten · Eine Karte öffnen zeigt ihre aktuelle Ansicht.</SheetDescription>

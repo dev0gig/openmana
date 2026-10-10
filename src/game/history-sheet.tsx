@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Item, ItemContent, ItemDescription, ItemTitle } from "@/components/ui/item"
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { useLandscape } from "@/hooks/use-landscape"
 import { questionCard } from "./card-view-model"
 import { cardName } from "./table-labels"
 import { locateCard } from "./table-model"
+import { useTableSheetSide } from "./table/use-table-layout"
 
 /** Presentation labels only; unknown Forge kinds retain their original identifier. */
 const KINDS: Readonly<Record<string, string>> = {
@@ -26,7 +26,7 @@ export function HistorySheet({ open, onOpenChange, history, state, questions, on
   open: boolean; onOpenChange: (open: boolean) => void; history: readonly GameEvent[]; state: GameState | null;
   questions: readonly Question[]; onLook: (id: number) => void;
 }) {
-  const landscape = useLandscape()
+  const side = useTableSheetSide()
   const opener = useRef<HTMLElement | null>(null)
   const end = useRef<HTMLLIElement>(null)
   const sources = useMemo(() => {
@@ -38,7 +38,7 @@ export function HistorySheet({ open, onOpenChange, history, state, questions, on
   }, [open, history, state, questions])
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side={landscape ? "right" : "bottom"} showCloseButton={false} className="max-h-dvh data-[side=right]:sm:max-w-xl" onOpenAutoFocus={() => { opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null }} onCloseAutoFocus={(event) => { event.preventDefault(); if (opener.current?.isConnected) opener.current.focus() }}>
+      <SheetContent side={side} showCloseButton={false} className="max-h-dvh data-[side=right]:sm:max-w-xl" onOpenAutoFocus={() => { opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null }} onCloseAutoFocus={(event) => { event.preventDefault(); if (opener.current?.isConnected) opener.current.focus() }}>
         <SheetHeader className="shrink-0">
           <SheetTitle>Spielverlauf</SheetTitle>
           <SheetDescription>{history.length} Einträge aus Forges Spielprotokoll · älteste zuerst. Nur in dieser Sitzung verfügbar.</SheetDescription>
@@ -54,8 +54,8 @@ export function HistorySheet({ open, onOpenChange, history, state, questions, on
                       <ItemContent className="min-w-0">
                         <ItemTitle className="flex! flex-wrap gap-2 line-clamp-none">
                           {event.actor === "me" ? "Du" : event.actor === "opponent" ? "Forge-KI" : "Nicht zugeordnet"}
-                          <Badge variant="outline" className="hidden landscape:inline-flex">{KINDS[event.kind] ?? event.kind}</Badge>
-                          <span className="hidden text-xs text-muted-foreground landscape:inline">#{index + 1}</span>
+                          <Badge variant="outline" className="hidden in-data-[side=right]:inline-flex">{KINDS[event.kind] ?? event.kind}</Badge>
+                          <span className="hidden text-xs text-muted-foreground in-data-[side=right]:inline">#{index + 1}</span>
                         </ItemTitle>
                         <ItemDescription className="line-clamp-none whitespace-pre-wrap break-words">{event.text === null || event.text.trim() === "" ? "Forge liefert für diesen Eintrag keinen Text." : event.text}</ItemDescription>
                         {event.card !== undefined ? source !== null ? (

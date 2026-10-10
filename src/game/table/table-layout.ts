@@ -13,6 +13,10 @@
  * A low window additionally keeps the existing short: variant (at most 32rem
  * high), which matters inside breit (a phone turned sideways).
  *
+ * The table's Sheets (card view, zones, history, help) follow the layout too
+ * (prompt 38): from the bottom in hoch (thumb reach), from the side where the
+ * board has columns (tableSheetSide).
+ *
  * Pure and free of imports: the end-to-end test (scripts/e2e/run.ts) imports
  * it in Node to check the real browser against the same values.
  */
@@ -33,4 +37,11 @@ export function tableLayoutOf(width: number, height: number): TableLayout {
   if (width * 4 < height * 3) return "hoch"
   if (width * 10 > height * 13) return "breit"
   return "quadrat"
+}
+
+/** From where the table's Sheets come (prompt 38): from the bottom in hoch, from the right in quadrat and breit. */
+export type TableSheetSide = "bottom" | "right"
+
+export function tableSheetSide(layout: TableLayout): TableSheetSide {
+  return layout === "hoch" ? "bottom" : "right"
 }

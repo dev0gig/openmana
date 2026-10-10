@@ -162,43 +162,48 @@ The regions are arranged by the window's **aspect ratio**, not by the device
 | Layout | Aspect ratio | Regions |
 |---|---|---|
 | `hoch` (folded foldable, phones) | narrower than 3:4 | one column: header · opponent · opponent's battlefield · stack and combat as a bar · your battlefield · you · hand · decision as an action bar at the very bottom, growing upwards for a question |
-| `quadrat` (unfolded foldable either way, most tablets) | 3:4 to 13:10 | left: header, both strips and battlefields, hand; right column: stack and combat (Zauberchronik) at the top, the decision (Phasen-Tafel) below |
-| `breit` (desktop, tablets and phones turned; `short:` for low windows) | wider than 13:10 | left column the Zauberchronik, middle the strips and battlefields, right column the Phasen-Tafel, the hand at the bottom |
+| `quadrat` (unfolded foldable either way, most tablets) | 3:4 to 13:10 | header across; left both strips and battlefields (a thin centre line between them) and the hand; right column (15–20 rem): stack and combat (Zauberchronik) next to the opponent's half, the decision (Phasen-Tafel) from the centre line down |
+| `breit` (desktop, laptop, tablets turned) | wider than 13:10 | header across; left column the Zauberchronik (12–18 rem), middle the strips, battlefields, centre line and the hand, right column the Phasen-Tafel (15–18 rem) - both side columns from the header to the bottom |
+| `breit` and `short:` (a phone turned sideways) | wider than 13:10, at most 32 rem high | the arrangement of prompts 13–24, which leaves the battlefields the most height: battlefields and hand on the left, a side column (15–24 rem) with the opponent next to the header, stack and combat, the decision, you next to the hand |
 
-Until prompt 38 moves `GameBoard` to these layouts it keeps the arrangement of
-prompts 13-24 by orientation: portrait stacked (header · opponent ·
-opponent's battlefield · stack and combat · your battlefield · you · decision
-· hand; stack/combat and decision capped), landscape with a side column
-(15–24 rem: the opponent next to the header, stack and combat, the decision,
-you next to the hand).
+Since prompt 38 `GameBoard` uses these layouts (exact plans:
+[design/SPIELTISCH.md](design/SPIELTISCH.md) §3.2); nothing on the table is
+arranged by orientation any more. The regions' order in the page is the order
+of `hoch` (the decision last) - the reading and focus order of every layout.
 
 **Cards are controls** (prompt 14): every card the player may see is a
 `GameCardButton` in a `GameCardRow` toolbar (one Tab stop per row; arrow keys,
 Home and End move between its cards). Its primary activation opens the **card
-view** - a `Sheet` from the bottom in portrait (thumb reach), from the right in
-landscape: the card large, Forge's words and facts, what Forge offers, and a
-footer that stays in view while the card scrolls (in landscape its two buttons
-side by side). A long press, a right click or the context-menu key opens it
+view** - a `Sheet` from the bottom in `hoch` (thumb reach), from the right in
+`quadrat` and `breit` (prompt 38, `useTableSheetSide()`; the same for the
+zones, history and help Sheets): the card large, Forge's words and facts, what
+Forge offers, and a footer that stays in view while the card scrolls (from the
+side its two buttons side by side - the content follows the Sheet's
+`data-side`). A long press, a right click or the context-menu key opens it
 too - in the steps whose taps act at once (paying, attacking, blocking, the
 London mulligan, a selection) the only way to look. The card view's main button
 carries Forge's words for the tap and is armed a moment after it appears.
 
-**Forge's decisions** (prompt 15) are answered in the decision region, right
-above the hand (beside the player's half in landscape): what Forge asks (the
+**Forge's decisions** (prompt 15) are answered in the decision region - the
+action bar below the hand in `hoch`, the column beside the battlefields in
+`quadrat` and `breit`: what Forge asks (the
 asking card's picture, the kind of decision, Forge's words), the controls -
 Forge's buttons, choice cards (a `RadioGroup` for one, `Checkbox`es for
 several, like the preference choices), rows of cards the table does not show,
 lists with arrows (order, top/bottom of a pile), plus/minus for amounts, a
 field for a number - and the answer buttons, which stick to the bottom of the
 region while a long list scrolls above them. The region grows only as far as
-its content needs: `GameBoard decision="tall"` (more words than fit: up to
-28 % of a portrait screen, the rest scrolls) and `"expanded"` (a list or form
+its content needs (per layout: [design/SPIELTISCH.md](design/SPIELTISCH.md)
+§3.3): in `hoch` `GameBoard decision="tall"` (more words than fit: up to 28 %
+of the screen's height, the rest scrolls) and `"expanded"` (a list or form
 Forge waits on alone, cards outside the table: up to 36 %; stack and combat
-keep a smaller strip, the battlefields a row of cards); in a low landscape window
-(`short:` = at most 32rem high, a custom variant in `src/index.css`) an
-expanded decision takes both middle rows of the side column and stack and
-combat step aside. Sending buttons are armed a moment after they appear, like
-the card view's.
+keep a smaller strip, the battlefields a row of cards); in `quadrat` an
+expanded decision takes its column from the opponent's battlefield down and
+the Zauberchronik keeps a small strip; in `breit` its column is full height
+already; in a low `breit` window (`short:` = at most 32rem high, a custom
+variant in `src/index.css`) an expanded decision takes both middle rows of the
+side column and stack and combat step aside. Sending buttons are armed a
+moment after they appear, like the card view's.
 
 **Priority, stack and phases** (prompt 16; prompt 41 moves the steps into the
 Phasen-Tafel, [design/SPIELTISCH.md](design/SPIELTISCH.md) §4.13): the header shows where in its
@@ -216,7 +221,7 @@ gives the rest of the turn away).
 
 Both battlefields share the free height equally; a battlefield shows two rows
 (creatures next to the middle, other permanents outside) from 176 px, one
-below. Cards are sized by their row's height (`GameCard`), so less room means
+below (checked for the new grid in prompt 38 and kept). Cards are sized by their row's height (`GameCard`), so less room means
 smaller cards, never a longer page. Rows are centred while they fit and scroll
 sideways when not. Zone sizes show their word where the bar is wide enough
 (container query) and their symbol where not; screen readers and tooltips keep
@@ -232,7 +237,7 @@ the word.
 | `Textarea` | shadcn/ui registry (`radix-maia`, prompt 09) | pasting a deck list (grows with its content up to `max-h-96`, then scrolls) |
 | `DropdownMenu`, `Select`, `ToggleGroup` (+ `Toggle` it needs) | shadcn/ui registry (`radix-maia`, prompt 10) | a deck's actions (menu „Mehr“, not modal so a dialog opened from it gets the focus), sorting and the format filter of the deck library |
 | `Switch` | shadcn/ui registry (`radix-maia`, prompt 12) | an on/off preference („Bewegungen reduzieren“), inside a `FieldLabel` row so the whole row is the touch target; one-of-several preferences (AI profile, card language) are a `RadioGroup` of choice cards like the backup import. Preferences are saved the moment they change (no save button) |
-| `GameBoard`, `GameBoardArea` | `src/components/ui/game-board.tsx`, built the shadcn way (prompt 13) | the game table's frame: eight named regions in a grid, arranged by layout (§4; portrait/landscape until prompt 38), never scrolling itself |
+| `GameBoard`, `GameBoardArea` | `src/components/ui/game-board.tsx`, built the shadcn way (prompt 13) | the game table's frame: eight named regions in a grid, arranged by the table layout (§4, prompt 38: `hoch`, `quadrat`, `breit`, `breit` + `short`), never scrolling itself |
 | `GameCard`, `GameCardCaption`, `GameCardBack`, `GameCardGroup` | `src/components/ui/game-card.tsx`, built the shadcn way (prompt 13) | a card on the game table, sized by its row's height (63 × 88): its `CardPicture`, turned a quarter when tapped (square place), its facts in the caption strip below the picture (prompt 40: chips outside the picture and the value plaque on the printed value box, §9 - nothing else on it, Scryfall forbids covering card images); OpenMana's own back for cards Forge hides (never Wizards' back); a card with its attachments in one dashed frame |
 | `GameCardButton`, `GameCardRow`, `GameCardRowItem`, `GameCardRowButton`; the `mark` of `GameCard`/`GameCardButton` | `src/components/ui/game-card.tsx`, built the shadcn way (prompt 14) on Radix `Toolbar` (from `radix-ui`) | a card as a control: a button with shadcn's focus ring around the whole card, no image menu or text selection on a long press; Forge's state as a frame around the picture in the room every card keeps (`mark`: usable = dashed `--primary`, chosen = solid `--foreground` - prompt 40 restyles them after §9); a row of such cards as a toolbar (roving focus), else a focusable list |
 | `useTableLayout()`, `tableLayoutOf()`; variants `hoch:`, `quadrat:`, `breit:` | `src/game/table/use-table-layout.ts`, `table-layout.ts`, `src/index.css` (prompt 36) | the game table's layout by aspect ratio (§4, §9); not used by the table before prompt 38 |
@@ -284,8 +289,8 @@ the word.
 
 ## 7. Beginner help and target emphasis (prompt 23)
 
-The turn/phase area opens the contextual help Sheet, below in portrait and to
-the side in landscape. The help scrolls inside; its footer stays reachable and
+The turn/phase area opens the contextual help Sheet, below in `hoch` and to
+the side in `quadrat` and `breit` (prompt 38; before: by orientation). The help scrolls inside; its footer stays reachable and
 closing restores the opener's focus. Required/optional selection words join the
 existing decision heading instead of adding a tall guidance panel.
 
