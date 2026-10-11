@@ -147,10 +147,25 @@ looks).
 
 ## Measurements
 
-See the central report of the DMM run for the numbers of this machine
-(Dropzone `workflow/reports/openmana-20261010T104711Z-42.md`): fan geometry
-at every size (`handFacts`), the gestures (`handGestures`), the
-performance at a change of turn.
+- **Fan geometry** (`handFan`): seven cards are full size everywhere; the
+  fan holds up to 13 cards on a 360 px phone, 15 on 412 px, 18 on the closed
+  foldable, 23 on the open one, 34 at the desktop before the row takes over.
+  A hand of 12 (end-to-end): own strip per card 24 px (small phone, phone,
+  fold-portrait) to 59 px (desktop), the lifted card 117-216 px tall, rising
+  27-46 px above the hand's edge.
+- **End-to-end `handFacts`**: 352 scene checks at the eight sizes and the
+  foldable's three, all as a fan (narrowest own strip of a recorded hand
+  37 px), plus the hand of 12 at all eleven sizes; `handGestures` at all
+  eleven (mouse and keyboard at the desktop, touch at the ten others).
+- **Battlefields** (smallest per size over all scenes, with the new hand
+  heights): small phone 81 px, phone 125, phone turned 121, Fold closed 154,
+  Fold open 265 / turned 228, fold-portrait 211, fold-landscape 153, tablet
+  331, tablet turned 233, desktop 234 - two rows from 176 px as before.
+- **Performance** (Chrome, 4x CPU throttling, 412 x 915, 20 state changes;
+  `npm run check`): longest task with the table 67 ms, longest animation
+  frame 120 ms - below the 200 ms budget; the surface drawn only for the 20
+  size changes. The fan's geometry is computed per hand size and count,
+  never per pointer move (a move only reads the cards' left edges).
 
 ## Evidence
 
@@ -179,3 +194,23 @@ performance at a change of turn.
   The battlefield rows' swipe test (a full row scrolls) is unchanged. The
   live game, the readiness player and the live check press a card of the
   hand where it is its own (`cardPoint`, `scripts/readiness/player.ts`).
+- `OPENMANA_ENGINE_DIR=engine/build/publish-35d/dist
+  OPENMANA_CARDS_DIR=engine/build/publish-35d/catalog npm run check`:
+  schemas, tsc, oxlint, Vitest (82 files, 1131 tests), "E2E OK" with
+  `failures: []`, PWA suite `passed`; `browserEvidence` accepts the reports
+  (8 viewports, 792 axe checks, 11 worker checks). Engine verified
+  (`engine-lock.mjs verify`: Forge `ed0333fe…`, manifest `a9b4c26b…`). An
+  earlier run failed once on the diagnostics page's PWA buttons (axe colour
+  contrast at fold-portrait, outside the table; `--responsive-only` again:
+  passed) - a timing case of those buttons, unrelated to this prompt.
+- `node scripts/readiness/matches.ts --serve dist`: all seven games passed
+  in one run (rakdos, control, commander, phone, walkers, grixis, fold) -
+  hand cards played by click and touch (lands, spells, the London
+  mulligan's bottom card).
+- Image comparison with the mockup: Seafile
+  `/repo/openmana/design/spieltisch-umsetzung/42/` (81 files: the scenes
+  `opening`, `main-phase`, `discard`, `payment`, `target-player`, the built
+  hand of 12 at rest and with a lifted card, each at the eight sizes and the
+  foldable's three; the mockup's scene "voll" with a lifted card at
+  412 x 915, 870 x 960 and 1440 x 900 and "konzept" at 412 x 915; never
+  committed).
