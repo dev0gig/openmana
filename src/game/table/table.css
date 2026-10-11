@@ -436,6 +436,101 @@
   box-shadow: 0 0 0.5rem color-mix(in oklch, var(--table-mana) 50%, transparent);
 }
 
+/* ---------- The hand (prompt 42): a fan (the mockup's .hand, .hand-karte, .gehoben) ---------- */
+
+/*
+ * The player's hand (FannedHand in game-table.tsx, class table-hand; the
+ * geometry from src/game/table/hand-fan.ts as custom properties - on the row
+ * --hand-card-w/-h, --hand-overlap, --hand-sink, --hand-lift-scale and
+ * --hand-lift-y, on each card --rot and --drop; the values below are only
+ * the defaults until the hand is measured). The cards stand on the hand's
+ * lower edge and sink a little below it; the row clips only downwards, so a
+ * lifted card shows whole above the hand, over the strips. A finger swiping
+ * over the hand lifts cards instead of scrolling it (touch-action none); only
+ * a row of more cards than even small ones fit scrolls (data-fan="row").
+ */
+[data-slot="game-board"] .table-hand {
+  --hand-card-w: 4.5rem;
+  --hand-card-h: calc(var(--hand-card-w) * 88 / 63);
+  --hand-overlap: -1.25rem;
+  --hand-sink: 0px;
+  --hand-lift-scale: 1.12;
+  --hand-lift-y: -0.4rem;
+  align-items: flex-end;
+  justify-content: safe center;
+  gap: 0;
+  padding: 0 0.5rem;
+  overflow: visible;
+  touch-action: none;
+  clip-path: inset(-100vh -100vw 0 -100vw);
+}
+
+[data-slot="game-board"] .table-hand[data-fan="row"] {
+  overflow-x: auto;
+  overflow-y: hidden;
+  touch-action: pan-x;
+  clip-path: none;
+}
+
+/* A card's resting place: turned and dropped on the arc around its bottom centre. */
+[data-slot="game-board"] .table-hand > li {
+  position: relative;
+  flex: none;
+  height: auto;
+  margin-bottom: calc(-1 * var(--hand-sink));
+  transform-origin: 50% 100%;
+  transform: translateY(var(--drop, 0px)) rotate(var(--rot, 0deg));
+  transition: transform 0.18s ease-out;
+}
+
+[data-slot="game-board"] .table-hand > li + li {
+  margin-left: var(--hand-overlap);
+}
+
+/* Lifted - under the mouse or a thumb (data-lifted), or with the keyboard's focus: upright, a full card's size, above the others. */
+[data-slot="game-board"] .table-hand > li:is([data-lifted], :has(> [data-slot="game-card"]:focus-visible)) {
+  z-index: 1;
+  transform: translateY(var(--hand-lift-y)) scale(var(--hand-lift-scale));
+}
+
+/* The hand's region above the others while a card stands out of it (the mockup's .hand:has(.gehoben)). */
+[data-slot="game-board"] > [data-slot="game-board-area"][data-area="hand"]:has([data-lifted], [data-slot="game-card"]:focus-visible) {
+  z-index: 1;
+}
+
+[data-slot="game-board"] .table-hand [data-slot="game-card"] {
+  height: auto;
+}
+
+[data-slot="game-board"] .table-hand :is([data-slot="game-card-face"], [data-slot="game-card-back"]) {
+  width: var(--hand-card-w);
+  height: var(--hand-card-h);
+  aspect-ratio: auto;
+  border-radius: calc(var(--hand-card-w) * 0.048 + 2px);
+}
+
+/* The picture's corners as a card's (4.8 % of its width), and a shadow that lifts each card off the one below. */
+[data-slot="game-board"] .table-hand [data-slot="game-card-picture"] > :is([data-slot="card-picture"], [data-slot="skeleton"]) {
+  border-radius: calc(var(--hand-card-w) * 0.048);
+}
+
+[data-slot="game-board"] .table-hand [data-slot="game-card-face"]:not([data-mark]) {
+  box-shadow: -0.3rem 0.2rem 0.9rem oklch(0 0 0 / 0.7);
+}
+
+/* Cards Forge reveals from the AI's hand (a toolbar as before): the same card shape and shadow. */
+[data-slot="game-board"] .table-hand-revealed [data-slot="game-card-face"] {
+  border-radius: 0.3rem;
+}
+
+[data-slot="game-board"] .table-hand-revealed [data-slot="game-card-face"]:not([data-mark]) {
+  box-shadow: -0.15rem 0.1rem 0.4rem oklch(0 0 0 / 0.7);
+}
+
+[data-slot="game-board"] .table-hand-revealed [data-slot="game-card-picture"] > :is([data-slot="card-picture"], [data-slot="skeleton"]) {
+  border-radius: 0.2rem;
+}
+
 /* ---------- The header (prompt 39): emblem and wordmark (the mockup's .marke) ---------- */
 
 [data-slot="game-board"] .table-brand > svg {

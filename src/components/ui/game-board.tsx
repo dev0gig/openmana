@@ -32,7 +32,9 @@
  *    opponent's half, the decision next to your half, you next to your hand.
  *
  * Both battlefields share the free height equally; the other regions take
- * what their content needs - the hand 6 to 9 rem by the screen's height. In
+ * what their content needs - the hand by the screen's height (6 to 9 rem in
+ * hoch and a low window, up to 11 rem in quadrat and 12.5 rem in breit; its
+ * cards are a fan sized by it, prompt 42). In
  * hoch the stack/combat bar and the decision are capped (by the screen's
  * height too) so they never squeeze the battlefields away; beside the
  * battlefields they take their column's height and scroll inside.
@@ -72,7 +74,9 @@ function GameBoard({ className, decision = "compact", ...props }: React.Componen
       data-decision={decision}
       className={cn(
         // relative: what is positioned absolutely inside (screen-reader-only texts, the table surface) stays inside the board.
-        "group/board relative grid h-full min-h-0 w-full overflow-hidden bg-background",
+        // overflow-clip, not hidden: the board is no scroll container, so focusing a card that reaches out of it (the fanned
+        // hand's cards sink below its edge, prompt 42) never scrolls the whole table.
+        "group/board relative grid h-full min-h-0 w-full overflow-clip bg-background",
         // hoch, and the fallback without a layout (see above): one column, the decision at the very bottom.
         "grid-cols-1 grid-rows-[auto_auto_minmax(0,1fr)_auto_minmax(0,1fr)_auto_auto_auto]",
         "[grid-template-areas:'header'_'opponent'_'opponent-field'_'center'_'field'_'me'_'hand'_'decision']",
@@ -113,8 +117,9 @@ const AREA_CLASSES: Readonly<Record<GameBoardAreaName, string>> = {
   // fit to 28 % (see above). Beside the battlefields it takes its column's height.
   decision:
     "[grid-area:decision] max-h-[clamp(7rem,18dvh,11rem)] overflow-y-auto border-t hoch:group-data-[decision=expanded]/board:max-h-[clamp(9rem,36dvh,26rem)] hoch:group-data-[decision=tall]/board:max-h-[clamp(9rem,28dvh,20rem)] quadrat:max-h-none quadrat:border-l breit:max-h-none breit:border-l breit:border-t-0 breit:short:border-t",
-  // The hand's height follows the screen's: 6-9 rem, the most a low screen can spare. Its row keeps the padding (room for the cards' focus ring).
-  hand: "[grid-area:hand] h-[clamp(6rem,14dvh,9rem)] border-t",
+  // The hand's height follows the screen's (its cards' size, prompt 42): 6-9 rem in hoch and a low window, the most they
+  // can spare; beside the side columns the mockup's - 7-11 rem in quadrat, 6.5-12.5 rem in breit.
+  hand: "[grid-area:hand] h-[clamp(6rem,14dvh,9rem)] border-t quadrat:h-[clamp(7rem,17dvh,11rem)] breit:h-[clamp(6.5rem,18dvh,12.5rem)] breit:short:h-[clamp(6rem,14dvh,9rem)]",
 }
 
 /** One region of the board, a named section. */

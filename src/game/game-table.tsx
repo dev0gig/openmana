@@ -63,6 +63,11 @@
  * quadrat and breit, the action bar in hoch with the compact phases beside the
  * main button.
  *
+ * The hand (prompt 42, FannedHand below, table/hand-fan.ts): a fan of
+ * overlapping cards; the card under the mouse, a swiping thumb or the
+ * keyboard's focus rises whole above it; a tap is the lifted card's, a swipe
+ * nothing, a long press looks (useFanPress).
+ *
  * Targets and payment (prompt 17): a player Forge's running input would take
  * - a target, a choice, the one paying life for Phyrexian mana - is a control
  * too: their name and life total carry Forge's mark and tap at once
@@ -82,8 +87,9 @@ import { GameHelpButton } from "@/components/ui/game-help-button"
 import { GameZoneButton } from "@/components/ui/game-zone-button"
 import { GamePlayer, GamePlayerButton } from "@/components/ui/game-player"
 import { Spinner } from "@/components/ui/spinner"
-import { useCardPress } from "@/hooks/use-card-press"
+import { useCardPress, useFanPress } from "@/hooks/use-card-press"
 import { useElementHeight } from "@/hooks/use-element-height"
+import { useElementSize } from "@/hooks/use-element-size"
 import { ARMING_MS, CardSheet, type CardLook } from "./card-sheet"
 import { questionCard, type CardBrowse } from "./card-view-model"
 import { HelpSheet } from "./help-sheet"
@@ -114,6 +120,7 @@ import { pileOf, isVisible, tableView, type BoardEntry, type Seat, type TableSid
 import { TablePicture } from "./table-picture"
 import { CardChip, rowSize, ValuePlaque } from "./table/card-parts"
 import { Chronicle } from "./table/chronicle"
+import { handFan, restingCardAt } from "./table/hand-fan"
 import { PhasePanel } from "./table/phase-panel"
 import { TableArt, TableCardBack, TableEmblem } from "./table/table-art"
 import { MedallionFace, StripChip, ZoneCount, ZoneCounter, ZonePile } from "./table/strip-parts"
@@ -601,7 +608,7 @@ function OpponentHand({ cards, pictures }: { cards: readonly Card[]; pictures: T
     </GameCardRowItem>
   ))
   return revealed ? (
-    <GameCardRow controls aria-label={label} className="h-10 flex-none items-center justify-start gap-1 overflow-visible p-0">
+    <GameCardRow controls aria-label={label} className="table-hand-revealed h-10 flex-none items-center justify-start gap-1 overflow-visible p-0">
       {items}
     </GameCardRow>
   ) : (
@@ -609,6 +616,19 @@ function OpponentHand({ cards, pictures }: { cards: readonly Card[]; pictures: T
       {items}
     </ul>
   )
+}
+
+/**
+ * What a card of the table does (prompt 14): Forge's use of it now - looked at
+ * only where no page sends taps (a replay) -, its primary activation and
+ * looking at it. The one place both a card (TableCard) and the fan's row
+ * (Hand) take them from.
+ */
+function cardActions(controls: CardControls, card: VisibleCard, place: CardPlace): { readonly usage: CardUse; readonly primary: () => void; readonly look: () => void } {
+  const found = cardUse(card, place, controls.moment)
+  // Only looked at (no page to send taps): the primary activation looks too.
+  const usage: CardUse = controls.live ? found : { ...found, primary: "look" }
+  return { usage, primary: () => controls.primary(card, usage), look: () => controls.look(card.id) }
 }
 
 /**
@@ -627,6 +647,7 @@ function TableCard({
   caption,
   plaque,
   combat,
+  fan = false,
 }: {
   card: VisibleCard
   place: CardPlace
@@ -638,13 +659,14 @@ function TableCard({
   plaque?: ReactNode
   /** Forge's combat fact: the frame's colour, an attacker moved towards its opponent (table.css). */
   combat?: "attacking" | "blocking"
+  /** A card of the fan (prompt 42): its row handles touch and pen (useFanPress), the card only the mouse's and the keyboard's click and look. */
+  fan?: boolean
 }) {
   const controls = use(CardControlsContext)
   if (controls === null) throw new Error("TableCard outside GameTable")
-  const found = cardUse(card, place, controls.moment)
-  // Only looked at (no page to send taps): the primary activation looks too.
-  const usage: CardUse = controls.live ? found : { ...found, primary: "look" }
-  const press = useCardPress({ onPrimary: () => controls.primary(card, usage), onLook: () => controls.look(card.id) })
+  const { usage, primary, look } = cardActions(controls, card, place)
+  const { onPointerDown, onPointerMove, onPointerUp, onPointerCancel, ...clickAndLook } = useCardPress({ onPrimary: primary, onLook: look })
+  const press = fan ? clickAndLook : { ...clickAndLook, onPointerDown, onPointerMove, onPointerUp, onPointerCancel }
   const target = controls.targets.cards.has(card.id)
   const label = [cardButtonLabel(card, usage, { count, ...(note ? { note } : {}) }), ...(target ? [STACK_TARGET_LABEL] : [])].join(", ")
   return (
@@ -900,22 +922,120 @@ function blockDraft(questions: readonly Question[]): boolean {
   return currentStep(questions) === "block" && openSelection(questions) === null && !questions.some((question) => question.blocking)
 }
 
-/** Your hand, always at the bottom and fully visible - side by side, scrolling sideways (the table redesign fans it, prompt 42: docs/design/SPIELTISCH.md). */
+/** The player's hand's cards as places (card-use.ts): theirs, in the hand. */
+const HAND_PLACE: CardPlace = { zone: "hand", mine: true }
+
+/** The root font size (px): the fan's sizes in rem (hand-fan.ts). */
+function rootRem(): number {
+  if (typeof document === "undefined") return 16
+  return Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
+}
+
+/**
+ * Your hand, always at the bottom: a fan (prompt 42, docs/design/SPIELTISCH.md
+ * §4.10, table/hand-fan.ts) - overlapping cards, turned and on an arc, sinking
+ * a little below the hand's edge; the card under the mouse, under a thumb
+ * swiping over the hand (by the cards' resting places) or with the keyboard's
+ * focus rises whole above the hand. A tap without a swipe is the lifted card's
+ * primary activation, a swipe does nothing else, a long press looks at the
+ * lifted card (useFanPress); the mouse's clicks, its right click and the
+ * keyboard stay each card's own. Still the toolbar "Deine Hand: N Karten"
+ * (arrows, Home, End, Enter).
+ */
 function Hand({ cards, pictures }: { cards: readonly Card[]; pictures: TableCardLookup }) {
   if (cards.length === 0) return <FieldEmpty text="Deine Hand ist leer." />
+  return <FannedHand cards={cards} pictures={pictures} />
+}
+
+/** A card of the hand by its key: a visible card's id, a hidden card's place. */
+function handKey(card: Card, index: number): string {
+  return isVisible(card) ? String(card.id) : `hidden:${index}`
+}
+
+function FannedHand({ cards, pictures }: { cards: readonly Card[]; pictures: TableCardLookup }) {
+  const controls = use(CardControlsContext)
+  const list = useRef<HTMLUListElement>(null)
+  const size = useElementSize(list)
+  const rem = useMemo(() => rootRem(), [])
+  const fan = size === null ? null : handFan(cards.length, size, rem)
+  const keys = cards.map(handKey)
+  const hand = keys.join(",")
+  // The lifted card, for this hand only: a new hand (a card played, one drawn) starts with none lifted.
+  const [lift, setLift] = useState<{ readonly hand: string; readonly card: string } | null>(null)
+  const lifted = lift !== null && lift.hand === hand ? lift.card : null
+  const liftedNow = useRef(lifted)
+  useLayoutEffect(() => {
+    liftedNow.current = lifted
+  })
+  const visible = (key: string) => cards.find((card): card is VisibleCard => isVisible(card) && String(card.id) === key) ?? null
+  const press = useFanPress({
+    pick: (x, target) => {
+      const row = list.current
+      if (row === null) return null
+      const items = [...row.querySelectorAll<HTMLElement>(":scope > [data-hand-card]")]
+      if (target !== null) {
+        // The mouse: only over a card; while over the lifted card (which covers its neighbours' places) it stays lifted.
+        const item = target instanceof Element ? target.closest<HTMLElement>("[data-hand-card]") : null
+        if (item === null || !row.contains(item)) return null
+        if (item.dataset["handCard"] === liftedNow.current) return liftedNow.current
+      }
+      // The resting places: layout boxes, untouched by the lift and the turn (offsetLeft), in the pointer's coordinates.
+      const origin = row.getBoundingClientRect().left + row.clientLeft - row.scrollLeft
+      const index = restingCardAt(items.map((item) => origin + item.offsetLeft), x)
+      return index === null ? null : (items[index]!.dataset["handCard"] ?? null)
+    },
+    onLift: (card) => setLift((previous) => (card === null ? null : previous?.hand === hand && previous.card === card ? previous : { hand, card })),
+    onPrimary: (key) => {
+      const card = visible(key)
+      if (card !== null && controls !== null) cardActions(controls, card, HAND_PLACE).primary()
+    },
+    onLook: (key) => {
+      const card = visible(key)
+      if (card !== null && controls !== null) cardActions(controls, card, HAND_PLACE).look()
+    },
+  })
+  const rowStyle = (
+    fan === null
+      ? {}
+      : {
+          "--hand-card-w": `${fan.cardWidth}px`,
+          "--hand-card-h": `${fan.cardHeight}px`,
+          "--hand-overlap": `${fan.overlap}px`,
+          "--hand-sink": `${fan.sink}px`,
+          "--hand-lift-scale": fan.lift.scale,
+          "--hand-lift-y": `${fan.lift.y}px`,
+        }
+  ) as CSSProperties
   return (
-    <GameCardRow aria-label={`Deine Hand: ${cards.length === 1 ? "1 Karte" : `${cards.length} Karten`}`} controls={cards.some(isVisible)} className="h-full">
-      {cards.map((card, index) => (
-        <GameCardRowItem key={isVisible(card) ? card.id : `hidden:${index}`}>
-          {isVisible(card) ? (
-            <TableCard card={card} place={{ zone: "hand", mine: true }} pictures={pictures} />
-          ) : (
-            <TableCardBack>
-              <span className="sr-only">verdeckte Karte</span>
-            </TableCardBack>
-          )}
-        </GameCardRowItem>
-      ))}
+    <GameCardRow
+      ref={list}
+      aria-label={`Deine Hand: ${cards.length === 1 ? "1 Karte" : `${cards.length} Karten`}`}
+      controls={cards.some(isVisible)}
+      className="table-hand h-full"
+      data-fan={fan?.mode ?? "fan"}
+      style={rowStyle}
+      {...press}
+    >
+      {cards.map((card, index) => {
+        const key = keys[index]!
+        const place = fan?.cards[index]
+        return (
+          <GameCardRowItem
+            key={key}
+            data-hand-card={key}
+            data-lifted={lifted === key || undefined}
+            style={place === undefined ? undefined : ({ "--rot": `${place.rotate}deg`, "--drop": `${place.drop}px` } as CSSProperties)}
+          >
+            {isVisible(card) ? (
+              <TableCard card={card} place={HAND_PLACE} pictures={pictures} fan />
+            ) : (
+              <TableCardBack>
+                <span className="sr-only">verdeckte Karte</span>
+              </TableCardBack>
+            )}
+          </GameCardRowItem>
+        )
+      })}
     </GameCardRow>
   )
 }

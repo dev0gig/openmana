@@ -29,7 +29,7 @@
  * surface is not drawn again for them.
  *
  * Not part of the app: only the test's dev server serves it,
- * /scripts/e2e/table-harness.html?scene=<name>[&built=<question>][&language=en][&waiting=0].
+ * /scripts/e2e/table-harness.html?scene=<name>[&built=<question>][&presentation=dfc|fallback][&hand=<cards>][&language=en][&waiting=0].
  */
 import { Menu } from "lucide-react"
 import { StrictMode, useEffect, useMemo, useState } from "react"
@@ -43,7 +43,7 @@ import { useTableCards } from "@/game/table-cards"
 import { questionCards } from "@/game/decision-model"
 import { visibleCards } from "@/game/table-model"
 import { StorageProvider } from "@/storage/storage-context"
-import type { AnswerBody, ManaColor, Question } from "@openmana/engine-protocol"
+import type { AnswerBody, ManaColor, Question, VisibleCard } from "@openmana/engine-protocol"
 import { BUILT_QUESTIONS, builtQuestion, type BuiltQuestionName } from "./built-questions"
 import { tableScene, type TableScene, type TableSceneName } from "./table-scenes"
 
@@ -115,12 +115,30 @@ function presentationScene(recorded: TableScene, presentation: string | null): T
   return { ...recorded, state }
 }
 
+/**
+ * Built hand size (prompt 42, the fan with many cards): the scene's own hand
+ * cards repeated under new ids up to `count` cards - a presentation boundary
+ * the recorded games do not reach (at most seven cards), never a claim of
+ * Forge's. Marked by the query (hand=N).
+ */
+function handScene(scene: TableScene, count: number): TableScene {
+  if (!Number.isInteger(count) || count <= 0) return scene
+  const state = structuredClone(scene.state)
+  const me = state.players.find((p) => p.me)
+  const own = me?.zones.hand.filter((card): card is VisibleCard => !("hidden" in card)) ?? []
+  if (me === undefined || own.length === 0) return scene
+  let next = Math.max(...visibleCards(state).keys()) + 1000
+  me.zones.hand = Array.from({ length: count }, (_, index) => (index < own.length ? own[index]! : { ...own[index % own.length]!, id: next++ }))
+  return { ...scene, state }
+}
+
 function Harness() {
   const params = new URLSearchParams(window.location.search)
   const recorded = tableScene((params.get("scene") ?? "opening") as TableSceneName)
   // Explicitly built presentation boundary: real catalog DFC, no claim of a Forge transform.
   const presentation = params.get("presentation")
-  const [scene, setScene] = useState(() => presentationScene(recorded, presentation))
+  const handSize = params.get("hand")
+  const [scene, setScene] = useState(() => handScene(presentationScene(recorded, presentation), handSize === null ? 0 : Number(handSize)))
   useEffect(() => {
     window.__openmanaShowScene = (name) => setScene(structuredClone(tableScene(name)))
     return () => {

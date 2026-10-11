@@ -210,8 +210,8 @@ that answers none of the three queries):
   the columns, as the region table says.
 - Heights stay today's: strips `auto` (since prompt 39 the medallion's height,
   a second line of chips only for longer facts),
-  hand `clamp(6rem, 14dvh, 9rem)` in every layout (the fan of prompt 42 may
-  change it). `env(safe-area-inset-bottom)` is not added: the app's viewport
+  hand `clamp(6rem, 14dvh, 9rem)` in every layout (prompt 42 took the
+  mockup's for `quadrat` and `breit`: §4.10 "Built"). `env(safe-area-inset-bottom)` is not added: the app's viewport
   has no `viewport-fit=cover`, so the inset is always 0.
 - `short` + `breit` keeps the arrangement of prompts 13–24 (assumption from
   the task's "wie heute"): in a phone turned sideways (915 × 412) it leaves
@@ -626,6 +626,53 @@ usable cards now say "gold umrandet" (were "gold gestrichelt").
 - No drag and drop onto the battlefield; when a tap plays at once does not
   change. Replaces the Anvil lesson "never fanned" (prompt 13) deliberately.
 
+**Built (prompt 42)** - `FannedHand` in `game-table.tsx`, the geometry in
+`src/game/table/hand-fan.ts`, the gestures `useFanPress` in
+`src/hooks/use-card-press.ts`, the look in `table.css` ("The hand"); details
+in `docs/implementation/42-hand-fan.md`:
+
+- Sizes from the hand's measured content box (`useElementSize`): a full card
+  1.1 × the hand's height (at most 11.5 rem wide), sinking 9 % of its height
+  below the edge; overlap at least 14 %, more to fit the width with the outer
+  cards' turn; every card keeps **24 px of its own** (`MIN_STRIP`), smaller
+  cards where that needs it (down to 32 px wide: 13 cards on a 360 px phone,
+  15 on 412 px); beyond that a row that scrolls sideways (`data-fan="row"`,
+  `touch-action: pan-x`, cards rising inside the hand). Turn and arc as the
+  mockup's.
+- Lifted (`data-lifted` - the mouse, a finger - or `:focus-visible`):
+  upright, 1.12 × a **full** card (a larger scale when the fan made the cards
+  smaller), its lower edge 0.4 rem above the hand's, above the strips; the
+  row clips only downwards; the hand's region lies above the others while a
+  card stands out. A `transform` transition of 0.18 s, none under less
+  motion.
+- The resting place is a card's own strip (from its left edge to the next
+  card's; layout boxes, `offsetLeft`): what the player sees of it at rest and
+  what the mouse hits - a finger and the mouse choose alike, the choice
+  never jumps while the lifted card moves.
+- Touch and pen belong to the row (`touch-action: none`): a finger lifts,
+  beyond the 10 px slop it swipes (the card under the finger rises, the long
+  press is off); release without a swipe = the lifted card's primary
+  activation (the browser's click is taken in the capture phase, so the card
+  that rose acts, never a neighbour the click may land on), release after a
+  swipe = nothing; a long press (500 ms or Chrome's contextmenu, once) looks
+  at the lifted card. The mouse lifts by hovering (only over a card; kept
+  while over the lifted card), its clicks and right clicks and the keyboard
+  stay each card's own (`useCardPress`).
+- Hand heights: `quadrat` `clamp(7rem, 17dvh, 11rem)`, `breit`
+  `clamp(6.5rem, 18dvh, 12.5rem)` (the mockup's); `hoch` and a low `breit`
+  window `clamp(6rem, 14dvh, 9rem)` as before (the small phone's
+  battlefields keep 80 px).
+- Deviations from the mockup: lifting in code by the cards' own strips (the
+  mockup: CSS `:hover`, touch by the cards' centres); a lower limit of 24 px
+  per card, smaller cards and then a row (the mockup has none); the hand's
+  height in `hoch` as before; the frames follow Forge's marks as on the
+  battlefields.
+- The AI's revealed cards stay a toolbar of cards (`table-hand-revealed`:
+  the table's corners and shadow).
+- `GameBoard` clips (`overflow-clip`) instead of hiding its overflow: it is
+  no scroll container, so focusing a card that reaches out of it never
+  scrolls the table.
+
 ### 4.11 Zauberchronik (prompt 41)
 - Mockup: `.tafel` + `.chronik`, `.chronik-eintrag` (`.oben` highlighted),
   `.chronik-name`, `.chronik-text` with a dot, `.chronik-nr`, `.tafel-zahl`.
@@ -941,8 +988,9 @@ layouts (Bible §13).
 
 - `src/game/table/` - the table's components (surface, medallion, piles,
   chronicle, panel, arrows …), `table-layout.ts`, `use-table-layout.ts`,
-  and `table.css` (the one stylesheet; imported by the table from prompt 37
-  on).
+  the hand's geometry `hand-fan.ts` (prompt 42), and `table.css` (the one
+  stylesheet; imported by the table from prompt 37 on). The hand's gestures
+  extend the card press hook (`src/hooks/use-card-press.ts`, `useFanPress`).
 - `src/components/ui/game-*.tsx` - the shadcn-built table primitives
   (`GameBoard`, `GameCard`, `GameDecision`, `GamePlayer`) keep their slots
   and may be restyled or replaced step by step; the regions' and slots'
@@ -989,6 +1037,9 @@ From the shared rules of the series - end-to-end section 12,
   `chronicle-name`, `chronicle-facts`, `chronicle-text` and
   `data-chronicle="empty"`; the end-to-end test checks them in every scene
   (`panelFacts`);
+- since prompt 42 the hand's row `table-hand` with `data-fan` (`fan` /
+  `row`), its cards' `data-hand-card` and the lifted card's `data-lifted`
+  (end-to-end `handFacts`, `handGestures`);
 - the toolbars' names.
 
 The regression evidence stays complete (8 sizes × 38 scenes, at least 600
@@ -1048,3 +1099,10 @@ a push.
   bar with the compact phases in `hoch` (§4.13), the main button and the
   answers' bar (§4.14); the phases left the header. Hand unchanged (prompt
   42), arrows in prompt 43.
+- 2026-10-11, prompt 42: the hand as a fan (§4.10 "Built") - overlapping,
+  turned and on an arc, sinking below the edge; the card under the mouse, a
+  swiping thumb (by the cards' own strips) or the keyboard's focus rises
+  whole above the hand at a full card's size; a tap is the lifted card's, a
+  swipe nothing, a long press looks; 24 px of every card its own, smaller
+  cards and then a scrolling row for many; the hand's height in `quadrat`
+  and `breit` the mockup's. Arrows in prompt 43, animations in 44.

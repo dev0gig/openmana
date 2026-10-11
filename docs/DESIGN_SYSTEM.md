@@ -356,9 +356,15 @@ target (example data only).
   a pile as up to two cards behind the front one with "×N"; rows that size
   their cards by height and width (at least 44 px wide, then scrolling); no
   line between a battlefield's two rows.
-- **Hand as a fan** (prompt 42): overlapping, the card under the mouse or the
-  swiping thumb (or with keyboard focus) rises; a long press opens the card
-  view; the toolbar's keyboard stays.
+- **Hand as a fan** (prompt 42, [design/SPIELTISCH.md](design/SPIELTISCH.md)
+  §4.10): overlapping cards sized by the hand's height, turned and on an arc,
+  sinking a little below its edge; the card under the mouse or the swiping
+  thumb (by the cards' resting places) or with keyboard focus rises whole
+  above the hand at a full card's size; a tap is the lifted card's primary
+  activation, a swipe does nothing else, a long press opens the card view;
+  the toolbar's keyboard stays. Every card keeps 24 px of its own (smaller
+  cards first, a sideways row only beyond); the hand's height is the
+  mockup's beside the side columns (`quadrat`, `breit`).
 - **Marks:** frames and glows around the picture after `data-mark` and the
   combat facts - usable gold with a glow, chosen a strong light frame, target
   red with a gentle pulse, attacking amber, blocking its own colour - each

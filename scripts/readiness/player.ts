@@ -26,6 +26,35 @@ import type { Locator, Page } from "playwright-core"
 /** Forge's send buttons and the card view's button ignore presses for 500 ms after they appear (ARMING_MS). */
 export const ARMED_AFTER_MS = 650
 
+/**
+ * Where to press a card of the table (relative to its box, for Playwright's `position`): the middle of the part of it
+ * no other card covers. The player's hand is a fan of overlapping cards (prompt 42) whose touch gestures go to the card
+ * whose resting place lies under the finger - its centre may lie under the next card. Cards that nothing covers (the
+ * battlefields) get their centre. Undefined where no part of the card is its own on screen (Playwright then reports it).
+ */
+export async function cardPoint(card: Locator): Promise<{ readonly x: number; readonly y: number } | undefined> {
+  const point = await card.evaluate((element) => {
+    const box = element.getBoundingClientRect()
+    // Lower on the card: the fan's cards overlap side by side, the lifted card stands above the others' tops.
+    const row = element.closest('[data-slot="game-card-row"]')?.getBoundingClientRect()
+    const y = Math.min(box.top + box.height * 0.6, (row?.bottom ?? Infinity) - 4)
+    const own = (x: number) => {
+      const hit = document.elementFromPoint(x, y)
+      return hit !== null && element.contains(hit)
+    }
+    let first: number | null = null
+    let last: number | null = null
+    for (let x = Math.ceil(box.left) + 1; x < box.right - 1; x += 2) {
+      if (own(x)) {
+        first ??= x
+        last = x
+      } else if (first !== null) break
+    }
+    return first === null || last === null ? null : { x: (first + last) / 2 - box.left, y: y - box.top }
+  })
+  return point ?? undefined
+}
+
 export interface PlayOptions {
   /** Names the game in failures and screenshots. */
   readonly id: string
@@ -166,6 +195,13 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
     if (touch) await locator.tap()
     else await locator.click()
   }
+  // A card is pressed where it is its own (cardPoint): in the fanned hand the next card covers part of it.
+  const activateCard = async (locator: Locator) => {
+    const position = await cardPoint(locator)
+    const options = position === undefined ? {} : { position }
+    if (touch) await locator.tap(options)
+    else await locator.click(options)
+  }
   const cardButton = (id: number) => page.locator(`button[data-slot="game-card"][data-card="${id}"]`).first()
   // The table counts a second tap on the same card within ARMING_MS once (its double-tap guard, never weakened for a
   // test): a player who taps the same card again - its view right after choosing it in a selection - waits that long,
@@ -174,7 +210,7 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
   const tapCard = async (id: number) => {
     const since = lastCardTap !== null && lastCardTap.id === id ? Date.now() - lastCardTap.at : Infinity
     if (since < ARMED_AFTER_MS) await page.waitForTimeout(ARMED_AFTER_MS - since)
-    await activate(cardButton(id))
+    await activateCard(cardButton(id))
     lastCardTap = { id, at: Date.now() }
   }
 
@@ -729,7 +765,8 @@ export async function cardLanguages(page: Page, limit = 16): Promise<Record<stri
   const seen: { name: string; picture: string | null; catalogText: string | null; forgeText: string | null }[] = []
   const total = Math.min(await cards.count(), limit)
   for (let index = 0; index < total; index++) {
-    await cards.nth(index).click({ button: "right" })
+    const position = await cardPoint(cards.nth(index))
+    await cards.nth(index).click({ button: "right", ...(position === undefined ? {} : { position }) })
     const view = page.getByRole("dialog")
     if (!(await view.waitFor({ timeout: 5000 }).then(() => true, () => false))) continue
     const facts = await view.locator("dl > div").evaluateAll((rows) => Object.fromEntries(rows.map((row) => [(row.querySelector("dt")?.textContent ?? "").trim(), (row.querySelector("dd")?.textContent ?? "").trim()])))

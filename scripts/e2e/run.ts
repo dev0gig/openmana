@@ -132,6 +132,7 @@ import { SCHEMA_VERSION } from "../../src/storage/generated/constants.ts"
 import { TABLE_LAYOUT_QUERIES, TABLE_LAYOUTS, tableLayoutOf, tableSheetSide, type TableLayout } from "../../src/game/table/table-layout.ts"
 import { ISOLATION_HEADERS } from "../../vite/isolation-headers.ts"
 import { playDeck, type StoredDeck } from "./engine-decks.ts"
+import { cardPoint } from "../readiness/player.ts"
 
 const root = path.resolve(import.meta.dirname, "../..")
 const dist = path.join(root, "dist")
@@ -2458,8 +2459,10 @@ async function lookInRealGame(page: Page, label: string, touch = false): Promise
   const card = cards.first()
   const name = (await card.getAttribute("aria-label")) ?? ""
   check((await card.getAttribute("aria-haspopup")) === "dialog", `${label}: the card "${name}" does not open its view`)
-  if (touch) await card.tap()
-  else await card.click()
+  // Where the card is its own: in the fanned hand the next card covers part of it (prompt 42).
+  const position = await cardPoint(card)
+  if (touch) await card.tap(position === undefined ? {} : { position })
+  else await card.click(position === undefined ? {} : { position })
   const view = page.getByRole("dialog")
   await view.waitFor()
   await animationsDone(view)
@@ -2521,6 +2524,12 @@ async function playRealGame(page: Page, label: string, touch = false): Promise<R
     if (touch) await locator.tap()
     else await locator.click()
   }
+  // A card of the fanned hand is pressed where no other card covers it (prompt 42, cardPoint).
+  const activateCard = async (locator: Locator) => {
+    const position = await cardPoint(locator)
+    if (touch) await locator.tap(position === undefined ? {} : { position })
+    else await locator.click(position === undefined ? {} : { position })
+  }
   /** Waits until Forge waits for the player with a decision; returns its kind (the first line of the decision) and its question. */
   const next = async (): Promise<{ readonly kind: string; readonly question: string | null }> => {
     await tableHeader(page).getByText("Du bist dran", { exact: true }).waitFor({ timeout: 180_000 })
@@ -2557,7 +2566,7 @@ async function playRealGame(page: Page, label: string, touch = false): Promise<R
       for (let index = 0; index < (await playable.count()) && land === null; index++) {
         const card = playable.nth(index)
         const name = (await card.getAttribute("aria-label")) ?? ""
-        await activate(card)
+        await activateCard(card)
         const view = page.getByRole("dialog")
         await view.waitFor()
         const offer = view.getByRole("button", { name: PLAY_LAND, exact: true })
@@ -2576,7 +2585,7 @@ async function playRealGame(page: Page, label: string, touch = false): Promise<R
       await press("OK", question)
     } else if (kind === "Auswahl") {
       // Forge asks for cards of the hand (discarding down to the hand size): one at a time, Forge ends it.
-      await activate(hand.locator('button[data-slot="game-card"][data-mark="usable"]').first())
+      await activateCard(hand.locator('button[data-slot="game-card"][data-mark="usable"]').first())
       presses.push("Handkarte wählen")
       await page.waitForTimeout(ARMED_AFTER_MS)
     } else {
@@ -3316,6 +3325,61 @@ async function cardTargets(page: Page, label: string): Promise<{ readonly count:
   return { count: boxes.length, smallest }
 }
 
+/** A fanned hand's own strip of a card at least this wide (px, src/game/table/hand-fan.ts MIN_STRIP: WCAG 2.5.8's 24 px), less rounding. */
+const HAND_MIN_STRIP = 23.5
+
+/**
+ * The player's hand as a fan (prompt 42, docs/design/SPIELTISCH.md §4.10) at one size: every card keeps at least 24 px
+ * of its own (from its left edge to the next card's), and that strip is the card under a pointer there; in the fan
+ * (data-fan="fan") the cards fit the hand's width - no sideways scrolling, every card inside the hand's region and the
+ * window - and sink below the hand's lower edge, none rises at rest; only a row of more cards than fit (data-fan="row")
+ * scrolls, its cards inside the hand. The toolbar keeps its name "Deine Hand: N Karten".
+ */
+async function handFacts(page: Page, label: string): Promise<Record<string, unknown> | null> {
+  const info = await page.evaluate(() => {
+    const region = document.querySelector('[data-slot="game-board-area"][data-area="hand"]')
+    const row = region?.querySelector<HTMLElement>(".table-hand") ?? null
+    if (region === null || row === null) return null
+    const area = region.getBoundingClientRect()
+    const origin = row.getBoundingClientRect().left + row.clientLeft - row.scrollLeft
+    const items = [...row.querySelectorAll<HTMLElement>(":scope > [data-hand-card]")]
+    return {
+      mode: row.dataset["fan"] ?? null,
+      name: row.getAttribute("aria-label"),
+      area: { left: area.left, right: area.right, top: area.top, bottom: area.bottom },
+      window: { width: innerWidth, height: innerHeight },
+      scrolls: row.scrollWidth > row.clientWidth + 1,
+      lifted: items.filter((item) => item.hasAttribute("data-lifted")).length,
+      cards: items.map((item, index) => {
+        const box = item.getBoundingClientRect()
+        const next = items[index + 1]
+        const left = origin + item.offsetLeft
+        const right = next === undefined ? left + item.offsetWidth : origin + next.offsetLeft
+        // The middle of the card's own strip, low on the card (above the hand's lower edge): the card itself is hit there.
+        const y = Math.min(box.top + box.height * 0.6, area.bottom - 4)
+        const hit = document.elementFromPoint((left + right) / 2, y)
+        return { strip: Math.round((right - left) * 10) / 10, left: box.left, right: box.right, top: box.top, bottom: box.bottom, own: hit !== null && item.contains(hit) }
+      }),
+    }
+  })
+  if (info === null) return null
+  const count = info.cards.length
+  check(info.name === `Deine Hand: ${count === 1 ? "1 Karte" : `${count} Karten`}`, `${label}: the hand's toolbar is named "${info.name}"`)
+  check(info.lifted === 0, `${label}: a card of the hand is lifted at rest`)
+  const narrowest = Math.min(...info.cards.map((card) => card.strip))
+  check(narrowest >= HAND_MIN_STRIP, `${label}: a card of the hand keeps only ${narrowest}px of its own`)
+  const hidden = info.cards.filter((card) => !card.own && card.left >= 0 && card.right <= info.window.width).length
+  check(hidden === 0, `${label}: ${hidden} cards of the hand are not hit on their own strip`)
+  if (info.mode === "fan") {
+    check(!info.scrolls, `${label}: the fanned hand scrolls sideways`)
+    check(info.cards.every((card) => card.left >= info.area.left - 1 && card.right <= info.area.right + 1 && card.left >= -1 && card.right <= info.window.width + 1), `${label}: a card of the fan leaves the hand sideways ${JSON.stringify(info.cards.map((card) => [Math.round(card.left), Math.round(card.right)]))} in ${JSON.stringify(info.area)}`)
+    check(info.cards.every((card) => card.bottom > info.area.bottom && card.top >= info.area.top - 4), `${label}: the fan's cards do not stand on the hand's edge ${JSON.stringify(info.cards.map((card) => [Math.round(card.top), Math.round(card.bottom)]))} in ${JSON.stringify(info.area)}`)
+  } else {
+    check(info.mode === "row" && info.cards.every((card) => card.top >= info.area.top - 1 && card.bottom <= info.area.bottom + 1), `${label}: the hand's row (${info.mode}) leaves the hand`)
+  }
+  return { mode: info.mode, cards: count, narrowest, scrolls: info.scrolls }
+}
+
 /**
  * The cards on the battlefields (prompt 40, docs/design/SPIELTISCH.md §4.7-4.8) at one size: every card keeps to its
  * row - its chips above the picture, never on it, and an attacker moved towards its opponent too -, a pile says "×N"
@@ -3599,6 +3663,137 @@ async function openScene(page: Page, base: string, scene: string, query = ""): P
   }
 }
 
+/** The built hand of handGestures (src/test/table-harness.tsx hand=N): more cards than the recorded games reach. */
+const FAN_CARDS = 12
+
+/**
+ * The fanned hand in real Chrome (prompt 42, docs/design/SPIELTISCH.md §4.10), on the scene "opening" with a built hand of
+ * FAN_CARDS cards (the mulligan: a card's primary activation looks at it):
+ *  - mouse: hovering lifts the card under it - whole, above the hand's edge, on top of its neighbours, inside the window -,
+ *    the next card's strip lifts that one, leaving the hand drops it, a click is the lifted card's (its view opens and
+ *    gives the focus back to it); the keyboard's focus lifts the focused card;
+ *  - touch: a finger laid on a card's strip lifts it, swiping lifts the card under the finger by the cards' resting
+ *    places, and releasing after the swipe does nothing (no view, no tap); a tap without moving is the lifted card's
+ *    primary activation, a long press without a swipe looks at it, a swipe and then a hold does nothing.
+ * Screenshots of the hand at rest and with a lifted card (the image comparison of prompt 42). Nothing is ever tapped.
+ */
+async function handGestures(page: Page, label: string, viewport: Viewport): Promise<Record<string, unknown>> {
+  const hand = page.getByRole("toolbar", { name: `Deine Hand: ${FAN_CARDS} Karten` })
+  await hand.waitFor()
+  const region = (await page.locator('[data-slot="game-board-area"][data-area="hand"]').boundingBox())!
+  const strips = await hand.evaluate((row) => {
+    const box = row.getBoundingClientRect()
+    const origin = box.left + row.clientLeft - row.scrollLeft
+    const items = [...row.querySelectorAll<HTMLElement>(":scope > [data-hand-card]")]
+    return items.map((item, index) => {
+      const next = items[index + 1]
+      const left = origin + item.offsetLeft
+      const right = next === undefined ? left + item.offsetWidth : origin + next.offsetLeft
+      return { key: item.dataset["handCard"] ?? "", x: (left + right) / 2, y: box.top + box.height * 0.6 }
+    })
+  })
+  const mode = await hand.getAttribute("data-fan")
+  const lifted = () => page.evaluate(() => document.querySelector(".table-hand > [data-lifted]")?.getAttribute("data-hand-card") ?? null)
+  const waitLifted = (key: string | null) => page.waitForFunction((expected) => (document.querySelector(".table-hand > [data-lifted]")?.getAttribute("data-hand-card") ?? null) === expected, key, { timeout: 2000 }).catch(() => undefined)
+  const shot = (name: string) => page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-hand-${FAN_CARDS}${name}.png`) })
+  /** The lifted card stands whole above the hand's edge, inside the window, on top of the others at its middle. */
+  const standsOut = async (item: Locator, key: string) => {
+    await animationsDone(hand)
+    const box = (await item.boundingBox())!
+    const top = await page.evaluate(([x, y]) => document.elementFromPoint(x!, y!)?.closest("[data-hand-card]")?.getAttribute("data-hand-card") ?? null, [box.x + box.width / 2, box.y + box.height * 0.25])
+    // The table itself never moves for it (a focused card reaching out of the board must not scroll the board).
+    const still = await page.evaluate(() => document.querySelector('[data-slot="game-board"]')?.scrollTop === 0)
+    const fits = still && box.y >= -1 && box.x >= -1 && box.x + box.width <= viewport.width + 1 && box.y + box.height <= region.y + region.height + 1
+    // A fan's lifted card rises above the hand; a row's (too many cards) rises inside it.
+    const rises = mode === "row" ? box.y >= region.y - 1 : box.y < region.y
+    check(fits && rises && top === key, `${label}: the lifted card ${key} ${JSON.stringify({ box, region, top, mode, still })}`)
+    return { top: Math.round(box.y - region.y), height: Math.round(box.height), width: Math.round(box.width) }
+  }
+  const view = page.getByRole("dialog")
+  const results: Record<string, unknown> = { mode, strips: strips.length }
+  check(strips.length === FAN_CARDS, `${label}: the built hand shows ${strips.length} cards`)
+  await shot("")
+  const [a, b, c, d] = [strips[2]!, strips[5]!, strips[8]!, strips[9]!]
+  if (!viewport.touch) {
+    await page.mouse.move(a.x, a.y)
+    await waitLifted(a.key)
+    check((await lifted()) === a.key, `${label}: hovering card ${a.key} lifted ${await lifted()}`)
+    results["hover"] = await standsOut(hand.locator(`[data-hand-card="${a.key}"]`), a.key)
+    await shot("-lifted")
+    await page.mouse.move(b.x, b.y)
+    await waitLifted(b.key)
+    check((await lifted()) === b.key, `${label}: moving on to card ${b.key} lifted ${await lifted()}`)
+    await page.mouse.move(region.x + region.width / 2, Math.max(1, region.y - 140))
+    await waitLifted(null)
+    check((await lifted()) === null, `${label}: leaving the hand left ${await lifted()} lifted`)
+    // A click is the card's under the mouse - the lifted one: its view opens (the mulligan: looking) and gives the focus back to it.
+    await page.mouse.move(c.x, c.y)
+    await waitLifted(c.key)
+    await page.mouse.down()
+    await page.mouse.up()
+    await view.waitFor()
+    await closeCardView(page)
+    const focused = await page.evaluate(() => document.activeElement?.closest("[data-hand-card]")?.getAttribute("data-hand-card") ?? null)
+    check(focused === c.key, `${label}: the click on card ${c.key} opened the view of ${focused}`)
+    // The keyboard's focus lifts the focused card (the arrow keys move it).
+    await page.keyboard.press("ArrowRight")
+    await page.waitForFunction((key) => document.activeElement?.closest("[data-hand-card]")?.getAttribute("data-hand-card") === key, d.key, { timeout: 2000 }).catch(() => undefined)
+    await page.mouse.move(region.x + region.width / 2, Math.max(1, region.y - 140))
+    results["focus"] = await standsOut(hand.locator(`[data-hand-card="${d.key}"]`), d.key)
+  } else {
+    const cdp = await page.context().newCDPSession(page)
+    const send = (type: "touchStart" | "touchMove" | "touchEnd", point?: { readonly x: number; readonly y: number }) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: point === undefined ? [] : [{ x: point.x, y: point.y }] })
+    const swipe = async (from: { readonly x: number; readonly y: number }, to: { readonly x: number; readonly y: number }) => {
+      for (let step = 1; step <= 10; step++) {
+        await send("touchMove", { x: from.x + ((to.x - from.x) * step) / 10, y: from.y })
+        await page.waitForTimeout(16)
+      }
+    }
+    try {
+      // A finger on card a lifts it; swiping to card c lifts c (by the resting places); release after the swipe: nothing.
+      await send("touchStart", a)
+      await waitLifted(a.key)
+      check((await lifted()) === a.key, `${label}: a finger on card ${a.key} lifted ${await lifted()}`)
+      await swipe(a, c)
+      await waitLifted(c.key)
+      check((await lifted()) === c.key, `${label}: swiping to card ${c.key} lifted ${await lifted()}`)
+      results["swipe"] = await standsOut(hand.locator(`[data-hand-card="${c.key}"]`), c.key)
+      await shot("-lifted")
+      await send("touchEnd")
+      await page.waitForTimeout(500)
+      check((await view.count()) === 0 && (await harnessTaps(page)).length === 0 && (await lifted()) === null, `${label}: releasing after a swipe looked, tapped or kept a card lifted`)
+      // A tap without moving: the lifted card's primary activation (the mulligan: its view), its focus given back to it.
+      await send("touchStart", b)
+      await page.waitForTimeout(60)
+      await send("touchEnd")
+      await view.waitFor()
+      await closeCardView(page)
+      const tapped = await page.evaluate(() => document.activeElement?.closest("[data-hand-card]")?.getAttribute("data-hand-card") ?? null)
+      check(tapped === b.key, `${label}: tapping card ${b.key} opened the view of ${tapped}`)
+      // A long press without a swipe looks at the lifted card.
+      await send("touchStart", d)
+      await page.waitForTimeout(900)
+      await send("touchEnd")
+      await view.waitFor()
+      await closeCardView(page)
+      const pressed = await page.evaluate(() => document.activeElement?.closest("[data-hand-card]")?.getAttribute("data-hand-card") ?? null)
+      check(pressed === d.key, `${label}: a long press on card ${d.key} opened the view of ${pressed}`)
+      // A swipe, then holding still: nothing.
+      await page.waitForTimeout(ARMED_AFTER_MS)
+      await send("touchStart", a)
+      await swipe(a, b)
+      await page.waitForTimeout(900)
+      await send("touchEnd")
+      await page.waitForTimeout(500)
+      check((await view.count()) === 0, `${label}: a swipe held still opened a view`)
+    } finally {
+      await cdp.detach()
+    }
+  }
+  check((await harnessTaps(page)).length === 0, `${label}: the hand's gestures tapped ${JSON.stringify(await harnessTaps(page))}`)
+  return results
+}
+
 /** A touch at the middle of an element, held (a long press) or moved sideways (a swipe), through Chrome's own touch input. */
 async function touch(page: Page, element: Locator, gesture: { readonly holdMs?: number; readonly moveX?: number }): Promise<void> {
   const box = await element.boundingBox()
@@ -3737,12 +3932,12 @@ async function tableInteractions(parent: Page, base: string, viewport: Viewport)
   let page = await parent.context().newPage()
   let sceneLog: PageLog | null = null
   const sceneErrors = () => { for (const error of sceneLog?.errors ?? []) check(false, `game table (${viewport.name}): ${error}`) }
-  const scene = async (name: string) => {
+  const scene = async (name: string, query = "") => {
     sceneErrors()
     await page.close()
     page = await parent.context().newPage()
     sceneLog = watch(page)
-    await openScene(page, base, name)
+    await openScene(page, base, name, query)
   }
   try {
     const label = `game table (${viewport.name})`
@@ -3898,6 +4093,10 @@ async function tableInteractions(parent: Page, base: string, viewport: Viewport)
       check((await harnessTaps(page)).length === 0, `${label}: the keyboard tapped a card`)
       results["keyboard"] = { second, last, first, inView, back, afterTab: next }
     }
+
+    // The fanned hand (prompt 42): lifting by mouse, thumb and keyboard; a tap is the lifted card's, a swipe nothing, a long press looks.
+    await scene("opening", `&hand=${FAN_CARDS}`)
+    results["hand"] = { facts: await handFacts(page, `${label}, hand of ${FAN_CARDS}`), gestures: await handGestures(page, `${label}, hand of ${FAN_CARDS}`, viewport) }
     return results
   } finally {
     sceneErrors()
@@ -4197,9 +4396,10 @@ async function tableHarness(executablePath: string): Promise<Record<string, unkn
           await page.locator('[data-harness="table"]').waitFor({ timeout: 300_000 })
           const layout = await checkTableFits(page, label)
           const pictures = await tablePictures(page, label)
-          // Every card keeps to its row's height; a row with more cards than room scrolls sideways.
+          // Every card keeps to its row's height; a row with more cards than room scrolls sideways. The fanned hand's cards
+          // sink below its edge and rise above it (handFacts checks them).
           const rows = await page.evaluate(() =>
-            [...document.querySelectorAll('[data-slot="game-board-area"] ul')].map((row) => {
+            [...document.querySelectorAll('[data-slot="game-board-area"] ul:not(.table-hand)')].map((row) => {
               const box = row.getBoundingClientRect()
               const cards = [...row.querySelectorAll('[data-slot="game-card"]')].map((figure) => figure.getBoundingClientRect())
               return {
@@ -4217,6 +4417,7 @@ async function tableHarness(executablePath: string): Promise<Record<string, unkn
           if (menu !== null) check(menu >= 44, `${label}: the menu button ${menu}px high`)
           const cards = await cardTargets(page, label)
           const faces = await cardFaces(page, label)
+          const hand = await handFacts(page, label)
           const marks = await page.evaluate(() => ({
             usable: document.querySelectorAll('button[data-slot="game-card"][data-mark="usable"]').length,
             selected: document.querySelectorAll('button[data-slot="game-card"][data-mark="selected"]').length,
@@ -4255,7 +4456,7 @@ async function tableHarness(executablePath: string): Promise<Record<string, unkn
           const axe = await accessibility(page, label)
           await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-${built === null ? scene : `built-${built}`}.png`) })
           const help = helpOnly || ["main-phase", "stack", "built:choose-many", "built:confirm"].includes(name) ? await helpInteractions(page, `${viewport.name}-${name}`, viewport) : null
-          scenes[name] = { help, areas: layout["areas"], arrangement: layout["arrangement"], pictures, rows, menu, cards, faces, marks, decision, surface, strips, panels, axe }
+          scenes[name] = { help, areas: layout["areas"], arrangement: layout["arrangement"], pictures, rows, menu, cards, faces, hand, marks, decision, surface, strips, panels, axe }
           for (const error of pageLog.errors) check(false, `${label}: ${error}`)
           await page.close()
         }
@@ -4548,15 +4749,24 @@ async function tableFoldSizes(executablePath: string, base: string): Promise<Rec
         const pictures = await tablePictures(page, label)
         const cards = await cardTargets(page, label)
         const faces = await cardFaces(page, label)
+        const hand = await handFacts(page, label)
         const strips = await stripFacts(page, label, viewport.touch)
         const panels = await panelFacts(page, label, built === null ? scene : null, built === null ? recordedStackIds(scene) : null)
         const decision = await decisionFits(page, label, viewport)
         const axe = await accessibility(page, label)
         await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-${built === null ? scene : `built-${built}`}.png`) })
-        scenes[name] = { areas: layout["areas"], arrangement: layout["arrangement"], pictures, cards, faces, strips, panels, decision, axe }
+        scenes[name] = { areas: layout["areas"], arrangement: layout["arrangement"], pictures, cards, faces, hand, strips, panels, decision, axe }
         for (const error of pageLog.errors) check(false, `${label}: ${error}`)
         await page.close()
       }
+      // The fanned hand with many cards and a thumb (prompt 42), also on the foldable.
+      const page = await context.newPage()
+      const pageLog = watch(page)
+      await openScene(page, base, "opening", `&hand=${FAN_CARDS}`)
+      const fanLabel = `game table (${viewport.name}, hand of ${FAN_CARDS})`
+      scenes["hand"] = { facts: await handFacts(page, fanLabel), gestures: await handGestures(page, fanLabel, viewport) }
+      for (const error of pageLog.errors) check(false, `${fanLabel}: ${error}`)
+      await page.close()
     } finally {
       await context.close()
       await foldBrowser.close()

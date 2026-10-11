@@ -4,11 +4,13 @@
  * a tap comes only from the card view's button - armed a moment after it
  * appears, never focused by itself - or, in the steps Forge lets the player
  * take back, from the card itself; mouse, keyboard and touch (long press,
- * a swipe that scrolls is no press); the view follows the live state.
+ * a swipe that scrolls is no press); the view follows the live state. The
+ * hand is a fan (prompt 42): a finger lifts the card under it and a swipe the
+ * card under the finger, a tap is the lifted card's, a swipe nothing.
  * The table never sends anything itself: onTapCard is the page's.
  */
 import type { GameState, VisibleCard } from "@openmana/engine-protocol"
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { LONG_PRESS_MS } from "@/hooks/use-card-press"
@@ -264,6 +266,134 @@ describe("steps whose taps act at once (blocking, attacking, paying)", () => {
     await user.click(cardButton(58))
     expect(cardView()).toBeInTheDocument()
     expect(onTapCard).not.toHaveBeenCalled()
+  })
+})
+
+describe("the hand as a fan (prompt 42): lifting, tapping, swiping, long press", () => {
+  /** The hand's resting places in jsdom (no layout): card i from 40·i px, 100 px wide - card i's own strip is [40·i, 40·i + 40). */
+  function restingPlaces() {
+    const index = (element: HTMLElement) => (element.parentElement === null ? -1 : [...element.parentElement.children].indexOf(element))
+    vi.spyOn(HTMLElement.prototype, "offsetLeft", "get").mockImplementation(function (this: HTMLElement) {
+      return this.hasAttribute("data-hand-card") ? index(this) * 40 : 0
+    })
+    vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockImplementation(function (this: HTMLElement) {
+      return this.hasAttribute("data-hand-card") ? 100 : 0
+    })
+  }
+  const handRow = () => screen.getByRole("toolbar", { name: "Deine Hand: 3 Karten" })
+  const lifted = () => [...handRow().querySelectorAll("[data-lifted]")].map((item) => item.getAttribute("data-hand-card"))
+  const touch = { pointerType: "touch", pointerId: 1 } as const
+  // The scene "discard": Forge asks for a card of the hand (a selection naming them) - a tap acts at once. Cards 24, 56, 47.
+  const at = (id: number) => ({ 24: 20, 56: 60, 47: 100 })[id as 24 | 56 | 47]
+
+  it("a finger lifts the card whose resting place lies under it; swiping lifts the card under the finger; releasing after the swipe does nothing", () => {
+    restingPlaces()
+    const { onTapCard } = table("discard")
+    fireEvent.pointerDown(cardButton(24), { ...touch, clientX: at(24), clientY: 10 })
+    expect(lifted()).toEqual(["24"])
+    // The finger moves on (the implicit capture keeps the events on the first card): the card under it rises.
+    fireEvent.pointerMove(cardButton(24), { ...touch, clientX: at(56), clientY: 12 })
+    expect(lifted()).toEqual(["56"])
+    fireEvent.pointerMove(cardButton(24), { ...touch, clientX: at(47), clientY: 12 })
+    expect(lifted()).toEqual(["47"])
+    fireEvent.pointerUp(cardButton(24), touch)
+    expect(lifted()).toEqual([])
+    // The click a browser may still send after the swipe: swallowed.
+    fireEvent.click(cardButton(47))
+    expect(onTapCard).not.toHaveBeenCalled()
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+  })
+
+  it("a tap without moving is the lifted card's primary activation - the card under the finger, wherever the click lands - and counts once", () => {
+    restingPlaces()
+    const { onTapCard } = table("discard")
+    // Laid on card 56's own strip, though the event's target is card 24's button (its covered part).
+    fireEvent.pointerDown(cardButton(24), { ...touch, clientX: at(56), clientY: 10 })
+    expect(lifted()).toEqual(["56"])
+    fireEvent.pointerMove(cardButton(24), { ...touch, clientX: at(56) + 4, clientY: 13 })
+    fireEvent.pointerUp(cardButton(24), touch)
+    fireEvent.click(cardButton(24))
+    expect(onTapCard).toHaveBeenCalledExactlyOnceWith(56)
+    // A double tap's second one: the double-tap guard of the table counts it once.
+    fireEvent.pointerDown(cardButton(56), { ...touch, clientX: at(56), clientY: 10 })
+    fireEvent.pointerUp(cardButton(56), touch)
+    fireEvent.click(cardButton(56))
+    expect(onTapCard).toHaveBeenCalledTimes(1)
+  })
+
+  it("a long press without a swipe looks at the lifted card - once, also with the browser's contextmenu -; the click after it is swallowed", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] })
+    restingPlaces()
+    const { onTapCard } = table("discard")
+    fireEvent.pointerDown(cardButton(24), { ...touch, clientX: at(47), clientY: 10 })
+    // Chrome on Android sends its contextmenu for a long press (on whatever lies under the finger).
+    const opened = fireEvent.contextMenu(cardButton(24))
+    expect(opened).toBe(false)
+    expect(cardView()).toHaveAccessibleName("Shock")
+    act(() => vi.advanceTimersByTime(LONG_PRESS_MS))
+    expect(screen.getAllByRole("dialog")).toHaveLength(1)
+    fireEvent.pointerUp(cardButton(24), touch)
+    fireEvent.click(cardButton(24))
+    expect(onTapCard).not.toHaveBeenCalled()
+  })
+
+  it("the long press's timer alone (no contextmenu, iOS) looks too; a swipe held still does nothing", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] })
+    restingPlaces()
+    const { onTapCard } = table("discard")
+    fireEvent.pointerDown(cardButton(56), { ...touch, clientX: at(56), clientY: 10 })
+    act(() => vi.advanceTimersByTime(LONG_PRESS_MS))
+    expect(cardView()).toHaveAccessibleName("Goblin Arsonist")
+    fireEvent.pointerUp(cardButton(56), touch)
+    fireEvent.click(cardButton(56))
+    fireEvent.keyDown(cardView(), { key: "Escape" })
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    // Swipe, then hold still: neither a look nor a tap.
+    fireEvent.pointerDown(cardButton(24), { ...touch, clientX: at(24), clientY: 10 })
+    fireEvent.pointerMove(cardButton(24), { ...touch, clientX: at(47), clientY: 10 })
+    act(() => vi.advanceTimersByTime(LONG_PRESS_MS * 2))
+    fireEvent.pointerUp(cardButton(24), touch)
+    fireEvent.click(cardButton(24))
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    expect(onTapCard).not.toHaveBeenCalled()
+  })
+
+  it("the mouse lifts the card it is over (kept while over the lifted card), leaving the hand drops it; its click is that card's", async () => {
+    restingPlaces()
+    const user = userEvent.setup()
+    const { onTapCard } = table("discard")
+    fireEvent.pointerMove(cardButton(47), { pointerType: "mouse", clientX: at(47), clientY: 10 })
+    expect(lifted()).toEqual(["47"])
+    // Over the lifted card, which now covers its neighbour's strip: it stays.
+    fireEvent.pointerMove(cardButton(47), { pointerType: "mouse", clientX: at(56), clientY: 10 })
+    expect(lifted()).toEqual(["47"])
+    // Over another card: by the resting places.
+    fireEvent.pointerMove(cardButton(24), { pointerType: "mouse", clientX: at(24), clientY: 10 })
+    expect(lifted()).toEqual(["24"])
+    fireEvent.pointerLeave(handRow(), { pointerType: "mouse" })
+    expect(lifted()).toEqual([])
+    await user.click(cardButton(47))
+    expect(onTapCard).toHaveBeenCalledExactlyOnceWith(47)
+  })
+
+  it("a new hand starts with nothing lifted; only looked at (a replay), a tap on the hand looks", () => {
+    restingPlaces()
+    const scene = tableScene("discard")
+    const { rerender } = table("discard")
+    fireEvent.pointerMove(cardButton(56), { pointerType: "mouse", clientX: at(56), clientY: 10 })
+    expect(lifted()).toEqual(["56"])
+    const state: GameState = {
+      ...scene.state,
+      players: scene.state.players.map((player) => (player.me ? { ...player, zones: { ...player.zones, hand: player.zones.hand.filter((card) => "hidden" in card || card.id !== 24) } } : player)) as GameState["players"],
+    }
+    rerender({ state })
+    expect(screen.getByRole("toolbar", { name: "Deine Hand: 2 Karten" }).querySelectorAll("[data-lifted]")).toHaveLength(0)
+    cleanup()
+    render(<GameTable state={scene.state} questions={scene.questions} prompt={scene.prompt} waiting aiProfile="Default" pictures={NO_PICTURES} menu={null} />)
+    fireEvent.pointerDown(cardButton(47), { ...touch, clientX: at(47), clientY: 10 })
+    fireEvent.pointerUp(cardButton(47), touch)
+    fireEvent.click(cardButton(47))
+    expect(cardView()).toHaveAccessibleName("Shock")
   })
 })
 
