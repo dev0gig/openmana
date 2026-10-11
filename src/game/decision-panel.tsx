@@ -65,8 +65,19 @@
  * Declaring blockers (prompt 19) uses Forge's highlighted attacker and combat
  * assignments. Confirmation re-arms after an assignment changes. Blocking
  * order/distribution requests continue through the generic decision controls.
+ *
+ * Its place on the table (prompt 41, docs/design/SPIELTISCH.md §4.13-4.14):
+ * in quadrat and breit the region is the Phasen-Tafel (`form="panel"`) - the
+ * turn's phases at the top, Forge's question, its parts and buttons below, the
+ * hint under the buttons; in hoch it is the action bar (`form="bar"`) - the
+ * question above, at the bottom the compact phases beside the buttons. Of the
+ * buttons the one that moves the round on is the main button, large and golden
+ * (`SendButton main`): `pass` ("Weiter" / "Verrechnen lassen") and the
+ * confirmations of attack, block and the mulligan's choice; the others in the
+ * panel's style, clearly second. Words, arming and meanings are unchanged.
  */
 import { ArrowDown, ArrowUp, Minus, Plus, Search, X } from "lucide-react"
+import { cn } from "cn"
 import { createContext, use, useEffect, useId, useMemo, useRef, useState, type ComponentProps, type ReactNode } from "react"
 import type {
   AnswerBody,
@@ -102,7 +113,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Field, FieldContent, FieldDescription, FieldLabel, FieldTitle } from "@/components/ui/field"
 import { GameCardButton, GameCardRow, GameCardRowButton, GameCardRowItem, type GameCardMark } from "@/components/ui/game-card"
-import { GameDecision, GameDecisionActions, GameDecisionHeader, GameDecisionNote, GameDecisionRow, GameDecisionSource } from "@/components/ui/game-decision"
+import { GameDecision, GameDecisionActions, GameDecisionBar, GameDecisionHeader, GameDecisionNote, GameDecisionRow, GameDecisionSource } from "@/components/ui/game-decision"
 import { GamePlayer, GamePlayerButton } from "@/components/ui/game-player"
 import { Input } from "@/components/ui/input"
 import { Item as ItemRow, ItemActions, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item"
@@ -197,7 +208,17 @@ export interface DecisionPanelProps {
   readonly onTapCard?: (card: number) => void
   /** Pays with floating mana (mana.use, prompt 17 - the page sends it). Absent: nothing is paid. */
   readonly onUseMana?: (color: ManaColor) => void
+  /**
+   * The region's form on the table (prompt 41): the Phasen-Tafel ("panel": the
+   * phases at the top, the hint below the buttons) or the action bar ("bar":
+   * the phases beside the buttons at the bottom). Default "bar".
+   */
+  readonly form?: DecisionForm
+  /** The turn's phases (PhasePanel): at the top of the panel, or in the bar beside the buttons. */
+  readonly phases?: ReactNode
 }
+
+export type DecisionForm = "panel" | "bar"
 
 interface DecisionContextValue {
   readonly state: GameState
@@ -215,6 +236,9 @@ interface DecisionContextValue {
   readonly tapPlayer: (player: number) => void
   readonly tapCard: (card: number) => void
   readonly payWithMana: (color: ManaColor) => void
+  readonly form: DecisionForm
+  /** What stands beside the answers in the bar (the compact phases in hoch), or null. */
+  readonly lead: ReactNode
 }
 
 const DecisionContext = createContext<DecisionContextValue | null>(null)
@@ -245,12 +269,13 @@ export function decisionNeedsRoom(decision: Decision, state: GameState | null): 
   return false
 }
 
-export function DecisionPanel({ state, questions, prompt, waiting, conceding, pictures, alerts, onAnswer, onLook, onTapPlayer, onTapCard, onUseMana }: DecisionPanelProps) {
+export function DecisionPanel({ state, questions, prompt, waiting, conceding, pictures, alerts, onAnswer, onLook, onTapPlayer, onTapCard, onUseMana, form = "bar", phases = null }: DecisionPanelProps) {
   const decision = currentDecision(questions)
   const blocked = answerBlocked({ live: onAnswer !== undefined, conceding, waiting })
   const blockedId = useId()
   const moment = useMemo<TableMoment>(() => ({ questions, waiting, conceding, attack: state.attack ?? null, combat: state.combat }), [questions, waiting, conceding, state.attack, state.combat])
   const tapReason = onTapPlayer === undefined ? "Nur ansehen – hier wird nichts angetippt." : tapBlocked(moment)
+  const lead = form === "bar" ? phases : null
   const context = useMemo<DecisionContextValue>(
     () => ({
       state,
@@ -264,20 +289,26 @@ export function DecisionPanel({ state, questions, prompt, waiting, conceding, pi
       tapPlayer: onTapPlayer ?? (() => undefined),
       tapCard: onTapCard ?? (() => undefined),
       payWithMana: onUseMana ?? (() => undefined),
+      form,
+      lead,
     }),
-    [state, pictures, blocked, blockedId, onAnswer, onLook, moment, tapReason, onTapPlayer, onTapCard, onUseMana],
+    [state, pictures, blocked, blockedId, onAnswer, onLook, moment, tapReason, onTapPlayer, onTapCard, onUseMana, form, lead],
   )
   const question = decisionQuestion(decision)
   return (
     <DecisionContext value={context}>
-      <GameDecision {...(question !== null ? { "data-question": question.id } : {})}>
+      <GameDecision data-form={form} className={form === "panel" ? "table-panel table-decision" : "table-decision"} {...(question !== null ? { "data-question": question.id } : {})}>
         {alerts}
+        {form === "panel" ? phases : null}
         {decision.kind === "none" ? (
-          onAnswer === undefined ? <p className="text-sm">{prompt ?? "Gespeicherter Zustand – keine offene Frage."}</p> : waiting ? (
-            <p className="text-sm">{prompt ?? "Forge wartet auf dich."}</p>
-          ) : (
-            <ForgeWorking state={state} />
-          )
+          <>
+            {onAnswer === undefined ? <p className="text-sm">{prompt ?? "Gespeicherter Zustand – keine offene Frage."}</p> : waiting ? (
+              <p className="text-sm">{prompt ?? "Forge wartet auf dich."}</p>
+            ) : (
+              <ForgeWorking state={state} />
+            )}
+            <LeadBar />
+          </>
         ) : (
           <>
             <h2 className="sr-only">{onAnswer === undefined ? "Gespeicherte Frage von Forge" : "Forge wartet auf deine Entscheidung"}</h2>
@@ -374,7 +405,7 @@ function DecisionHeading({ label, text, source }: { label: string; text: string 
  * reason), armed ARMING_MS after its question appeared (a press before that is
  * dropped - see above), a held key repeats nothing.
  */
-function SendButton({ armKey, onSend, reasonId, disabled = false, ...props }: Omit<ComponentProps<typeof Button>, "onClick"> & { armKey: number | string; onSend: () => void; reasonId?: string | undefined }) {
+function SendButton({ armKey, onSend, reasonId, disabled = false, main = false, className, ...props }: Omit<ComponentProps<typeof Button>, "onClick"> & { armKey: number | string; onSend: () => void; reasonId?: string | undefined; main?: boolean }) {
   const { blocked, blockedId } = useDecision()
   const armedAt = useRef<number | null>(null)
   useEffect(() => {
@@ -386,6 +417,9 @@ function SendButton({ armKey, onSend, reasonId, disabled = false, ...props }: Om
     <Button
       size="lg"
       disabled={off}
+      // The main button (prompt 41): large and golden on the table (table.css); only its look differs.
+      {...(main ? { "data-main": "" } : {})}
+      className={cn(main ? "table-main-button" : null, className)}
       {...(describedBy ? { "aria-describedby": describedBy } : {})}
       onKeyDown={(event) => {
         if (event.repeat) event.preventDefault()
@@ -398,6 +432,34 @@ function SendButton({ armKey, onSend, reasonId, disabled = false, ...props }: Om
       {...props}
     />
   )
+}
+
+/**
+ * The answers Forge offers, at the bottom of the region (prompt 41): in the
+ * action bar (hoch) beside the compact phases, on the Phasen-Tafel below the
+ * question. The hint that explains the main button comes first (it is what
+ * the button is described by): above the bar in the action bar and in a low
+ * window, below the buttons on the Phasen-Tafel (table.css moves it there).
+ * The group's own attributes (role, name) are the caller's, unchanged.
+ */
+function AnswerActions({ hint = null, children, ...props }: ComponentProps<typeof GameDecisionActions> & { hint?: ReactNode }) {
+  const { form, lead } = useDecision()
+  return (
+    <>
+      {hint !== null ? <div className="table-main-hint">{hint}</div> : null}
+      <GameDecisionBar data-form={form}>
+        {lead}
+        <GameDecisionActions {...props}>{children}</GameDecisionActions>
+      </GameDecisionBar>
+    </>
+  )
+}
+
+/** The action bar without answers (Forge computes, nothing is asked, a selection without buttons): the compact phases alone. */
+function LeadBar() {
+  const { lead } = useDecision()
+  if (lead === null) return null
+  return <GameDecisionBar data-form="bar">{lead}</GameDecisionBar>
 }
 
 /** Why nothing can be sent now (the line the sending buttons point to). */
@@ -575,7 +637,7 @@ function StepDecision({ buttons, select, prompt }: { buttons: ButtonsQuestion | 
       {buttons?.purpose === "mulliganBottom" ? <MulliganChosen /> : null}
       {directTaps(open) ? <GameDecisionNote>Karten antippen wirkt hier sofort, ein zweiter Tipp nimmt es zurück. Lange drücken oder Rechtsklick zeigt eine Karte groß.</GameDecisionNote> : null}
       <BlockedNote />
-      {buttons !== null ? <ForgeButtons question={buttons} /> : null}
+      {buttons !== null ? <ForgeButtons question={buttons} /> : <LeadBar />}
     </>
   )
 }
@@ -593,16 +655,15 @@ function BlockDecision({ view }: { view: BlockView }) {
         {view.assigned === 0 ? BLOCK_TAP_NOTE : "Blocker erneut antippen nimmt diese Zuordnung zurück. Lange drücken oder Rechtsklick zeigt die Karte."}
         {view.assigned === 0 && view.ready === 0 ? " Für dieses Blockziel bietet Forge gerade keinen Blocker an." : null}
       </GameDecisionNote>
-      <GameDecisionNote id={noteId}>{BLOCK_CONFIRM_NOTE}</GameDecisionNote>
       {question.buttons.some((button) => !button.enabled) ? <GameDecisionNote id={offId}>Diesen Knopf hat Forge gerade abgeschaltet.</GameDecisionNote> : null}
       <BlockedNote />
-      <GameDecisionActions role="group" aria-label="Antworten, die Forge anbietet">
+      <AnswerActions role="group" aria-label="Antworten, die Forge anbietet" hint={<GameDecisionNote id={noteId}>{BLOCK_CONFIRM_NOTE}</GameDecisionNote>}>
         {question.buttons.map((button) => (
-          <SendButton key={button.nr} armKey={`${question.id}:${view.revision}`} variant={button.nr === 1 ? "default" : "outline"} disabled={!button.enabled} reasonId={button.enabled ? noteId : offId} onSend={() => answer(question.id, buttonsAnswer(button.nr))}>
+          <SendButton key={button.nr} armKey={`${question.id}:${view.revision}`} main={button.nr === 1} variant={button.nr === 1 ? "default" : "outline"} disabled={!button.enabled} reasonId={button.enabled ? noteId : offId} onSend={() => answer(question.id, buttonsAnswer(button.nr))}>
             {button.nr === 1 ? blockConfirmLabel(view.assigned) : buttonText(button)}
           </SendButton>
         ))}
-      </GameDecisionActions>
+      </AnswerActions>
     </>
   )
 }
@@ -636,17 +697,17 @@ function PriorityDecision({ moment }: { moment: PriorityMoment }) {
   return (
     <>
       <DecisionHeading label={questionLabel(question)} text={priorityText(moment)} source={top?.card ? { id: top.card.id, card: top.card } : null} />
-      <GameDecisionNote id={noteId}>{PASS_NOTES[moment.pass]}</GameDecisionNote>
       {off.length > 0 ? (
         <GameDecisionNote id={offId}>
           {off.length === 1 ? `„${off[0]!.nr === 1 ? PASS_LABELS[moment.pass] : buttonText(off[0]!)}“ hat Forge gerade abgeschaltet.` : "Forge hat beide Knöpfe gerade abgeschaltet."}
         </GameDecisionNote>
       ) : null}
       <BlockedNote />
-      <GameDecisionActions role="group" aria-label="Antworten, die Forge anbietet">
+      <AnswerActions role="group" aria-label="Antworten, die Forge anbietet" hint={<GameDecisionNote id={noteId}>{PASS_NOTES[moment.pass]}</GameDecisionNote>}>
         {pass !== null ? (
           <SendButton
             armKey={question.id}
+            main
             data-meaning="pass"
             disabled={!pass.enabled}
             reasonId={pass.enabled ? noteId : offId}
@@ -670,7 +731,7 @@ function PriorityDecision({ moment }: { moment: PriorityMoment }) {
             {buttonText(second)}
           </SendButton>
         )}
-      </GameDecisionActions>
+      </AnswerActions>
     </>
   )
 }
@@ -718,15 +779,15 @@ function AttackDecision({ view }: { view: AttackView }) {
           Bleiben zurück: {view.unavailable.map(({ card, words }) => `${cardName(card)} (${words.short})`).join(", ")}.
         </GameDecisionNote>
       ) : null}
-      <GameDecisionNote id={noteId}>{declareNote(attackers.length)}</GameDecisionNote>
       {off.length > 0 ? (
         <GameDecisionNote id={offId}>{off.length === 1 ? `„${buttonText(off[0]!)}“ hat Forge gerade abgeschaltet.` : "Forge hat beide Knöpfe gerade abgeschaltet."}</GameDecisionNote>
       ) : null}
       <BlockedNote />
-      <GameDecisionActions role="group" aria-label="Antworten, die Forge anbietet">
+      <AnswerActions role="group" aria-label="Antworten, die Forge anbietet" hint={<GameDecisionNote id={noteId}>{declareNote(attackers.length)}</GameDecisionNote>}>
         {declare !== null ? (
           <SendButton
             armKey={question.id}
+            main
             {...(declare.meaning !== undefined ? { "data-meaning": declare.meaning } : {})}
             disabled={!declare.enabled}
             reasonId={declare.enabled ? noteId : offId}
@@ -755,7 +816,7 @@ function AttackDecision({ view }: { view: AttackView }) {
               </SendButton>
             ))
         )}
-      </GameDecisionActions>
+      </AnswerActions>
     </>
   )
 }
@@ -856,6 +917,18 @@ function MulliganChosen() {
   return <GameDecisionNote>{chosen === 1 ? "1 Karte ausgewählt" : `${chosen} Karten ausgewählt`} (durchgezogener Rahmen).</GameDecisionNote>
 }
 
+/**
+ * The one button that moves the round on (prompt 41, the main button): Forge's
+ * pass, and the confirmation of attack, block and the mulligan's choice -
+ * Forge's first button of those steps (keep, the cards for the bottom, the
+ * attack - also where the region shows Forge's own buttons for it -, the
+ * blocks). Every other button is second.
+ */
+function isMainButton(question: ButtonsQuestion, button: ForgeButton): boolean {
+  if (button.meaning === "pass" || button.meaning === "declare") return true
+  return button.nr === 1 && question.purpose !== undefined && ["mulligan", "mulliganBottom", "attack", "attackDeclared", "block"].includes(question.purpose)
+}
+
 /** Forge's two buttons with Forge's words; one Forge switched off stays visible, off, with the reason (above them: the buttons alone stick to the bottom). */
 function ForgeButtons({ question }: { question: ButtonsQuestion }) {
   const { answer } = useDecision()
@@ -866,11 +939,12 @@ function ForgeButtons({ question }: { question: ButtonsQuestion }) {
       {off.length > 0 ? (
         <GameDecisionNote id={offId}>{off.length === 1 ? `„${buttonText(off[0]!)}“ hat Forge gerade abgeschaltet.` : "Forge hat beide Knöpfe gerade abgeschaltet."}</GameDecisionNote>
       ) : null}
-      <GameDecisionActions role="group" aria-label="Antworten, die Forge anbietet">
+      <AnswerActions role="group" aria-label="Antworten, die Forge anbietet">
         {question.buttons.map((button) => (
           <SendButton
             key={button.nr}
             armKey={question.id}
+            main={isMainButton(question, button)}
             variant={button.nr === 1 ? "default" : "outline"}
             disabled={!button.enabled}
             reasonId={button.enabled ? undefined : offId}
@@ -879,7 +953,7 @@ function ForgeButtons({ question }: { question: ButtonsQuestion }) {
             {buttonText(button)}
           </SendButton>
         ))}
-      </GameDecisionActions>
+      </AnswerActions>
     </>
   )
 }
@@ -1084,11 +1158,11 @@ function ChooseBody({ question }: { question: ChooseQuestion }) {
       )}
       <CheckNote id={reasonId} reason={check.reason} />
       <BlockedNote />
-      <GameDecisionActions>
+      <AnswerActions>
         <SendButton armKey={question.id} disabled={!check.ok} reasonId={check.ok ? undefined : reasonId} onSend={() => answer(question.id, chooseAnswer(chosen))}>
           {chosen.length === 0 && question.min === 0 ? "Nichts wählen" : "Bestätigen"}
         </SendButton>
-      </GameDecisionActions>
+      </AnswerActions>
     </>
   )
 }
@@ -1166,14 +1240,14 @@ function ConfirmBody({ question }: { question: ConfirmQuestion }) {
   return (
     <>
       <BlockedNote />
-      <GameDecisionActions role="group" aria-label="Antworten, die Forge anbietet">
+      <AnswerActions role="group" aria-label="Antworten, die Forge anbietet">
         <SendButton armKey={question.id} variant={question.suggested ? "default" : "outline"} onSend={() => answer(question.id, confirmAnswer(true))}>
           {labels.yes}
         </SendButton>
         <SendButton armKey={question.id} variant={question.suggested ? "outline" : "default"} onSend={() => answer(question.id, confirmAnswer(false))}>
           {labels.no}
         </SendButton>
-      </GameDecisionActions>
+      </AnswerActions>
     </>
   )
 }
@@ -1199,13 +1273,13 @@ function OptionsBody({ question }: { question: OptionsQuestion }) {
           </ul>
         )}
         <BlockedNote />
-        <GameDecisionActions>
+        <AnswerActions>
           {question.items.map((item) => (
             <SendButton key={item.nr} armKey={question.id} onSend={() => answer(question.id, optionsAnswer(item.nr))}>
               {itemLabel(item, state)}
             </SendButton>
           ))}
-        </GameDecisionActions>
+        </AnswerActions>
       </>
     )
   }
@@ -1225,7 +1299,7 @@ function OptionsBody({ question }: { question: OptionsQuestion }) {
       )}
       <CheckNote id={reasonId} reason={reason} />
       <BlockedNote />
-      <GameDecisionActions>
+      <AnswerActions>
         <SendButton armKey={question.id} disabled={option === null} reasonId={option === null ? reasonId : undefined} onSend={() => option !== null && answer(question.id, optionsAnswer(option))}>
           Bestätigen
         </SendButton>
@@ -1234,7 +1308,7 @@ function OptionsBody({ question }: { question: OptionsQuestion }) {
             Abbrechen
           </SendButton>
         ) : null}
-      </GameDecisionActions>
+      </AnswerActions>
     </>
   )
 }
@@ -1292,7 +1366,7 @@ function InputBody({ question }: { question: InputQuestion }) {
       ) : null}
       <CheckNote id={reasonId} reason={check.reason} />
       <BlockedNote />
-      <GameDecisionActions>
+      <AnswerActions>
         <Button
           type="submit"
           size="lg"
@@ -1307,7 +1381,7 @@ function InputBody({ question }: { question: InputQuestion }) {
             Abbrechen
           </SendButton>
         ) : null}
-      </GameDecisionActions>
+      </AnswerActions>
     </form>
   )
 }
@@ -1416,14 +1490,14 @@ function OrderBody({ question }: { question: OrderQuestion }) {
       )}
       <CheckNote id={reasonId} reason={check.reason} />
       <BlockedNote />
-      <GameDecisionActions>
+      <AnswerActions>
         <SendButton armKey={question.id} disabled={!check.ok} reasonId={check.ok ? undefined : reasonId} onSend={() => answer(question.id, orderAnswer(order))}>
           Bestätigen
         </SendButton>
         <Button type="button" size="lg" variant="outline" onClick={() => setOrder(initialOrder(question))}>
           Zurücksetzen
         </Button>
-      </GameDecisionActions>
+      </AnswerActions>
     </>
   )
 }
@@ -1462,11 +1536,11 @@ function ArrangePositionsBody({ question }: { question: ArrangeQuestion }) {
       </ul>
       <CheckNote id={reasonId} reason={check.reason} />
       <BlockedNote />
-      <GameDecisionActions>
+      <AnswerActions>
         <SendButton armKey={question.id} disabled={!check.ok} reasonId={check.ok ? undefined : reasonId} onSend={() => answer(question.id, positionsAnswer(values))}>
           Bestätigen
         </SendButton>
-      </GameDecisionActions>
+      </AnswerActions>
     </>
   )
 }
@@ -1523,14 +1597,14 @@ function ArrangeSidesBody({ question }: { question: ArrangeQuestion }) {
       {question.toBottom ? side("bottom") : null}
       <CheckNote id={reasonId} reason={check.reason} />
       <BlockedNote />
-      <GameDecisionActions>
+      <AnswerActions>
         <SendButton armKey={question.id} disabled={!check.ok} reasonId={check.ok ? undefined : reasonId} onSend={() => answer(question.id, arrangeAnswer(arrangement))}>
           Bestätigen
         </SendButton>
         <Button type="button" size="lg" variant="outline" onClick={() => setArrangement(initialArrangement(question))}>
           Zurücksetzen
         </Button>
-      </GameDecisionActions>
+      </AnswerActions>
     </>
   )
 }
@@ -1566,7 +1640,7 @@ function DistributeBody({ question }: { question: DistributeQuestion }) {
       </ul>
       <CheckNote id={reasonId} reason={check.reason} />
       <BlockedNote />
-      <GameDecisionActions>
+      <AnswerActions>
         <SendButton armKey={question.id} disabled={!check.ok} reasonId={check.ok ? undefined : reasonId} onSend={() => answer(question.id, distributeAnswer(amounts))}>
           Bestätigen
         </SendButton>
@@ -1575,7 +1649,7 @@ function DistributeBody({ question }: { question: DistributeQuestion }) {
             Später zuweisen
           </SendButton>
         ) : null}
-      </GameDecisionActions>
+      </AnswerActions>
     </>
   )
 }

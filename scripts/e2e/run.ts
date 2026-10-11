@@ -2313,7 +2313,12 @@ const FIRST_DECISIONS: Readonly<Record<string, { readonly answers: string; reado
  */
 async function checkFirstDecision(page: Page, label: string, expect: { readonly life: number; readonly cards: number; readonly command: number }): Promise<Record<string, unknown>> {
   const decision = page.getByRole("region", { name: "Entscheidung" })
-  const text = (await decision.textContent()) ?? ""
+  // The region's words without the phases (prompt 41: a picture, aria-hidden - on the Phasen-Tafel above the question).
+  const text = await decision.evaluate((region) => {
+    const words = region.cloneNode(true) as Element
+    for (const phases of words.querySelectorAll('[data-slot="phase-panel"]')) phases.remove()
+    return words.textContent ?? ""
+  })
   const answers = (await decision.getByLabel("Antworten, die Forge anbietet").textContent()) ?? ""
   const first = FIRST_DECISIONS[answers]
   check(first !== undefined, `${label}: the first decision offers "${answers}" (${text})`)
@@ -2601,8 +2606,9 @@ async function playRealGame(page: Page, label: string, touch = false): Promise<R
     // Prompt 16: the priority in words, not Forge's status line; the header's track shows Forge's step.
     const words = ((await decision.locator('[data-slot="game-decision-header"] p').nth(1).textContent()) ?? "").trim()
     check(!words.startsWith("Priorität:") && words.endsWith("oder weitergeben."), `${label}: the priority says "${words}"`)
-    track = await tableHeader(page).locator('[data-slot="phase-track"]').getAttribute("data-phase")
-    const current = await tableHeader(page).locator('[data-slot="phase-track-step"][data-state="current"]').getAttribute("title")
+    // Prompt 41: the track moved from the header into the decision region (Phasen-Tafel / action bar); the header keeps the words.
+    track = await decision.locator('[data-slot="phase-track"]').getAttribute("data-phase")
+    const current = await decision.locator('[data-slot="phase-track-step"][data-state="current"]').getAttribute("title")
     const line = ((await tableHeader(page).getByRole("button", { name: "Hilfe am Spieltisch", exact: true }).locator("span[id][title]").textContent()) ?? "").trim()
     check(track !== null && current !== null && line.endsWith(current), `${label}: the header's track (${track}, ${current}) and words (${line}) disagree`)
     await press("Weiter", question)
@@ -3445,6 +3451,83 @@ async function stripFacts(page: Page, label: string, touch: boolean): Promise<Re
   return facts
 }
 
+/** Forge's stack of a recorded scene, top first (the original recording, never the table's words). */
+function recordedStackIds(scene: string): number[] {
+  const recorded = JSON.parse(fs.readFileSync(path.join(root, "src/test/fixtures/table-scenes.json"), "utf8")) as { scenes: { name: string; state: { stack: { id: number }[] } }[] }
+  return recorded.scenes.find((record) => record.name === scene)!.state.stack.map((item) => item.id)
+}
+
+/** Recorded scenes whose decision has a main button (prompt 41): the player's priority (pass) and the confirmations of attack, block and the mulligan. */
+const SCENE_MAIN_BUTTON: ReadonlySet<string> = new Set(["opening", "main-phase", "blockers", "defend", "commander-late", "opponent-turn", "respond", "respond-own", "attack", "attack-declared", "attack-planeswalker", "block-start", "block-multiple"])
+
+/**
+ * Prompt 41 (docs/design/SPIELTISCH.md §4.11-4.14): the Zauberchronik and the Phasen-Tafel in every scene and size.
+ * One phase track, in the decision region: in hoch the action bar with the compact phases beside the answers and the
+ * main button right of them in the same row; beside the battlefields the Phasen-Tafel with the phases above Forge's
+ * question. The main button - pass and the confirmations of attack, block and the mulligan, never another - is golden
+ * Cinzel and lies in the window. The chronicle shows one entry per stack item in Forge's order (top first, highlighted),
+ * each with its card or back; in hoch side by side, beside the battlefields one below the other.
+ */
+async function panelFacts(page: Page, label: string, scene: string | null, stack: readonly number[] | null): Promise<Record<string, unknown>> {
+  const facts = await page.evaluate(() => {
+    const box = (element: Element) => {
+      const r = element.getBoundingClientRect()
+      return { left: Math.round(r.left), right: Math.round(r.right), top: Math.round(r.top), bottom: Math.round(r.bottom) }
+    }
+    const decision = document.querySelector('[data-area="decision"]')!
+    const panel = decision.querySelector<HTMLElement>('[data-slot="phase-panel"]')
+    const header = decision.querySelector('[data-slot="game-decision-header"]')
+    const center = document.querySelector('[data-area="center"]')!
+    return {
+      view: { width: innerWidth, height: innerHeight },
+      tracks: document.querySelectorAll('[data-slot="phase-track"]').length,
+      inDecision: decision.querySelector('[data-slot="phase-track"]') !== null,
+      place: panel?.dataset["place"] ?? null,
+      folded: panel?.dataset["folded"] === "true",
+      inBar: panel?.closest('[data-slot="game-decision-bar"]') != null,
+      hidden: panel?.getAttribute("aria-hidden") ?? null,
+      panel: panel === null ? null : box(panel),
+      header: header === null ? null : box(header),
+      main: [...decision.querySelectorAll<HTMLElement>("[data-main]")].map((button) => ({
+        text: (button.textContent ?? "").trim(),
+        meaning: button.dataset["meaning"] ?? null,
+        group: button.closest('[role="group"]')?.getAttribute("aria-label") ?? null,
+        gold: getComputedStyle(button).backgroundImage.includes("gradient"),
+        cinzel: getComputedStyle(button).fontFamily.includes("Cinzel"),
+        ...box(button),
+      })),
+      entries: [...center.querySelectorAll<HTMLElement>("[data-stack-item]")].map((entry) => ({
+        id: Number(entry.dataset["stackItem"]),
+        highlighted: entry.hasAttribute("data-top"),
+        card: entry.querySelector('[data-stack-card], [data-slot="game-card-back"]') !== null,
+        ...box(entry),
+      })),
+      chronicle: center.querySelector('[data-slot="table-panel"]') !== null,
+    }
+  })
+  const layout = tableLayoutOf(facts.view.width, facts.view.height)
+  const hoch = layout === "hoch"
+  check(facts.tracks === 1 && facts.inDecision && facts.hidden === "true", `${label}: the phases are not one picture in the decision region ${JSON.stringify(facts)}`)
+  check(facts.place === (hoch ? "bar" : "panel") && facts.inBar === hoch, `${label}: the phases are not in the ${hoch ? "action bar" : "Phasen-Tafel"} ${JSON.stringify({ place: facts.place, inBar: facts.inBar })}`)
+  check(facts.chronicle, `${label}: no Zauberchronik panel`)
+  if (scene !== null) check(facts.main.length === (SCENE_MAIN_BUTTON.has(scene) ? 1 : 0), `${label}: ${facts.main.length} main buttons ${JSON.stringify(facts.main)}`)
+  check(facts.main.length <= 1, `${label}: more than one main button ${JSON.stringify(facts.main)}`)
+  for (const main of facts.main) {
+    check(main.group === "Antworten, die Forge anbietet" && (main.meaning === null || main.meaning === "pass" || main.meaning === "declare"), `${label}: the main button is not Forge's pass or confirmation ${JSON.stringify(main)}`)
+    check(main.gold && main.cinzel, `${label}: the main button is not golden Cinzel ${JSON.stringify(main)}`)
+    check(main.top >= 0 && main.left >= 0 && main.bottom <= facts.view.height + 1 && main.right <= facts.view.width + 1, `${label}: the main button outside the window ${JSON.stringify(main)}`)
+    if (hoch && facts.panel !== null) check(main.left >= facts.panel.right - 1 && main.top < facts.panel.bottom && main.bottom > facts.panel.top, `${label}: the main button is not right of the compact phases ${JSON.stringify({ main, phases: facts.panel })}`)
+  }
+  if (!hoch && facts.panel !== null && facts.header !== null) check(facts.panel.bottom <= facts.header.top + 1, `${label}: the phases are not above Forge's question ${JSON.stringify({ phases: facts.panel, question: facts.header })}`)
+  if (stack !== null) check(JSON.stringify(facts.entries.map((entry) => entry.id)) === JSON.stringify(stack), `${label}: the chronicle's entries ${JSON.stringify(facts.entries.map((entry) => entry.id))}, Forge's stack ${JSON.stringify(stack)}`)
+  check(facts.entries.every((entry, index) => entry.card && entry.highlighted === (index === 0)), `${label}: a chronicle entry without its card or the top not first ${JSON.stringify(facts.entries)}`)
+  for (let index = 1; index < facts.entries.length; index++) {
+    const [before, entry] = [facts.entries[index - 1]!, facts.entries[index]!]
+    check(hoch ? entry.left >= before.right - 1 && Math.abs(entry.top - before.top) <= 1 : entry.top >= before.bottom - 1, `${label}: the chronicle's entries are not ${hoch ? "side by side" : "one below the other"} ${JSON.stringify(facts.entries)}`)
+  }
+  return { place: facts.place, folded: facts.folded, main: facts.main.map((main) => main.text), entries: facts.entries.length }
+}
+
 /**
  * Prompt 39: a tap on a strip's pile or counter opens the zone view of that player and zone - looking only (nothing
  * reaches the harness's recorders) - and the focus returns to it.
@@ -4167,11 +4250,12 @@ async function tableHarness(executablePath: string): Promise<Record<string, unkn
           }
           const surface = await surfaceFacts(page, label)
           const strips = await stripFacts(page, label, viewport.touch)
+          const panels = await panelFacts(page, label, built === null ? scene : null, built === null ? recordedStackIds(scene) : null)
           const decision = await decisionFits(page, label, viewport)
           const axe = await accessibility(page, label)
           await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-${built === null ? scene : `built-${built}`}.png`) })
           const help = helpOnly || ["main-phase", "stack", "built:choose-many", "built:confirm"].includes(name) ? await helpInteractions(page, `${viewport.name}-${name}`, viewport) : null
-          scenes[name] = { help, areas: layout["areas"], arrangement: layout["arrangement"], pictures, rows, menu, cards, faces, marks, decision, surface, strips, axe }
+          scenes[name] = { help, areas: layout["areas"], arrangement: layout["arrangement"], pictures, rows, menu, cards, faces, marks, decision, surface, strips, panels, axe }
           for (const error of pageLog.errors) check(false, `${label}: ${error}`)
           await page.close()
         }
@@ -4345,7 +4429,18 @@ async function tableSurface(executablePath: string, base: string): Promise<Recor
     const reducedSetting = await motion()
     await page.evaluate(() => document.documentElement.removeAttribute("data-reduced-motion"))
     check(reducedDevice.length === 0 && reducedSetting.length === 0, `table surface: the ring moves under less motion ${JSON.stringify({ reducedDevice, reducedSetting })}`)
-    results["motion"] = { moving, reducedDevice, reducedSetting }
+    // Prompt 41: the main button's gloss sweeps across ("Weiter" in main-phase) and stops under less motion, the device's and the player's.
+    const gloss = () => page.evaluate(() => document.getAnimations().filter((animation) => (animation.effect as KeyframeEffect | null)?.target?.closest(".table-main-button")).map((animation) => ({ name: (animation as CSSAnimation).animationName, pseudo: (animation.effect as KeyframeEffect).pseudoElement, state: animation.playState })))
+    const glossing = await gloss()
+    check(glossing.some((animation) => animation.name === "table-gloss" && animation.pseudo === "::after" && animation.state === "running"), `table surface: the main button has no gloss ${JSON.stringify(glossing)}`)
+    await page.emulateMedia({ reducedMotion: "reduce" })
+    const glossDevice = await gloss()
+    await page.emulateMedia({ reducedMotion: "no-preference" })
+    await page.evaluate(() => document.documentElement.setAttribute("data-reduced-motion", ""))
+    const glossSetting = await gloss()
+    await page.evaluate(() => document.documentElement.removeAttribute("data-reduced-motion"))
+    check(glossDevice.length === 0 && glossSetting.length === 0, `table surface: the main button's gloss moves under less motion ${JSON.stringify({ glossDevice, glossSetting })}`)
+    results["motion"] = { moving, reducedDevice, reducedSetting, gloss: { glossing, glossDevice, glossSetting } }
 
     // Cost: 20 state changes of one recorded game, 4x CPU throttling, the phone's size.
     const step = (name: string) => page.evaluate((scene) => new Promise<string>((resolve) => {
@@ -4454,10 +4549,11 @@ async function tableFoldSizes(executablePath: string, base: string): Promise<Rec
         const cards = await cardTargets(page, label)
         const faces = await cardFaces(page, label)
         const strips = await stripFacts(page, label, viewport.touch)
+        const panels = await panelFacts(page, label, built === null ? scene : null, built === null ? recordedStackIds(scene) : null)
         const decision = await decisionFits(page, label, viewport)
         const axe = await accessibility(page, label)
         await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-${built === null ? scene : `built-${built}`}.png`) })
-        scenes[name] = { areas: layout["areas"], arrangement: layout["arrangement"], pictures, cards, faces, strips, decision, axe }
+        scenes[name] = { areas: layout["areas"], arrangement: layout["arrangement"], pictures, cards, faces, strips, panels, decision, axe }
         for (const error of pageLog.errors) check(false, `${label}: ${error}`)
         await page.close()
       }

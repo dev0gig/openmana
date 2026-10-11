@@ -411,13 +411,15 @@ describe("the game page: priority, stack and phases (prompt 16)", () => {
     // Prompt 39: the turn and whose it is ("Zug 1 · Dein Zug"), the step beside the track.
     expect(await within(header).findByText((_, element) => element?.id !== "" && element?.textContent === "Zug 1 · Dein Zug")).toBeInTheDocument()
     expect(within(header).getByRole("button", { name: "Hilfe am Spieltisch" }).querySelector("span[id][title]")).toHaveTextContent(/^Erste Hauptphase$/)
-    const track = header.querySelector('[data-slot="phase-track"]')
-    expect(track).toHaveAttribute("data-phase", "MAIN1")
-    expect(track).toHaveAttribute("aria-hidden", "true")
-    const steps = [...header.querySelectorAll('[data-slot="phase-track-step"]')]
-    expect(steps.map((step) => step.getAttribute("data-state"))).toEqual(["done", "done", "done", "current", ...Array<string>(9).fill("upcoming")])
-    expect(steps[3]).toHaveAttribute("title", "Erste Hauptphase")
+    // Prompt 41: the steps as a picture moved from the header into the decision region (the action bar in hoch).
+    expect(header.querySelector('[data-slot="phase-track"]')).toBeNull()
     const decision = screen.getByRole("region", { name: "Entscheidung" })
+    const track = decision.querySelector('[data-slot="phase-track"]')
+    expect(track).toHaveAttribute("data-phase", "MAIN1")
+    expect(track!.closest('[data-slot="phase-panel"]')).toHaveAttribute("aria-hidden", "true")
+    expect([...track!.querySelectorAll('[data-slot="phase-track-group"]')].map((group) => group.getAttribute("data-state"))).toEqual(["done", "current", "upcoming", "upcoming", "upcoming"])
+    const steps = [...track!.querySelectorAll('[data-slot="phase-track-step"]')]
+    expect(steps.map((step) => [step.getAttribute("data-state"), step.getAttribute("title")])).toEqual([["current", "Erste Hauptphase"], ["upcoming", "Zweite Hauptphase"]])
     expect(within(decision).getByText("„Weiter“ gibt die Priorität ab. Tut danach niemand mehr etwas, geht es zum nächsten Schritt.")).toBeInTheDocument()
     expect(within(decision).getByRole("button", { name: "Weiter" })).toHaveAccessibleDescription(
       "„Weiter“ gibt die Priorität ab. Tut danach niemand mehr etwas, geht es zum nächsten Schritt.",

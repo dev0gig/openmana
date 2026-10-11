@@ -31,9 +31,9 @@
  * room gets it (GameBoard decision="expanded"); a card of a question that
  * lies in no zone of the table opens the card view as the question shows it.
  *
- * Priority, stack and phases (prompt 16): the header shows where in its turn
- * the game is (a track of the turn's steps beside Forge's step) and whose
- * turn it is; the stack shows each item with its card (a spell's own card
+ * Priority, stack and phases (prompt 16): the header says whose turn it is
+ * and Forge's step in words (the steps as a picture: the Phasen-Tafel since
+ * prompt 41); the stack shows each item with its card (a spell's own card
  * lies on the stack), what it is, whose it is and its targets, top first -
  * its picture opens the card view. The player's priority is the decision
  * region's (decision-panel.tsx): what it is about in words, Forge's OK as
@@ -57,6 +57,12 @@
  * frames and glows; a row sizes its cards by its height and width and scrolls
  * only below the minimum.
  *
+ * The Zauberchronik and the Phasen-Tafel (prompt 41, table/chronicle.tsx,
+ * table/phase-panel.tsx): stack and combat on a panel of the table, the turn's
+ * phases moved from the header into the decision region - its panel in
+ * quadrat and breit, the action bar in hoch with the compact phases beside the
+ * main button.
+ *
  * Targets and payment (prompt 17): a player Forge's running input would take
  * - a target, a choice, the one paying life for Phyrexian mana - is a control
  * too: their name and life total carry Forge's mark and tap at once
@@ -75,9 +81,6 @@ import { GameCard, GameCardButton, GameCardCaption, GameCardGroup, GameCardRow, 
 import { GameHelpButton } from "@/components/ui/game-help-button"
 import { GameZoneButton } from "@/components/ui/game-zone-button"
 import { GamePlayer, GamePlayerButton } from "@/components/ui/game-player"
-import { Item, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item"
-import { PhaseTrack, PhaseTrackGroup, PhaseTrackStep } from "@/components/ui/phase-track"
-import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
 import { useCardPress } from "@/hooks/use-card-press"
 import { useElementHeight } from "@/hooks/use-element-height"
@@ -90,12 +93,10 @@ import { ZoneSheet, type ZoneLook } from "./zone-sheet"
 import { cardUse, currentStep, openSelection, playerUse, stepSource, type CardPlace, type CardUse, type TableMoment } from "./card-use"
 import { currentDecision } from "./decision-model"
 import { DecisionPanel, decisionNeedsRoom } from "./decision-panel"
-import { aiProfileLabel, PHASE_LABELS, phaseLabel } from "./game-labels"
-import { STACK_KIND_LABELS, TURN_PHASE_LABELS, turnOwnerLabel } from "./priority-labels"
+import { aiProfileLabel, phaseLabel } from "./game-labels"
+import { turnOwnerLabel } from "./priority-labels"
 import type { TableCardLookup } from "./table-cards"
 import {
-  attackLine,
-  blockLine,
   cardButtonLabel,
   cardFacts,
   cardName,
@@ -108,17 +109,16 @@ import {
   playerButtonLabel,
   seatName,
   SOURCE_LABEL,
-  stackEntryName,
-  stackOwner,
-  stackTargets,
 } from "./table-labels"
-import { pileOf, isVisible, tableView, type BoardEntry, type CombatView, type Seat, type StackEntryView, type TableSide, type TableView } from "./table-model"
+import { pileOf, isVisible, tableView, type BoardEntry, type Seat, type TableSide } from "./table-model"
 import { TablePicture } from "./table-picture"
 import { CardChip, rowSize, ValuePlaque } from "./table/card-parts"
+import { Chronicle } from "./table/chronicle"
+import { PhasePanel } from "./table/phase-panel"
 import { TableArt, TableCardBack, TableEmblem } from "./table/table-art"
 import { MedallionFace, StripChip, ZoneCount, ZoneCounter, ZonePile } from "./table/strip-parts"
 import { TableSurface } from "./table/table-surface"
-import { TURN_PHASES, turnSteps } from "./turn-model"
+import { useTableLayout } from "./table/use-table-layout"
 
 /** Below this height a battlefield shows its cards in one row instead of two (px, measured). */
 const TWO_ROWS_MIN_HEIGHT = 176
@@ -209,6 +209,8 @@ export function GameTable({ replay = false,
   const helpPhaseId = useId()
   const helpOwnerId = useId()
   const targets = useMemo(() => ({ cards: stackTargetIds(state, "card"), players: stackTargetIds(state, "player") }), [state])
+  // The decision region's form (prompt 41): the action bar in hoch, the Phasen-Tafel beside the battlefields.
+  const decisionForm = useTableLayout() === "hoch" ? "bar" : "panel"
   const [historyOpen, setHistoryOpen] = useState(false)
   const [inspectingHistory, setInspectingHistory] = useState(false)
   const [zone, setZone] = useState<ZoneLook | null>(null)
@@ -318,12 +320,9 @@ export function GameTable({ replay = false,
             <span id={helpOwnerId} className="line-clamp-2 text-xs leading-tight text-muted-foreground quadrat:truncate quadrat:text-sm breit:truncate breit:text-sm breit:short:text-xs">
               <TurnInfo turn={view.turn} seat={view.activeSeat} />
             </span>
-            <span className="flex min-w-0 items-center gap-2">
-              {/* On a phone narrower than 400 px the track (a picture of the step's words) gives way to the words themselves. */}
-              <TurnTrack phase={state.phase} className="hoch:max-[25rem]:hidden" />
-              <span id={helpPhaseId} className="truncate text-xs leading-tight font-medium" title={phaseLabel(state.phase)}>
-                {phaseLabel(state.phase)}
-              </span>
+            {/* Forge's step in words (prompt 41: its picture, the phases, is the Phasen-Tafel's / the action bar's). */}
+            <span id={helpPhaseId} className="truncate text-xs leading-tight font-medium" title={phaseLabel(state.phase)}>
+              {phaseLabel(state.phase)}
             </span>
           </GameHelpButton>
           {replay ? <Badge variant="secondary">Wiedergabe</Badge> : conceding ? (
@@ -355,7 +354,7 @@ export function GameTable({ replay = false,
         </GameBoardArea>
 
         <GameBoardArea area="center" aria-label="Stapel und Kampf" tabIndex={0}>
-          <StackAndCombat view={view} pictures={pictures} />
+          <Chronicle view={view} pictures={pictures} onLook={openCard} targets={targets.cards} blocking={blockDraft(questions)} />
         </GameBoardArea>
 
         <GameBoardArea area="field" aria-label="Dein Spielfeld" className="flex flex-col">
@@ -371,8 +370,11 @@ export function GameTable({ replay = false,
         </GameBoardArea>
 
         {/* The decision last: the order of hoch (its action bar at the very bottom) is the reading and focus order of every layout. */}
-        <GameBoardArea ref={decisionArea} area="decision" aria-label="Entscheidung" tabIndex={0}>
+        {/* Beside the battlefields the Phasen-Tafel stands in its column: at the end in quadrat, in the middle in breit (the mockup's). */}
+        <GameBoardArea ref={decisionArea} area="decision" aria-label="Entscheidung" tabIndex={0} className="quadrat:flex quadrat:flex-col breit:flex breit:flex-col">
           <DecisionPanel
+            form={decisionForm}
+            phases={<PhasePanel phase={state.phase} turn={view.turn} place={decisionForm} folded={decisionForm === "panel" && room !== "compact"} />}
             state={state}
             questions={questions}
             prompt={prompt}
@@ -416,30 +418,6 @@ function TurnInfo({ turn, seat }: { turn: number; seat: Seat | null }) {
     <>
       Zug <b className="font-semibold text-primary tabular-nums">{turn}</b> · {turnOwnerLabel(seat)}
     </>
-  )
-}
-
-/**
- * Where in its turn the game is (prompt 16): the turn's steps as a track,
- * Forge's step wide in gold, the ones before it muted - the picture of the
- * header's words (each bar names its step as a tooltip). Before the first
- * turn there is none.
- */
-function TurnTrack({ phase, className }: { phase: GameState["phase"]; className?: string }) {
-  if (phase === null) return null
-  const steps = turnSteps(phase)
-  return (
-    <PhaseTrack data-phase={phase} className={className}>
-      {TURN_PHASES.map((group) => (
-        <PhaseTrackGroup key={group.key} title={TURN_PHASE_LABELS[group.key]}>
-          {steps
-            .filter((step) => step.phase === group.key)
-            .map((step) => (
-              <PhaseTrackStep key={step.step} state={step.state} title={PHASE_LABELS[step.step]} />
-            ))}
-        </PhaseTrackGroup>
-      ))}
-    </PhaseTrack>
   )
 }
 
@@ -917,131 +895,9 @@ function Field({ side, pictures, nearRow, owner }: { side: TableSide; pictures: 
   )
 }
 
-/** The stack (top first, Forge's order) and the combat, in Forge's words and the table's names. */
-function StackAndCombat({ view, pictures }: { view: TableView; pictures: TableCardLookup }) {
-  const { stack, combat } = view
-  const controls = use(CardControlsContext)
-  const blocking = controls !== null && currentStep(controls.moment.questions) === "block" && openSelection(controls.moment.questions) === null && !controls.moment.questions.some((q) => q.blocking)
-  if (stack.length === 0 && combat.length === 0) {
-    return (
-      <div className="flex h-full flex-col justify-center">
-        {/* In hoch a bar between the battlefields: an empty one is a line (its words for screen readers); in a column its words. */}
-        <Separator className="quadrat:hidden breit:hidden" />
-        <p className="px-3 py-2 text-xs text-muted-foreground hoch:sr-only">Der Stapel ist leer, niemand kämpft.</p>
-      </div>
-    )
-  }
-  return (
-    <div className="flex flex-col gap-2 px-3 py-2 text-xs">
-      {stack.length > 0 ? (
-        <div className="flex flex-col gap-1">
-          <h2 className="font-medium text-muted-foreground">
-            Stapel{stack.length > 1 ? ` · ${stack.length} Einträge` : null}
-          </h2>
-          <ol className="flex flex-col gap-1">
-            {stack.map((entry, index) => (
-              <StackEntry key={entry.id} entry={entry} top={index === 0} pictures={pictures} />
-            ))}
-          </ol>
-        </div>
-      ) : null}
-      {combat.length > 0 ? (
-        <div className="flex flex-col gap-1">
-          <h2 className="font-medium text-muted-foreground">{blocking ? "Blocks · noch nicht bestätigt" : "Kampf"}</h2>
-          <ul className="flex flex-col gap-0.5">
-            {combatLines(combat, blocking).map((line) => (
-              <li key={line.key} data-combat-attacker={line.view.attacker.id}>
-                {blocking && line.view.attacker.card?.highlighted === true ? <><Badge variant="outline">Blockziel</Badge>{" "}</> : null}
-                <span className="font-medium">
-                  {line.count > 1 ? `${line.count} × ` : null}
-                  {cardName(line.view.attacker.card)}
-                </span>{" "}
-                {attackLine(line.view)} – {blockLine(line.view)}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-    </div>
-  )
-}
-
-/**
- * One item of the stack (prompt 16): its card's picture (a spell's own card,
- * an ability's source; it opens the card view - a card on the stack is only
- * looked at, never tapped), its name, what it is (Forge's flags), whose it is,
- * its targets, and Forge's own description of it.
- */
-function StackEntry({ entry, top, pictures }: { entry: StackEntryView; top: boolean; pictures: TableCardLookup }) {
-  const controls = use(CardControlsContext)
-  if (controls === null) throw new Error("StackEntry outside GameTable")
-  const name = stackEntryName(entry)
-  const owner = stackOwner(entry.controller)
-  const targets = stackTargets(entry)
-  const card = entry.card
-  const target = card !== null && controls.targets.cards.has(card.id)
-  const facts = [STACK_KIND_LABELS[entry.kind], ...(owner !== null ? [owner] : []), ...(targets !== null ? [targets] : [])]
-  return (
-    <Item asChild variant="outline" size="xs">
-      <li data-stack-item={entry.id}>
-        {card !== null || entry.hidden ? (
-          <ItemMedia className="h-10 self-start">
-            {card !== null ? (
-              <GameCardButton
-                data-stack-card={card.id}
-                data-stack-target={target || undefined}
-                mark={target ? "target" : null}
-                aria-label={`${cardName(card)} ansehen${target ? ` · ${STACK_TARGET_LABEL}` : ""}`}
-                aria-haspopup="dialog"
-                title={`${cardName(card)}${target ? ` · ${STACK_TARGET_LABEL}` : ""}`}
-                onClick={() => controls.look(card.id)}
-                onContextMenu={(event) => {
-                  event.preventDefault()
-                  controls.look(card.id)
-                }}
-              >
-                <TablePicture card={card} pictures={pictures} />
-              </GameCardButton>
-            ) : (
-              <TableCardBack>
-                <span className="sr-only">verdeckte Karte</span>
-              </TableCardBack>
-            )}
-          </ItemMedia>
-        ) : null}
-        <ItemContent className="min-w-0">
-          <ItemTitle className="text-xs">
-            {name ?? STACK_KIND_LABELS[entry.kind]}
-            {top ? (
-              <Badge variant="outline" title="Wird als Nächstes verrechnet">
-                oben
-              </Badge>
-            ) : null}
-          </ItemTitle>
-          <p>{facts.join(" · ")}</p>
-          {entry.text !== null && entry.text.trim() !== "" ? <p className="line-clamp-2 text-muted-foreground">{entry.text}</p> : null}
-        </ItemContent>
-      </li>
-    </Item>
-  )
-}
-
-/**
- * Combat in lines. Unblocked attackers that are the same card in the same
- * state (Forge's values, like a pile on the battlefield) attacking the same
- * target share a line ("13 × Goblin greift Forge-KI an – ungeblockt").
- */
-function combatLines(combat: readonly CombatView[], blocking = false): { readonly key: string; readonly view: CombatView; readonly count: number }[] {
-  const lines: { key: string; view: CombatView; count: number; signature: string | null }[] = []
-  for (const view of combat) {
-    const card = view.attacker.card
-    const signature =
-      !blocking && card !== null && view.blockers.length === 0 ? JSON.stringify([card.key, card.name, card.power, card.toughness, card.damage, card.counters ?? null, view.defender]) : null
-    const same = signature === null ? undefined : lines.find((line) => line.signature === signature)
-    if (same) same.count++
-    else lines.push({ key: String(view.attacker.id), view, count: 1, signature })
-  }
-  return lines
+/** The player declares blockers and has not confirmed them (no selection, no blocking question open): the combat is a draft. */
+function blockDraft(questions: readonly Question[]): boolean {
+  return currentStep(questions) === "block" && openSelection(questions) === null && !questions.some((question) => question.blocking)
 }
 
 /** Your hand, always at the bottom and fully visible - side by side, scrolling sideways (the table redesign fans it, prompt 42: docs/design/SPIELTISCH.md). */

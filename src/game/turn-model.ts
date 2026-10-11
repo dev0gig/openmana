@@ -52,6 +52,31 @@ export function turnSteps(current: Phase | null): readonly { readonly phase: Tur
   )
 }
 
+/** One phase of the turn as the Phasen-Tafel shows it (prompt 41): where it stands and the steps it unfolds. */
+export interface PhaseGroupView {
+  readonly key: TurnPhaseKey
+  /** Over, now (Forge's step lies in it), still to come. */
+  readonly state: StepState
+  /** Its steps with where each stands - the first-strike damage step only while Forge reports it. */
+  readonly steps: readonly { readonly step: Phase; readonly state: StepState }[]
+}
+
+/**
+ * The turn's five phases with where each stands (prompt 41, the Phasen-Tafel):
+ * Forge's step decides, nothing else. The first-strike damage step is listed
+ * only while Forge is in it - Forge skips it when no creature has first strike
+ * or double strike, so showing it otherwise would promise a step that may not
+ * come. Before the first turn every phase is still to come.
+ */
+export function phaseGroups(current: Phase | null): readonly PhaseGroupView[] {
+  const steps = turnSteps(current)
+  return TURN_PHASES.map(({ key }) => {
+    const own = steps.filter((step) => step.phase === key && (step.step !== "COMBAT_FIRST_STRIKE_DAMAGE" || step.state === "current"))
+    const state: StepState = own.some((step) => step.state === "current") ? "current" : own.every((step) => step.state === "done") ? "done" : "upcoming"
+    return { key, state, steps: own.map(({ step, state: at }) => ({ step, state: at })) }
+  })
+}
+
 /** What a stack item is, by its own flags: a spell, an activated ability, a triggered ability. */
 export type StackKind = "spell" | "ability" | "trigger"
 

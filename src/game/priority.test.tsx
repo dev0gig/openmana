@@ -14,6 +14,7 @@ import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { tableScene, type TableSceneName } from "@/test/table-scenes"
 import { ARMING_MS } from "./card-sheet"
+import { PHASE_LABELS } from "./game-labels"
 import { GameTable, type GameTableProps } from "./game-table"
 import { NO_PICTURES } from "./table-cards"
 import { priorityQuestion } from "./turn-model"
@@ -154,11 +155,13 @@ describe("the player's priority", () => {
     expect(within(decision()).getByText(`Du hast „${name(answer!)}“ gewirkt. Du kannst noch etwas darauflegen – oder es verrechnen lassen.`)).toBeInTheDocument()
     const entries = within(stackRegion()).getAllByRole("listitem")
     expect(entries.map((entry) => entry.getAttribute("data-stack-item"))).toEqual(scene.state.stack.map((item) => String(item.id)))
-    const title = (entry: HTMLElement) => entry.querySelector('[data-slot="item-title"]')!.textContent
-    expect([title(entries[0]!), title(entries[1]!)]).toEqual([`${name(answer!)}oben`, name(spell!)])
-    expect(entries[0]).toHaveTextContent("Zauberspruch · von dir · Ziel: Forge-KI")
-    expect(entries[1]).toHaveTextContent("Zauberspruch · von der Forge-KI")
-    expect(within(stackRegion()).getByRole("heading", { name: `Stapel · ${scene.state.stack.length} Einträge` })).toBeInTheDocument()
+    // Prompt 41: the Zauberchronik - the top entry highlighted (and said), whose it is by a dot and in words, the number.
+    const title = (entry: HTMLElement) => entry.querySelector('[data-slot="chronicle-name"]')!.textContent
+    expect([title(entries[0]!), title(entries[1]!)]).toEqual([`${name(answer!)} · oben, wird als Nächstes verrechnet`, name(spell!)])
+    expect(entries.map((entry) => [entry.hasAttribute("data-top"), entry.getAttribute("data-controller")])).toEqual([[true, "me"], [false, "opponent"]])
+    expect(entries[0]!.querySelector('[data-slot="chronicle-facts"]')).toHaveTextContent(/^Ziel: Forge-KI · Zauberspruch · von dir$/)
+    expect(entries[1]!.querySelector('[data-slot="chronicle-facts"]')).toHaveTextContent(/^Zauberspruch · von der Forge-KI$/)
+    expect(within(stackRegion()).getByRole("heading", { name: `Zauber\u00ADchronik · ${scene.state.stack.length} Einträge` })).toBeInTheDocument()
   })
 
   it("playing a card is its tap (the card view's button), never a question the app makes up", async () => {
@@ -184,7 +187,8 @@ describe("the stack", () => {
     const card = item.card !== null && !("hidden" in item.card) ? item.card : null
     expect(card).not.toBeNull()
     expect(within(entry).getByRole("button", { name: `${card!.name} ansehen` })).toHaveAttribute("data-stack-card", String(card!.id))
-    expect(entry).toHaveTextContent("Zauberspruch · von dir · Ziel: ")
+    expect(entry).toHaveTextContent("Ziel: ")
+    expect(entry).toHaveTextContent(" · Zauberspruch · von dir")
     expect(entry).toHaveTextContent(item.text!.slice(0, 20))
   })
 
@@ -217,23 +221,31 @@ describe("the stack", () => {
   })
 })
 
-describe("turn and phases in the header", () => {
-  it("the turn's steps as a track (a picture of the words beside it): the step Forge is in, the ones before it over", () => {
+describe("turn and phases (prompt 41: the Phasen-Tafel; the header says them in words)", () => {
+  const phases = () => decision().querySelector('[data-slot="phase-panel"]')!
+
+  it("the five phases with the step Forge is in: the ones before it over, only the current phase unfolds its steps", () => {
     table("respond")
-    const track = header().querySelector('[data-slot="phase-track"]')!
-    expect(track).toHaveAttribute("aria-hidden", "true")
     const phase = tableScene("respond").state.phase!
+    // The header keeps the words; no track there any more.
+    expect(header().querySelector('[data-slot="phase-track"]')).toBeNull()
+    expect(phases()).toHaveAttribute("aria-hidden", "true")
+    const track = phases().querySelector('[data-slot="phase-track"]')!
     expect(track).toHaveAttribute("data-phase", phase)
-    const steps = [...track.querySelectorAll('[data-slot="phase-track-step"]')]
-    expect(steps).toHaveLength(13)
-    expect(steps.filter((step) => step.getAttribute("data-state") === "current")).toHaveLength(1)
-    const groups = [...track.querySelectorAll('[data-slot="phase-track-group"]')].map((group) => group.getAttribute("title"))
-    expect(groups).toEqual(["Anfangsphase", "Erste Hauptphase", "Kampfphase", "Zweite Hauptphase", "Endphase"])
+    const groups = [...track.querySelectorAll('[data-slot="phase-track-group"]')]
+    expect(groups.map((group) => group.getAttribute("title"))).toEqual(["Anfangsphase", "Erste Hauptphase", "Kampfphase", "Zweite Hauptphase", "Endphase"])
+    expect(groups.filter((group) => group.getAttribute("data-state") === "current")).toHaveLength(1)
+    const current = track.querySelectorAll('[data-slot="phase-track-step"][data-state="current"]')
+    expect(current).toHaveLength(1)
+    expect(current[0]).toHaveAttribute("title", PHASE_LABELS[phase])
   })
 
-  it("before the first turn there is no track, the header says the opening hands are drawn", () => {
+  it("before the first turn every phase is still to come, without Forge's step; the header says the opening hands are drawn", () => {
     table("opening")
-    expect(header().querySelector('[data-slot="phase-track"]')).toBeNull()
+    const track = phases().querySelector('[data-slot="phase-track"]')!
+    expect(track).not.toHaveAttribute("data-phase")
+    expect([...track.querySelectorAll('[data-slot="phase-track-group"]')].map((group) => group.getAttribute("data-state"))).toEqual(Array<string>(5).fill("upcoming"))
+    expect(phases()).toHaveTextContent("Vor dem ersten Zug")
     expect(within(header()).getByText("Die Starthände werden gezogen")).toBeInTheDocument()
   })
 })

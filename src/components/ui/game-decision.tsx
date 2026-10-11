@@ -15,6 +15,11 @@
  *   (Anvil lesson, Bible §16: primary actions stay reachable, never at the
  *   end of a long scroll), and in a tall region (the column beside the
  *   battlefields) they sit at its bottom, next to the player's hand.
+ * - GameDecisionBar (prompt 41): the answers' bar at the bottom of the
+ *   region - it sticks there instead of the actions inside it, and holds
+ *   what belongs beside them: on the game table the compact phases next to
+ *   the main button (the action bar of a phone), or the hint below them.
+ *   Actions inside a bar keep to their place in it (`in-data-[slot=...]`).
  */
 import * as React from "react"
 import { cn } from "cn"
@@ -44,10 +49,25 @@ function GameDecisionActions({ className, ...props }: React.ComponentProps<"div"
   return (
     <div
       data-slot="game-decision-actions"
-      className={cn("sticky bottom-0 z-10 -mx-3 mt-auto flex flex-wrap items-center gap-2 border-t bg-background px-3 pt-2 pb-2", className)}
+      className={cn(
+        "sticky bottom-0 z-10 -mx-3 mt-auto flex flex-wrap items-center gap-2 border-t bg-background px-3 pt-2 pb-2",
+        // Inside a GameDecisionBar the bar sticks and draws the line; the actions only line up their buttons.
+        "in-data-[slot=game-decision-bar]:static in-data-[slot=game-decision-bar]:mx-0 in-data-[slot=game-decision-bar]:mt-0 in-data-[slot=game-decision-bar]:border-t-0 in-data-[slot=game-decision-bar]:bg-transparent in-data-[slot=game-decision-bar]:p-0",
+        className,
+      )}
       {...props}
     />
   )
 }
 
-export { GameDecision, GameDecisionActions, GameDecisionHeader, GameDecisionNote, GameDecisionRow, GameDecisionSource }
+function GameDecisionBar({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="game-decision-bar"
+      className={cn("sticky bottom-0 z-10 -mx-3 mt-auto flex flex-wrap items-center gap-2 border-t bg-background px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]", className)}
+      {...props}
+    />
+  )
+}
+
+export { GameDecision, GameDecisionActions, GameDecisionBar, GameDecisionHeader, GameDecisionNote, GameDecisionRow, GameDecisionSource }

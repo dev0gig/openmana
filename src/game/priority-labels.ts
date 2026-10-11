@@ -6,6 +6,7 @@
  * Forge's (localized) texts. Only the game page loads it (the start page's
  * words stay in game-labels.ts).
  */
+import type { Phase } from "@openmana/engine-protocol"
 import { cardName } from "./table-labels"
 import type { Seat } from "./table-model"
 import type { PriorityMoment, StackKind, StackTop, TurnPhaseKey } from "./turn-model"
@@ -17,6 +18,28 @@ export const TURN_PHASE_LABELS: Readonly<Record<TurnPhaseKey, string>> = {
   combat: "Kampfphase",
   main2: "Zweite Hauptphase",
   ending: "Endphase",
+}
+
+/**
+ * The steps' short names for the Phasen-Tafel and the action bar (prompt 41,
+ * the mockup's `PHASEN`); the full names (`PHASE_LABELS`) stay in their
+ * titles and in the header. A main phase is its phase's only step: its name is
+ * the phase's.
+ */
+export const STEP_SHORT_LABELS: Readonly<Record<Phase, string>> = {
+  UNTAP: "Enttappen",
+  UPKEEP: "Versorgung",
+  DRAW: "Ziehen",
+  MAIN1: "Erste Hauptphase",
+  COMBAT_BEGIN: "Kampfbeginn",
+  COMBAT_DECLARE_ATTACKERS: "Angreifer",
+  COMBAT_DECLARE_BLOCKERS: "Blocker",
+  COMBAT_FIRST_STRIKE_DAMAGE: "Erstschlag",
+  COMBAT_DAMAGE: "Kampfschaden",
+  COMBAT_END: "Kampfende",
+  MAIN2: "Zweite Hauptphase",
+  END_OF_TURN: "Endsegment",
+  CLEANUP: "Aufräumen",
 }
 
 /** Whose turn it is, short enough for the header of a small phone. */

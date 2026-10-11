@@ -335,28 +335,42 @@ describe("stack, combat and Forge's decision", () => {
   it("the stack: the card, the top, what it is, whose, the target - and Forge's words (prompt 16)", () => {
     renderScene("stack")
     const center = region("Stapel und Kampf")
+    // Prompt 41: the Zauberchronik - its title with the count, the entry with its card, name, whose (dot and words), number.
+    expect(within(center).getByRole("heading", { name: "Zauber\u00ADchronik · 1 Eintrag" })).toBeInTheDocument()
     const [entry] = within(center).getAllByRole("listitem")
-    expect(entry!.querySelector('[data-slot="item-title"]')).toHaveTextContent("Magmastrahloben")
-    expect(entry).toHaveTextContent("Zauberspruch · von dir · Ziel: Goblin-Brandstifter")
-    expect(entry).toHaveTextContent("Magmastrahl (14) - Magmastrahl (14) deals 2 damage to Goblin-Brandstifter (55). Player scries 2.")
+    expect(entry).toHaveAttribute("data-top")
+    expect(entry).toHaveAttribute("data-controller", "me")
+    expect(entry!.querySelector('[data-slot="chronicle-name"]')).toHaveTextContent(/^Magmastrahl · oben, wird als Nächstes verrechnet$/)
+    expect(entry!.querySelector('[data-slot="chronicle-facts"]')).toHaveTextContent(/^Ziel: Goblin-Brandstifter · Zauberspruch · von dir$/)
+    expect(entry!.querySelector('[data-slot="chronicle-text"]')).toHaveTextContent("Magmastrahl (14) - Magmastrahl (14) deals 2 damage to Goblin-Brandstifter (55). Player scries 2.")
+    expect(entry).toHaveAttribute("title", expect.stringContaining("Magmastrahl · Ziel: Goblin-Brandstifter · Zauberspruch · von dir · Magmastrahl (14)"))
     expect(within(entry!).getByRole("button", { name: "Magmastrahl ansehen" })).toHaveAttribute("aria-haspopup", "dialog")
   })
 
-  it("combat in words: who attacks whom, who blocks; alike unblocked attackers in one line", () => {
+  // Prompt 41: "Angreifer → Ziel · Blocker" in the Zauberchronik; the arrow is a picture, screen readers get "greift … an".
+  const fights = () =>
+    [...region("Stapel und Kampf").querySelectorAll("[data-combat-attacker]")].map((line) => [
+      [...line.childNodes].filter((node) => !(node instanceof HTMLElement && node.classList.contains("sr-only"))).map((node) => node.textContent).join(""),
+      line.querySelector(".sr-only")?.textContent ?? null,
+    ])
+
+  it("combat in short lines: who attacks whom, who blocks; alike unblocked attackers in one line", () => {
     renderScene("blockers")
-    const lines = within(region("Stapel und Kampf")).getAllByRole("listitem").map((item) => item.textContent)
-    expect(lines).toEqual([
-      "Trained Armodon greift Forge-KI an – ungeblockt",
-      "Giant Spider greift Forge-KI an – geblockt von Canyon Minotaur, Raging Goblin",
-      "Grizzly Bears greift Forge-KI an – ungeblockt",
-      "Llanowar Elves greift Forge-KI an – geblockt von Gray Ogre",
+    expect(within(region("Stapel und Kampf")).getByRole("heading", { name: "Kampf" })).toBeInTheDocument()
+    expect(fights()).toEqual([
+      ["Trained Armodon → Forge-KI · ungeblockt", " greift Forge-KI an"],
+      ["Giant Spider → Forge-KI · geblockt von Canyon Minotaur, Raging Goblin", " greift Forge-KI an"],
+      ["Grizzly Bears → Forge-KI · ungeblockt", " greift Forge-KI an"],
+      ["Llanowar Elves → Forge-KI · geblockt von Gray Ogre", " greift Forge-KI an"],
     ])
   })
 
   it("a big attack stays readable: thirteen alike tokens in one line", () => {
     renderScene("commander-late")
-    const lines = within(region("Stapel und Kampf")).getAllByRole("listitem").map((item) => item.textContent)
-    expect(lines).toEqual(["Krenko, Tin Street Kingpin greift Forge-KI an – ungeblockt", "13 × Goblin Token greift Forge-KI an – ungeblockt"])
+    expect(fights()).toEqual([
+      ["Krenko, Tin Street Kingpin → Forge-KI · ungeblockt", " greift Forge-KI an"],
+      ["13 × Goblin Token → Forge-KI · ungeblockt", " greift Forge-KI an"],
+    ])
   })
 
   it("an empty stack and no combat: a line, said to screen readers", () => {
@@ -408,3 +422,148 @@ describe("card pictures", () => {
     expect(within(hand).getByText("Goblin-Brandstifter").closest('[data-slot="skeleton"]')).not.toBeNull()
   })
 })
+
+/*
+ * Prompt 41 (docs/design/SPIELTISCH.md §4.11-4.14): the Zauberchronik, the
+ * Phasen-Tafel and the main button. The form follows the layout - the action
+ * bar in hoch (jsdom answers no media query: hoch), the Phasen-Tafel beside the
+ * battlefields (a stand-in matchMedia answering quadrat).
+ */
+describe("the Zauberchronik, the Phasen-Tafel and the main button (prompt 41)", () => {
+  const decisionRegion = () => region("Entscheidung")
+  const phasePanel = () => decisionRegion().querySelector<HTMLElement>('[data-slot="phase-panel"]')!
+  const mainButtons = () => [...decisionRegion().querySelectorAll<HTMLElement>("[data-main]")].map((button) => button.textContent)
+
+  function asQuadrat() {
+    const original = window.matchMedia
+    window.matchMedia = ((query: string) =>
+      ({
+        media: query,
+        matches: query === "(3/4 <= aspect-ratio <= 13/10)",
+        onchange: null,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+        addListener: () => undefined,
+        removeListener: () => undefined,
+        dispatchEvent: () => false,
+      }) as unknown as MediaQueryList) as typeof window.matchMedia
+    return () => {
+      window.matchMedia = original
+    }
+  }
+
+  it.each([
+    ["main-phase", ["Weiter"], "pass"],
+    ["respond", ["Verrechnen lassen"], "pass"],
+    ["attack", ["Nicht angreifen"], "declare"],
+    ["attack-declared", ["Mit 1 Kreatur angreifen"], "declare"],
+    ["block-start", ["Nicht blocken"], null],
+    // Forge's own buttons of the attack (no declaration in progress to word them): its OK is still the confirmation.
+    ["blockers", ["OK"], null],
+    ["opening", ["Behalten"], null],
+    ["payment", [], null],
+    ["yes-no", [], null],
+    ["play-draw", [], null],
+  ] as const)("%s: the main button is %j (only pass and the confirmations of attack, block and the mulligan)", (scene, expected, meaning) => {
+    renderScene(scene)
+    expect(mainButtons()).toEqual(expected)
+    const main = decisionRegion().querySelector("[data-main]")
+    if (main !== null) {
+      // Still Forge's button in the answers group, with its meaning; only its look is new.
+      expect(main.closest('[role="group"]')).toHaveAccessibleName("Antworten, die Forge anbietet")
+      expect(main.getAttribute("data-meaning")).toBe(meaning)
+    }
+  })
+
+  it("hoch: the action bar - the compact phases beside the answers at the bottom, the hint above with the question", () => {
+    renderScene("main-phase")
+    const decision = decisionRegion().querySelector('[data-slot="game-decision"]')!
+    expect(decision).toHaveAttribute("data-form", "bar")
+    const bar = decisionRegion().querySelector('[data-slot="game-decision-bar"]')!
+    expect(bar.contains(phasePanel())).toBe(true)
+    expect(phasePanel()).toHaveAttribute("data-place", "bar")
+    expect(phasePanel()).toHaveTextContent("Erste Hauptphase")
+    expect(within(decisionRegion()).getByRole("group", { name: "Antworten, die Forge anbietet" }).parentElement).toBe(bar)
+    const weiter = within(decisionRegion()).getByRole("button", { name: "Weiter" })
+    // A table only looked at (no onAnswer) says so first; the hint explains the button.
+    expect(weiter).toHaveAccessibleDescription("Nur ansehen – hier wird nichts beantwortet. „Weiter“ gibt die Priorität ab. Tut danach niemand mehr etwas, geht es zum nächsten Schritt.")
+    const hint = decisionRegion().querySelector(".table-main-hint")!
+    expect(hint.compareDocumentPosition(bar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it("hoch: without an answer (Forge computes) the action bar still shows the phases", () => {
+    renderScene("main-phase", { waiting: false })
+    expect(phasePanel().closest('[data-slot="game-decision-bar"]')).not.toBeNull()
+  })
+
+  it("quadrat and breit: the Phasen-Tafel - the phases at the top, title and turn, only the current phase unfolds; the question below", () => {
+    const restore = asQuadrat()
+    try {
+      const scene = renderScene("attack-declared")
+      const decision = decisionRegion().querySelector('[data-slot="game-decision"]')!
+      expect(decision).toHaveAttribute("data-form", "panel")
+      expect(decision).toHaveClass("table-panel")
+      expect(phasePanel()).toHaveAttribute("data-place", "panel")
+      expect(phasePanel().closest('[data-slot="game-decision-bar"]')).toBeNull()
+      expect(phasePanel()).toHaveTextContent(`PhasenZug ${scene.state.turn}`)
+      const header = decision.querySelector('[data-slot="game-decision-header"]')!
+      expect(phasePanel().compareDocumentPosition(header) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      // The combat unfolds its steps (short names, the full ones as titles); first-strike damage is not reported.
+      const steps = [...phasePanel().querySelectorAll('[data-slot="phase-track-step"]')]
+      expect(steps.map((step) => step.textContent)).toEqual(["Erste Hauptphase", "Kampfbeginn", "Angreifer", "Blocker", "Kampfschaden", "Kampfende", "Zweite Hauptphase"])
+      const current = phasePanel().querySelector('[data-slot="phase-track-step"][data-state="current"]')!
+      expect(current).toHaveTextContent("Angreifer")
+      expect(current).toHaveAttribute("title", "Angreifer deklarieren")
+      expect(phasePanel()).not.toHaveAttribute("data-folded")
+    } finally {
+      restore()
+    }
+  })
+
+  it("quadrat and breit: a question that needs the room folds the phases to one line", () => {
+    const restore = asQuadrat()
+    try {
+      renderScene("choose-mode")
+      expect(board()).toHaveAttribute("data-decision", "expanded")
+      expect(phasePanel()).toHaveAttribute("data-folded", "true")
+    } finally {
+      restore()
+    }
+  })
+
+  it("the header keeps the turn and the step in words; the phases are a picture (hidden from screen readers)", () => {
+    renderScene("attack-declared")
+    const header = region("Spielstand")
+    expect(header.querySelector('[data-slot="phase-track"]')).toBeNull()
+    expect(within(header).getByRole("button", { name: "Hilfe am Spieltisch" })).toHaveAccessibleDescription(/Angreifer deklarieren$/)
+    expect(phasePanel()).toHaveAttribute("aria-hidden", "true")
+    expect(phasePanel()).toHaveTextContent("Kampfphase · Angreifer")
+  })
+
+  it("the Zauberchronik: a card on the stack opens the card view by a long press or a right click too - and sends nothing", async () => {
+    const scene = tableScene("respond")
+    const onTapCard = vi.fn()
+    const onAnswer = vi.fn()
+    render(
+      <GameTable state={scene.state} questions={scene.questions} prompt={scene.prompt} waiting aiProfile={scene.game.aiProfile} pictures={NO_PICTURES} menu={<button type="button">Menü</button>} onTapCard={onTapCard} onAnswer={onAnswer} />,
+    )
+    const item = scene.state.stack[0]!
+    const card = item.card !== null && !("hidden" in item.card) ? item.card : null
+    expect(card).not.toBeNull()
+    const button = region("Stapel und Kampf").querySelector<HTMLElement>(`[data-stack-card="${card!.id}"]`)!
+    fireEvent.contextMenu(button)
+    expect(await screen.findByRole("dialog", { name: card!.name! })).toBeInTheDocument()
+    expect(onTapCard).not.toHaveBeenCalled()
+    expect(onAnswer).not.toHaveBeenCalled()
+  })
+
+  it("the Zauberchronik while empty: its title and 0, and the honest words", () => {
+    renderScene("main-phase")
+    const center = region("Stapel und Kampf")
+    expect(center.querySelector('[data-chronicle="empty"]')).not.toBeNull()
+    expect(within(center).getByRole("heading", { name: "Zauber­chronik" })).toBeInTheDocument()
+    expect(center).toHaveTextContent("Der Stapel ist leer, niemand kämpft.")
+  })
+})
+
+const board = () => document.querySelector<HTMLElement>('[data-slot="game-board"]')!

@@ -216,7 +216,8 @@ that answers none of the three queries):
 - `short` + `breit` keeps the arrangement of prompts 13–24 (assumption from
   the task's "wie heute"): in a phone turned sideways (915 × 412) it leaves
   the battlefields about 130 px each, three columns would leave about 100.
-  Prompt 41 may revisit it with the Phasen-Tafel.
+  Prompt 41 kept it: the Zauberchronik and the Phasen-Tafel fit its side
+  column as slim panels (the phases always folded to one line there).
 
 ### 3.3 Room for Forge's questions
 
@@ -245,6 +246,15 @@ do not fit, by `GameTable` once per set of open questions):
 | `quadrat` | right column from the centre line down | the same (its column is tall already; words scroll inside) | the decision from the opponent's battlefield down, the chronicle a small strip next to the opponent's strip |
 | `breit` | right column, full height | the same | the same (nothing to gain) |
 | `breit` + `short` | side column next to your battlefield | the same | both middle rows of the side column; stack and combat step aside |
+
+Since prompt 41 the decision region holds the Phasen-Tafel (quadrat, breit) or
+the action bar (hoch), §4.13–4.14: whenever the region is `tall` or
+`expanded` the panel folds its phases to one line (`data-folded`), in a low
+`breit` window always; the action bar always shows the compact phases. The
+phases take part in the measurement - a priority whose words do not fit next
+to the full list makes the region `tall` (or `expanded` while stack and combat
+are empty) and folds them, as the task asks ("bei großen Fragen klappen die
+Phasen auf eine Zeile zu").
 
 The measurement is unchanged: a question that would not fit the compact
 region once is `tall` (or `expanded` when the centre is quiet) until its set
@@ -366,6 +376,10 @@ anchors it keeps and the prompt that builds it.
   (a Sheet from the left as before, conceding confirmed). On a `hoch` screen
   narrower than 400 px the track gives way to the step's words (the track is
   their picture; prompt 41 brings the compact phases to the action bar).
+  **Since prompt 41** the header has no track at all: the steps as a picture
+  are the Phasen-Tafel's and the action bar's (§4.13–4.14); the help button
+  keeps the turn line and Forge's step in words (`span[id][title]`) - the
+  header is where screen readers hear the turn and the step.
 - **Deviations (prompt 39):** the history keeps its name "Spielverlauf"
   (the mockup's "Protokoll"; the button's name is "Spielverlauf ansehen" and
   its words must be part of it); the turn line stands inside the help button
@@ -627,11 +641,53 @@ usable cards now say "gold umrandet" (were "gold gestrichelt").
 - Empty stays honest ("Der Stapel ist leer, niemand kämpft.").
 - Anchors: `data-stack-item`, `data-stack-card`, `data-stack-target`,
   `data-combat-attacker`.
+- **Built (prompt 41):** `Chronicle` (`src/game/table/chronicle.tsx`) on a
+  `TablePanel` (§4.12) in the region `center`. Its heading "Zauberchronik"
+  (`h2`; screen readers also hear "· N Einträge") with the count in a gold
+  ring (`TablePanelCount`, `aria-hidden`). The stack as an ordered list
+  ("Stapel, oben zuerst: N Einträge"), one entry per item in Forge's order
+  (`data-stack-item`; the top one `data-top` - gold rim and glow - and said
+  "oben, wird als Nächstes verrechnet"; `data-controller` `me` / `opponent`):
+  its card as a small card (`GameCardButton` with the whole picture,
+  `data-stack-card`, red mark and `data-stack-target` while a spell targets
+  it; a hidden one OpenMana's back) that opens the card view on a tap, a long
+  press or a right click (`useCardPress`, looking only); the name
+  (`chronicle-name`, or what it is); a line with the dot (`--table-mana`
+  yours, `--table-danger` the Forge-KI's) and the words - targets first,
+  then what it is and whose ("Ziel: X · Zauberspruch · von dir",
+  `chronicle-facts`); Forge's own description, two lines (`chronicle-text`);
+  its number (the oldest 1, the top the highest - the mockup's; not in
+  `quadrat`, `hoch` and a low window). Every fact also in the entry's
+  `title`. Combat below the entries under "Kampf" / "Blocks · noch nicht
+  bestätigt": one line per attacker `data-combat-attacker`, "Angreifer →
+  Ziel · ungeblockt / geblockt von …" (`defenderName`; the arrow is
+  `aria-hidden`, screen readers get "greift … an"; "Blockziel" as a chip while
+  blockers are declared; alike unblocked attackers share a line "13 × …",
+  `combatLines` moved here from `game-table.tsx`). Empty: the panel with
+  "0" and the words. `hoch`: a bar between the battlefields - title and count
+  side by side on the left, the entries side by side scrolling sideways (each
+  at least 6.8 rem, the card 1.55 rem wide), Forge's description and the
+  combat heading only for screen readers, one cut line per attacker (the
+  whole line in its title) - and an empty chronicle a gold line (its words for
+  screen readers), so the battlefields keep their room (small phone,
+  `commander-late`: 82 px each). `quadrat` beside an expanded decision: a slim
+  panel in its strip.
 
 ### 4.12 Panel (prompt 41)
 - Mockup: `.tafel` - `--table-panel` surface (darkening downwards), a gold
   line (`--table-gold-line`), corner ornaments, inner shadow; title in
   Cinzel `--table-gold-light`. Reused by the chronicle and the Phasen-Tafel.
+- **Built (prompt 41):** `TablePanel`, `TablePanelHead`, `TablePanelTitle`,
+  `TablePanelCount`, `TablePanelSub` (`src/game/table/table-panel.tsx`,
+  class `table-panel`, slot `table-panel`): the panel tone at 94 % darkening
+  to the tone mixed with 30 % black, a gold hairline, an inner shadow and a
+  drop shadow, 0.85 rem corners, 0.5 rem from its region's edges (the Phasen-Tafel 0.25 rem at the sides in `quadrat`, whose decision column can be 15 rem narrow); the two
+  corner ornaments are the mockup's shape as a CSS mask filled with
+  `--primary` (the colour stays the token's), top left and - turned - bottom
+  right. The regions `center` and `decision` themselves became clear (the
+  desk and the board show around the panels); in `hoch` the decision region
+  is the action bar (a dark band, the panel tone mixed with 35-60 % black,
+  the gold line above).
 
 ### 4.13 Phasen-Tafel and decision (prompt 41)
 - Mockup: `.phasen`, `.phase` (`.vorbei`, `.laufend`), `.schritte`,
@@ -649,6 +705,41 @@ usable cards now say "gold umrandet" (were "gold gestrichelt").
 - Forge's question, its parts and buttons stand below the phases (§3.3).
   `DecisionPanel` is not changed in substance - only room, arrangement and
   look; splitting it into files is allowed.
+- **Built (prompt 41):** `PhasePanel` (`src/game/table/phase-panel.tsx`,
+  slot `phase-panel`) with `phaseGroups()` (`turn-model.ts`: Forge's step
+  decides each phase's state; the first-strike damage step is listed only
+  while Forge is in it) and the short names `STEP_SHORT_LABELS`
+  (`priority-labels.ts`: "Enttappen", "Versorgung", "Ziehen", "Kampfbeginn",
+  "Angreifer", "Blocker", "Erstschlag", "Kampfschaden", "Kampfende",
+  "Endsegment", "Aufräumen"; a main phase is its own step). The panel form
+  (`data-place="panel"`, quadrat and breit): head "Phasen" and "Zug N"; the
+  five phases (`TURN_PHASE_LABELS`) with lucide symbols (`RotateCcw`,
+  `Sparkles`, `Swords`, `Sparkles`, `Moon` - the mockup's); past ones muted
+  with a dim gold symbol, the current one in light with a gold symbol; only
+  the current phase unfolds its steps on a gold line - past steps muted, the
+  current one a gold pill with a diamond (`--primary-foreground` on the gold
+  gradient); a main phase while current is the gold pill itself. The panel
+  **is** the decision region's content (`GameDecision` gets `table-panel`
+  and `data-form="panel"`): alerts, the phases, Forge's question with its
+  parts, then the answers' bar (sticking to its bottom) and the hint below
+  it; it stands at the end of its column in `quadrat` and in its middle in
+  `breit` (the mockup's), growing - and scrolling inside the region - as far
+  as the question needs. Folded (`data-folded`: the region `tall` or
+  `expanded`; always in a low `breit` window): one line of the five symbols
+  (the current one gold) and "Phase · Schritt" below.
+- **Anchors** (moved from the header, consumers changed): `phase-track` (the
+  list of phases, `data-phase` = Forge's step, absent before the first turn),
+  `phase-track-group` per phase (`title` = its name, `data-state`),
+  `phase-track-step` with `data-state` and the full name as `title` - the
+  unfolded steps of the current phase, and for a main phase the phase's own
+  line. Exactly one track on the page, in the decision region; the
+  end-to-end test reads the current step there, the readiness player reads
+  `data-phase` page-wide.
+- **Screen readers (decided in prompt 41):** the panel stays `aria-hidden`.
+  The header's help button reads the turn ("Zug 7 · Dein Zug") and Forge's
+  step in words, the decision region announces Forge's questions - the
+  phases are their picture; reading them too would repeat both. The full
+  step names stay tooltips.
 
 ### 4.14 Main button and action bar (prompt 41)
 - Mockup: `.weiter` (large, gold gradient, Cinzel, a gloss sweeping across),
@@ -663,6 +754,61 @@ usable cards now say "gold umrandet" (were "gold gestrichelt").
 - `hoch`: the action bar at the bottom - left the compact phases (five group
   symbols, the current one gold) and "Gruppe · Schritt", right the main
   button; grows upwards for a question; thumb reach; safe-area inset.
+- **Built (prompt 41):** `SendButton main` (`data-main`, class
+  `table-main-button`) for Forge's pass (`PriorityDecision`: "Weiter" /
+  "Verrechnen lassen"), the declaration (`AttackDecision`: "Nicht angreifen" /
+  "Mit N Kreaturen angreifen"), the blocks (`BlockDecision`: "Nicht blocken" /
+  "Blocks bestätigen") and Forge's first button of the mulligan's steps
+  ("Behalten"; the cards for the bottom) - `isMainButton()`, which also gives
+  Forge's own OK of an attack (`attackDeclared` without a declaration in
+  progress) the main look. At most one per decision. Look (table.css): the
+  gold gradient `--table-gold-light` → `--primary` → `--primary` with
+  `--table-gold-dark`, a light rim and a dark ring, Cinzel 700, words in
+  `--primary-foreground` (4.5:1 on every tone, `design-tokens.test.ts`),
+  `height: auto` so long words wrap inside; the gloss is an `::after` layer
+  moved by `transform` (`table-gloss`, 4.5 s), still on a button that is off
+  and under less motion. Every other button of the region (Forge's second
+  buttons, "Zug beenden …", the blocking questions' "Bestätigen", the
+  payment's) is second: the panel's dark tone, a gold hairline (Forge's
+  first button a stronger gold rim and light gold words; a long label wraps inside its button instead of leaving the panel). Labels, `SendButton`,
+  `ARMING_MS`, the confirmation of "Zug beenden" and `data-meaning` are
+  unchanged.
+- **Built - the answers' bar** (`GameDecisionBar`, slot `game-decision-bar`,
+  `src/components/ui/game-decision.tsx`): every group of Forge's answers
+  (`AnswerActions` in `decision-panel.tsx`, the group's role and name
+  unchanged) stands in a bar that sticks to the region's bottom (its actions
+  no longer stick themselves) with `env(safe-area-inset-bottom)` below it.
+  The hint that explains the main button (`PASS_NOTES`, `declareNote`,
+  `BLOCK_CONFIRM_NOTE`, the button's description as before) comes first in
+  the page: on the Phasen-Tafel it is shown below the buttons (`order`,
+  centred - the mockup's `.weiter-hinweis`), in the action bar and in a low
+  window above them with the question. On the panel the main button takes
+  the width and the others share a row below; in a low window they share one
+  row.
+- **Built - the action bar** (`hoch`, `data-form="bar"`): `useTableLayout()`
+  puts the compact phases (`PhasePanel place="bar"`) into the answers' bar -
+  left the five symbols (1.375 rem) and "Phase · Schritt", right the answers
+  in reverse order, so the main button sits at the right end under the thumb;
+  what does not fit beside it wraps below (a small phone: "Zug beenden …"
+  under "Weiter"; a phone 412 px wide keeps both in the row). Without an
+  answer (Forge computes, a selection without buttons) the bar shows the
+  phases alone. Above the bar the question, its parts and the hint, as the
+  region grows (§3.3).
+- **Deviations (prompt 41):** the phases keep Magic's German phase names
+  ("Anfangsphase", "Kampfphase", "Endphase" - the existing labels; the
+  mockup shortens them to "Anfang", "Kampf", "Ende"; only short step names
+  were added); Forge's question with its parts stands on the Phasen-Tafel
+  between the phases and the main button (the mockup has no question), and
+  the panel keeps the decision column's width of prompt 38 (≥ 15 rem); the
+  header keeps the turn line and the step in words (the screen readers'
+  place); a chronicle entry's line names targets, kind and owner ("Ziel: X ·
+  Zauberspruch · von dir" - Forge's facts, not the mockup's example "Von dir
+  gewirkt") and Forge's description is a third line; the combat lines are
+  not in the mockup; an empty chronicle in `hoch` is a gold line; in the
+  action bar the main button's words are a little smaller (1 rem) and Forge's
+  second button stands left of it; the panels have no `backdrop-filter`
+  (cost per frame) - the panel tone is 94 % opaque instead; the gloss also
+  stops on a main button that is off.
 
 ### 4.15 Arrows (prompt 43)
 - Mockup: `vorlage.js` `pfeil()`, `.pfeil-glut`, `.pfeil-linie`, markers
@@ -798,9 +944,10 @@ layouts (Bible §13).
   and `table.css` (the one stylesheet; imported by the table from prompt 37
   on).
 - `src/components/ui/game-*.tsx` - the shadcn-built table primitives
-  (`GameBoard`, `GameCard`, `GameDecision`, `GamePlayer`, `PhaseTrack`) keep
-  their slots and may be restyled or replaced step by step; the regions'
-  and slots' anchors stay.
+  (`GameBoard`, `GameCard`, `GameDecision`, `GamePlayer`) keep their slots
+  and may be restyled or replaced step by step; the regions' and slots'
+  anchors stay. `PhaseTrack` (`src/components/ui/phase-track.tsx`) was
+  replaced by `PhasePanel` in prompt 41, which carries its slots.
 - Tokens and variants: `src/index.css`.
 
 ## 11. Verification per prompt
@@ -834,6 +981,14 @@ From the shared rules of the series - end-to-end section 12,
   `game-card-plaque`, `game-card-picture`, `game-card-pile`,
   `game-card-layer`; the chip line keeps `game-card-caption` with every fact
   in its `title` (the end-to-end test's counts read "N Karten" there);
+- since prompt 41 the phase anchors in the decision region (`phase-panel`
+  with `data-place` and `data-folded`; `phase-track`, `phase-track-group`,
+  `phase-track-step` - §4.13), the main button `data-main`, the answers' bar
+  `game-decision-bar` (with `data-form`), the decision content's `data-form`
+  (`panel` / `bar`), and in the Zauberchronik `data-top`, `data-controller`,
+  `chronicle-name`, `chronicle-facts`, `chronicle-text` and
+  `data-chronicle="empty"`; the end-to-end test checks them in every scene
+  (`panelFacts`);
 - the toolbars' names.
 
 The regression evidence stays complete (8 sizes × 38 scenes, at least 600
@@ -887,3 +1042,9 @@ a push.
   (target pulsing, attacking amber and moved forward, blocking mana blue),
   rows sizing their cards by height and width; no line between the rows.
   Chronicle, panels and hand unchanged (prompts 41-42).
+- 2026-10-11, prompt 41: the panels (§4.12), the Zauberchronik with the stack
+  as entries and the combat as short lines (§4.11), the Phasen-Tafel with the
+  turn's phases and Forge's question beside the battlefields and the action
+  bar with the compact phases in `hoch` (§4.13), the main button and the
+  answers' bar (§4.14); the phases left the header. Hand unchanged (prompt
+  42), arrows in prompt 43.

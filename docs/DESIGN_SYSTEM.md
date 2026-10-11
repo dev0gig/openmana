@@ -205,19 +205,19 @@ variant in `src/index.css`) an expanded decision takes both middle rows of the
 side column and stack and combat step aside. Sending buttons are armed a
 moment after they appear, like the card view's.
 
-**Priority, stack and phases** (prompt 16; prompt 41 moves the steps into the
-Phasen-Tafel, [design/SPIELTISCH.md](design/SPIELTISCH.md) §4.13): the header shows where in its
-turn the game is - Forge's step in words ("Zug 3 · Erste Hauptphase") with a
-`PhaseTrack` beside the turn's owner: one short bar per step, grouped by the
-five phases, Forge's step wide in `--primary`, the steps before it in
-`--muted-foreground`, the ones to come in `--border` (a picture of the words,
-hidden from screen readers; each bar names its step as a tooltip). The stack
-region lists each item top first as an `Item` with its card's picture (it
-opens the card view), its name, what it is, whose it is and Forge's words;
-the top one carries an "oben" badge. The player's priority is a decision like
-the others: words instead of Forge's status line, Forge's OK as "Weiter" or
-"Verrechnen lassen", Forge's End Turn behind an `AlertDialog` (rule 4: it
-gives the rest of the turn away).
+**Priority, stack and phases** (prompt 16; since prompt 41 on the table's
+panels, [design/SPIELTISCH.md](design/SPIELTISCH.md) §4.11-4.14): the header
+says the turn and Forge's step in words; the turn's five phases are the
+Phasen-Tafel's (beside the battlefields: the phases with the current one's
+steps unfolded, the current step a gold pill) or the action bar's (`hoch`: five
+symbols and "Phase · Schritt") - a picture of the words, hidden from screen
+readers, each step's full name a tooltip. The Zauberchronik lists the stack
+top first with each item's card (it opens the card view), its name, whose it
+is (a dot and the words), its targets and kind, Forge's words and its number,
+the top one highlighted; combat in short lines below. The player's priority is
+a decision like the others: words instead of Forge's status line, Forge's OK as
+"Weiter" or "Verrechnen lassen" - the golden main button -, Forge's End Turn
+behind an `AlertDialog` (rule 4: it gives the rest of the turn away).
 
 Both battlefields share the free height equally; a battlefield shows two rows
 (creatures next to the middle, other permanents outside) from 176 px, one
@@ -248,7 +248,10 @@ the word.
 | `Checkbox` | shadcn/ui registry (`radix-maia`, prompt 15; `motion-reduce` added) | several choices of one of Forge's questions, inside a `FieldLabel` choice card (the whole card is the touch target) |
 | `GameDecision`, `GameDecisionHeader`, `GameDecisionSource`, `GameDecisionRow`, `GameDecisionNote`, `GameDecisionActions`; `GameBoard`'s `decision` (`compact`/`tall`/`expanded`) | `src/components/ui/game-decision.tsx`, `game-board.tsx`, built the shadcn way (prompt 15) | the decision region's content: what Forge asks (the asking card as a small `GameCardButton`), a row of a question's cards at a hand's height, short lines (how many, why a button is off), the answer buttons sticking to the region's bottom; the region's growth (§4) |
 | `GameHelpButton` | built the shadcn way (prompt 23) | header turn/phase area as a 44 px contextual-help trigger; phase and turn owner are its accessible description, no extra wide icon on small phones |
-| `PhaseTrack`, `PhaseTrackGroup`, `PhaseTrackStep` | `src/components/ui/phase-track.tsx`, built the shadcn way (prompt 16) | the turn's steps in the game table's header: a bar per step (`data-state` done/current/upcoming: `--muted-foreground`, wide `--primary`, `--border`), grouped by phase; `aria-hidden` (the header's words say the step), each bar's tooltip names it |
+| `GameDecisionBar` | `src/components/ui/game-decision.tsx` (prompt 41) | the bar of Forge's answers at the bottom of the decision region: it sticks there instead of its actions and holds what belongs beside them (the compact phases in the action bar of `hoch`) |
+| `TablePanel` (+ `TablePanelHead`, `TablePanelTitle`, `TablePanelCount`, `TablePanelSub`) | `src/game/table/table-panel.tsx` (prompt 41, §9) | the table's panel (the mockup's `.tafel`): panel tone darkening downwards, gold hairline, two gold corner ornaments, inner shadow, Cinzel title - the Zauberchronik and the Phasen-Tafel |
+| `Chronicle` | `src/game/table/chronicle.tsx` (prompt 41, §9) | the Zauberchronik in the region "Stapel und Kampf": Forge's stack top first (card that only looks, name, controller's dot and words, targets, Forge's text, number) and combat as short lines; a bar between the battlefields in `hoch` |
+| `PhasePanel` | `src/game/table/phase-panel.tsx` (prompt 41, §9; replaces prompt 16's `PhaseTrack` in the header) | the turn's five phases on the Phasen-Tafel (the current one unfolds its steps, the current step gold with a diamond) or as one line - five symbols and "Phase · Schritt" - in the action bar and while a question needs the room; `aria-hidden`, anchors `phase-track*` |
 | `GamePlayer`, `GamePlayerButton` | `src/components/ui/game-player.tsx`, built the shadcn way (prompt 17) | a player's name and life total on their seat and in the decision region; as a button where Forge's running input takes the player (a target, a choice, life for Phyrexian mana), with the cards' marks (usable = dashed `--primary`, chosen = solid `--foreground`, a stack target double `--table-danger` since prompt 39) drawn as an outline inside the box, so a mark takes no room; shadcn's focus ring, 44 px on touch screens as a button. On the table's strips it is the life medallion (prompt 39, `table-medallion`, with a glow per mark) |
 | `ActionBar` | `src/components/ui/action-bar.tsx`, built the shadcn way (prompt 10) | a page's primary action on phones: sticky right above the tab bar (`bottom-16`), at the end of the content column – on a short page too (since prompt 11 the `Page` column fills the screen and the bar is pushed to its end, `mt-auto`); pages render it only below `md` (`useIsMobile`) and put the same actions into the header above |
 | `CardPicture` | `src/components/ui/card-picture.tsx`, built the shadcn way (prompt 08) | every picture of a Magic card: `AspectRatio` 63 × 88, `Skeleton` while loading, the card's text in place of a missing or failed picture (`data-state` loading/loaded/failed/missing); loads Scryfall's pictures in CORS mode without referrer and never crops them (`object-contain`: Scryfall forbids cutting off artist or copyright) |
@@ -362,6 +365,16 @@ target (example data only).
   with its words, each 3:1.
 - **Motion:** allowed on the table under rule 8 - `transform`/`opacity` only,
   never delaying input or state, nothing under less motion.
+- **Panels, Zauberchronik, Phasen-Tafel, main button** (prompt 41,
+  [design/SPIELTISCH.md](design/SPIELTISCH.md) §4.11-4.14): the chronicle and
+  the decision are `TablePanel`s on the desk or the board (their regions are
+  clear); in `hoch` the decision is the action bar at the bottom. The one
+  button that moves the round on - Forge's pass and the confirmation of
+  attack, block and the mulligan's choice - is the golden main button
+  (Cinzel, `--primary-foreground` on gold, a gloss moved by `transform`, still
+  under less motion); every other button in the decision region is second
+  (the panel's dark tone, a gold hairline). Only its look is new: Forge's
+  buttons, labels, arming and confirmations are unchanged.
 - **Header and strips** (prompt 39, [design/SPIELTISCH.md](design/SPIELTISCH.md)
   §4.2-4.6): the header shows the emblem and the Cinzel wordmark, the zones
   and the history as symbol buttons (their words in `breit`), the turn line

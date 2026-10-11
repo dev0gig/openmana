@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest"
 import { gameState } from "@/test/game-fixtures"
 import { tableScene, type TableSceneName } from "@/test/table-scenes"
 import { endTurnText, PASS_LABELS, PASS_NOTES, priorityText, STACK_KIND_LABELS, TURN_PHASE_LABELS, turnOwnerLabel } from "./priority-labels"
-import { priorityHolder, priorityMoment, priorityQuestion, stackKind, stackTop, TURN_PHASES, TURN_STEPS, turnSeat, turnSteps } from "./turn-model"
+import { phaseGroups, priorityHolder, priorityMoment, priorityQuestion, stackKind, stackTop, TURN_PHASES, TURN_STEPS, turnSeat, turnSteps } from "./turn-model"
 
 /** The recorded priority of a scene with what it is about. */
 function momentOf(name: TableSceneName) {
@@ -40,6 +40,38 @@ describe("the turn's steps", () => {
     expect(states("UNTAP")).toEqual(["current", ...Array<string>(12).fill("upcoming")])
     expect(states(null)).toEqual(Array<string>(13).fill("upcoming"))
     expect(turnSteps("COMBAT_DAMAGE").find((step) => step.state === "current")).toEqual({ phase: "combat", step: "COMBAT_DAMAGE", state: "current" })
+  })
+
+  // Prompt 41: the Phasen-Tafel's five phases - Forge's step decides; first-strike damage only while Forge is in it.
+  it("the phases for the Phasen-Tafel: over, now, to come - first-strike damage listed only while Forge is in it", () => {
+    const combat = (phase: GameState["phase"]) => phaseGroups(phase).find((group) => group.key === "combat")!
+    expect(phaseGroups("COMBAT_DECLARE_ATTACKERS").map((group) => group.state)).toEqual(["done", "done", "current", "upcoming", "upcoming"])
+    expect(combat("COMBAT_DECLARE_ATTACKERS").steps).toEqual([
+      { step: "COMBAT_BEGIN", state: "done" },
+      { step: "COMBAT_DECLARE_ATTACKERS", state: "current" },
+      { step: "COMBAT_DECLARE_BLOCKERS", state: "upcoming" },
+      { step: "COMBAT_DAMAGE", state: "upcoming" },
+      { step: "COMBAT_END", state: "upcoming" },
+    ])
+    expect(combat("COMBAT_FIRST_STRIKE_DAMAGE").steps.map((step) => [step.step, step.state])).toEqual([
+      ["COMBAT_BEGIN", "done"],
+      ["COMBAT_DECLARE_ATTACKERS", "done"],
+      ["COMBAT_DECLARE_BLOCKERS", "done"],
+      ["COMBAT_FIRST_STRIKE_DAMAGE", "current"],
+      ["COMBAT_DAMAGE", "upcoming"],
+      ["COMBAT_END", "upcoming"],
+    ])
+    // Past the combat the step is not listed either (Forge may have skipped it).
+    expect(combat("MAIN2").steps.map((step) => step.step)).not.toContain("COMBAT_FIRST_STRIKE_DAMAGE")
+    expect(combat("MAIN2").state).toBe("done")
+    expect(phaseGroups("MAIN1").map((group) => [group.key, group.state, group.steps.length])).toEqual([
+      ["beginning", "done", 3],
+      ["main1", "current", 1],
+      ["combat", "upcoming", 5],
+      ["main2", "upcoming", 1],
+      ["ending", "upcoming", 2],
+    ])
+    expect(phaseGroups(null).map((group) => group.state)).toEqual(Array<string>(5).fill("upcoming"))
   })
 })
 

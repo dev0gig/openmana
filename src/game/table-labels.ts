@@ -206,6 +206,12 @@ export function attackLine(view: CombatView): string {
   return defender === null ? "greift an" : `greift ${defender} an`
 }
 
+/** Whom an attacker attacks, as a name for the Zauberchronik's short line "Angreifer → Ziel" (prompt 41): "Du", "Forge-KI", the card; null: Forge did not say. */
+export function defenderName(view: CombatView): string | null {
+  if (view.defender === null) return null
+  return view.defender.kind === "player" ? seatName(view.defender.seat) : cardName(view.defender.card)
+}
+
 /** Who blocks it ("geblockt von Riesenspinne, Grizzlybären" / "ungeblockt"). */
 export function blockLine(view: CombatView): string {
   return view.blockers.length === 0 ? "ungeblockt" : `geblockt von ${view.blockers.map((blocker) => cardName(blocker.card)).join(", ")}`

@@ -108,16 +108,30 @@
 }
 
 /*
- * Regions full of text - stack and combat, the decision - lie on the panel
- * tone (--table-panel, 90 %): the board's frame, its brass and its runes may
- * lie below them (design-tokens.test.ts checks text on this tone over the
- * brightest gold). The strips (prompt 39) lie on the board itself, like the
- * mockup's: their medallion and piles are drawn, their words sit on chips of
- * the same panel tone.
+ * Stack and combat, the decision (prompt 41): their words lie on panels of
+ * the table - the Zauberchronik and the Phasen-Tafel (.table-panel below) -,
+ * the regions themselves are clear, so the desk and the board show around
+ * them. In hoch the decision is the action bar at the very bottom: a dark band
+ * with the gold line above it (the mockup's .aktionsleiste), darker than the
+ * panel tone, so its words keep their contrast. The strips (prompt 39) lie
+ * on the board itself, like the mockup's: their medallion and piles are drawn,
+ * their words sit on chips of the panel tone.
  */
 [data-slot="game-board"] > [data-slot="game-board-area"]:is([data-area="center"], [data-area="decision"]) {
-  background: color-mix(in oklch, var(--table-panel) 90%, transparent);
+  background: none;
+  border-color: transparent;
+}
+
+[data-slot="game-board"] > [data-slot="game-board-area"][data-area="decision"] {
+  background: linear-gradient(180deg, color-mix(in oklch, var(--table-panel), black 35%), color-mix(in oklch, var(--table-panel), black 60%));
   border-color: var(--table-gold-line);
+}
+
+@media (aspect-ratio >= 3/4) {
+  [data-slot="game-board"] > [data-slot="game-board-area"][data-area="decision"] {
+    background: none;
+    border-color: transparent;
+  }
 }
 
 [data-slot="game-board"] > [data-slot="game-board-area"]:is([data-area="opponent"], [data-area="me"]) {
@@ -685,6 +699,904 @@
 
 [data-slot="game-board"] .table-card-back > svg {
   filter: drop-shadow(0.1rem 0.08rem 0.2rem oklch(0 0 0 / 0.7));
+}
+
+/* ---------- Panels (prompt 41): the Zauberchronik and the Phasen-Tafel (the mockup's .tafel) ---------- */
+
+/*
+ * A panel: the panel tone darkening downwards (94 %: the desk or the board
+ * shimmers through a little), a gold hairline, an inner shadow, and an ornament
+ * in two opposite corners - a gold mask, so its colour is the token's.
+ */
+[data-slot="game-board"] .table-panel {
+  position: relative;
+  margin: 0.5rem;
+  padding: 0.65rem 0.75rem 0.75rem;
+  border: 1px solid var(--table-gold-line);
+  border-radius: 0.85rem;
+  background: linear-gradient(180deg, color-mix(in oklch, var(--table-panel) 94%, transparent), color-mix(in oklch, color-mix(in oklch, var(--table-panel), black 30%) 94%, transparent));
+  box-shadow: 0 0.6rem 1.8rem oklch(0 0 0 / 0.55), inset 0 1px 0 oklch(1 0 0 / 0.06), inset 0 0 1.5rem oklch(0 0 0 / 0.35);
+}
+
+[data-slot="game-board"] .table-panel::before,
+[data-slot="game-board"] .table-panel::after {
+  content: "";
+  position: absolute;
+  z-index: 20;
+  top: 0.3rem;
+  left: 0.3rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  background: var(--primary);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.3'%3E%3Cpath d='M2 18V7a5 5 0 0 1 5-5h11'/%3E%3Cpath d='M6 22V11a5 5 0 0 1 5-5h11' opacity='.45'/%3E%3C/g%3E%3Cg fill='%23000'%3E%3Ccircle cx='2' cy='21' r='1.5'/%3E%3Ccircle cx='21' cy='2' r='1.5'/%3E%3Cpath d='M2 2l3 1.2L2 4.4z'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Cg fill='none' stroke='%23000' stroke-width='1.3'%3E%3Cpath d='M2 18V7a5 5 0 0 1 5-5h11'/%3E%3Cpath d='M6 22V11a5 5 0 0 1 5-5h11' opacity='.45'/%3E%3C/g%3E%3Cg fill='%23000'%3E%3Ccircle cx='2' cy='21' r='1.5'/%3E%3Ccircle cx='21' cy='2' r='1.5'/%3E%3Cpath d='M2 2l3 1.2L2 4.4z'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+[data-slot="game-board"] .table-panel::after {
+  top: auto;
+  left: auto;
+  right: 0.3rem;
+  bottom: 0.3rem;
+  transform: scale(-1, -1);
+}
+
+[data-slot="game-board"] .table-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0 0.2rem 0.55rem 0.6rem;
+}
+
+[data-slot="game-board"] .table-panel-title {
+  margin: 0;
+  color: var(--table-gold-light);
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+[data-slot="game-board"] .table-panel-count {
+  display: grid;
+  place-items: center;
+  flex: none;
+  min-width: 1.6rem;
+  height: 1.6rem;
+  padding: 0 0.3rem;
+  border: 1px solid var(--table-gold-line);
+  border-radius: 9999px;
+  background: color-mix(in oklch, var(--table-panel), black 50%);
+  color: var(--foreground);
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+[data-slot="game-board"] .table-panel-sub {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+/* ---------- The Zauberchronik (prompt 41, region center; the mockup's .chronik) ---------- */
+
+[data-slot="game-board"] .table-chronicle-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+[data-slot="game-board"] .table-chronicle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* An entry: its card, its words, its number; the top one (Forge's first, resolved next) highlighted. */
+[data-slot="game-board"] .table-chronicle-entry {
+  --chronicle-card: 2.3rem;
+  display: grid;
+  grid-template-columns: var(--chronicle-card) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.5rem 0.4rem 0.4rem;
+  border: 1px solid color-mix(in oklch, var(--primary) 16%, transparent);
+  border-radius: 0.6rem;
+  background: oklch(1 0 0 / 0.03);
+}
+
+[data-slot="game-board"] .table-chronicle-entry[data-top] {
+  border-color: color-mix(in oklch, var(--primary) 70%, transparent);
+  background: linear-gradient(90deg, color-mix(in oklch, var(--primary) 12%, transparent), oklch(1 0 0 / 0.02));
+  box-shadow: 0 0 1rem color-mix(in oklch, var(--primary) 18%, transparent);
+}
+
+/* The card: the whole picture at a small card's size (63 : 88), a control that only looks. */
+[data-slot="game-board"] .table-chronicle-card {
+  display: block;
+  width: var(--chronicle-card);
+  height: calc(var(--chronicle-card) * 88 / 63);
+}
+
+[data-slot="game-board"] .table-chronicle-card > [data-slot="game-card"] {
+  width: 100%;
+}
+
+[data-slot="game-board"] .table-chronicle-card [data-slot="game-card-face"] {
+  border-width: 1px;
+  border-radius: 0.2rem;
+}
+
+[data-slot="game-board"] .table-chronicle-card :is([data-slot="card-picture"], [data-slot="skeleton"]) {
+  border-radius: 0.15rem;
+}
+
+[data-slot="game-board"] .table-chronicle-words {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+[data-slot="game-board"] .table-chronicle-name {
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Whose it is: a dot (yours mana blue, the Forge-KI's red) before the words that say it too. */
+[data-slot="game-board"] .table-chronicle-facts {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+[data-slot="game-board"] .table-chronicle-facts::before {
+  content: "";
+  flex: none;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 9999px;
+  background: var(--muted-foreground);
+}
+
+[data-slot="game-board"] [data-controller="me"] .table-chronicle-facts::before {
+  background: var(--table-mana);
+  box-shadow: 0 0 0.35rem var(--table-mana);
+}
+
+[data-slot="game-board"] [data-controller="opponent"] .table-chronicle-facts::before {
+  background: var(--table-danger);
+  box-shadow: 0 0 0.35rem var(--table-danger);
+}
+
+/* Forge's own description: two lines, the whole of it in the entry's title. */
+[data-slot="game-board"] .table-chronicle-text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  line-height: 1.3;
+}
+
+[data-slot="game-board"] .table-chronicle-number {
+  display: grid;
+  place-items: center;
+  width: 1.45rem;
+  height: 1.45rem;
+  border: 1px solid var(--table-gold-line);
+  border-radius: 9999px;
+  background: color-mix(in oklch, var(--table-panel), black 50%);
+  color: var(--table-gold-light);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+/* The combat below the entries: one short line per attacker. */
+[data-slot="game-board"] .table-chronicle-combat-title {
+  margin: 0 0 0.25rem 0.2rem;
+  color: var(--table-gold-light);
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+[data-slot="game-board"] .table-chronicle-fights {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+[data-slot="game-board"] .table-chronicle-fight {
+  padding: 0.2rem 0.45rem;
+  border-left: 2px solid var(--table-attack);
+  border-radius: 0.25rem;
+  background: oklch(1 0 0 / 0.03);
+  color: var(--foreground);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+[data-slot="game-board"] .table-chronicle-fight > .table-chip {
+  margin-right: 0.3rem;
+}
+
+[data-slot="game-board"] .table-chronicle-attacker {
+  font-weight: 600;
+}
+
+[data-slot="game-board"] .table-chronicle-blockers {
+  color: var(--muted-foreground);
+}
+
+/* Empty: the title, the 0 and the words in as few lines as fit. */
+[data-slot="game-board"] .table-chronicle[data-chronicle="empty"] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 0.75rem;
+  row-gap: 0.2rem;
+}
+
+[data-slot="game-board"] .table-chronicle[data-chronicle="empty"] > .table-panel-head {
+  margin-bottom: 0;
+}
+
+[data-slot="game-board"] .table-chronicle-empty {
+  margin: 0 0.2rem 0 0.6rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+/* quadrat: a narrower column - smaller cards, no number (the mockup's); beside an expanded decision a slim strip. */
+@media (3/4 <= aspect-ratio <= 13/10) {
+  [data-slot="game-board"][data-decision="expanded"] .table-chronicle {
+    margin: 0.25rem 0.4rem;
+    padding: 0.3rem 0.5rem;
+  }
+
+  [data-slot="game-board"][data-decision="expanded"] .table-chronicle .table-panel-head {
+    margin-bottom: 0.25rem;
+  }
+
+  [data-slot="game-board"][data-decision="expanded"] .table-chronicle .table-panel-title {
+    font-size: 0.85rem;
+  }
+
+  [data-slot="game-board"] .table-chronicle-entry {
+    --chronicle-card: 1.9rem;
+    grid-template-columns: var(--chronicle-card) minmax(0, 1fr);
+    gap: 0.45rem;
+  }
+
+  [data-slot="game-board"] .table-chronicle-number {
+    display: none;
+  }
+
+  [data-slot="game-board"] .table-chronicle-name {
+    font-size: 0.8rem;
+  }
+}
+
+/*
+ * hoch: a bar between the battlefields - the title stacked on the left, the
+ * entries side by side, scrolling sideways; Forge's description only in the
+ * title and for screen readers. An empty chronicle is a gold line (its words
+ * for screen readers), so the battlefields keep the room.
+ */
+@media (aspect-ratio < 3/4) {
+  [data-slot="game-board"] .table-chronicle {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin: 0.15rem 0.5rem;
+    padding: 0.35rem 0.5rem;
+    border-radius: 0.7rem;
+  }
+
+  [data-slot="game-board"] .table-chronicle::before,
+  [data-slot="game-board"] .table-chronicle::after {
+    width: 1rem;
+    height: 1rem;
+    top: 0.15rem;
+    left: 0.15rem;
+  }
+
+  [data-slot="game-board"] .table-chronicle::after {
+    top: auto;
+    left: auto;
+    right: 0.15rem;
+    bottom: 0.15rem;
+  }
+
+  /* Title and count side by side: the bar stays as low as its entries (a small phone keeps 80 px per battlefield). */
+  [data-slot="game-board"] .table-chronicle > .table-panel-head {
+    flex: none;
+    gap: 0.25rem;
+    margin: 0;
+  }
+
+  [data-slot="game-board"] .table-chronicle .table-panel-title {
+    max-width: 4.4rem;
+    font-size: 0.62rem;
+    line-height: 1.15;
+    text-align: center;
+    hyphens: manual;
+  }
+
+  [data-slot="game-board"] .table-chronicle .table-panel-count {
+    min-width: 1.2rem;
+    height: 1.2rem;
+    padding: 0 0.2rem;
+    font-size: 0.65rem;
+  }
+
+  [data-slot="game-board"] .table-chronicle-body {
+    flex: 1;
+    min-width: 0;
+    gap: 0.35rem;
+  }
+
+  [data-slot="game-board"] .table-chronicle-list {
+    flex-direction: row;
+    gap: 0.35rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  [data-slot="game-board"] .table-chronicle-entry {
+    --chronicle-card: 1.55rem;
+    flex: 1 1 0;
+    min-width: 6.8rem;
+    grid-template-columns: var(--chronicle-card) minmax(0, 1fr);
+    gap: 0.35rem;
+    padding: 0.25rem 0.35rem 0.25rem 0.25rem;
+  }
+
+  [data-slot="game-board"] .table-chronicle-number {
+    display: none;
+  }
+
+  [data-slot="game-board"] .table-chronicle-name {
+    font-size: 0.7rem;
+  }
+
+  [data-slot="game-board"] .table-chronicle-facts {
+    font-size: 0.6rem;
+  }
+
+  [data-slot="game-board"] .table-chronicle-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  [data-slot="game-board"] .table-chronicle-combat-title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* One line per attacker, cut at its end (the whole line in its title and for screen readers). */
+  [data-slot="game-board"] .table-chronicle-fight {
+    overflow: hidden;
+    padding-block: 0.1rem;
+    font-size: 0.65rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  [data-slot="game-board"] .table-chronicle[data-chronicle="empty"] {
+    height: 1px;
+    margin: 0 0.75rem;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: var(--table-gold-line);
+    box-shadow: none;
+  }
+
+  [data-slot="game-board"] .table-chronicle[data-chronicle="empty"]::before,
+  [data-slot="game-board"] .table-chronicle[data-chronicle="empty"]::after {
+    content: none;
+  }
+
+  [data-slot="game-board"] .table-chronicle[data-chronicle="empty"] > * {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* breit in a low window: the side column is low - a slim panel. */
+@media (aspect-ratio > 13/10) and (max-height: 32rem) {
+  [data-slot="game-board"] .table-chronicle {
+    margin: 0.25rem;
+    padding: 0.45rem 0.55rem;
+  }
+
+  [data-slot="game-board"] .table-chronicle .table-panel-head {
+    margin-bottom: 0.35rem;
+  }
+
+  [data-slot="game-board"] .table-chronicle .table-panel-title {
+    font-size: 0.85rem;
+  }
+
+  [data-slot="game-board"] .table-chronicle-entry {
+    --chronicle-card: 1.6rem;
+    grid-template-columns: var(--chronicle-card) minmax(0, 1fr);
+    padding: 0.25rem 0.4rem 0.25rem 0.25rem;
+  }
+
+  [data-slot="game-board"] .table-chronicle-number {
+    display: none;
+  }
+}
+
+/* ---------- The Phasen-Tafel (prompt 41, region decision; the mockup's .phasen, .phasen-kompakt) ---------- */
+
+/*
+ * Beside the battlefields the decision region holds the Phasen-Tafel: a panel
+ * as tall as its content - at the end of its column in quadrat, in the middle
+ * in breit (GameTable's classes), the region scrolls when it is taller. Its
+ * answers' bar sticks to its bottom on the panel's darkest tone.
+ */
+[data-slot="game-board"] .table-decision[data-form="panel"] {
+  min-height: auto;
+  padding-bottom: 0;
+}
+
+/* quadrat: the decision column can be 15 rem narrow (an unfolded foldable upright) - Forge's widest controls keep their room. */
+@media (3/4 <= aspect-ratio <= 13/10) {
+  [data-slot="game-board"] .table-decision[data-form="panel"] {
+    margin-top: auto;
+    margin-inline: 0.25rem;
+  }
+}
+
+@media (aspect-ratio > 13/10) {
+  [data-slot="game-board"] .table-decision[data-form="panel"] {
+    margin-block: auto;
+  }
+}
+
+@media (aspect-ratio > 13/10) and (max-height: 32rem) {
+  [data-slot="game-board"] .table-decision[data-form="panel"] {
+    margin: 0.25rem;
+    padding-top: 0.45rem;
+  }
+}
+
+[data-slot="game-board"] [data-slot="game-decision-bar"] {
+  border-color: var(--table-gold-line);
+  background: color-mix(in oklch, var(--table-panel), black 45%);
+}
+
+[data-slot="game-board"] [data-slot="game-decision-bar"][data-form="panel"] {
+  margin-top: auto;
+  background: color-mix(in oklch, var(--table-panel), black 30%);
+}
+
+/*
+ * The hint that explains the main button (the mockup's .weiter-hinweis): on
+ * the Phasen-Tafel below the buttons, centred - it comes first in the page
+ * (the button is described by it), the panel shows it after the bar; in the
+ * action bar and in a low window it stays above, with the question.
+ */
+[data-slot="game-board"] .table-decision[data-form="panel"] > .table-main-hint {
+  order: 1;
+  padding-bottom: 0.6rem;
+  text-align: center;
+}
+
+@media (aspect-ratio > 13/10) and (max-height: 32rem) {
+  [data-slot="game-board"] .table-decision[data-form="panel"] > .table-main-hint {
+    order: 0;
+    padding-bottom: 0;
+    text-align: start;
+  }
+}
+
+/* The phases' list: five phases with a symbol, only the current one unfolds its steps. */
+[data-slot="game-board"] .table-phases-head {
+  margin-bottom: 0.35rem;
+}
+
+[data-slot="game-board"] .table-phase-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+[data-slot="game-board"] .table-phase {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.28rem 0.6rem;
+  border-radius: 0.5rem;
+  color: var(--muted-foreground);
+  font-size: 0.85rem;
+  line-height: 1.2;
+}
+
+[data-slot="game-board"] .table-phase-icon {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: none;
+}
+
+[data-slot="game-board"] .table-phase-group[data-state="done"] .table-phase-icon {
+  color: color-mix(in srgb, var(--primary) 55%, var(--muted-foreground));
+}
+
+[data-slot="game-board"] .table-phase-group[data-state="current"] > .table-phase {
+  color: var(--foreground);
+}
+
+[data-slot="game-board"] .table-phase-group[data-state="current"] > .table-phase > .table-phase-icon {
+  color: var(--primary);
+}
+
+/* A main phase is its own step: in gold while Forge is in it, like an unfolded step (its words dark on the gold). */
+[data-slot="game-board"] .table-phase-group[data-state="current"] > .table-phase[data-state="current"] {
+  color: var(--primary-foreground);
+  font-weight: 700;
+  background: linear-gradient(180deg, var(--table-gold-light), var(--primary) 60%);
+  box-shadow: 0 0 0.9rem color-mix(in oklch, var(--primary) 55%, transparent);
+}
+
+[data-slot="game-board"] .table-phase-group[data-state="current"] > .table-phase[data-state="current"] > .table-phase-icon {
+  color: var(--primary-foreground);
+}
+
+[data-slot="game-board"] .table-phase-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.06rem;
+  margin: 0.1rem 0 0.2rem 1.55rem;
+  padding: 0 0 0 0.6rem;
+  border-left: 1px solid var(--table-gold-line);
+  list-style: none;
+}
+
+[data-slot="game-board"] .table-phase-step {
+  position: relative;
+  padding: 0.2rem 0.6rem;
+  border-radius: 0.4rem;
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+/* Past steps muted, the current one golden with a diamond (the mockup's .schritt.aktiv). */
+[data-slot="game-board"] .table-phase-step[data-state="done"] {
+  color: color-mix(in srgb, var(--muted-foreground) 80%, var(--primary));
+  opacity: 0.8;
+}
+
+[data-slot="game-board"] .table-phase-step[data-state="current"] {
+  color: var(--primary-foreground);
+  font-weight: 700;
+  background: linear-gradient(180deg, var(--table-gold-light), var(--primary) 60%);
+  box-shadow: 0 0 0.9rem color-mix(in oklch, var(--primary) 55%, transparent);
+}
+
+[data-slot="game-board"] .table-phase-step[data-state="current"]::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -0.95rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  background: var(--primary);
+  box-shadow: 0 0 0.5rem var(--primary);
+  transform: translateY(-50%) rotate(45deg);
+}
+
+/* The one line of the folded and the compact form: hidden while the list shows. */
+[data-slot="game-board"] .table-phase-line {
+  display: none;
+  margin: 0;
+  overflow: hidden;
+  color: var(--table-gold-light);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * Compact (the action bar in hoch, the mockup's .phasen-kompakt) and folded
+ * (the panel while a question needs the room, and always in a low breit
+ * window): the five symbols in a row, the current one golden, and "Phase ·
+ * Schritt" below them.
+ */
+[data-slot="game-board"] .table-phases[data-place="bar"] {
+  flex: 0 1 auto;
+  min-width: 7.7rem;
+}
+
+/* In the action bar a little smaller (the phases and two buttons in one row on a phone 412 px wide). */
+[data-slot="game-board"] .table-phases[data-place="bar"] > .table-phase-groups {
+  gap: 0.2rem;
+}
+
+[data-slot="game-board"] .table-phases[data-place="bar"] .table-phase-group > .table-phase {
+  width: 1.375rem;
+  height: 1.375rem;
+}
+
+[data-slot="game-board"] .table-phases[data-place="bar"] .table-phase-group > .table-phase > .table-phase-icon {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+[data-slot="game-board"] .table-phases:is([data-place="bar"], [data-folded]) .table-phases-head,
+[data-slot="game-board"] .table-phases:is([data-place="bar"], [data-folded]) .table-phase-name,
+[data-slot="game-board"] .table-phases:is([data-place="bar"], [data-folded]) .table-phase-steps {
+  display: none;
+}
+
+[data-slot="game-board"] .table-phases:is([data-place="bar"], [data-folded]) .table-phase-groups {
+  flex-direction: row;
+  gap: 0.25rem;
+}
+
+[data-slot="game-board"] .table-phases:is([data-place="bar"], [data-folded]) .table-phase {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 1px solid color-mix(in oklch, var(--primary) 20%, transparent);
+  border-radius: 0.45rem;
+  background: none;
+  box-shadow: none;
+  color: var(--muted-foreground);
+}
+
+[data-slot="game-board"] .table-phases:is([data-place="bar"], [data-folded]) .table-phase-icon {
+  width: 0.95rem;
+  height: 0.95rem;
+  color: inherit;
+}
+
+[data-slot="game-board"] .table-phases:is([data-place="bar"], [data-folded]) .table-phase-group[data-state="done"] > .table-phase {
+  color: color-mix(in srgb, var(--primary) 60%, var(--muted-foreground));
+}
+
+[data-slot="game-board"] .table-phases:is([data-place="bar"], [data-folded]) .table-phase-group[data-state="current"] > .table-phase {
+  border-color: transparent;
+  background: linear-gradient(180deg, var(--table-gold-light), var(--primary));
+  box-shadow: 0 0 0.6rem color-mix(in oklch, var(--primary) 60%, transparent);
+  color: var(--primary-foreground);
+}
+
+[data-slot="game-board"] .table-phases:is([data-place="bar"], [data-folded]) .table-phase-line {
+  display: block;
+  margin-top: 0.3rem;
+}
+
+[data-slot="game-board"] .table-phases[data-folded] {
+  margin-bottom: 0.25rem;
+}
+
+@media (aspect-ratio > 13/10) and (max-height: 32rem) {
+  [data-slot="game-board"] .table-phases[data-place="panel"] .table-phases-head,
+  [data-slot="game-board"] .table-phases[data-place="panel"] .table-phase-name,
+  [data-slot="game-board"] .table-phases[data-place="panel"] .table-phase-steps {
+    display: none;
+  }
+
+  [data-slot="game-board"] .table-phases[data-place="panel"] .table-phase-groups {
+    flex-direction: row;
+    gap: 0.25rem;
+  }
+
+  [data-slot="game-board"] .table-phases[data-place="panel"] .table-phase {
+    display: grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border: 1px solid color-mix(in oklch, var(--primary) 20%, transparent);
+    border-radius: 0.45rem;
+    background: none;
+    box-shadow: none;
+    color: var(--muted-foreground);
+  }
+
+  [data-slot="game-board"] .table-phases[data-place="panel"] .table-phase-icon {
+    width: 0.95rem;
+    height: 0.95rem;
+    color: inherit;
+  }
+
+  [data-slot="game-board"] .table-phases[data-place="panel"] .table-phase-group[data-state="current"] > .table-phase {
+    border-color: transparent;
+    background: linear-gradient(180deg, var(--table-gold-light), var(--primary));
+    color: var(--primary-foreground);
+  }
+
+  [data-slot="game-board"] .table-phases[data-place="panel"] .table-phase-line {
+    display: block;
+    margin-top: 0.25rem;
+  }
+}
+
+/* ---------- Buttons of the decision (prompt 41): the main button and the others ---------- */
+
+/*
+ * The main button (the mockup's .weiter): the one press that moves the round
+ * on - large, golden, Cinzel, a gloss sweeping across now and then (transform
+ * only; it stops under less motion, and on a button that is off). Text on gold
+ * is --primary-foreground (design-tokens.test.ts: on every tone of the gold).
+ */
+[data-slot="game-board"] [data-slot="button"].table-main-button {
+  position: relative;
+  overflow: hidden;
+  height: auto;
+  min-height: 3rem;
+  padding: 0.4rem 1.2rem;
+  border: 1px solid var(--table-gold-light);
+  border-radius: 0.8rem;
+  background: linear-gradient(180deg, var(--table-gold-light) 0%, var(--primary) 46%, color-mix(in oklch, var(--primary) 70%, var(--table-gold-dark)) 54%, color-mix(in oklch, var(--primary) 55%, var(--table-gold-dark)) 100%);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.65), inset 0 -0.2rem 0.4rem color-mix(in oklch, var(--table-gold-dark), black 30%), 0 0 0 2px color-mix(in oklch, var(--table-wood), black 40%), 0 0 0 3px color-mix(in oklch, var(--primary) 55%, transparent), 0 0 1.6rem color-mix(in oklch, var(--primary) 35%, transparent);
+  color: var(--primary-foreground);
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 0 oklch(1 0 0 / 0.4);
+  white-space: normal;
+}
+
+[data-slot="game-board"] [data-slot="button"].table-main-button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 35%, oklch(1 0 0 / 0.45) 50%, transparent 65%);
+  transform: translateX(-120%);
+  pointer-events: none;
+  animation: table-gloss 4.5s ease-in-out infinite;
+}
+
+[data-slot="game-board"] [data-slot="button"].table-main-button:disabled::after {
+  animation: none;
+}
+
+@keyframes table-gloss {
+  0%,
+  60% {
+    transform: translateX(-120%);
+  }
+  85%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+/* The other buttons of the decision: in the panel's style, clearly second - the panel's dark tone, a gold hairline (Forge's first button a stronger one). */
+[data-slot="game-board"] [data-area="decision"] :is([data-slot="button"], [data-slot="alert-dialog-trigger"]):not(.table-main-button) {
+  border-color: var(--table-gold-line);
+  background: color-mix(in oklch, var(--table-panel), black 25%);
+  color: var(--foreground);
+}
+
+/* A long label wraps inside its button instead of leaving the panel (the button keeps shadcn's height as its least). */
+[data-slot="game-board"] [data-area="decision"] :is([data-slot="button"], [data-slot="alert-dialog-trigger"])[data-size="lg"]:not(.table-main-button) {
+  max-width: 100%;
+  height: auto;
+  min-height: 2.5rem;
+  white-space: normal;
+}
+
+@media (pointer: coarse) {
+  [data-slot="game-board"] [data-area="decision"] :is([data-slot="button"], [data-slot="alert-dialog-trigger"])[data-size="lg"]:not(.table-main-button) {
+    min-height: 3rem;
+  }
+}
+
+[data-slot="game-board"] [data-area="decision"] :is([data-slot="button"], [data-slot="alert-dialog-trigger"])[data-variant="default"]:not(.table-main-button) {
+  border-color: color-mix(in oklch, var(--primary) 75%, transparent);
+  color: var(--table-gold-light);
+}
+
+[data-slot="game-board"] [data-area="decision"] :is([data-slot="button"], [data-slot="alert-dialog-trigger"]):not(.table-main-button):hover {
+  background: color-mix(in oklch, var(--table-panel), black 5%);
+}
+
+/* On the panel the main button takes the width, the others share a row below it (the mockup's); in a low window one row. */
+[data-slot="game-board"] [data-slot="game-decision-bar"][data-form="panel"] > [data-slot="game-decision-actions"] {
+  flex: 1 1 100%;
+}
+
+[data-slot="game-board"] [data-slot="game-decision-bar"][data-form="panel"] .table-main-button {
+  flex: 1 1 100%;
+}
+
+[data-slot="game-board"] [data-slot="game-decision-bar"][data-form="panel"] [data-slot="game-decision-actions"] > :is([data-slot="button"], [data-slot="alert-dialog-trigger"]):not(.table-main-button) {
+  flex: 1 1 auto;
+}
+
+@media (3/4 <= aspect-ratio <= 13/10) {
+  [data-slot="game-board"] [data-slot="game-decision-bar"][data-form="panel"] .table-main-button {
+    font-size: 1.05rem;
+    letter-spacing: 0.02em;
+    line-height: 1.15;
+  }
+}
+
+@media (aspect-ratio > 13/10) and (max-height: 32rem) {
+  [data-slot="game-board"] [data-slot="game-decision-bar"][data-form="panel"] .table-main-button {
+    flex: 1 1 0;
+    min-width: 7rem;
+    min-height: 2.9rem;
+    font-size: 1rem;
+    line-height: 1.15;
+  }
+}
+
+/*
+ * In the action bar (hoch) the answers sit right of the phases, the main
+ * button at the right end - under the thumb; what does not fit beside it
+ * wraps below, and a long label wraps inside the button.
+ */
+[data-slot="game-board"] [data-slot="game-decision-bar"][data-form="bar"] > [data-slot="game-decision-actions"] {
+  flex: 1 1 6.5rem;
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+  min-width: 6.5rem;
+}
+
+[data-slot="game-board"] [data-slot="game-decision-bar"][data-form="bar"] > [data-slot="game-decision-actions"] {
+  gap: 0.375rem;
+}
+
+[data-slot="game-board"] [data-slot="game-decision-bar"][data-form="bar"] > [data-slot="game-decision-actions"] > :is([data-slot="button"], [data-slot="alert-dialog-trigger"]):not(.table-main-button) {
+  padding-inline: 0.625rem;
+}
+
+[data-slot="game-board"] [data-slot="game-decision-bar"][data-form="bar"] .table-main-button {
+  flex: 0 1 auto;
+  min-width: 6.5rem;
+  min-height: 2.9rem;
+  padding-inline: 0.9rem;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
 }
 
 /* ---------- Less motion (keep both blocks; nothing else sets motion !important) ---------- */

@@ -127,6 +127,16 @@ describe("design tokens", () => {
     expect(contrast(foreground, background)).toBeGreaterThanOrEqual(4.5)
   })
 
+  // Prompt 41: the main button's gold gradient (table.css .table-main-button) runs from --table-gold-light over --primary
+  // down to --primary mixed with --table-gold-dark (55 : 45, in oklch); its words (--primary-foreground) keep 4.5:1 on
+  // every tone of it, also the darkest at its foot. The current step and phase use the upper half of the same gold.
+  it.each([0.7, 0.55])("text on the main button's gold reaches 4.5:1 down to --primary %s with --table-gold-dark", (share) => {
+    const [l1, c1, h1] = tokens.get("primary")!
+    const [l2, c2, h2] = tokens.get("table-gold-dark")!
+    const mixed = srgb([l1 * share + l2 * (1 - share), c1 * share + c2 * (1 - share), h1 * share + h2 * (1 - share)])
+    expect(ratio(token("primary-foreground"), mixed)).toBeGreaterThanOrEqual(4.5)
+  })
+
   // Prompt 37: regions full of text and the words on the board lie on --table-panel at 90 % (table.css, BOARD_TEXT in
   // game-table.tsx); below them may lie the board's brightest decoration - brass and rune gold - or the desk.
   it.each(
