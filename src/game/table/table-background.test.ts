@@ -14,7 +14,7 @@ describe("the stored choice", () => {
   it("is one of the drawn table, the two pictures and the player's own; the drawn table by default", () => {
     expect(TABLE_BACKGROUND.key).toBe("display.tableBackground")
     expect(TABLE_BACKGROUND.fallback).toBe("table")
-    for (const value of ["table", "colors", "planeswalker", "custom"]) expect(TABLE_BACKGROUND.check(value)).toBe(true)
+    for (const value of ["table", "colors", "planeswalker", "grid", "custom"]) expect(TABLE_BACKGROUND.check(value)).toBe(true)
     for (const value of ["wood", "", null, 1, { kind: "table" }]) expect(TABLE_BACKGROUND.check(value)).toBe(false)
   })
 
@@ -40,6 +40,7 @@ describe("what the table shows", () => {
     expect(colors).toMatchObject({ kind: "picture", choice: "colors" })
     expect(colors.kind === "picture" && colors.wide !== colors.tall).toBe(true)
     expect(tableBackground("planeswalker", null)).toMatchObject({ kind: "picture", choice: "planeswalker" })
+    expect(tableBackground("grid", null)).toMatchObject({ kind: "picture", choice: "grid" })
     expect(tableBackground("custom", PICTURE)).toEqual({ kind: "custom", src: PICTURE })
   })
 
@@ -47,8 +48,8 @@ describe("what the table shows", () => {
     expect(tableBackground("custom", null)).toEqual({ kind: "table" })
   })
 
-  it("names the two pictures that come with OpenMana", () => {
-    expect(BUILT_IN_BACKGROUNDS.map((background) => background.label)).toEqual(["Farbenrad", "Planeswalker"])
+  it("names the three pictures that come with OpenMana", () => {
+    expect(BUILT_IN_BACKGROUNDS.map((background) => background.label)).toEqual(["Farbenrad", "Planeswalker", "Chip-Raster"])
   })
 })
 

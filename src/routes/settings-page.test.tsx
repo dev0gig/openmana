@@ -116,11 +116,11 @@ describe("settings: less motion", () => {
 describe("settings: the table's background", () => {
   const PICTURE = "data:image/webp;base64,UklGRhIAAABXRUJQVlA4TAYAAAAvAAAAAAfQ//73v/+BiOh/AAA="
 
-  it("offers the drawn table (chosen), the two pictures and the player's own - not choosable before a picture is picked", async () => {
+  it("offers the drawn table (chosen), the three pictures and the player's own - not choosable before a picture is picked", async () => {
     renderAt("/settings")
     await waitFor(() => expect(radio("Spieltisch-Hintergrund", /Holztisch/)).toBeEnabled())
     const group = screen.getByRole("radiogroup", { name: "Spieltisch-Hintergrund" })
-    expect(within(group).getAllByRole("radio").map((r) => document.getElementById(r.getAttribute("aria-labelledby")!)?.textContent)).toEqual(["Holztisch (Vorgabe)", "Farbenrad", "Planeswalker", "Eigenes Bild"])
+    expect(within(group).getAllByRole("radio").map((r) => document.getElementById(r.getAttribute("aria-labelledby")!)?.textContent)).toEqual(["Holztisch (Vorgabe)", "Farbenrad", "Planeswalker", "Chip-Raster", "Eigenes Bild"])
     expect(radio("Spieltisch-Hintergrund", /Holztisch/)).toBeChecked()
     expect(radio("Spieltisch-Hintergrund", /Eigenes Bild/)).toBeDisabled()
     expect(screen.getByRole("button", { name: "Eigenes Bild auswählen" })).toBeEnabled()

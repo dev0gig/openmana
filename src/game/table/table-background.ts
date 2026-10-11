@@ -5,7 +5,7 @@
  * settings under display.* (this device only, never in the ORYX cloud; both
  * travel in backups like every setting):
  *  - display.tableBackground: which one ("table", "colors", "planeswalker",
- *    "custom");
+ *    "grid", "custom");
  *  - display.tableBackgroundImage: the player's own picture as a data: URL
  *    (WebP, at most MAX_SIDE px on its longer side), or null. It stays when
  *    another background is chosen, so choosing it again needs no new upload.
@@ -18,10 +18,12 @@ import colorsHoch from "./backgrounds/farbrad-hoch.webp"
 import colorsQuer from "./backgrounds/farbrad-quer.webp"
 import planeswalkerHoch from "./backgrounds/planeswalker-hoch.webp"
 import planeswalkerQuer from "./backgrounds/planeswalker-quer.webp"
+import gridHoch from "./backgrounds/raster-hoch.webp"
+import gridQuer from "./backgrounds/raster-quer.webp"
 
-export type TableBackgroundChoice = "table" | "colors" | "planeswalker" | "custom"
+export type TableBackgroundChoice = "table" | "colors" | "planeswalker" | "grid" | "custom"
 
-const CHOICES: readonly TableBackgroundChoice[] = ["table", "colors", "planeswalker", "custom"]
+const CHOICES: readonly TableBackgroundChoice[] = ["table", "colors", "planeswalker", "grid", "custom"]
 
 export const TABLE_BACKGROUND = defineSetting<TableBackgroundChoice>("display.tableBackground", "table", (value): value is TableBackgroundChoice =>
   CHOICES.includes(value as TableBackgroundChoice),
@@ -50,6 +52,7 @@ export interface BuiltInBackground {
 export const BUILT_IN_BACKGROUNDS: readonly BuiltInBackground[] = [
   { choice: "colors", label: "Farbenrad", wide: colorsQuer, tall: colorsHoch },
   { choice: "planeswalker", label: "Planeswalker", wide: planeswalkerQuer, tall: planeswalkerHoch },
+  { choice: "grid", label: "Chip-Raster", wide: gridQuer, tall: gridHoch },
 ]
 
 /** What the table shows: the drawing, or a picture (a built-in one in two orientations, or the player's own). */

@@ -1,6 +1,6 @@
 /*
  * Choosing the table's background in Settings (table-background.ts,
- * 2026-10-12): the drawn table, the two pictures that come with OpenMana, or
+ * 2026-10-12): the drawn table, the three pictures that come with OpenMana, or
  * a picture of the player's own - each with a small preview, saved at once.
  * "Eigenes Bild auswählen" takes a picture file from the device, stores it
  * (scaled down, as WebP) and chooses it; "Eigenes Bild entfernen" deletes it
@@ -17,7 +17,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useSaveSetting } from "@/storage/use-save-setting"
 import { BackgroundImageError, BUILT_IN_BACKGROUNDS, prepareBackgroundImage, TABLE_BACKGROUND, TABLE_BACKGROUND_IMAGE, type TableBackgroundChoice } from "./table-background"
 
-const CHOICES: Readonly<Record<string, TableBackgroundChoice>> = { table: "table", colors: "colors", planeswalker: "planeswalker", custom: "custom" }
+const CHOICES: Readonly<Record<string, TableBackgroundChoice>> = { table: "table", colors: "colors", planeswalker: "planeswalker", grid: "grid", custom: "custom" }
 
 function Option({ value, title, summary, preview, disabled = false }: { value: TableBackgroundChoice; title: string; summary: string; preview: string | null; disabled?: boolean }) {
   const id = useId()

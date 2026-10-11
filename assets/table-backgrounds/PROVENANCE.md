@@ -1,10 +1,10 @@
 # Herkunft der Spieltisch-Hintergründe
 
-Zwei Bilder, die der Spieler in den Einstellungen statt des gezeichneten
+Drei Bilder, die der Spieler in den Einstellungen statt des gezeichneten
 Holztischs als Spieltisch-Hintergrund wählen kann (2026-10-12, Wunsch des
-Projektbesitzers): **Farbenrad** (die fünf Manasymbole im Kreis) und
-**Planeswalker** (das Planeswalker-Zeichen in Gold), beide im Stil eines
-Chip-Floorplans („Die“).
+Projektbesitzers): **Farbenrad** (die fünf Manasymbole im Kreis),
+**Planeswalker** (das Planeswalker-Zeichen in Gold) und **Chip-Raster** (nur
+die grauen Kacheln, ohne Symbol), alle im Stil eines Chip-Floorplans („Die“).
 
 ## Quelle
 
@@ -42,6 +42,12 @@ gegenüber den Wallpapern:
    `S = Math.min(H / 1440, W / 1300)` begrenzt, damit das Symbol in die Breite
    passt. Im Querformat ergibt das denselben Wert wie vorher.
 
+3. **Chip-Raster** ist `planeswalker-die.html` ohne Zeichen: die Prüfung
+   „liegt diese Kachel im Zeichen“ antwortet immer nein (`return false;`
+   statt `return n>=7;`), und die Abdunkelung um das Zeichen
+   (`if(Math.abs(px+SQ/2-CX)<MW*0.70&&…)a*=0.50;`) ist entfernt, damit die
+   Mitte nicht als leeres Feld stehen bleibt.
+
 Danach verlustfrei als WebP gespeichert (Pillow, `lossless=True, method=6`).
 
 | Datei | Größe | Verwendung |
@@ -50,6 +56,8 @@ Danach verlustfrei als WebP gespeichert (Pillow, `lossless=True, method=6`).
 | `src/game/table/backgrounds/farbrad-hoch.webp` | 1440 × 2560 | Farbenrad, Fenster höher als breit |
 | `src/game/table/backgrounds/planeswalker-quer.webp` | 2560 × 1440 | Planeswalker, breiter als hoch |
 | `src/game/table/backgrounds/planeswalker-hoch.webp` | 1440 × 2560 | Planeswalker, höher als breit |
+| `src/game/table/backgrounds/raster-quer.webp` | 2560 × 1440 | Chip-Raster, breiter als hoch |
+| `src/game/table/backgrounds/raster-hoch.webp` | 1440 × 2560 | Chip-Raster, höher als breit |
 
 Neu rendern: in der HTML-Seite die Zeile `const S=H/1440,` wie oben ändern
 und `if(inZ)a*=0.12;` entfernen, sie mit `?w=2560&h=1440` bzw.
