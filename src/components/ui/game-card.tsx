@@ -30,8 +30,10 @@
  *   the game table, table.css adds what tells them apart beyond colour (WCAG
  *   1.4.1): a glow for usable, a thicker frame for chosen, a pulse for a
  *   target; the words stay in the chips and the card's name. Usable/selected
- *   frames take precedence. Every card keeps the frame's room, marked or not,
- *   so a mark never moves a row.
+ *   frames take precedence. The frame is an outline: it takes no room, so a
+ *   mark never moves a row and an unmarked card has nothing around its
+ *   picture (project owner, 2026-10-12; until then every card kept a 2 px
+ *   transparent border as the frame's room).
  * - A card whose face the player may not see (Forge's hidden cards) is the
  *   table's own back since prompt 39 (TableCardBack, src/game/table/
  *   table-art.tsx: OpenMana's back, never Wizards'), slot game-card-back.
@@ -56,24 +58,25 @@ const CAPTION = "h-[calc(100%-1rem)]"
 export type GameCardMark = "usable" | "selected" | "target"
 
 const MARKS: Readonly<Record<GameCardMark, string>> = {
-  usable: "border-primary",
-  selected: "border-foreground",
-  target: "border-table-danger",
+  usable: "outline-2 outline-primary",
+  selected: "outline-3 outline-foreground",
+  target: "outline-2 outline-table-danger",
 }
 
 /** Inside a button a caption is a span (figcaption belongs to a figure). */
 const GameCardRootContext = React.createContext<"figure" | "button">("figure")
 
 /**
- * The picture's place: the frame's room around it, the picture itself (turned
- * when tapped), the plaque on it (upright) - and, for a pile, the cards behind.
+ * The picture's place: exactly the picture (turned when tapped; a mark is an
+ * outline around it, taking no room), the plaque on it (upright) - and, for a
+ * pile, the cards behind.
  */
 function GameCardFace({ tapped, mark, caption, plaque, pile, children }: { tapped: boolean; mark: GameCardMark | null; caption: boolean; plaque: React.ReactNode; pile: number; children: React.ReactNode }) {
   const face = (
     <span
       data-slot="game-card-face"
       data-mark={mark ?? undefined}
-      className={cn("relative block rounded-2xl border-2 border-transparent", caption ? CAPTION : "h-full", tapped ? "aspect-square" : "aspect-63/88", mark ? MARKS[mark] : null)}
+      className={cn("relative block rounded-xl", caption ? CAPTION : "h-full", tapped ? "aspect-square" : "aspect-63/88", mark ? MARKS[mark] : null)}
     >
       <span data-slot="game-card-picture" className={cn("block", tapped ? "absolute top-1/2 left-1/2 aspect-63/88 h-full -translate-x-1/2 -translate-y-1/2 rotate-90" : "size-full")}>
         {children}

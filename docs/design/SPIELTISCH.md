@@ -610,7 +610,13 @@ default).
 ### 4.9 Marks (prompt 40; arrows: §4.15, prompt 43)
 `data-mark` (`usable`, `selected`, `target`) and the combat facts stay the
 truth; only their look changes. Marks are frames and glows **around** the
-picture, never on it.
+picture, never on it. Since 2026-10-12 a frame is an **outline** (2 px, 3 px
+for chosen) that takes no room: a card's face is exactly its picture, with the
+picture's corners (`3.8% / 2.72%`), and an unmarked card has nothing around it.
+Until then every card kept a 2 px transparent border as the frame's room;
+whatever hung on it (CardPicture's line, a shadow) showed as a veil, most of
+all on a lifted, scaled-up hand card (project owner: "Der sollte gar nicht
+existieren"). Field rows keep 3 px above and below for an outline.
 
 | State (source) | Look | Token |
 |---|---|---|
