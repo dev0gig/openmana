@@ -64,7 +64,7 @@
  * main button.
  *
  * The hand (prompt 42, FannedHand below, table/hand-fan.ts): a fan of
- * overlapping cards; the card under the mouse, a swiping thumb or the
+ * cards side by side (never overlapping, since 2026-10-12); the card under the mouse, a swiping thumb or the
  * keyboard's focus rises whole above it; a tap is the lifted card's, a swipe
  * nothing, a long press looks (useFanPress).
  *
@@ -968,7 +968,7 @@ function rootRem(): number {
 
 /**
  * Your hand, always at the bottom: a fan (prompt 42, docs/design/SPIELTISCH.md
- * §4.10, table/hand-fan.ts) - overlapping cards, turned and on an arc, sinking
+ * §4.10, table/hand-fan.ts) - cards side by side (never overlapping), turned and on an arc, sinking
  * a little below the hand's edge; the card under the mouse, under a thumb
  * swiping over the hand (by the cards' resting places) or with the keyboard's
  * focus rises whole above the hand. A tap without a swipe is the lifted card's
@@ -1035,7 +1035,7 @@ function FannedHand({ cards, pictures }: { cards: readonly Card[]; pictures: Tab
       : {
           "--hand-card-w": `${fan.cardWidth}px`,
           "--hand-card-h": `${fan.cardHeight}px`,
-          "--hand-overlap": `${fan.overlap}px`,
+          "--hand-gap": `${fan.gap}px`,
           "--hand-sink": `${fan.sink}px`,
           "--hand-lift-scale": fan.lift.scale,
           "--hand-lift-y": `${fan.lift.y}px`,

@@ -263,7 +263,7 @@ with a visible focus ring and a name (prompt 45, end-to-end
 | `TablePanel` (+ `TablePanelHead`, `TablePanelTitle`, `TablePanelCount`, `TablePanelSub`) | `src/game/table/table-panel.tsx` (prompt 41, §9) | the table's panel (the mockup's `.tafel`): panel tone darkening downwards, gold hairline, two gold corner ornaments, inner shadow, Cinzel title - the Zauberchronik and the Phasen-Tafel |
 | `Chronicle` | `src/game/table/chronicle.tsx` (prompt 41, §9) | the Zauberchronik in the region "Stapel und Kampf": Forge's stack top first (card that only looks, name, controller's dot and words, targets, Forge's text, number) and combat as short lines; a bar between the battlefields in `hoch` |
 | `PhasePanel` | `src/game/table/phase-panel.tsx` (prompt 41, §9; replaces prompt 16's `PhaseTrack` in the header) | the turn's five phases on the Phasen-Tafel (the current one unfolds its steps, the current step gold with a diamond) or as one line - five symbols and "Phase · Schritt" - in the action bar and while a question needs the room; `aria-hidden`, anchors `phase-track*` |
-| `FannedHand` | `src/game/game-table.tsx`, geometry `src/game/table/hand-fan.ts`, gestures `useFanPress` (`src/hooks/use-card-press.ts`) (prompt 42, §9) | the player's hand as a fan: overlapping, turned cards on an arc; the card under the mouse, a swiping thumb or the keyboard's focus rises whole above the hand |
+| `FannedHand` | `src/game/game-table.tsx`, geometry `src/game/table/hand-fan.ts`, gestures `useFanPress` (`src/hooks/use-card-press.ts`) (prompt 42, §9) | the player's hand as a fan: turned cards side by side on an arc, never overlapping (2026-10-12); the card under the mouse, a swiping thumb or the keyboard's focus rises whole above the hand |
 | `TableArrows` | `src/game/table/table-arrows.tsx`, relations and geometry `arrows.ts` (prompt 43, §9) | target, attack and block arrows over the board from Forge's stack targets and combat; decoration only (`aria-hidden`, no pointer events) |
 | `TableMotion` | `src/game/table/table-motion.tsx`, rules and keyframes `motion-plan.ts` (prompt 44, §9) | the table's motion between two of Forge's states: travelling, shifting and turning cards, damage, life, chronicle and phase effects; Web Animations of transform/opacity, nothing under less motion |
 | `GamePlayer`, `GamePlayerButton` | `src/components/ui/game-player.tsx`, built the shadcn way (prompt 17) | a player's name and life total on their seat and in the decision region; as a button where Forge's running input takes the player (a target, a choice, life for Phyrexian mana), with the cards' marks drawn as an outline inside the box, so a mark takes no room; shadcn's focus ring, 44 px on touch screens as a button. On the table's strips it is the life medallion (prompt 39, `table-medallion`: a ring with a glow per mark, a stack target red) |
@@ -374,7 +374,8 @@ reference.
   their cards by height and width (at least 44 px wide, then scrolling); no
   line between a battlefield's two rows.
 - **Hand as a fan** (prompt 42, [design/SPIELTISCH.md](design/SPIELTISCH.md)
-  §4.10): overlapping cards sized by the hand's height, turned and on an arc,
+  §4.10): cards sized by the hand's height, side by side and never overlapping
+  (2026-10-12; smaller cards where many), turned and on an arc,
   sinking a little below its edge; the card under the mouse or the swiping
   thumb (by the cards' resting places) or with keyboard focus rises whole
   above the hand at a full card's size; a tap is the lifted card's primary

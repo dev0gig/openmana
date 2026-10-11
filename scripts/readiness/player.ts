@@ -28,14 +28,14 @@ export const ARMED_AFTER_MS = 650
 
 /**
  * Where to press a card of the table (relative to its box, for Playwright's `position`): the middle of the part of it
- * no other card covers. The player's hand is a fan of overlapping cards (prompt 42) whose touch gestures go to the card
- * whose resting place lies under the finger - its centre may lie under the next card. Cards that nothing covers (the
+ * no other card covers. The player's hand is a fan (prompt 42; side by side since 2026-10-12) whose touch gestures go to the card
+ * whose resting place lies under the finger - a lifted neighbour may cover its centre. Cards that nothing covers (the
  * battlefields) get their centre. Undefined where no part of the card is its own on screen (Playwright then reports it).
  */
 export async function cardPoint(card: Locator): Promise<{ readonly x: number; readonly y: number } | undefined> {
   const point = await card.evaluate((element) => {
     const box = element.getBoundingClientRect()
-    // Lower on the card: the fan's cards overlap side by side, the lifted card stands above the others' tops.
+    // Lower on the card: the lifted card stands above the others' tops.
     const row = element.closest('[data-slot="game-card-row"]')?.getBoundingClientRect()
     const y = Math.min(box.top + box.height * 0.6, (row?.bottom ?? Infinity) - 4)
     const own = (x: number) => {

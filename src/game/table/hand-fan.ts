@@ -6,10 +6,11 @@
  *
  *  - Card size from the hand's height: a card is 1.1 times as tall as the
  *    hand (at most 11.5 rem wide) and sinks a little below its lower edge.
- *  - The cards overlap so that all fit into the width (at least 14 %, more
- *    when there are many); each keeps at least MIN_STRIP px of its own -
- *    seen and reachable -, and where that leaves no room the cards get
- *    smaller (down to MIN_CARD px wide).
+ *  - The cards never overlap (project owner, 2026-10-12; until then they
+ *    overlapped by at least 14 %): side by side, GAP_REM apart, and where
+ *    that leaves no room the cards get smaller (down to MIN_CARD px wide) -
+ *    a tap lifts a card to a full card's size anyway, a long press shows it
+ *    whole.
  *  - Turned and set on an arc by the number of cards: card d places from the
  *    middle turns d × min(3.2°, 24°/n) and drops d² × min(1.1 %, 8 %/n) of its
  *    height, around its bottom centre; the outer cards' turn is kept clear of
@@ -18,12 +19,12 @@
  *    1.12 times the size of a full card - also when the fan made the cards
  *    smaller -, its bottom 0.4 rem above the hand's lower edge, so it stands
  *    whole above the hand (over the strips; the hand clips only downwards).
- *  - More cards than even small ones fit (some 14 on a phone): a row that
+ *  - More cards than even small ones fit (some 10 on a small phone): a row that
  *    scrolls sideways (mode "row"), cards that fit the hand's height and rise
- *    inside it, MIN_STRIP px of each card in view.
+ *    inside it, side by side as in the fan.
  *
  * restingCardAt is the fan's choice for a pointer: the card whose resting
- * place - the part of it no later card covers - lies under or nearest to it.
+ * place - the card and the gap after it - lies under or nearest to it.
  * Resting places ignore the lift and the turn (layout boxes), so the choice
  * never jumps while the lifted card moves.
  */
@@ -34,9 +35,9 @@ const CARD_RATIO = 63 / 88
 const FULL_HEIGHT = 1.1
 /** The widest a hand card gets (rem; the mockup's 11.5 rem). */
 const FULL_MAX_REM = 11.5
-/** The least a card overlaps the next (14 % of its width). */
-const LEAST_OVERLAP = 0.14
-/** How much of its own every card keeps in view at the least (px): WCAG 2.5.8's 24 px target. */
+/** The room between two cards (rem): they never overlap. */
+const GAP_REM = 0.25
+/** How much of its own every card keeps in view at the least (px): WCAG 2.5.8's 24 px target - every card is whole, at least MIN_CARD wide. */
 export const MIN_STRIP = 24
 /** The smallest card of the fan (px wide); below it the hand becomes a scrolling row. */
 export const MIN_CARD = 32
@@ -60,8 +61,8 @@ export interface HandFan {
   /** A resting card's size (px). */
   readonly cardWidth: number
   readonly cardHeight: number
-  /** The margin before every card but the first (px, negative: the overlap). */
-  readonly overlap: number
+  /** The room before every card but the first (px; never negative - the cards do not overlap). */
+  readonly gap: number
   /** How far a resting card reaches below the hand's lower edge (px). */
   readonly sink: number
   /** A lifted card: its scale (around its bottom centre) and its move upwards from its resting place (px, negative). */
@@ -79,27 +80,21 @@ const round = (value: number) => Math.round(value * 100) / 100
 export function handFan(count: number, box: { readonly width: number; readonly height: number }, rem = 16): HandFan | null {
   const { width, height } = box
   if (count <= 0 || width <= 0 || height <= 0) return null
-  const gap = LIFT_GAP_REM * rem
+  const liftGap = LIFT_GAP_REM * rem
+  const gap = GAP_REM * rem
   const turn = count > 1 ? Math.min(3.2, 24 / count) : 0
   const outer = (((count - 1) / 2) * turn * Math.PI) / 180
-  // How far the outermost card's turn reaches beyond its resting place, on each side.
-  const reach = (cardWidth: number) => (cardWidth / CARD_RATIO) * Math.sin(outer)
-  const step = (cardWidth: number) => (count > 1 ? Math.min((1 - LEAST_OVERLAP) * cardWidth, (width - 2 * reach(cardWidth) - cardWidth) / (count - 1)) : 0)
   const full = Math.min(height * FULL_HEIGHT * CARD_RATIO, FULL_MAX_REM * rem, width)
-  let cardWidth = full
-  if (count > 1 && step(full) < MIN_STRIP) {
-    // Smaller cards: the widest for which every card keeps MIN_STRIP px (width = card + its turn + the strips).
-    cardWidth = Math.min(full, (width - (count - 1) * MIN_STRIP) / (1 + (2 * Math.sin(outer)) / CARD_RATIO))
-  }
+  // The widest card for which all fit side by side: width = the cards + the gaps + what the outer cards' turn reaches beyond them.
+  const cardWidth = Math.min(full, (width - (count - 1) * gap) / (count + (2 * Math.sin(outer)) / CARD_RATIO))
   if (cardWidth < MIN_CARD) {
-    // A row: cards that rise inside the hand (it scrolls, so it cannot let them out), each MIN_STRIP px or half a card apart.
+    // A row: cards that rise inside the hand (it scrolls, so it cannot let them out), side by side.
     const cardHeight = (height - 2) / LIFT_SCALE
-    const rowWidth = cardHeight * CARD_RATIO
     return {
       mode: "row",
-      cardWidth: round(rowWidth),
+      cardWidth: round(cardHeight * CARD_RATIO),
       cardHeight: round(cardHeight),
-      overlap: round(Math.max(MIN_STRIP, rowWidth / 2) - rowWidth),
+      gap: round(gap),
       sink: 0,
       lift: { scale: LIFT_SCALE, y: -1 },
       cards: Array.from({ length: count }, () => ({ rotate: 0, drop: 0 })),
@@ -112,9 +107,9 @@ export function handFan(count: number, box: { readonly width: number; readonly h
     mode: "fan",
     cardWidth: round(cardWidth),
     cardHeight: round(cardHeight),
-    overlap: round(step(cardWidth) - cardWidth),
+    gap: round(gap),
     sink: round(sink),
-    lift: { scale: round((LIFT_SCALE * full) / cardWidth), y: round(-(sink + gap)) },
+    lift: { scale: round((LIFT_SCALE * full) / cardWidth), y: round(-(sink + liftGap)) },
     cards: Array.from({ length: count }, (_, index) => {
       const d = index - (count - 1) / 2
       return { rotate: round(d * turn), drop: round(d * d * arc * cardHeight) }
@@ -124,7 +119,7 @@ export function handFan(count: number, box: { readonly width: number; readonly h
 
 /**
  * The fan's choice for a pointer at x: the card whose own part of its resting
- * place - from its left edge to the next card's - lies under x; left of the
+ * place - from its left edge to the next card's, the gap included - lies under x; left of the
  * first card the first, right of the last the last. `lefts` are the cards'
  * left edges from left to right (layout boxes, in the pointer's coordinates).
  * Null without cards.

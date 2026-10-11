@@ -631,8 +631,10 @@ usable cards now say "gold umrandet" (were "gold gestrichelt").
   not duplicated; every guard stays.
 - The toolbar "Deine Hand: N Karten" stays (arrows, Home, End, Enter); every
   card at least 24 px visible and reachable, also with 10+ cards at 360 px.
-- No drag and drop onto the battlefield; when a tap plays at once does not
-  change. Replaces the Anvil lesson "never fanned" (prompt 13) deliberately.
+- ~~No drag and drop onto the battlefield~~ - lifted by the project owner on
+  2026-10-12: dragging a card onto the battlefield to play it is wanted (it
+  feels more natural than tap and button) and follows as its own prompt.
+  Replaces the Anvil lesson "never fanned" (prompt 13) deliberately.
 
 **Built (prompt 42)** - `FannedHand` in `game-table.tsx`, the geometry in
 `src/game/table/hand-fan.ts`, the gestures `useFanPress` in
@@ -641,10 +643,13 @@ in `docs/implementation/42-hand-fan.md`:
 
 - Sizes from the hand's measured content box (`useElementSize`): a full card
   1.1 × the hand's height (at most 11.5 rem wide), sinking 9 % of its height
-  below the edge; overlap at least 14 %, more to fit the width with the outer
-  cards' turn; every card keeps **24 px of its own** (`MIN_STRIP`), smaller
-  cards where that needs it (down to 32 px wide: 13 cards on a 360 px phone,
-  15 on 412 px); beyond that a row that scrolls sideways (`data-fan="row"`,
+  below the edge; **since 2026-10-12 the cards never overlap** (project owner:
+  the overlap looked untidy) - side by side, 0.25 rem apart (`--hand-gap`),
+  the outer cards' turn kept inside the width; where they do not fit the
+  cards get smaller (down to 32 px wide: 9 cards on a 360 px phone, 10 on
+  412 px) - a tap lifts one to a full card's size, a long press shows it
+  whole; until then they overlapped by at least 14 % with 24 px of each card
+  its own; beyond that a row that scrolls sideways (`data-fan="row"`,
   `touch-action: pan-x`, cards rising inside the hand). Turn and arc as the
   mockup's.
 - Lifted (`data-lifted` - the mouse, a finger - or `:focus-visible`):
@@ -654,7 +659,7 @@ in `docs/implementation/42-hand-fan.md`:
   card stands out. A `transform` transition of 0.18 s, none under less
   motion.
 - The resting place is a card's own strip (from its left edge to the next
-  card's; layout boxes, `offsetLeft`): what the player sees of it at rest and
+  card's, the gap included - since 2026-10-12 the whole card; layout boxes, `offsetLeft`): what the player sees of it at rest and
   what the mouse hits - a finger and the mouse choose alike, the choice
   never jumps while the lifted card moves.
 - Touch and pen belong to the row (`touch-action: none`): a finger lifts,
