@@ -30,10 +30,13 @@ Fan Content Policy, wie die Kartenbilder (siehe `TRANSPARENCY.md`).
 Gerendert am 2026-10-12 in Chromium (Playwright) mit zwei Änderungen
 gegenüber den Wallpapern:
 
-1. **Ohne Text.** Alle Beschriftungen der Seiten (Elemente `.lb`, z. B.
-   „MAGIC – THE GATHERING“, Konstruktionsangaben) sind ausgeblendet
-   (`.lb { display: none }`). Raster, Linien und Symbol bleiben, wie die
-   Seite sie zeichnet.
+1. **Ohne Text, Raster durchgehend.** Alle Beschriftungen der Seiten
+   (Elemente `.lb`, z. B. „MAGIC – THE GATHERING“, Konstruktionsangaben) und
+   die kleinen Rahmenecken um sie (`.tick`, `.mark`) sind ausgeblendet
+   (`.lb, .tick, .mark { display: none }`). Die Seiten dunkeln das Raster
+   unter den Beschriftungen ab (`if(inZ)a*=0.12;`); diese Zeile ist entfernt,
+   damit dort keine leeren Felder bleiben (Wunsch des Projektbesitzers,
+   2026-10-12). Leiterbahnen und Symbol bleiben, wie die Seite sie zeichnet.
 2. **Auch hochkant.** Die Seiten nehmen `?w=` und `?h=`. Für das
    Hochformat (Handy) ist der Maßstab der Seite von `S = H / 1440` auf
    `S = Math.min(H / 1440, W / 1300)` begrenzt, damit das Symbol in die Breite
@@ -48,7 +51,8 @@ Danach verlustfrei als WebP gespeichert (Pillow, `lossless=True, method=6`).
 | `src/game/table/backgrounds/planeswalker-quer.webp` | 2560 × 1440 | Planeswalker, breiter als hoch |
 | `src/game/table/backgrounds/planeswalker-hoch.webp` | 1440 × 2560 | Planeswalker, höher als breit |
 
-Neu rendern: die HTML-Seite mit `?w=2560&h=1440` bzw. `?w=1440&h=2560` in
-Chromium öffnen (für hochkant vorher die Zeile `const S=H/1440,` wie oben
-ändern), das Stylesheet `.lb{display:none !important}` einfügen, ein
+Neu rendern: in der HTML-Seite die Zeile `const S=H/1440,` wie oben ändern
+und `if(inZ)a*=0.12;` entfernen, sie mit `?w=2560&h=1440` bzw.
+`?w=1440&h=2560` in Chromium öffnen, das Stylesheet
+`.lb,.tick,.mark{display:none !important}` einfügen, ein
 Bildschirmfoto der Seite machen und verlustfrei als WebP speichern.
