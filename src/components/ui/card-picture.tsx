@@ -13,6 +13,13 @@
  * crossOrigin="anonymous"; referrerPolicy="no-referrer" keeps the page's
  * address to ourselves (Bible §15). data-state says what is shown:
  * loading, loaded, failed or missing.
+ *
+ * A picture that loads lazily with `sizes="auto"` (the game table's,
+ * table-picture.tsx) gives up `sizes` before it leaves the page: Chrome
+ * keeps such an image - and the elements around it - alive after its removal
+ * (its viewport listener); prompt 45 measured about 20 nodes and 4 event
+ * listeners more per state of the game table, without end. React runs a
+ * ref's cleanup before it takes the elements out of the page.
  */
 import * as React from "react"
 import { cn } from "cn"
@@ -24,7 +31,7 @@ const CARD_RATIO = 63 / 88
 
 type PictureState = "loading" | "loaded" | "failed"
 
-interface CardPictureProps extends Omit<React.ComponentProps<"img">, "src" | "alt" | "crossOrigin" | "onLoad" | "onError"> {
+interface CardPictureProps extends Omit<React.ComponentProps<"img">, "src" | "alt" | "crossOrigin" | "onLoad" | "onError" | "ref"> {
   /** The picture's URL; null: there is none. */
   src: string | null
   alt: string
@@ -39,7 +46,28 @@ interface CardPictureProps extends Omit<React.ComponentProps<"img">, "src" | "al
   compact?: boolean
 }
 
+/**
+ * Takes `sizes` away when a lazily sized picture leaves the page (see above)
+ * and gives it back when the same element is put in again (React's
+ * development mode attaches a ref twice).
+ */
+function useReleasedSizes(): React.RefCallback<HTMLImageElement> {
+  const saved = React.useRef<string | null>(null)
+  return React.useCallback((image: HTMLImageElement | null) => {
+    if (image === null) return undefined
+    if (saved.current !== null) image.setAttribute("sizes", saved.current)
+    saved.current = null
+    return () => {
+      const sizes = image.getAttribute("sizes")
+      if (sizes !== "auto") return
+      saved.current = sizes
+      image.removeAttribute("sizes")
+    }
+  }, [])
+}
+
 function CardPicture({ src, alt, fallback, className, onStateChange, compact = false, ...props }: CardPictureProps) {
+  const releaseSizes = useReleasedSizes()
   // Keyed by URL: a new picture starts at "loading" without an effect.
   const [status, setStatus] = React.useState<{ readonly src: string | null; readonly state: PictureState }>({ src, state: "loading" })
   const state: PictureState = status.src === src ? status.state : "loading"
@@ -59,6 +87,7 @@ function CardPicture({ src, alt, fallback, className, onStateChange, compact = f
         <>
           {state === "loading" ? <Skeleton className="absolute inset-0 rounded-none" /> : null}
           <img
+            ref={releaseSizes}
             src={src}
             alt={alt}
             crossOrigin="anonymous"

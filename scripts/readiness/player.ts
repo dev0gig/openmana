@@ -96,6 +96,8 @@ export interface PlayOptions {
   readonly notices: { at: number; text: string }[]
   /** Measures what the page with its running engine takes in memory (bytes), once from turn 5; optional. */
   readonly measureMemory?: () => Promise<number | null>
+  /** Called once per turn the table shows (at the player's first priority in it), before the player acts; optional (prompt 45: the table's listeners and animations per turn). */
+  readonly sampleTurn?: (turn: number) => Promise<void>
 }
 
 export interface PlayResult extends GameStats {
@@ -305,6 +307,7 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
   let languages: Record<string, unknown> | null = null
   let memoryInGame: number | null = null
   let nextMemoryTurn = 5
+  let sampledTurn = 0
 
   for (let step = 0; step < 4000; step++) {
     if (Date.now() - started > game.maxMinutes * 60_000) {
@@ -363,6 +366,10 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
       nextMemoryTurn = (Math.floor(view.turn / 5) + 1) * 5
       const bytes = await game.measureMemory().catch(() => null)
       if (bytes !== null && (memoryInGame === null || bytes > memoryInGame)) memoryInGame = bytes
+    }
+    if (game.sampleTurn !== undefined && view.turn > sampledTurn && view.kind === "Priorität") {
+      sampledTurn = view.turn
+      await game.sampleTurn(view.turn)
     }
     stats.kinds[view.kind] = (stats.kinds[view.kind] ?? 0) + 1
     const before = await fingerprint(page)

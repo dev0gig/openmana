@@ -3,7 +3,7 @@
  * Forge's AI through the real user interface, in real Chrome with the real
  * Forge WebAssembly engine - nothing stubbed, nothing sent past the table.
  *
- *   node scripts/readiness/matches.ts --serve <built dist> --out <new report dir> [--games a,b] [--keep-going] [--cpu-throttle 4] [--less-motion]
+ *   node scripts/readiness/matches.ts --serve <built dist> --out <new report dir> [--games a,b] [--keep-going] [--cpu-throttle 4] [--less-motion] [--table-memory]
  *   node scripts/readiness/matches.ts --base https://openmana.oryx.quest --out <dir> --games live
  *
  * --cpu-throttle <rate> (prompt 44, the table's performance budget): every
@@ -13,6 +13,14 @@
  * the frame rate while the table's motion runs. --less-motion plays with the
  * player's setting for less motion (<html data-reduced-motion>) - the same
  * game without motion, for comparison.
+ *
+ * --table-memory (prompt 45, docs/design/SPIELTISCH.md §9): once per turn, at
+ * the player's first priority and after the table's motion has ended, a full
+ * garbage collection and then Chrome's counters of the page (event listeners,
+ * DOM nodes, JavaScript heap) and the table's animations: none of the motion's
+ * may still run and no ghost may be left; the endless ones (rune ring, gloss,
+ * pulses, arrows) are counted. From turn 10 on the listeners and nodes must
+ * stay level with what the first turns had (see tableMemoryChecks).
  *
  * With --serve the build is served by `vite preview` (the repository's
  * configuration: isolation headers, engine and catalog checked again); select
@@ -50,7 +58,7 @@
 import { execFile } from "node:child_process"
 import fs from "node:fs"
 import path from "node:path"
-import { chromium, type BrowserContext, type Page } from "playwright-core"
+import { chromium, type BrowserContext, type CDPSession, type Page } from "playwright-core"
 import { playGame, type PlayResult } from "./player.ts"
 
 // ── Arguments ──────────────────────────────────────────────────────────────
@@ -73,6 +81,7 @@ const keepGoing = args.includes("--keep-going")
 const cpuThrottle = option("--cpu-throttle") === null ? null : Number(option("--cpu-throttle"))
 if (cpuThrottle !== null && !(cpuThrottle >= 1)) throw new Error("--cpu-throttle <rate> needs a rate of at least 1")
 const lessMotion = args.includes("--less-motion")
+const tableMemory = args.includes("--table-memory")
 const onlyGames = option("--games")?.split(",").map((name) => name.trim()).filter(Boolean) ?? null
 
 // ── Report ─────────────────────────────────────────────────────────────────
@@ -658,6 +667,79 @@ function readPerformance() {
   }
 }
 
+interface TableSample {
+  readonly turn: number
+  /** Chrome's counters of the page after a full garbage collection (Performance.getMetrics). */
+  readonly listeners: number | null
+  readonly nodes: number | null
+  readonly heapMiB: number | null
+  readonly documents: number | null
+  /** The table's DOM nodes (the board and everything in it). */
+  readonly boardNodes: number
+  /** Animations still running that end (the motion's, transitions) - must be none once the motion has ended. */
+  readonly running: number
+  /** The endless ones (rune ring, its glimmer, the main button's gloss, target pulses, arrows' flow). */
+  readonly endless: number
+  /** Ghosts left in the motion's layer - must be none. */
+  readonly ghosts: number | null
+  readonly arrows: number
+}
+
+/** One sample of the table per turn (--table-memory): after the motion ended (at most 3 s) and a full garbage collection. */
+async function sampleTable(page: Page, cdp: CDPSession, turn: number): Promise<TableSample> {
+  await page.waitForFunction(() => document.querySelector('[data-slot="table-motion"][data-moving]') === null, undefined, { timeout: 3000 }).catch(() => undefined)
+  await page.waitForTimeout(400)
+  await cdp.send("HeapProfiler.collectGarbage")
+  const { metrics } = await cdp.send("Performance.getMetrics")
+  const metric = (name: string) => metrics.find((entry) => entry.name === name)?.value ?? null
+  const heap = metric("JSHeapUsedSize")
+  const table = await page.evaluate(() => {
+    const animations = document.getAnimations()
+    const endless = animations.filter((animation) => animation.effect?.getTiming().iterations === Infinity)
+    return {
+      boardNodes: document.querySelectorAll('[data-slot="game-board"] *').length,
+      running: animations.filter((animation) => !endless.includes(animation) && animation.playState === "running").length,
+      endless: endless.length,
+      ghosts: document.querySelector('[data-slot="table-motion"]')?.childElementCount ?? null,
+      arrows: document.querySelectorAll("[data-arrow]").length,
+    }
+  })
+  return { turn, listeners: metric("JSEventListeners"), nodes: metric("Nodes"), heapMiB: heap === null ? null : Math.round((heap / 2 ** 20) * 10) / 10, documents: metric("Documents"), ...table }
+}
+
+/**
+ * What the samples of one game must show (--table-memory): no motion left running and no ghost at any turn, and from
+ * turn 10 on no more event listeners or DOM nodes than the first turns had, give or take what the table's contents
+ * change (a card brings its nodes; a leak grows with every turn, whatever lies there). Bounds: the highest of turns
+ * 1-5 plus a tenth and 20 listeners, plus a quarter of the nodes. Prompt 45 measured both level once the table's
+ * pictures were let go (card-picture.tsx); before, a Commander game reached 646 listeners (turns 1-5: at most 480)
+ * and 2348 nodes (1516).
+ */
+function tableMemoryChecks(id: string, samples: readonly TableSample[]): Record<string, unknown> {
+  for (const sample of samples) {
+    check(sample.running === 0, `${id}: turn ${sample.turn}: ${sample.running} animations of the motion still run after it ended`)
+    check(sample.ghosts === 0, `${id}: turn ${sample.turn}: ${sample.ghosts} ghosts left in the motion's layer`)
+  }
+  const early = samples.filter((sample) => sample.turn <= 5)
+  const late = samples.filter((sample) => sample.turn >= 10)
+  check(early.length > 0 && late.length > 0, `${id}: the game gave no samples before turn 5 and from turn 10 (${samples.map((sample) => sample.turn).join(", ")})`)
+  const bound = (key: "listeners" | "nodes") => {
+    const most = Math.max(...early.map((sample) => sample[key] ?? 0))
+    return Math.round(key === "listeners" ? most * 1.1 + 20 : most * 1.25)
+  }
+  const highest = (key: "listeners" | "nodes") => Math.max(...late.map((sample) => sample[key] ?? 0))
+  for (const key of ["listeners", "nodes"] as const) {
+    if (early.length > 0 && late.length > 0) check(highest(key) <= bound(key), `${id}: ${key} from turn 10 up to ${highest(key)}, the first turns' bound is ${bound(key)}`)
+  }
+  return {
+    samples: samples.length,
+    listeners: { early: early.map((sample) => sample.listeners), late: late.map((sample) => sample.listeners), bound: early.length > 0 ? bound("listeners") : null },
+    nodes: { early: early.map((sample) => sample.nodes), late: late.map((sample) => sample.nodes), bound: early.length > 0 ? bound("nodes") : null },
+    heapMiB: samples.map((sample) => sample.heapMiB),
+    endless: samples.map((sample) => sample.endless),
+  }
+}
+
 function rendererMemory(): Promise<number | null> {
   return new Promise((resolve) => {
     execFile("ps", ["-eo", "rss=,args="], { maxBuffer: 16 * 1024 * 1024 }, (error, stdout) => {
@@ -737,7 +819,9 @@ try {
       entry["confirmedProfile"] = confirmed
       check(game.profile === "Zufällig" ? confirmed.endsWith(" (zufällig)") : confirmed === game.profile, `${game.id}: the table names AI profile "${confirmed}", chosen was ${game.profile}`)
       entry["startMs"] = Date.now() - startedAt
-      const cdp = cpuThrottle === null && !lessMotion ? null : await context.newCDPSession(page)
+      const cdp = cpuThrottle === null && !lessMotion && !tableMemory ? null : await context.newCDPSession(page)
+      const samples: TableSample[] = []
+      if (cdp !== null && tableMemory) await cdp.send("Performance.enable")
       if (lessMotion) await page.evaluate(() => document.documentElement.setAttribute("data-reduced-motion", ""))
       if (cdp !== null && cpuThrottle !== null) {
         await cdp.send("Emulation.setCPUThrottlingRate", { rate: cpuThrottle })
@@ -764,6 +848,7 @@ try {
         },
         notices: gameWatch.notices,
         measureMemory: rendererMemory,
+        ...(cdp !== null && tableMemory ? { sampleTurn: async (turn: number) => { samples.push(await sampleTable(page, cdp, turn)) } } : {}),
       })
       Object.assign(entry, played)
       if (cdp !== null && cpuThrottle !== null) {
@@ -771,6 +856,11 @@ try {
         await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 })
         entry["performance"] = { throttling: cpuThrottle, lessMotion, viewport: game.viewport, ...measured }
         log(`  ${game.id}: ${cpuThrottle}x CPU${lessMotion ? ", less motion" : ""}: ${measured.longTasks.length} long tasks, ${measured.over200} over 200 ms (longest ${measured.longest} ms), longest frame ${measured.longestFrame} ms (${measured.screenshots.taken} screenshots left out: long tasks ${JSON.stringify(measured.screenshots.longTasksLeftOut)} ms); motion work ≤ ${measured.longestMotionWork} ms in ${measured.motionStates} states; ${measured.motions} motions at ${measured.fps ?? "-"} fps (slowest ${measured.slowestFps ?? "-"} fps)`)
+      }
+      if (tableMemory) {
+        entry["tableMemory"] = { ...tableMemoryChecks(game.id, samples), perTurn: samples }
+        const summary = entry["tableMemory"] as { listeners: unknown; nodes: unknown; heapMiB: unknown; endless: unknown }
+        log(`  ${game.id}: table memory over ${samples.length} turns: listeners ${JSON.stringify(summary.listeners)}, nodes ${JSON.stringify(summary.nodes)}, heap MiB ${JSON.stringify(summary.heapMiB)}, endless animations ${JSON.stringify(summary.endless)}`)
       }
       check(played.result !== null, `${game.id}: the game did not reach Forge's result`)
       check(played.noEffect === 0, `${game.id}: ${played.noEffect} actions left the table unchanged`)
