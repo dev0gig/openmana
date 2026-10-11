@@ -409,7 +409,7 @@ describe("card pictures", () => {
     lang: "de",
   }
 
-  it("from the catalog: the picture with both sizes, named by Forge's name; a placeholder while looking up", () => {
+  it("from the catalog: the picture with both sizes, named by Forge's name, a hand card's chosen for its lifted size; a placeholder while looking up", () => {
     const lookup: TableCardLookup = (card: VisibleCard) => (card.name === "Gebirge" ? PICTURE : "loading")
     renderScene("opening", { pictures: lookup })
     const hand = region("Deine Hand")
@@ -417,7 +417,8 @@ describe("card pictures", () => {
     expect(mountains).toHaveLength(4)
     expect(mountains[0]).toHaveAttribute("src", PICTURE.src)
     expect(mountains[0]).toHaveAttribute("srcset", PICTURE.srcSet)
-    expect(mountains[0]).toHaveAttribute("sizes", "auto")
+    // A hand card's picture is chosen for its lifted size (a full card), not its small resting place - sharp when it rises.
+    expect(mountains[0]).toHaveAttribute("sizes", "13rem")
     expect(mountains[0]).toHaveAttribute("crossorigin", "anonymous")
     expect(within(hand).getByText("Goblin-Brandstifter").closest('[data-slot="skeleton"]')).not.toBeNull()
   })

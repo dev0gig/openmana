@@ -357,8 +357,9 @@ anchors it keeps and the prompt that builds it.
 
 The project owner wanted to be able to replace the whole drawn table - desk,
 board, rune ring - by a picture. Settings → "Spieltisch" offers:
-"Holztisch (Vorgabe)" (the drawing of §4.1), **Farbenrad** and
-**Planeswalker** (the owner's own "Die" wallpapers without their text,
+"Holztisch (Vorgabe)" (the drawing of §4.1), **Farbenrad**,
+**Planeswalker** and **Chip-Raster** (the owner's own "Die" wallpapers
+without their text, the last one also without a symbol,
 `assets/table-backgrounds/PROVENANCE.md`; one picture for windows taller than
 wide, one for the others, `<picture>` with `(max-aspect-ratio: 1/1)`) and
 **Eigenes Bild** - a picture file from the device ("Eigenes Bild auswählen"),
@@ -586,8 +587,15 @@ default).
   picture (3.8 % of its width; the mockup's 4.8 % until 2026-10-12) inside the
   table's rows, and a loaded picture has neither CardPicture's frame line nor
   its grey ground - both showed as a milky veil in the picture's transparent
-  corners (project owner, 2026-10-12); the hand's cards cast only a small,
-  sharp shadow.
+  corners (project owner, 2026-10-12). The corners are set in percent of the
+  picture's own box (`3.8% / 2.72%`) on every card of the table - the first
+  rule asked for CardPicture as a direct child of `game-card-picture` (it
+  lies in AspectRatio's box) and never matched, so the app's 14 px radius
+  stayed and grew with a lifted card. A hand card has no shadow and no glow
+  (a lifted card is scaled up to some 4 times on a phone, and the face's frame
+  room with its shadow grew into a veil); its face is exactly the picture plus
+  the 2 px frame, so a gold frame hugs the card; its picture is chosen for the
+  lifted size (`sizes="13rem"`, `HAND_PICTURE_SIZES`), so it stays sharp.
 
 ### 4.8 Pile count (prompt 40)
 - Mockup: `.stapel-zahl`, `.karte-flaeche --n`. Several equal cards lie

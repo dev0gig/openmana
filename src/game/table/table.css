@@ -336,14 +336,16 @@
   background: transparent;
 }
 
-/* The picture's corners as Scryfall's picture has them (3.8 % of its width), not the app's large radius. */
-[data-slot="game-board"] .table-field-row [data-slot="game-card-picture"] > [data-slot="card-picture"],
-[data-slot="game-board"] .table-field-row [data-slot="game-card-picture"] > [data-slot="skeleton"] {
-  border-radius: 3.8cqw;
-}
-
-[data-slot="game-board"] .table-field-row [data-tapped="true"] [data-slot="game-card-picture"] > :is([data-slot="card-picture"], [data-slot="skeleton"]) {
-  border-radius: calc(3.8cqw * 63 / 88);
+/*
+ * The picture's corners as Scryfall's picture has them (3.8 % of its width,
+ * as much of its height), not the app's large radius - on every card of the
+ * table, in percent of the picture's own box, so a lifted (scaled) hand card
+ * keeps them too. (CardPicture lies inside AspectRatio's box, so not a direct
+ * child of game-card-picture; until 2026-10-12 the rule asked for one and
+ * never matched.)
+ */
+[data-slot="game-board"] [data-slot="game-card-picture"] :is([data-slot="card-picture"], [data-slot="skeleton"]) {
+  border-radius: 3.8% / 2.72%;
 }
 
 /* A pile: up to two equal cards behind the front one, offset to the left (the mockup's .karte-flaeche --n) - plates in the panel tone, not more pictures. */
@@ -506,20 +508,22 @@
   height: auto;
 }
 
+/* The face: the picture's box plus the frame's 2 px on each side - as tall as the picture inside it needs, so a frame hugs the card. */
 [data-slot="game-board"] .table-hand :is([data-slot="game-card-face"], [data-slot="game-card-back"]) {
   width: var(--hand-card-w);
-  height: var(--hand-card-h);
+  height: calc((var(--hand-card-w) - 4px) * 88 / 63 + 4px);
   aspect-ratio: auto;
   border-radius: calc(var(--hand-card-w) * 0.038 + 2px);
 }
 
-/* The picture's corners as Scryfall's picture has them (3.8 % of its width), and a small, sharp shadow that sets each card on the table. */
-[data-slot="game-board"] .table-hand [data-slot="game-card-picture"] > :is([data-slot="card-picture"], [data-slot="skeleton"]) {
-  border-radius: calc(var(--hand-card-w) * 0.038);
-}
-
-[data-slot="game-board"] .table-hand [data-slot="game-card-face"]:not([data-mark]) {
-  box-shadow: 0 0.1rem 0.2rem oklch(0 0 0 / 0.6);
+/*
+ * No shadow and no glow on a hand card: a lifted card is scaled up to a full
+ * card (up to some 4 times on a phone), and anything around its picture -
+ * the face's frame room with a shadow - grew into a veil around it (project
+ * owner, 2026-10-12). A usable card keeps its sharp gold frame.
+ */
+[data-slot="game-board"] .table-hand [data-slot="game-card-face"][data-mark="usable"] {
+  box-shadow: none;
 }
 
 /* Cards Forge reveals from the AI's hand (a toolbar as before): the same card shape and shadow. */

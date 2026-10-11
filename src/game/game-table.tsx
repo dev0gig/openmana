@@ -129,7 +129,7 @@ import {
   SOURCE_LABEL,
 } from "./table-labels"
 import { pileOf, isVisible, tableView, type BoardEntry, type Seat, type TableSide } from "./table-model"
-import { TablePicture } from "./table-picture"
+import { HAND_PICTURE_SIZES, TablePicture } from "./table-picture"
 import { CardChip, rowSize, ValuePlaque } from "./table/card-parts"
 import { Chronicle } from "./table/chronicle"
 import { handFan, restingCardAt } from "./table/hand-fan"
@@ -714,7 +714,7 @@ function TableCard({
         {...(caption !== undefined ? { caption } : target ? { caption: <GameCardCaption title={STACK_TARGET_LABEL}><TargetChip /></GameCardCaption> } : {})}
         {...press}
       >
-        <TablePicture card={card} pictures={pictures} />
+        <TablePicture card={card} pictures={pictures} {...(fan ? { sizes: HAND_PICTURE_SIZES } : {})} />
       </GameCardButton>
     </GameCardRowButton>
   )
