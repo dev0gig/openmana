@@ -227,11 +227,16 @@ behind an `AlertDialog` (rule 4: it gives the rest of the turn away).
 
 Both battlefields share the free height equally; a battlefield shows two rows
 (creatures next to the middle, other permanents outside) from 176 px, one
-below (checked for the new grid in prompt 38 and kept). Cards are sized by their row's height (`GameCard`), so less room means
-smaller cards, never a longer page. Rows are centred while they fit and scroll
-sideways when not. Zone sizes show their word where the bar is wide enough
-(container query) and their symbol where not; screen readers and tooltips keep
-the word.
+below (checked for the new grid in prompt 38 and kept). Cards are sized by
+their row's height and width (`rowSize`, prompt 40: at least 44 px wide), so
+less room means smaller cards, never a longer page. Rows are centred while
+they fit and scroll sideways when not. The players' zones are piles and
+counters on their strips (prompt 39) whose names keep the zone's word for
+screen readers and tooltips.
+
+The whole table is reachable by keyboard in this focus order, every stop
+with a visible focus ring and a name (prompt 45, end-to-end
+`tableKeyboardTour`; [design/SPIELTISCH.md](design/SPIELTISCH.md) §6).
 
 ## 5. Inventory
 
@@ -245,9 +250,9 @@ the word.
 | `Switch` | shadcn/ui registry (`radix-maia`, prompt 12) | an on/off preference („Bewegungen reduzieren“), inside a `FieldLabel` row so the whole row is the touch target; one-of-several preferences (AI profile, card language) are a `RadioGroup` of choice cards like the backup import. Preferences are saved the moment they change (no save button) |
 | `GameBoard`, `GameBoardArea` | `src/components/ui/game-board.tsx`, built the shadcn way (prompt 13) | the game table's frame: eight named regions in a grid, arranged by the table layout (§4, prompt 38: `hoch`, `quadrat`, `breit`, `breit` + `short`), never scrolling itself |
 | `GameCard`, `GameCardCaption`, `GameCardGroup` | `src/components/ui/game-card.tsx`, built the shadcn way (prompt 13) | a card on the game table, sized by its row (63 × 88; a battlefield row by its height and width since prompt 40): its `CardPicture`, turned a quarter when tapped, its facts as chips in the line above the picture and - on the battlefield - the value plaque on the printed value box (`plaque`, prompt 40, §9 - nothing else on it, Scryfall forbids covering card images), a pile as cards behind it (`pile`); a card with its attachments together (on a plate on the table). Cards Forge hides are the table's `TableCardBack` since prompt 39 (below) |
-| `GameCardButton`, `GameCardRow`, `GameCardRowItem`, `GameCardRowButton`; the `mark` of `GameCard`/`GameCardButton` | `src/components/ui/game-card.tsx`, built the shadcn way (prompt 14) on Radix `Toolbar` (from `radix-ui`) | a card as a control: a button with shadcn's focus ring around the whole card, no image menu or text selection on a long press; Forge's state as a frame around the picture in the room every card keeps (`mark`: usable = dashed `--primary`, chosen = solid `--foreground` - prompt 40 restyles them after §9); a row of such cards as a toolbar (roving focus), else a focusable list |
-| `useTableLayout()`, `tableLayoutOf()`; variants `hoch:`, `quadrat:`, `breit:` | `src/game/table/use-table-layout.ts`, `table-layout.ts`, `src/index.css` (prompt 36) | the game table's layout by aspect ratio (§4, §9); not used by the table before prompt 38 |
-| `src/game/table/table.css`, `--table-*` tokens | prompt 36 (§9) | the game table's own stylesheet (imported by `TableSurface` since prompt 37) and colours |
+| `GameCardButton`, `GameCardRow`, `GameCardRowItem`, `GameCardRowButton`; the `mark` of `GameCard`/`GameCardButton` | `src/components/ui/game-card.tsx`, built the shadcn way (prompt 14) on Radix `Toolbar` (from `radix-ui`) | a card as a control: a button with shadcn's focus ring around the whole card, no image menu or text selection on a long press; Forge's state as a frame and glow around the picture in the room every card keeps (`mark`, look since prompt 40: usable a gold frame with a glow, chosen a thicker light frame, target red pulsing - §9); a row of such cards as a toolbar (roving focus), else a focusable list |
+| `useTableLayout()`, `tableLayoutOf()`; variants `hoch:`, `quadrat:`, `breit:` | `src/game/table/use-table-layout.ts`, `table-layout.ts`, `src/index.css` (prompt 36) | the game table's layout by aspect ratio (§4, §9): `GameBoard`'s plans and the Sheets' side (prompt 38) |
+| `src/game/table/table.css`, `--table-*` tokens | prompt 36 (§9) | the game table's own stylesheet (imported by `TableSurface`) and colours |
 | `TableArt`, `TableCardBack`, `TableEmblem` | `src/game/table/table-art.tsx` (prompt 39, §9) | the table's drawn pieces as SVG symbols defined once per table - the OpenMana emblem, the life medallion's ring, OpenMana's own card back (never Wizards'); `TableCardBack` (slot `game-card-back`) for every card Forge hides on the table (the opponent's hand, face-down permanents, hidden cards of questions, the library pile), decoration only |
 | `MedallionFace`, `ZonePile`, `ZoneCounter`, `ZoneCount`, `StripChip` | `src/game/table/strip-parts.tsx` (prompt 39, §9) | a player's strip: the life medallion's face (inside `GamePlayer`/`GamePlayerButton`), the library and graveyard as piles, exile and command zone as counters (both open the zone view - looking only), counts with the zone's title, facts as chips on the panel tone |
 | `TableSurface` | `src/game/table/table-surface.tsx`, `surface-drawing.ts` (prompt 37, §9) | the wooden desk with the board set into it behind the table's regions: SVG drawn only when a size changes, the rune ring turning and glimmering (still under less motion), decoration only (`aria-hidden`, no pointer events); text regions on the panel tone (`--table-panel` 90 %) |
@@ -258,9 +263,12 @@ the word.
 | `TablePanel` (+ `TablePanelHead`, `TablePanelTitle`, `TablePanelCount`, `TablePanelSub`) | `src/game/table/table-panel.tsx` (prompt 41, §9) | the table's panel (the mockup's `.tafel`): panel tone darkening downwards, gold hairline, two gold corner ornaments, inner shadow, Cinzel title - the Zauberchronik and the Phasen-Tafel |
 | `Chronicle` | `src/game/table/chronicle.tsx` (prompt 41, §9) | the Zauberchronik in the region "Stapel und Kampf": Forge's stack top first (card that only looks, name, controller's dot and words, targets, Forge's text, number) and combat as short lines; a bar between the battlefields in `hoch` |
 | `PhasePanel` | `src/game/table/phase-panel.tsx` (prompt 41, §9; replaces prompt 16's `PhaseTrack` in the header) | the turn's five phases on the Phasen-Tafel (the current one unfolds its steps, the current step gold with a diamond) or as one line - five symbols and "Phase · Schritt" - in the action bar and while a question needs the room; `aria-hidden`, anchors `phase-track*` |
-| `GamePlayer`, `GamePlayerButton` | `src/components/ui/game-player.tsx`, built the shadcn way (prompt 17) | a player's name and life total on their seat and in the decision region; as a button where Forge's running input takes the player (a target, a choice, life for Phyrexian mana), with the cards' marks (usable = dashed `--primary`, chosen = solid `--foreground`, a stack target double `--table-danger` since prompt 39) drawn as an outline inside the box, so a mark takes no room; shadcn's focus ring, 44 px on touch screens as a button. On the table's strips it is the life medallion (prompt 39, `table-medallion`, with a glow per mark) |
+| `FannedHand` | `src/game/game-table.tsx`, geometry `src/game/table/hand-fan.ts`, gestures `useFanPress` (`src/hooks/use-card-press.ts`) (prompt 42, §9) | the player's hand as a fan: overlapping, turned cards on an arc; the card under the mouse, a swiping thumb or the keyboard's focus rises whole above the hand |
+| `TableArrows` | `src/game/table/table-arrows.tsx`, relations and geometry `arrows.ts` (prompt 43, §9) | target, attack and block arrows over the board from Forge's stack targets and combat; decoration only (`aria-hidden`, no pointer events) |
+| `TableMotion` | `src/game/table/table-motion.tsx`, rules and keyframes `motion-plan.ts` (prompt 44, §9) | the table's motion between two of Forge's states: travelling, shifting and turning cards, damage, life, chronicle and phase effects; Web Animations of transform/opacity, nothing under less motion |
+| `GamePlayer`, `GamePlayerButton` | `src/components/ui/game-player.tsx`, built the shadcn way (prompt 17) | a player's name and life total on their seat and in the decision region; as a button where Forge's running input takes the player (a target, a choice, life for Phyrexian mana), with the cards' marks drawn as an outline inside the box, so a mark takes no room; shadcn's focus ring, 44 px on touch screens as a button. On the table's strips it is the life medallion (prompt 39, `table-medallion`: a ring with a glow per mark, a stack target red) |
 | `ActionBar` | `src/components/ui/action-bar.tsx`, built the shadcn way (prompt 10) | a page's primary action on phones: sticky right above the tab bar (`bottom-16`), at the end of the content column – on a short page too (since prompt 11 the `Page` column fills the screen and the bar is pushed to its end, `mt-auto`); pages render it only below `md` (`useIsMobile`) and put the same actions into the header above |
-| `CardPicture` | `src/components/ui/card-picture.tsx`, built the shadcn way (prompt 08) | every picture of a Magic card: `AspectRatio` 63 × 88, `Skeleton` while loading, the card's text in place of a missing or failed picture (`data-state` loading/loaded/failed/missing); loads Scryfall's pictures in CORS mode without referrer and never crops them (`object-contain`: Scryfall forbids cutting off artist or copyright) |
+| `CardPicture` | `src/components/ui/card-picture.tsx`, built the shadcn way (prompt 08) | every picture of a Magic card: `AspectRatio` 63 × 88, `Skeleton` while loading, the card's text in place of a missing or failed picture (`data-state` loading/loaded/failed/missing); loads Scryfall's pictures in CORS mode without referrer and never crops them (`object-contain`: Scryfall forbids cutting off artist or copyright); a lazily sized picture (`sizes="auto"`, the table's) gives up `sizes` before it leaves the page - Chrome kept it and its surroundings alive otherwise (prompt 45) |
 | `BottomNav`, `BottomNavItem` | `src/components/ui/bottom-nav.tsx`, built the shadcn way | phone tab bar |
 | `Brand` | `src/components/brand.tsx` | icon + Cinzel wordmark |
 | `Page`, `PageHeader` | `src/components/page-header.tsx` | every surface: `<title>`, `h1`, description, content column |
@@ -323,14 +331,17 @@ User names must wrap inside the content column rather than widening the browser 
 
 `Dialog`/`Sheet` content wraps long text; `AlertDialog` confirmations scroll within the available screen height. Sheets are bounded by the dynamic viewport. Existing viewer/help/history/decision scroll regions and sticky footers remain reachable. The mobile brand link also has a 44 px target. Fine-pointer component sizes retain their registry dimensions.
 
-The audit checks eight CSS sizes from 360×740 through 1440×900, including fold-like 690×829 and 829×690. It keeps the eight table regions (their arrangement follows the layouts of §4 from prompt 38 on), card gestures, keyboard navigation and meaningful decisions. Resize preserves viewer identity/focus and live Forge transcripts. Screens are emulated Chrome evidence; no physical hinge behavior is implied. See [implementation/24-responsive-polish.md](implementation/24-responsive-polish.md).
+The audit checks eight CSS sizes from 360×740 through 1440×900, including fold-like 690×829 and 829×690; the game table also at the project owner's foldable closed, open and turned (480×1040, 870×960, 960×870; since prompt 38). It keeps the eight table regions (their arrangement follows the layouts of §4 from prompt 38 on), card gestures, keyboard navigation and meaningful decisions. Resize preserves viewer identity/focus and live Forge transcripts. Screens are emulated Chrome evidence; no physical hinge behavior is implied. See [implementation/24-responsive-polish.md](implementation/24-responsive-polish.md).
 
 ## 9. The game table (redesign, prompts 36–45)
 
-The project owner approved a game table with its own look (2026-10-10):
-[design/SPIELTISCH.md](design/SPIELTISCH.md) is its specification, the static
-mockup [design/spieltisch-vorlage/](design/spieltisch-vorlage/) its visual
-target (example data only).
+The project owner approved a game table with its own look (2026-10-10),
+built in prompts 36-44 and reviewed as a whole in prompt 45:
+[design/SPIELTISCH.md](design/SPIELTISCH.md) is its specification (§14 the
+deliberate deviations from the mockup), the static mockup
+[design/spieltisch-vorlage/](design/spieltisch-vorlage/) - example data only -
+the former visual target, superseded by the built table and kept as a
+reference.
 
 - **Own CSS and SVG - only here.** The exception covers the game table of a
   running game and of its replay: components in `src/game/table/` and one

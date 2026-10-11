@@ -1,5 +1,11 @@
 # Game table mockup (Spieltisch-Vorlage)
 
+> **Superseded by the built table (prompt 45, 2026-10-11).** The redesign
+> of prompts 36-45 built this look into the real game table;
+> [`../SPIELTISCH.md`](../SPIELTISCH.md) describes the table as built and its
+> §14 lists where it deliberately differs from this mockup. The mockup stays
+> in the repository as a reference only - change the table, not this folder.
+
 A static visual mockup of the redesigned game table, built from Patrick's
 concept image (2026-10-10). No game logic: `vorlage.js` only draws two
 example scenes ("Konzept" and a crowded "Voller Tisch") on one of three

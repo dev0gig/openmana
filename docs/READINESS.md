@@ -278,6 +278,8 @@ OPENMANA_ENGINE_DIR=engine/build/publish-31b/dist OPENMANA_CARDS_DIR=engine/buil
   node scripts/readiness/matches.ts --serve reports/readiness-32/dist --out reports/readiness-32/<new> --keep-going
 # the table's performance budget in a real game (prompt 44): 4x CPU, the phone; --less-motion for the comparison
   node scripts/readiness/matches.ts --serve <dist> --out <new> --games phone --cpu-throttle 4 [--less-motion]
+# the table's memory over a game (prompt 45): listeners and nodes level from turn 10, no motion or ghost left
+  node scripts/readiness/matches.ts --serve <dist> --out <new> --games phone,commander --table-memory
 # production
 node scripts/readiness/matches.ts --base https://openmana.oryx.quest --out reports/readiness-32/<new> --games live
 node scripts/deploy/live-check.ts https://openmana.oryx.quest --out reports/readiness-32/<new>

@@ -1,17 +1,22 @@
 # Spieltisch — the redesigned game table (specification)
 
-> Binding specification of the table redesign, prompts **36–45** (project
-> owner, 2026-10-10). Written in prompt 36 before anything on the table
-> changed; every later prompt of the series builds on it and keeps it up to
-> date (§13). Rules that follow from it are in [`AGENTS.md`](../../AGENTS.md)
-> (Game Table, Card Interaction, Preferences rules) and
+> Binding specification of the redesigned game table, built in prompts
+> **36–45** (project owner, 2026-10-10; the series is complete since prompt
+> 45, 2026-10-11). Written in prompt 36 before anything on the table changed,
+> filled in by every prompt of the series ("Built" sections) and reviewed as
+> a whole in prompt 45 (§14: deviations from the mockup). It describes the
+> table as it is built; a later change of the table keeps it up to date.
+> Rules that follow from it are in [`AGENTS.md`](../../AGENTS.md) (Game
+> Table, Card Interaction, Preferences rules) and
 > [`DESIGN_SYSTEM.md`](../DESIGN_SYSTEM.md) §9.
 >
-> - **Mockup (the visual target):** [`spieltisch-vorlage/`](spieltisch-vorlage/)
->   (state of commit `f54fd38`, approved in four rounds). View it by serving
->   the folder (`python3 -m http.server` inside it; stop the server
->   afterwards). It has **no game logic**: its cards, values, names and texts
->   are examples. In the game everything comes from Forge's state.
+> - **Mockup (the former visual target, kept as a reference):**
+>   [`spieltisch-vorlage/`](spieltisch-vorlage/) (state of commit `f54fd38`,
+>   approved in four rounds). Superseded by the built table since prompt 45;
+>   view it by serving the folder (`python3 -m http.server` inside it; stop
+>   the server afterwards). It has **no game logic**: its cards, values,
+>   names and texts are examples. In the game everything comes from Forge's
+>   state.
 > - **Concept picture and approved screenshots:** Seafile
 >   `/repo/openmana/design/spieltisch-vorlage/konzeptbild-2026-10-10.png` and
 >   `/repo/openmana/design/spieltisch-vorlage/runde-4-holztisch/`.
@@ -956,6 +961,22 @@ not the mockup's copies.
 - WCAG AA contrast from the tokens (§5); states never by colour alone.
 - axe-core without serious or critical findings on every scene and size.
 - Decoration (surface, arrows, ornaments, the emblem) is `aria-hidden`.
+- **The whole table by keyboard** (prompt 45, end-to-end `tableKeyboardTour`
+  in the scenes `main-phase`, `stack`, `target-player` and `commander-late`
+  at the eight sizes and the foldable's three): Tab from the page's start
+  walks every region in the focus order header, opponent, opponent's
+  battlefield, Zauberchronik, your battlefield, you, hand, decision (15-21
+  stops; a card row is one), every stop shows its focus ring and has a
+  name, and Tab leaves the table at its end; nothing is tapped or answered
+  on the way.
+- **Names for screen readers** (checked there too): a medallion reads its
+  life total with "Lebenspunkte" and the seat ("14 Lebenspunkte Forge-KI",
+  ", am Zug" / ", wird angegriffen"; as a control "Forge-KI, 20
+  Lebenspunkte, wählbar – Antippen: Wählen"); a zone pile what it opens
+  and how many cards ("Dein Friedhof ansehen: 2 Karten, oben:
+  Blitzschlag"); a card its name and facts ("Riesenspinne,
+  Einsatzverzögerung, 2/4"); a Zauberchronik entry "Magmastrahl ansehen";
+  the main button its words ("Weiter", "Mit 14 Kreaturen angreifen").
 
 ## 7. Not taken over from the mockup
 
@@ -1093,8 +1114,18 @@ only (`MOTION_PROPERTIES`, checked by `motion-plan.test.ts` and
   caused by the table at a change of turn (and 20 state changes of a
   recorded scene for the surface, prompt 37). Each prompt reports its
   measurement.
-- No growing listeners or animation leftovers after ten turns (prompt 45
-  measures memory).
+- No growing listeners or animation leftovers after ten turns. Prompt 45
+  measures it in real games (`scripts/readiness/matches.ts
+  --table-memory`: once per turn, after the motion and a full garbage
+  collection, Chrome's counts of event listeners and DOM nodes, the heap,
+  the running and endless animations and the motion's ghosts). It found
+  pictures that stayed alive after they left the page (Chrome keeps an
+  `<img loading="lazy" sizes="auto">` and the elements around it; about 20
+  nodes and 4 listeners per state, without end); `CardPicture` now takes
+  `sizes` away first. Since then listeners (≈ 390-410) and nodes stay level
+  over a 22-turn Commander game, no motion is left running and no ghost
+  remains; only the endless decoration runs (3 animations at every sample,
+  never more).
 
 ## 10. Where the code lives
 
@@ -1243,3 +1274,40 @@ a push.
   the main button shimmers at a new priority; over the new state, which is
   usable at once; nothing moves under less motion, a replay animates only
   stepping. Review and polish in prompt 45.
+- 2026-10-11, prompt 45: the review of the whole table (`docs/implementation/45-table-redesign-review.md`) -
+  every layout and size, the recorded and built scenes, real games against
+  Forge (also Commander, on a phone and at 4x CPU), the replay, the
+  foldable's sizes changed mid-game; the deviations from the mockup below
+  (§14); the keyboard through the whole table and the screen-reader names
+  (§6); memory over a game (§9) - Chrome kept the table's lazily sized
+  pictures alive after they left the page, fixed in `CardPicture`; in a low
+  wide window the decision lies above the arrows. The mockup is superseded
+  by the built table and stays as a reference. The series is complete; the
+  project owner checks the table on the Fold and inside ORYX once he has
+  allowed a push.
+
+## 14. Deviations from the mockup (prompt 45)
+
+The built table compared with the mockup at the eight end-to-end sizes and
+the foldable's three, the mockup's "Konzept" scene beside the recorded
+scenes and its "Voller Tisch" beside the fullest (`commander-late`,
+`blockers`). Pictures: Seafile
+`/repo/openmana/design/spieltisch-umsetzung/45/` (never committed). Small
+differences were fixed in the prompts 37-44 and 45; what remains is
+deliberate:
+
+| Where | Mockup | Built | Why |
+|---|---|---|---|
+| Data | example cards, life totals, turn 7/14, chronicle texts, "Gegner" | Forge's state; "Forge-KI" on the name band; Forge's own words in its prompt (also English ones and Forge's own slips, e.g. "attack null") | Forge is the only authority; no invented data (§2) |
+| Header | "Friedhof", "Exil", "Protokoll", "Einstellungen" as buttons, the turn at the right | "Zonen ansehen", "Spielverlauf ansehen" (words in `breit`), the turn line inside the help button in the middle, the status badge "Du bist dran" / "Forge rechnet", the menu | the menu, the strips' piles and the zone view cover the rest; a button's name contains its words (WCAG 2.5.3); help opens from the turn/phase area. On a phone (`hoch` below 480 px) the turn line wraps and Forge's step is cut with "…" (its full name is the title, the action bar shows it again) |
+| Strips | life, hand count, library and graveyard | also profile, priority, "verloren", mana pool, counters, commander tax and damage as chips; exile and command zone as counters | Forge reports them; the mockup shows none |
+| Cards | picture with the plaque only | chips above the picture (damage, counters, combat, "Ziel", "Quelle", "×N"); piles as plates behind, at most two; both rows of a battlefield equally high and cards centred; at least 44 px wide on every input device | the facts stay out of the picture (Scryfall); measured two-row threshold of prompt 38 |
+| Marks | `.spielbar` outline, `zielpuls` on `box-shadow` | Forge's marks as frames and glows; pulses and flowing arrows only in opacity | §7, §8 rule 2 |
+| Hand | CSS `:hover`, touch by the card's centre, no lower bound | lifted by each card's own strip (mouse, thumb, keyboard), at least 24 px per card, then smaller cards, then a scrolling row; the mockup's height only in `quadrat`/`breit` | a choice that never jumps; the small phone keeps 80 px per battlefield |
+| Zauberchronik | entries with target words | also kind, controller and Forge's text; combat as short lines; in `hoch` a bar, empty only a gold line | Forge's stack and combat in words |
+| Phasen-Tafel | short phase names, the main button only | Magic's German phase names, Forge's question between the phases and the main button, at least 15 rem wide | Forge's questions need the room with 44 px controls |
+| `breit` | the hand across all three columns | both side columns full height, the hand between them | the decision column keeps its height |
+| `breit` + `short` (phone turned) | - | the side column of prompts 13-24 (opponent, chronicle, decision, you); the decision above the arrows, an arrow passes under it (prompt 45) | about 130 px per battlefield instead of 100; an arrow no longer lies over Forge's question and the main button |
+| Arrows | gradients, SVG markers, fixed end beside the card, `stroke-dashoffset` flow | token colours, drawn heads at a free place beside the end (never on a picture), three dash phases in opacity; muted arrows for lower stack entries, block arrows, arrows to planeswalkers and zone piles | §4.15, §8 |
+| Motion | none for state changes | travelling, shifting, turning cards, damage, life, chronicle and phase motion (§8 "Built") | the series' prompt 44 |
+| Surface | stone floor, props, crystals, vines, variants | the wooden desk only; the emblem does not glimmer | §7 |

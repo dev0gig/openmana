@@ -222,7 +222,7 @@ Snapshot replay uses the existing table without any engine input callbacks. It s
 
 Do not create a vertically endless table. Keep opponent summary/hand, opponent battlefield, combat/stack, player battlefield, decision area and player hand spatially understandable. Responsive layouts may reorganize them.
 
-The implemented game table - its regions in portrait and landscape, cards from Forge's state (piles, attachments, hidden cards), stack and combat, the decision area and the table's menu - is described in [implementation/13-battlefield-foundation.md](implementation/13-battlefield-foundation.md).
+The implemented game table - its regions, cards from Forge's state (piles, attachments, hidden cards), stack and combat, the decision area and the table's menu - is described in [implementation/13-battlefield-foundation.md](implementation/13-battlefield-foundation.md). Its look and arrangement since the redesign of prompts 36-45 - a wooden desk with an inset board, three layouts by the window's aspect ratio (`hoch`, `quadrat`, `breit`), life medallions, the Zauberchronik, the Phasen-Tafel with the golden main button, the hand as a fan, target/attack/block arrows and motion that never delays a state - are specified in [design/SPIELTISCH.md](design/SPIELTISCH.md) and reviewed as a whole in [implementation/45-table-redesign-review.md](implementation/45-table-redesign-review.md).
 
 ## 7. Forge AI
 
@@ -304,7 +304,7 @@ OpenMana should feel contemporary and premium. It may learn from MTG Arena inter
 
 Do not copy proprietary Arena assets or reproduce its UI pixel-for-pixel.
 
-The implemented design system (shadcn/ui components, OpenMana tokens, typography, touch and accessibility rules) is specified in [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md).
+The implemented design system (shadcn/ui components, OpenMana tokens, typography, touch and accessibility rules) is specified in [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md). The game table has its own approved look - own CSS and SVG for the table only, night blue and gold, Cinzel, inspired by Arena's interaction patterns without its assets or layouts - specified in [design/SPIELTISCH.md](design/SPIELTISCH.md) (DESIGN_SYSTEM §9); the rest of the app stays shadcn until a later series carries the style over.
 
 ## 14. Credits, attribution and licenses
 
