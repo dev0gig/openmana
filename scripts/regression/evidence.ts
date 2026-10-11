@@ -59,7 +59,7 @@ export function engineEvidence(value: unknown, manifestSha256: string, requireme
 }
 
 export const VIEWPORTS = ["small-phone", "phone", "phone-landscape", "fold-portrait", "fold-landscape", "tablet", "tablet-landscape", "desktop"] as const
-const SCENES = ["opening", "main-phase", "stack", "blockers", "defend", "commander-late", "command-effects", "play-draw", "target", "target-player", "yes-no", "discard", "choose-mode", "scry", "ability", "damage", "opponent-turn", "respond", "respond-own", "target-both", "payment", "payment-pool", "payment-life", "cast-x", "attack", "attack-declared", "attack-planeswalker", "block-start", "block-multiple", "built:confirm", "built:input", "built:order", "built:block-order", "built:reveal", "built:choose-many", "built:select-outside", "built:arrange-anywhere", "built:distribute-limits"]
+const SCENES = ["opening", "main-phase", "stack", "blockers", "defend", "commander-late", "command-effects", "play-draw", "target", "target-player", "yes-no", "discard", "choose-mode", "scry", "ability", "damage", "opponent-turn", "respond", "respond-own", "target-both", "payment", "payment-pool", "payment-life", "cast-x", "attack", "attack-declared", "attack-planeswalker", "block-start", "block-multiple", "built:confirm", "built:input", "built:order", "built:block-order", "built:reveal", "built:choose-many", "built:select-outside", "built:arrange-anywhere", "built:distribute-limits", "attack-planeswalker-declared"]
 
 /** The foldable's sizes the table is also checked at in every scene since prompt 38 (scripts/e2e/run.ts FOLD_VIEWPORTS). */
 export const FOLD_SIZES = ["fold-closed", "fold-open", "fold-open-turned"] as const

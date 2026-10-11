@@ -571,7 +571,7 @@ anchors it keeps and the prompt that builds it.
   (offset 0.12 card widths each to the left, `--layers`/`--k`); "×N" is the
   first chip. `table-model.ts` and the card view are unchanged.
 
-### 4.9 Marks (prompt 40, arrows in 43)
+### 4.9 Marks (prompt 40; arrows: §4.15, prompt 43)
 `data-mark` (`usable`, `selected`, `target`) and the combat facts stay the
 truth; only their look changes. Marks are frames and glows **around** the
 picture, never on it.
@@ -876,6 +876,41 @@ in `docs/implementation/42-hand-fan.md`:
 - Pure presentation of facts that are already in words (chronicle, combat
   lines, chips); no derivations ("who could block"); never in the way of an
   input.
+- **Built (prompt 43)** - `src/game/table/arrows.ts` (which arrows and where,
+  pure) and `src/game/table/table-arrows.tsx` (`TableArrows`, the last part of
+  `GameBoard`, so also in the replay); details in
+  `docs/implementation/43-table-arrows.md`:
+  - Relations from Forge's state only (`arrowRelations`): each stack item's
+    `targets` from its chronicle entry - the top entry's strong, the lower
+    entries' muted (thinner, fainter, still) -; each `combat` attacker to its
+    defender (Forge lists declared attackers in `combat` while they are
+    declared; `attack.defender` alone draws nothing); each blocker to its
+    attacker (Forge's planned blockers too). A card target in a graveyard or
+    exile points at that pile of its player's strip.
+  - Placing (`layoutArrows`): the head's tip 3 px beside one of the end's four
+    sides (a card's face, a medallion, a pile), at the place - five per
+    side - whose head covers no card face, stays in the board, is free of
+    other heads and chips and faces the start best; a cubic curve from the
+    start's side facing the tip that arrives at a right angle, so the head
+    stays outside the box; arrows of a kind bend alternately, a little more
+    each, the first towards the board's middle. Lines may cross pictures,
+    heads never.
+  - **Out of sight:** only between two things the player sees (each box cut
+    by its clipping ancestors; under 8 px is out of sight). A card scrolled
+    out of its row, a chronicle entry out of its bar, a chronicle that steps
+    aside get no arrow until they are in view (an arrow to a row's edge would
+    put its head on the last visible card).
+  - Drawing: one wrapper over the board (`data-slot="table-arrows"`,
+    `aria-hidden`, `pointer-events: none`, `z-index` 40), six SVG layers sized
+    to the arrows - muted (still), the strong arrows' glow (a blurred layer
+    pulsing in opacity), their dashed line in three phases a third of a dash
+    apart taking turns in opacity (the flow), the heads. Measured and drawn
+    once per animation frame for a new state, a resize of the board or a
+    region (the decision opening or closing), a scroll inside the board and
+    the end of a transition; nothing measured without arrows; User Timing
+    `openmana:table-arrows`. Under less motion the first phase stands alone.
+  - Colours `--table-danger`, `--table-attack`, `--table-mana` (block, the
+    proposal taken); no new token.
 
 ## 5. Tokens
 
@@ -938,7 +973,10 @@ not the mockup's copies.
   less-motion blocks in table.css), and its fonts folder.
 - Its animations of other properties than transform/opacity: the target
   pulse on `box-shadow` (`zielpuls`) and the flowing arrow on
-  `stroke-dashoffset` (`fliessen`); see §8 for the allowed equivalents.
+  `stroke-dashoffset` (`fliessen`); see §8 for the allowed equivalents
+  (built: prompt 40's pulsing glow layer, prompt 43's three dash phases).
+- The arrows' gradients and SVG markers: token colours and drawn heads
+  (prompt 43).
 
 ## 8. Motion
 
@@ -988,7 +1026,8 @@ layouts (Bible §13).
 
 - `src/game/table/` - the table's components (surface, medallion, piles,
   chronicle, panel, arrows …), `table-layout.ts`, `use-table-layout.ts`,
-  the hand's geometry `hand-fan.ts` (prompt 42), and `table.css` (the one
+  the hand's geometry `hand-fan.ts` (prompt 42), the arrows' relations and
+  geometry `arrows.ts` and their layers `table-arrows.tsx` (prompt 43), and `table.css` (the one
   stylesheet; imported by the table from prompt 37 on). The hand's gestures
   extend the card press hook (`src/hooks/use-card-press.ts`, `useFanPress`).
 - `src/components/ui/game-*.tsx` - the shadcn-built table primitives
@@ -1040,6 +1079,10 @@ From the shared rules of the series - end-to-end section 12,
 - since prompt 42 the hand's row `table-hand` with `data-fan` (`fan` /
   `row`), its cards' `data-hand-card` and the lifted card's `data-lifted`
   (end-to-end `handFacts`, `handGestures`);
+- since prompt 43 the arrows' wrapper `table-arrows` with `data-arrows` and
+  `data-draws`, its layers `data-layer-name`, and per arrow `g[data-arrow]`
+  with `data-from`, `data-to`, `data-strong`, `data-side`, `data-end`
+  (end-to-end `arrowFacts`, `tableArrows`);
 - the toolbars' names.
 
 The regression evidence stays complete (8 sizes × 38 scenes, at least 600
@@ -1106,3 +1149,9 @@ a push.
   swipe nothing, a long press looks; 24 px of every card its own, smaller
   cards and then a scrolling row for many; the hand's height in `quadrat`
   and `breit` the mockup's. Arrows in prompt 43, animations in 44.
+- 2026-10-11, prompt 43: the arrows (§4.15 "Built") - red from a chronicle
+  entry to its targets (the top entry's strong, the others muted), amber from
+  an attacker to whom it attacks, mana blue from a blocker to its attacker;
+  each head beside its end, never on a card picture, only between things in
+  view; glowing and flowing in opacity, still under less motion; drawn again
+  for a state, a size, a scroll. Animations in prompt 44.

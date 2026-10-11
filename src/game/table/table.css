@@ -1694,6 +1694,160 @@
   line-height: 1.15;
 }
 
+/* ---------- The arrows (prompt 43): targets, attacks, blocks (the mockup's .pfeile, .pfeil-glut, .pfeil-linie) ---------- */
+
+/*
+ * Over every region, never in the way: no pointer events, hidden from screen
+ * readers (TableArrows). Each layer is an SVG sized to the arrows; the ones
+ * that move are layers of their own whose opacity alone changes.
+ */
+[data-slot="game-board"] > [data-slot="table-arrows"] {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  overflow: hidden;
+  pointer-events: none;
+  contain: strict;
+}
+
+[data-slot="game-board"] .table-arrows-layer {
+  position: absolute;
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* The colours: a target red, an attack amber, a block mana blue (tokens; their contrast on the table: design-tokens.test.ts). */
+[data-slot="game-board"] .table-arrow-target {
+  --arrow: var(--table-danger);
+}
+
+[data-slot="game-board"] .table-arrow-attack {
+  --arrow: var(--table-attack);
+}
+
+[data-slot="game-board"] .table-arrow-block {
+  --arrow: var(--table-mana);
+}
+
+/* The glow (the mockup's .pfeil-glut): a wide soft band under the line; the strong arrows' layer is blurred as a whole and pulses. */
+[data-slot="game-board"] .table-arrow-glow {
+  fill: none;
+  stroke: var(--arrow);
+  stroke-width: 9px;
+  stroke-linecap: round;
+  stroke-opacity: 0.32;
+}
+
+[data-slot="game-board"] .table-arrows-layer[data-layer="glow"] {
+  filter: blur(3px);
+  opacity: 0.85;
+  will-change: opacity;
+  animation: table-arrow-pulse 1.4s ease-in-out infinite;
+}
+
+/* The dashed line (the mockup's .pfeil-linie): a target's and a block's 10/7, an attack's longer 16/5 and a little wider. */
+[data-slot="game-board"] .table-arrow-line {
+  fill: none;
+  stroke: var(--arrow);
+  stroke-width: 3.2px;
+  stroke-linecap: round;
+  stroke-dasharray: 10 7;
+}
+
+[data-slot="game-board"] .table-arrow-line.table-arrow-attack {
+  stroke-width: 3.6px;
+  stroke-dasharray: 16 5;
+}
+
+/*
+ * The flow (the mockup's fliessen moved stroke-dashoffset; here only opacity,
+ * §8): three layers of the same lines, each a third of a dash further along,
+ * take turns - so the dashes seem to run from start to end. Under less motion
+ * the first phase stands alone.
+ */
+[data-slot="game-board"] .table-arrows-layer[data-layer="flow"] {
+  will-change: opacity;
+  animation: table-arrow-flow 0.9s linear infinite;
+}
+
+[data-slot="game-board"] .table-arrows-layer[data-layer="flow"]:not([data-phase="0"]) {
+  opacity: 0;
+}
+
+[data-slot="game-board"] .table-arrows-layer[data-layer="flow"][data-phase="1"] {
+  animation-delay: -0.6s;
+}
+
+[data-slot="game-board"] .table-arrows-layer[data-layer="flow"][data-phase="2"] {
+  animation-delay: -0.3s;
+}
+
+[data-slot="game-board"] .table-arrows-layer[data-phase="1"] .table-arrow-line {
+  stroke-dashoffset: -5.667px;
+}
+
+[data-slot="game-board"] .table-arrows-layer[data-phase="2"] .table-arrow-line {
+  stroke-dashoffset: -11.333px;
+}
+
+[data-slot="game-board"] .table-arrows-layer[data-phase="1"] .table-arrow-line.table-arrow-attack {
+  stroke-dashoffset: -7px;
+}
+
+[data-slot="game-board"] .table-arrows-layer[data-phase="2"] .table-arrow-line.table-arrow-attack {
+  stroke-dashoffset: -14px;
+}
+
+@keyframes table-arrow-flow {
+  0%,
+  30% {
+    opacity: 1;
+  }
+  36%,
+  97% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes table-arrow-pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Muted (the targets of the stack's lower entries): thinner, fainter, still. */
+[data-slot="game-board"] .table-arrows-layer[data-layer="muted"] .table-arrow-glow {
+  stroke-width: 6px;
+  stroke-opacity: 0.14;
+}
+
+[data-slot="game-board"] .table-arrows-layer[data-layer="muted"] .table-arrow-line {
+  stroke-width: 2px;
+  stroke-opacity: 0.6;
+  stroke-dasharray: 6 6;
+}
+
+/* The head (the mockup's #pfeilspitze): filled in the arrow's colour with a dark rim, so it reads on the board's gold too. */
+[data-slot="game-board"] .table-arrow-head {
+  fill: var(--arrow);
+  stroke: color-mix(in oklch, black 55%, transparent);
+  stroke-width: 1px;
+  stroke-linejoin: round;
+  paint-order: stroke;
+}
+
+[data-slot="game-board"] .table-arrow-head.table-arrow-muted {
+  fill-opacity: 0.7;
+}
+
 /* ---------- Less motion (keep both blocks; nothing else sets motion !important) ---------- */
 
 @media (prefers-reduced-motion: reduce) {

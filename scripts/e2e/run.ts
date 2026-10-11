@@ -3228,6 +3228,9 @@ const TABLE_SCENES = [
   "attack-planeswalker",
   "block-start",
   "block-multiple",
+  // Prompt 43: Forge's next state after attack-planeswalker - its creature attacks the planeswalker -, rebuilt from Forge's
+  // own messages (src/test/built-scenes.ts, marked as built; BUILT_STATES below): an attack arrow that ends at a card.
+  "attack-planeswalker-declared",
 ] as const
 
 /** Forge's questions the recorded games do not reach, built after the schema on the recorded "main-phase" state (src/test/built-questions.ts) - marked as built. */
@@ -3515,14 +3518,36 @@ async function stripFacts(page: Page, label: string, touch: boolean): Promise<Re
   return facts
 }
 
+/** What the end-to-end test reads of a scene's state: the stack, combat and the players' zones (the original envelopes). */
+interface SceneState {
+  readonly stack: readonly { readonly id: number; readonly targets: readonly { readonly kind: "card" | "player"; readonly id: number }[] }[]
+  readonly combat: readonly { readonly attacker: number; readonly defender: number | null; readonly defenderKind: "player" | "card" | null; readonly blockers: readonly number[] }[]
+  readonly players: readonly { readonly me: boolean; readonly zones: Readonly<Record<"graveyard" | "exile", readonly { readonly id?: number }[]>> }[]
+}
+
+/**
+ * Scenes rebuilt from Forge's next messages (src/test/built-scenes.ts, prompt 43): the recorded scene they start from
+ * and Forge's combat of the next state (the attackers game, transcript of publish-35d, message 589).
+ */
+const BUILT_STATES: Readonly<Record<string, { readonly base: string; readonly combat: SceneState["combat"] }>> = {
+  "attack-planeswalker-declared": { base: "attack-planeswalker", combat: [{ attacker: 17, defender: 68, defenderKind: "card", blockers: [] }] },
+}
+
+/** The state of a scene the harness shows: the original recording, or a rebuilt one's base with Forge's next combat. */
+function sceneState(scene: string): SceneState {
+  const recorded = JSON.parse(fs.readFileSync(path.join(root, "src/test/fixtures/table-scenes.json"), "utf8")) as { scenes: { name: string; state: SceneState }[] }
+  const built = BUILT_STATES[scene]
+  const state = recorded.scenes.find((record) => record.name === (built?.base ?? scene))!.state
+  return built === undefined ? state : { ...state, combat: built.combat }
+}
+
 /** Forge's stack of a recorded scene, top first (the original recording, never the table's words). */
 function recordedStackIds(scene: string): number[] {
-  const recorded = JSON.parse(fs.readFileSync(path.join(root, "src/test/fixtures/table-scenes.json"), "utf8")) as { scenes: { name: string; state: { stack: { id: number }[] } }[] }
-  return recorded.scenes.find((record) => record.name === scene)!.state.stack.map((item) => item.id)
+  return sceneState(scene).stack.map((item) => item.id)
 }
 
 /** Recorded scenes whose decision has a main button (prompt 41): the player's priority (pass) and the confirmations of attack, block and the mulligan. */
-const SCENE_MAIN_BUTTON: ReadonlySet<string> = new Set(["opening", "main-phase", "blockers", "defend", "commander-late", "opponent-turn", "respond", "respond-own", "attack", "attack-declared", "attack-planeswalker", "block-start", "block-multiple"])
+const SCENE_MAIN_BUTTON: ReadonlySet<string> = new Set(["opening", "main-phase", "blockers", "defend", "commander-late", "opponent-turn", "respond", "respond-own", "attack", "attack-declared", "attack-planeswalker", "block-start", "block-multiple", "attack-planeswalker-declared"])
 
 /**
  * Prompt 41 (docs/design/SPIELTISCH.md §4.11-4.14): the Zauberchronik and the Phasen-Tafel in every scene and size.
@@ -3590,6 +3615,122 @@ async function panelFacts(page: Page, label: string, scene: string | null, stack
     check(hoch ? entry.left >= before.right - 1 && Math.abs(entry.top - before.top) <= 1 : entry.top >= before.bottom - 1, `${label}: the chronicle's entries are not ${hoch ? "side by side" : "one below the other"} ${JSON.stringify(facts.entries)}`)
   }
   return { place: facts.place, folded: facts.folded, main: facts.main.map((main) => main.text), entries: facts.entries.length }
+}
+
+/** One arrow Forge's state asks for (prompt 43): its kind, start and end as the arrows name them (`stack:N`, `card:N`, `player:N`). */
+interface ExpectedArrow {
+  readonly kind: "target" | "attack" | "block"
+  readonly from: string
+  readonly to: string
+  /** A card target in a graveyard or exile: the pile it points at instead (`pile:<seat>:<zone>`). */
+  readonly pile: string | null
+}
+
+/** The arrows of a scene, read from the original envelopes - independent of the table's own code (arrows.ts). */
+function expectedArrows(state: SceneState): ExpectedArrow[] {
+  const pileOf = (id: number): string | null => {
+    for (const player of state.players) for (const zone of ["graveyard", "exile"] as const) if (player.zones[zone].some((card) => card.id === id)) return `pile:${player.me ? "me" : "opponent"}:${zone}`
+    return null
+  }
+  const arrows: ExpectedArrow[] = []
+  for (const item of state.stack) for (const target of item.targets) arrows.push({ kind: "target", from: `stack:${item.id}`, to: `${target.kind}:${target.id}`, pile: target.kind === "card" ? pileOf(target.id) : null })
+  for (const entry of state.combat) if (entry.defender !== null && entry.defenderKind !== null) arrows.push({ kind: "attack", from: `card:${entry.attacker}`, to: `${entry.defenderKind}:${entry.defender}`, pile: null })
+  for (const entry of state.combat) for (const blocker of entry.blockers) arrows.push({ kind: "block", from: `card:${blocker}`, to: `card:${entry.attacker}`, pile: null })
+  return arrows
+}
+
+/**
+ * Prompt 43 (docs/design/SPIELTISCH.md §4.15): the arrows of a scene as the page shows them. One arrow per relation of
+ * Forge's state - a stack entry's targets, attackers to whom they attack, blockers to their attackers - whose start
+ * and end the player sees (a card scrolled out of its row gets none; a target in a graveyard or exile points at its
+ * pile); none other. Each arrow's tip lies in the window, beside its end - never on the end's box -, and no head lies
+ * on a card picture. The arrows are hidden from screen readers and take no pointer events: a point on a line hits
+ * what lies under it.
+ */
+async function arrowFacts(page: Page, label: string, scene: string): Promise<Record<string, unknown>> {
+  const expected = expectedArrows(sceneState(scene))
+  // A fresh drawing on the final layout: a scroll on the board asks for one (the hand's fan and the pictures may settle after the first).
+  await page.evaluate(() => new Promise<void>((resolve) => {
+    document.querySelector('[data-slot="game-board"]')?.dispatchEvent(new Event("scroll"))
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+  }))
+  const facts = await page.evaluate((wanted) => {
+    const board = document.querySelector<HTMLElement>('[data-slot="game-board"]')!
+    const wrapper = board.querySelector<HTMLElement>(':scope > [data-slot="table-arrows"]')
+    const origin = board.getBoundingClientRect()
+    const clipping = new Set(["hidden", "clip", "auto", "scroll"])
+    type Box = { left: number; top: number; right: number; bottom: number }
+    const cut = (a: Box, b: Box): Box | null => {
+      const r = { left: Math.max(a.left, b.left), top: Math.max(a.top, b.top), right: Math.min(a.right, b.right), bottom: Math.min(a.bottom, b.bottom) }
+      return r.right > r.left && r.bottom > r.top ? r : null
+    }
+    // What the player sees of an element: its box cut by every clipping ancestor and the board.
+    const seen = (element: Element | null | undefined): Box | null => {
+      if (!element) return null
+      let box: Box | null = element.getBoundingClientRect()
+      for (let a = element.parentElement; a !== null && a !== board && box !== null; a = a.parentElement) {
+        const style = getComputedStyle(a)
+        if (clipping.has(style.overflowX) || clipping.has(style.overflowY)) box = cut(box, a.getBoundingClientRect())
+      }
+      box = box === null ? null : cut(box, origin)
+      return box !== null && box.right - box.left >= 8 && box.bottom - box.top >= 8 ? box : null
+    }
+    const onTable = (element: Element) => element.closest('[data-area="decision"]') === null
+    const find = (key: string): Element | null => {
+      const [kind, id, zone] = key.split(":")
+      if (kind === "stack") return board.querySelector(`[data-area="center"] [data-stack-item="${id}"]`)
+      if (kind === "player") return [...board.querySelectorAll(`[data-slot="game-player"][data-player="${id}"]`)].find(onTable) ?? null
+      if (kind === "pile") return board.querySelector(`[data-area="${id === "me" ? "me" : "opponent"}"] [data-zone-pile="${zone === "graveyard" ? "Friedhof" : "Exil"}"]`)
+      return [...board.querySelectorAll(`[data-card="${id}"], [data-stack-card="${id}"]`)].find(onTable)?.querySelector('[data-slot="game-card-face"]') ?? null
+    }
+    const pictures = [...board.querySelectorAll('[data-slot="card-picture"], [data-slot="game-card-back"]')].map(seen).filter((box): box is Box => box !== null)
+    const area = (a: Box, b: Box) => {
+      const r = cut(a, b)
+      return r === null ? 0 : (r.right - r.left) * (r.bottom - r.top)
+    }
+    const drawn = [...(wrapper?.querySelectorAll<SVGGElement>("[data-arrow]") ?? [])].map((g) => {
+      const [x, y] = (g.dataset["end"] ?? "").split(" ").map(Number) as [number, number]
+      const head = g.querySelector("path")!.getBoundingClientRect()
+      const box = { left: head.left, top: head.top, right: head.right, bottom: head.bottom }
+      const end = seen(find(g.dataset["to"] ?? ""))
+      return {
+        key: `${g.dataset["arrow"]} ${g.dataset["from"]}>${g.dataset["to"]}`,
+        side: g.dataset["side"] ?? null,
+        tip: { x: origin.left + x, y: origin.top + y },
+        onEnd: end === null ? null : area(box, end),
+        tipInEnd: end !== null && origin.left + x > end.left && origin.left + x < end.right && origin.top + y > end.top && origin.top + y < end.bottom,
+        onPictures: pictures.filter((picture) => area(box, picture) > 1).length,
+      }
+    })
+    const relations = wanted.map((arrow) => {
+      const to = arrow.pile !== null && find(arrow.to) === null ? arrow.pile : arrow.to
+      return { key: `${arrow.kind} ${arrow.from}>${to}`, visible: seen(find(arrow.from)) !== null && seen(find(to)) !== null }
+    })
+    // A point on a strong line: what the page hits there is never the arrows' layer.
+    const line = wrapper?.querySelector<SVGPathElement>('svg[data-layer-name="flow-0"] path') ?? null
+    const middle = line === null ? null : line.getPointAtLength(line.getTotalLength() / 2)
+    const hit = middle === null ? null : document.elementFromPoint(origin.left + middle.x, origin.top + middle.y)
+    return {
+      view: { width: innerWidth, height: innerHeight },
+      wrapper: wrapper === null ? null : { hidden: wrapper.getAttribute("aria-hidden"), pointer: getComputedStyle(wrapper).pointerEvents, count: Number(wrapper.dataset["arrows"] ?? 0) },
+      drawn,
+      relations,
+      hitsArrows: hit === null ? null : wrapper?.contains(hit) ?? false,
+    }
+  }, expected)
+  check(facts.wrapper !== null && facts.wrapper.hidden === "true" && facts.wrapper.pointer === "none", `${label}: the arrows are not a hidden layer without pointer events ${JSON.stringify(facts.wrapper)}`)
+  const drawnKeys = facts.drawn.map((arrow) => arrow.key)
+  const wanted = facts.relations.filter((relation) => relation.visible).map((relation) => relation.key)
+  check(JSON.stringify([...drawnKeys].sort()) === JSON.stringify([...new Set(wanted)].sort()), `${label}: arrows ${JSON.stringify(drawnKeys)}, Forge's visible relations ${JSON.stringify(wanted)} (out of sight: ${JSON.stringify(facts.relations.filter((relation) => !relation.visible).map((relation) => relation.key))})`)
+  for (const arrow of facts.drawn) {
+    check(arrow.tip.x >= 0 && arrow.tip.y >= 0 && arrow.tip.x <= facts.view.width && arrow.tip.y <= facts.view.height, `${label}: the tip of ${arrow.key} outside the window ${JSON.stringify(arrow.tip)}`)
+    check(arrow.onEnd !== null && arrow.onEnd <= 0.5 && !arrow.tipInEnd, `${label}: the head of ${arrow.key} lies on what it points at ${JSON.stringify(arrow)}`)
+    check(arrow.onPictures === 0, `${label}: the head of ${arrow.key} lies on ${arrow.onPictures} card picture(s) ${JSON.stringify(arrow)}`)
+  }
+  if (facts.hitsArrows !== null) check(!facts.hitsArrows, `${label}: a point on an arrow hits the arrows' layer`)
+  const sides: Record<string, number> = {}
+  for (const arrow of facts.drawn) sides[arrow.side ?? "?"] = (sides[arrow.side ?? "?"] ?? 0) + 1
+  return { expected: expected.length, drawn: facts.drawn.length, outOfSight: facts.relations.filter((relation) => !relation.visible).map((relation) => relation.key), sides }
 }
 
 /**
@@ -4372,6 +4513,7 @@ async function tableHarness(executablePath: string): Promise<Record<string, unkn
   try {
     results["layouts"] = await tableLayoutClasses(executablePath, base)
     if (!focusedTable) results["surface"] = await tableSurface(executablePath, base)
+    if (!focusedTable) results["arrows"] = await tableArrows(executablePath, base)
     if (!focusedTable) results["folds"] = await tableFoldSizes(executablePath, base)
     for (const viewport of focusedTable ? TABLE_VIEWPORTS.filter((v) => DECISION_VIEWPORTS.includes(v.name)) : TABLE_VIEWPORTS) {
       log(`  ${viewport.name} (${viewport.width}x${viewport.height}${viewport.touch ? ", touch" : ""})`)
@@ -4434,8 +4576,7 @@ async function tableHarness(executablePath: string): Promise<Record<string, unkn
           }
           // Independent check against the original recorded target envelopes, never display text.
           if (built === null) {
-            const recorded = JSON.parse(fs.readFileSync(path.join(root, "src/test/fixtures/table-scenes.json"), "utf8")) as { scenes: { name: string; state: { stack: { targets: { kind: string; id: number }[] }[] } }[] }
-            const targetRefs = recorded.scenes.find((record) => record.name === scene)!.state.stack.flatMap((item) => item.targets)
+            const targetRefs = sceneState(scene).stack.flatMap((item) => item.targets)
             const targetCheck = await page.evaluate((refs) => {
               const cards = [...document.querySelectorAll<HTMLElement>('[data-card], [data-stack-card]')]
               const players = [...document.querySelectorAll<HTMLElement>('[data-slot="game-player"][data-player]')]
@@ -4453,10 +4594,11 @@ async function tableHarness(executablePath: string): Promise<Record<string, unkn
           const strips = await stripFacts(page, label, viewport.touch)
           const panels = await panelFacts(page, label, built === null ? scene : null, built === null ? recordedStackIds(scene) : null)
           const decision = await decisionFits(page, label, viewport)
+          const arrows = await arrowFacts(page, label, scene)
           const axe = await accessibility(page, label)
           await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-${built === null ? scene : `built-${built}`}.png`) })
           const help = helpOnly || ["main-phase", "stack", "built:choose-many", "built:confirm"].includes(name) ? await helpInteractions(page, `${viewport.name}-${name}`, viewport) : null
-          scenes[name] = { help, areas: layout["areas"], arrangement: layout["arrangement"], pictures, rows, menu, cards, faces, hand, marks, decision, surface, strips, panels, axe }
+          scenes[name] = { help, areas: layout["areas"], arrangement: layout["arrangement"], pictures, rows, menu, cards, faces, hand, marks, decision, surface, strips, panels, arrows, axe }
           for (const error of pageLog.errors) check(false, `${label}: ${error}`)
           await page.close()
         }
@@ -4654,13 +4796,14 @@ async function tableSurface(executablePath: string, base: string): Promise<Recor
     const run = async (surface: boolean) => {
       await page.evaluate((shown) => {
         document.querySelector<HTMLElement>('[data-slot="table-surface"]')!.style.display = shown ? "" : "none"
-        const w = window as unknown as { __longTasks: number[]; __frames: number[][]; __surfaceDraws: number[]; __observer?: PerformanceObserver; __deskDrawing: Element | null }
+        const w = window as unknown as { __longTasks: number[]; __frames: number[][]; __surfaceDraws: number[]; __arrowDraws: number[]; __observer?: PerformanceObserver; __deskDrawing: Element | null }
         // The desk's drawing before the changes: the screen keeps its size, so the very same drawing must stay.
         w.__deskDrawing = document.querySelector('[data-slot="table-surface"] [data-surface="desk"]')!.firstElementChild
         w.__observer?.disconnect()
         w.__longTasks = []
         w.__frames = []
         w.__surfaceDraws = []
+        w.__arrowDraws = []
         w.__observer = new PerformanceObserver((list) => {
           for (const entry of list.getEntries()) {
             if (entry.entryType === "longtask") w.__longTasks.push(entry.duration)
@@ -4669,6 +4812,8 @@ async function tableSurface(executablePath: string, base: string): Promise<Recor
               const frame = entry as PerformanceEntry & { renderStart: number; styleAndLayoutStart: number }
               w.__frames.push([entry.duration, frame.renderStart > 0 ? entry.startTime + entry.duration - frame.renderStart : 0])
             } else if (entry.name === "openmana:table-surface") w.__surfaceDraws.push(entry.duration)
+            // Prompt 43: each drawing of the arrows (scenes with a stack target among the 20 changes).
+            else if (entry.name === "openmana:table-arrows") w.__arrowDraws.push(entry.duration)
           }
         })
         w.__observer.observe({ entryTypes: ["longtask", "long-animation-frame", "measure"] })
@@ -4677,9 +4822,9 @@ async function tableSurface(executablePath: string, base: string): Promise<Recor
       for (let i = 0; i < 20; i++) keys.push(await step(SURFACE_GAME[i % SURFACE_GAME.length]!))
       await page.waitForTimeout(500)
       const measured = await page.evaluate(() => {
-        const w = window as unknown as { __longTasks: number[]; __frames: number[][]; __surfaceDraws: number[]; __deskDrawing: Element | null }
+        const w = window as unknown as { __longTasks: number[]; __frames: number[][]; __surfaceDraws: number[]; __arrowDraws: number[]; __deskDrawing: Element | null }
         const deskKept = w.__deskDrawing !== null && document.querySelector('[data-slot="table-surface"] [data-surface="desk"]')!.firstElementChild === w.__deskDrawing
-        return { longTasks: w.__longTasks.map(Math.round), frames: w.__frames.map(([duration, render]) => [Math.round(duration!), Math.round(render!)]), surfaceDraws: w.__surfaceDraws.map((duration) => Math.round(duration * 10) / 10), deskKept }
+        return { longTasks: w.__longTasks.map(Math.round), frames: w.__frames.map(([duration, render]) => [Math.round(duration!), Math.round(render!)]), surfaceDraws: w.__surfaceDraws.map((duration) => Math.round(duration * 10) / 10), arrowDraws: w.__arrowDraws.map((duration) => Math.round(duration * 10) / 10), deskKept }
       })
       const sizeChanges = keys.filter((key, i) => key !== (i === 0 ? keys[keys.length - 1] : keys[i - 1])).length
       return {
@@ -4709,15 +4854,110 @@ async function tableSurface(executablePath: string, base: string): Promise<Recor
     // Drawn again only for a new board size (the 20 changes return to their start), each drawing well below a long task.
     check(withSurface.surfaceDraws.length <= withSurface.sizeChanges, `table surface: drawn ${withSurface.surfaceDraws.length} times for ${withSurface.sizeChanges} size changes`)
     check(withSurface.surfaceDraws.every((duration) => duration < 200), `table surface: a drawing took ${Math.max(...withSurface.surfaceDraws)} ms`)
+    // Prompt 43: the arrows are measured and drawn once per state that has some, each drawing far below a long task.
+    check(withSurface.arrowDraws.length > 0 && withSurface.arrowDraws.every((duration) => duration < 50), `table arrows: drawings ${JSON.stringify(withSurface.arrowDraws)} ms (none, or one of 50 ms or more)`)
     // The board follows the playing area; the desk's full-screen grain is never recomputed while the screen keeps its size.
     check(withSurface.deskKept, "table surface: the desk was drawn again although the screen kept its size")
-    log(`    20 state changes, 4x CPU, 412x915: long tasks with surface ${JSON.stringify(withSurface.longTasks)} (longest ${withSurface.longest} ms, longest frame ${withSurface.longestFrame} ms, rendering ${withSurface.longestRender} ms), without ${JSON.stringify(withoutSurface.longTasks)} (longest ${withoutSurface.longest} ms, frame ${withoutSurface.longestFrame} ms, rendering ${withoutSurface.longestRender} ms); surface drawn ${withSurface.surfaceDraws.length}x ${JSON.stringify(withSurface.surfaceDraws)} ms for ${withSurface.sizeChanges} size changes (${withSurface.boards.length} board sizes, desk kept: ${withSurface.deskKept}); 5 new states of one size: drawn ${repeatedDraws}x`)
+    log(`    20 state changes, 4x CPU, 412x915: long tasks with surface ${JSON.stringify(withSurface.longTasks)} (longest ${withSurface.longest} ms, longest frame ${withSurface.longestFrame} ms, rendering ${withSurface.longestRender} ms), without ${JSON.stringify(withoutSurface.longTasks)} (longest ${withoutSurface.longest} ms, frame ${withoutSurface.longestFrame} ms, rendering ${withoutSurface.longestRender} ms); surface drawn ${withSurface.surfaceDraws.length}x ${JSON.stringify(withSurface.surfaceDraws)} ms for ${withSurface.sizeChanges} size changes (${withSurface.boards.length} board sizes, desk kept: ${withSurface.deskKept}); 5 new states of one size: drawn ${repeatedDraws}x; arrows drawn ${withSurface.arrowDraws.length}x ${JSON.stringify(withSurface.arrowDraws)} ms`)
     results["performance"] = { viewport: "412x915", throttling: 4, changes: 20, scenes: SURFACE_GAME, withSurface, withoutSurface, repeated: { states: 5, draws: repeatedDraws } }
     // Pictures a state change took off the table stop loading (aborted); every other request failure counts.
     for (const error of pageLog.errors) if (!/^\[requestfailed\] https:\/\/cards\.scryfall\.io\/.* net::ERR_ABORTED$/.test(error)) check(false, `table surface: ${error}`)
     await context.close()
   } finally {
     await surfaceBrowser.close()
+  }
+  return results
+}
+
+/**
+ * The arrows beyond single scenes (prompt 43, docs/design/SPIELTISCH.md §4.15): they move with the table - at every
+ * test size including the foldable's (11 sizes) a scene with combat and blockers is drawn again, every arrow beside its
+ * end in the new layout -, with a new state (another scene, a decision that opens and closes) and with a row scrolled
+ * sideways (the 14 attackers on a small phone); and they flow and pulse only without less motion - the device's and the
+ * player's -, the first phase then standing still.
+ */
+async function tableArrows(executablePath: string, base: string): Promise<Record<string, unknown>> {
+  log("  table arrows (sizes, state changes, scrolling, motion)")
+  const arrowBrowser = await launchBrowser(executablePath)
+  const results: Record<string, unknown> = {}
+  try {
+    const context = await newContext(arrowBrowser, VIEWPORTS[2]!)
+    const page = await context.newPage()
+    const pageLog = watch(page)
+    await openScene(page, base, "blockers")
+    const draws = () => page.evaluate(() => Number(document.querySelector<HTMLElement>('[data-slot="table-arrows"]')?.dataset["draws"] ?? 0))
+    const ends = () => page.evaluate(() => [...document.querySelectorAll<SVGGElement>("[data-arrow]")].map((g) => `${g.dataset["from"]}>${g.dataset["to"]}@${g.dataset["end"]}`))
+    // Every size: drawn again, the arrows' ends follow the layout.
+    const sizes: Record<string, unknown> = {}
+    const seenEnds = new Set<string>()
+    for (const [name, width, height] of TABLE_LAYOUT_SIZES.filter(([size]) => !size.startsWith("border"))) {
+      const before = await draws()
+      await page.setViewportSize({ width, height })
+      await page.waitForFunction((count) => Number(document.querySelector<HTMLElement>('[data-slot="table-arrows"]')?.dataset["draws"] ?? 0) > count, before, { timeout: 10_000 }).catch(() => undefined)
+      const after = await draws()
+      check(after > before, `table arrows (${name}): not drawn again for the new size`)
+      sizes[name] = await arrowFacts(page, `table arrows (${name} ${width}x${height}, blockers)`, "blockers")
+      seenEnds.add(JSON.stringify(await ends()))
+    }
+    check(seenEnds.size >= 8, `table arrows: the ends did not follow the sizes (${seenEnds.size} different layouts of 11)`)
+    results["sizes"] = sizes
+    await page.setViewportSize({ width: VIEWPORTS[2]!.width, height: VIEWPORTS[2]!.height })
+
+    // New states: Forge's next scenes on the same page - combat with a distribution (the decision expands), a stack, nothing, combat again.
+    const states: Record<string, unknown> = {}
+    for (const scene of ["damage", "stack", "main-phase", "blockers"] as const) {
+      const before = await draws()
+      await page.evaluate((name) => (window as unknown as { __openmanaShowScene: (name: string) => void }).__openmanaShowScene(name), scene)
+      await page.waitForFunction((count) => Number(document.querySelector<HTMLElement>('[data-slot="table-arrows"]')?.dataset["draws"] ?? 0) > count, before, { timeout: 10_000 }).catch(() => undefined)
+      states[scene] = await arrowFacts(page, `table arrows (new state ${scene})`, scene)
+    }
+    results["states"] = states
+
+    // Motion: three flow phases taking turns and the glow's pulse, all on the arrows' own layers (opacity only, table.css).
+    const motion = () => page.evaluate(() => document.getAnimations().filter((animation) => (animation.effect as KeyframeEffect | null)?.target?.closest('[data-slot="table-arrows"]')).map((animation) => ({ name: (animation as CSSAnimation).animationName, layer: ((animation.effect as KeyframeEffect).target as Element).getAttribute("data-layer-name"), state: animation.playState })))
+    const opacities = () => page.evaluate(() => Object.fromEntries([...document.querySelectorAll<SVGSVGElement>('[data-slot="table-arrows"] svg')].map((svg) => [svg.getAttribute("data-layer-name"), getComputedStyle(svg).opacity])))
+    const moving = await motion()
+    check(["flow-0", "flow-1", "flow-2"].every((layer) => moving.some((animation) => animation.name === "table-arrow-flow" && animation.layer === layer && animation.state === "running")) && moving.some((animation) => animation.name === "table-arrow-pulse" && animation.layer === "glow"), `table arrows: they do not flow and pulse ${JSON.stringify(moving)}`)
+    await page.emulateMedia({ reducedMotion: "reduce" })
+    const reducedDevice = await motion()
+    const stillDevice = await opacities()
+    await page.emulateMedia({ reducedMotion: "no-preference" })
+    await page.evaluate(() => document.documentElement.setAttribute("data-reduced-motion", ""))
+    const reducedSetting = await motion()
+    const stillSetting = await opacities()
+    await page.evaluate(() => document.documentElement.removeAttribute("data-reduced-motion"))
+    check(reducedDevice.length === 0 && reducedSetting.length === 0, `table arrows: they move under less motion ${JSON.stringify({ reducedDevice, reducedSetting })}`)
+    for (const still of [stillDevice, stillSetting]) check(still["flow-0"] === "1" && still["flow-1"] === "0" && still["flow-2"] === "0", `table arrows: under less motion not one standing line ${JSON.stringify(still)}`)
+    results["motion"] = { moving, reducedDevice, reducedSetting, stillDevice, stillSetting }
+    for (const error of pageLog.errors) if (!/^\[requestfailed\] https:\/\/cards\.scryfall\.io\/.* net::ERR_ABORTED$/.test(error)) check(false, `table arrows: ${error}`)
+    await page.close()
+
+    // Scrolling: 14 attackers on a small phone - the row scrolls; the arrows follow the attackers in view.
+    const small = await context.newPage()
+    const smallLog = watch(small)
+    await small.setViewportSize({ width: 360, height: 740 })
+    await openScene(small, base, "commander-late")
+    const first = await arrowFacts(small, "table arrows (small phone, commander-late)", "commander-late")
+    const startsBefore = await small.evaluate(() => [...document.querySelectorAll<SVGGElement>("[data-arrow]")].map((g) => g.dataset["from"]).join(","))
+    const scrolled = await small.evaluate(() => {
+      const rows = [...document.querySelectorAll<HTMLElement>('[data-area="field"] [data-slot="game-card-row"]')].filter((row) => row.scrollWidth > row.clientWidth + 1)
+      const row = rows[0]
+      if (row === undefined) return false
+      const count = Number(document.querySelector<HTMLElement>('[data-slot="table-arrows"]')!.dataset["draws"] ?? 0)
+      row.scrollLeft = row.scrollWidth
+      return count
+    })
+    check(scrolled !== false, "table arrows (small phone, commander-late): no attackers' row scrolls")
+    if (scrolled !== false) await small.waitForFunction((count) => Number(document.querySelector<HTMLElement>('[data-slot="table-arrows"]')?.dataset["draws"] ?? 0) > count, scrolled, { timeout: 10_000 }).catch(() => undefined)
+    const second = await arrowFacts(small, "table arrows (small phone, commander-late, scrolled)", "commander-late")
+    const startsAfter = await small.evaluate(() => [...document.querySelectorAll<SVGGElement>("[data-arrow]")].map((g) => g.dataset["from"]).join(","))
+    check(startsBefore !== startsAfter, `table arrows (small phone, commander-late): the arrows did not follow the scrolled row (${startsBefore})`)
+    results["scroll"] = { before: first, after: second, startsBefore, startsAfter }
+    for (const error of smallLog.errors) if (!/^\[requestfailed\] https:\/\/cards\.scryfall\.io\/.* net::ERR_ABORTED$/.test(error)) check(false, `table arrows (scroll): ${error}`)
+    log(`    ${Object.keys(sizes).length} sizes redrawn, ${seenEnds.size} different layouts of the ends; states ${Object.keys(states).join(", ")}; scrolled row: ${startsBefore} → ${startsAfter}; motion ${moving.length} animations, none under less motion`)
+    await context.close()
+  } finally {
+    await arrowBrowser.close()
   }
   return results
 }
@@ -4753,9 +4993,10 @@ async function tableFoldSizes(executablePath: string, base: string): Promise<Rec
         const strips = await stripFacts(page, label, viewport.touch)
         const panels = await panelFacts(page, label, built === null ? scene : null, built === null ? recordedStackIds(scene) : null)
         const decision = await decisionFits(page, label, viewport)
+        const arrows = await arrowFacts(page, label, scene)
         const axe = await accessibility(page, label)
         await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-${built === null ? scene : `built-${built}`}.png`) })
-        scenes[name] = { areas: layout["areas"], arrangement: layout["arrangement"], pictures, cards, faces, hand, strips, panels, decision, axe }
+        scenes[name] = { areas: layout["areas"], arrangement: layout["arrangement"], pictures, cards, faces, hand, strips, panels, decision, arrows, axe }
         for (const error of pageLog.errors) check(false, `${label}: ${error}`)
         await page.close()
       }

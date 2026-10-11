@@ -369,6 +369,12 @@ target (example data only).
   combat facts - usable gold with a glow, chosen a strong light frame, target
   red with a gentle pulse, attacking amber, blocking its own colour - each
   with its words, each 3:1.
+- **Arrows** (prompt 43, [design/SPIELTISCH.md](design/SPIELTISCH.md) §4.15):
+  over the board, decoration only (hidden from screen readers, no pointer
+  events) - target red (`--table-danger`), attack amber (`--table-attack`),
+  block mana blue (`--table-mana`); a glow and a dashed line that flows by
+  three phases taking turns in opacity, still under less motion; the head
+  beside its end, never on a card picture; lines may cross pictures.
 - **Motion:** allowed on the table under rule 8 - `transform`/`opacity` only,
   never delaying input or state, nothing under less motion.
 - **Panels, Zauberchronik, Phasen-Tafel, main button** (prompt 41,

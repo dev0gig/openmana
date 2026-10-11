@@ -13,8 +13,9 @@
  *   opens the card view - by a tap, a long press or a right click -, never
  *   sends anything: a card on the stack is only looked at (prompt 16).
  * - While there is combat, below the entries one short line per attacker:
- *   "Angreifer → Ziel · geblockt von …" from Forge's combat (arrows across the
- *   table follow in prompt 43); alike unblocked attackers share a line.
+ *   "Angreifer → Ziel · geblockt von …" from Forge's combat (the arrows across
+ *   the table, prompt 43, show the same: table-arrows.tsx); alike unblocked
+ *   attackers share a line.
  * - Empty stays honest: "Der Stapel ist leer, niemand kämpft."
  *
  * In hoch the panel is a bar between the battlefields: the title stacked on

@@ -68,6 +68,11 @@
  * keyboard's focus rises whole above it; a tap is the lifted card's, a swipe
  * nothing, a long press looks (useFanPress).
  *
+ * The arrows (prompt 43, table/table-arrows.tsx, table/arrows.ts): over the
+ * board, from a Zauberchronik entry to its targets, from an attacker to whom it
+ * attacks, from a blocker to its attacker - Forge's facts as a picture, never in
+ * the way of an input.
+ *
  * Targets and payment (prompt 17): a player Forge's running input would take
  * - a target, a choice, the one paying life for Phyrexian mana - is a control
  * too: their name and life total carry Forge's mark and tap at once
@@ -122,6 +127,7 @@ import { CardChip, rowSize, ValuePlaque } from "./table/card-parts"
 import { Chronicle } from "./table/chronicle"
 import { handFan, restingCardAt } from "./table/hand-fan"
 import { PhasePanel } from "./table/phase-panel"
+import { TableArrows } from "./table/table-arrows"
 import { TableArt, TableCardBack, TableEmblem } from "./table/table-art"
 import { MedallionFace, StripChip, ZoneCount, ZoneCounter, ZonePile } from "./table/strip-parts"
 import { TableSurface } from "./table/table-surface"
@@ -396,6 +402,8 @@ export function GameTable({ replay = false,
             {...(onUseMana !== undefined ? { onUseMana } : {})}
           />
         </GameBoardArea>
+        {/* The arrows over the board (prompt 43): targets, attacks, blocks - decoration, no pointer events, hidden from screen readers. */}
+        <TableArrows state={state} />
         <HelpSheet open={helpOpen} onOpenChange={setHelpOpen} state={state} questions={questions} replay={replay} waiting={waiting} conceding={conceding} />
         <ZoneSheet onSourceChange={setZone} source={zone} state={state} pictures={pictures} onClose={() => setZone(null)} onLook={openCard} />
         <HistorySheet open={historyOpen} onOpenChange={setHistoryOpen} history={history} state={state} questions={questions} onLook={(id) => { lookAtQuestionCard(id); setInspectingHistory(true) }} />

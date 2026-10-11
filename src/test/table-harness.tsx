@@ -28,6 +28,11 @@
  * would be) - the test measures what 20 such changes cost and that the table
  * surface is not drawn again for them.
  *
+ * The arrows (prompt 43): `scene=attack-planeswalker-declared` is Forge's
+ * next state after the recorded "attack-planeswalker", rebuilt from its own
+ * messages (src/test/built-scenes.ts, marked as built) - an attacker of a
+ * planeswalker, which the recorded scenes stop just short of.
+ *
  * Not part of the app: only the test's dev server serves it,
  * /scripts/e2e/table-harness.html?scene=<name>[&built=<question>][&presentation=dfc|fallback][&hand=<cards>][&language=en][&waiting=0].
  */
@@ -45,6 +50,7 @@ import { visibleCards } from "@/game/table-model"
 import { StorageProvider } from "@/storage/storage-context"
 import type { AnswerBody, ManaColor, Question, VisibleCard } from "@openmana/engine-protocol"
 import { BUILT_QUESTIONS, builtQuestion, type BuiltQuestionName } from "./built-questions"
+import { builtTableScene, isBuiltTableScene } from "./built-scenes"
 import { tableScene, type TableScene, type TableSceneName } from "./table-scenes"
 
 declare global {
@@ -134,7 +140,9 @@ function handScene(scene: TableScene, count: number): TableScene {
 
 function Harness() {
   const params = new URLSearchParams(window.location.search)
-  const recorded = tableScene((params.get("scene") ?? "opening") as TableSceneName)
+  const sceneName = params.get("scene") ?? "opening"
+  // A moment rebuilt from Forge's next messages (src/test/built-scenes.ts, prompt 43), or a recorded one.
+  const recorded = isBuiltTableScene(sceneName) ? builtTableScene(sceneName) : tableScene(sceneName as TableSceneName)
   // Explicitly built presentation boundary: real catalog DFC, no claim of a Forge transform.
   const presentation = params.get("presentation")
   const handSize = params.get("hand")
