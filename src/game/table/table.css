@@ -445,7 +445,7 @@
 [data-slot="game-board"] .table-hand {
   --hand-card-w: 4.5rem;
   --hand-card-h: calc(var(--hand-card-w) * 88 / 63);
-  --hand-gap: 0.25rem;
+  --hand-gap: 0.1875rem;
   --hand-sink: 0px;
   --hand-lift-scale: 1.12;
   --hand-lift-y: -0.4rem;

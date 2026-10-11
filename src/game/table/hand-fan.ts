@@ -19,7 +19,7 @@
  *    1.12 times the size of a full card - also when the fan made the cards
  *    smaller -, its bottom 0.4 rem above the hand's lower edge, so it stands
  *    whole above the hand (over the strips; the hand clips only downwards).
- *  - More cards than even small ones fit (some 10 on a small phone): a row that
+ *  - More cards than even small ones fit (some 13 on a phone): a row that
  *    scrolls sideways (mode "row"), cards that fit the hand's height and rise
  *    inside it, side by side as in the fan.
  *
@@ -35,12 +35,12 @@ const CARD_RATIO = 63 / 88
 const FULL_HEIGHT = 1.1
 /** The widest a hand card gets (rem; the mockup's 11.5 rem). */
 const FULL_MAX_REM = 11.5
-/** The room between two cards (rem): they never overlap. */
-const GAP_REM = 0.25
+/** The room between two cards (rem, 3 px): they never overlap. */
+const GAP_REM = 0.1875
 /** How much of its own every card keeps in view at the least (px): WCAG 2.5.8's 24 px target - every card is whole, at least MIN_CARD wide. */
 export const MIN_STRIP = 24
-/** The smallest card of the fan (px wide); below it the hand becomes a scrolling row. */
-export const MIN_CARD = 32
+/** The smallest card of the fan (px wide, WCAG 2.5.8's target; a tap lifts it to a full card); below it the hand becomes a scrolling row. */
+export const MIN_CARD = MIN_STRIP
 /** A lifted card's size, relative to a full card. */
 const LIFT_SCALE = 1.12
 /** A lifted card's lower edge above the hand's lower edge (rem). */

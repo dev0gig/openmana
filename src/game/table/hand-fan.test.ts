@@ -22,7 +22,7 @@ describe("handFan", () => {
     expect(fan.mode).toBe("fan")
     expect(fan.cardHeight).toBeCloseTo(127 * 1.1, 1)
     expect(fan.cardWidth).toBeCloseTo((127 * 1.1 * 63) / 88, 1)
-    expect(fan.gap).toBe(4)
+    expect(fan.gap).toBe(3)
     expect(used(fan)).toBeLessThanOrEqual(396 + 0.1)
     expect(fan.sink).toBeCloseTo(fan.cardHeight * 0.09, 1)
     // The lifted card: a full card's 1.12, its lower edge 0.4 rem above the hand's.
@@ -91,8 +91,8 @@ describe("handFan", () => {
       expect(fan.gap).toBeGreaterThan(0)
       if (fan.mode === "fan") expect(used(fan)).toBeLessThanOrEqual(344 + 0.1)
     }
-    // Up to nine cards stay a fan there.
-    expect(handFan(9, { width: 344, height: 103 })!.mode).toBe("fan")
+    // Up to twelve cards stay a fan there.
+    expect(handFan(12, { width: 344, height: 103 })!.mode).toBe("fan")
   })
 })
 

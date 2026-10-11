@@ -644,10 +644,10 @@ in `docs/implementation/42-hand-fan.md`:
 - Sizes from the hand's measured content box (`useElementSize`): a full card
   1.1 × the hand's height (at most 11.5 rem wide), sinking 9 % of its height
   below the edge; **since 2026-10-12 the cards never overlap** (project owner:
-  the overlap looked untidy) - side by side, 0.25 rem apart (`--hand-gap`),
+  the overlap looked untidy) - side by side, 3 px apart (`--hand-gap`),
   the outer cards' turn kept inside the width; where they do not fit the
-  cards get smaller (down to 32 px wide: 9 cards on a 360 px phone, 10 on
-  412 px) - a tap lifts one to a full card's size, a long press shows it
+  cards get smaller (down to 24 px wide, `MIN_CARD`: 12 cards on a 360 px
+  phone, 14 on 412 px) - a tap lifts one to a full card's size, a long press shows it
   whole; until then they overlapped by at least 14 % with 24 px of each card
   its own; beyond that a row that scrolls sideways (`data-fan="row"`,
   `touch-action: pan-x`, cards rising inside the hand). Turn and arc as the
