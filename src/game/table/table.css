@@ -1848,6 +1848,23 @@
   fill-opacity: 0.7;
 }
 
+/*
+ * In a low wide window (a phone turned) the decision shares the side column
+ * with the Zauberchronik and the strips, and an arrow to the other side
+ * crossed Forge's question and the main button (prompt 45). There the
+ * decision lies above the arrows - an arrow passes under it - and a lifted
+ * hand card above the decision; elsewhere no arrow crosses the decision.
+ */
+@media (aspect-ratio > 13/10) and (max-height: 32rem) {
+  [data-slot="game-board"] > [data-slot="game-board-area"][data-area="decision"] {
+    z-index: 41;
+  }
+
+  [data-slot="game-board"] > [data-slot="game-board-area"][data-area="hand"]:has([data-lifted], [data-slot="game-card"]:focus-visible) {
+    z-index: 42;
+  }
+}
+
 /* ---------- Motion (prompt 44): travelling cards, damage, life (docs/design/SPIELTISCH.md §8) ---------- */
 
 /*
