@@ -3692,12 +3692,17 @@ async function tableKeyboardTour(page: Page, label: string): Promise<Record<stri
     check(nameless.length === 0, `${label}: focus stops without a name ${JSON.stringify(nameless)}`)
     const hidden = stops.filter((stop) => !stop.shown)
     check(hidden.length === 0, `${label}: focus not shown at ${JSON.stringify(hidden)}`)
-    // Every region with something to focus is reached.
-    const focusable = await page.evaluate(() =>
-      [...document.querySelectorAll<HTMLElement>('[data-slot="game-board-area"]')]
-        .filter((area) => area.matches("[tabindex]:not([tabindex='-1'])") || area.querySelector("button:not([disabled]), a[href], [tabindex]:not([tabindex='-1'])") !== null)
-        .map((area) => area.getAttribute("data-area")),
-    )
+    // Every region with something to focus on the screen is reached (a region that steps aside, e.g. an empty
+    // Zauberchronik in a low window, has nothing to reach).
+    const focusable = await page.evaluate(() => {
+      const shown = (element: Element) => {
+        const box = element.getBoundingClientRect()
+        return box.width > 0 && box.height > 0 && element.checkVisibility({ visibilityProperty: true })
+      }
+      return [...document.querySelectorAll<HTMLElement>('[data-slot="game-board-area"]')]
+        .filter((area) => [area, ...area.querySelectorAll("button:not([disabled]), a[href], [tabindex]")].some((element) => element.matches("button:not([disabled]), a[href], [tabindex]:not([tabindex='-1'])") && shown(element)))
+        .map((area) => area.getAttribute("data-area"))
+    })
     const missed = focusable.filter((area) => !stops.some((stop) => stop.area === area))
     check(missed.length === 0, `${label}: the keyboard never reaches ${missed.join(", ")}`)
     check((await harnessTaps(page)).length === 0 && (await harnessAnswers(page)).length === 0 && (await harnessPlayerTaps(page)).length === 0, `${label}: walking with Tab sent an input`)
