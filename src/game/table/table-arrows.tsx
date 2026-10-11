@@ -11,10 +11,12 @@
  *
  *  - Drawn again for a new state, a new size of the board or a region (the
  *    decision opening or closing, a resize - ResizeObserver), a row or a
- *    region scrolled (a scroll listener in the capture phase) and the end of
- *    a transition (an attacker moved forward, a card lifted) - every cause
- *    batched into one drawing per animation frame, which reads the boxes
- *    once. Nothing is measured while there is no arrow.
+ *    region scrolled (a scroll listener in the capture phase), the end of
+ *    a transition (a card lifted) and the end of the table's motion (prompt
+ *    44: cards travelling, an attacker moving forward - while it runs the
+ *    arrows wait) - every cause batched into one drawing per animation
+ *    frame, which reads the boxes once. Nothing is measured while there is
+ *    no arrow.
  *  - Layers, each its own SVG sized to the arrows: the muted arrows (still),
  *    the strong arrows' glow (it pulses in opacity), their dashed line in
  *    three phases a third of a dash apart (they take turns in opacity, so the
@@ -30,6 +32,7 @@
  */
 import { memo, useLayoutEffect, useMemo, useRef } from "react"
 import type { GameState } from "@openmana/engine-protocol"
+import { MOTION_END_EVENT } from "./table-motion"
 import { arrowBounds, arrowRelations, endKey, headPath, intersect, layoutArrows, linePath, type ArrowGeometry, type ArrowObstacles, type ArrowRelation, type MeasuredRelation, type Rect } from "./arrows"
 
 /** The name of the User Timing measure of one drawing (read by the end-to-end test's cost measurement). */
@@ -159,6 +162,8 @@ const TableArrows = memo(function TableArrows({ state }: { state: GameState }) {
 
     const draw = () => {
       frame = null
+      // While cards travel (prompt 44) their pictures are not at their places yet: the arrows wait for the end of the motion.
+      if (board.querySelector('[data-slot="table-motion"][data-moving]') !== null) return
       const relationsNow = current.current
       if (relationsNow.length === 0 && drawn === "") return
       // The board's box first: it brings the layout of the new state up to date (the frame would do that anyway), the
@@ -228,7 +233,9 @@ const TableArrows = memo(function TableArrows({ state }: { state: GameState }) {
     }
     board.addEventListener("scroll", whenArrows, { capture: true, passive: true })
     board.addEventListener("transitionend", whenArrows, { capture: true, passive: true })
+    board.addEventListener(MOTION_END_EVENT, whenArrows)
     return () => {
+      board.removeEventListener(MOTION_END_EVENT, whenArrows)
       observer?.disconnect()
       board.removeEventListener("scroll", whenArrows, { capture: true })
       board.removeEventListener("transitionend", whenArrows, { capture: true })

@@ -156,10 +156,10 @@ describe("design tokens", () => {
   })
 
   // The table's marks, plaque rims and arrows (WCAG 1.4.11, 3:1): usable/chosen gold, target and danger red, attack
-  // amber, loyalty's mana blue - on the board (leather), on the desk (wood frame) and on the panels. The marks differ by
+  // amber, loyalty's mana blue, a life gain's green (prompt 44) - on the board (leather), on the desk (wood frame) and on the panels. The marks differ by
   // more than colour (glow against frame, an arrow, the chips' words), as WCAG 1.4.1 asks.
   it.each(
-    ["primary", "foreground", "table-gold-light", "table-danger", "table-attack", "table-mana"].flatMap((mark) =>
+    ["primary", "foreground", "table-gold-light", "table-danger", "table-attack", "table-mana", "table-heal"].flatMap((mark) =>
       ["table-leather", "table-wood-frame", "table-panel", "table-plaque"].map((surface) => [mark, surface] as const),
     ),
   )("the table mark %s on %s reaches 3:1", (mark, surface) => {
@@ -167,7 +167,7 @@ describe("design tokens", () => {
   })
 
   it("the table's tokens are all there and mapped for Tailwind", () => {
-    const names = ["gold-light", "gold-dark", "gold-line", "mana", "danger", "attack", "wood", "wood-frame", "leather", "panel", "plaque"]
+    const names = ["gold-light", "gold-dark", "gold-line", "mana", "danger", "attack", "heal", "wood", "wood-frame", "leather", "panel", "plaque"]
     for (const name of names) {
       expect(rootBlock).toMatch(new RegExp(`--table-${name}:\\s*oklch\\(`))
       expect(css).toContain(`--color-table-${name}: var(--table-${name});`)

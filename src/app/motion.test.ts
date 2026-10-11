@@ -12,10 +12,18 @@
  * player's <html data-reduced-motion>. Nothing moves the table around these
  * rules: no inline animation styles, no SVG (SMIL) animation, and code that
  * animates itself (element.animate) asks src/app/motion.ts.
+ *
+ * The table's own motion (prompt 44, docs/design/SPIELTISCH.md §8): one place
+ * animates in code - src/game/table/table-motion.tsx -, it asks
+ * motionReducedNow() before it measures or moves anything and stops when the
+ * wish for less motion changes (watchReducedMotion), and all its keyframes
+ * come from src/game/table/motion-plan.ts, which builds only transform and
+ * opacity.
  */
 import fs from "node:fs"
 import path from "node:path"
 import { describe, expect, it } from "vitest"
+import { KEYFRAME_SAMPLES, MOTION_PROPERTIES } from "@/game/table/motion-plan"
 import { MOTION, reducedMotion, REDUCED_MOTION_ATTRIBUTE } from "./motion"
 
 const root = path.resolve(import.meta.dirname, "..", "..")
@@ -281,6 +289,24 @@ describe("less motion on the game table", () => {
     }
     expect(problems).toEqual([])
     expect(files.length).toBeGreaterThan(0)
+  })
+
+  it("the table's own motion (prompt 44): one file animates, it asks for less motion first, its keyframes move only transform and opacity", () => {
+    const files = filesUnder(TABLE).filter((file) => /\.tsx?$/.test(file) && !/\.test\.tsx?$/.test(file))
+    const animating = files.filter((file) => /\.animate\(/.test(fs.readFileSync(path.join(TABLE, file), "utf8")))
+    expect(animating).toEqual(["table-motion.tsx"])
+    const source = fs.readFileSync(path.join(TABLE, "table-motion.tsx"), "utf8")
+    // Less motion is asked before anything is measured or moved, and a change of the wish stops what runs.
+    expect(source).toMatch(/import \{[^}]*\bmotionReducedNow\b[^}]*\bwatchReducedMotion\b[^}]*\} from "@\/app\/motion"/)
+    expect(source).toMatch(/private allowed\(\): boolean \{\s*return canAnimate\(\) && !motionReducedNow\(\)/)
+    expect(source).toContain("watchReducedMotion(")
+    // No keyframes written in place: every .animate( takes a builder of motion-plan.ts.
+    expect(source).not.toMatch(/\.animate\(\s*[[{]/)
+    const calls = [...source.matchAll(/\.animate\(\s*(?:[^(),]*\?\s*)?([A-Za-z]+)\(/g)].map((match) => match[1])
+    expect(calls.length).toBe(source.match(/\.animate\(/g)?.length)
+    expect(new Set(calls)).toEqual(new Set(["travelFrames", "hiddenWhileTravelling", "vanishFrames", "entryOutFrames", "shiftFrames", "turnFrames", "appearFrames", "flashFrames", "shakeFrames", "pulseFrames", "entryInFrames", "phaseFrames", "shimmerFrames"]))
+    expect([...MOTION_PROPERTIES]).toEqual(["transform", "opacity"])
+    for (const frames of KEYFRAME_SAMPLES) for (const frame of frames) for (const property of Object.keys(frame)) if (property !== "offset") expect(MOVING).toContain(property)
   })
 
   // The checks above must find what they look for (the table's first motion, the rune ring, came in prompt 37): built examples.

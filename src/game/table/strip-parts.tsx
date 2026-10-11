@@ -18,13 +18,16 @@ import { TableArtPiece } from "./table-art"
 /**
  * The medallion's face: the gold ring, the life total in Cinzel (`title`
  * "Lebenspunkte", the number in `.tabular-nums`), the name band, a crosshair
- * while a spell on the stack targets the player. Goes inside GamePlayer or
+ * while a spell on the stack targets the player, the ring of light the
+ * motion flashes when the life total changes (prompt 44). Goes inside GamePlayer or
  * GamePlayerButton (the medallion is the player's control).
  */
 export function MedallionFace({ name, life, target, active }: { name: string; life: number; target: boolean; active: boolean }) {
   return (
     <>
       <TableArtPiece piece="medallion" viewBox="0 0 120 120" className="table-medallion-ring" />
+      {/* A ring of light that flashes red or green when Forge's life total changes (prompt 44, table-motion.tsx); invisible otherwise. */}
+      <span aria-hidden className="table-medallion-flash" />
       <span className="table-medallion-life" title="Lebenspunkte">
         <span className="tabular-nums">{life}</span>
         <span className="sr-only">Lebenspunkte</span>

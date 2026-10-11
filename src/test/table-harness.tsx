@@ -33,8 +33,14 @@
  * messages (src/test/built-scenes.ts, marked as built) - an attacker of a
  * planeswalker, which the recorded scenes stop just short of.
  *
+ * The motion (prompt 44): `sequence=first-attack` shows Forge's consecutive
+ * states of a recorded game (src/test/table-sequence.ts) instead of a scene,
+ * from `step=N`; window.__openmanaShowStep(n) puts step n on the table as the
+ * next state - the test watches cards travel, turn, attack and leave.
+ *
  * Not part of the app: only the test's dev server serves it,
- * /scripts/e2e/table-harness.html?scene=<name>[&built=<question>][&presentation=dfc|fallback][&hand=<cards>][&language=en][&waiting=0].
+ * /scripts/e2e/table-harness.html?scene=<name>[&built=<question>][&presentation=dfc|fallback][&hand=<cards>][&language=en][&waiting=0]
+ * or ?sequence=first-attack[&step=<n>].
  */
 import { Menu } from "lucide-react"
 import { StrictMode, useEffect, useMemo, useState } from "react"
@@ -52,6 +58,7 @@ import type { AnswerBody, ManaColor, Question, VisibleCard } from "@openmana/eng
 import { BUILT_QUESTIONS, builtQuestion, type BuiltQuestionName } from "./built-questions"
 import { builtTableScene, isBuiltTableScene } from "./built-scenes"
 import { tableScene, type TableScene, type TableSceneName } from "./table-scenes"
+import { sequenceMoment, TABLE_SEQUENCE } from "./table-sequence"
 
 declare global {
   interface Window {
@@ -65,6 +72,8 @@ declare global {
     __openmanaMana?: ManaColor[]
     /** Shows another recorded scene's state (prompt 37: state changes for the surface's measurement). */
     __openmanaShowScene?: (name: TableSceneName) => void
+    /** Shows step n of the recorded sequence as the next state (prompt 44: the motion). */
+    __openmanaShowStep?: (step: number) => void
   }
 }
 
@@ -138,7 +147,31 @@ function handScene(scene: TableScene, count: number): TableScene {
   return { ...scene, state }
 }
 
+/** The recorded sequence's step as a scene of the harness (prompt 44): Forge's state, questions, prompt line and log up to it. */
+function sequenceScene(step: number): TableScene {
+  const moment = sequenceMoment(step)
+  return {
+    name: "main-phase",
+    description: `${TABLE_SEQUENCE.description} Step ${step}.`,
+    fixture: TABLE_SEQUENCE.fixture,
+    message: TABLE_SEQUENCE.steps[step]!.message,
+    game: TABLE_SEQUENCE.game,
+    state: moment.state,
+    questions: moment.questions,
+    prompt: moment.prompt,
+    history: moment.history,
+    notices: [],
+  }
+}
+
+/** A recorded scene (scene=…), or the recorded sequence (sequence=first-attack, prompt 44). */
 function Harness() {
+  const params = new URLSearchParams(window.location.search)
+  if (params.get("sequence") === TABLE_SEQUENCE.name) return <SequenceHarness first={Number(params.get("step") ?? 0) || 0} language={params.get("language") === "en" ? "en" : "de"} />
+  return <SceneHarness />
+}
+
+function SceneHarness() {
   const params = new URLSearchParams(window.location.search)
   const sceneName = params.get("scene") ?? "opening"
   // A moment rebuilt from Forge's next messages (src/test/built-scenes.ts, prompt 43), or a recorded one.
@@ -170,6 +203,31 @@ function Harness() {
     )
   }
   return <SceneTable scene={scene} questions={built?.questions ?? scene.questions} prompt={built === null ? scene.prompt : built.prompt} language={language} waiting={waiting} />
+}
+
+/** The recorded sequence (prompt 44): one step at a time, the next one by window.__openmanaShowStep. */
+function SequenceHarness({ first, language }: { first: number; language: "de" | "en" }) {
+  const [step, setStep] = useState(first)
+  const scene = useMemo(() => sequenceScene(step), [step])
+  useEffect(() => {
+    window.__openmanaShowStep = (next) => setStep(next)
+    return () => {
+      delete window.__openmanaShowStep
+    }
+  }, [])
+  const catalog = useCardCatalog()
+  const { status, install } = catalog
+  useEffect(() => {
+    if (status === "missing" || status === "partial" || status === "outdated") void install()
+  }, [status, install])
+  if (status !== "ready") {
+    return (
+      <p data-harness="catalog" data-status={status}>
+        Kartendaten: {status} {catalog.error ? `– ${catalog.error.message}` : ""}
+      </p>
+    )
+  }
+  return <SceneTable scene={scene} questions={scene.questions} prompt={scene.prompt} language={language} waiting />
 }
 
 const container = document.getElementById("root")

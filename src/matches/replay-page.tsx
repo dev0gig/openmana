@@ -38,10 +38,12 @@ function ReplayView({ matchId }: { matchId: string }) {
       return { frames: [], error: error instanceof Error ? error.message : String(error) }
     }
   }, [stored])
-  const [position, setPosition] = useState(0)
+  // The step shown and how far the last move went: stepping by one is animated, a jump over several steps is not (prompt 44).
+  const [{ position, stride }, setShown] = useState({ position: 0, stride: 0 })
   const [jump, setJump] = useState("")
   const count = parsed?.frames.length ?? 0
   const index = Math.min(position, Math.max(0, count - 1))
+  const setPosition = (next: number) => setShown({ position: next, stride: Math.abs(next - index) })
   const frame: ReplayFrame | undefined = parsed?.frames[index]
   useImmersive(frame !== undefined)
   const { cardLanguage } = usePreferences()
@@ -184,6 +186,7 @@ function ReplayView({ matchId }: { matchId: string }) {
         key={matchId}
         replay
         state={frame.state}
+        animate={stride <= 1}
         questions={frame.questions}
         history={frame.history}
         prompt={frame.prompt}

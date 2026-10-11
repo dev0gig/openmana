@@ -929,6 +929,7 @@ and marks; the table darkens them towards the edges.
 | `--table-mana` | `oklch(0.78 0.13 235)` | mana blue: loyalty rim, your entries, blocking (proposal), the centre rune's glow |
 | `--table-danger` | `oklch(0.68 0.2 35)` | danger/target red: target marks and arrows, the opponent's entries |
 | `--table-attack` | `oklch(0.75 0.17 50)` | attack amber: attacking cards and attack arrows |
+| `--table-heal` | `oklch(0.78 0.16 150)` | life gained: the medallion's green ring of light (prompt 44) |
 | `--table-wood` | `oklch(0.19 0.022 56)` | the desk |
 | `--table-wood-frame` | `oklch(0.33 0.052 58)` | the carved frame (lightest tone) |
 | `--table-leather` | `oklch(0.28 0.045 261)` | the board's leather (its lit centre; darker towards the frame) |
@@ -1009,12 +1010,85 @@ layouts (Bible §13).
    its glimmer, the main button's gloss, the target pulse, the arrows' flow.
 6. Replay: stepping animates, jumping over several steps does not.
 
+### Built (prompt 44)
+
+One component moves the table in code: `TableMotion`
+(`src/game/table/table-motion.tsx`, the last part of `GameBoard`, in game and
+replay), with the pure rules and every keyframe in
+`src/game/table/motion-plan.ts`. Web Animations of `transform` and `opacity`
+only (`MOTION_PROPERTIES`, checked by `motion-plan.test.ts` and
+`motion.test.ts`).
+
+- **When:** for every new state Forge sends. Before React changes the page
+  (`getSnapshotBeforeUpdate`) the old places are read - first everything that
+  still moves is cancelled (the pictures jump to their places); at the next
+  frame, before it is painted, the new places are read in one go and the
+  animations start. A state that comes before that frame skips the motion of
+  the one before. Nothing is queued, nothing waits, nothing is sent. Under
+  less motion (`motionReducedNow()`: the device or the player's setting)
+  nothing is read and nothing moves; switching it on stops what runs
+  (`watchReducedMotion()`). The replay passes `animate={false}` when it jumps
+  over several steps.
+- **Which card is which:** only the `data-card` id (a Zauberchronik card's
+  `data-stack-card`; a pile's cards all stand at its front card's place,
+  `data-pile-cards`). Forge keeps the id from the hand over the stack to the
+  battlefield and from the battlefield to the graveyard: in the engine's test
+  games (publish-35d transcripts) 52 cards went from a battlefield to a
+  graveyard with their id, 82 from a hand to a battlefield, 19 from the
+  stack to a graveyard, 7 from the stack to a battlefield; only a token
+  ceased to exist. While a spell is paid for its card is in no zone - it
+  leaves the hand and appears on the stack afterwards, so a card's last place
+  is remembered for 15 s and it travels from there.
+- **Travel** (another element: another region or row): a **ghost** - a copy
+  of the face (its loaded picture; no ids, slots or names; `aria-hidden`, no
+  pointer events), in the layer `table-motion` above the arrows - glides in
+  340 ms from the old place to the new one, scaled by the cards' long sides
+  and turned with the fanned hand. The card itself lies at its new place at
+  once - invisible until the ghost arrives, but clickable. A card joining a
+  pile does not hide the pile.
+- **Shift** (the same element: its row changed - neighbours came or went, the
+  region grew, an attacker moved forward): the card's parts move from their
+  old place back to rest (260 ms); the card - the control - stays at its new
+  place, its moving parts take no pointer (`table-motion-moving`).
+- **Turn:** Forge's `tapped` changed - the picture turns a quarter (240 ms).
+- **Arrival** without an old place: from the library for the player's hand,
+  from the opponent's hand (or medallion) for the opponent's cards; without
+  a loaded picture as OpenMana's back; otherwise it grows into its place.
+- **Departure:** to the graveyard or exile pile of its player only when Forge
+  shows the id there now, fading at the end; otherwise it fades where it was.
+- **Effects** (Forge's log entries since the last state - they come before the
+  state they explain; only `DAMAGE`, `STACK_ADD`, `STACK_RESOLVE` are
+  followed, other kinds are ignored): the source a `DAMAGE` entry names
+  flashes red (a glow layer around the picture, `::before`, opacity); a card
+  whose Forge damage grew shakes (added to its other motion) and flashes; a
+  new Zauberchronik entry glides in after `STACK_ADD` (else it fades in); a
+  gone entry dissolves after `STACK_RESOLVE` (else it fades).
+- **Life:** Forge's life total changed - the number pulses and the
+  medallion's ring of light flashes red for a loss, green for a gain
+  (`--table-heal`). The `LIFE` log entry names nobody in structured form, so
+  the change of the number is what moves (a value shown, not a told event).
+- **Phases:** the gold marker (the current step, or the current phase in the
+  compact line) glides from the old place to the new one.
+- **Priority:** a new priority question of Forge's makes the main button's
+  gloss sweep across once.
+- **Arrows** wait while cards travel and are drawn again at the end
+  (`openmana:table-motion-end`).
+- **Anchors** for the tests: the layer `data-slot="table-motion"` with
+  `data-moving` (while something moves), `data-last` (what the last state
+  moved, e.g. "travel 1 shift 3 turn 1 phase 1") and `data-states`.
+- **Cost:** two readings per state (the old places on a clean layout, the new
+  ones on the layout the frame needs anyway), at most 16 ghosts, the motion's
+  own work as User Timing `openmana:table-motion`.
+
 ## 9. Performance budget
 
 - The table surface is drawn **only when a size changes**; expensive SVG
   filters never per state.
 - At most one layout measurement per state for arrows and travelling cards,
-  batched per animation frame; no layout animations.
+  batched per animation frame; no layout animations. (Prompt 44: the motion
+  reads the old places before React changes the page - a layout that is
+  usually clean - and the new places in the frame, after the one layout the
+  frame needs anyway.)
 - Chrome with 4× CPU throttling at 412 × 915: no long task over **200 ms**
   caused by the table at a change of turn (and 20 state changes of a
   recorded scene for the surface, prompt 37). Each prompt reports its
@@ -1027,7 +1101,9 @@ layouts (Bible §13).
 - `src/game/table/` - the table's components (surface, medallion, piles,
   chronicle, panel, arrows …), `table-layout.ts`, `use-table-layout.ts`,
   the hand's geometry `hand-fan.ts` (prompt 42), the arrows' relations and
-  geometry `arrows.ts` and their layers `table-arrows.tsx` (prompt 43), and `table.css` (the one
+  geometry `arrows.ts` and their layers `table-arrows.tsx` (prompt 43), the
+  motion `table-motion.tsx` with its rules and keyframes `motion-plan.ts`
+  (prompt 44), and `table.css` (the one
   stylesheet; imported by the table from prompt 37 on). The hand's gestures
   extend the card press hook (`src/hooks/use-card-press.ts`, `useFanPress`).
 - `src/components/ui/game-*.tsx` - the shadcn-built table primitives
@@ -1083,6 +1159,10 @@ From the shared rules of the series - end-to-end section 12,
   `data-draws`, its layers `data-layer-name`, and per arrow `g[data-arrow]`
   with `data-from`, `data-to`, `data-strong`, `data-side`, `data-end`
   (end-to-end `arrowFacts`, `tableArrows`);
+- since prompt 44 the motion's layer `table-motion` with `data-moving`,
+  `data-last` and `data-states`, the pile's `data-pile-cards` and the
+  medallion's `table-medallion-flash` (end-to-end `tableMotion`; the
+  harness' `sequence=first-attack`);
 - the toolbars' names.
 
 The regression evidence stays complete (8 sizes × 38 scenes, at least 600
@@ -1155,3 +1235,11 @@ a push.
   each head beside its end, never on a card picture, only between things in
   view; glowing and flowing in opacity, still under less motion; drawn again
   for a state, a size, a scroll. Animations in prompt 44.
+- 2026-10-11, prompt 44: the motion (§8 "Built") - cards travel by their id
+  (library → hand, hand → battlefield or Zauberchronik, stack → graveyard,
+  battlefield → graveyard), shift in their rows, turn when tapped, move
+  forward to attack; damage flashes and shakes, life totals pulse red or
+  green, Zauberchronik entries glide in and dissolve, the phases' gold glides,
+  the main button shimmers at a new priority; over the new state, which is
+  usable at once; nothing moves under less motion, a replay animates only
+  stepping. Review and polish in prompt 45.

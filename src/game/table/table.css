@@ -1848,6 +1848,59 @@
   fill-opacity: 0.7;
 }
 
+/* ---------- Motion (prompt 44): travelling cards, damage, life (docs/design/SPIELTISCH.md §8) ---------- */
+
+/*
+ * The motion's layer over the board (TableMotion, src/game/table/
+ * table-motion.tsx): the ghosts - copies of a card's face that travel while
+ * the card itself already lies at its new place - never take a pointer and
+ * stand above the arrows. The animations are Web Animations of transform and
+ * opacity started by the component; it starts none under less motion.
+ */
+[data-slot="game-board"] .table-motion {
+  position: absolute;
+  inset: 0;
+  z-index: 45;
+  overflow: visible;
+  pointer-events: none;
+}
+
+[data-slot="game-board"] .table-motion-ghost {
+  position: absolute;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+/* A card's picture moving within its row: the card - the control - already stands at its place and takes the clicks. */
+[data-slot="game-board"] .table-motion-moving {
+  pointer-events: none;
+}
+
+/* A card's red glow when it deals or takes damage: a layer around the picture (never on it) whose opacity flashes. */
+[data-slot="game-board"] [data-slot="game-card-face"]::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  box-shadow: 0 0 0.75rem 0.2rem color-mix(in oklch, var(--table-danger) 85%, transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The medallion's ring of light when Forge's life total changes: red for a loss, green for a gain. */
+[data-slot="game-board"] .table-medallion-flash {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  box-shadow: 0 0 1rem 0.3rem color-mix(in oklch, var(--table-danger) 80%, transparent), inset 0 0 0.6rem color-mix(in oklch, var(--table-danger) 60%, transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+[data-slot="game-board"] .table-medallion-flash[data-tone="gain"] {
+  box-shadow: 0 0 1rem 0.3rem color-mix(in oklch, var(--table-heal) 80%, transparent), inset 0 0 0.6rem color-mix(in oklch, var(--table-heal) 60%, transparent);
+}
+
 /* ---------- Less motion (keep both blocks; nothing else sets motion !important) ---------- */
 
 @media (prefers-reduced-motion: reduce) {

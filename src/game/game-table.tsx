@@ -73,6 +73,13 @@
  * attacks, from a blocker to its attacker - Forge's facts as a picture, never in
  * the way of an input.
  *
+ * The motion (prompt 44, table/table-motion.tsx, table/motion-plan.ts): a
+ * card travels to its new place (the same id), turns when tapped, moves
+ * forward to attack; damage and life totals react, Zauberchronik entries glide
+ * in and dissolve, the phases' gold glides on, the main button shimmers at a
+ * new priority - over the new state, which is usable at once; nothing moves
+ * under less motion.
+ *
  * Targets and payment (prompt 17): a player Forge's running input would take
  * - a target, a choice, the one paying life for Phyrexian mana - is a control
  * too: their name and life total carry Forge's mark and tap at once
@@ -128,6 +135,7 @@ import { Chronicle } from "./table/chronicle"
 import { handFan, restingCardAt } from "./table/hand-fan"
 import { PhasePanel } from "./table/phase-panel"
 import { TableArrows } from "./table/table-arrows"
+import { TableMotion } from "./table/table-motion"
 import { TableArt, TableCardBack, TableEmblem } from "./table/table-art"
 import { MedallionFace, StripChip, ZoneCount, ZoneCounter, ZonePile } from "./table/strip-parts"
 import { TableSurface } from "./table/table-surface"
@@ -140,6 +148,12 @@ const EMPTY_HISTORY: readonly GameEvent[] = []
 export interface GameTableProps {
   readonly replay?: boolean
   readonly state: GameState
+  /**
+   * Animate the change to this state (prompt 44, table/table-motion.tsx; the
+   * default). A replay passes false when it jumps over several steps: then the
+   * table changes at once.
+   */
+  readonly animate?: boolean
   readonly history?: readonly GameEvent[]
   /** The questions Forge asks right now. */
   readonly questions: readonly Question[]
@@ -199,6 +213,7 @@ const CardControlsContext = createContext<CardControls | null>(null)
 
 export function GameTable({ replay = false,
   state,
+  animate = true,
   history = EMPTY_HISTORY,
   questions,
   prompt,
@@ -404,6 +419,8 @@ export function GameTable({ replay = false,
         </GameBoardArea>
         {/* The arrows over the board (prompt 43): targets, attacks, blocks - decoration, no pointer events, hidden from screen readers. */}
         <TableArrows state={state} />
+        {/* The motion over the board (prompt 44): cards travelling and turning, damage, life, stack and phases - never holding a state or an input up. */}
+        <TableMotion state={state} history={history} animate={animate} priority={priorityQuestion(questions)} />
         <HelpSheet open={helpOpen} onOpenChange={setHelpOpen} state={state} questions={questions} replay={replay} waiting={waiting} conceding={conceding} />
         <ZoneSheet onSourceChange={setZone} source={zone} state={state} pictures={pictures} onClose={() => setZone(null)} onLook={openCard} />
         <HistorySheet open={historyOpen} onOpenChange={setHistoryOpen} history={history} state={state} questions={questions} onLook={(id) => { lookAtQuestionCard(id); setInspectingHistory(true) }} />
@@ -656,6 +673,7 @@ function TableCard({
   plaque,
   combat,
   fan = false,
+  pile,
 }: {
   card: VisibleCard
   place: CardPlace
@@ -669,6 +687,8 @@ function TableCard({
   combat?: "attacking" | "blocking"
   /** A card of the fan (prompt 42): its row handles touch and pen (useFanPress), the card only the mouse's and the keyboard's click and look. */
   fan?: boolean
+  /** A pile's cards (prompt 44: every id of the pile is at this card's place - a card joining or leaving the pile travels there). */
+  pile?: readonly number[]
 }) {
   const controls = use(CardControlsContext)
   if (controls === null) throw new Error("TableCard outside GameTable")
@@ -687,6 +707,7 @@ function TableCard({
         data-stack-target={target || undefined}
         data-combat={combat}
         data-card={card.id}
+        data-pile-cards={pile?.join(" ")}
         aria-label={label}
         title={label}
         {...(usage.primary === "look" ? { "aria-haspopup": "dialog" as const } : {})}
@@ -718,7 +739,7 @@ function TargetChip() {
  * words -, the whole of it in the chip line's title and the card's name for
  * screen readers.
  */
-function FieldCard({ card, count, pictures, seat, note }: { card: VisibleCard; count: number; pictures: TableCardLookup; seat: Seat; note?: string }) {
+function FieldCard({ card, count, pictures, seat, note, pile }: { card: VisibleCard; count: number; pictures: TableCardLookup; seat: Seat; note?: string; pile?: readonly number[] }) {
   const controls = use(CardControlsContext)
   // The card the running step is about (an ability's source while its targets or costs are chosen - prompt 17).
   const target = controls?.targets.cards.has(card.id) ?? false
@@ -736,6 +757,7 @@ function FieldCard({ card, count, pictures, seat, note }: { card: VisibleCard; c
       pictures={pictures}
       count={count}
       {...(note ? { note } : {})}
+      {...(pile !== undefined && pile.length > 1 ? { pile } : {})}
       {...(value !== null ? { plaque: <ValuePlaque value={value} /> } : {})}
       {...(card.attacking === true ? { combat: "attacking" as const } : card.blocking === true ? { combat: "blocking" as const } : {})}
       caption={
@@ -799,7 +821,7 @@ function Entry({ entry, pictures, seat }: { entry: BoardEntry; pictures: TableCa
       </GameCardRowItem>
     )
   }
-  const card = <FieldCard card={entry.card} count={entry.ids.length} pictures={pictures} seat={seat} />
+  const card = <FieldCard card={entry.card} count={entry.ids.length} pile={entry.ids} pictures={pictures} seat={seat} />
   if (entry.attachments.length === 0) return <GameCardRowItem>{card}</GameCardRowItem>
   return (
     <GameCardRowItem>
@@ -923,6 +945,11 @@ function Field({ side, pictures, nearRow, owner }: { side: TableSide; pictures: 
       {rows}
     </div>
   )
+}
+
+/** Forge's open priority question (its id): a new one makes the main button shimmer once (prompt 44). */
+function priorityQuestion(questions: readonly Question[]): number | null {
+  return questions.find((question) => question.kind === "buttons" && question.purpose === "priority")?.id ?? null
 }
 
 /** The player declares blockers and has not confirmed them (no selection, no blocking question open): the combat is a draft. */

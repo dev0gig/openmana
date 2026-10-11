@@ -55,6 +55,29 @@ export async function cardPoint(card: Locator): Promise<{ readonly x: number; re
   return point ?? undefined
 }
 
+/**
+ * Where a thumb presses a card of the fanned hand that another card covers whole (a lifted neighbour - lifted by the
+ * keyboard's focus after a card view closed with Escape): on its resting place, its own strip from its left edge to the
+ * next card's (layout boxes, as the hand chooses for touch - prompt 42), near the hand's lower edge. Relative to the
+ * card's box; undefined outside the hand. The touch goes to the hand's row, which picks the card by that place, so the
+ * press is forced past Playwright's check of what lies on top.
+ */
+export async function restingPoint(card: Locator): Promise<{ readonly x: number; readonly y: number } | undefined> {
+  const point = await card.evaluate((element) => {
+    const item = element.closest<HTMLElement>("[data-hand-card]")
+    const row = item?.parentElement
+    if (item === null || item === undefined || row === null || row === undefined) return null
+    const items = [...row.querySelectorAll<HTMLElement>(":scope > [data-hand-card]")]
+    const next = items[items.indexOf(item) + 1]
+    const rowBox = row.getBoundingClientRect()
+    const origin = rowBox.left + row.clientLeft - row.scrollLeft
+    const strip = next === undefined ? item.offsetWidth : next.offsetLeft - item.offsetLeft
+    const box = element.getBoundingClientRect()
+    return { x: origin + item.offsetLeft + Math.max(1, strip) / 2 - box.left, y: rowBox.bottom - 8 - box.top }
+  })
+  return point ?? undefined
+}
+
 export interface PlayOptions {
   /** Names the game in failures and screenshots. */
   readonly id: string
@@ -198,7 +221,9 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
   // A card is pressed where it is its own (cardPoint): in the fanned hand the next card covers part of it.
   const activateCard = async (locator: Locator) => {
     const position = await cardPoint(locator)
-    const options = position === undefined ? {} : { position }
+    // A hand card covered whole by a lifted neighbour: a thumb presses its resting place (the hand picks by it).
+    const resting = position === undefined && touch ? await restingPoint(locator) : undefined
+    const options = position !== undefined ? { position } : resting !== undefined ? { position: resting, force: true } : {}
     if (touch) await locator.tap(options)
     else await locator.click(options)
   }

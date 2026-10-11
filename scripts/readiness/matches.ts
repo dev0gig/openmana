@@ -3,8 +3,16 @@
  * Forge's AI through the real user interface, in real Chrome with the real
  * Forge WebAssembly engine - nothing stubbed, nothing sent past the table.
  *
- *   node scripts/readiness/matches.ts --serve <built dist> --out <new report dir> [--games a,b] [--keep-going]
+ *   node scripts/readiness/matches.ts --serve <built dist> --out <new report dir> [--games a,b] [--keep-going] [--cpu-throttle 4] [--less-motion]
  *   node scripts/readiness/matches.ts --base https://openmana.oryx.quest --out <dir> --games live
+ *
+ * --cpu-throttle <rate> (prompt 44, the table's performance budget): every
+ * game is played with Chrome's CPU slowed down by <rate> (from the first
+ * question on) and the report gets the game's long tasks, long animation
+ * frames, the table motion's own work (User Timing openmana:table-motion) and
+ * the frame rate while the table's motion runs. --less-motion plays with the
+ * player's setting for less motion (<html data-reduced-motion>) - the same
+ * game without motion, for comparison.
  *
  * With --serve the build is served by `vite preview` (the repository's
  * configuration: isolation headers, engine and catalog checked again); select
@@ -62,6 +70,9 @@ const serveDir = option("--serve")
 const baseArg = option("--base")
 if ((serveDir === null) === (baseArg === null)) throw new Error("give exactly one of --serve <dist> or --base <url>")
 const keepGoing = args.includes("--keep-going")
+const cpuThrottle = option("--cpu-throttle") === null ? null : Number(option("--cpu-throttle"))
+if (cpuThrottle !== null && !(cpuThrottle >= 1)) throw new Error("--cpu-throttle <rate> needs a rate of at least 1")
+const lessMotion = args.includes("--less-motion")
 const onlyGames = option("--games")?.split(",").map((name) => name.trim()).filter(Boolean) ?? null
 
 // ── Report ─────────────────────────────────────────────────────────────────
@@ -574,6 +585,79 @@ async function creditsChecks(page: Page, base: string): Promise<Record<string, u
  * dedicated engine worker run there. Chrome's measureUserAgentSpecificMemory leaves the worker's heap out (it
  * reported 13 MB with Forge running), so the operating system's figure is used.
  */
+/**
+ * In the page (--cpu-throttle): long tasks, long animation frames and the table motion's own work from now on, and the
+ * frames painted while the table's motion runs (its layer carries data-moving) - one count per motion.
+ */
+function watchPerformance(): void {
+  type Slow = { duration: number; render: number; layout: number; scripts: string[] }
+  const w = window as unknown as { __readiness: { longTasks: [number, number][]; frames: [number, number][]; slowFrames: (Slow & { start: number })[]; motionWork: number[]; motions: [number, number][]; shots: [number, number][] } }
+  w.__readiness = { longTasks: [], frames: [], slowFrames: [], motionWork: [], motions: [], shots: [] }
+  new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) {
+      if (entry.entryType === "longtask") w.__readiness.longTasks.push([entry.startTime, Math.round(entry.duration)])
+      else if (entry.entryType === "long-animation-frame") {
+        w.__readiness.frames.push([entry.startTime, Math.round(entry.duration)])
+        // A frame over 200 ms: where its time went - its rendering (style, layout, paint) and its longest scripts.
+        if (entry.duration > 200) {
+          const frame = entry as PerformanceEntry & { renderStart: number; styleAndLayoutStart: number; scripts: { invoker: string; duration: number; sourceFunctionName: string }[] }
+          const end = entry.startTime + entry.duration
+          w.__readiness.slowFrames.push({
+            start: entry.startTime,
+            duration: Math.round(entry.duration),
+            render: frame.renderStart > 0 ? Math.round(end - frame.renderStart) : 0,
+            layout: frame.styleAndLayoutStart > 0 ? Math.round(end - frame.styleAndLayoutStart) : 0,
+            scripts: [...frame.scripts].sort((a, b) => b.duration - a.duration).slice(0, 3).map((script) => `${script.invoker} ${Math.round(script.duration)} ms`),
+          })
+        }
+      } else if (entry.name === "openmana:table-motion") w.__readiness.motionWork.push(Math.round(entry.duration * 10) / 10)
+    }
+  }).observe({ entryTypes: ["longtask", "long-animation-frame", "measure"] })
+  let since: number | null = null
+  let frames = 0
+  const tick = (now: number) => {
+    const moving = document.querySelector('[data-slot="table-motion"][data-moving]') !== null
+    if (moving) {
+      since ??= now
+      frames++
+    } else if (since !== null) {
+      if (now - since > 0) w.__readiness.motions.push([frames, now - since])
+      since = null
+      frames = 0
+    }
+    requestAnimationFrame(tick)
+  }
+  requestAnimationFrame(tick)
+}
+
+/**
+ * What watchPerformance saw. The test's own screenshots (the game's turn pictures) are left out: their capture is one
+ * long frame of painting the whole page at the phone's pixel density, the same with or without the table's motion -
+ * how many were left out is reported.
+ */
+function readPerformance() {
+  const all = (window as unknown as { __readiness: { longTasks: [number, number][]; frames: [number, number][]; slowFrames: { start: number }[]; motionWork: number[]; motions: [number, number][]; shots: [number, number][] } }).__readiness
+  const duringShot = (start: number) => all.shots.some(([from, to]) => start >= from && start <= to)
+  const longTasks = all.longTasks.filter(([start]) => !duringShot(start)).map(([, duration]) => duration)
+  const frames = all.frames.filter(([start]) => !duringShot(start)).map(([, duration]) => duration)
+  const { motionWork, motions } = all
+  const total = motions.reduce((sum, [count, ms]) => [sum[0]! + count, sum[1]! + ms], [0, 0])
+  const rates = motions.filter(([, ms]) => ms >= 100).map(([count, ms]) => (count / ms) * 1000)
+  return {
+    longTasks,
+    over200: longTasks.filter((duration) => duration > 200).length,
+    longest: Math.max(0, ...longTasks),
+    longestFrame: Math.max(0, ...frames),
+    slowFrames: all.slowFrames.filter((frame) => !duringShot(frame.start)),
+    screenshots: { taken: all.shots.length, longTasksLeftOut: all.longTasks.filter(([start]) => duringShot(start)).map(([, duration]) => duration) },
+    motionStates: motionWork.length,
+    longestMotionWork: Math.max(0, ...motionWork),
+    motions: motions.length,
+    fps: total[1]! > 0 ? Math.round((total[0]! / total[1]!) * 10000) / 10 : null,
+    slowestFps: rates.length > 0 ? Math.round(Math.min(...rates) * 10) / 10 : null,
+  }
+}
+
 function rendererMemory(): Promise<number | null> {
   return new Promise((resolve) => {
     execFile("ps", ["-eo", "rss=,args="], { maxBuffer: 16 * 1024 * 1024 }, (error, stdout) => {
@@ -653,6 +737,12 @@ try {
       entry["confirmedProfile"] = confirmed
       check(game.profile === "Zufällig" ? confirmed.endsWith(" (zufällig)") : confirmed === game.profile, `${game.id}: the table names AI profile "${confirmed}", chosen was ${game.profile}`)
       entry["startMs"] = Date.now() - startedAt
+      const cdp = cpuThrottle === null && !lessMotion ? null : await context.newCDPSession(page)
+      if (lessMotion) await page.evaluate(() => document.documentElement.setAttribute("data-reduced-motion", ""))
+      if (cdp !== null && cpuThrottle !== null) {
+        await cdp.send("Emulation.setCPUThrottlingRate", { rate: cpuThrottle })
+        await page.evaluate(watchPerformance)
+      }
       const played = await playGame(page, {
         id: game.id,
         seed: game.seed,
@@ -660,11 +750,28 @@ try {
         mulligan: game.mulligan,
         maxMinutes: game.maxMinutes,
         check,
-        shot: (name) => shot(page, name),
+        // A screenshot is the test's, not the table's: its capture (and the frame after it) is left out of the measurement.
+        shot: async (name) => {
+          const measuring = cdp !== null && cpuThrottle !== null
+          const from = measuring ? await page.evaluate(() => performance.now()) : 0
+          await shot(page, name)
+          if (measuring) {
+            await page.evaluate((start) => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => {
+              ;(window as unknown as { __readiness: { shots: [number, number][] } }).__readiness.shots.push([start, performance.now()])
+              resolve()
+            }))), from)
+          }
+        },
         notices: gameWatch.notices,
         measureMemory: rendererMemory,
       })
       Object.assign(entry, played)
+      if (cdp !== null && cpuThrottle !== null) {
+        const measured = await page.evaluate(readPerformance)
+        await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 })
+        entry["performance"] = { throttling: cpuThrottle, lessMotion, viewport: game.viewport, ...measured }
+        log(`  ${game.id}: ${cpuThrottle}x CPU${lessMotion ? ", less motion" : ""}: ${measured.longTasks.length} long tasks, ${measured.over200} over 200 ms (longest ${measured.longest} ms), longest frame ${measured.longestFrame} ms (${measured.screenshots.taken} screenshots left out: long tasks ${JSON.stringify(measured.screenshots.longTasksLeftOut)} ms); motion work ≤ ${measured.longestMotionWork} ms in ${measured.motionStates} states; ${measured.motions} motions at ${measured.fps ?? "-"} fps (slowest ${measured.slowestFps ?? "-"} fps)`)
+      }
       check(played.result !== null, `${game.id}: the game did not reach Forge's result`)
       check(played.noEffect === 0, `${game.id}: ${played.noEffect} actions left the table unchanged`)
       Object.assign(entry, await afterGame(page, base, game, played))

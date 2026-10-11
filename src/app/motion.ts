@@ -48,3 +48,26 @@ export function useDeviceReducedMotion(): boolean {
 export function reducedMotion(preference: MotionPreference, device: boolean): boolean {
   return device || preference === "reduce"
 }
+
+/**
+ * Less motion right now, for code that animates itself (the game table's
+ * motion, prompt 44): the device asks for it or the player's setting is on
+ * (<html data-reduced-motion>, set by the preferences). Read at the moment of
+ * animating, so it needs no provider and is never stale.
+ */
+export function motionReducedNow(): boolean {
+  if (typeof document !== "undefined" && document.documentElement.hasAttribute(REDUCED_MOTION_ATTRIBUTE)) return true
+  return deviceAsks()
+}
+
+/** Calls back when the device's or the player's wish for less motion changes (to stop what runs at once); returns the unsubscribe. */
+export function watchReducedMotion(onChange: () => void): () => void {
+  const stopDevice = subscribe(onChange)
+  if (typeof MutationObserver === "undefined" || typeof document === "undefined") return stopDevice
+  const observer = new MutationObserver(onChange)
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: [REDUCED_MOTION_ATTRIBUTE] })
+  return () => {
+    stopDevice()
+    observer.disconnect()
+  }
+}

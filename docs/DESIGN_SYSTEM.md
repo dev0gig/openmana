@@ -127,10 +127,16 @@ files work under COEP and nothing leaks to third parties (Bible §15).
    motion: the table's stylesheet switches every animation and transition of
    `[data-slot="game-board"]` off for both causes, its components carry the
    `motion-reduce:` variant, and code that moves things itself asks
-   `useDeviceReducedMotion()`/`reducedMotion()` in `src/app/motion.ts`
-   together with the preference (`motion.test.ts` checks `src/game/table/**`
-   and `table.css` too). Until those prompts land, a tapped card turns at once
-   and a mark appears at once; the card view moves only as shadcn's `Sheet`.
+   `src/app/motion.ts` (`motionReducedNow()` at the moment it animates,
+   `watchReducedMotion()` to stop what runs; `motion.test.ts` checks
+   `src/game/table/**` and `table.css` too). Since prompt 44 the table's own
+   motion is one component (`src/game/table/table-motion.tsx`, keyframes only
+   from `motion-plan.ts`): the new state is usable at once, the motion runs
+   over it, a further state stops it (the pictures jump to their places),
+   nothing is queued; a click during a motion hits the control at its final
+   place; a card gliding to its new place is presentation, never a derived
+   event, text or history entry; a replay animates stepping, not jumping. The
+   card view still moves only as shadcn's `Sheet`.
 
 ## 4. Layout
 
@@ -376,7 +382,12 @@ target (example data only).
   three phases taking turns in opacity, still under less motion; the head
   beside its end, never on a card picture; lines may cross pictures.
 - **Motion:** allowed on the table under rule 8 - `transform`/`opacity` only,
-  never delaying input or state, nothing under less motion.
+  never delaying input or state, nothing under less motion. Built in prompt 44
+  ([design/SPIELTISCH.md](design/SPIELTISCH.md) §8 "Built"): travelling cards
+  (by their id), turning, attackers moving forward, damage flash and shake,
+  the medallion's red/green ring and pulse (`--table-heal` for a gain, 3:1 on
+  the table's surfaces), Zauberchronik entries gliding in and dissolving, the
+  phases' gold gliding, the main button's shimmer at a new priority.
 - **Panels, Zauberchronik, Phasen-Tafel, main button** (prompt 41,
   [design/SPIELTISCH.md](design/SPIELTISCH.md) §4.11-4.14): the chronicle and
   the decision are `TablePanel`s on the desk or the board (their regions are

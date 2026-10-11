@@ -4514,6 +4514,7 @@ async function tableHarness(executablePath: string): Promise<Record<string, unkn
     results["layouts"] = await tableLayoutClasses(executablePath, base)
     if (!focusedTable) results["surface"] = await tableSurface(executablePath, base)
     if (!focusedTable) results["arrows"] = await tableArrows(executablePath, base)
+    if (!focusedTable) results["motion"] = await tableMotion(executablePath, base)
     if (!focusedTable) results["folds"] = await tableFoldSizes(executablePath, base)
     for (const viewport of focusedTable ? TABLE_VIEWPORTS.filter((v) => DECISION_VIEWPORTS.includes(v.name)) : TABLE_VIEWPORTS) {
       log(`  ${viewport.name} (${viewport.width}x${viewport.height}${viewport.touch ? ", touch" : ""})`)
@@ -4909,6 +4910,8 @@ async function tableArrows(executablePath: string, base: string): Promise<Record
       const before = await draws()
       await page.evaluate((name) => (window as unknown as { __openmanaShowScene: (name: string) => void }).__openmanaShowScene(name), scene)
       await page.waitForFunction((count) => Number(document.querySelector<HTMLElement>('[data-slot="table-arrows"]')?.dataset["draws"] ?? 0) > count, before, { timeout: 10_000 }).catch(() => undefined)
+      // Prompt 44: the cards of the new state travel to their places first; the arrows are drawn again when they arrived.
+      await motionSettled(page)
       states[scene] = await arrowFacts(page, `table arrows (new state ${scene})`, scene)
     }
     results["states"] = states
@@ -4958,6 +4961,287 @@ async function tableArrows(executablePath: string, base: string): Promise<Record
     await context.close()
   } finally {
     await arrowBrowser.close()
+  }
+  return results
+}
+
+/** The table's motion has settled (prompt 44): nothing of it moves - before reading places a travelling card would blur. */
+async function motionSettled(page: Page): Promise<void> {
+  await page.waitForFunction(() => document.querySelector('[data-slot="table-motion"][data-moving]') === null, undefined, { timeout: 5_000 }).catch(() => undefined)
+}
+
+/** The recorded run of consecutive real states (prompt 44, src/test/table-sequence.ts): how many steps it has. */
+function motionSequenceSteps(): number {
+  return (JSON.parse(fs.readFileSync(path.join(root, "src/test/fixtures/table-sequence.json"), "utf8")) as { steps: unknown[] }).steps.length
+}
+
+/** Moments of the recorded run whose motion the image sequence shows (prompt 44): a draw, a land onto its pile, combat damage and life, the AI's creature, a spell cast with damage, its resolution. */
+const MOTION_SHOTS = [1, 2, 9, 12, 22, 24] as const
+
+/**
+ * The table's motion (prompt 44, docs/design/SPIELTISCH.md §8) in real Chrome on Forge's consecutive real states (the
+ * harness' `sequence=first-attack`): at the phone's size every change of state moves what Forge changed - cards
+ * travelling (library → hand, hand → battlefield, stack → graveyard, battlefield → graveyard), turning, shifting,
+ * damage, life, the Zauberchronik's entries, the phases' gold, the main button's shimmer - with Web Animations of
+ * transform and opacity only. A click during a travel hits the card at its new place (the card view opens); a further
+ * state cancels what runs, a state before the motion started skips it; under less motion - the device's and the
+ * player's - nothing moves. With 4x CPU throttling at 412 x 915 the whole run causes no long task over 200 ms; the
+ * frame rate during the motions and the motion's own work are the measurement. The image sequence (slowed down 20x)
+ * goes into the report's screens for the comparison in Seafile.
+ */
+async function tableMotion(executablePath: string, base: string): Promise<Record<string, unknown>> {
+  log("  table motion (travels, turns, effects, clicks, stops, less motion, cost)")
+  const motionBrowser = await launchBrowser(executablePath)
+  const results: Record<string, unknown> = {}
+  const steps = motionSequenceSteps()
+  const open = async (page: Page, step: number) => {
+    await page.goto(new URL(`/scripts/e2e/table-harness.html?sequence=first-attack&step=${step}`, base).href, { waitUntil: "domcontentloaded", timeout: 300_000 })
+    await page.locator('[data-harness="table"]').waitFor({ timeout: 300_000 })
+    // The pictures of the first state loaded (the ghosts copy them): no placeholder left, every picture loaded or failed.
+    await page
+      .waitForFunction(() => {
+        const board = document.querySelector('[data-slot="game-board"]')
+        return board !== null && board.querySelector('[data-slot="skeleton"]') === null && [...board.querySelectorAll('[data-slot="card-picture"]')].every((picture) => picture.getAttribute("data-state") !== "loading")
+      }, undefined, { timeout: 30_000 })
+      .catch(() => undefined)
+  }
+  /** Shows a step and waits for the frame the motion reads the new layout in; what that state started. */
+  const show = (page: Page, step: number) =>
+    page.evaluate(
+      (n) =>
+        new Promise<{ last: string; states: number; moving: boolean; animations: { properties: string[]; target: string }[] }>((resolve) => {
+          const layer = () => document.querySelector<HTMLElement>('[data-slot="table-motion"]')!
+          ;(window as unknown as { __openmanaShowStep: (n: number) => void }).__openmanaShowStep(n)
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => {
+              const own = document.getAnimations().filter((animation) => !(animation instanceof CSSAnimation) && !(animation instanceof CSSTransition))
+              resolve({
+                last: layer().dataset["last"] ?? "",
+                states: Number(layer().dataset["states"] ?? 0),
+                moving: layer().hasAttribute("data-moving"),
+                animations: own.map((animation) => {
+                  const effect = animation.effect as KeyframeEffect
+                  const properties = [...new Set(effect.getKeyframes().flatMap((frame) => Object.keys(frame).filter((key) => !["offset", "computedOffset", "easing", "composite"].includes(key))))]
+                  const target = effect.target as Element | null
+                  return { properties, target: `${target?.className ?? ""}${effect.pseudoElement ?? ""}`.slice(0, 60) }
+                }),
+              })
+            }),
+          )
+        }),
+      step,
+    )
+  try {
+    const context = await newContext(motionBrowser, VIEWPORTS[0]!)
+    const page = await context.newPage()
+    const pageLog = watch(page)
+
+    // 1. The whole run: what each state moved, and only transform and opacity.
+    await open(page, 0)
+    const kinds: Record<string, number> = {}
+    const perStep: Record<string, string> = {}
+    for (let step = 1; step < steps; step++) {
+      const moved = await show(page, step)
+      perStep[step] = moved.last
+      for (const part of moved.last.match(/[a-z-]+ \d+/g) ?? []) {
+        const [name, count] = part.split(" ")
+        kinds[name!] = (kinds[name!] ?? 0) + Number(count)
+      }
+      for (const animation of moved.animations) check(animation.properties.every((property) => property === "transform" || property === "opacity"), `table motion (step ${step}): ${animation.target} animates ${animation.properties.join(", ")}`)
+      await motionSettled(page)
+      const leftovers = await page.evaluate(() => document.querySelectorAll(".table-motion-ghost, .table-motion-moving").length)
+      check(leftovers === 0, `table motion (step ${step}): ${leftovers} ghosts or moving parts left after the motion`)
+    }
+    for (const [kind, least] of Object.entries({ travel: 4, shift: 3, turn: 2, "to-pile": 2, dissolve: 1, "entry-glide": 1, flash: 1, shake: 1, "life-loss": 1, phase: 3, shimmer: 1 })) check((kinds[kind] ?? 0) >= least, `table motion: ${kinds[kind] ?? 0} × ${kind} over the run, expected at least ${least} ${JSON.stringify(kinds)}`)
+    results["run"] = { steps: steps - 1, kinds, perStep }
+
+    // 2. A click while the drawn card travels (the motion slowed down 10x): it hits the card at its new place, the card view opens.
+    const cdp = await context.newCDPSession(page)
+    await cdp.send("Animation.enable")
+    await open(page, 0)
+    await cdp.send("Animation.setPlaybackRate", { playbackRate: 0.1 })
+    await show(page, 1)
+    const target = await page.evaluate(() => {
+      const card = document.querySelector<HTMLElement>('[data-area="hand"] [data-card="27"]')!
+      const box = card.getBoundingClientRect()
+      const x = box.left + box.width / 2
+      const y = box.top + box.height * 0.6
+      const hit = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-card]")?.dataset["card"] ?? null
+      return { x, y, hit, moving: document.querySelector('[data-slot="table-motion"]')!.hasAttribute("data-moving"), ghosts: document.querySelectorAll(".table-motion-ghost").length }
+    })
+    check(target.moving && target.ghosts > 0, `table motion: the drawn card does not travel ${JSON.stringify(target)}`)
+    check(target.hit === "27", `table motion: a point on the travelling card's new place hits ${target.hit} ${JSON.stringify(target)}`)
+    await page.mouse.click(target.x, target.y)
+    const viewed = await page.getByRole("dialog").waitFor({ timeout: 5_000 }).then(() => true, () => false)
+    const stillMoving = await page.evaluate(() => document.querySelector('[data-slot="table-motion"]')!.hasAttribute("data-moving"))
+    check(viewed, "table motion: a click on the travelling card did not open its card view")
+    results["click"] = { ...target, viewed, duringMotion: stillMoving }
+    await page.keyboard.press("Escape")
+    await cdp.send("Animation.setPlaybackRate", { playbackRate: 1 })
+    await motionSettled(page)
+
+    // 3. A further state stops what runs; a state before the motion started skips it.
+    await open(page, 0)
+    await cdp.send("Animation.setPlaybackRate", { playbackRate: 0.1 })
+    const stopped = await page.evaluate(
+      () =>
+        new Promise<{ running: number; cancelled: number; ghostsAfter: number }>((resolve) => {
+          const go = (window as unknown as { __openmanaShowStep: (n: number) => void }).__openmanaShowStep
+          go(1)
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => {
+              const first = document.getAnimations().filter((animation) => !(animation instanceof CSSAnimation) && !(animation instanceof CSSTransition) && animation.playState === "running")
+              go(2)
+              // The next frame: the new state is on the table (React renders it first), its own motion not yet started.
+              requestAnimationFrame(() => resolve({ running: first.length, cancelled: first.filter((animation) => animation.playState === "idle").length, ghostsAfter: document.querySelectorAll(".table-motion-ghost").length }))
+            }),
+          )
+        }),
+    )
+    check(stopped.running > 0 && stopped.cancelled === stopped.running && stopped.ghostsAfter === 0, `table motion: a further state did not stop what ran ${JSON.stringify(stopped)}`)
+    await cdp.send("Animation.setPlaybackRate", { playbackRate: 1 })
+    await motionSettled(page)
+    const skipped = await page.evaluate(
+      () =>
+        new Promise<{ before: number; after: number }>((resolve) => {
+          const layer = document.querySelector<HTMLElement>('[data-slot="table-motion"]')!
+          const before = Number(layer.dataset["states"] ?? 0)
+          const go = (window as unknown as { __openmanaShowStep: (n: number) => void }).__openmanaShowStep
+          go(3)
+          // The next state before the frame the motion reads in: only one motion runs.
+          setTimeout(() => go(4), 0)
+          setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(() => resolve({ before, after: Number(layer.dataset["states"] ?? 0) }))), 0)
+        }),
+    )
+    check(skipped.after - skipped.before === 1, `table motion: two states before one frame ran ${skipped.after - skipped.before} motions ${JSON.stringify(skipped)}`)
+    results["stop"] = { stopped, skipped }
+    await motionSettled(page)
+
+    // 4. Less motion - the device's, then the player's: nothing moves, nothing is copied.
+    const still = async (step: number) => {
+      const moved = await show(page, step)
+      const ghosts = await page.evaluate(() => document.querySelectorAll(".table-motion-ghost").length)
+      return { animations: moved.animations.length, ghosts, moving: moved.moving }
+    }
+    await open(page, 0)
+    await page.emulateMedia({ reducedMotion: "reduce" })
+    const device = await still(1)
+    await page.emulateMedia({ reducedMotion: "no-preference" })
+    await page.evaluate(() => document.documentElement.setAttribute("data-reduced-motion", ""))
+    const setting = await still(2)
+    await page.evaluate(() => document.documentElement.removeAttribute("data-reduced-motion"))
+    for (const [who, facts] of Object.entries({ device, setting })) check(facts.animations === 0 && facts.ghosts === 0 && !facts.moving, `table motion: it moves under less motion (${who}) ${JSON.stringify(facts)}`)
+    results["lessMotion"] = { device, setting }
+
+    // 5. The image sequence: the key moments, slowed down 20x, three pictures each and one at rest (phone; a few on the desktop).
+    const shots: string[] = []
+    const sequence = async (shotPage: Page, session: typeof cdp, size: string, moments: readonly number[]) => {
+      for (const step of moments) {
+        await open(shotPage, step - 1)
+        await session.send("Animation.setPlaybackRate", { playbackRate: 0.05 })
+        await show(shotPage, step)
+        for (const [index, wait] of [0, 1500, 1500].entries()) {
+          if (wait > 0) await shotPage.waitForTimeout(wait)
+          const name = `motion-${size}-step${String(step).padStart(2, "0")}-${index + 1}.png`
+          await shotPage.screenshot({ path: path.join(reportDir, "screens", name) })
+          shots.push(name)
+        }
+        await session.send("Animation.setPlaybackRate", { playbackRate: 1 })
+        await motionSettled(shotPage)
+        const name = `motion-${size}-step${String(step).padStart(2, "0")}-4-rest.png`
+        await shotPage.screenshot({ path: path.join(reportDir, "screens", name) })
+        shots.push(name)
+      }
+    }
+    await sequence(page, cdp, "phone", MOTION_SHOTS)
+    results["shots"] = shots
+
+    // 6. Cost: the whole run with 4x CPU throttling at 412 x 915, with the motion and under less motion (the same states,
+    // nothing moving) side by side - long tasks, long frames, the motion's own work, the frame rate while it moves. On the
+    // dev server React renders in its slow development mode; the run without motion is the comparison, the motion's own
+    // work the part it adds (the production build in a real game: scripts/readiness/matches.ts --cpu-throttle 4).
+    const costRun = async (reduced: boolean) => {
+      await open(page, 0)
+      if (reduced) await page.evaluate(() => document.documentElement.setAttribute("data-reduced-motion", ""))
+      await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 })
+      await page.evaluate(() => {
+        const w = window as unknown as { __longTasks: number[]; __frames: number[]; __motionWork: number[]; __observer?: PerformanceObserver }
+        w.__longTasks = []
+        w.__frames = []
+        w.__motionWork = []
+        w.__observer = new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) {
+            if (entry.entryType === "longtask") w.__longTasks.push(entry.duration)
+            else if (entry.entryType === "long-animation-frame") w.__frames.push(entry.duration)
+            else if (entry.name === "openmana:table-motion") w.__motionWork.push(entry.duration)
+          }
+        })
+        w.__observer.observe({ entryTypes: ["longtask", "long-animation-frame", "measure"] })
+      })
+      const rates: { step: number; fps: number; last: string }[] = []
+      for (let step = 1; step < steps; step++) {
+        const rate = await page.evaluate(
+          (n) =>
+            new Promise<{ fps: number; last: string }>((resolve) => {
+              ;(window as unknown as { __openmanaShowStep: (n: number) => void }).__openmanaShowStep(n)
+              const start = performance.now()
+              let frames = 0
+              const tick = (now: number) => {
+                frames++
+                if (now - start < 400) requestAnimationFrame(tick)
+                else resolve({ fps: Math.round((frames / ((now - start) / 1000)) * 10) / 10, last: document.querySelector<HTMLElement>('[data-slot="table-motion"]')!.dataset["last"] ?? "" })
+              }
+              requestAnimationFrame(tick)
+            }),
+          step,
+        )
+        rates.push({ step, ...rate })
+        await motionSettled(page)
+      }
+      await page.waitForTimeout(500)
+      const measured = await page.evaluate(() => {
+        const w = window as unknown as { __longTasks: number[]; __frames: number[]; __motionWork: number[]; __observer?: PerformanceObserver }
+        w.__observer?.disconnect()
+        document.documentElement.removeAttribute("data-reduced-motion")
+        return { longTasks: w.__longTasks.map(Math.round), frames: w.__frames.map(Math.round), motionWork: w.__motionWork.map((duration) => Math.round(duration * 10) / 10) }
+      })
+      await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 })
+      const travelling = rates.filter((rate) => /travel|to-pile/.test(rate.last))
+      const fps = travelling.map((rate) => rate.fps).sort((a, b) => a - b)
+      return {
+        ...measured,
+        longest: Math.max(0, ...measured.longTasks),
+        over200: measured.longTasks.filter((duration) => duration > 200).length,
+        longestFrame: Math.max(0, ...measured.frames),
+        longestMotionWork: Math.max(0, ...measured.motionWork),
+        fpsWhileTravelling: { min: fps[0] ?? null, median: fps[Math.floor(fps.length / 2)] ?? null, steps: travelling.map((rate) => [rate.step, rate.fps]) },
+        fpsAll: rates.map((rate) => [rate.step, rate.fps]),
+      }
+    }
+    const withMotion = await costRun(false)
+    const withoutMotion = await costRun(true)
+    check(withMotion.motionWork.length > 0 && withMotion.longestMotionWork < 50, `table motion: the motion's own work took ${withMotion.longestMotionWork} ms for a state (4x CPU, ${withMotion.motionWork.length} states)`)
+    check(withoutMotion.motionWork.length === 0, "table motion: the motion worked under less motion")
+    results["performance"] = { viewport: "412x915", throttling: 4, changes: steps - 1, withMotion, withoutMotion }
+    log(`    run: ${JSON.stringify(kinds)}; click during a travel hits ${target.hit} (card view ${viewed}); stop ${JSON.stringify(stopped)}, skip ${JSON.stringify(skipped)}; less motion ${JSON.stringify({ device, setting })}; 4x CPU 412x915 (dev server): long tasks with motion ${JSON.stringify(withMotion.longTasks)} (longest ${withMotion.longest} ms, frame ${withMotion.longestFrame} ms), without ${JSON.stringify(withoutMotion.longTasks)} (longest ${withoutMotion.longest} ms, frame ${withoutMotion.longestFrame} ms); motion work ${JSON.stringify(withMotion.motionWork)} ms; fps while travelling min ${withMotion.fpsWhileTravelling.min} median ${withMotion.fpsWhileTravelling.median} (without motion: ${withoutMotion.fpsWhileTravelling.min}/${withoutMotion.fpsWhileTravelling.median}); ${shots.length} pictures`)
+    for (const error of pageLog.errors) if (!/^\[requestfailed\] https:\/\/cards\.scryfall\.io\/.* net::ERR_ABORTED$/.test(error)) check(false, `table motion: ${error}`)
+    await cdp.detach()
+    await context.close()
+
+    // The desktop (breit): the moments of the spell, its resolution and the land.
+    const desktop = await newContext(motionBrowser, VIEWPORTS[2]!)
+    const wide = await desktop.newPage()
+    const wideLog = watch(wide)
+    const wideCdp = await desktop.newCDPSession(wide)
+    await wideCdp.send("Animation.enable")
+    const before = shots.length
+    await sequence(wide, wideCdp, "desktop", [2, 22, 24])
+    results["shotsDesktop"] = shots.slice(before)
+    for (const error of wideLog.errors) if (!/^\[requestfailed\] https:\/\/cards\.scryfall\.io\/.* net::ERR_ABORTED$/.test(error)) check(false, `table motion (desktop): ${error}`)
+    await wideCdp.detach()
+    await desktop.close()
+  } finally {
+    await motionBrowser.close()
   }
   return results
 }
@@ -5501,10 +5785,19 @@ async function replayLibrary(browser: Browser, base: string): Promise<Record<str
       await page.screenshot({ path: path.join(reportDir, "screens", `replay-library-${viewport.name}.png`) })
       await list.getByRole("link", { name: "Ansehen", exact: true }).click()
       await page.getByRole("heading", { level: 1, name: "Wiedergabe", exact: true }).waitFor()
+      // Prompt 44: stepping animates (the motion runs for each step), jumping over several steps does not.
+      const motionStates = () => page.evaluate(() => Number(document.querySelector<HTMLElement>('[data-slot="table-motion"]')?.dataset["states"] ?? 0))
+      const statesBefore = await motionStates()
       await page.getByRole("button", { name: "Nächster Schritt" }).click()
       check(await page.getByRole("button", { name: "Vorheriger Schritt" }).isEnabled(), `replay ${viewport.name}: did not advance`)
+      await page.waitForFunction((count) => Number(document.querySelector<HTMLElement>('[data-slot="table-motion"]')?.dataset["states"] ?? 0) > count, statesBefore, { timeout: 5_000 }).catch(() => undefined)
+      await motionSettled(page)
       await page.getByRole("button", { name: "Vorheriger Schritt" }).click()
       check(await page.getByRole("button", { name: "Vorheriger Schritt" }).isDisabled(), `replay ${viewport.name}: did not rewind`)
+      await page.waitForFunction((count) => Number(document.querySelector<HTMLElement>('[data-slot="table-motion"]')?.dataset["states"] ?? 0) > count + 1, statesBefore, { timeout: 5_000 }).catch(() => undefined)
+      const stepped = (await motionStates()) - statesBefore
+      check(stepped === 2, `replay ${viewport.name}: stepping forward and back animated ${stepped} of 2 steps`)
+      await motionSettled(page)
       const firstFacts = await tableFacts(page)
       const replayAxe = await accessibility(page, `replay ${viewport.name}: table`)
       const tableLayout = await checkTableFits(page, `replay ${viewport.name}`)
@@ -5512,8 +5805,10 @@ async function replayLibrary(browser: Browser, base: string): Promise<Record<str
       await page.screenshot({ path: path.join(reportDir, "screens", `replay-table-${viewport.name}.png`) })
       await page.getByRole("button", { name: "Wiedergabemenü" }).click()
       const menu = page.getByRole("dialog", { name: "Wiedergabe", exact: true })
+      const statesBeforeJump = await motionStates()
       await menu.getByRole("button", { name: "Ende", exact: true }).click()
       const menuAxe = await accessibility(page, `replay ${viewport.name}: menu`)
+      check((await motionStates()) === statesBeforeJump, `replay ${viewport.name}: jumping to the end animated`)
       await page.keyboard.press("Escape")
       check(await page.getByRole("button", { name: "Nächster Schritt" }).isDisabled(), `replay ${viewport.name}: end step not reached`)
       const lastFacts = await tableFacts(page)
