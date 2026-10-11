@@ -122,7 +122,7 @@ files work under COEP and nothing leaks to third parties (Bible §15).
    turning: a loading indicator that stops looks like a frozen page. The game
    table may move from the redesign on (prompts 37-45, §9 and
    [design/SPIELTISCH.md](design/SPIELTISCH.md) §8) - cards travel, a tapped
-   card turns, the rune ring turns slowly -, but only with `transform` and
+   card turns -, but only with `transform` and
    `opacity`, never delaying an input or a state, and not at all under less
    motion: the table's stylesheet switches every animation and transition of
    `[data-slot="game-board"]` off for both causes, its components carry the
@@ -255,7 +255,7 @@ with a visible focus ring and a name (prompt 45, end-to-end
 | `src/game/table/table.css`, `--table-*` tokens | prompt 36 (§9) | the game table's own stylesheet (imported by `TableSurface`) and colours |
 | `TableArt`, `TableCardBack`, `TableEmblem` | `src/game/table/table-art.tsx` (prompt 39, §9) | the table's drawn pieces as SVG symbols defined once per table - the OpenMana emblem, the life medallion's ring, OpenMana's own card back (never Wizards'); `TableCardBack` (slot `game-card-back`) for every card Forge hides on the table (the opponent's hand, face-down permanents, hidden cards of questions, the library pile), decoration only |
 | `MedallionFace`, `ZonePile`, `ZoneCounter`, `ZoneCount`, `StripChip` | `src/game/table/strip-parts.tsx` (prompt 39, §9) | a player's strip: the life medallion's face (inside `GamePlayer`/`GamePlayerButton`), the library and graveyard as piles, exile and command zone as counters (both open the zone view - looking only), counts with the zone's title, facts as chips on the panel tone |
-| `TableSurface` | `src/game/table/table-surface.tsx`, `surface-drawing.ts` (prompt 37, §9) | the wooden desk with the board set into it behind the table's regions: SVG drawn only when a size changes, the rune ring turning and glimmering (still under less motion), decoration only (`aria-hidden`, no pointer events); text regions on the panel tone (`--table-panel` 90 %) |
+| `TableSurface` | `src/game/table/table-surface.tsx`, `surface-drawing.ts` (prompt 37, §9) | the wooden desk with the board set into it behind the table's regions: SVG drawn only when a size changes, the rune ring standing still (since 2026-10-12), decoration only (`aria-hidden`, no pointer events); text regions on the panel tone (`--table-panel` 90 %) |
 | `Checkbox` | shadcn/ui registry (`radix-maia`, prompt 15; `motion-reduce` added) | several choices of one of Forge's questions, inside a `FieldLabel` choice card (the whole card is the touch target) |
 | `GameDecision`, `GameDecisionHeader`, `GameDecisionSource`, `GameDecisionRow`, `GameDecisionNote`, `GameDecisionActions`; `GameBoard`'s `decision` (`compact`/`tall`/`expanded`) | `src/components/ui/game-decision.tsx`, `game-board.tsx`, built the shadcn way (prompt 15) | the decision region's content: what Forge asks (the asking card as a small `GameCardButton`), a row of a question's cards at a hand's height, short lines (how many, why a button is off), the answer buttons sticking to the region's bottom; the region's growth (§4) |
 | `GameHelpButton` | built the shadcn way (prompt 23) | header turn/phase area as a 44 px contextual-help trigger; phase and turn owner are its accessible description, no extra wide icon on small phones |

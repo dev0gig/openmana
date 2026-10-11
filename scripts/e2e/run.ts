@@ -4819,8 +4819,7 @@ const SURFACE_GAME = ["opening", "target-player", "target-both", "stack", "scry"
 
 /**
  * The table surface beyond single scenes (prompt 37): round and inside the window at every test size including the
- * foldable's (11 sizes), the ring turning and glimmering - and standing still under less motion, the device's and the
- * player's -, and the cost of 20 state changes in Chrome with 4x CPU throttling at 412 x 915: no new drawing of the
+ * foldable's (11 sizes), the ring standing still (since 2026-10-12 also without less motion), and the cost of 20 state changes in Chrome with 4x CPU throttling at 412 x 915: no new drawing of the
  * surface while its sizes stay, each drawing far below 200 ms, and the long tasks with and without the surface (paint
  * included) side by side as the measurement.
  */
@@ -4844,10 +4843,10 @@ async function tableSurface(executablePath: string, base: string): Promise<Recor
     check(Object.keys(sizes).length === 11, `table surface: ${Object.keys(sizes).length} sizes checked, expected 11`)
     await page.setViewportSize({ width: VIEWPORTS[0]!.width, height: VIEWPORTS[0]!.height })
 
-    // Motion: the ring turns (about 6 minutes a turn) and glimmers; under less motion nothing of the surface moves.
+    // Motion: the ring stands still (project owner, 2026-10-12: its turning and glimmering made the table restless) - nothing of the surface moves, with or without less motion.
     const motion = () => page.evaluate(() => document.getAnimations().filter((animation) => (animation.effect as KeyframeEffect | null)?.target?.closest('[data-slot="table-surface"]')).map((animation) => ({ name: (animation as CSSAnimation).animationName, duration: animation.effect?.getTiming().duration, state: animation.playState })))
     const moving = await motion()
-    check(moving.some((animation) => animation.name === "table-ring-turn" && animation.duration === 360_000 && animation.state === "running") && moving.some((animation) => animation.name === "table-ring-glimmer" && animation.state === "running"), `table surface: the ring does not turn and glimmer ${JSON.stringify(moving)}`)
+    check(moving.length === 0, `table surface: something of the surface moves ${JSON.stringify(moving)}`)
     await page.emulateMedia({ reducedMotion: "reduce" })
     const reducedDevice = await motion()
     await page.emulateMedia({ reducedMotion: "no-preference" })

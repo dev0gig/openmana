@@ -15,9 +15,8 @@
  * full-screen wood grain) only when the screen's size changes, the board (its
  * frame and leather grain) and the rune ring only when the playing area's
  * size or place changes - a region that grows with a question never
- * recomputes the desk. Each is a layer of its own; table.css turns the ring
- * very slowly and lets it glimmer (transform and opacity only; both stop
- * under less motion).
+ * recomputes the desk. Each is a layer of its own; the ring stands still
+ * (project owner, 2026-10-12).
  */
 import { memo, useId, useLayoutEffect, useRef } from "react"
 import { boardMarkup, deskKey, deskMarkup, layoutKey, playingArea, ringMarkup, surfaceLayout, type Box, type PlayingRegions } from "./surface-drawing"

@@ -13,8 +13,8 @@
  * grows or shrinks never recomputes its full-screen grain; `boardMarkup` is
  * the board (frame, leather, circle, centre line, emblem, corner plates) for
  * the playing area's size; `ringMarkup` is the rune ring, drawn into its own
- * square so table.css can turn it and let it glimmer with transform and
- * opacity alone.
+ * square (it stands still since 2026-10-12; turning and glimmering made the
+ * table restless).
  *
  * Colours come from the --table-* tokens and the app's tokens (src/index.css);
  * depth is black or mixed from them. The expensive filters (feTurbulence for

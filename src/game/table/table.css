@@ -67,11 +67,9 @@
   will-change: transform;
 }
 
-/* The rune ring: turns very slowly (6 minutes a turn) and glimmers (opacity 0.75-1, as the mockup's glimmen) - a layer the compositor moves; still at 0.85 under less motion. */
+/* The rune ring: stands still at a steady 0.85 (project owner, 2026-10-12: its turning and glimmering made the table restless) - a layer of its own, drawn once per size. */
 [data-slot="game-board"] .table-surface-ring {
   position: absolute;
-  will-change: transform;
-  animation: table-ring-turn 360s linear infinite;
 }
 
 [data-slot="game-board"] .table-surface-ring > svg {
@@ -80,23 +78,6 @@
   height: 100%;
   overflow: visible;
   opacity: 0.85;
-  animation: table-ring-glimmer 4s ease-in-out infinite;
-}
-
-@keyframes table-ring-turn {
-  to {
-    transform: rotate(1turn);
-  }
-}
-
-@keyframes table-ring-glimmer {
-  0%,
-  100% {
-    opacity: 0.75;
-  }
-  50% {
-    opacity: 1;
-  }
 }
 
 /* ---------- The regions over the surface: the board shows, text stays readable ---------- */

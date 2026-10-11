@@ -95,7 +95,7 @@ describe("the drawing", () => {
     expect(markup).not.toMatch(/#[0-9a-f]{3,8}\b/i)
     // 16 spokes, a 16-pointed star, four corner plates.
     expect(markup.match(/translate\([\d.]+ [\d.]+\) scale\(-?1 -?1\)/g)).toHaveLength(4)
-    // Nothing moves in the markup itself (table.css moves the ring; SMIL could not be stopped).
+    // Nothing moves in the markup itself (the ring stands still; SMIL could not be stopped).
     expect(markup).not.toMatch(/<animate|<set\b/)
   })
 

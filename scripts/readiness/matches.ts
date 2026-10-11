@@ -18,7 +18,7 @@
  * the player's first priority and after the table's motion has ended, a full
  * garbage collection and then Chrome's counters of the page (event listeners,
  * DOM nodes, JavaScript heap) and the table's animations: none of the motion's
- * may still run and no ghost may be left; the endless ones (rune ring, gloss,
+ * may still run and no ghost may be left; the endless ones (gloss,
  * pulses, arrows) are counted. From turn 10 on the listeners and nodes must
  * stay level with what the first turns had (see tableMemoryChecks).
  *
@@ -678,7 +678,7 @@ interface TableSample {
   readonly boardNodes: number
   /** Animations still running that end (the motion's, transitions) - must be none once the motion has ended. */
   readonly running: number
-  /** The endless ones (rune ring, its glimmer, the main button's gloss, target pulses, arrows' flow). */
+  /** The endless ones (the main button's gloss, target pulses, arrows' flow). */
   readonly endless: number
   /** Ghosts left in the motion's layer - must be none. */
   readonly ghosts: number | null

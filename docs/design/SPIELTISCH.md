@@ -50,8 +50,7 @@ the **Zauberchronik** (Forge's stack, top first, and the combat) and the
 **Phasen-Tafel** (the turn's five phases with the current step in gold,
 Forge's question and the large golden **main button**, "Weiter"). **Arrows**
 show what a spell targets (red), whom a creature attacks (amber) and whom a
-blocker blocks. The table moves - cards travel, tapped cards turn, the rune
-circle turns slowly - but never makes the player wait, and stands still when
+blocker blocks. The table moves - cards travel, tapped cards turn - but never makes the player wait, and stands still when
 less motion is asked for.
 
 The mockup shows exactly this; where this text is more precise (anchors,
@@ -309,8 +308,8 @@ anchors it keeps and the prompt that builds it.
   `--primary`/`--table-gold-*` (§5). Expensive filters (`feTurbulence`)
   never recomputed per state: a static tile as CSS background or one drawing
   per size.
-- Motion: the rune ring turns very slowly (≈ 6 min per turn) and glimmers
-  (opacity); both stop under less motion.
+- Motion: none on the rune ring - it stands still (project owner,
+  2026-10-12: its turning and glimmering made the table restless).
 - Region backgrounds become transparent or subtle so the board shows; text
   stays readable (panel tokens where needed).
 - **Built (prompt 37):** `src/game/table/table-surface.tsx` (`TableSurface`,
@@ -334,9 +333,9 @@ anchors it keeps and the prompt that builds it.
   reaches out of it), drawn only when the **playing area's** size or place
   changes (layout key `data-board`); and the rune ring
   (`data-surface="ring"`, a square around the circle, drawn with the board)
-  that table.css turns (`table-ring-turn`, 360 s) and lets glimmer
-  (`table-ring-glimmer`, opacity 0.75-1 as the mockup's `glimmen`, 4 s; 0.85
-  still); both stop under less motion. Desk and board have their own ids
+  at a steady opacity of 0.85 - since 2026-10-12 it stands still (it turned
+  in 360 s and glimmered until then; the project owner found it restless).
+  Desk and board have their own ids
   (the frame repeats the desk's grain filter). Each drawing is one User
   Timing measure
   `openmana:table-surface`. Colours from tokens only: grain via `feFlood` with
