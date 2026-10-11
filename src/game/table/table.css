@@ -1853,7 +1853,8 @@
  * with the Zauberchronik and the strips, and an arrow to the other side
  * crossed Forge's question and the main button (prompt 45). There the
  * decision lies above the arrows - an arrow passes under it - and a lifted
- * hand card above the decision; elsewhere no arrow crosses the decision.
+ * hand card above the decision. In quadrat and breit the decision has its
+ * own column beside the board; lines may cross its panel's edge there.
  */
 @media (aspect-ratio > 13/10) and (max-height: 32rem) {
   [data-slot="game-board"] > [data-slot="game-board-area"][data-area="decision"] {
