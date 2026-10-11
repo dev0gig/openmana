@@ -3647,6 +3647,82 @@ function expectedArrows(state: SceneState): ExpectedArrow[] {
  * on a card picture. The arrows are hidden from screen readers and take no pointer events: a point on a line hits
  * what lies under it.
  */
+/** The scenes whose whole table is walked with the keyboard (prompt 45): the main button, the stack, medallions as controls, a crowded commander table. */
+const KEYBOARD_SCENES: readonly string[] = ["main-phase", "stack", "target-player", "commander-late"]
+
+/** The regions in the page's (and focus) order - hoch's, the same in every layout (prompt 38). */
+const FOCUS_ORDER = ["header", "opponent", "opponent-field", "center", "field", "me", "hand", "decision"] as const
+
+/**
+ * The whole table with the keyboard and its names for screen readers (prompt 45, docs/design/SPIELTISCH.md §6): Tab from
+ * the page's start walks every region in the focus order (a card row is one stop), every stop shows its focus and has a
+ * name, Tab leaves the table at its end, and nothing is tapped or answered on the way. The names: each medallion says
+ * who and the life total with "Lebenspunkte", each zone pile what it opens and how many cards, each card and each
+ * Zauberchronik entry its name ("… ansehen"), the main button its words.
+ */
+async function tableKeyboardTour(page: Page, label: string): Promise<Record<string, unknown>> {
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
+  const stops: { area: string; name: string; shown: boolean }[] = []
+  let left = false
+  try {
+    for (let step = 0; step < 80; step++) {
+      await page.keyboard.press("Tab")
+      const at = await page.evaluate(() => {
+        const element = document.activeElement as HTMLElement | null
+        if (element === null || element === document.body || !element.closest('[data-slot="game-board"]')) return null
+        const style = getComputedStyle(element)
+        return {
+          area: element.closest('[data-slot="game-board-area"]')?.getAttribute("data-area") ?? "board",
+          shown: element.matches(":focus-visible") && (style.outlineStyle !== "none" || style.boxShadow !== "none"),
+        }
+      })
+      if (at === null) {
+        left = true
+        break
+      }
+      // The accessible name as the browser computes it (role "name" in Playwright's ARIA snapshot).
+      const snapshot = (await page.locator(":focus").ariaSnapshot()).split("\n")[0] ?? ""
+      const name = /^- \S+ "(.*?)"(?::|$)/.exec(snapshot.replace(/^- '(.*)'(:.*)?$/, "- $1"))?.[1] ?? ""
+      stops.push({ ...at, name })
+    }
+    check(left, `${label}: Tab did not leave the table after ${stops.length} stops`)
+    const order = stops.map((stop) => FOCUS_ORDER.indexOf(stop.area as (typeof FOCUS_ORDER)[number]))
+    check(order.every((index, at) => index >= 0 && (at === 0 || index >= order[at - 1]!)), `${label}: focus order ${JSON.stringify(stops.map((stop) => stop.area))}`)
+    const nameless = stops.filter((stop) => stop.name.trim() === "")
+    check(nameless.length === 0, `${label}: focus stops without a name ${JSON.stringify(nameless)}`)
+    const hidden = stops.filter((stop) => !stop.shown)
+    check(hidden.length === 0, `${label}: focus not shown at ${JSON.stringify(hidden)}`)
+    // Every region with something to focus is reached.
+    const focusable = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>('[data-slot="game-board-area"]')]
+        .filter((area) => area.matches("[tabindex]:not([tabindex='-1'])") || area.querySelector("button:not([disabled]), a[href], [tabindex]:not([tabindex='-1'])") !== null)
+        .map((area) => area.getAttribute("data-area")),
+    )
+    const missed = focusable.filter((area) => !stops.some((stop) => stop.area === area))
+    check(missed.length === 0, `${label}: the keyboard never reaches ${missed.join(", ")}`)
+    check((await harnessTaps(page)).length === 0 && (await harnessAnswers(page)).length === 0 && (await harnessPlayerTaps(page)).length === 0, `${label}: walking with Tab sent an input`)
+  } finally {
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
+  }
+  // The names of the table's parts.
+  const medallions = await Promise.all((await page.locator('[data-slot="game-player"][data-player]').all()).map(async (medallion) => (await medallion.ariaSnapshot()).replace(/\s+/g, " ")))
+  check(medallions.length >= 2 && medallions.every((text) => /\d+ Lebenspunkte/.test(text) && /Forge-KI|Du\b/.test(text)), `${label}: medallion names ${JSON.stringify(medallions)}`)
+  const names = await page.evaluate(() => {
+    const named = (element: Element) => (element.getAttribute("aria-label") ?? element.textContent ?? "").replace(/\s+/g, " ").trim()
+    return {
+      piles: [...document.querySelectorAll('button[data-zone-pile]')].map(named),
+      cards: [...document.querySelectorAll('button[data-slot="game-card"]')].map(named),
+      chronicle: [...document.querySelectorAll("button[data-stack-card]")].map(named),
+      main: [...document.querySelectorAll("[data-main]")].map((button) => ({ name: named(button), text: (button.textContent ?? "").replace(/\s+/g, " ").trim() })),
+    }
+  })
+  check(names.piles.length > 0 && names.piles.every((name) => /ansehen: \d+ Karten?\b/.test(name)), `${label}: zone pile names ${JSON.stringify(names.piles)}`)
+  check(names.cards.every((name) => name.length > 0), `${label}: a card without a name`)
+  check(names.chronicle.every((name) => name.endsWith(" ansehen")), `${label}: Zauberchronik names ${JSON.stringify(names.chronicle)}`)
+  check(names.main.every(({ name, text }) => name.length > 0 && name.includes(text)), `${label}: main button names ${JSON.stringify(names.main)}`)
+  return { stops: stops.length, areas: [...new Set(stops.map((stop) => stop.area))], names: stops.map((stop) => `${stop.area}: ${stop.name}`), medallions, piles: names.piles, cards: names.cards.length, chronicle: names.chronicle, main: names.main }
+}
+
 async function arrowFacts(page: Page, label: string, scene: string): Promise<Record<string, unknown>> {
   const expected = expectedArrows(sceneState(scene))
   // A fresh drawing on the final layout: a scroll on the board asks for one (the hand's fan and the pictures may settle after the first).
@@ -4596,10 +4672,11 @@ async function tableHarness(executablePath: string): Promise<Record<string, unkn
           const panels = await panelFacts(page, label, built === null ? scene : null, built === null ? recordedStackIds(scene) : null)
           const decision = await decisionFits(page, label, viewport)
           const arrows = await arrowFacts(page, label, scene)
+          const keyboard = built === null && KEYBOARD_SCENES.includes(scene) ? await tableKeyboardTour(page, label) : null
           const axe = await accessibility(page, label)
           await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-${built === null ? scene : `built-${built}`}.png`) })
           const help = helpOnly || ["main-phase", "stack", "built:choose-many", "built:confirm"].includes(name) ? await helpInteractions(page, `${viewport.name}-${name}`, viewport) : null
-          scenes[name] = { help, areas: layout["areas"], arrangement: layout["arrangement"], pictures, rows, menu, cards, faces, hand, marks, decision, surface, strips, panels, arrows, axe }
+          scenes[name] = { help, areas: layout["areas"], arrangement: layout["arrangement"], pictures, rows, menu, cards, faces, hand, marks, decision, surface, strips, panels, arrows, keyboard, axe }
           for (const error of pageLog.errors) check(false, `${label}: ${error}`)
           await page.close()
         }
@@ -5278,9 +5355,10 @@ async function tableFoldSizes(executablePath: string, base: string): Promise<Rec
         const panels = await panelFacts(page, label, built === null ? scene : null, built === null ? recordedStackIds(scene) : null)
         const decision = await decisionFits(page, label, viewport)
         const arrows = await arrowFacts(page, label, scene)
+        const keyboard = built === null && KEYBOARD_SCENES.includes(scene) ? await tableKeyboardTour(page, label) : null
         const axe = await accessibility(page, label)
         await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-${built === null ? scene : `built-${built}`}.png`) })
-        scenes[name] = { areas: layout["areas"], arrangement: layout["arrangement"], pictures, cards, faces, hand, strips, panels, decision, arrows, axe }
+        scenes[name] = { areas: layout["areas"], arrangement: layout["arrangement"], pictures, cards, faces, hand, strips, panels, decision, arrows, keyboard, axe }
         for (const error of pageLog.errors) check(false, `${label}: ${error}`)
         await page.close()
       }
