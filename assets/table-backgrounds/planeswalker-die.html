@@ -1,0 +1,169 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>
+html,body{margin:0;overflow:hidden;background:#0d0f14}
+.w{position:relative;font-family:"DejaVu Sans Mono",monospace}
+canvas{position:absolute;inset:0}
+.lb{position:absolute;color:#666d78;white-space:nowrap;text-shadow:0 0 16px #0d0f14,0 0 8px #0d0f14,0 0 3px #0d0f14}
+.lb b{color:#aab1bc;font-weight:400}
+.lb .c{color:#7c838e}
+.tick{position:absolute;background:#2a2f36}
+.mark{position:absolute;border:1px solid #333941}
+</style></head><body><div class="w" id="w"><canvas id="cv"></canvas></div>
+<script>
+// ---------------------------------------------------------------------------
+// Planeswalker-Zeichen im Chip-Floorplan.  ?w= ?h=
+// Raster monochrom grau, allein das Zeichen traegt Farbe.
+// Das Zeichen ist der Vektor aus der Mana-Schrift, als data-URI eingebettet
+// und in die Canvas gerastert -- kein hochskaliertes Bitmap.
+// ---------------------------------------------------------------------------
+const P=new URLSearchParams(location.search);
+const W=+(P.get('w')||2560), H=+(P.get('h')||1440);
+const S=H/1440, SEED=0x504C5721;
+
+const SVG={
+  PW:'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nNTEyJyBoZWlnaHQ9JzUxMicgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+Cjx0aXRsZT5wbGFuZXN3YWxrZXI8L3RpdGxlPgo8cGF0aCBmaWxsPSIjNDQ0IiBkPSJNMTUuOTk2IDBjMC4wNDEgMC4wNzYgMC4wNDcgMC4xNjMgMC4wNjMgMC4yNDYgMC4wNjYgMC40NDEgMC4wOTEgMC44ODYgMC4xMjUgMS4zMyAwLjA3NiAxLjE4MyAwLjEzNyAyLjM2NyAwLjIxMSAzLjU1IDAuMTI1IDEuOTM0IDAuMjY4IDMuODcgMC41NDggNS43OSAwLjEzNyAwLjkwNiAwLjMgMS44MTIgMC41NzcgMi42ODYgMC4zNjcgMC4wMjcgMC43MzQgMC4wNTQgMS4xIDAuMDk0IDAuMTgxLTAuNTM1IDAuMjctMS4wOTUgMC4zNjMtMS42NTEgMC4wODMtMC41MTkgMC4xNTMtMS4wNDEgMC4yMTctMS41NjMgMC4yNDktMi4wMzkgMC40MjMtNC4wODYgMC42MTEtNi4xMzEgMC4wNDMtMC40MjEgMC4wNzEtMC44NDUgMC4xNC0xLjI2MyAwLjAzNSAwLjA5MCAwLjA0MyAwLjE4OCAwLjA1OCAwLjI4MyAwLjA0MSAwLjI4NiAwLjA3MSAwLjU3NCAwLjEwMiAwLjg2MSAwLjE5NyAxLjkxMiAwLjM3IDMuODI3IDAuNjE2IDUuNzM0IDAuMTEzIDAuODc1IDAuMjM4IDEuNzQ5IDAuNDA1IDIuNjE2IDAuMTEyIDAuNTY2IDAuMjMyIDEuMTM0IDAuNDM0IDEuNjc3IDAuMzQgMC4xMDQgMC42NzggMC4yMTggMS4wMDUgMC4zNTggMC4xMDMtMC4yMzUgMC4xOC0wLjQ4IDAuMjUyLTAuNzI2IDAuMTgzLTAuNjM4IDAuMzEtMS4yOTEgMC40Mi0xLjk0NCAwLjIzOS0xLjQxIDAuMzc5LTIuODM0IDAuNTY2LTQuMjUyIDAuMDQ5LTAuMzIzIDAuMDgyLTAuNjUyIDAuMTg0LTAuOTY0IDAuMDUwIDAuMTM0IDAuMDY1IDAuMjc3IDAuMDg4IDAuNDE3IDAuMDkwIDAuNjQgMC4xNTIgMS4yODQgMC4yMTYgMS45MjcgMC4wNjUgMC42OTkgMC4xMzUgMS4zOTcgMC4xODcgMi4wOTYgMC4wMDItMC4wMDggMC4wMDYtMC4wMjQgMC4wMDgtMC4wMzItMC4wMDEgMC4wOTggMC4wMDkgMC4xOTYgMC4wMTkgMC4yOTQgMC4xNDMgMS42ODUgMC4yODEgMy4zNzEgMC40MDYgNS4wNTgtMC45NTkgMC4zNjMtMS44NjYgMC44NjEtMi42OTUgMS40NjMtMS4xMSAwLjgwNi0yLjA3NSAxLjgwMy0yLjg3NiAyLjkxNi0wLjgzNSAxLjE2LTEuNDk1IDIuNDQzLTEuOTY5IDMuNzkxLTAuNTk2IDEuNjk2LTAuOTMzIDMuNDc0LTEuMTE0IDUuMjYtMC4wNTkgMC41NDgtMC4wOTUgMS4wOTktMC4xNTEgMS42NDctMC4wMjAgMC4xNDYtMC4wMjQgMC4zMDEtMC4wOTQgMC40MzRoLTAuMDM1Yy0wLjA2NS0wLjA5OS0wLjA2OS0wLjIyLTAuMDg3LTAuMzMzLTAuMDQzLTAuMzY0LTAuMDY3LTAuNzMtMC4xLTEuMDk0LTAuMDg0LTAuOTgzLTAuMjA0LTEuOTY1LTAuMzg4LTIuOTM1LTAuMzAyLTEuNTg3LTAuNzU3LTMuMTU0LTEuNDY4LTQuNjA4LTAuODEzLTEuNjY4LTEuOTMzLTMuMTk3LTMuMzM2LTQuNDE3LTEuMDQwLTAuOTA1LTIuMjM1LTEuNjM1LTMuNTI1LTIuMTI0IDAuMTc4LTIuMzQ4IDAuMzY2LTQuNjk1IDAuNTg1LTcuMDQwIDAuMDc0LTAuNzYyIDAuMTQ1LTEuNTI0IDAuMjQ5LTIuMjgyIDAuMDIyLTAuMTM4IDAuMDM5LTAuMjc4IDAuMDgwLTAuNDEyIDAuMDA1IDAuMDAxIDAuMDE2IDAuMDAzIDAuMDIyIDAuMDA0IDAuMDg1IDAuMjc0IDAuMTE4IDAuNTYxIDAuMTYxIDAuODQ0IDAuMTQ5IDEuMDk2IDAuMjYxIDIuMTk3IDAuNDE3IDMuMjkzIDAuMTI1IDAuODc4IDAuMjY1IDEuNzU1IDAuNDggMi42MTYgMC4wOTYgMC4zNzQgMC4yMDEgMC43NDkgMC4zNTQgMS4xMDUgMC4zMjctMC4xNDEgMC42NjYtMC4yNTMgMS4wMDYtMC4zNTkgMC4xMjctMC4zMzggMC4yMTgtMC42ODggMC4zLTEuMDM5IDAuMTI0LTAuNTQ1IDAuMjIyLTEuMDk1IDAuMzEtMS42NDcgMC4zNTYtMi4yNzcgMC41NjQtNC41NzQgMC43OTYtNi44NjcgMC4wNDItMC40MTIgMC4wODMtMC44MjUgMC4xMzctMS4yMzYgMC4wMjAtMC4xMyAwLjAzMS0wLjI2MyAwLjA3My0wLjM4OSAwLjA0NiAwLjI4NyAwLjA3MSAwLjU3NyAwLjEgMC44NjYgMC4xODMgMS45NDcgMC4zNDUgMy44OTYgMC41NjcgNS44MzkgMC4xMDcgMC45MjMgMC4yMjEgMS44NDcgMC4zODUgMi43NjIgMC4wNzQgMC4zODYgMC4xNDcgMC43NzUgMC4yNzkgMS4xNDcgMC4zNjYtMC4wMzMgMC43MzItMC4wNjYgMS4wOTktMC4wOTEgMC4yNzQtMC44NjIgMC40MzUtMS43NTUgMC41NzItMi42NDggMC4xNDktMSAwLjI1Ni0yLjAwNSAwLjM0NS0zLjAxMiAwLjE1Mi0xLjcxNyAwLjI0OC0zLjQzNyAwLjM0Ni01LjE1NyAwLjA0OC0wLjc2MiAwLjA4NC0xLjUyNSAwLjE2NS0yLjI4NCAwLjAyMS0wLjE2OSAwLjAzOS0wLjM0IDAuMDg5LTAuNTAzeiI+PC9wYXRoPgo8L3N2Zz4K',
+};
+
+
+// Farbweg fest: Gold, die uebliche Lesart des Zeichens.  Ein Verlauf durch
+// die fuenf Manafarben war gebaut und am 23.8.2026 verworfen -- die Farben
+// sind pastellig und wirken als grosse Flaeche auf dunklem Grund milchig.
+const WEG={stops:[[244,222,164],[214,172,80],[168,118,36],[120,78,22]],dir:0.42,label:'GOLD'};
+
+const wrap=document.getElementById('w'),cv=document.getElementById('cv');
+document.documentElement.style.width=document.body.style.width=W+'px';
+document.documentElement.style.height=document.body.style.height=H+'px';
+wrap.style.width=W+'px';wrap.style.height=H+'px';cv.width=W;cv.height=H;
+const g=cv.getContext('2d');
+const CX=W/2, CY=H/2;
+const MH=960*S;                       // Hoehe des Zeichens
+
+const X=v=>CX+v*S, Y=v=>v*S;
+const EDGE=Math.min(1160,(W/2-120)/S);
+
+function el(cls,st){const d=document.createElement('div');d.className=cls;d.style.cssText=st;wrap.appendChild(d);return d;}
+function lb(x,y,html,extra){const d=el('lb','left:'+x+'px;top:'+y+'px;font-size:'+(19*S)+'px;letter-spacing:'+(3.5*S)+'px;'+(extra||''));d.innerHTML=html;return d;}
+function lbR(x,y,html,extra){return lb(x,y,html,'transform:translateX(-100%);'+(extra||''));}
+
+// ---- Rahmen ----
+el('tick','left:'+X(-EDGE)+'px;top:'+Y(110)+'px;width:'+(260*S)+'px;height:2px');
+el('tick','left:'+X(-EDGE)+'px;top:'+Y(110)+'px;width:2px;height:'+(60*S)+'px');
+el('tick','left:'+(X(EDGE)-260*S)+'px;top:'+(H-Y(110))+'px;width:'+(260*S)+'px;height:2px');
+el('tick','left:'+X(EDGE)+'px;top:'+(H-Y(110)-60*S)+'px;width:2px;height:'+(60*S)+'px');
+el('mark','left:'+(X(-EDGE)-10*S)+'px;top:'+(Y(110)-10*S)+'px;width:'+(22*S)+'px;height:'+(22*S)+'px');
+el('mark','left:'+(X(EDGE)-12*S)+'px;top:'+(H-Y(110)-12*S)+'px;width:'+(22*S)+'px;height:'+(22*S)+'px');
+
+const L=-EDGE;
+lb(X(L),Y(174),'PLANESWALKER-ZEICHEN <span class="c">//</span> FÜNF ZACKEN <span class="c">·</span> EINE ACHSE');
+lb(X(L),Y(210),'VEKTOR AUS DER MANA-SCHRIFT <span class="c">//</span> KEIN BITMAP');
+
+lb(X(L),Y(958),'MAGIC','font-size:'+(40*S)+'px;letter-spacing:'+(16*S)+'px;color:#e9ecf1');
+lb(X(L),Y(1026),'THE GATHERING');
+
+lb(X(L),Y(1140),'MONITOR <b>27"</b> <span class="c">//</span> '+(W/H).toFixed(2).replace('.',',')+' : 1');
+lb(X(L),Y(1176),W+' × '+H+' PX <span class="c">//</span> GRID <b>'+Math.floor(W/20)+' × '+Math.floor(H/20)+'</b>');
+const metaZ=lb(X(L),Y(1212),'');
+
+lbR(X(EDGE),H-Y(160),'ODIN <span class="c">·</span> TAILNET');
+lbR(X(EDGE),H-Y(124),'NO. <b>16</b>','color:#7d8593');
+
+// ===========================================================================
+const IM={};let pend=0;
+Object.keys(SVG).forEach(k=>{pend++;const im=new Image();
+  im.onload=()=>{IM[k]=im;if(--pend===0)draw();};im.src=SVG[k];});
+
+function draw(){
+const STEP=20,SQ=16,NX=Math.floor(W/STEP),NY=Math.floor(H/STEP);
+let seed=SEED;const rnd=()=>((seed=(seed*1103515245+12345)&0x7fffffff)/0x7fffffff);
+g.fillStyle='#0d0f14';g.fillRect(0,0,W,H);
+
+// ---- Zeichen in eine Maske rastern und den echten Kasten ausmessen ----
+const N=1400;
+const om=document.createElement('canvas');om.width=om.height=N;
+const oc=om.getContext('2d');oc.drawImage(IM.PW,0,0,N,N);
+const od=oc.getImageData(0,0,N,N).data;
+let x0=N,y0=N,x1=0,y1=0;
+for(let y=0;y<N;y++)for(let x=0;x<N;x++){if(od[(y*N+x)*4+3]>60){
+  if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}}
+const bw=x1-x0+1,bh=y1-y0+1;
+const AR=bw/bh, MW=MH*AR;
+const MX=CX-MW/2, MY=CY-MH/2;
+
+// Maske in Zielgroesse, aus dem Ausschnitt heraus
+const mk=document.createElement('canvas');mk.width=W;mk.height=H;
+const mc=mk.getContext('2d');
+mc.drawImage(om,x0,y0,bw,bh,MX,MY,MW,MH);
+const MD=mc.getImageData(0,0,W,H).data;
+// Deckung je Zelle messen statt "irgendein Treffer": sonst laufen die schmalen
+// Zacken im 20-px-Raster zu und die Luecken dazwischen schliessen sich.
+const SMP=[2,6,10,14];
+const hit=(px,py)=>{let n=0;
+  for(const dx of SMP)for(const dy of SMP)
+    if(MD[(((py+dy)|0)*W+((px+dx)|0))*4+3]>90)n++;
+  return n>=7;};
+
+// ---- Konstruktionsdaten rechts (jetzt gemessen) ----
+metaZ.innerHTML='ZEICHEN <b>'+Math.round(MW)+' × '+Math.round(MH)+' PX</b> <span class="c">//</span> SEED <b>0x'+SEED.toString(16).toUpperCase()+'</b>';
+const RT=[['ZACKEN','5 <span class="c">·</span> MITTE AM HÖCHSTEN'],
+          ['SPIEGELACHSE','1 <span class="c">·</span> SENKRECHT'],
+          ['SEITENVERHÄLTNIS',AR.toFixed(2).replace('.',',')+' : 1'],
+          ['FARBWEG',WEG.label],
+          ['SYMBOL','VEKTOR <span class="c">·</span> KEIN BITMAP'],
+          ['RASTERZELLE','20 PX']];
+lbR(X(EDGE),Y(560),'KONSTRUKTION','color:#8b93a1');
+RT.forEach((r,i)=>lbR(X(EDGE),Y(610+i*36),r[0]+' <span class="c">//</span> <b>'+r[1]+'</b>'));
+
+function farbe(t){t=t<0?0:t>0.9999?0.9999:t;const s=WEG.stops;
+  const f=t*(s.length-1),i=Math.floor(f),k=f-i;
+  const a=s[i],b=s[Math.min(s.length-1,i+1)];
+  return [a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k,a[2]+(b[2]-a[2])*k];}
+
+const chX=[14,15,NX-16,NX-15],chY=[9,10,NY-10,NY-9];
+const blocks=[[3,3,28,24],[3,29,28,24],[NX-31,3,28,24],[NX-31,29,28,24],
+              [3,55,28,14],[NX-31,55,28,14],[34,3,NX-68,5],[34,NY-8,NX-68,5]];
+const dens=[0.86,0.62,0.90,0.66,0.48,0.52,0.42,0.42];
+const zones=[[X(L)-20*S,Y(150),720*S,110*S],
+             [X(L)-20*S,Y(935),700*S,140*S],
+             [X(L)-20*S,Y(1118),700*S,130*S],
+             [X(EDGE)-620*S,Y(536),620*S,300*S],
+             [X(EDGE)-460*S,H-Y(190),460*S,120*S]];
+
+for(let y=0;y<NY;y++)for(let x=0;x<NX;x++){
+  const px=x*STEP+2,py=y*STEP+2;
+  const inK=hit(px,py);
+  if((chX.includes(x)||chY.includes(y))&&!inK)continue;
+  let inZ=false;zones.forEach(z=>{if(px>=z[0]&&px<z[0]+z[2]&&py>=z[1]&&py<z[1]+z[3])inZ=true;});
+
+  let d=0.30;
+  blocks.forEach((b,i)=>{if(x>=b[0]&&x<b[0]+b[2]&&y>=b[1]&&y<b[1]+b[3])d=dens[i];});
+  d+=Math.sin(x*0.12)*0.10+Math.sin(y*0.16+0.8)*0.08;
+  if(!inK&&rnd()>d)continue;
+
+  let col,a;
+  if(inK){
+    const tx=(px-MX)/MW, ty=(py-MY)/MH;
+    const t=WEG.dir*tx+(1-WEG.dir)*ty+(rnd()-0.5)*0.06;
+    col=farbe(t); a=0.86+rnd()*0.14;
+  }else{
+    const b=0.62+(y/NY)*0.30+(rnd()-0.5)*0.22;
+    col=[150*b+18,158*b+18,172*b+20]; a=0.10+rnd()*0.22;
+    if(Math.abs(px+SQ/2-CX)<MW*0.70&&Math.abs(py+SQ/2-CY)<MH*0.58)a*=0.50;
+    if(inZ)a*=0.12;
+  }
+  g.fillStyle='rgba('+(col[0]|0)+','+(col[1]|0)+','+(col[2]|0)+','+a.toFixed(3)+')';
+  g.fillRect(px,py,SQ,SQ);
+  if(inK&&rnd()>0.92){g.fillStyle='rgba(255,248,232,0.26)';g.fillRect(px,py,SQ,SQ);}
+}
+
+// ---- Leiterbahnen ----
+g.lineWidth=2;
+const paths=[[[0,Y(200)],[X(-880),Y(200)],[X(-800),Y(120)],[W,Y(120)]],
+             [[0,H-Y(150)],[X(880),H-Y(150)],[X(960),H-Y(70)],[W,H-Y(70)]],
+             [[X(-1000),0],[X(-1000),Y(160)],[X(-1080),Y(240)],[X(-1080),H]],
+             [[X(1020),0],[X(1020),H-Y(200)],[X(1100),H-Y(120)],[W,H-Y(120)]]];
+paths.forEach((p,i)=>{g.strokeStyle='rgba(150,158,172,0.20)';
+  g.beginPath();g.moveTo(p[0][0],p[0][1]);for(let k=1;k<p.length;k++)g.lineTo(p[k][0],p[k][1]);g.stroke();
+  p.slice(1,-1).forEach(v=>{g.fillStyle='rgba(150,158,172,0.45)';g.fillRect(v[0]-5,v[1]-5,10,10);});});
+document.body.dataset.done='1';
+}
+</script></body></html>

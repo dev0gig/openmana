@@ -19,7 +19,7 @@ async function fixture() {
   await write("notices/license-files.json", JSON.stringify({ "gpl-3.0": { file: "LICENSE", sha256: hash("Test GPL text"), source: "Test source" } }))
   await write("SOURCE.md", "Test source / no public source offer")
   await write("src/index.css", "")
-  for (const file of ["src/cloud/oryx-sdk.js", "assets/app-icon/PROVENANCE.md", "engine/patches/README.md", "TRANSPARENCY.md"]) await write(file, "/* Test provenance */")
+  for (const file of ["src/cloud/oryx-sdk.js", "assets/app-icon/PROVENANCE.md", "assets/table-backgrounds/PROVENANCE.md", "engine/patches/README.md", "TRANSPARENCY.md"]) await write(file, "/* Test provenance */")
   await write("node_modules/library/package.json", JSON.stringify({ name: "library", version: "1.0.0", license: "MIT" }))
   await write("node_modules/library/LICENSE", "Copyright Test Author. MIT test text.")
   await write("node_modules/library/NOTICE", "Original NOTICE must survive")

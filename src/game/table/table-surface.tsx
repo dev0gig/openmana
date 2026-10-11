@@ -19,7 +19,9 @@
  * (project owner, 2026-10-12).
  */
 import { memo, useId, useLayoutEffect, useRef } from "react"
+import { usePreferences } from "@/app/preferences"
 import { boardMarkup, deskKey, deskMarkup, layoutKey, playingArea, ringMarkup, surfaceLayout, type Box, type PlayingRegions } from "./surface-drawing"
+import { tableBackground, type TableBackground } from "./table-background"
 import "./table.css"
 
 /** The name of the User Timing measure of one drawing - desk, board or both (the end-to-end test reads it, prompt 37). */
@@ -35,7 +37,35 @@ function regionBox(board: HTMLElement, origin: DOMRect, area: string): Box | nul
 
 const REGIONS = { opponent: "opponent", opponentField: "opponent-field", field: "field", me: "me" } as const satisfies Record<keyof PlayingRegions, string>
 
+/**
+ * The surface: the drawn table, or - when the player chose one in Settings
+ * (table-background.ts, 2026-10-12) - a picture over the whole board instead
+ * of desk, board and ring. Only a change of that choice renders it again.
+ */
 const TableSurface = memo(function TableSurface() {
+  const { tableBackground: choice, tableBackgroundImage: image } = usePreferences()
+  const background = tableBackground(choice, image)
+  return background.kind === "table" ? <DrawnSurface /> : <PictureSurface background={background} />
+})
+
+/** A picture over the whole board (cover, centred): a built-in one per orientation, or the player's own. */
+function PictureSurface({ background }: { background: Exclude<TableBackground, { kind: "table" }> }) {
+  return (
+    <div data-slot="table-surface" data-background={background.kind === "custom" ? "custom" : background.choice} aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+      {background.kind === "custom" ? (
+        <img data-surface="picture" className="table-surface-picture" src={background.src} alt="" decoding="async" />
+      ) : (
+        <picture>
+          <source media="(max-aspect-ratio: 1/1)" srcSet={background.tall} />
+          <img data-surface="picture" className="table-surface-picture" src={background.wide} alt="" decoding="async" />
+        </picture>
+      )}
+    </div>
+  )
+}
+
+/** The drawn table: desk, board and rune ring, drawn only when a size changes. */
+function DrawnSurface() {
   const root = useRef<HTMLDivElement>(null)
   const deskPaint = useRef<SVGSVGElement>(null)
   const boardPaint = useRef<SVGSVGElement>(null)
@@ -135,6 +165,6 @@ const TableSurface = memo(function TableSurface() {
       </div>
     </div>
   )
-})
+}
 
 export { TableSurface }

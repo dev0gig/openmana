@@ -200,6 +200,19 @@ export function CreditsPage() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Spieltisch-Bilder</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Die Bilder „Farbenrad“ und „Planeswalker“ für den Spieltisch sind Wallpaper des Projektbesitzers, mit Claude
+            (Anthropic) gebaut. Die Symbole stammen aus der Schrift „Mana“ von Andrew Gioia (SIL Open Font License 1.1); die
+            Manasymbole und das Planeswalker-Zeichen gehören Wizards of the Coast.
+          </p>
+        </CardContent>
+      </Card>
+
       <p className="text-sm text-muted-foreground">
         OpenMana ist ein inoffizielles Fanprojekt und steht in keiner Verbindung zu Wizards of the Coast. Magic: The Gathering
         ist eine Marke von Wizards of the Coast LLC.

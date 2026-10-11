@@ -80,6 +80,17 @@
   opacity: 0.85;
 }
 
+/* A picture instead of the drawn table (table-background.ts, 2026-10-12): over the whole board, cut to fill it, centred. */
+[data-slot="game-board"] .table-surface-picture {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
 /* ---------- The regions over the surface: the board shows, text stays readable ---------- */
 
 /* The header: a dark band with a gold hairline (the mockup's .kopf). */

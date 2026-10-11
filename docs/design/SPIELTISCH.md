@@ -353,6 +353,26 @@ anchors it keeps and the prompt that builds it.
   does not glimmer (only the ring moves); the row separators of the
   battlefields stayed visible across the board until prompt 40 (gone since).
 
+### 4.1a A picture instead of the drawn table (2026-10-12)
+
+The project owner wanted to be able to replace the whole drawn table - desk,
+board, rune ring - by a picture. Settings → "Spieltisch" offers:
+"Holztisch (Vorgabe)" (the drawing of §4.1), **Farbenrad** and
+**Planeswalker** (the owner's own "Die" wallpapers without their text,
+`assets/table-backgrounds/PROVENANCE.md`; one picture for windows taller than
+wide, one for the others, `<picture>` with `(max-aspect-ratio: 1/1)`) and
+**Eigenes Bild** - a picture file from the device ("Eigenes Bild auswählen"),
+scaled to at most 2560 px on its longer side, stored as a WebP data: URL in
+the setting `display.tableBackgroundImage` (this device only, in backups,
+never in the ORYX cloud), removable ("Eigenes Bild entfernen", back to the
+drawn table). Built: `src/game/table/table-background.ts`,
+`table-background-options.tsx`, `TableSurface` (`PictureSurface`: an `img`
+with `data-surface="picture"`, class `table-surface-picture`, cover and
+centred; the surface keeps `data-slot="table-surface"`, `aria-hidden`, no
+pointer events and gets `data-background`). With a picture nothing of §4.1
+is drawn. The tests and the end-to-end harness keep the drawn table (the
+default).
+
 ### 4.2 Header bar (prompt 39)
 - Mockup: `.kopf`, `.marke` (emblem + Cinzel wordmark in gold), `.kopf-nav`,
   `.zug-info`.
