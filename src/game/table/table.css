@@ -299,7 +299,7 @@
   width: calc(var(--kw) + 4px);
   height: calc(var(--kh) + 4px);
   aspect-ratio: auto;
-  border-radius: calc(var(--kw) * 0.048 + 2px);
+  border-radius: calc(var(--kw) * 0.038 + 2px);
   container: table-card / inline-size;
 }
 
@@ -313,14 +313,26 @@
   height: 100cqw;
 }
 
-/* The picture's corners as a card's (the mockup's 4.8 % of its width), not the app's large radius. */
+/*
+ * A card picture on the table without CardPicture's own frame line and grey
+ * ground: Scryfall's picture has transparent rounded corners, and the line
+ * (--border, 12 % light) and the ground showing in those corners lay a
+ * milky veil around every card (project owner, 2026-10-12). The picture
+ * itself stays untouched; a card still loading or shown as text keeps both.
+ */
+[data-slot="game-board"] [data-slot="card-picture"][data-state="loaded"] {
+  border-width: 0;
+  background: transparent;
+}
+
+/* The picture's corners as Scryfall's picture has them (3.8 % of its width), not the app's large radius. */
 [data-slot="game-board"] .table-field-row [data-slot="game-card-picture"] > [data-slot="card-picture"],
 [data-slot="game-board"] .table-field-row [data-slot="game-card-picture"] > [data-slot="skeleton"] {
-  border-radius: 4.8cqw;
+  border-radius: 3.8cqw;
 }
 
 [data-slot="game-board"] .table-field-row [data-tapped="true"] [data-slot="game-card-picture"] > :is([data-slot="card-picture"], [data-slot="skeleton"]) {
-  border-radius: calc(4.8cqw * 63 / 88);
+  border-radius: calc(3.8cqw * 63 / 88);
 }
 
 /* A pile: up to two equal cards behind the front one, offset to the left (the mockup's .karte-flaeche --n) - plates in the panel tone, not more pictures. */
@@ -335,7 +347,7 @@
   width: calc(var(--kw) + 4px);
   height: calc(var(--kh) + 4px);
   border: 2px solid transparent;
-  border-radius: calc(var(--kw) * 0.048 + 2px);
+  border-radius: calc(var(--kw) * 0.038 + 2px);
   background: linear-gradient(90deg, color-mix(in oklch, var(--table-panel), black 35%), var(--table-panel)) padding-box;
   box-shadow: inset 0 0 0 1px var(--table-gold-line), 0.15rem 0.2rem 0.4rem oklch(0 0 0 / 0.6);
 }
@@ -374,7 +386,7 @@
  */
 [data-slot="game-board"] [data-slot="game-card-face"][data-mark="usable"] {
   border-color: var(--primary);
-  box-shadow: 0 0 0.55rem 0.05rem color-mix(in oklch, var(--primary) 60%, transparent);
+  box-shadow: 0 0 0.2rem color-mix(in oklch, var(--primary) 45%, transparent);
 }
 
 [data-slot="game-board"] [data-slot="game-card-face"][data-mark="selected"] {
@@ -487,16 +499,16 @@
   width: var(--hand-card-w);
   height: var(--hand-card-h);
   aspect-ratio: auto;
-  border-radius: calc(var(--hand-card-w) * 0.048 + 2px);
+  border-radius: calc(var(--hand-card-w) * 0.038 + 2px);
 }
 
-/* The picture's corners as a card's (4.8 % of its width), and a shadow that lifts each card off the one below. */
+/* The picture's corners as Scryfall's picture has them (3.8 % of its width), and a small, sharp shadow that sets each card on the table. */
 [data-slot="game-board"] .table-hand [data-slot="game-card-picture"] > :is([data-slot="card-picture"], [data-slot="skeleton"]) {
-  border-radius: calc(var(--hand-card-w) * 0.048);
+  border-radius: calc(var(--hand-card-w) * 0.038);
 }
 
 [data-slot="game-board"] .table-hand [data-slot="game-card-face"]:not([data-mark]) {
-  box-shadow: -0.3rem 0.2rem 0.9rem oklch(0 0 0 / 0.7);
+  box-shadow: 0 0.1rem 0.2rem oklch(0 0 0 / 0.6);
 }
 
 /* Cards Forge reveals from the AI's hand (a toolbar as before): the same card shape and shadow. */

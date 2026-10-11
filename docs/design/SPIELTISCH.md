@@ -562,8 +562,12 @@ anchors it keeps and the prompt that builds it.
   count is a chip above the pile, not on its corner; both rows of a
   battlefield are equally high (the mockup gives the creatures 58 %) - the
   measured two-row threshold of prompt 38 builds on it; cards are centred in
-  their row (mockup: at its bottom); the picture's corners follow the card
-  (4.8 % of its width) inside the table's rows.
+  their row (mockup: at its bottom); the picture's corners follow Scryfall's
+  picture (3.8 % of its width; the mockup's 4.8 % until 2026-10-12) inside the
+  table's rows, and a loaded picture has neither CardPicture's frame line nor
+  its grey ground - both showed as a milky veil in the picture's transparent
+  corners (project owner, 2026-10-12); the hand's cards cast only a small,
+  sharp shadow.
 
 ### 4.8 Pile count (prompt 40)
 - Mockup: `.stapel-zahl`, `.karte-flaeche --n`. Several equal cards lie
@@ -582,7 +586,7 @@ picture, never on it.
 
 | State (source) | Look | Token |
 |---|---|---|
-| usable - Forge offers something (`data-mark="usable"`) | gold frame with a soft glow (was: dashed) | `--primary` |
+| usable - Forge offers something (`data-mark="usable"`) | gold frame with a slight, tight glow (was: dashed; the wide glow read as a veil, 2026-10-12) | `--primary` |
 | chosen (`data-mark="selected"`) | strong light frame, thicker | `--foreground` or `--table-gold-light` |
 | target of something on the stack (`data-mark="target"`, `data-stack-target`) | red frame with a gentle pulse (glow layer whose opacity pulses; still under less motion) | `--table-danger` |
 | attacking (combat) | amber frame and glow, moved towards the opponent (`transform`) | `--table-attack` |
