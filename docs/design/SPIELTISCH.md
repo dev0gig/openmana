@@ -68,7 +68,8 @@ data, accessibility, motion), this text applies.
   under `src/game/table/`; its private `CardControlsContext` may be exported
   for that.
 - **Stays shadcn:** every page outside the table, and inside the game the
-  Sheets (card view, zones, history, help, menu), Dialogs and AlertDialogs
+  Sheets (zones, history, help, menu), the card view (a full-screen
+  `Dialog` since prompt 47, §4.16), Dialogs and AlertDialogs
   (conceding, ending the turn), toasts and tooltips. They may look like the
   table only through tokens (§5), never through table.css.
 - **Forge stays the only authority** for rules, values, actions, targets and
@@ -276,16 +277,16 @@ two rows with the creatures' row next to the middle, below one
 
 ### 3.4 Sheets by layout (prompt 38)
 
-The table's Sheets - the card view, zones, history, help, also the card view
-and history after a game - come from the **bottom in `hoch`** (thumb reach)
-and from the **right in `quadrat` and `breit`** (`tableSheetSide`,
-`useTableSheetSide()` in `src/game/table/`), no longer by orientation: the
-unfolded foldable upright (870 × 960) gets them from the side. What their
-content arranges by side (the card view's picture above its text, its two
-buttons side by side, the history's kind and number) follows the Sheet's
-own `data-side` (`in-data-[side=right]:`), so content and side always agree.
-Focus returns to the card that opened the view, as before
-(`card-sheet.tsx`); a size change while a Sheet is open only moves it.
+The table's Sheets - zones, history, help, also the history after a game -
+come from the **bottom in `hoch`** (thumb reach) and from the **right in
+`quadrat` and `breit`** (`tableSheetSide`, `useTableSheetSide()` in
+`src/game/table/`), no longer by orientation: the unfolded foldable upright
+(870 × 960) gets them from the side. What their content arranges by side (the
+history's kind and number) follows the Sheet's own `data-side`
+(`in-data-[side=right]:`), so content and side always agree; a size change
+while a Sheet is open only moves it. The card view was such a Sheet until
+prompt 47; it is a full-screen `Dialog` now, arranged by the same layout
+(§4.16).
 
 ## 4. Building blocks
 
@@ -1012,6 +1013,58 @@ details in `docs/implementation/46-drag-and-drop.md`:
   - Colours `--table-danger`, `--table-attack`, `--table-mana` (block, the
     proposal taken); no new token.
 
+### 4.16 Card view in full screen (prompt 47)
+
+The project owner (2026-10-12): the card view in a Sheet was "sehr unschön";
+looking at a card should be like taking a real card into the hand - the table
+darkened, the card as large as possible, beside it short boxes that explain
+only the keywords on this card.
+
+- **Built** (`src/game/card-view.tsx`, `src/components/ui/card-lightbox.tsx`;
+  `docs/implementation/47-vollbild-kartenansicht.md`): a shadcn `Dialog` in
+  full screen. shadcn's overlay darkens the whole table (black 80 %, a light
+  blur); the card stands on it whole, in its proportions, as large as the
+  room allows (`cardFit`) - never covered, never cut, Scryfall's largest
+  picture (PNG) by `srcset`/`sizes="auto"`; its transparent corners show the
+  darkening.
+- **Arranged by the table's layout** (`useTableLayout()`, never by device):
+  `hoch` (the folded foldable 480 × 1040, phones) - the card on top, below
+  it its buttons (they stay on screen with the card: the card leaves them
+  room), then the keyword boxes; the view scrolls vertically, the card stays
+  whole. `quadrat` and `breit` (the unfolded foldable either way, tablets,
+  desktop, a phone turned) - the card left, the aside right (36 % of the
+  screen, 16–24 rem): the boxes (scrolling in their column when they are
+  many), under them the buttons. The X sits top right, off the card.
+- **Keyword boxes:** a shadcn `Card` per keyword Forge reports for the card
+  now (`VisibleCard.keywords`, protocol 9 - also one an effect gave it),
+  each once, in Forge's order: the German name in bold (with Forge's
+  concrete form: "Bonus {4}", "Schutz vor Rot", "Vernichter 2"), the German
+  explanation below; where OpenMana cannot say Forge's concrete form in
+  German, the German name and general explanation with Forge's form in
+  English beside it, marked "englisch"; a keyword without German words shows
+  Forge's, marked. No keywords: no boxes, no line saying so
+  (`src/game/keyword-texts.ts`, AGENTS.md "Keyword Rules").
+- **Buttons:** Forge's offer as one button (its words, its guards: arming,
+  `tapBlocked` with the reason, repeated keys), never over the card;
+  "Umdrehen" for a double-faced card; browsing a zone, pile or the stack
+  where it was opened from one. In a replay no offer.
+- **Closing:** the X, a press on the darkening (a press within `ARMING_MS`
+  of opening - the double tap's second - does not close), Escape, the
+  system's back gesture (`CloseWatcher`). Focus to the view on opening, back
+  to the card on closing.
+- **Facts:** the former list (place, mark, state, counters, damage, stack
+  and targets, attachments, owner, picture language, catalog text, Forge's
+  rules text and offer in words) is no longer on screen - the table's chips
+  and the Zauberchronik show them - and stays complete in the dialog's
+  description for screen readers.
+- **Checked** in Chrome at the eight sizes and the foldable's three
+  (end-to-end `cardViewer`: the darkening over the whole screen, the card
+  whole and at least as large as the Sheet's picture, boxes beside or below
+  and never on the card, the button under the card or the boxes, every way
+  to close, axe) on the recorded `respond` scene (Geborstener Blitz with
+  Forge's Kicker {4}, Schock without keywords) and a built card with several
+  of Forge's real keyword forms (`presentation=keywords`).
+
 ## 5. Tokens
 
 Defined once in `:root` of `src/index.css` (prompt 36), mapped for Tailwind
@@ -1241,6 +1294,9 @@ only (`MOTION_PROPERTIES`, checked by `motion-plan.test.ts` and
   anchors stay. `PhaseTrack` (`src/components/ui/phase-track.tsx`) was
   replaced by `PhasePanel` in prompt 41, which carries its slots.
 - Tokens and variants: `src/index.css`.
+- The card view (prompt 47): `src/game/card-view.tsx` on
+  `src/components/ui/card-lightbox.tsx`; the German keyword texts
+  `src/game/keyword-texts.ts`.
 
 ## 11. Verification per prompt
 
@@ -1296,6 +1352,15 @@ From the shared rules of the series - end-to-end section 12,
   motion's layer, the board's `data-hand-drag` and `data-hand-drop="over"`
   and the dragged hand card's `data-dragging` (end-to-end `handDrag`,
   `dragInRealGame`; `dragCard` in `scripts/readiness/player.ts`);
+- since prompt 47 the card view's `data-slot`s `card-view` (with
+  `data-card-view`), `card-lightbox-overlay`, `card-lightbox-stage` (with
+  `data-arrangement` `stacked`/`beside`), `card-lightbox-picture`,
+  `card-lightbox-aside`, `card-lightbox-boxes`, `card-lightbox-close`,
+  `keyword-box` and `card-view-offer` (Forge's button; the readiness player's
+  `throughView` and `byDragging`), the list "Schlüsselwörter dieser Karte",
+  the button "Umdrehen" and the regions "Was Forge anbietet" and "Auf dem
+  Stapel" inside the dialog's description (end-to-end `cardViewer`,
+  `lookInRealGame`, `tableInteractions`, `zoneInteractions`);
 - the toolbars' names.
 
 The regression evidence stays complete (8 sizes × 38 scenes, at least 600
@@ -1316,6 +1381,7 @@ axe checks).
 | 44 | animations: travelling cards, tapping, damage, life, stack, phases | §8 |
 | 45 | review in every layout, polish, deviations, documentation, handover to the project owner | all |
 | 46 | after the series: drag and drop of hand cards onto the battlefield | §4.10 |
+| 47 | after the series: the card view in full screen with its keywords explained | §3.4, §4.16 |
 
 After the series (not part of it): the project owner checks the table on the
 Fold (closed, open upright, open turned) and inside ORYX once he has allowed
@@ -1395,6 +1461,11 @@ a push.
   card glides back and nothing is sent; Escape, a second finger or
   pointercancel cancel; the travel of the next state starts where the card
   was let go. Tap, long press, mouse and keyboard unchanged.
+- 2026-10-12, after the series (prompt 47): the card view in full screen
+  (§4.16) - the darkened table, the card as large as the room allows, the
+  boxes explaining Forge's keywords for it in German beside or below it,
+  Forge's one button under it; protocol 9 carries the keywords; a new engine
+  and catalog release; pushed together with prompt 46.
 
 ## 14. Deviations from the mockup (prompt 45)
 

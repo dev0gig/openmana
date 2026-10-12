@@ -75,6 +75,16 @@ VERCEL_GIT_COMMIT_SHA=<sha> OPENMANA_PUBLIC_RELEASE=1 OPENMANA_ENGINE_DIR=.artif
 node scripts/deploy/budgets.ts
 ```
 
+### Veröffentlichte Engine-Releases
+
+| Release | Protokoll | Seit | Anlass |
+|---|---|---|---|
+| `engine-p8-a9b4c26b1244` | 8 | 2026-10-10 | Prompt 35: Engine aus GraalVM Community Edition |
+| {{RELEASE}} | 9 | 2026-10-12 | Prompt 47: Schlüsselwörter einer Karte (`VisibleCard.keywords`) für die Kartenansicht im Vollbild |
+
+Eine neue Protokollversion braucht immer ein neues Release: Die App nimmt nur
+eine Engine mit genau ihrer Protokollversion an.
+
 ## Nach dem Deployment prüfen
 
 - `/` und eine Unterroute 200 mit COOP/COEP/CORP; `crossOriginIsolated` im Browser.

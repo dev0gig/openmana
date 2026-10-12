@@ -136,7 +136,8 @@ files work under COEP and nothing leaks to third parties (Bible §15).
    nothing is queued; a click during a motion hits the control at its final
    place; a card gliding to its new place is presentation, never a derived
    event, text or history entry; a replay animates stepping, not jumping. The
-   card view still moves only as shadcn's `Sheet`.
+   card view moves only as shadcn's `Dialog` (fades and zooms in, nothing
+   under less motion).
 
 ## 4. Layout
 
@@ -180,15 +181,21 @@ of `hoch` (the decision last) - the reading and focus order of every layout.
 **Cards are controls** (prompt 14): every card the player may see is a
 `GameCardButton` in a `GameCardRow` toolbar (one Tab stop per row; arrow keys,
 Home and End move between its cards). Its primary activation opens the **card
-view** - a `Sheet` from the bottom in `hoch` (thumb reach), from the right in
-`quadrat` and `breit` (prompt 38, `useTableSheetSide()`; the same for the
-zones, history and help Sheets): the card large, Forge's words and facts, what
-Forge offers, and a footer that stays in view while the card scrolls (from the
-side its two buttons side by side - the content follows the Sheet's
-`data-side`). A long press, a right click or the context-menu key opens it
-too - in the steps whose taps act at once (paying, attacking, blocking, the
-London mulligan, a selection) the only way to look. The card view's main button
-carries Forge's words for the tap and is armed a moment after it appears.
+view** - since prompt 47 a shadcn `Dialog` in full screen (`CardLightbox`):
+the shadcn overlay darkens the whole table, the card stands on it as large as
+the screen allows - whole, in its proportions, Scryfall's largest picture -,
+and small `Card` boxes explain the keywords Forge reports for it (name bold,
+the explanation below; none without keywords): beside the card in `quadrat`
+and `breit`, below it in `hoch` (by `useTableLayout()`, never by device; the
+view scrolls there and the card's buttons stay right under it). A long press,
+a right click or the context-menu key opens it too - in the steps whose taps
+act at once (paying, attacking, blocking, the London mulligan, a selection)
+the only way to look. The card view's one main button carries Forge's words
+for the tap, stands under the card or the boxes - never over the card - and is
+armed a moment after it appears; "Umdrehen" turns a double-faced card. It
+closes by its X, a press on the darkening, Escape and the system's back
+gesture. The zones, history and help stay Sheets from the bottom in `hoch` and
+from the right in `quadrat` and `breit` (prompt 38, `useTableSheetSide()`).
 
 **Forge's decisions** (prompt 15) are answered in the decision region - the
 action bar below the hand in `hoch`, the column beside the battlefields in
@@ -251,7 +258,8 @@ with a visible focus ring and a name (prompt 45, end-to-end
 | `GameBoard`, `GameBoardArea` | `src/components/ui/game-board.tsx`, built the shadcn way (prompt 13) | the game table's frame: eight named regions in a grid, arranged by the table layout (§4, prompt 38: `hoch`, `quadrat`, `breit`, `breit` + `short`), never scrolling itself |
 | `GameCard`, `GameCardCaption`, `GameCardGroup` | `src/components/ui/game-card.tsx`, built the shadcn way (prompt 13) | a card on the game table, sized by its row (63 × 88; a battlefield row by its height and width since prompt 40): its `CardPicture`, turned a quarter when tapped, its facts as chips in the line above the picture and - on the battlefield - the value plaque on the printed value box (`plaque`, prompt 40, §9 - nothing else on it, Scryfall forbids covering card images), a pile as cards behind it (`pile`); a card with its attachments together (on a plate on the table). Cards Forge hides are the table's `TableCardBack` since prompt 39 (below) |
 | `GameCardButton`, `GameCardRow`, `GameCardRowItem`, `GameCardRowButton`; the `mark` of `GameCard`/`GameCardButton` | `src/components/ui/game-card.tsx`, built the shadcn way (prompt 14) on Radix `Toolbar` (from `radix-ui`) | a card as a control: a button with shadcn's focus ring around the whole card, no image menu or text selection on a long press; Forge's state as a frame and glow around the picture in the room every card keeps (`mark`, look since prompt 40: usable a gold frame with a glow, chosen a thicker light frame, target red pulsing - §9); a row of such cards as a toolbar (roving focus), else a focusable list |
-| `useTableLayout()`, `tableLayoutOf()`; variants `hoch:`, `quadrat:`, `breit:` | `src/game/table/use-table-layout.ts`, `table-layout.ts`, `src/index.css` (prompt 36) | the game table's layout by aspect ratio (§4, §9): `GameBoard`'s plans and the Sheets' side (prompt 38) |
+| `useTableLayout()`, `tableLayoutOf()`; variants `hoch:`, `quadrat:`, `breit:` | `src/game/table/use-table-layout.ts`, `table-layout.ts`, `src/index.css` (prompt 36) | the game table's layout by aspect ratio (§4, §9): `GameBoard`'s plans, the Sheets' side (prompt 38) and the card view's arrangement (prompt 47) |
+| `CardLightboxContent`, `CardLightboxStage`, `CardLightboxPicture`, `CardLightboxAside`, `CardLightboxBoxes`, `CardLightboxActions`; `cardFit()`, `useCloseWatcher()` | `src/components/ui/card-lightbox.tsx`, built the shadcn way on Radix `Dialog` with shadcn's `DialogOverlay` (prompt 47) | the card view in full screen: the darkened table, the card as large as the room allows (`cardFit`: stacked within width and height less its button rows, beside within height and width less the aside of 16–24 rem), the aside with the keyword boxes and the buttons, presses on the darkening falling through to the overlay (they close it), the back gesture (`CloseWatcher`) |
 | `src/game/table/table.css`, `--table-*` tokens | prompt 36 (§9) | the game table's own stylesheet (imported by `TableSurface`) and colours |
 | `TableArt`, `TableCardBack`, `TableEmblem` | `src/game/table/table-art.tsx` (prompt 39, §9) | the table's drawn pieces as SVG symbols defined once per table - the OpenMana emblem, the life medallion's ring, OpenMana's own card back (never Wizards'); `TableCardBack` (slot `game-card-back`) for every card Forge hides on the table (the opponent's hand, face-down permanents, hidden cards of questions, the library pile), decoration only |
 | `MedallionFace`, `ZonePile`, `ZoneCounter`, `ZoneCount`, `StripChip` | `src/game/table/strip-parts.tsx` (prompt 39, §9) | a player's strip: the life medallion's face (inside `GamePlayer`/`GamePlayerButton`), the library and graveyard as piles, exile and command zone as counters (both open the zone view - looking only), counts with the zone's title, facts as chips on the panel tone |
@@ -348,8 +356,8 @@ reference.
   stylesheet, `src/game/table/table.css`, all of whose rules sit under
   `[data-slot="game-board"]`. Pages outside the table stay shadcn-only (§1,
   §3), and inside the game the Sheets, Dialogs, menus, toasts and the card
-  view stay shadcn components; they may take the table's look only through
-  tokens. `src/` holds no other stylesheet than `index.css` and `table.css`
+  view (a full-screen `Dialog` since prompt 47, `card-lightbox.tsx`) stay
+  shadcn components; they may take the table's look only through tokens. `src/` holds no other stylesheet than `index.css` and `table.css`
   (`motion.test.ts`).
 - **Tokens** (`:root` in `src/index.css`, mapped as `--color-table-*`):
   `--table-gold-light`, `--table-gold-dark`, `--table-gold-line`,
