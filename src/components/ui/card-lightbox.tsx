@@ -95,15 +95,50 @@ export function useCloseWatcher(active: boolean, onClose: () => void): void {
   }, [active])
 }
 
+/**
+ * The press that opened the dialog (a long press) ends inside it: the browser then sends that touch's mouse events
+ * and a click to whatever lies under the finger now - a button of the dialog or its darkening. Only a press that
+ * began after the dialog opened counts: the release of the one that opened it neither moves the focus, nor clicks,
+ * nor closes (a keyboard's click comes without a press and stays).
+ */
+function useOwnPresses() {
+  const press = React.useRef({ pressed: false, ghost: false })
+  return React.useMemo(() => ({
+    reset: () => { press.current = { pressed: false, ghost: false } },
+    handlers: {
+      onPointerDownCapture: () => { press.current = { pressed: true, ghost: false } },
+      onMouseDownCapture: (event: React.MouseEvent) => {
+        if (press.current.pressed) return
+        press.current.ghost = true
+        event.preventDefault()
+      },
+      onClickCapture: (event: React.MouseEvent) => {
+        if (press.current.ghost) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+        press.current = { pressed: false, ghost: false }
+      },
+    },
+  }), [])
+}
+
 function CardLightboxContent({
   className,
   children,
+  onOpenAutoFocus,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content>) {
+  const presses = useOwnPresses()
   return (
     <DialogPortal>
-      <DialogOverlay data-slot="card-lightbox-overlay" />
+      <DialogOverlay data-slot="card-lightbox-overlay" {...presses.handlers} />
       <DialogPrimitive.Content
+        {...presses.handlers}
+        onOpenAutoFocus={(event) => {
+          presses.reset()
+          onOpenAutoFocus?.(event)
+        }}
         data-slot="card-lightbox"
         className={cn(
           "pointer-events-none! fixed inset-0 z-50 flex text-sm text-popover-foreground outline-none duration-100 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 motion-reduce:animate-none!",

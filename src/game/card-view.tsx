@@ -94,11 +94,6 @@ export function CardView({ look, onOpenChange, onBrowse, state, view, moment, pi
   const opener = useRef<HTMLElement | null>(null)
   const id = look?.id ?? null
   const open = look?.open ?? false
-  // The press that opened the view (a long press) ends inside it: the browser then sends that touch's mouse events
-  // and a click to whatever lies under the finger now - the view's button, say. Only a press that began in the view
-  // counts; the release of the one that opened it neither moves the focus nor clicks (a keyboard's click has no press).
-  const pressed = useRef(false)
-  const ghost = useRef(false)
   // The system's back gesture closes the view (Chrome's CloseWatcher; Escape and the X stay Radix's).
   useCloseWatcher(open, () => onOpenChange(false))
   return (
@@ -107,28 +102,9 @@ export function CardView({ look, onOpenChange, onBrowse, state, view, moment, pi
         ref={content}
         data-slot="card-view"
         {...(id !== null ? { "data-card-view": id } : {})}
-        onPointerDownCapture={() => {
-          pressed.current = true
-          ghost.current = false
-        }}
-        onMouseDownCapture={(event) => {
-          if (pressed.current) return
-          ghost.current = true
-          event.preventDefault()
-        }}
-        onClickCapture={(event) => {
-          if (ghost.current) {
-            event.preventDefault()
-            event.stopPropagation()
-          }
-          ghost.current = false
-          pressed.current = false
-        }}
         onOpenAutoFocus={(event) => {
           // The view takes the focus itself (its title is read), never its tap button.
           event.preventDefault()
-          pressed.current = false
-          ghost.current = false
           openedAt.current = performance.now()
           opener.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null
           content.current?.focus()
