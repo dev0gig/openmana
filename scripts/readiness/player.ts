@@ -4,7 +4,9 @@
  * where the table offers something, never past it:
  *
  *  - lands and spells through the card view's main button (Forge's own action
- *    words), abilities of the player's permanents Forge marks (once a turn),
+ *    words) - or, in some of its turns, by dragging the card onto the
+ *    battlefield (prompt 46: the card view only read first, then the card
+ *    dragged; dragCard) -, abilities of the player's permanents Forge marks (once a turn),
  *    answers with an instant Forge offers while the AI's spell is on the stack;
  *  - targets and choices Forge marks (the AI's seat and cards first), cards to
  *    discard, cards for the bottom of the London mulligan;
@@ -76,6 +78,62 @@ export async function restingPoint(card: Locator): Promise<{ readonly x: number;
     return { x: origin + item.offsetLeft + Math.max(1, strip) / 2 - box.left, y: rowBox.bottom - 8 - box.top }
   })
   return point ?? undefined
+}
+
+/**
+ * Drags a card of the player's hand onto the battlefield (prompt 46), as a thumb or the mouse does: pressed where it is
+ * its own (cardPoint; covered whole: its resting place), up out of the hand, across to `to` (client coordinates) and let
+ * go there - or, with `cancel`, taken back: released over the hand again ("hand"), Escape before releasing ("escape",
+ * the mouse and keyboard's way), a second finger ("finger", touch). A touch goes through Chrome's own touch input.
+ */
+export async function dragCard(page: Page, card: Locator, to: { readonly x: number; readonly y: number }, touch: boolean, cancel?: "hand" | "escape" | "finger"): Promise<void> {
+  const box = await card.boundingBox()
+  if (box === null) throw new Error("the card has no box")
+  const own = (await cardPoint(card)) ?? (await restingPoint(card))
+  const start = own === undefined ? { x: box.x + box.width / 2, y: box.y + box.height / 2 } : { x: box.x + own.x, y: box.y + own.y }
+  const path: { x: number; y: number }[] = []
+  for (let step = 1; step <= 4; step++) path.push({ x: start.x, y: start.y - step * 12 })
+  const lifted = path.at(-1)!
+  for (let step = 1; step <= 10; step++) path.push({ x: lifted.x + ((to.x - lifted.x) * step) / 10, y: lifted.y + ((to.y - lifted.y) * step) / 10 })
+  if (cancel === "hand") for (let step = 1; step <= 10; step++) path.push({ x: to.x + ((start.x - to.x) * step) / 10, y: to.y + ((start.y - to.y) * step) / 10 })
+  const end = path.at(-1)!
+  if (touch) {
+    const cdp = await page.context().newCDPSession(page)
+    try {
+      const send = (type: "touchStart" | "touchMove" | "touchEnd", points: readonly { readonly x: number; readonly y: number }[]) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: points.map((point, id) => ({ x: point.x, y: point.y, id })) })
+      await send("touchStart", [start])
+      await page.waitForTimeout(40)
+      for (const point of path) {
+        await send("touchMove", [point])
+        await page.waitForTimeout(16)
+      }
+      if (cancel === "finger") {
+        // A second finger laid on the hand while the first drags: the drag goes back.
+        await send("touchStart", [end, start])
+        await page.waitForTimeout(40)
+      }
+      await send("touchEnd", [])
+    } finally {
+      await cdp.detach()
+    }
+  } else {
+    await page.mouse.move(start.x, start.y)
+    await page.waitForTimeout(40)
+    await page.mouse.down()
+    for (const point of path) {
+      await page.mouse.move(point.x, point.y)
+      await page.waitForTimeout(16)
+    }
+    if (cancel === "escape") await page.keyboard.press("Escape")
+    await page.mouse.up()
+  }
+}
+
+/** Where to let a dragged card go: the middle of the player's battlefield. */
+export async function battlefieldPoint(page: Page): Promise<{ readonly x: number; readonly y: number }> {
+  const field = await page.locator('section[aria-label="Dein Spielfeld"]').boundingBox()
+  if (field === null) throw new Error("the battlefield has no box")
+  return { x: field.x + field.width / 2, y: field.y + field.height / 2 }
 }
 
 export interface PlayOptions {
@@ -254,10 +312,37 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
   const decisionButton = (name: string | RegExp) => decision.locator('[data-slot="game-decision-actions"]').getByRole("button", { name, exact: typeof name === "string" })
 
   /**
+   * Plays a card by dragging it onto the battlefield (prompt 46) if Forge's words for it pass `want`: its view is only
+   * read (looking is safe) and closed again, then the card is dragged. Returns the words, or null (nothing sent).
+   */
+  const byDragging = async (id: number, want: (words: string) => boolean): Promise<string | null> => {
+    await tapCard(id)
+    const view = page.getByRole("dialog")
+    await view.waitFor({ timeout: 10_000 })
+    const main = view.locator('[data-slot="sheet-footer"] button').first()
+    const words = ((await main.textContent()) ?? "").trim()
+    const usable = words !== "Schließen" && (await main.isEnabled())
+    await page.keyboard.press("Escape")
+    await page.waitForFunction(() => !document.querySelector('[role="dialog"]'), undefined, { timeout: 10_000 }).catch(() => undefined)
+    if (!usable || !want(words)) return null
+    await dragCard(page, cardButton(id), await battlefieldPoint(page), touch)
+    dragTurns.add(lastTurn)
+    count("drag")
+    return words
+  }
+  /** The player's turns in which it played by dragging (prompt 46). */
+  const dragTurns = new Set<number>()
+  let lastTurn = 0
+  /** Plays by dragging in the first turns it plays something, then in every fourth turn (prompt 46: at least one). */
+  const dragNow = (turn: number) => dragTurns.size < 2 || dragTurns.has(turn) || turn % 4 === 0
+
+  /**
    * Opens a card's view (looking is safe) and presses its main button if its words pass `want`; closes the view
    * otherwise. Returns the words pressed, or null.
    */
-  const throughView = async (id: number, want: (words: string) => boolean): Promise<string | null> => {
+  const throughView = async (id: number, want: (words: string) => boolean, hand = false): Promise<string | null> => {
+    // A card of the hand Forge marks playable (gold): in a dragging turn it is dragged onto the battlefield instead.
+    if (hand && dragNow(lastTurn) && (await cardButton(id).getAttribute("data-mark")) === "usable") return byDragging(id, want)
     await tapCard(id)
     const view = page.getByRole("dialog")
     await view.waitFor({ timeout: 10_000 })
@@ -487,12 +572,13 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
         const answering = current.text.includes("Du kannst darauf antworten")
         const playable = usableIn(current.hand)
         const key = (card: CardInfo) => `${current.turn}:${current.phase}:${current.text.slice(0, 40)}:${card.id}`
+        lastTurn = current.turn
         if (myTurn && main && stackEmpty) {
           if (!landTurns.has(current.turn)) {
             for (const card of playable) {
               if (tried.has(`land:${key(card)}`)) continue
               tried.add(`land:${key(card)}`)
-              const words = await throughView(card.id, (text) => text === "Spiele ein Land")
+              const words = await throughView(card.id, (text) => text === "Spiele ein Land", true)
               if (words !== null) {
                 landTurns.add(current.turn)
                 count("land")
@@ -503,7 +589,7 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
           for (const card of playable) {
             if (tried.has(key(card))) continue
             tried.add(key(card))
-            const words = await throughView(card.id, (text) => text !== "Spiele ein Land")
+            const words = await throughView(card.id, (text) => text !== "Spiele ein Land", true)
             if (words !== null) {
               count(`cast:${words}`)
               return true
@@ -525,7 +611,7 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
           for (const card of playable) {
             if (tried.has(key(card))) continue
             tried.add(key(card))
-            const words = await throughView(card.id, (text) => text !== "Spiele ein Land")
+            const words = await throughView(card.id, (text) => text !== "Spiele ein Land", true)
             if (words !== null) {
               count(`respond:${words}`)
               return true
@@ -780,6 +866,9 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
     }
   }
   await game.shot(`${game.id}-result`)
+  // Prompt 46: a player who played cards played some of them by dragging them onto the battlefield.
+  const played = Object.entries(stats.actions).filter(([name]) => name === "land" || name.startsWith("cast:") || name.startsWith("respond:")).reduce((sum, [, n]) => sum + n, 0)
+  if (played > 0) check(dragTurns.size > 0 && (stats.actions["drag"] ?? 0) > 0, `${game.id}: played ${played} cards, none of them by dragging`)
   return { result: ended, turns: maxTurn, ms: Date.now() - started, bootMs, pictures, languages, memoryInGame, ...stats }
 }
 

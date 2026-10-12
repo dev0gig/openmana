@@ -36,7 +36,8 @@
  *  3. Per game: the decks and Forge's AI profile chosen on the play page (the
  *     card language in the settings), the game started, then played to Forge's
  *     result. The player acts only where the table offers it: lands and
- *     spells through the card view's button (Forge's action words), targets
+ *     spells through the card view's button (Forge's action words) or, in
+ *     some turns, dragged onto the battlefield (prompt 46), targets
  *     and choices Forge marks, payments (Forge's Auto, a land tapped by hand,
  *     floating mana, life), attackers and blockers Forge marks, Forge's
  *     buttons; every other kind of question through its own controls. The

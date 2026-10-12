@@ -82,7 +82,11 @@
  *     why, a retry plays), a deck with a card Forge does not know (Forge's
  *     report; the same engine plays the next game). On a phone: no overflow,
  *     touch sizes, the result's action bar above the tab bar. axe-core on
- *     every state.
+ *     every state. Playing by dragging (prompt 46, dragInRealGame): in fresh
+ *     games with the mouse (desktop) and a thumb (phone) a land and Shock
+ *     are dragged onto the battlefield - the land is played, Shock is cast
+ *     and Forge asks for its target -, while a card taken back, a cancelled
+ *     drag and a card Forge does not mark playable send nothing.
  * 11. Preferences (prompt 12), in a fresh profile with these decks: the AI
  *     profile (Forge's four verified profiles and random, saved at once)
  *     reaches Forge - the running game shows the profile Forge confirmed;
@@ -122,7 +126,7 @@ import os from "node:os"
 import type { AddressInfo } from "node:net"
 import path from "node:path"
 import { gunzipSync, gzipSync } from "node:zlib"
-import { chromium, type Browser, type BrowserContext, type ConsoleMessage, type Locator, type Page, type Request, type Route } from "playwright-core"
+import { chromium, type Browser, type BrowserContext, type CDPSession, type ConsoleMessage, type Locator, type Page, type Request, type Route } from "playwright-core"
 // The real ORYX cloud and *.vercel.app resolve to nowhere in every browser this run starts: requests sent while a page
 // is left (keepalive) bypass page.route and would otherwise reach Supabase (2026-09-26, refused there with 401).
 const NO_REAL_CLOUD = "--host-resolver-rules=MAP fellumrfugohnnvtxxye.supabase.co 0.0.0.0, MAP *.vercel.app 0.0.0.0, MAP oryx.quest 0.0.0.0, MAP *.oryx.quest 0.0.0.0"
@@ -132,7 +136,7 @@ import { SCHEMA_VERSION } from "../../src/storage/generated/constants.ts"
 import { TABLE_LAYOUT_QUERIES, TABLE_LAYOUTS, tableLayoutOf, tableSheetSide, type TableLayout } from "../../src/game/table/table-layout.ts"
 import { ISOLATION_HEADERS } from "../../vite/isolation-headers.ts"
 import { playDeck, type StoredDeck } from "./engine-decks.ts"
-import { cardPoint } from "../readiness/player.ts"
+import { battlefieldPoint, cardPoint, dragCard, readTable } from "../readiness/player.ts"
 
 const root = path.resolve(import.meta.dirname, "../..")
 const dist = path.join(root, "dist")
@@ -2614,7 +2618,8 @@ async function playRealGame(page: Page, label: string, touch = false): Promise<R
     check(kind === "Priorität", `${label}: after the land Forge asks "${kind}"`)
     // Prompt 16: the priority in words, not Forge's status line; the header's track shows Forge's step.
     const words = ((await decision.locator('[data-slot="game-decision-header"] p').nth(1).textContent()) ?? "").trim()
-    check(!words.startsWith("Priorität:") && words.endsWith("oder weitergeben."), `${label}: the priority says "${words}"`)
+    // Since prompt 46 the player's own priority with an empty stack names the gestures and ends "– oder gib weiter."
+    check(!words.startsWith("Priorität:") && /oder (?:weitergeben|gib weiter)\.$/.test(words), `${label}: the priority says "${words}"`)
     // Prompt 41: the track moved from the header into the decision region (Phasen-Tafel / action bar); the header keeps the words.
     track = await decision.locator('[data-slot="phase-track"]').getAttribute("data-phase")
     const current = await decision.locator('[data-slot="phase-track-step"][data-state="current"]').getAttribute("title")
@@ -2809,7 +2814,187 @@ async function gameSession(browser: Browser, page: Page, pageLog: PageLog, base:
   results["failures"] = await gameFailures(browser, base, id, decks)
   // 9. A phone with touch.
   results["phone"] = await gamePhone(browser, base, decks)
+  // 10. Playing by dragging (prompt 46): a land and a spell with a target, with the mouse and with a thumb.
+  results["drag"] = { desktop: await dragInRealGame(browser, base, VIEWPORTS[2]!), phone: await dragInRealGame(browser, base, VIEWPORTS[0]!) }
   return results
+}
+
+/** The decks of dragInRealGame (prompt 46): lands and Shock - a spell with a target -, against an AI that only plays lands. */
+function dragDecks(): readonly unknown[] {
+  const now = new Date().toISOString()
+  const deck = (name: string, main: readonly { readonly count: number; readonly name: string }[]) => ({
+    id: randomUUID(),
+    name,
+    format: "constructed",
+    main,
+    sideboard: [],
+    commander: [],
+    source: { kind: "arena", text: `Deck\n${main.map((entry) => `${entry.count} ${entry.name}`).join("\n")}`, importedAt: now },
+    createdAt: now,
+    updatedAt: now,
+  })
+  return [
+    deck("E2E Ziehen", [
+      { count: 24, name: "Mountain" },
+      { count: 36, name: "Shock" },
+    ]),
+    deck("E2E Ziehen Gegner", [{ count: 60, name: "Mountain" }]),
+  ]
+}
+
+/**
+ * Playing by dragging in a real game with the real engine (prompt 46) - with the mouse on a desktop, with a thumb
+ * (Chrome's touch input) on a phone: in the player's main phase a playable card taken back into the hand and one
+ * cancelled (Escape, a second finger) send nothing; a land dragged onto the battlefield is played (it lies there); a
+ * Mountain Forge no longer marks playable (the land of the turn is played) sends nothing; Shock dragged onto the
+ * battlefield is cast and Forge asks for its target - answered with the AI's seat, the spell resolves (the AI's life
+ * total falls). Every input counted in the game's recording (the player's messages).
+ */
+async function dragInRealGame(browser: Browser, base: string, viewport: Viewport): Promise<Record<string, unknown>> {
+  const label = `game (${viewport.name}, dragging)`
+  const touch = viewport.touch
+  const context = await newContext(browser, viewport)
+  const page = await context.newPage()
+  const pageLog = watch(page)
+  const started = Date.now()
+  const results: Record<string, unknown> = {}
+  try {
+    await loadDecks(page, base, dragDecks())
+    await page.goto(new URL("/play", base).href, { waitUntil: "domcontentloaded" })
+    await chooseDeck(page, "Dein Deck wählen", "E2E Ziehen")
+    await chooseDeck(page, "Deck der KI wählen", "E2E Ziehen Gegner")
+    await enginePanel(page).getByText("Bereit", { exact: true }).waitFor({ timeout: 180_000 })
+    results["startMs"] = await startAndWait(page)
+    const decision = page.getByRole("region", { name: "Entscheidung" })
+    const answers = decision.getByRole("group", { name: "Antworten, die Forge anbietet" })
+    const card = (id: number) => page.locator(`[data-area="hand"] button[data-slot="game-card"][data-card="${id}"]`)
+    /** The player's messages in the game's recording so far. */
+    const inputs = async () => ((await dumpDatabase(page, ["matchLog"]))["matchLog"] ?? []).filter((entry) => (entry as { from: string }).from === "player").length
+    const activate = async (locator: Locator) => (touch ? locator.tap() : locator.click())
+    const press = async (name: string) => {
+      const button = answers.getByRole("button", { name, exact: true })
+      await button.waitFor()
+      await page.waitForTimeout(ARMED_AFTER_MS)
+      await activate(button)
+    }
+    /** Forge waits for the player again with a decision other than `question`. */
+    const nextQuestion = (question: string | null) => page.waitForFunction((before) => document.querySelector('[data-slot="game-decision"]')?.getAttribute("data-question") !== before, question, { timeout: 120_000 })
+    const named = (label: string, names: readonly string[]) => names.some((name) => label.startsWith(name))
+    const steps: string[] = []
+    let cancels: Record<string, unknown> | null = null
+    let land: Record<string, unknown> | null = null
+    let unplayable: Record<string, unknown> | null = null
+    let spell: Record<string, unknown> | null = null
+    let casting = false
+    let aiLife: number | null = null
+    for (let step = 0; step < 120 && aiLife === null && Date.now() - started < 420_000; step++) {
+      await tableHeader(page).getByText("Du bist dran", { exact: true }).waitFor({ timeout: 180_000 })
+      await waitForDecision(page)
+      await page.waitForTimeout(150)
+      const view = await readTable(page)
+      steps.push(view.kind)
+      if (view.kind === "Entscheidung") {
+        await press(view.answers.some((button) => button.name === "Spielen") ? "Spielen" : view.answers.find((button) => button.enabled)!.name)
+      } else if (view.kind === "Mulligan") {
+        await press("Behalten")
+      } else if (view.kind === "Priorität") {
+        const field = await battlefieldPoint(page)
+        const stackEmpty = view.answers.some((button) => button.meaning === "pass" && button.name === "Weiter")
+        const mine = view.owner === "me" && (view.phase === "MAIN1" || view.phase === "MAIN2") && stackEmpty
+        const playable = view.hand.filter((each) => each.mark === "usable")
+        const mountains = view.hand.filter((each) => named(each.label, ["Gebirge", "Mountain"]))
+        const shock = playable.find((each) => named(each.label, ["Schock", "Shock"]))
+        if (casting && !stackEmpty) {
+          await press("Verrechnen lassen")
+          continue
+        }
+        if (casting) {
+          // Shock resolved: the AI's life total fell.
+          const life = (await tableFacts(page)).ai.life
+          aiLife = life
+          check(life < 20, `${label}: after Shock the AI has ${life} life`)
+          break
+        }
+        if (mine && cancels === null && playable.length > 0) {
+          // Taken back into the hand, and cancelled (Escape / a second finger): nothing is sent, nothing opens.
+          const before = await inputs()
+          const target = card(playable[0]!.id)
+          await dragCard(page, target, field, touch, "hand")
+          await page.waitForTimeout(600)
+          await dragCard(page, target, field, touch, touch ? "finger" : "escape")
+          await page.waitForTimeout(600)
+          const after = await inputs()
+          const question = await decision.locator('[data-slot="game-decision"]').getAttribute("data-question")
+          cancels = { card: playable[0]!.label, before, after, question: question === view.question, dialogs: await page.getByRole("dialog").count() }
+          check(after === before && question === view.question && (await page.getByRole("dialog").count()) === 0, `${label}: taking a card back or cancelling the drag sent or opened something ${JSON.stringify(cancels)}`)
+          continue
+        }
+        const landCard = playable.find((each) => named(each.label, ["Gebirge", "Mountain"]))
+        if (mine && land === null && landCard !== undefined) {
+          await dragCard(page, card(landCard.id), field, touch)
+          await page.waitForFunction((id) => document.querySelector(`section[aria-label="Dein Spielfeld"] [data-card="${id}"], section[aria-label="Dein Spielfeld"] [data-pile-cards~="${id}"]`) !== null, String(landCard.id), { timeout: 60_000 })
+          land = { card: landCard.label, turn: view.turn }
+          continue
+        }
+        const stuck = mountains.find((each) => each.mark !== "usable")
+        if (mine && land !== null && unplayable === null && stuck !== undefined) {
+          // The land of the turn is played: Forge no longer marks a Mountain playable - dropped, nothing is sent, no words made up.
+          const before = await inputs()
+          await dragCard(page, card(stuck.id), field, touch)
+          await page.waitForTimeout(800)
+          const after = await inputs()
+          const notices = await page.locator("[data-sonner-toast]").count()
+          unplayable = { card: stuck.label, before, after, notices, inHand: (await card(stuck.id).count()) === 1 }
+          check(after === before && notices === 0 && (await card(stuck.id).count()) === 1, `${label}: dropping a card Forge does not mark playable ${JSON.stringify(unplayable)}`)
+          continue
+        }
+        if (mine && land !== null && shock !== undefined) {
+          // Shock dragged onto the battlefield: cast - Forge asks for its target.
+          const before = await inputs()
+          await dragCard(page, card(shock.id), field, touch)
+          await nextQuestion(view.question)
+          await waitForDecision(page)
+          const asked = await readTable(page)
+          const target = page.locator('[data-area="opponent"] button[data-slot="game-player"][data-mark="usable"]')
+          check(asked.kind === "Auswahl" && (await target.count()) === 1, `${label}: after Shock Forge asks "${asked.line}" (${asked.text}), the AI's seat ${await target.count()}`)
+          spell = { card: shock.label, asked: asked.line, text: asked.text, inputs: (await inputs()) - before }
+          check((await inputs()) - before === 1, `${label}: dropping Shock sent ${(await inputs()) - before} inputs`)
+          casting = true
+          if ((await target.count()) === 1) {
+            await page.waitForTimeout(ARMED_AFTER_MS)
+            await activate(target)
+          }
+          continue
+        }
+        await press(stackEmpty ? "Weiter" : "Verrechnen lassen")
+      } else if (view.kind === "Auswahl") {
+        // The target chosen: Forge's OK, where it asks for one; a card of the hand to discard otherwise.
+        const ok = view.answers.find((button) => button.enabled && button.name === "OK")
+        if (ok !== undefined) await press("OK")
+        else if (!casting) await activate(page.locator('[data-area="hand"] button[data-slot="game-card"][data-mark="usable"]').first())
+        else {
+          const target = page.locator('[data-area="opponent"] button[data-slot="game-player"][data-mark="usable"]')
+          await page.waitForTimeout(ARMED_AFTER_MS)
+          await activate(target)
+        }
+        await page.waitForTimeout(ARMED_AFTER_MS)
+      } else if (view.kind === "Kosten bezahlen") {
+        await press(view.answers.find((button) => button.enabled && button.name !== "Abbrechen")!.name)
+      } else if (view.kind === "Angreifer wählen" || view.kind === "Angriff bestätigen" || view.kind === "Blocker wählen") {
+        await press("OK")
+      } else {
+        check(false, `${label}: an unexpected decision "${view.kind}" (${view.line} ${view.text})`)
+        break
+      }
+    }
+    check(cancels !== null && land !== null && unplayable !== null && spell !== null && aiLife !== null, `${label}: not everything was dragged ${JSON.stringify({ cancels, land, unplayable, spell, aiLife, steps })}`)
+    await page.screenshot({ path: path.join(reportDir, "screens", `${viewport.name}-game-dragged.png`) })
+    await concedeGame(page)
+    for (const error of pageLog.errors) check(false, `${label}: ${error}`)
+    return { cancels, land, unplayable, spell, aiLife, steps: steps.length, ms: Date.now() - started }
+  } finally {
+    await context.close()
+  }
 }
 
 /** A failed engine boot never looks frozen and can be retried; a deck Forge refuses is reported, and the same engine plays the next game. */
@@ -4016,6 +4201,169 @@ async function handGestures(page: Page, label: string, viewport: Viewport): Prom
   return results
 }
 
+/**
+ * Dragging hand cards onto the battlefield in real Chrome (prompt 46), on the recorded scene "respond" (the AI's spell on
+ * the stack, four instants Forge marks playable), with the harness recording taps:
+ *  - a playable card pressed where it is its own, moved up out of the hand (a thumb through Chrome's touch input, or the
+ *    mouse pressed and moved) and over your battlefield: the battlefields glow (`data-hand-drop`), the card's picture
+ *    stands whole inside the window at a full card's size, the card itself stays faint in the hand; let go there, the
+ *    harness records exactly one tap - and no card view opens;
+ *  - the AI's battlefield and the middle are reachable too (they glow), and a card taken back into the hand, Escape
+ *    (mouse) or a second finger (touch) send nothing;
+ *  - on the phone (412 × 915) the drag's long tasks with 4× CPU throttling, read on the dev server (the budget is checked
+ *    on the production build: readiness `phone --cpu-throttle 4`).
+ * A screenshot of the drag over the battlefield at every size.
+ */
+async function handDrag(page: Page, label: string, viewport: Viewport): Promise<Record<string, unknown>> {
+  const playable = page.locator('[data-area="hand"] button[data-slot="game-card"][data-mark="usable"]')
+  await playable.first().waitFor()
+  const ids = (await playable.evaluateAll((cards) => cards.map((card) => card.getAttribute("data-card") ?? ""))).filter((id) => id !== "")
+  check(ids.length >= 3, `${label}: the scene shows ${ids.length} playable hand cards`)
+  const centre = async (area: string) => {
+    const box = await page.locator(`[data-slot="game-board-area"][data-area="${area}"]`).boundingBox()
+    return box === null || box.width < 1 || box.height < 1 ? null : { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+  }
+  const startOf = async (id: string) => {
+    const card = page.locator(`[data-area="hand"] button[data-card="${id}"]`)
+    const box = (await card.boundingBox())!
+    const own = await cardPoint(card)
+    return own === undefined ? { x: box.x + box.width / 2, y: box.y + box.height * 0.6 } : { x: box.x + own.x, y: box.y + own.y }
+  }
+  const cdp = viewport.touch ? await page.context().newCDPSession(page) : null
+  const touchPoints = (points: readonly { readonly x: number; readonly y: number }[]) => points.map((point, id) => ({ x: point.x, y: point.y, id }))
+  const pointer = {
+    down: async (at: { readonly x: number; readonly y: number }) => {
+      if (cdp !== null) await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: touchPoints([at]) })
+      else {
+        await page.mouse.move(at.x, at.y)
+        await page.mouse.down()
+      }
+    },
+    move: async (from: { readonly x: number; readonly y: number }, to: { readonly x: number; readonly y: number }, steps = 10) => {
+      for (let step = 1; step <= steps; step++) {
+        const at = { x: from.x + ((to.x - from.x) * step) / steps, y: from.y + ((to.y - from.y) * step) / steps }
+        if (cdp !== null) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: touchPoints([at]) })
+        else await page.mouse.move(at.x, at.y)
+        await page.waitForTimeout(16)
+      }
+    },
+    up: async () => {
+      if (cdp !== null) await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] })
+      else await page.mouse.up()
+    },
+  }
+  /** Pressed on card `id`, up out of the hand: the point it was lifted to. */
+  const lift = async (id: string) => {
+    const start = await startOf(id)
+    await pointer.down(start)
+    await page.waitForTimeout(40)
+    const up = { x: start.x, y: start.y - 48 }
+    await pointer.move(start, up, 4)
+    return { start, up }
+  }
+  const glow = () => page.evaluate(() => document.querySelector('[data-slot="game-board"]')?.getAttribute("data-hand-drop") ?? null)
+  const picture = () =>
+    page.evaluate(() => {
+      const ghost = document.querySelector<HTMLElement>('[data-slot="table-motion"] .table-hand-drag')
+      if (ghost === null) return null
+      const box = ghost.getBoundingClientRect()
+      return { left: box.left, top: box.top, right: box.right, bottom: box.bottom, width: box.width, height: box.height, named: ghost.querySelector("[data-card], [data-slot], [id], [aria-label]") !== null, hidden: ghost.closest('[aria-hidden="true"]') !== null }
+    })
+  const results: Record<string, unknown> = {}
+  try {
+    // 1. Over your battlefield: the glow, the whole picture, the card faint in the hand; let go: one tap.
+    const field = (await centre("field"))!
+    const throttled = viewport.name === "phone" && viewport.width === 412 && viewport.height === 915
+    let perf: CDPSession | null = null
+    if (throttled) {
+      perf = await page.context().newCDPSession(page)
+      await perf.send("Emulation.setCPUThrottlingRate", { rate: 4 })
+      await page.evaluate(() => {
+        const tasks: number[] = []
+        ;(window as unknown as { __openmanaLongTasks: number[] }).__openmanaLongTasks = tasks
+        new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) tasks.push(entry.duration)
+        }).observe({ type: "longtask" })
+      })
+    }
+    const first = ids[0]!
+    const { up } = await lift(first)
+    await pointer.move(up, field)
+    const over = await glow()
+    const shown = await picture()
+    const faint = await page.locator(`[data-hand-card="${first}"]`).getAttribute("data-dragging")
+    const fullCard = await page.evaluate(() => {
+      const hand = document.querySelector<HTMLElement>(".table-hand")
+      return hand === null ? 0 : Number.parseFloat(getComputedStyle(hand).getPropertyValue("--hand-card-w")) || 0
+    })
+    check(over === "over", `${label}: over your battlefield the board says ${over}`)
+    check(
+      shown !== null && !shown.named && shown.hidden && shown.left >= -1 && shown.top >= -1 && shown.right <= viewport.width + 1 && shown.bottom <= viewport.height + 1 && shown.width >= Math.max(44, fullCard - 1),
+      `${label}: the dragged card's picture ${JSON.stringify({ shown, fullCard })}`,
+    )
+    check(faint !== null, `${label}: the dragged card is not faint in the hand`)
+    await page.screenshot({ path: path.join(reportDir, "screens", `table-${viewport.name}-drag.png`) })
+    await pointer.up()
+    await page.waitForTimeout(400)
+    if (perf !== null) {
+      const tasks = await page.evaluate(() => (window as unknown as { __openmanaLongTasks?: number[] }).__openmanaLongTasks ?? [])
+      await perf.send("Emulation.setCPUThrottlingRate", { rate: 1 })
+      await perf.detach()
+      // On the dev server (React's development build) this is a reading, as the motion's and the surface's here; the
+      // budget - no long task over 200 ms - is checked on the production build in a real game (readiness
+      // `phone --cpu-throttle 4`, whose player drags in some of its turns).
+      results["throttle"] = { rate: 4, server: "dev", longTasks: tasks.map(Math.round), longestMs: Math.round(Math.max(0, ...tasks)) }
+      log(`    dragging at 4x CPU, 412x915 (dev server): long tasks ${JSON.stringify(tasks.map(Math.round))}`)
+    }
+    const taps = await harnessTaps(page)
+    check(JSON.stringify(taps) === JSON.stringify([Number(first)]), `${label}: dropping card ${first} on the battlefield tapped ${JSON.stringify(taps)}`)
+    check((await page.getByRole("dialog").count()) === 0, `${label}: the drop opened a view`)
+    await page.waitForFunction(() => document.querySelector('[data-slot="game-board"]')?.hasAttribute("data-hand-drag") === false, undefined, { timeout: 3000 }).catch(() => undefined)
+    results["drop"] = { card: first, glow: over, picture: shown, taps }
+
+    // 2. The AI's battlefield and the middle glow too; taken back into the hand, nothing is sent.
+    const second = ids[1]!
+    const reach: Record<string, string | null> = {}
+    const back = await lift(second)
+    let at = back.up
+    for (const area of ["opponent-field", "center"]) {
+      const target = await centre(area)
+      if (target === null) {
+        reach[area] = "hidden"
+        continue
+      }
+      await pointer.move(at, target)
+      at = target
+      reach[area] = await glow()
+      check(reach[area] === "over", `${label}: over ${area} the board says ${reach[area]}`)
+    }
+    await pointer.move(at, back.start)
+    reach["hand"] = await glow()
+    check(reach["hand"] === null, `${label}: back over the hand the board still glows`)
+    await pointer.up()
+    await page.waitForTimeout(400)
+    check((await harnessTaps(page)).length === 1, `${label}: a card taken back into the hand tapped ${JSON.stringify(await harnessTaps(page))}`)
+    results["reach"] = reach
+
+    // 3. Escape (mouse) or a second finger (touch) while over the battlefield: nothing is sent.
+    const third = ids[2]!
+    const cancelled = await lift(third)
+    await pointer.move(cancelled.up, field)
+    if (cdp !== null) {
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: touchPoints([field, cancelled.start]) })
+      await page.waitForTimeout(60)
+    } else await page.keyboard.press("Escape")
+    const afterCancel = { glow: await glow(), picture: await picture() }
+    await pointer.up()
+    await page.waitForTimeout(400)
+    check(afterCancel.glow === null && (await harnessTaps(page)).length === 1 && (await page.getByRole("dialog").count()) === 0, `${label}: ${cdp !== null ? "a second finger" : "Escape"} while dragging ${JSON.stringify({ afterCancel, taps: await harnessTaps(page) })}`)
+    results["cancel"] = { by: cdp !== null ? "second finger" : "Escape", ...afterCancel }
+  } finally {
+    await cdp?.detach()
+  }
+  return results
+}
+
 /** A touch at the middle of an element, held (a long press) or moved sideways (a swipe), through Chrome's own touch input. */
 async function touch(page: Page, element: Locator, gesture: { readonly holdMs?: number; readonly moveX?: number }): Promise<void> {
   const box = await element.boundingBox()
@@ -4319,6 +4667,9 @@ async function tableInteractions(parent: Page, base: string, viewport: Viewport)
     // The fanned hand (prompt 42): lifting by mouse, thumb and keyboard; a tap is the lifted card's, a swipe nothing, a long press looks.
     await scene("opening", `&hand=${FAN_CARDS}`)
     results["hand"] = { facts: await handFacts(page, `${label}, hand of ${FAN_CARDS}`), gestures: await handGestures(page, `${label}, hand of ${FAN_CARDS}`, viewport) }
+    // Dragging hand cards onto the battlefield (prompt 46).
+    await scene("respond")
+    results["drag"] = await handDrag(page, `${label}, dragging`, viewport)
     return results
   } finally {
     sceneErrors()
@@ -5374,6 +5725,14 @@ async function tableFoldSizes(executablePath: string, base: string): Promise<Rec
       scenes["hand"] = { facts: await handFacts(page, fanLabel), gestures: await handGestures(page, fanLabel, viewport) }
       for (const error of pageLog.errors) check(false, `${fanLabel}: ${error}`)
       await page.close()
+      // Dragging hand cards onto the battlefield (prompt 46), also on the foldable.
+      const dragPage = await context.newPage()
+      const dragLog = watch(dragPage)
+      await openScene(dragPage, base, "respond")
+      const dragLabel = `game table (${viewport.name}, dragging)`
+      scenes["drag"] = await handDrag(dragPage, dragLabel, viewport)
+      for (const error of dragLog.errors) check(false, `${dragLabel}: ${error}`)
+      await dragPage.close()
     } finally {
       await context.close()
       await foldBrowser.close()

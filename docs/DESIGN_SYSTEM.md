@@ -383,6 +383,20 @@ reference.
   the toolbar's keyboard stays. Every card keeps 24 px of its own (smaller
   cards first, a sideways row only beyond); the hand's height is the
   mockup's beside the side columns (`quadrat`, `breit`).
+- **Drag and drop** (prompt 46, [design/SPIELTISCH.md](design/SPIELTISCH.md)
+  §4.10 "Built (prompt 46)"): a hand card dragged up out of the hand (the
+  mouse: pressed and moved) shows as a full card, upright, following the
+  pointer and always whole on the board, while the card itself stays faint
+  in the hand; over both battlefields and the middle the regions glow
+  golden at their edges (`--primary`, a layer behind their cards, never on a
+  picture) - only for a card Forge would play now. Let go there it is played
+  (Forge's tap); otherwise it glides back and nothing is sent - a playable
+  card that cannot be played now says why in a toast (the table's own
+  reason words), any other card says nothing. Moves only by `transform` and
+  `opacity`; jumps under less motion. The gestures keep their roles: a tap
+  plays or looks as before, a swipe lifts, a long press looks, only an
+  upward move out of the hand drags; the keyboard's way (Enter, the card
+  view's button) stays the alternative to dragging.
 - **Marks:** frames and glows around the picture after `data-mark` and the
   combat facts - usable gold with a glow, chosen a strong light frame, target
   red with a gentle pulse, attacking amber, blocking its own colour - each

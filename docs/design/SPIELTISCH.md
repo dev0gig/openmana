@@ -667,7 +667,7 @@ usable cards now say "gold umrandet" (were "gold gestrichelt").
   card at least 24 px visible and reachable, also with 10+ cards at 360 px.
 - ~~No drag and drop onto the battlefield~~ - lifted by the project owner on
   2026-10-12: dragging a card onto the battlefield to play it is wanted (it
-  feels more natural than tap and button) and follows as its own prompt.
+  feels more natural than tap and button) - built in prompt 46 (below).
   Replaces the Anvil lesson "never fanned" (prompt 13) deliberately.
 
 **Built (prompt 42)** - `FannedHand` in `game-table.tsx`, the geometry in
@@ -719,6 +719,59 @@ in `docs/implementation/42-hand-fan.md`:
 - `GameBoard` clips (`overflow-clip`) instead of hiding its overflow: it is
   no scroll container, so focusing a card that reaches out of it never
   scrolls the table.
+
+**Built (prompt 46): drag and drop** - the gesture in `useFanPress`'s
+`drag` (`src/hooks/use-card-press.ts`), the card's picture `HandDrag` in
+`src/game/table/table-motion.tsx`, what a drop does `cardDrop` in
+`src/game/card-use.ts`, the look in `table.css` ("Dragging a hand card");
+details in `docs/implementation/46-drag-and-drop.md`:
+
+- Starting: a finger that leaves the hand clearly **upwards** - more than
+  24 px up (`DRAG_START_PX`) and more up than sideways, measured from the
+  lowest point since the lifted card rose (a swipe to a card and then up
+  works) - drags the **lifted** card. A sideways swipe still only lifts, a
+  long press still only looks (once it looked it never drags), a tap without
+  moving is still the primary activation. The mouse drags the card it
+  pressed once it moves beyond the slop, in any direction; a click without
+  moving stays the card's own.
+- Dragging: the card's picture - a copy of its face at a lifted **full
+  card's** size (`HandFan.drag`), upright, no ids, slots or names, in the
+  motion's layer (`aria-hidden`, no pointer events) - follows the pointer,
+  held at 70 % of its height (it stands above a thumb) and always whole
+  inside the board; it moves by its `transform` only. The card itself stays
+  in the hand, faint (`data-dragging`, opacity). The board carries
+  `data-hand-drag` (no text selection, a grabbing cursor).
+- The drop surface: both battlefields with the centre line between them and
+  the middle (Zauberchronik / stack and combat) - by the card's middle.
+  Over it, for a card Forge would play now, the board says
+  `data-hand-drop="over"`: those regions glow golden at their edges (an
+  inset ring and glow in `--primary`, a layer behind their cards - never on
+  a picture - shown by its opacity). Land, creature or instant: Forge
+  decides, not the place.
+- Letting go over it: `cardDrop` - Forge marks the card `playable` and
+  offers its tap, the step is none whose taps choose (selection, payment,
+  attack, block, the mulligan's bottom), and a tap can be sent (`tapBlocked`:
+  Forge waits, no blocking question, no concession) - then exactly one
+  `onTapCard` (the card view's double-tap guard); Forge's further questions
+  come in the decision region as after a tap. Otherwise nothing is sent and
+  the card glides back to its place in the hand (`travelFrames`, 220 ms);
+  for a playable card that cannot be played now the table's reason
+  (`tapBlocked`'s words) shows as a toast; for a card Forge does not mark,
+  nothing (Forge sends no reason).
+- Cancelling: Escape, a second finger, `pointercancel`, or dragging back
+  over the hand. A card that leaves the hand while it is dragged (a new
+  state) takes its picture with it.
+- Motion: a played card's picture waits where it was let go; the travel of
+  Forge's next state (§8, prompt 44) starts there - one picture, not a
+  second one from the hand - or, without one within 1.5 s (`DROP_WAIT_MS`),
+  it fades (`dropFadeFrames`). Under less motion the card jumps: the picture
+  is gone at once.
+- What stays: tap and click, long press and right click, the keyboard
+  (Enter → view → button, the way without dragging: WCAG 2.5.7), the
+  battlefield rows' sideways scrolling; battlefield cards are not dragged;
+  a replay drags nothing. The words of the player's own priority with an
+  empty stack name the gestures: "Zieh eine gold umrandete Karte aufs Feld
+  oder tippe sie an – oder gib weiter." (`PLAY_HINT`).
 
 ### 4.11 Zauberchronik (prompt 41)
 - Mockup: `.tafel` + `.chronik`, `.chronik-eintrag` (`.oben` highlighted),
@@ -1176,9 +1229,12 @@ only (`MOTION_PROPERTIES`, checked by `motion-plan.test.ts` and
   the hand's geometry `hand-fan.ts` (prompt 42), the arrows' relations and
   geometry `arrows.ts` and their layers `table-arrows.tsx` (prompt 43), the
   motion `table-motion.tsx` with its rules and keyframes `motion-plan.ts`
-  (prompt 44), and `table.css` (the one
+  (prompt 44; since prompt 46 also a dragged hand card's picture,
+  `HandDrag`), and `table.css` (the one
   stylesheet; imported by the table from prompt 37 on). The hand's gestures
-  extend the card press hook (`src/hooks/use-card-press.ts`, `useFanPress`).
+  extend the card press hook (`src/hooks/use-card-press.ts`, `useFanPress`,
+  dragging since prompt 46); what a drop does is `cardDrop` in
+  `src/game/card-use.ts`.
 - `src/components/ui/game-*.tsx` - the shadcn-built table primitives
   (`GameBoard`, `GameCard`, `GameDecision`, `GamePlayer`) keep their slots
   and may be restyled or replaced step by step; the regions' and slots'
@@ -1236,6 +1292,10 @@ From the shared rules of the series - end-to-end section 12,
   `data-last` and `data-states`, the pile's `data-pile-cards` and the
   medallion's `table-medallion-flash` (end-to-end `tableMotion`; the
   harness' `sequence=first-attack`);
+- since prompt 46 the dragged card's picture `.table-hand-drag` in the
+  motion's layer, the board's `data-hand-drag` and `data-hand-drop="over"`
+  and the dragged hand card's `data-dragging` (end-to-end `handDrag`,
+  `dragInRealGame`; `dragCard` in `scripts/readiness/player.ts`);
 - the toolbars' names.
 
 The regression evidence stays complete (8 sizes × 38 scenes, at least 600
@@ -1255,6 +1315,7 @@ axe checks).
 | 43 | target, attack and block arrows | §4.15 |
 | 44 | animations: travelling cards, tapping, damage, life, stack, phases | §8 |
 | 45 | review in every layout, polish, deviations, documentation, handover to the project owner | all |
+| 46 | after the series: drag and drop of hand cards onto the battlefield | §4.10 |
 
 After the series (not part of it): the project owner checks the table on the
 Fold (closed, open upright, open turned) and inside ORYX once he has allowed
@@ -1327,6 +1388,13 @@ a push.
   by the built table and stays as a reference. The series is complete; the
   project owner checks the table on the Fold and inside ORYX once he has
   allowed a push.
+- 2026-10-12, after the series (prompt 46): drag and drop (§4.10 "Built
+  (prompt 46)") - a hand card dragged up out of the hand onto the
+  battlefields or the middle is played (Forge's tap, the card view's
+  guards); the regions glow golden for a card Forge would play; otherwise the
+  card glides back and nothing is sent; Escape, a second finger or
+  pointercancel cancel; the travel of the next state starts where the card
+  was let go. Tap, long press, mouse and keyboard unchanged.
 
 ## 14. Deviations from the mockup (prompt 45)
 
