@@ -557,7 +557,8 @@ function partsOf(keyword: CardKeyword): KeywordParts {
 
 /** The box of one keyword as Forge reports it: its German form, else its German name and explanation with Forge's form, else Forge's words. */
 export function keywordBox(keyword: CardKeyword): KeywordBox {
-  const key = `${keyword.keyword}|${keyword.title}`
+  // Forge can give different forms the same title (e.g. one and two kicker costs); its reminder distinguishes them.
+  const key = JSON.stringify([keyword.keyword, keyword.title, keyword.reminder])
   const entry = KEYWORD_TEXTS[keyword.keyword]
   if (entry === undefined) {
     return { key, name: keyword.title, text: keyword.reminder.trim() !== "" ? keyword.reminder : "Forge sendet zu diesem Schlüsselwort keinen Erklärungstext.", lang: "en" }

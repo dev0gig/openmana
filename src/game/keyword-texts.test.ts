@@ -17,7 +17,7 @@ describe("the concrete form", () => {
 
   it("a keyword without parts: its German name and explanation", () => {
     expect(box({ keyword: "FLYING", title: "Flying", reminder: "This creature can't be blocked except by creatures with flying or reach." })).toEqual({
-      key: "FLYING|Flying",
+      key: JSON.stringify(["FLYING", "Flying", "This creature can't be blocked except by creatures with flying or reach."]),
       name: "Fliegend",
       text: "Diese Kreatur kann nur von fliegenden Kreaturen und Kreaturen mit Reichweite geblockt werden. (Ältere deutsche Karten nennen das „Flugfähigkeit“.)",
       lang: "de",
@@ -39,7 +39,7 @@ describe("the concrete form", () => {
 
   it("a form OpenMana cannot say keeps the German name and explanation, with Forge's form in English beside it", () => {
     expect(box({ keyword: "WARD", title: "Ward—Pay 2 life.", reminder: "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player pays 2 life." })).toEqual({
-      key: "WARD|Ward—Pay 2 life.",
+      key: JSON.stringify(["WARD", "Ward—Pay 2 life.", "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player pays 2 life."]),
       name: "Abwehr",
       text: KEYWORD_TEXTS["WARD"]!.general,
       lang: "de",
@@ -51,7 +51,7 @@ describe("the concrete form", () => {
   })
 
   it("a keyword OpenMana does not know shows Forge's words, marked English - never an empty box", () => {
-    expect(box({ keyword: "BRAND_NEW", title: "Brand new 2", reminder: "Something new." })).toEqual({ key: "BRAND_NEW|Brand new 2", name: "Brand new 2", text: "Something new.", lang: "en" })
+    expect(box({ keyword: "BRAND_NEW", title: "Brand new 2", reminder: "Something new." })).toEqual({ key: JSON.stringify(["BRAND_NEW", "Brand new 2", "Something new."]), name: "Brand new 2", text: "Something new.", lang: "en" })
     expect(box({ keyword: "BRAND_NEW", title: "Brand new", reminder: " " }).text).toBe("Forge sendet zu diesem Schlüsselwort keinen Erklärungstext.")
   })
 
@@ -61,6 +61,15 @@ describe("the concrete form", () => {
     const flying = { keyword: "FLYING", title: "Flying", reminder: "" }
     const boxes = keywordBoxes([flying, { keyword: "VIGILANCE", title: "Vigilance", reminder: "" }, flying])
     expect(boxes.map((b) => b.name)).toEqual(["Fliegend", "Wachsamkeit"])
+  })
+
+  it("distinct Forge forms with the same title keep distinct view identities", () => {
+    const forms = keywordBoxes([
+      { keyword: "KICKER", title: "Kicker {1}{U}", reminder: "You may pay an additional {1}{U} as you cast this spell.", cost: "{1}{U}" },
+      { keyword: "KICKER", title: "Kicker {1}{U}", reminder: "You may pay an additional {1}{U} and/or {B} as you cast this spell.", cost: "{1}{U}" },
+    ])
+    expect(forms.map((form) => form.name)).toEqual(["Bonus {1}{U}", "Bonus"])
+    expect(new Set(forms.map((form) => form.key)).size).toBe(2)
   })
 })
 
