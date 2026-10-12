@@ -53,10 +53,12 @@ das `engine/engine.lock.json` geschrieben hat:
 ```sh
 node engine/scripts/engine-lock.mjs verify <build>/dist
 node scripts/deploy/prepare-release.ts --engine <build>/dist --cards <build>/catalog --out <release-dir>
+# Code, Engine-Lock, Manifest und Doku zuerst vollständig committen;
+# source-archive.sh verlangt einen sauberen Arbeitsbaum.
+git add … && git commit …
 bash scripts/deploy/source-archive.sh <release-dir>          # Quellarchiv des aktuellen Commits samt Forge
 curl -fLo <release-dir>/jgrapht-core-1.5.2-sources.jar \
   https://repo1.maven.org/maven2/org/jgrapht/jgrapht-core/1.5.2/jgrapht-core-1.5.2-sources.jar
-git add deploy/artifacts.json && git commit …
 git tag <tag aus deploy/artifacts.json> && git push origin <tag>
 gh release create <tag> <release-dir>/* --title "Engine <tag>" --notes-file …
 ```
@@ -75,12 +77,12 @@ VERCEL_GIT_COMMIT_SHA=<sha> OPENMANA_PUBLIC_RELEASE=1 OPENMANA_ENGINE_DIR=.artif
 node scripts/deploy/budgets.ts
 ```
 
-### Veröffentlichte Engine-Releases
+### Engine-Releases der Deployment-Konfiguration
 
 | Release | Protokoll | Seit | Anlass |
 |---|---|---|---|
 | `engine-p8-a9b4c26b1244` | 8 | 2026-10-10 | Prompt 35: Engine aus GraalVM Community Edition |
-| {{RELEASE}} | 9 | 2026-10-12 | Prompt 47: Schlüsselwörter einer Karte (`VisibleCard.keywords`) für die Kartenansicht im Vollbild |
+| `engine-p9-fba5601117ff` | 9 | 2026-10-12 | Prompt 47: Schlüsselwörter einer Karte (`VisibleCard.keywords`) für die Kartenansicht im Vollbild |
 
 Eine neue Protokollversion braucht immer ein neues Release: Die App nimmt nur
 eine Engine mit genau ihrer Protokollversion an.

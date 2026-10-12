@@ -56,7 +56,8 @@ which keywords a card has.
   changes a text fails until the German text was looked at again.
 - **Real forms** (`scripts/record-keyword-forms.ts`, the JVM-only
   `KeywordSurvey` in the bridge): every keyword of every card in Forge's card
-  database through `StateBuilder.keywords` - {{SURVEY}} - recorded as one
+  database through `StateBuilder.keywords` - 33 505 cards, 16 965 keywords, 638 distinct concrete forms,
+  zero rejected forms - recorded as one
   sample per form (`src/test/fixtures/keyword-forms.json`, 638 forms). Of the
   16 965 keywords, 16 503 (97.3 %) get a German concrete form, the other 462
   German name and explanation with Forge's form; none is English only.
@@ -66,7 +67,8 @@ which keywords a card has.
   the whole table; the card stands on it as large as the screen allows,
   whole and in its proportions (`cardFit`: stacked within the width and the
   height less its button rows, beside within the height and the width less
-  the aside - 36 % of the screen, 16–24 rem); the boxes beside it in
+  the aside - 36 % of the screen, 16–24 rem); the boxes (keyed by enum, title and reminder so different forms with the
+  same title keep distinct identities) beside it in
   `quadrat` and `breit` and below it in `hoch` (by the table's layout, never
   by device: `useTableLayout()`); stacked, the view scrolls and the card's
   buttons stay right under it, on screen with it. The keyword boxes are
@@ -91,13 +93,83 @@ which keywords a card has.
   in its `srcset` beside `grid` and `display`, with `sizes="auto"`: the
   browser picks what the card's laid-out width needs (on a phone at its
   pixel ratio the PNG). Never cropped, darkened or filtered; its transparent
-  corners show the darkening, not a grey box. Without a picture Forge's text
-  stands in card form, scrolling inside the card.
+  corners show the darkening, not a grey box. Without a picture the current Forge name, mana cost, type and rules text
+  stand in card form, scrolling inside the card; only a deliberately turned
+  alternate face uses its catalog text. The fallback updates with Forge's
+  next state, including after a picture fails to load.
 - **Replay** (prompt 22): the same view without a button.
 
 ## Verification
 
-{{VERIFICATION}}
+The final engine update pipeline (`engine/build/publish-47b/pipeline.json`,
+2026-10-12) passed every phase and promoted the lock: protocol 9,
+Forge `ed0333fecb1fea0671b3e50cadc1da4f71db5798`, manifest
+`fba5601117ff684c6ac460495ee47bd9c3f1c0fe8f71c58a55a704337895fa3c`.
+The final complete regression (`/var/tmp/om47-codex/regression-2/report.json`,
+finished 2026-10-12 12:14 UTC) passed all ten phases; every log's SHA-256 was
+checked against its report. It includes 90 JVM tests, 82 JVM/Node/Chrome
+engine runs across 15 fixtures (all required paths, wins and losses),
+`npm run check`: generated files, typecheck, lint, 1 258 app tests in 92
+files, the complete real-Chrome E2E suite and the real PWA suite (including
+an offline Forge game, interrupted downloads, waiting updates and the
+server stopped). The engine lock was verified again after the checks.
+
+The E2E checks cover the original eight viewports plus 480×1040, 870×960
+and 960×870: whole card, dimensions at least those of the previous Sheet,
+boxes beside/below it, long press and right click, Forge's guarded button,
+X/overlay/Escape/native Chrome CloseWatcher, focus restoration, picture
+fallback, alternate faces, browsing and read-only replay. The browser
+report has 825 axe checks, without a finding. Native CloseWatcher was
+exercised in Chrome; this is not physical Android gesture evidence.
+
+Self-review corrected a missing-image fallback to use Forge's current
+rules text (including after an image failure), sharpened the German
+Cascade/Suspend explanations, distinguished different Forge keyword forms
+with the same title in their React identities, and selected the locked
+protocol-9 engine in the deployment manifest. Table scenes, consecutive
+states and the replay fixture were re-recorded with protocol 9.
+
+Visual acceptance: 22 settled, fully loaded card-view screenshots (one
+plain card and one built presentation with several real Forge keyword
+objects in each of the eleven sizes), plus eleven recorded-table shots,
+are in Seafile `/repo/openmana/design/spieltisch-umsetzung/47/`.
+The directory listing confirmed all 33 files and their byte lengths.
+The card stays whole and clear, the table darkens, buttons do not cover
+the picture and only Forge's keywords are explained. A narrow view scrolls
+to the later boxes. Compared with the mockup, this view deliberately uses
+the requested full-screen shadcn Dialog; the table's documented differences
+remain in `docs/design/SPIELTISCH.md` §14. An early desktop screenshot was
+replaced after waiting for image decoding and the settled opening frame.
+
+Local readiness (`/var/tmp/om47-codex/readiness/report.json`, 2026-10-12):
+all seven selected games passed, 276 accepted player inputs and 35 real
+card drags, zero refused inputs, unchanged actions, page errors or broken
+pictures, at most one engine worker. Each game reached Forge's result and
+its recording replayed to the end; the Commander export also replayed in
+a fresh browser profile.
+
+| Game | Screen | Result | Turns | Inputs | Drags |
+| --- | --- | --- | --- | --- | --- |
+| Rakdos targets | 1440×900 | lost | 11 | 34 | 4 |
+| Blue-black control | 1440×900 | lost | 11 | 22 | 5 |
+| Commander Krenko | 1440×900 | lost | 14 | 34 | 6 |
+| Green/Red touch | 412×915 | lost | 10 | 13 | 3 |
+| Attackers/planeswalkers | 1440×900 | lost | 18 | 64 | 3 |
+| Grixis | 1440×900 | lost | 11 | 30 | 4 |
+| Planeswalkers/Rakdos touch | 829×690 | won | 26 | 79 | 10 |
+
+Additional phone runs at 412×915 with 4× CPU throttling passed all functional
+checks. The first (`/var/tmp/om47-codex/readiness-phone4/report.json`) reached
+15 turns: 208 long tasks, one at 207 ms, motion work at most 33.3 ms.
+Its slow-frame evidence also shows the card opening (`oncontextmenu`, 177 ms).
+The focused confirmation run (`/var/tmp/om47-codex/readiness-phone4-confirm/report.json`)
+reached 14 turns: 241 long tasks, none over 200 ms, maximum 175 ms;
+motion work at most 31.3 ms in 153 states, 59 motions at 44.7 fps on average.
+Both original reports remain available; screenshot work is separated by
+the established runner, and no timing from the first run was discarded.
+The central completion report records the actual public release
+`engine-p9-fba5601117ff`, pushed commit range, Vercel deployment and
+production game after those steps have completed.
 
 ## Assumptions (changeable)
 
@@ -120,9 +192,11 @@ which keywords a card has.
 ## Limits
 
 - The system's back gesture works where the browser has `CloseWatcher`
-  (Chrome, Android); it is checked in a unit test with a stand-in watcher -
-  Chrome on a desktop has no back gesture to press. Physical check on the
-  Fold inside ORYX: Patrick.
+  (Chrome, Android). Unit tests cover the hook; the complete browser suite
+  also requests closure through Chrome's real native watcher at every card-view
+  size and checks that focus returns without an action. This exercises the
+  API, not a physical Android gesture. Physical check on the Fold inside
+  ORYX: Patrick.
 - The recorded games show at most one keyword per card (Reach, Haste,
   Deathtouch, Kicker {4}, Trample, Defender, Flashback {2}{R}); several
   keywords and a form OpenMana says only in general are a built presentation
