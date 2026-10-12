@@ -1,5 +1,5 @@
 {
- "provenance": "Original Forge JVM messages freshly recorded for Prompt30 from human-3-concede, diagnostics.trace excluded; every other message and reception order unchanged. Portable header/times constructed for UI testing; no player-input interleaving and not a live MatchRecorder capture. Compiler/artifact provenance: engine/build/parity-30-scenes; original streams: reports/parity-30/new-transcripts. Manifest SHA-256 9f6796558909f44fe4d1e8a8de0ed60595592c931aa02d1b65076d4e4d6ad240.",
+ "provenance": "Original Forge JVM messages freshly recorded for Prompt 47 (protocol 9, VisibleCard.keywords) from human-3-concede, diagnostics.trace excluded; every other message and reception order unchanged (the same 71 message types in the same order as the Prompt 30 recording). Portable header/times constructed for UI testing; no player-input interleaving and not a live MatchRecorder capture. Compiler/artifact provenance and original stream: engine/build/publish-47 (report/transcripts/human-3-concede.messages.jsonl). Manifest SHA-256 9cd60fb8416a16d3d09c5db96b519749025ca9f05f45df46c5fb14b89181dde9.",
  "replay": {
   "format": "openmana-replay",
   "version": 1,
@@ -16,13 +16,13 @@
     "commit": null
    },
    "engine": {
-    "id": "9f6796558909f44f",
-    "protocol": 8,
+    "id": "9cd60fb8416a16d3",
+    "protocol": 9,
     "forgeVersion": "2.0.15",
     "forgeCommit": "ed0333fecb1fea0671b3e50cadc1da4f71db5798",
-    "buildCommit": "5f86ff3d8aa8509881d708890405ff4510d1f53f",
-    "sourcesModified": true,
-    "manifestSha256": "9f6796558909f44fe4d1e8a8de0ed60595592c931aa02d1b65076d4e4d6ad240"
+    "buildCommit": "43f5f23d2a661a4120aa6feb6eca49e22cd6e556",
+    "sourcesModified": false,
+    "manifestSha256": "9cd60fb8416a16d3d09c5db96b519749025ca9f05f45df46c5fb14b89181dde9"
    },
    "human": {
     "name": "Player",
@@ -162,7 +162,7 @@
     "from": "engine",
     "message": {
      "type": "game.started",
-     "protocol": 8,
+     "protocol": 9,
      "human": "Player",
      "ai": "Forge AI",
      "aiProfile": "Default",
@@ -1721,7 +1721,7 @@
      "seq": 9,
      "running": true,
      "turn": 1,
-     "phase": "COMBAT_BEGIN",
+     "phase": "COMBAT_END",
      "activePlayer": 1,
      "me": 0,
      "players": [
@@ -1731,7 +1731,7 @@
        "ai": false,
        "me": true,
        "life": 20,
-       "hasPriority": true,
+       "hasPriority": false,
        "canAct": false,
        "lost": false,
        "maxHandSize": 7,
@@ -1850,7 +1850,7 @@
        "ai": true,
        "me": false,
        "life": 20,
-       "hasPriority": false,
+       "hasPriority": true,
        "canAct": false,
        "lost": false,
        "maxHandSize": 7,
