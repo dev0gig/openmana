@@ -8,6 +8,7 @@
  *   npm run test:e2e -- --no-build --responsive-only all routes/overlays at eight sizes, normal real Play prewarm
  *   npm run test:e2e -- --no-build --replay-only  imported recorded snapshots, library/file/retention checks
  *   npm run test:e2e -- --no-build --table-only   complete table checks at all eight sizes, no fresh engine boot
+ *   npm run test:e2e -- --no-build --drag-only    playing by dragging in two real games (mouse, touch; prompt 46)
  *   npm run test:e2e -- --no-build --help-only    contextual help on recorded/built scenes, no engine boot
  *   npm run test:e2e -- --no-build --history-only recorded Forge history and current sources only
  *   npm run test:e2e -- --no-build --zones-only   visible zones, piles and DFC inspection only
@@ -148,8 +149,9 @@ const zonesOnly = process.argv.includes("--zones-only")
 const historyOnly = process.argv.includes("--history-only")
 const helpOnly = process.argv.includes("--help-only")
 const tableOnly = process.argv.includes("--table-only")
+const dragOnly = process.argv.includes("--drag-only")
 const focusedTable = combatOnly || zonesOnly || historyOnly || helpOnly
-const reportDir = path.join(root, "reports", oryxOnly ? "oryx-e2e" : responsiveOnly ? "responsive-e2e" : replayOnly ? "replay-e2e" : tableOnly ? "table-e2e" : helpOnly ? "help-e2e" : combatOnly ? "combat-e2e" : zonesOnly ? "zones-e2e" : historyOnly ? "history-e2e" : "e2e")
+const reportDir = path.join(root, "reports", oryxOnly ? "oryx-e2e" : responsiveOnly ? "responsive-e2e" : replayOnly ? "replay-e2e" : tableOnly ? "table-e2e" : dragOnly ? "drag-e2e" : helpOnly ? "help-e2e" : combatOnly ? "combat-e2e" : zonesOnly ? "zones-e2e" : historyOnly ? "history-e2e" : "e2e")
 const require = createRequire(import.meta.url)
 
 interface Viewport {
@@ -2846,7 +2848,7 @@ function dragDecks(): readonly unknown[] {
  * Playing by dragging in a real game with the real engine (prompt 46) - with the mouse on a desktop, with a thumb
  * (Chrome's touch input) on a phone: in the player's main phase a playable card taken back into the hand and one
  * cancelled (Escape, a second finger) send nothing; a land dragged onto the battlefield is played (it lies there); a
- * Mountain Forge no longer marks playable (the land of the turn is played) sends nothing; Shock dragged onto the
+ * card Forge does not mark playable (Shock without mana, a Mountain after the land of the turn) sends nothing; Shock dragged onto the
  * battlefield is cast and Forge asks for its target - answered with the AI's seat, the spell resolves (the AI's life
  * total falls). Every input counted in the game's recording (the player's messages).
  */
@@ -2902,7 +2904,6 @@ async function dragInRealGame(browser: Browser, base: string, viewport: Viewport
         const stackEmpty = view.answers.some((button) => button.meaning === "pass" && button.name === "Weiter")
         const mine = view.owner === "me" && (view.phase === "MAIN1" || view.phase === "MAIN2") && stackEmpty
         const playable = view.hand.filter((each) => each.mark === "usable")
-        const mountains = view.hand.filter((each) => named(each.label, ["Gebirge", "Mountain"]))
         const shock = playable.find((each) => named(each.label, ["Schock", "Shock"]))
         if (casting && !stackEmpty) {
           await press("Verrechnen lassen")
@@ -2929,16 +2930,9 @@ async function dragInRealGame(browser: Browser, base: string, viewport: Viewport
           check(after === before && question === view.question && (await page.getByRole("dialog").count()) === 0, `${label}: taking a card back or cancelling the drag sent or opened something ${JSON.stringify(cancels)}`)
           continue
         }
-        const landCard = playable.find((each) => named(each.label, ["Gebirge", "Mountain"]))
-        if (mine && land === null && landCard !== undefined) {
-          await dragCard(page, card(landCard.id), field, touch)
-          await page.waitForFunction((id) => document.querySelector(`section[aria-label="Dein Spielfeld"] [data-card="${id}"], section[aria-label="Dein Spielfeld"] [data-pile-cards~="${id}"]`) !== null, String(landCard.id), { timeout: 60_000 })
-          land = { card: landCard.label, turn: view.turn }
-          continue
-        }
-        const stuck = mountains.find((each) => each.mark !== "usable")
-        if (mine && land !== null && unplayable === null && stuck !== undefined) {
-          // The land of the turn is played: Forge no longer marks a Mountain playable - dropped, nothing is sent, no words made up.
+        const stuck = view.hand.find((each) => each.mark !== "usable")
+        if (mine && unplayable === null && stuck !== undefined) {
+          // A card Forge does not mark playable (Shock without mana, a Mountain after the land of the turn): dropped, nothing is sent, no words made up.
           const before = await inputs()
           await dragCard(page, card(stuck.id), field, touch)
           await page.waitForTimeout(800)
@@ -2946,6 +2940,13 @@ async function dragInRealGame(browser: Browser, base: string, viewport: Viewport
           const notices = await page.locator("[data-sonner-toast]").count()
           unplayable = { card: stuck.label, before, after, notices, inHand: (await card(stuck.id).count()) === 1 }
           check(after === before && notices === 0 && (await card(stuck.id).count()) === 1, `${label}: dropping a card Forge does not mark playable ${JSON.stringify(unplayable)}`)
+          continue
+        }
+        const landCard = playable.find((each) => named(each.label, ["Gebirge", "Mountain"]))
+        if (mine && land === null && landCard !== undefined) {
+          await dragCard(page, card(landCard.id), field, touch)
+          await page.waitForFunction((id) => document.querySelector(`section[aria-label="Dein Spielfeld"] [data-card="${id}"], section[aria-label="Dein Spielfeld"] [data-pile-cards~="${id}"]`) !== null, String(landCard.id), { timeout: 60_000 })
+          land = { card: landCard.label, turn: view.turn }
           continue
         }
         if (mine && land !== null && shock !== undefined) {
@@ -6406,6 +6407,9 @@ async function main(): Promise<void> {
       await surfaces(executablePath, base, id)
     } else if (replayOnly) {
       report["replay"] = await replayLibrary(browser, base)
+    } else if (dragOnly) {
+      report["scope"] = "Playing by dragging in two real games with the real engine (mouse on a desktop, a thumb on a phone); no complete application suite."
+      report["drag"] = { desktop: await dragInRealGame(browser, base, VIEWPORTS[2]!), phone: await dragInRealGame(browser, base, VIEWPORTS[0]!) }
     } else if (focusedTable || tableOnly) {
       report["scope"] = tableOnly ? `All ${(TABLE_SCENES.length + BUILT_SCENES.length) * TABLE_VIEWPORTS.length} recorded/built scene/viewport checks and every original table/history/decision/combat/zone interaction; no fresh engine boot or complete application suite.` : helpOnly ? "Recorded Forge scenes and explicitly built question families; help, target markings, three viewports; no engine boot or full application suite." : historyOnly ? "Recorded real Forge log entries and current card inspection, three viewports; no engine boot or full application suite." : zonesOnly ? "Recorded Forge zones and explicitly built DFC presentation, three viewports, one page at a time; no engine boot or complete application regression suite." : "Recorded Forge combat scenes and one built order request, three viewports, one page at a time; no engine boot or complete application regression suite."
       await browser.close()
