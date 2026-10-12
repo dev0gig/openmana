@@ -142,8 +142,67 @@ Made in the unattended run (changeable; also in `STATUS.md`):
 
 ## Measurements
 
-<!-- filled from the runs below -->
+- **A real game at 4× CPU, 412 × 915, production build** (readiness
+  `phone --cpu-throttle 4`, touch; the player dragged 8 of its 13 plays):
+  14 turns, 197 long tasks, **none over 200 ms (longest 130 ms)**, longest
+  frame 266 ms (4 screenshots left out); the motion's own work at most
+  33.3 ms in 96 states; 38 motions at 41 fps. Prompt 45 measured 150 ms.
+- **Dragging on the dev server at 4× CPU, 412 × 915** (end-to-end
+  `handDrag`, React's development build): one long task, 81 ms.
+- **The picture's size** at the end-to-end sizes (a lifted full card):
+  90 × 126 px on the small phone, 112 × 157 on the phone, 84 × 117 on the
+  phone turned, 123-154 px wide on the foldable's and the tablet's sizes,
+  142 × 198 on the desktop - always whole inside the window.
 
 ## Evidence
 
-<!-- filled from the runs below -->
+- Unit tests: `src/hooks/use-card-press.test.tsx` (new, 12: up → drag,
+  sideways → lift only, below the threshold or more sideways → nothing, a
+  swipe then up, long press → look and never drag, a drag ends the long
+  press, pointercancel, Escape, a second finger, the hand saying no, the
+  mouse beyond its slop, its click, Escape and the right button);
+  `src/game/card-interaction.test.tsx` (11 on recorded scenes: a playable land
+  dropped - the glow, the picture without ids, the faint card, exactly one
+  tap -; the AI's battlefield and the middle, a second drop counted once; an
+  instant at the AI's spell; back into the hand, the strip, the decision;
+  not playable - no glow, no tap, no words; a concession, Forge computing,
+  a blocking question - no tap, the reason shown; a selection; Escape, a
+  second finger, pointercancel; the mouse; a replay; the card leaving while
+  dragged); `src/game/card-use.test.ts` (`cardDrop`, 4);
+  `src/game/table/table-motion.test.tsx` (4: the travel of the next state
+  starts at the drop and takes the waiting picture over, the fade without
+  a state, the glide back in transform/opacity, less motion);
+  `hand-fan.test.ts` (the drag size); `src/app/motion.test.ts` (the new
+  keyframe builder). Vitest: 90 files, 1232 tests.
+- End-to-end (`scripts/e2e/run.ts`): `handDrag` on the recorded scene
+  "respond" at the eight sizes and the foldable's three - glow over your
+  battlefield, the AI's battlefield and the middle, the picture whole and at
+  a full card's size, the card faint in the hand, exactly one tap, no view,
+  back into the hand and Escape (mouse) / a second finger (touch) send
+  nothing (`--table-only`: "Table E2E OK"). `dragInRealGame` in two real
+  games with the real engine - mouse on the desktop, Chrome's touch input on
+  the phone: a playable card taken back into the hand and a cancelled drag
+  send nothing (the recording's player messages unchanged), Shock without
+  mana dropped sends nothing and shows no words, a Mountain dragged onto the
+  battlefield lies there, Shock dragged onto the battlefield sends exactly
+  one input and Forge asks "Auswahl erforderlich · Schock" ("Select any
+  target"); the AI's seat chosen, the spell resolves (life 20 → 18)
+  (`--drag-only`, new focused mode: "E2E OK").
+- Readiness (production build, `scripts/readiness/matches.ts`): `phone`
+  (touch, 4× CPU) and `rakdos` (desktop, mouse) - all checks passed, the
+  player dragged 8 and 9 times, no action without effect, no notice.
+- Pictures of the drag (every size, both real games): Seafile
+  `/repo/openmana/design/spieltisch-umsetzung/46/` (never committed).
+- `OPENMANA_ENGINE_DIR=engine/build/publish-35d/dist
+  OPENMANA_CARDS_DIR=engine/build/publish-35d/catalog npm run check`:
+  schemas, `tsc -b`, oxlint, Vitest (90 files, 1232 tests), "E2E OK" with
+  `failures: []` (including `handDrag` at all sizes and `dragInRealGame` on
+  the desktop and the phone: AI life 20 → 18 in both), PWA suite `passed`;
+  `browserEvidence` accepts the reports (8 viewports, 802 axe checks, 11
+  worker checks). Engine verified (`engine-lock.mjs verify`: Forge
+  `ed0333fe…`, manifest `a9b4c26b…`). The first full runs were ended by the
+  host's `earlyoom` (swap full by another session's emulator and Gradle) and
+  then showed one failure outside this task: the settings on a phone have
+  five option rows more since the table background became selectable
+  (2026-10-12), the check still expected eight - it now counts the
+  background group in (`preferencesPhone`).
