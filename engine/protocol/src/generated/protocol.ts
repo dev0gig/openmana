@@ -5,9 +5,9 @@
  */
 
 /**
- * Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace). 4: card language (boot argument --card-language, BootReport.cardLanguage) and Forge's AI profiles (BootReport.aiProfiles; match.start with any other profile is refused). 5: priority, stack and phases (prompt 16): a stack item carries its card as Forge shows it (StackItem.card) and says whether it is an ability (StackItem.ability), its source id only for a card the player may see; Forge's buttons of the priority step say what they do (Button.meaning); a selection's cards are only those the player may see. 6: targets and cost payment (prompt 17): Forge's players a player.tap would take now (Player.selectable) and its highlight on chosen players (Player.highlighted); the payment in progress (GameState.payment: the mana still to pay, the pool's colours Forge would take now) and paying from the mana pool (mana.use); a player.tap or mana.use Forge would not take is refused (no-effect). 7: declaring attackers (prompt 18): the declaration in progress (GameState.attack: the defender a creature tapped now attacks, every defender Forge offers, and the player's creatures a tap would not declare now with Forge's reason), the defending players a player.tap would switch to (Player.selectable), and what Forge's buttons of the declaration do (Button.meaning declare, attackAll, callBack). 8: Anvil parity (prompt 30): Forge distribution maximums/prerequisites and postponement, absolute arrangement positions, cancellable inputs with allowed values, and changed colors including colorless.
+ * Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace). 4: card language (boot argument --card-language, BootReport.cardLanguage) and Forge's AI profiles (BootReport.aiProfiles; match.start with any other profile is refused). 5: priority, stack and phases (prompt 16): a stack item carries its card as Forge shows it (StackItem.card) and says whether it is an ability (StackItem.ability), its source id only for a card the player may see; Forge's buttons of the priority step say what they do (Button.meaning); a selection's cards are only those the player may see. 6: targets and cost payment (prompt 17): Forge's players a player.tap would take now (Player.selectable) and its highlight on chosen players (Player.highlighted); the payment in progress (GameState.payment: the mana still to pay, the pool's colours Forge would take now) and paying from the mana pool (mana.use); a player.tap or mana.use Forge would not take is refused (no-effect). 7: declaring attackers (prompt 18): the declaration in progress (GameState.attack: the defender a creature tapped now attacks, every defender Forge offers, and the player's creatures a tap would not declare now with Forge's reason), the defending players a player.tap would switch to (Player.selectable), and what Forge's buttons of the declaration do (Button.meaning declare, attackAll, callBack). 8: Anvil parity (prompt 30): Forge distribution maximums/prerequisites and postponement, absolute arrangement positions, cancellable inputs with allowed values, and changed colors including colorless. 9: the keywords of a card (prompt 47): every keyword ability Forge reports for a visible card now (VisibleCard.keywords: Forge's keyword, its concrete form and Forge's reminder text, the parts of the concrete form as Forge parsed them).
  */
-export type ProtocolVersion = 8;
+export type ProtocolVersion = 9;
 /**
  * Everything the worker posts to the page: lifecycle messages of the worker host (engine.*, match.finished, diagnostics.*) and the game messages of the bridge.
  */
@@ -889,6 +889,23 @@ export interface VisibleCard {
    * @minItems 1
    */
   attached?: [CardId, ...CardId[]];
+  /**
+   * Forge: the card's keyword abilities now (printed or given by an effect), each once, in the order of Forge's Keyword enum; absent if it has none.
+   *
+   * @minItems 1
+   */
+  keywords?: [CardKeyword, ...CardKeyword[]];
+}
+/**
+ * One keyword ability of a card as Forge reports it (Forge's KeywordView). keyword: the name of Forge's Keyword enum constant (never UNDEFINED); title: Forge's concrete form in English (e.g. 'Protection from red', 'Kicker {2}{R}'); reminder: Forge's English reminder text for that form, empty if Forge has none (CARDNAME replaced by the card's name). amount, cost and detail are the parts of the concrete form as Forge's own parser reads them: amount a number or X, cost Forge's mana symbols (only for a cost of mana alone), detail Forge's English description of a type or quality. The UI shows its German text for a keyword only where it matches this form exactly; otherwise Forge's English words, marked.
+ */
+export interface CardKeyword {
+  keyword: string;
+  title: string;
+  reminder: string;
+  amount?: string;
+  cost?: string;
+  detail?: string;
 }
 /**
  * Only that there is a card: no id (ids follow the deck list and would reveal the card), no name.

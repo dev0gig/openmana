@@ -13,6 +13,15 @@ import forge.game.card.CardView;
 import forge.game.card.CardView.CardStateView;
 import forge.game.card.CounterType;
 import forge.game.combat.CombatView;
+import forge.game.cost.Cost;
+import forge.game.keyword.Keyword;
+import forge.game.keyword.KeywordCollectionView;
+import forge.game.keyword.KeywordInterface;
+import forge.game.keyword.KeywordView;
+import forge.game.keyword.KeywordWithAmount;
+import forge.game.keyword.KeywordWithCostAndAmount;
+import forge.game.keyword.KeywordWithCostInterface;
+import forge.game.keyword.KeywordWithTypeInterface;
 import forge.game.player.PlayerView;
 import forge.game.spellability.SpellAbility;
 import forge.game.spellability.StackItemView;
@@ -26,9 +35,14 @@ import forge.interfaces.IGameController;
 import forge.player.PlayerControllerHuman;
 import forge.util.CardTranslation;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Builds the complete game state as JSON from Forge's {@link GameView}.
@@ -254,6 +268,10 @@ final class StateBuilder {
                 o.addProperty("text", CardTranslation.getTranslatedOracle(state));
             }
             colors(o, state);
+            final JsonArray keywords = keywords(state);
+            if (keywords.size() > 0) {
+                o.add("keywords", keywords);
+            }
         }
         o.addProperty("tapped", c.isTapped());
         o.addProperty("sick", c.isSick());
@@ -314,6 +332,111 @@ final class StateBuilder {
             o.add("attached", a);
         }
         return o;
+    }
+
+    /**
+     * The card's keyword abilities as Forge reports them now (prompt 47):
+     * Forge's own view of its keyword cache - printed and given by effects
+     * alike -, each concrete form once. Forge keeps them in a hash map, so the
+     * order is made stable here (Forge's Keyword enum, then the form) for
+     * identical messages on the JVM and in WebAssembly. Keywords Forge does
+     * not know by name (UNDEFINED: its free-form "keywords") are left out.
+     *
+     * The parts of the concrete form (amount, cost, type) come from Forge's
+     * own parser, run again on the keyword's original text - the same call
+     * that made the keyword, without a card and without touching the game.
+     */
+    static JsonArray keywords(final CardStateView state) {
+        final JsonArray out = new JsonArray();
+        final KeywordCollectionView all = state.getKeywords();
+        if (all == null || all.isEmpty()) {
+            return out;
+        }
+        final List<KeywordView> views = new ArrayList<>();
+        for (final KeywordView k : all.getValues()) {
+            if (k != null && k.keyword() != null && k.keyword() != Keyword.UNDEFINED && k.title() != null && !k.title().isBlank()) {
+                views.add(k);
+            }
+        }
+        views.sort(Comparator.comparingInt((KeywordView k) -> k.keyword().ordinal())
+                .thenComparing(KeywordView::title)
+                .thenComparing(k -> k.reminderText() == null ? "" : k.reminderText()));
+        final String name = state.getTranslatedName() == null ? "" : state.getTranslatedName();
+        final Set<String> seen = new HashSet<>();
+        for (final KeywordView k : views) {
+            final String title = k.title().replace("CARDNAME", name);
+            final String reminder = k.reminderText() == null ? "" : k.reminderText().replace("CARDNAME", name);
+            if (!seen.add(k.keyword().name() + '\u0000' + title + '\u0000' + reminder)) {
+                continue;
+            }
+            final JsonObject o = new JsonObject();
+            o.addProperty("keyword", k.keyword().name());
+            o.addProperty("title", title);
+            o.addProperty("reminder", reminder);
+            parts(o, k);
+            out.add(o);
+        }
+        return out;
+    }
+
+    /** The parts of a keyword's concrete form; all null where Forge has none. */
+    private record Parts(String amount, String cost, String detail) {
+        static final Parts NONE = new Parts(null, null, null);
+    }
+
+    /**
+     * Parts by Forge's keyword and original text: the same text always reads
+     * the same, and a state lists the same keywords again and again.
+     */
+    private static final Map<String, Parts> PARTS = new ConcurrentHashMap<>();
+
+    /** amount, cost and detail of a keyword's concrete form, read by Forge's parser; nothing where Forge has no such part. */
+    private static void parts(final JsonObject o, final KeywordView view) {
+        if (view.original() == null) {
+            return;
+        }
+        final Parts p = PARTS.computeIfAbsent(view.keyword().name() + '\u0000' + view.original(), key -> read(view));
+        if (p.amount() != null) {
+            o.addProperty("amount", p.amount());
+        }
+        if (p.cost() != null) {
+            o.addProperty("cost", p.cost());
+        }
+        if (p.detail() != null) {
+            o.addProperty("detail", p.detail());
+        }
+    }
+
+    private static Parts read(final KeywordView view) {
+        String amount = null;
+        String cost = null;
+        String detail = null;
+        try {
+            final KeywordInterface parsed = Keyword.getInstance(view.original());
+            if (parsed == null || parsed.getKeyword() != view.keyword()) {
+                return Parts.NONE;
+            }
+            if (parsed instanceof KeywordWithAmount || parsed instanceof KeywordWithCostAndAmount) {
+                amount = parsed.getAmountString();
+            }
+            // "ManaCost": the card's own mana cost, which Forge reads from the card - not a part of the keyword.
+            if (parsed instanceof KeywordWithCostInterface withCost && !"ManaCost".equals(withCost.getCostString())) {
+                final Cost c = withCost.getCost();
+                if (c != null && c.isOnlyManaCost()) {
+                    cost = c.toSimpleString();
+                }
+            }
+            if (parsed instanceof KeywordWithTypeInterface withType) {
+                detail = withType.getTypeDescription();
+            }
+        } catch (final RuntimeException e) {
+            // A form Forge can only read together with its card: no parts, its words stay.
+            return Parts.NONE;
+        }
+        return new Parts(
+                amount != null && amount.matches("X|[0-9]+") ? amount : null,
+                cost != null && !cost.isBlank() ? cost : null,
+                detail != null && !detail.isBlank() ? detail : null);
     }
 
     /**

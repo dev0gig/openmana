@@ -1,4 +1,4 @@
-# OpenMana-Protokoll (Version 8)
+# OpenMana-Protokoll (Version 9)
 
 Der **einzige Vertrag** zwischen der OpenMana-Oberfläche und der Engine (Forge
 im Dedicated Worker). Die Oberfläche sieht keine Forge-Klassen und rechnet
@@ -11,7 +11,8 @@ Version 4 mit Prompt 12 (siehe [unten](#änderungen-in-version-4-prompt-12)),
 Version 5 mit Prompt 16 (siehe [unten](#änderungen-in-version-5-prompt-16)),
 Version 6 mit Prompt 17 (siehe [unten](#änderungen-in-version-6-prompt-17)),
 Version 7 mit Prompt 18 (siehe [unten](#änderungen-in-version-7-prompt-18)),
-Version 8 mit Prompt 30 (siehe [unten](#änderungen-in-version-8-prompt-30)).
+Version 8 mit Prompt 30 (siehe [unten](#änderungen-in-version-8-prompt-30)),
+Version 9 mit Prompt 47 (siehe [unten](#änderungen-in-version-9-prompt-47)).
 
 ```
  UI ──ruft──▶ EngineClient (Main Thread) ──WorkerCommand (postMessage, nur wenn der Worker frei ist)──▶ Worker-Host
@@ -32,7 +33,7 @@ Version 8 mit Prompt 30 (siehe [unten](#änderungen-in-version-8-prompt-30)).
 
 ## Versionen
 
-- `ProtocolVersion` ist eine ganze Zahl (jetzt **7**). UI, Worker-Host und
+- `ProtocolVersion` ist eine ganze Zahl (jetzt **9**). UI, Worker-Host und
   Engine müssen **genau dieselbe** Version sprechen; es gibt keine
   Aushandlung. Eine App liefert UI und Engine immer zusammen aus
   (`engine.lock.json`, Prompt 25/26); eine Abweichung heißt „alter Cache“ oder
@@ -254,6 +255,36 @@ die Hand der KI).
 
 Vergleich, Prüfsumme und Abdeckung: [`engine/wasm/spike/trace.ts`](../wasm/spike/trace.ts);
 die Testpartien: [`engine/fixtures`](../fixtures/README.md).
+
+## Änderungen in Version 9 (Prompt 47)
+
+- **Schlüsselwörter einer Karte:** `VisibleCard.keywords` nennt jede
+  Schlüsselwortfähigkeit, die Forge für die sichtbare Karte gerade meldet –
+  gedruckte und von Effekten verliehene gleichermaßen (Forges `KeywordView`
+  aus dem Schlüsselwort-Cache des aktuellen Kartenzustands). Je Eintrag
+  (`CardKeyword`): `keyword` = Name der Konstante in Forges `Keyword`-Enum
+  (nie `UNDEFINED`, Forges freie „Schlüsselwörter“ bleiben draußen),
+  `title` = Forges konkrete Form auf Englisch („Kicker {2}{R}“,
+  „Protection from from red“ – Forges eigene Schreibweise),
+  `reminder` = Forges englischer Erinnerungstext dieser Form (leer, wenn Forge
+  keinen hat; `CARDNAME` durch den Kartennamen ersetzt). `amount`, `cost` und
+  `detail` sind die Teile der Form, wie Forges eigener Parser
+  (`Keyword.getInstance`) sie liest: Zahl oder X, Manasymbole (nur bei reinen
+  Manakosten), Forges englische Typ-/Eigenschaftsbeschreibung. Jede Form
+  einmal, Reihenfolge nach Forges Enum (dann Titel) – Forge hält die
+  Schlüsselwörter in einer Hash-Tabelle, die Bridge ordnet sie für gleiche
+  Nachrichten auf JVM und in WebAssembly. Ohne Schlüsselwörter fehlt das Feld.
+- Die Oberfläche zeigt dazu deutsche Texte je Schlüsselwort
+  (`src/game/keyword-texts.ts`), eine konkrete deutsche Form nur, wo sie genau
+  Forges Form ist; sonst deutschen Namen und allgemeine Erklärung mit Forges
+  englischer Form daneben, markiert. Sie leitet nie aus dem Kartentext ab,
+  welche Schlüsselwörter eine Karte hat.
+- Nachweise: `KeywordsTest` (Reihenfolge, Formteile, `CARDNAME`, ein von einem
+  Effekt verliehenes Schlüsselwort kommt und geht an einer echten Spielkarte),
+  `ProtocolContractTest` (Version), die Differenzläufe (JVM/Node/Chrome
+  gleich, jede Nachricht gegen das Schema geprüft) und
+  `KeywordSurvey` (jede Schlüsselwortform aller Karten aus Forges Datenbank,
+  `scripts/record-keyword-forms.ts`).
 
 ## Änderungen in Version 8 (Prompt 30)
 
