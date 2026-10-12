@@ -3366,7 +3366,9 @@ async function preferencesPhone(browser: Browser, base: string): Promise<Record<
     const rows = page.locator('[data-slot="field-label"]:has([role="radio"], [role="switch"])')
     const heights: number[] = []
     for (let i = 0; i < (await rows.count()); i++) heights.push(await layoutHeight(rows.nth(i)))
-    check(heights.length === 8 && heights.every((height) => height >= 44), `preferences (phone): option rows ${JSON.stringify(heights)}`)
+    // The eight rows of prompt 12, plus the table's background (2026-10-12: the drawn table, the built-in pictures, the player's own).
+    const backgrounds = await page.getByRole("radiogroup", { name: "Spieltisch-Hintergrund" }).getByRole("radio").count()
+    check(backgrounds >= 2 && heights.length === 8 + backgrounds && heights.every((height) => height >= 44), `preferences (phone): option rows ${JSON.stringify(heights)} (${backgrounds} table backgrounds)`)
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
     check(overflow <= 0, `preferences (phone): overflow ${overflow}px`)
     const axe = await accessibility(page, "preferences (phone): settings")
