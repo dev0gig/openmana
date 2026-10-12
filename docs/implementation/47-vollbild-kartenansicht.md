@@ -167,6 +167,17 @@ reached 14 turns: 241 long tasks, none over 200 ms, maximum 175 ms;
 motion work at most 31.3 ms in 153 states, 59 motions at 44.7 fps on average.
 Both original reports remain available; screenshot work is separated by
 the established runner, and no timing from the first run was discarded.
+The clean-checkout publication rehearsal found that the root's reviewed
+license inventory still named protocol 8. The fully verified new build's
+inventory was reviewed and promoted to `notices/engine-inventory.json`, its
+policy SHA-256 updated, and `THIRD-PARTY-NOTICES.md` refreshed from the tested
+bundle. It has the same 24 component coordinates, original dependency JARs
+and toolchain; 8 259 types (one added own bridge type, `StateBuilder$Parts`,
+plus renamed generated proxies), no forbidden types. Thus a publication
+build needs no local JVM or compiler evidence to reconstruct its notices.
+The old source archive remains available in the release; a separate full
+archive covers the final publication commit.
+
 The central completion report records the actual public release
 `engine-p9-fba5601117ff`, pushed commit range, Vercel deployment and
 production game after those steps have completed.
