@@ -1,0 +1,4858 @@
+{
+ "source": "scripts/record-keyword-forms.ts: KeywordSurvey over Forge's card database (JVM build), one sample per form",
+ "engine": {
+  "builtAt": "2026-10-12T06:37:50.699Z",
+  "forgeCommit": "ed0333fecb1fea0671b3e50cadc1da4f71db5798",
+  "protocol": 9
+ },
+ "survey": "cards=33505 keywords=16965 failed=0",
+ "keywords": 16965,
+ "forms": [
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for Affinity",
+   "reminder": "This spell costs {1} less to cast for each permanent with affinity you control.",
+   "detail": "Affinity",
+   "card": "Sojourner's Enforcermite",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for Allies",
+   "reminder": "This spell costs {1} less to cast for each Ally you control.",
+   "detail": "Allies",
+   "card": "Allies at Last",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for artifact creatures",
+   "reminder": "This spell costs {1} less to cast for each artifact creature you control.",
+   "detail": "artifact creatures",
+   "card": "Urza, Chief Artificer",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for artifacts",
+   "reminder": "This spell costs {1} less to cast for each artifact you control.",
+   "detail": "artifacts",
+   "card": "Assert Authority",
+   "count": 38
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for Birds",
+   "reminder": "This spell costs {1} less to cast for each Bird you control.",
+   "detail": "Birds",
+   "card": "Bartz and Boko",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for Cats",
+   "reminder": "This spell costs {1} less to cast for each Cat you control.",
+   "detail": "Cats",
+   "card": "Claws Out",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for Citizens",
+   "reminder": "This spell costs {1} less to cast for each Citizen you control.",
+   "detail": "Citizens",
+   "card": "Angelic Observer",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for creatures",
+   "reminder": "This spell costs {1} less to cast for each creature you control.",
+   "detail": "creatures",
+   "card": "Argivian Phalanx",
+   "count": 4
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for Daleks",
+   "reminder": "This spell costs {1} less to cast for each Dalek you control.",
+   "detail": "Daleks",
+   "card": "The Dalek Emperor",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for Elves",
+   "reminder": "This spell costs {1} less to cast for each Elf you control.",
+   "detail": "Elves",
+   "card": "Cantankerous Keepers",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for enchantments",
+   "reminder": "This spell costs {1} less to cast for each enchantment you control.",
+   "detail": "enchantments",
+   "card": "Brine Giant",
+   "count": 2
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for Equipment",
+   "reminder": "This spell costs {1} less to cast for each Equipment you control.",
+   "detail": "Equipment",
+   "card": "Goldwardens' Gambit",
+   "count": 4
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for Foods",
+   "reminder": "This spell costs {1} less to cast for each Food you control.",
+   "detail": "Foods",
+   "card": "Banquet Guests",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for Forests",
+   "reminder": "This spell costs {1} less to cast for each Forest you control.",
+   "detail": "Forests",
+   "card": "Sapling Nursery",
+   "count": 2
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for Frogs",
+   "reminder": "This spell costs {1} less to cast for each Frog you control.",
+   "detail": "Frogs",
+   "card": "Polliwallop",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for Gates",
+   "reminder": "This spell costs {1} less to cast for each Gate you control.",
+   "detail": "Gates",
+   "card": "Gate Colossus",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for historic permanents",
+   "reminder": "This spell costs {1} less to cast for each artifact, legendary, and/or Saga permanent you control.",
+   "detail": "historic permanents",
+   "card": "Banish to Another Universe",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for Humans",
+   "reminder": "This spell costs {1} less to cast for each Human you control.",
+   "detail": "Humans",
+   "card": "Riders of the Mark",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for Islands",
+   "reminder": "This spell costs {1} less to cast for each Island you control.",
+   "detail": "Islands",
+   "card": "Spire Golem",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for Knights",
+   "reminder": "This spell costs {1} less to cast for each Knight you control.",
+   "detail": "Knights",
+   "card": "The Circle of Loyalty",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for Lizards",
+   "reminder": "This spell costs {1} less to cast for each Lizard you control.",
+   "detail": "Lizards",
+   "card": "Scales of Shale",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for Mountains",
+   "reminder": "This spell costs {1} less to cast for each Mountain you control.",
+   "detail": "Mountains",
+   "card": "Oxidda Golem",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for outlaws",
+   "reminder": "This spell costs {1} less to cast for each Pirate, Mercenary, Rogue, Assassin and/or Warlock you control.",
+   "detail": "outlaws",
+   "card": "Hellspur Brute",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for Phyrexians",
+   "reminder": "This spell costs {1} less to cast for each Phyrexian you control.",
+   "detail": "Phyrexians",
+   "card": "Phyrexian Broodstar",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for Plains",
+   "reminder": "This spell costs {1} less to cast for each Plains you control.",
+   "detail": "Plains",
+   "card": "Razor Golem",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for planeswalkers",
+   "reminder": "This spell costs {1} less to cast for each planeswalker you control.",
+   "detail": "planeswalkers",
+   "card": "Tomik, Wielder of Law",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for Slivers",
+   "reminder": "This spell costs {1} less to cast for each Sliver you control.",
+   "detail": "Slivers",
+   "card": "Thrumming Hivepool",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for snow lands",
+   "reminder": "This spell costs {1} less to cast for each snow land you control.",
+   "detail": "snow lands",
+   "card": "Icebreaker Kraken",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for Spirits",
+   "reminder": "This spell costs {1} less to cast for each Spirit you control.",
+   "detail": "Spirits",
+   "card": "Millicent, Restless Revenant",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for Swamps",
+   "reminder": "This spell costs {1} less to cast for each Swamp you control.",
+   "detail": "Swamps",
+   "card": "Dross Golem",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for tokens",
+   "reminder": "This spell costs {1} less to cast for each token you control.",
+   "detail": "tokens",
+   "card": "Junk Winder",
+   "count": 1
+  },
+  {
+   "keyword": "AFFINITY",
+   "title": "Affinity for Towns",
+   "reminder": "This spell costs {1} less to cast for each Town you control.",
+   "detail": "Towns",
+   "card": "Travel the Overworld",
+   "count": 1
+  },
+  {
+   "keyword": "AFFLICT",
+   "title": "Afflict 3",
+   "reminder": "Whenever this creature becomes blocked, defending player loses 3 life.",
+   "amount": "3",
+   "card": "Ammit Eternal",
+   "count": 10
+  },
+  {
+   "keyword": "AFTERLIFE",
+   "title": "Afterlife 2",
+   "reminder": "When this creature dies, create two 1/1 white and black Spirit creature tokens with flying.",
+   "amount": "2",
+   "card": "Debtors' Transport",
+   "count": 11
+  },
+  {
+   "keyword": "AFTERMATH",
+   "title": "Aftermath",
+   "reminder": "Cast this spell only from your graveyard. Then exile it.",
+   "card": "Appeal // Authority",
+   "count": 54
+  },
+  {
+   "keyword": "AMPLIFY",
+   "title": "Amplify 1",
+   "reminder": "As this creature enters, put a +1/+1 counter on it for each Bird and/or Soldier card you reveal in your hand.",
+   "amount": "1",
+   "card": "Aven Warhawk",
+   "count": 9
+  },
+  {
+   "keyword": "ANNIHILATOR",
+   "title": "Annihilator 2",
+   "reminder": "Whenever this creature attacks, defending player sacrifices two permanents.",
+   "amount": "2",
+   "card": "Artisan of Kozilek",
+   "count": 14
+  },
+  {
+   "keyword": "ASCEND",
+   "title": "Ascend",
+   "reminder": "If you control ten or more permanents, you get the city's blessing for the rest of the game.",
+   "card": "A-Ocelot Pride",
+   "count": 29
+  },
+  {
+   "keyword": "ASSIST",
+   "title": "Assist",
+   "reminder": "Another player can pay up to %s of this spell's cost.",
+   "card": "Bloodborn Scoundrels",
+   "count": 16
+  },
+  {
+   "keyword": "AURA_SWAP",
+   "title": "Aura swap {2}{U}",
+   "reminder": "{2}{U}: You may exchange this Aura with an Aura card in your hand.",
+   "cost": "{2}{U}",
+   "card": "Arcanum Wings",
+   "count": 1
+  },
+  {
+   "keyword": "AWAKEN",
+   "title": "Awaken 4—{6}{R}",
+   "reminder": "If you cast this spell for {6}{R}, also put four +1/+1 counters on target land you control and it becomes a 0/0 Elemental creature with haste. It's still a land.",
+   "amount": "4",
+   "cost": "{6}{R}",
+   "card": "Boiling Earth",
+   "count": 15
+  },
+  {
+   "keyword": "BACKUP",
+   "title": "Backup 1",
+   "reminder": "When this creature enters, put a +1/+1 counter on target creature. If that's another creature, it gains the following ability until end of turn.",
+   "amount": "1",
+   "card": "Archpriest of Shadows",
+   "count": 26
+  },
+  {
+   "keyword": "BANDING",
+   "title": "Banding",
+   "reminder": "Any creatures with banding, and up to one without, can attack in a band. Bands are blocked as a group. If any creatures with banding you control are blocking or being blocked by a creature, you divide that creature's combat damage, not its controller, among any of the creatures it's being blocked by or is blocking.",
+   "card": "Ayesha Tanaka",
+   "count": 24
+  },
+  {
+   "keyword": "BANDSWITH",
+   "title": "Bands with other Dinosaur",
+   "reminder": "can attack in a band with another Dinosaur",
+   "detail": "Dinosaur",
+   "card": "Old Fogey",
+   "count": 1
+  },
+  {
+   "keyword": "BARGAIN",
+   "title": "Bargain",
+   "reminder": "You may sacrifice an artifact, enchantment, or token as you cast this spell.",
+   "card": "Agatha's Champion",
+   "count": 22
+  },
+  {
+   "keyword": "BATTLE_CRY",
+   "title": "Battle cry",
+   "reminder": "Whenever this creature attacks, each other attacking creature gets +1/+0 until end of turn.",
+   "card": "Accorder Paladin",
+   "count": 13
+  },
+  {
+   "keyword": "BEAM_ME_UP",
+   "title": "Beam me up {2}{U}",
+   "reminder": "You may cast this card from your graveyard for {2}{U} if you also return a creature you control to its owner's hand. Then exile this spell.",
+   "cost": "{2}{U}",
+   "card": "Open Communications",
+   "count": 1
+  },
+  {
+   "keyword": "BESTOW",
+   "title": "Bestow {4}{B}",
+   "reminder": "If you cast this card for its bestow cost, it's an Aura spell with enchant creature. It becomes a creature again if it's not attached to a creature.",
+   "cost": "{4}{B}",
+   "card": "Baleful Eidolon",
+   "count": 42
+  },
+  {
+   "keyword": "BESTOW",
+   "title": "Bestow—{R}, Collect evidence 6",
+   "reminder": "If you cast this card for its bestow cost, it's an Aura spell with enchant creature. It becomes a creature again if it's not attached to a creature.",
+   "card": "Detective's Phoenix",
+   "count": 1
+  },
+  {
+   "keyword": "BLITZ",
+   "title": "Blitz {2}{G}",
+   "reminder": "If you cast this spell for its blitz cost, it gains haste and \"When this creature dies, draw a card.\" Sacrifice it at the beginning of the next end step.",
+   "cost": "{2}{G}",
+   "card": "Caldaia Guardian",
+   "count": 17
+  },
+  {
+   "keyword": "BLITZ",
+   "title": "Blitz—{2}{B}{B}, Pay 2 life",
+   "reminder": "If you cast this spell for its blitz cost, it gains haste and \"When this creature dies, draw a card.\" Sacrifice it at the beginning of the next end step.",
+   "card": "Tenacious Underdog",
+   "count": 1
+  },
+  {
+   "keyword": "BLITZ",
+   "title": "Blitz—{2}{R}{R}, Discard a card",
+   "reminder": "If you cast this spell for its blitz cost, it gains haste and \"When this creature dies, draw a card.\" Sacrifice it at the beginning of the next end step.",
+   "card": "Sabin, Master Monk",
+   "count": 1
+  },
+  {
+   "keyword": "BLOODTHIRST",
+   "title": "Bloodthirst 1",
+   "reminder": "If an opponent was dealt damage this turn, this creature enters with a +1/+1 counter on it.",
+   "amount": "1",
+   "card": "Battering Wurm",
+   "count": 23
+  },
+  {
+   "keyword": "BUSHIDO",
+   "title": "Bushido 1",
+   "reminder": "Whenever this creature blocks or becomes blocked, it gets +1/+1 until end of turn.",
+   "amount": "1",
+   "card": "Araba Mothrider",
+   "count": 37
+  },
+  {
+   "keyword": "BUYBACK",
+   "title": "Buyback {3}",
+   "reminder": "You may pay an additional {3} as you cast this spell. If you do, put it into your hand instead of your graveyard as it resolves.",
+   "cost": "{3}",
+   "card": "Allay",
+   "count": 32
+  },
+  {
+   "keyword": "BUYBACK",
+   "title": "Buyback—Discard two cards",
+   "reminder": "You may pay an additional Discard two cards as you cast this spell. If you do, put it into your hand instead of your graveyard as it resolves.",
+   "card": "Demonic Collusion",
+   "count": 2
+  },
+  {
+   "keyword": "BUYBACK",
+   "title": "Buyback—Pay 3 life, Discard a card at random",
+   "reminder": "You may pay an additional Pay 3 life, Discard a card at random as you cast this spell. If you do, put it into your hand instead of your graveyard as it resolves.",
+   "card": "Flowstone Flood",
+   "count": 1
+  },
+  {
+   "keyword": "BUYBACK",
+   "title": "Buyback—Pay 4 life",
+   "reminder": "You may pay an additional Pay 4 life as you cast this spell. If you do, put it into your hand instead of your graveyard as it resolves.",
+   "card": "Slaughter",
+   "count": 1
+  },
+  {
+   "keyword": "BUYBACK",
+   "title": "Buyback—Sacrifice a land",
+   "reminder": "You may pay an additional Sacrifice a land as you cast this spell. If you do, put it into your hand instead of your graveyard as it resolves.",
+   "card": "Constant Mists",
+   "count": 3
+  },
+  {
+   "keyword": "BUYBACK",
+   "title": "Buyback—Sacrifice three Islands",
+   "reminder": "You may pay an additional Sacrifice three Islands as you cast this spell. If you do, put it into your hand instead of your graveyard as it resolves.",
+   "card": "Walk the Aeons",
+   "count": 1
+  },
+  {
+   "keyword": "CASCADE",
+   "title": "Cascade",
+   "reminder": "When you cast this spell, exile cards from the top of your library until you exile a nonland card whose mana value is less than this spell's mana value. You may cast that spell without paying its mana cost if its mana value is less than this spell's mana value. Then put all cards exiled this way that weren't cast on the bottom of your library in a random order.",
+   "card": "Annoyed Altisaur",
+   "count": 37
+  },
+  {
+   "keyword": "CASUALTY",
+   "title": "Casualty 1",
+   "reminder": "As you cast this spell, you may sacrifice a creature with power 1 or greater. When you do, copy this spell.",
+   "amount": "1",
+   "card": "A Little Chat",
+   "count": 16
+  },
+  {
+   "keyword": "CHAMPION",
+   "title": "Champion creature",
+   "reminder": "When this permanent enters, sacrifice it unless you exile another creature you control. When this permanent leaves the battlefield, return the exiled card to the battlefield under its owner's control.",
+   "detail": "creature",
+   "card": "Changeling Berserker",
+   "count": 3
+  },
+  {
+   "keyword": "CHAMPION",
+   "title": "Champion Elemental",
+   "reminder": "When this permanent enters, sacrifice it unless you exile another Elemental you control. When this permanent leaves the battlefield, return the exiled card to the battlefield under its owner's control.",
+   "detail": "Elemental",
+   "card": "Nova Chaser",
+   "count": 2
+  },
+  {
+   "keyword": "CHAMPION",
+   "title": "Champion Elf",
+   "reminder": "When this permanent enters, sacrifice it unless you exile another Elf you control. When this permanent leaves the battlefield, return the exiled card to the battlefield under its owner's control.",
+   "detail": "Elf",
+   "card": "Wren's Run Packmaster",
+   "count": 1
+  },
+  {
+   "keyword": "CHAMPION",
+   "title": "Champion Faerie",
+   "reminder": "When this permanent enters, sacrifice it unless you exile another Faerie you control. When this permanent leaves the battlefield, return the exiled card to the battlefield under its owner's control.",
+   "detail": "Faerie",
+   "card": "Mistbind Clique",
+   "count": 1
+  },
+  {
+   "keyword": "CHAMPION",
+   "title": "Champion Goblin",
+   "reminder": "When this permanent enters, sacrifice it unless you exile another Goblin you control. When this permanent leaves the battlefield, return the exiled card to the battlefield under its owner's control.",
+   "detail": "Goblin",
+   "card": "Boggart Mob",
+   "count": 1
+  },
+  {
+   "keyword": "CHAMPION",
+   "title": "Champion Goblin or Shaman",
+   "reminder": "When this permanent enters, sacrifice it unless you exile another Goblin or Shaman you control. When this permanent leaves the battlefield, return the exiled card to the battlefield under its owner's control.",
+   "detail": "Goblin or Shaman",
+   "card": "Lightning Crafter",
+   "count": 1
+  },
+  {
+   "keyword": "CHAMPION",
+   "title": "Champion Kithkin",
+   "reminder": "When this permanent enters, sacrifice it unless you exile another Kithkin you control. When this permanent leaves the battlefield, return the exiled card to the battlefield under its owner's control.",
+   "detail": "Kithkin",
+   "card": "Thoughtweft Trio",
+   "count": 1
+  },
+  {
+   "keyword": "CHAMPION",
+   "title": "Champion Merfolk",
+   "reminder": "When this permanent enters, sacrifice it unless you exile another Merfolk you control. When this permanent leaves the battlefield, return the exiled card to the battlefield under its owner's control.",
+   "detail": "Merfolk",
+   "card": "Wanderwine Prophets",
+   "count": 1
+  },
+  {
+   "keyword": "CHAMPION",
+   "title": "Champion Treefolk or Warrior",
+   "reminder": "When this permanent enters, sacrifice it unless you exile another Treefolk or Warrior you control. When this permanent leaves the battlefield, return the exiled card to the battlefield under its owner's control.",
+   "detail": "Treefolk or Warrior",
+   "card": "Unstoppable Ash",
+   "count": 1
+  },
+  {
+   "keyword": "CHANGELING",
+   "title": "Changeling",
+   "reminder": "This card is every creature type.",
+   "card": "Amoeboid Changeling",
+   "count": 63
+  },
+  {
+   "keyword": "CHOOSE_A_BACKGROUND",
+   "title": "Choose a Background",
+   "reminder": "You can have a Background as a second commander.",
+   "card": "Abdel Adrian, Gorion's Ward",
+   "count": 32
+  },
+  {
+   "keyword": "CIPHER",
+   "title": "Cipher",
+   "reminder": "Then you may exile this spell card encoded on a creature you control. Whenever that creature deals combat damage to a player, its controller may cast a copy of the encoded card without paying its mana cost.",
+   "card": "Arcane Heist",
+   "count": 15
+  },
+  {
+   "keyword": "COMPANION",
+   "title": "Companion",
+   "reminder": "Reveal your companion from outside the game if your deck meets the companion restriction.",
+   "card": "Gyruda, Doom of Depths",
+   "count": 10
+  },
+  {
+   "keyword": "COMPLEATED",
+   "title": "Compleated",
+   "reminder": "{G/W/P} can be paid with {G}, {W}, or 2 life. If life was paid, this planeswalker enters with two fewer loyalty counters.",
+   "card": "Ajani, Sleeper Agent",
+   "count": 7
+  },
+  {
+   "keyword": "CONSPIRE",
+   "title": "Conspire",
+   "reminder": "As an additional cost to cast this spell, you may tap two untapped creatures you control that each share a color with it. If you do, copy it.",
+   "card": "Aethertow",
+   "count": 11
+  },
+  {
+   "keyword": "CONVOKE",
+   "title": "Convoke",
+   "reminder": "Your creatures can help cast this spell. Each creature you tap while playing this spell reduces its cost by {1} or by one mana of that creature's color.",
+   "card": "Aerial Boost",
+   "count": 106
+  },
+  {
+   "keyword": "CRAFT",
+   "title": "Craft with  artifact {1}{U}",
+   "reminder": "{1}{U}, Exile this artifact, Exile another artifact you control or an artifact card from your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.",
+   "card": "Braided Net",
+   "count": 1
+  },
+  {
+   "keyword": "CRAFT",
+   "title": "Craft with  artifact {2}{R}",
+   "reminder": "{2}{R}, Exile this artifact, Exile another artifact you control or an artifact card from your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.",
+   "card": "Idol of the Deep King",
+   "count": 1
+  },
+  {
+   "keyword": "CRAFT",
+   "title": "Craft with  artifact {2}{U}",
+   "reminder": "{2}{U}, Exile this artifact, Exile another artifact you control or an artifact card from your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.",
+   "card": "Lodestone Needle",
+   "count": 1
+  },
+  {
+   "keyword": "CRAFT",
+   "title": "Craft with  artifact {2}{W}",
+   "reminder": "{2}{W}, Exile this artifact, Exile another artifact you control or an artifact card from your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.",
+   "card": "Oteclan Landmark",
+   "count": 1
+  },
+  {
+   "keyword": "CRAFT",
+   "title": "Craft with  artifact {3}{R}{R}",
+   "reminder": "{3}{R}{R}, Exile this artifact, Exile another artifact you control or an artifact card from your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.",
+   "card": "Dire Flail",
+   "count": 1
+  },
+  {
+   "keyword": "CRAFT",
+   "title": "Craft with  artifact {3}{W}",
+   "reminder": "{3}{W}, Exile this artifact, Exile another artifact you control or an artifact card from your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.",
+   "card": "Spring-Loaded Sawblades",
+   "count": 1
+  },
+  {
+   "keyword": "CRAFT",
+   "title": "Craft with  artifact {3}{W}{W}",
+   "reminder": "{3}{W}{W}, Exile this artifact, Exile another artifact you control or an artifact card from your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.",
+   "card": "Unstable Glyphbridge",
+   "count": 1
+  },
+  {
+   "keyword": "CRAFT",
+   "title": "Craft with  artifact {4}{U}{U}",
+   "reminder": "{4}{U}{U}, Exile this artifact, Exile another artifact you control or an artifact card from your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.",
+   "card": "Inverted Iceberg",
+   "count": 1
+  },
+  {
+   "keyword": "CRAFT",
+   "title": "Craft with  artifact {4}{W}{W}{U}",
+   "reminder": "{4}{W}{W}{U}, Exile this artifact, Exile another artifact you control or an artifact card from your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.",
+   "card": "Master's Guide-Mural",
+   "count": 1
+  },
+  {
+   "keyword": "CRAFT",
+   "title": "Craft with  artifact {5}{W}{W}",
+   "reminder": "{5}{W}{W}, Exile this artifact, Exile another artifact you control or an artifact card from your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.",
+   "card": "Clay-Fired Bricks",
+   "count": 1
+  },
+  {
+   "keyword": "CRAFT",
+   "title": "Craft with  Cave {5}{G}",
+   "reminder": "{5}{G}, Exile this artifact, Exile a Cave you control or a Cave card from your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.",
+   "card": "Kaslem's Stonetree",
+   "count": 1
+  },
+  {
+   "keyword": "CRAFT",
+   "title": "Craft with  creature {4}{B}",
+   "reminder": "{4}{B}, Exile this artifact, Exile a creature you control or a creature card from your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.",
+   "card": "Tithing Blade",
+   "count": 1
+  },
+  {
+   "keyword": "CRAFT",
+   "title": "Craft with  creature {5}{G}{G}",
+   "reminder": "{5}{G}{G}, Exile this artifact, Exile a creature you control or a creature card from your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.",
+   "card": "Jade Seedstones",
+   "count": 1
+  },
+  {
+   "keyword": "CRAFT",
+   "title": "Craft with  Island {3}{U}",
+   "reminder": "{3}{U}, Exile this artifact, Exile an Island you control or an Island card from your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.",
+   "card": "Waterlogged Hulk",
+   "count": 1
+  },
+  {
+   "keyword": "CRAFT",
+   "title": "Craft with a Dinosaur, a Merfolk, a Pirate, and a Vampire {4}",
+   "reminder": "{4}, Exile this artifact, Exile the four from among permanents you control and/or cards in your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.",
+   "card": "Throne of the Grim Captain",
+   "count": 1
+  },
+  {
+   "keyword": "CRAFT",
+   "title": "Craft with four or more nonlands with activated abilities {8}{U}",
+   "reminder": "{8}{U}, Exile this artifact, Exile the four or more from among nonlands with activated abilities you control and/or cards from your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.",
+   "card": "The Enigma Jewel",
+   "count": 1
+  },
+  {
+   "keyword": "CRAFT",
+   "title": "Craft with four or more red instant and/or sorcery cards {3}{R}{R}",
+   "reminder": "{3}{R}{R}, Exile this artifact, Exile the four or more from your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.",
+   "card": "Ore-Rich Stalactite",
+   "count": 1
+  },
+  {
+   "keyword": "CRAFT",
+   "title": "Craft with one or more {5}",
+   "reminder": "{5}, Exile this artifact, Exile one or more other permanents you control and/or  cards from your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.",
+   "card": "Sunbird Standard",
+   "count": 1
+  },
+  {
+   "keyword": "CRAFT",
+   "title": "Craft with one or more creatures {2}{B}{B}",
+   "reminder": "{2}{B}{B}, Exile this artifact, Exile one or more creatures you control and/or creature cards from your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.",
+   "card": "Altar of the Wretched",
+   "count": 1
+  },
+  {
+   "keyword": "CRAFT",
+   "title": "Craft with one or more creatures {5}",
+   "reminder": "{5}, Exile this artifact, Exile one or more creatures you control and/or creature cards from your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.",
+   "card": "Paleontologist's Pick-Axe",
+   "count": 1
+  },
+  {
+   "keyword": "CRAFT",
+   "title": "Craft with one or more Dinosaurs {4}{R}",
+   "reminder": "{4}{R}, Exile this artifact, Exile one or more Dinosaurs you control and/or Dinosaur cards from your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.",
+   "card": "Saheeli's Lattice",
+   "count": 1
+  },
+  {
+   "keyword": "CRAFT",
+   "title": "Craft with six artifacts {4}",
+   "reminder": "{4}, Exile this artifact, Exile the six from among artifacts you control and/or artifact cards in your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.",
+   "card": "Tetzin, Gnome Champion",
+   "count": 1
+  },
+  {
+   "keyword": "CRAFT",
+   "title": "Craft with two creatures {5}{B}",
+   "reminder": "{5}{B}, Exile this artifact, Exile the two from among creatures you control and/or creature cards in your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.",
+   "card": "Visage of Dread",
+   "count": 1
+  },
+  {
+   "keyword": "CRAFT",
+   "title": "Craft with two that share a card type {6}",
+   "reminder": "{6}, Exile this artifact, Exile the two from among permanents you control and/or cards in your graveyard: Return this card transformed under its owner's control. Craft only as a sorcery.",
+   "card": "Eye of Ojer Taq",
+   "count": 1
+  },
+  {
+   "keyword": "CREW",
+   "title": "Crew 3",
+   "reminder": "Tap any number of creatures you control with total power 3 or more: This Vehicle becomes an artifact creature until end of turn.",
+   "amount": "3",
+   "card": "A-Capenna Express",
+   "count": 192
+  },
+  {
+   "keyword": "CUMULATIVE_UPKEEP",
+   "title": "Cumulative upkeep {1}",
+   "reminder": "At the beginning of your upkeep, put an age counter on this permanent, then sacrifice it unless you pay its upkeep cost for each age counter on it.",
+   "cost": "{1}",
+   "card": "Ancestral Knowledge",
+   "count": 62
+  },
+  {
+   "keyword": "CUMULATIVE_UPKEEP",
+   "title": "Cumulative upkeep—{B}, Pay 1 life",
+   "reminder": "At the beginning of your upkeep, put an age counter on this permanent, then sacrifice it unless you pay its upkeep cost for each age counter on it.",
+   "card": "Infernal Darkness",
+   "count": 1
+  },
+  {
+   "keyword": "CUMULATIVE_UPKEEP",
+   "title": "Cumulative upkeep—a Coin",
+   "reminder": "At the beginning of your upkeep, put an age counter on this permanent, then sacrifice it unless you pay its upkeep cost for each age counter on it.",
+   "card": "Karplusan Minotaur",
+   "count": 1
+  },
+  {
+   "keyword": "CUMULATIVE_UPKEEP",
+   "title": "Cumulative upkeep—Add {R}",
+   "reminder": "At the beginning of your upkeep, put an age counter on this permanent, then sacrifice it unless you pay its upkeep cost for each age counter on it.",
+   "card": "Braid of Fire",
+   "count": 1
+  },
+  {
+   "keyword": "CUMULATIVE_UPKEEP",
+   "title": "Cumulative upkeep—Discard a card",
+   "reminder": "At the beginning of your upkeep, put an age counter on this permanent, then sacrifice it unless you pay its upkeep cost for each age counter on it.",
+   "card": "Vexing Sphinx",
+   "count": 1
+  },
+  {
+   "keyword": "CUMULATIVE_UPKEEP",
+   "title": "Cumulative upkeep—Draw a Card",
+   "reminder": "At the beginning of your upkeep, put an age counter on this permanent, then sacrifice it unless you pay its upkeep cost for each age counter on it.",
+   "card": "Psychic Vortex",
+   "count": 1
+  },
+  {
+   "keyword": "CUMULATIVE_UPKEEP",
+   "title": "Cumulative upkeep—Exile a card from your library",
+   "reminder": "At the beginning of your upkeep, put an age counter on this permanent, then sacrifice it unless you pay its upkeep cost for each age counter on it.",
+   "card": "Thought Lash",
+   "count": 1
+  },
+  {
+   "keyword": "CUMULATIVE_UPKEEP",
+   "title": "Cumulative upkeep—Gain control of 1 land you don't control",
+   "reminder": "At the beginning of your upkeep, put an age counter on this permanent, then sacrifice it unless you pay its upkeep cost for each age counter on it.",
+   "card": "Herald of Leshrac",
+   "count": 1
+  },
+  {
+   "keyword": "CUMULATIVE_UPKEEP",
+   "title": "Cumulative upkeep—Have an opponent gain 1 life",
+   "reminder": "At the beginning of your upkeep, put an age counter on this permanent, then sacrifice it unless you pay its upkeep cost for each age counter on it.",
+   "card": "Wall of Shards",
+   "count": 1
+  },
+  {
+   "keyword": "CUMULATIVE_UPKEEP",
+   "title": "Cumulative upkeep—Pay 1 life",
+   "reminder": "At the beginning of your upkeep, put an age counter on this permanent, then sacrifice it unless you pay its upkeep cost for each age counter on it.",
+   "card": "Dystopia",
+   "count": 3
+  },
+  {
+   "keyword": "CUMULATIVE_UPKEEP",
+   "title": "Cumulative upkeep—Pay 2 life",
+   "reminder": "At the beginning of your upkeep, put an age counter on this permanent, then sacrifice it unless you pay its upkeep cost for each age counter on it.",
+   "card": "Glacial Chasm",
+   "count": 2
+  },
+  {
+   "keyword": "CUMULATIVE_UPKEEP",
+   "title": "Cumulative upkeep—Put a -1/-1 counter on Aboroth",
+   "reminder": "At the beginning of your upkeep, put an age counter on this permanent, then sacrifice it unless you pay its upkeep cost for each age counter on it.",
+   "card": "Aboroth",
+   "count": 1
+  },
+  {
+   "keyword": "CUMULATIVE_UPKEEP",
+   "title": "Cumulative upkeep—Put a +1/+1 counter on creature an opponent controls",
+   "reminder": "At the beginning of your upkeep, put an age counter on this permanent, then sacrifice it unless you pay its upkeep cost for each age counter on it.",
+   "card": "Sheltering Ancient",
+   "count": 1
+  },
+  {
+   "keyword": "CUMULATIVE_UPKEEP",
+   "title": "Cumulative upkeep—Put two Cards from the same Graveyard on the bottom of their owner's library",
+   "reminder": "At the beginning of your upkeep, put an age counter on this permanent, then sacrifice it unless you pay its upkeep cost for each age counter on it.",
+   "card": "Jötun Grunt",
+   "count": 1
+  },
+  {
+   "keyword": "CUMULATIVE_UPKEEP",
+   "title": "Cumulative upkeep—Sacrifice a creature",
+   "reminder": "At the beginning of your upkeep, put an age counter on this permanent, then sacrifice it unless you pay its upkeep cost for each age counter on it.",
+   "card": "Phyrexian Soulgorger",
+   "count": 1
+  },
+  {
+   "keyword": "CUMULATIVE_UPKEEP",
+   "title": "Cumulative upkeep—Sacrifice a land",
+   "reminder": "At the beginning of your upkeep, put an age counter on this permanent, then sacrifice it unless you pay its upkeep cost for each age counter on it.",
+   "card": "Polar Kraken",
+   "count": 1
+  },
+  {
+   "keyword": "CYCLING",
+   "title": "Cycling {2}{G}",
+   "reminder": "{2}{G}, Discard this card: Draw a card.",
+   "cost": "{2}{G}",
+   "card": "Agonasaur Rex",
+   "count": 304
+  },
+  {
+   "keyword": "CYCLING",
+   "title": "Cycling—Pay 2 life",
+   "reminder": "Pay 2 life, Discard this card: Draw a card.",
+   "card": "Street Wraith",
+   "count": 1
+  },
+  {
+   "keyword": "CYCLING",
+   "title": "Cycling—Sacrifice a land",
+   "reminder": "Sacrifice a land, Discard this card: Draw a card.",
+   "card": "Edge of Autumn",
+   "count": 1
+  },
+  {
+   "keyword": "DASH",
+   "title": "Dash {2}{B}",
+   "reminder": "You may cast this spell for its dash cost. If you do, it gains haste, and it's returned from the battlefield to its owner's hand at the beginning of the next end step.",
+   "cost": "{2}{B}",
+   "card": "Alesha's Vanguard",
+   "count": 22
+  },
+  {
+   "keyword": "DAYBOUND",
+   "title": "Daybound",
+   "reminder": "If a player casts no spells during their own turn, it becomes night next turn.",
+   "card": "Arlinn, the Pack's Hope",
+   "count": 36
+  },
+  {
+   "keyword": "DEATHTOUCH",
+   "title": "Deathtouch",
+   "reminder": "Any amount of damage this deals to a creature is enough to destroy it.",
+   "card": "A-Guildsworn Prowler",
+   "count": 354
+  },
+  {
+   "keyword": "DECAYED",
+   "title": "Decayed",
+   "reminder": "This creature can't block. When it attacks, sacrifice it at end of combat.",
+   "card": "Rot-Curse Rakshasa",
+   "count": 1
+  },
+  {
+   "keyword": "DEFENDER",
+   "title": "Defender",
+   "reminder": "This creature can't attack.",
+   "card": "Academy Wall",
+   "count": 310
+  },
+  {
+   "keyword": "DELVE",
+   "title": "Delve",
+   "reminder": "As an additional cost to cast this spell, you may exile any number of cards from your graveyard. Each card exiled this way reduces the cost to cast this spell by {1}.",
+   "card": "Afterlife from the Loam",
+   "count": 29
+  },
+  {
+   "keyword": "DEMONSTRATE",
+   "title": "Demonstrate",
+   "reminder": "When you cast this spell, you may copy it. If you do, choose an opponent to also copy it. Players may choose new targets for their copies.",
+   "card": "Creative Technique",
+   "count": 6
+  },
+  {
+   "keyword": "DETHRONE",
+   "title": "Dethrone",
+   "reminder": "Whenever this creature attacks the player with the most life or tied for the most life, put a +1/+1 counter on it.",
+   "card": "Enraged Revolutionary",
+   "count": 9
+  },
+  {
+   "keyword": "DEVOID",
+   "title": "Devoid",
+   "reminder": "This card has no color.",
+   "card": "Abstruse Appropriation",
+   "count": 132
+  },
+  {
+   "keyword": "DEVOUR",
+   "title": "Devour 1",
+   "reminder": "As this object enters, you may sacrifice any number of creatures. This permanent enters with a +1/+1 counter on it for each permanent sacrificed this way.",
+   "amount": "1",
+   "detail": "creature",
+   "card": "Bloodspore Thrinax",
+   "count": 20
+  },
+  {
+   "keyword": "DEVOUR",
+   "title": "Devour artifact 1",
+   "reminder": "As this object enters, you may sacrifice any number of artifacts. This permanent enters with a +1/+1 counter on it for each permanent sacrificed this way.",
+   "amount": "1",
+   "detail": "artifact",
+   "card": "Caprichrome",
+   "count": 1
+  },
+  {
+   "keyword": "DEVOUR",
+   "title": "Devour Food 3",
+   "reminder": "As this object enters, you may sacrifice any number of Foods. This permanent enters with three +1/+1 counters on it for each permanent sacrificed this way.",
+   "amount": "3",
+   "detail": "Food",
+   "card": "Feasting Hobbit",
+   "count": 1
+  },
+  {
+   "keyword": "DEVOUR",
+   "title": "Devour land 3",
+   "reminder": "As this object enters, you may sacrifice any number of lands. This permanent enters with three +1/+1 counters on it for each permanent sacrificed this way.",
+   "amount": "3",
+   "detail": "land",
+   "card": "Famished Worldsire",
+   "count": 1
+  },
+  {
+   "keyword": "DEVOUR",
+   "title": "Devour X, where X is the number of creatures devoured this way",
+   "reminder": "As this object enters, you may sacrifice any number of creatures. This permanent enters with X +1/+1 counters on it for each permanent sacrificed this way.",
+   "amount": "X",
+   "detail": "creature",
+   "card": "Thromok the Insatiable",
+   "count": 1
+  },
+  {
+   "keyword": "DISGUISE",
+   "title": "Disguise {4}{B}{B}",
+   "reminder": "You may cast this card face down for {3} as a 2/2 creature with ward {2}. Turn it face up any time for its disguise cost.",
+   "cost": "{4}{B}{B}",
+   "card": "Alley Assailant",
+   "count": 47
+  },
+  {
+   "keyword": "DISTURB",
+   "title": "Disturb {U}",
+   "reminder": "You may cast this card from your graveyard transformed for its disturb cost.",
+   "cost": "{U}",
+   "card": "A-Binding Geist",
+   "count": 32
+  },
+  {
+   "keyword": "DOCTORS_COMPANION",
+   "title": "Doctor's companion",
+   "reminder": "You can have two commanders if the other is the Doctor.",
+   "card": "Ace, Fearless Rebel",
+   "count": 27
+  },
+  {
+   "keyword": "DOUBLE_STRIKE",
+   "title": "Double Strike",
+   "reminder": "This creature deals both first-strike and regular combat damage.",
+   "card": "Adorned Pouncer",
+   "count": 131
+  },
+  {
+   "keyword": "DOUBLE_TEAM",
+   "title": "Double team",
+   "reminder": "When this creature attacks, if it's not a token, conjure a duplicate of it into your hand. Then both cards perpetually lose double team.",
+   "card": "Amber-Plate Ainok",
+   "count": 18
+  },
+  {
+   "keyword": "DREDGE",
+   "title": "Dredge 2",
+   "reminder": "If you would draw a card, instead you may put exactly two cards from the top of your library into your graveyard. If you do, return this card from your graveyard to your hand. Otherwise, draw a card.",
+   "amount": "2",
+   "card": "Dakmor Salvage",
+   "count": 14
+  },
+  {
+   "keyword": "ECHO",
+   "title": "Echo {1}{G}",
+   "reminder": "At the beginning of your upkeep, if this permanent came under your control since the beginning of your last upkeep, sacrifice it unless you pay its echo cost.",
+   "cost": "{1}{G}",
+   "card": "Acridian",
+   "count": 49
+  },
+  {
+   "keyword": "ECHO",
+   "title": "Echo—Discard a card",
+   "reminder": "At the beginning of your upkeep, if this permanent came under your control since the beginning of your last upkeep, sacrifice it unless you pay its echo cost.",
+   "card": "Deepcavern Imp",
+   "count": 2
+  },
+  {
+   "keyword": "ECHO",
+   "title": "Echo—Sacrifice two lands",
+   "reminder": "At the beginning of your upkeep, if this permanent came under your control since the beginning of your last upkeep, sacrifice it unless you pay its echo cost.",
+   "card": "Skizzik Surger",
+   "count": 1
+  },
+  {
+   "keyword": "EMBALM",
+   "title": "Embalm {5}{W}",
+   "reminder": "{5}{W}, Exile this card from your graveyard: Create a token that's a copy of this card, except it's white, it has no mana cost, and it's a Zombie in addition to its other types. Embalm only as a sorcery.",
+   "cost": "{5}{W}",
+   "card": "Angel of Sanctions",
+   "count": 15
+  },
+  {
+   "keyword": "EMERGE",
+   "title": "Emerge {6}{B}",
+   "reminder": "You may cast this spell by sacrificing a creature and paying the emerge cost reduced by that creature's mana value.",
+   "cost": "{6}{B}",
+   "detail": "creature",
+   "card": "Abundant Maw",
+   "count": 14
+  },
+  {
+   "keyword": "EMERGE",
+   "title": "Emerge from artifact {5}{B}{B}",
+   "reminder": "You may cast this spell by sacrificing an artifact and paying the emerge cost reduced by that artifact's mana value.",
+   "cost": "{5}{B}{B}",
+   "detail": "artifact",
+   "card": "Crabomination",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant artifact",
+   "reminder": "Target a artifact as you cast this. This card enters attached to that artifact.",
+   "detail": "artifact",
+   "card": "A-Mightstone's Animation",
+   "count": 20
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant artifact an opponent controls",
+   "reminder": "Target a artifact an opponent controls as you cast this. This card enters attached to that artifact an opponent controls.",
+   "detail": "artifact an opponent controls",
+   "card": "Relic Bind",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant artifact creature",
+   "reminder": "Target a artifact creature as you cast this. This card enters attached to that artifact creature.",
+   "detail": "artifact creature",
+   "card": "Domineer",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant artifact or creature",
+   "reminder": "Target a artifact or creature as you cast this. This card enters attached to that artifact or creature.",
+   "detail": "artifact or creature",
+   "card": "Akki War Paint",
+   "count": 22
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant artifact or creature you control",
+   "reminder": "Target a artifact or creature you control as you cast this. This card enters attached to that artifact or creature you control.",
+   "detail": "artifact or creature you control",
+   "card": "Moonlit Meditation",
+   "count": 2
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant artifact or enchantment",
+   "reminder": "Target a artifact or enchantment as you cast this. This card enters attached to that artifact or enchantment.",
+   "detail": "artifact or enchantment",
+   "card": "Quiet Disrepair",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant artifact or land",
+   "reminder": "Target a artifact or land as you cast this. This card enters attached to that artifact or land.",
+   "detail": "artifact or land",
+   "card": "Bigger on the Inside",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant artifact or non-Aura enchantment",
+   "reminder": "Target a artifact or non-Aura enchantment as you cast this. This card enters attached to that artifact or non-Aura enchantment.",
+   "detail": "artifact or non-Aura enchantment",
+   "card": "Puppet Crafting",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant artifact you control",
+   "reminder": "Target a artifact you control as you cast this. This card enters attached to that artifact you control.",
+   "detail": "artifact you control",
+   "card": "Hardlight Containment",
+   "count": 2
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant artifact, creature, or planeswalker",
+   "reminder": "Target a artifact, creature, or planeswalker as you cast this. This card enters attached to that artifact, creature, or planeswalker.",
+   "detail": "artifact, creature, or planeswalker",
+   "card": "Planar Disruption",
+   "count": 2
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant basic land you control",
+   "reminder": "Target a basic land you control as you cast this. This card enters attached to that basic land you control.",
+   "detail": "basic land you control",
+   "card": "Dimensional Exile",
+   "count": 2
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant black creature",
+   "reminder": "Target a black creature as you cast this. This card enters attached to that black creature.",
+   "detail": "black creature",
+   "card": "Decomposition",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant creature",
+   "reminder": "Target a creature as you cast this. This card enters attached to that creature.",
+   "detail": "creature",
+   "card": "A-Spectral Binding",
+   "count": 910
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant creature an opponent controls",
+   "reminder": "Target a creature an opponent controls as you cast this. This card enters attached to that creature an opponent controls.",
+   "detail": "creature an opponent controls",
+   "card": "Betrayal",
+   "count": 5
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant creature card in a graveyard",
+   "reminder": "Target a creature card in a graveyard as you cast this. This card enters attached to that creature card in a graveyard.",
+   "detail": "creature card in a graveyard",
+   "card": "Animate Dead",
+   "count": 2
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant creature or enchantment",
+   "reminder": "Target a creature or enchantment as you cast this. This card enters attached to that creature or enchantment.",
+   "detail": "creature or enchantment",
+   "card": "Enchantmentize",
+   "count": 2
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant creature or Food",
+   "reminder": "Target a creature or Food as you cast this. This card enters attached to that creature or Food.",
+   "detail": "creature or Food",
+   "card": "Sugar Coat",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant creature or land",
+   "reminder": "Target a creature or land as you cast this. This card enters attached to that creature or land.",
+   "detail": "creature or land",
+   "card": "Brink of Disaster",
+   "count": 3
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant creature or planeswalker",
+   "reminder": "Target a creature or planeswalker as you cast this. This card enters attached to that creature or planeswalker.",
+   "detail": "creature or planeswalker",
+   "card": "Hold for Questioning",
+   "count": 2
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant creature or planeswalker an opponent controls",
+   "reminder": "Target a creature or planeswalker an opponent controls as you cast this. This card enters attached to that creature or planeswalker an opponent controls.",
+   "detail": "creature or planeswalker an opponent controls",
+   "card": "Strangling Grasp",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant creature or planeswalker you control",
+   "reminder": "Target a creature or planeswalker you control as you cast this. This card enters attached to that creature or planeswalker you control.",
+   "detail": "creature or planeswalker you control",
+   "card": "Kaya's Ghostform",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant creature or planeswalker you don't control",
+   "reminder": "Target a creature or planeswalker you don't control as you cast this. This card enters attached to that creature or planeswalker you don't control.",
+   "detail": "creature or planeswalker you don't control",
+   "card": "Seatower Imprisonment",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant creature or Spacecraft",
+   "reminder": "Target a creature or Spacecraft as you cast this. This card enters attached to that creature or Spacecraft.",
+   "detail": "creature or Spacecraft",
+   "card": "Tractor Beam",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant creature or Vehicle",
+   "reminder": "Target a creature or Vehicle as you cast this. This card enters attached to that creature or Vehicle.",
+   "detail": "creature or Vehicle",
+   "card": "Aerial Modification",
+   "count": 10
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant creature with another Aura attached to it",
+   "reminder": "Target a creature with another Aura attached to it as you cast this. This card enters attached to that creature with another Aura attached to it.",
+   "detail": "creature with another Aura attached to it",
+   "card": "Daybreak Coronet",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant creature with mana value 2 or less",
+   "reminder": "Target a creature with mana value 2 or less as you cast this. This card enters attached to that creature with mana value 2 or less.",
+   "detail": "creature with mana value 2 or less",
+   "card": "Threads of Disloyalty",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant creature with power 3 or less",
+   "reminder": "Target a creature with power 3 or less as you cast this. This card enters attached to that creature with power 3 or less.",
+   "detail": "creature with power 3 or less",
+   "card": "Runner's Bane",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant creature without flying",
+   "reminder": "Target a creature without flying as you cast this. This card enters attached to that creature without flying.",
+   "detail": "creature without flying",
+   "card": "Roots",
+   "count": 2
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant creature you control",
+   "reminder": "Target a creature you control as you cast this. This card enters attached to that creature you control.",
+   "detail": "creature you control",
+   "card": "Accelerated Evolution",
+   "count": 54
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant creature you don't control",
+   "reminder": "Target a creature you don't control as you cast this. This card enters attached to that creature you don't control.",
+   "detail": "creature you don't control",
+   "card": "Captured by the Consulate",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant creature, land, or planeswalker",
+   "reminder": "Target a creature, land, or planeswalker as you cast this. This card enters attached to that creature, land, or planeswalker.",
+   "detail": "creature, land, or planeswalker",
+   "card": "Imprisoned in the Moon",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant creature, planeswalker, or Clue",
+   "reminder": "Target a creature, planeswalker, or Clue as you cast this. This card enters attached to that creature, planeswalker, or Clue.",
+   "detail": "creature, planeswalker, or Clue",
+   "card": "In Too Deep",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant enchantment",
+   "reminder": "Target a enchantment as you cast this. This card enters attached to that enchantment.",
+   "detail": "enchantment",
+   "card": "Feedback",
+   "count": 4
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant Equipment",
+   "reminder": "Target a Equipment as you cast this. This card enters attached to that Equipment.",
+   "detail": "Equipment",
+   "card": "Artificer's Hex",
+   "count": 2
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant Forest",
+   "reminder": "Target a Forest as you cast this. This card enters attached to that Forest.",
+   "detail": "Forest",
+   "card": "Genju of the Cedars",
+   "count": 2
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant Forest or Plains",
+   "reminder": "Target a Forest or Plains as you cast this. This card enters attached to that Forest or Plains.",
+   "detail": "Forest or Plains",
+   "card": "Corrupted Roots",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant Giant you control",
+   "reminder": "Target a Giant you control as you cast this. This card enters attached to that Giant you control.",
+   "detail": "Giant you control",
+   "card": "Giant's Grasp",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant green creature",
+   "reminder": "Target a green creature as you cast this. This card enters attached to that green creature.",
+   "detail": "green creature",
+   "card": "Wurmweaver Coil",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant green or white creature",
+   "reminder": "Target a green or white creature as you cast this. This card enters attached to that green or white creature.",
+   "detail": "green or white creature",
+   "card": "Coral Net",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant instant card in a graveyard",
+   "reminder": "Target a instant card in a graveyard as you cast this. This card enters attached to that instant card in a graveyard.",
+   "detail": "instant card in a graveyard",
+   "card": "Spellweaver Volute",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant Island",
+   "reminder": "Target a Island as you cast this. This card enters attached to that Island.",
+   "detail": "Island",
+   "card": "Genju of the Falls",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant land",
+   "reminder": "Target a land as you cast this. This card enters attached to that land.",
+   "detail": "land",
+   "card": "A-Find the Path",
+   "count": 85
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant land you control",
+   "reminder": "Target a land you control as you cast this. This card enters attached to that land you control.",
+   "detail": "land you control",
+   "card": "Caribou Range",
+   "count": 5
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant Land you control",
+   "reminder": "Target a Land you control as you cast this. This card enters attached to that Land you control.",
+   "detail": "Land you control",
+   "card": "Crackling Emergence",
+   "count": 2
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant legendary creature",
+   "reminder": "Target a legendary creature as you cast this. This card enters attached to that legendary creature.",
+   "detail": "legendary creature",
+   "card": "Leyline Immersion",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant modified creature",
+   "reminder": "Target a modified creature as you cast this. This card enters attached to that modified creature.",
+   "detail": "modified creature",
+   "card": "Lion Umbra",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant Mountain",
+   "reminder": "Target a Mountain as you cast this. This card enters attached to that Mountain.",
+   "detail": "Mountain",
+   "card": "Awaken the Ancient",
+   "count": 2
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant Mountain you control",
+   "reminder": "Target a Mountain you control as you cast this. This card enters attached to that Mountain you control.",
+   "detail": "Mountain you control",
+   "card": "Chained to the Rocks",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant non-Wall creature",
+   "reminder": "Target a non-Wall creature as you cast this. This card enters attached to that non-Wall creature.",
+   "detail": "non-Wall creature",
+   "card": "Aggression",
+   "count": 2
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant non-Wall creature you control",
+   "reminder": "Target a non-Wall creature you control as you cast this. This card enters attached to that non-Wall creature you control.",
+   "detail": "non-Wall creature you control",
+   "card": "Krovikan Plague",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant nonbasic land",
+   "reminder": "Target a nonbasic land as you cast this. This card enters attached to that nonbasic land.",
+   "detail": "nonbasic land",
+   "card": "Uncontrolled Infestation",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant nonblack creature",
+   "reminder": "Target a nonblack creature as you cast this. This card enters attached to that nonblack creature.",
+   "detail": "nonblack creature",
+   "card": "Armor of Thorns",
+   "count": 2
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant noncommander creature",
+   "reminder": "Target a noncommander creature as you cast this. This card enters attached to that noncommander creature.",
+   "detail": "noncommander creature",
+   "card": "Become the Pilot",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant nonland permanent",
+   "reminder": "Target a nonland permanent as you cast this. This card enters attached to that nonland permanent.",
+   "detail": "nonland permanent",
+   "card": "Detention Vortex",
+   "count": 5
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant opponent",
+   "reminder": "Target a opponent as you cast this. This card enters attached to that opponent.",
+   "detail": "opponent",
+   "card": "Archnemesis",
+   "count": 4
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant permanent",
+   "reminder": "Target a permanent as you cast this. This card enters attached to that permanent.",
+   "detail": "permanent",
+   "card": "Bound in Gold",
+   "count": 22
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant Plains",
+   "reminder": "Target a Plains as you cast this. This card enters attached to that Plains.",
+   "detail": "Plains",
+   "card": "Genju of the Fields",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant planeswalker",
+   "reminder": "Target a planeswalker as you cast this. This card enters attached to that planeswalker.",
+   "detail": "planeswalker",
+   "card": "Elspeth's Talent",
+   "count": 5
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant player",
+   "reminder": "Target a player as you cast this. This card enters attached to that player.",
+   "detail": "player",
+   "card": "Infectious Curse",
+   "count": 46
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant red or green creature",
+   "reminder": "Target a red or green creature as you cast this. This card enters attached to that red or green creature.",
+   "detail": "red or green creature",
+   "card": "Controlled Instincts",
+   "count": 3
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant snow land you control",
+   "reminder": "Target a snow land you control as you cast this. This card enters attached to that snow land you control.",
+   "detail": "snow land you control",
+   "card": "On Thin Ice",
+   "count": 1
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant Swamp",
+   "reminder": "Target a Swamp as you cast this. This card enters attached to that Swamp.",
+   "detail": "Swamp",
+   "card": "Genju of the Fens",
+   "count": 2
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant tapped creature",
+   "reminder": "Target a tapped creature as you cast this. This card enters attached to that tapped creature.",
+   "detail": "tapped creature",
+   "card": "Entangling Vines",
+   "count": 2
+  },
+  {
+   "keyword": "ENCHANT",
+   "title": "Enchant Wall",
+   "reminder": "Target a Wall as you cast this. This card enters attached to that Wall.",
+   "detail": "Wall",
+   "card": "Animate Wall",
+   "count": 1
+  },
+  {
+   "keyword": "ENCORE",
+   "title": "Encore {4}{U}{U}",
+   "reminder": "{4}{U}{U}, Exile this card from your graveyard: For each opponent, create a token copy that attacks that opponent this turn if able. They gain haste. Sacrifice them at the beginning of the next end step. Activate only as a sorcery.",
+   "cost": "{4}{U}{U}",
+   "card": "Amphin Mutineer",
+   "count": 26
+  },
+  {
+   "keyword": "ENLIST",
+   "title": "Enlist",
+   "reminder": "As this creature attacks, you may tap a nonattacking creature you control without summoning sickness. When you do, add its power to this creature’s until end of turn.",
+   "card": "Aradesh, the Founder",
+   "count": 15
+  },
+  {
+   "keyword": "ENTWINE",
+   "title": "Entwine {2}",
+   "reminder": "Choose both if you pay the entwine cost.",
+   "cost": "{2}",
+   "card": "Abuna's Chant",
+   "count": 30
+  },
+  {
+   "keyword": "ENTWINE",
+   "title": "Entwine—Sacrifice three lands",
+   "reminder": "Choose both if you pay the entwine cost.",
+   "card": "Betrayal of Flesh",
+   "count": 1
+  },
+  {
+   "keyword": "ENTWINE",
+   "title": "Entwine—Sacrifice two lands",
+   "reminder": "Choose both if you pay the entwine cost.",
+   "card": "Solar Tide",
+   "count": 1
+  },
+  {
+   "keyword": "EPIC",
+   "title": "Epic",
+   "reminder": "For the rest of the game, you can't cast spells. At the beginning of each of your upkeeps for the rest of the game, copy this spell except for its epic ability. If the spell has any targets, you may choose new targets for the copy.",
+   "card": "Endless Swarm",
+   "count": 5
+  },
+  {
+   "keyword": "EQUIP",
+   "title": "Equip {3}",
+   "reminder": "{3}: Attach to target creature you control. Equip only as a sorcery.",
+   "cost": "{3}",
+   "card": "+2 Mace",
+   "count": 604
+  },
+  {
+   "keyword": "EQUIP",
+   "title": "Equip {3}",
+   "reminder": "{3}: Attach to target  you control. Equip only as a sorcery.",
+   "cost": "{3}",
+   "card": "A-Plate Armor",
+   "count": 33
+  },
+  {
+   "keyword": "EQUIP",
+   "title": "Equip—{2}, Pay 2 life",
+   "reminder": "{2}, Pay 2 life: Attach to target creature you control. Equip only as a sorcery.",
+   "card": "My Precious",
+   "count": 1
+  },
+  {
+   "keyword": "EQUIP",
+   "title": "Equip—Discard a card",
+   "reminder": "Discard a card: Attach to target creature you control. Equip only as a sorcery.",
+   "card": "Murderer's Axe",
+   "count": 2
+  },
+  {
+   "keyword": "EQUIP",
+   "title": "Equip—Pay {E}{E}",
+   "reminder": "Pay {E}{E}: Attach to target creature you control. Equip only as a sorcery.",
+   "card": "Inventor's Axe",
+   "count": 1
+  },
+  {
+   "keyword": "EQUIP",
+   "title": "Equip—Pay 1 life for each card in your hand",
+   "reminder": "Pay 1 life for each card in your hand: Attach to target creature you control. Equip only as a sorcery.",
+   "card": "Hand of Vecna",
+   "count": 1
+  },
+  {
+   "keyword": "EQUIP",
+   "title": "Equip—Pay 3 life",
+   "reminder": "Pay 3 life: Attach to target  you control. Equip only as a sorcery.",
+   "card": "Dark Knight's Greatsword",
+   "count": 3
+  },
+  {
+   "keyword": "EQUIP",
+   "title": "Equip—Remove a charge counter from Siegel der Anerkennung",
+   "reminder": "Remove a charge counter from Siegel der Anerkennung: Attach to target creature you control. Equip only as a sorcery.",
+   "card": "Sigil of Distinction",
+   "count": 1
+  },
+  {
+   "keyword": "EQUIP",
+   "title": "Equip—Sacrifice a creature",
+   "reminder": "Sacrifice a creature: Attach to target creature you control. Equip only as a sorcery.",
+   "card": "Demonmail Hauberk",
+   "count": 2
+  },
+  {
+   "keyword": "EQUIP",
+   "title": "Equip—Sacrifice an artifact",
+   "reminder": "Sacrifice an artifact: Attach to target creature you control. Equip only as a sorcery.",
+   "card": "Piston Sledge",
+   "count": 1
+  },
+  {
+   "keyword": "EQUIP",
+   "title": "Equip—Sacrifice another nonland permanent",
+   "reminder": "Sacrifice another nonland permanent: Attach to target ActivationLimit$ 1 you control. Equip only as a sorcery.",
+   "card": "Shredder's Armor",
+   "count": 1
+  },
+  {
+   "keyword": "ESCALATE",
+   "title": "Escalate {2}",
+   "reminder": "Pay this cost for each mode chosen beyond the first.",
+   "cost": "{2}",
+   "card": "Blessed Alliance",
+   "count": 7
+  },
+  {
+   "keyword": "ESCALATE",
+   "title": "Escalate—Discard a card",
+   "reminder": "Pay this cost for each mode chosen beyond the first.",
+   "card": "Collective Brutality",
+   "count": 1
+  },
+  {
+   "keyword": "ESCALATE",
+   "title": "Escalate—Tap an untapped creature you control",
+   "reminder": "Pay this cost for each mode chosen beyond the first.",
+   "card": "Collective Effort",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{1}{R}, Exile two other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Escape Velocity",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{1}{W}, Exile two other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Unbreakable Remnant",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{2}{B}, Exile any number of other cards from your graveyard with four or more card types among them from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Nethergoyf",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{2}{B}, Exile two other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Mogis's Favor",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{2}{R}, Exile three other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Alex Wilder, Runaway",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{2}{R}, Exile two other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Satyr's Cunning",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{2}{R}{R}, Exile three other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Phoenix of Ash",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{2}{U}, Exile five other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Glimpse of Freedom",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{2}{U}, Exile three other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Sleep of the Dead",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{2}{U}{R}, Exile four other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Run for Your Life",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{3}{B}, Exile five other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Cling to Dust",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{3}{B}, Exile four other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Charred Graverobber",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{3}{B}, Exile three other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Fruit of Tizerus",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{3}{B}{B}, Exile five other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "From the Catacombs",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{3}{B}{B}, Exile four other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Woe Strider",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{3}{G}{G}, Exile four other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Chainweb Aracnir",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{3}{R}, Exile three other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Underworld Rage-Hound",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{3}{R}{G}, Exile three other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Bloodbraid Challenger",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{3}{U}, Exile five other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Skyway Robber",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{3}{U}, Exile four other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Sweet Oblivion",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{4}{B}, Exile five other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Tizerus Charger",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{4}{B}, Exile three Card.Other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Underworld Charger",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{4}{B}{G}, Exile six other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Polukranos, Unchained",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{4}{G}, Exile three other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Loathsome Chimera",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{4}{G}{U}, Exile a land you control, Exile five other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Lunar Hatchling",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{4}{W}{W}, Exile four other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Elspeth, Sun's Nemesis",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{5}{B}, Exile three other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Pharika's Spawn",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{5}{G}{G}, Exile four other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Voracious Typhon",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{B}{B}{R}{R}, Exile five other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Kroxa, Titan of Death's Hunger",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{G}{G}{U}{U}, Exile five other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Uro, Titan of Nature's Wrath",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{R}{R}, Exile eight other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Ox of Agonas",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{R}{R}{W}{W}, Exile five other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Phlage, Titan of Fire's Fury",
+   "count": 1
+  },
+  {
+   "keyword": "ESCAPE",
+   "title": "Escape—{W}, Exile two other cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its escape cost.",
+   "card": "Sentinel's Eyes",
+   "count": 1
+  },
+  {
+   "keyword": "ETERNALIZE",
+   "title": "Eternalize {3}{W}{W}",
+   "reminder": "{3}{W}{W}, Exile this card from your graveyard: Create a token that's a copy of this card, except it's black, it's 4/4, it has no mana cost, and it's a Zombie in addition to its other types. Eternalize only as a sorcery.",
+   "cost": "{3}{W}{W}",
+   "card": "Adorned Pouncer",
+   "count": 10
+  },
+  {
+   "keyword": "ETERNALIZE",
+   "title": "Eternalize—{2}{W}{W}, Discard a card",
+   "reminder": "{2}{W}{W}, Discard a card, Exile this card from your graveyard: Create a token that's a copy of this card, except it's black, it's 4/4, it has no mana cost, and it's a Zombie in addition to its other types. Eternalize only as a sorcery.",
+   "card": "Sunscourge Champion",
+   "count": 1
+  },
+  {
+   "keyword": "ETERNALIZE",
+   "title": "Eternalize—{3}{U}{U}, Discard a card",
+   "reminder": "{3}{U}{U}, Discard a card, Exile this card from your graveyard: Create a token that's a copy of this card, except it's black, it's 4/4, it has no mana cost, and it's a Zombie in addition to its other types. Eternalize only as a sorcery.",
+   "card": "Sinuous Striker",
+   "count": 1
+  },
+  {
+   "keyword": "EVOKE",
+   "title": "Evoke {1}{U}{U}",
+   "reminder": "You may cast this spell for its evoke cost. If you do, it's sacrificed when it enters.",
+   "cost": "{1}{U}{U}",
+   "card": "Aethersnipe",
+   "count": 30
+  },
+  {
+   "keyword": "EVOKE",
+   "title": "Evoke—{1}{B}{B}, Pay 3 life",
+   "reminder": "You may cast this spell for its evoke cost. If you do, it's sacrificed when it enters.",
+   "card": "Infestation",
+   "count": 1
+  },
+  {
+   "keyword": "EVOKE",
+   "title": "Evoke—Exile a black card from your hand",
+   "reminder": "You may cast this spell for its evoke cost. If you do, it's sacrificed when it enters.",
+   "card": "Grief",
+   "count": 1
+  },
+  {
+   "keyword": "EVOKE",
+   "title": "Evoke—Exile a blue card from your hand",
+   "reminder": "You may cast this spell for its evoke cost. If you do, it's sacrificed when it enters.",
+   "card": "Subtlety",
+   "count": 1
+  },
+  {
+   "keyword": "EVOKE",
+   "title": "Evoke—Exile a green card from your hand",
+   "reminder": "You may cast this spell for its evoke cost. If you do, it's sacrificed when it enters.",
+   "card": "Endurance",
+   "count": 1
+  },
+  {
+   "keyword": "EVOKE",
+   "title": "Evoke—Exile a red card from your hand",
+   "reminder": "You may cast this spell for its evoke cost. If you do, it's sacrificed when it enters.",
+   "card": "Fury",
+   "count": 1
+  },
+  {
+   "keyword": "EVOKE",
+   "title": "Evoke—Exile a white card from your hand",
+   "reminder": "You may cast this spell for its evoke cost. If you do, it's sacrificed when it enters.",
+   "card": "Solitude",
+   "count": 1
+  },
+  {
+   "keyword": "EVOLVE",
+   "title": "Evolve",
+   "reminder": "Whenever a creature you control enters, if that creature has greater power or toughness than this creature, put a +1/+1 counter on this creature.",
+   "card": "Adaptive Snapjaw",
+   "count": 23
+  },
+  {
+   "keyword": "EXALTED",
+   "title": "Exalted",
+   "reminder": "Whenever a creature you control attacks alone, that creature gets +1/+1 until end of turn.",
+   "card": "Akrasan Squire",
+   "count": 35
+  },
+  {
+   "keyword": "EXPLOIT",
+   "title": "Exploit",
+   "reminder": "When this creature enters, you may sacrifice a creature.",
+   "card": "A-Skull Skaab",
+   "count": 25
+  },
+  {
+   "keyword": "EXTORT",
+   "title": "Extort",
+   "reminder": "Whenever you cast a spell, you may pay {W/B}. If you do, each opponent loses 1 life and you gain that much life.",
+   "card": "Basilica Guards",
+   "count": 19
+  },
+  {
+   "keyword": "FABRICATE",
+   "title": "Fabricate 1",
+   "reminder": "When this creature enters, put a +1/+1 counter on it, or create a 1/1 colorless Servo artifact creature token.",
+   "amount": "1",
+   "card": "Accomplished Automaton",
+   "count": 16
+  },
+  {
+   "keyword": "FADING",
+   "title": "Fading 5",
+   "reminder": "This permanent enters with five fade counters on it. At the beginning of your upkeep, remove a fade counter from it. If you can't, sacrifice it.",
+   "amount": "5",
+   "card": "Ancient Hydra",
+   "count": 18
+  },
+  {
+   "keyword": "FEAR",
+   "title": "Fear",
+   "reminder": "This creature can't be blocked except by artifact creatures and/or black creatures.",
+   "card": "Arcbound Fiend",
+   "count": 40
+  },
+  {
+   "keyword": "FIREBENDING",
+   "title": "Firebending 2",
+   "reminder": "Whenever this creature attacks, add {R}{R}. This mana lasts until end of combat.",
+   "amount": "2",
+   "card": "Avatar Aang",
+   "count": 26
+  },
+  {
+   "keyword": "FIRST_STRIKE",
+   "title": "First Strike",
+   "reminder": "This creature deals combat damage before creatures without first strike.",
+   "card": "A-Ocelot Pride",
+   "count": 395
+  },
+  {
+   "keyword": "FLANKING",
+   "title": "Flanking",
+   "reminder": "Whenever this creature becomes blocked by a creature without flanking, the blocking creature gets -1/-1 until end of turn.",
+   "card": "Benalish Cavalry",
+   "count": 30
+  },
+  {
+   "keyword": "FLASH",
+   "title": "Flash",
+   "reminder": "You may cast this spell any time you could cast an instant.",
+   "card": "A-Cosmos Charger",
+   "count": 638
+  },
+  {
+   "keyword": "FLASHBACK",
+   "title": "Flashback {3}{R}",
+   "reminder": "You may cast this card from your graveyard for its flashback cost. Then exile it.",
+   "cost": "{3}{R}",
+   "card": "Abandon the Post",
+   "count": 198
+  },
+  {
+   "keyword": "FLASHBACK",
+   "title": "Flashback—{1}{B}, Pay 3 life",
+   "reminder": "You may cast this card from your graveyard for its flashback cost. Then exile it.",
+   "card": "Crippling Fatigue",
+   "count": 1
+  },
+  {
+   "keyword": "FLASHBACK",
+   "title": "Flashback—{1}{G}, Pay 3 life",
+   "reminder": "You may cast this card from your graveyard for its flashback cost. Then exile it.",
+   "card": "Acorn Harvest",
+   "count": 1
+  },
+  {
+   "keyword": "FLASHBACK",
+   "title": "Flashback—{1}{R}, Behold three Elementals",
+   "reminder": "You may cast this card from your graveyard for its flashback cost. Then exile it.",
+   "card": "Kindle the Inner Flame",
+   "count": 1
+  },
+  {
+   "keyword": "FLASHBACK",
+   "title": "Flashback—{1}{R}, Pay 3 life",
+   "reminder": "You may cast this card from your graveyard for its flashback cost. Then exile it.",
+   "card": "Flash of Defiance",
+   "count": 1
+  },
+  {
+   "keyword": "FLASHBACK",
+   "title": "Flashback—{1}{U}, Exile any number of blue cards from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its flashback cost. Then exile it.",
+   "card": "Flash of Insight",
+   "count": 1
+  },
+  {
+   "keyword": "FLASHBACK",
+   "title": "Flashback—{1}{U}, Pay 3 life",
+   "reminder": "You may cast this card from your graveyard for its flashback cost. Then exile it.",
+   "card": "Deep Analysis",
+   "count": 1
+  },
+  {
+   "keyword": "FLASHBACK",
+   "title": "Flashback—{1}{U/R}{U/R}, Discard a card",
+   "reminder": "You may cast this card from your graveyard for its flashback cost. Then exile it.",
+   "card": "Twinned Vision",
+   "count": 1
+  },
+  {
+   "keyword": "FLASHBACK",
+   "title": "Flashback—{1}{W}, Pay 3 life",
+   "reminder": "You may cast this card from your graveyard for its flashback cost. Then exile it.",
+   "card": "Spirit Flare",
+   "count": 1
+  },
+  {
+   "keyword": "FLASHBACK",
+   "title": "Flashback—{3}{B}, Pay 3 life",
+   "reminder": "You may cast this card from your graveyard for its flashback cost. Then exile it.",
+   "card": "Incubob",
+   "count": 1
+  },
+  {
+   "keyword": "FLASHBACK",
+   "title": "Flashback—{3}{R}, Remove X loyalty counter from  among planeswalkers you control",
+   "reminder": "You may cast this card from your graveyard for its flashback cost. Then exile it.",
+   "card": "Light Up the Night",
+   "count": 1
+  },
+  {
+   "keyword": "FLASHBACK",
+   "title": "Flashback—{3}{U}{R}, Exile any number of card from your graveyard",
+   "reminder": "You may cast this card from your graveyard for its flashback cost. Then exile it.",
+   "card": "Summons of Saruman",
+   "count": 1
+  },
+  {
+   "keyword": "FLASHBACK",
+   "title": "Flashback—{R}{R}, Discard X card",
+   "reminder": "You may cast this card from your graveyard for its flashback cost. Then exile it.",
+   "card": "Conflagrate",
+   "count": 1
+  },
+  {
+   "keyword": "FLASHBACK",
+   "title": "Flashback—{R}{R}, You may sacrifice any number of mountains",
+   "reminder": "You may cast this card from your graveyard for its flashback cost. Then exile it.",
+   "card": "Firecat Blitz",
+   "count": 1
+  },
+  {
+   "keyword": "FLASHBACK",
+   "title": "Flashback—Sacrifice a creature",
+   "reminder": "You may cast this card from your graveyard for its flashback cost. Then exile it.",
+   "card": "Cabal Therapy",
+   "count": 1
+  },
+  {
+   "keyword": "FLASHBACK",
+   "title": "Flashback—Sacrifice a Mountain",
+   "reminder": "You may cast this card from your graveyard for its flashback cost. Then exile it.",
+   "card": "Lava Dart",
+   "count": 1
+  },
+  {
+   "keyword": "FLASHBACK",
+   "title": "Flashback—Sacrifice three creatures",
+   "reminder": "You may cast this card from your graveyard for its flashback cost. Then exile it.",
+   "card": "Dread Return",
+   "count": 1
+  },
+  {
+   "keyword": "FLASHBACK",
+   "title": "Flashback—Tap an untapped white creature you control",
+   "reminder": "You may cast this card from your graveyard for its flashback cost. Then exile it.",
+   "card": "Prismatic Strands",
+   "count": 1
+  },
+  {
+   "keyword": "FLASHBACK",
+   "title": "Flashback—Tap three untapped creatures you control",
+   "reminder": "You may cast this card from your graveyard for its flashback cost. Then exile it.",
+   "card": "Group Project",
+   "count": 1
+  },
+  {
+   "keyword": "FLASHBACK",
+   "title": "Flashback—Tap three untapped white creatures you control",
+   "reminder": "You may cast this card from your graveyard for its flashback cost. Then exile it.",
+   "card": "Battle Screech",
+   "count": 1
+  },
+  {
+   "keyword": "FLYING",
+   "title": "Flying",
+   "reminder": "This creature can't be blocked except by creatures with flying or reach.",
+   "card": "A-Hakka, Whispering Raven",
+   "count": 3334
+  },
+  {
+   "keyword": "FOR_MIRRODIN",
+   "title": "For Mirrodin",
+   "reminder": "When this Equipment enters, create a 2/2 red Rebel creature token, then attach this to it.",
+   "card": "Barbed Batterfist",
+   "count": 15
+  },
+  {
+   "keyword": "FORETELL",
+   "title": "Foretell {5}{U}{U}",
+   "reminder": "During your turn, you may pay {2} and exile this card from your hand face down. Cast it on a later turn for its foretell cost.",
+   "cost": "{5}{U}{U}",
+   "card": "A-Alrund's Epiphany",
+   "count": 55
+  },
+  {
+   "keyword": "FORTIFY",
+   "title": "Fortify {3}",
+   "reminder": "{3}: Attach to target land you control. Fortify only as a sorcery.",
+   "cost": "{3}",
+   "card": "C.A.M.P.",
+   "count": 2
+  },
+  {
+   "keyword": "FREERUNNING",
+   "title": "Freerunning {U}{B}",
+   "reminder": "You may cast this spell for its freerunning cost if you dealt combat damage to a player this turn with an Assassin or commander.",
+   "cost": "{U}{B}",
+   "card": "Achilles Davenport",
+   "count": 11
+  },
+  {
+   "keyword": "FREERUNNING",
+   "title": "Freerunning—Return a blue creature you control to its owner's hand",
+   "reminder": "You may cast this spell for its freerunning cost if you dealt combat damage to a player this turn with an Assassin or commander.",
+   "card": "Escape Detection",
+   "count": 1
+  },
+  {
+   "keyword": "FUSE",
+   "title": "Fuse",
+   "reminder": "You may cast one or both halves of this card from your hand.",
+   "card": "Alive // Well",
+   "count": 34
+  },
+  {
+   "keyword": "GIFT",
+   "title": "Gift",
+   "reminder": "You may promise an opponent a gift as you cast this spell. If you do, when it enters, they %s.",
+   "card": "Archival Whorl",
+   "count": 27
+  },
+  {
+   "keyword": "GRAFT",
+   "title": "Graft 2",
+   "reminder": "This permanent enters with two +1/+1 counters on it. Whenever another creature enters, you may move a +1/+1 counter from this permanent onto it.",
+   "amount": "2",
+   "card": "Aquastrand Spider",
+   "count": 13
+  },
+  {
+   "keyword": "GRAVESTORM",
+   "title": "Gravestorm",
+   "reminder": "When you cast this spell, copy it for each permanent that was put into a graveyard from the battlefield this turn. If the spell has any targets, you may choose new targets for any of the copies.",
+   "card": "Bitter Ordeal",
+   "count": 3
+  },
+  {
+   "keyword": "HARMONIZE",
+   "title": "Harmonize {5}{R}{R}",
+   "reminder": "You may cast this card from your graveyard for its harmonize cost. You may tap a creature you control to reduce that cost by {X}, where X is its power. Then exile this spell.",
+   "cost": "{5}{R}{R}",
+   "card": "Channeled Dragonfire",
+   "count": 12
+  },
+  {
+   "keyword": "HASTE",
+   "title": "Haste",
+   "reminder": "This creature can attack and {T} as soon as it comes under your control.",
+   "card": "A-Asari Captain",
+   "count": 691
+  },
+  {
+   "keyword": "HAUNT",
+   "title": "Haunt",
+   "reminder": "When this is put into a graveyard from the battlefield, exile it haunting target creature.",
+   "card": "Absolver Thrull",
+   "count": 10
+  },
+  {
+   "keyword": "HEXPROOF",
+   "title": "Hexproof",
+   "reminder": "This can't be the target of spells or abilities your opponents control.",
+   "card": "Angler Turtle",
+   "count": 80
+  },
+  {
+   "keyword": "HEXPROOF",
+   "title": "Hexproof from activated abilities",
+   "reminder": "This can't be the target of activated abilities spells or abilities your opponents control.",
+   "detail": "activated abilities",
+   "card": "Volatile Stormdrake",
+   "count": 1
+  },
+  {
+   "keyword": "HEXPROOF",
+   "title": "Hexproof from artifacts",
+   "reminder": "This can't be the target of artifact spells or abilities your opponents control.",
+   "detail": "artifacts",
+   "card": "Jaheira, Harper Emissary",
+   "count": 7
+  },
+  {
+   "keyword": "HEXPROOF",
+   "title": "Hexproof from black",
+   "reminder": "This can't be the target of black spells or abilities your opponents control.",
+   "detail": "black",
+   "card": "Garruk's Harbinger",
+   "count": 3
+  },
+  {
+   "keyword": "HEXPROOF",
+   "title": "Hexproof from blue",
+   "reminder": "This can't be the target of blue spells or abilities your opponents control.",
+   "detail": "blue",
+   "card": "Sporeweb Weaver",
+   "count": 1
+  },
+  {
+   "keyword": "HEXPROOF",
+   "title": "Hexproof from creatures",
+   "reminder": "This can't be the target of creature spells or abilities your opponents control.",
+   "detail": "creatures",
+   "card": "Nevinyrral, Urborg Tyrant",
+   "count": 1
+  },
+  {
+   "keyword": "HEXPROOF",
+   "title": "Hexproof from each color",
+   "reminder": "This can't be the target of each color spells or abilities your opponents control.",
+   "detail": "each color",
+   "card": "Breaker of Creation",
+   "count": 1
+  },
+  {
+   "keyword": "HEXPROOF",
+   "title": "Hexproof from enchantments",
+   "reminder": "This can't be the target of enchantment spells or abilities your opponents control.",
+   "detail": "enchantments",
+   "card": "Jaheira, Harper Emissary",
+   "count": 7
+  },
+  {
+   "keyword": "HEXPROOF",
+   "title": "Hexproof from instants",
+   "reminder": "This can't be the target of instant spells or abilities your opponents control.",
+   "detail": "instants",
+   "card": "Elenda, Saint of Dusk",
+   "count": 1
+  },
+  {
+   "keyword": "HEXPROOF",
+   "title": "Hexproof from monocolored",
+   "reminder": "This can't be the target of monocolored spells or abilities your opponents control.",
+   "detail": "monocolored",
+   "card": "General Ferrous Rokiric",
+   "count": 3
+  },
+  {
+   "keyword": "HEXPROOF",
+   "title": "Hexproof from multicolored",
+   "reminder": "This can't be the target of multicolored spells or abilities your opponents control.",
+   "detail": "multicolored",
+   "card": "Niv-Mizzet, Guildpact",
+   "count": 1
+  },
+  {
+   "keyword": "HEXPROOF",
+   "title": "Hexproof from planeswalkers",
+   "reminder": "This can't be the target of planeswalker spells or abilities your opponents control.",
+   "detail": "planeswalkers",
+   "card": "Eradicator Valkyrie",
+   "count": 1
+  },
+  {
+   "keyword": "HEXPROOF",
+   "title": "Hexproof from triggered abilities",
+   "reminder": "This can't be the target of triggered abilities spells or abilities your opponents control.",
+   "detail": "triggered abilities",
+   "card": "Volatile Stormdrake",
+   "count": 1
+  },
+  {
+   "keyword": "HEXPROOF",
+   "title": "Hexproof from white",
+   "reminder": "This can't be the target of white spells or abilities your opponents control.",
+   "detail": "white",
+   "card": "Knight of Malice",
+   "count": 2
+  },
+  {
+   "keyword": "HIDEAWAY",
+   "title": "Hideaway 5",
+   "reminder": "When this permanent enters, look at the top five cards of your library, exile one face down, then put the rest on the bottom of your library.",
+   "amount": "5",
+   "card": "Cemetery Tampering",
+   "count": 15
+  },
+  {
+   "keyword": "HORSEMANSHIP",
+   "title": "Horsemanship",
+   "reminder": "This creature can't be blocked except by creatures with horsemanship.",
+   "card": "Barbarian General",
+   "count": 29
+  },
+  {
+   "keyword": "IMPENDING",
+   "title": "Impending 3—{2}{U}{U}",
+   "reminder": "If you cast this spell for its impending cost, it enters with three time counters and isn't a creature until the last is removed. At the beginning of your end step, remove a time counter from it.",
+   "amount": "3",
+   "cost": "{2}{U}{U}",
+   "card": "Lurker in the Deep",
+   "count": 6
+  },
+  {
+   "keyword": "IMPROVISE",
+   "title": "Improvise",
+   "reminder": "Your artifacts can help cast this spell. Each artifact you tap after you're done activating mana abilities pays for {1}.",
+   "card": "Arc Reactor",
+   "count": 24
+  },
+  {
+   "keyword": "INCREMENT",
+   "title": "Increment",
+   "reminder": "Whenever you cast a spell, if the amount of mana you spent is greater than this creature’s power or toughness, put a +1/+1 counter on this creature.",
+   "card": "Ambitious Augmenter",
+   "count": 10
+  },
+  {
+   "keyword": "INDESTRUCTIBLE",
+   "title": "Indestructible",
+   "reminder": "Effects that say \"destroy\" don't destroy this.",
+   "card": "A-The One Ring",
+   "count": 112
+  },
+  {
+   "keyword": "INFECT",
+   "title": "Infect",
+   "reminder": "This creature deals damage to creatures in the form of -1/-1 counters and to players in the form of poison counters.",
+   "card": "Blackcleave Goblin",
+   "count": 45
+  },
+  {
+   "keyword": "INGEST",
+   "title": "Ingest",
+   "reminder": "Whenever this creature deals combat damage to a player, that player exiles the top card of their library.",
+   "card": "Benthic Infiltrator",
+   "count": 9
+  },
+  {
+   "keyword": "INTIMIDATE",
+   "title": "Intimidate",
+   "reminder": "This creature can't be blocked except by artifact creatures and/or creatures that share a color with it.",
+   "card": "Academy Raider",
+   "count": 23
+  },
+  {
+   "keyword": "JOB_SELECT",
+   "title": "Job select",
+   "reminder": "When this Equipment enters, create a 1/1 colorless Hero creature token, then attach this to it.",
+   "card": "Astrologian's Planisphere",
+   "count": 19
+  },
+  {
+   "keyword": "JUMP_START",
+   "title": "Jump-start",
+   "reminder": "You may cast this card from your graveyard by discarding a card in addition to paying its other costs. Then exile this card.",
+   "card": "Beacon Bolt",
+   "count": 13
+  },
+  {
+   "keyword": "KICKER",
+   "title": "Kicker {2}{G}",
+   "reminder": "You may pay an additional {2}{G} as you cast this spell.",
+   "cost": "{2}{G}",
+   "card": "A-Gnarlid Colony",
+   "count": 202
+  },
+  {
+   "keyword": "KICKER",
+   "title": "Kicker {2}{U}",
+   "reminder": "You may pay an additional {2}{U} and/or {1}{B} as you cast this spell.",
+   "cost": "{2}{U}",
+   "card": "Ana Battlemage",
+   "count": 18
+  },
+  {
+   "keyword": "KICKER",
+   "title": "Kicker—{2}{B}, Discard a creature card",
+   "reminder": "You may pay an additional {2}{B}, Discard a creature card as you cast this spell.",
+   "card": "Dralnu's Pet",
+   "count": 1
+  },
+  {
+   "keyword": "KICKER",
+   "title": "Kicker—{2}{R}, Sacrifice a land",
+   "reminder": "You may pay an additional {2}{R}, Sacrifice a land as you cast this spell.",
+   "card": "Dwarven Landslide",
+   "count": 1
+  },
+  {
+   "keyword": "KICKER",
+   "title": "Kicker—Forage",
+   "reminder": "You may pay an additional Forage as you cast this spell.",
+   "card": "Traverse Valley",
+   "count": 1
+  },
+  {
+   "keyword": "KICKER",
+   "title": "Kicker—Pay 3 life",
+   "reminder": "You may pay an additional Pay 3 life as you cast this spell.",
+   "card": "Phyrexian Scuta",
+   "count": 1
+  },
+  {
+   "keyword": "KICKER",
+   "title": "Kicker—Return a creature you control to its owner's hand",
+   "reminder": "You may pay an additional Return a creature you control to its owner's hand as you cast this spell.",
+   "card": "Arctic Merfolk",
+   "count": 1
+  },
+  {
+   "keyword": "KICKER",
+   "title": "Kicker—Return a land you control to its owner's hand",
+   "reminder": "You may pay an additional Return a land you control to its owner's hand as you cast this spell.",
+   "card": "Chocobo Kick",
+   "count": 1
+  },
+  {
+   "keyword": "KICKER",
+   "title": "Kicker—Sacrifice a creature",
+   "reminder": "You may pay an additional Sacrifice a creature as you cast this spell.",
+   "card": "Primal Growth",
+   "count": 2
+  },
+  {
+   "keyword": "KICKER",
+   "title": "Kicker—Sacrifice a land",
+   "reminder": "You may pay an additional Sacrifice a land as you cast this spell.",
+   "card": "Falling Timber",
+   "count": 3
+  },
+  {
+   "keyword": "KICKER",
+   "title": "Kicker—Sacrifice an artifact or creature",
+   "reminder": "You may pay an additional Sacrifice an artifact or creature as you cast this spell.",
+   "card": "Eject the Warp Core",
+   "count": 4
+  },
+  {
+   "keyword": "KICKER",
+   "title": "Kicker—Sacrifice an artifact or Goblin",
+   "reminder": "You may pay an additional Sacrifice an artifact or Goblin as you cast this spell.",
+   "card": "Goblin Barrage",
+   "count": 1
+  },
+  {
+   "keyword": "KICKER",
+   "title": "Kicker—Sacrifice two lands",
+   "reminder": "You may pay an additional Sacrifice two lands as you cast this spell.",
+   "card": "Bog Down",
+   "count": 2
+  },
+  {
+   "keyword": "KICKER",
+   "title": "Kicker—Tap an untapped Vampire you control",
+   "reminder": "You may pay an additional Tap an untapped Vampire you control as you cast this spell.",
+   "card": "Blood Tribute",
+   "count": 1
+  },
+  {
+   "keyword": "LANDWALK",
+   "title": "Desertwalk",
+   "reminder": "This creature is unblockable as long as defending player controls a Desert.",
+   "detail": "Desert",
+   "card": "Desert Nomads",
+   "count": 2
+  },
+  {
+   "keyword": "LANDWALK",
+   "title": "Forestwalk",
+   "reminder": "This creature is unblockable as long as defending player controls a Forest.",
+   "detail": "Forest",
+   "card": "Boggart Loggers",
+   "count": 28
+  },
+  {
+   "keyword": "LANDWALK",
+   "title": "Islandwalk",
+   "reminder": "This creature is unblockable as long as defending player controls an Island.",
+   "detail": "Island",
+   "card": "Adrestia",
+   "count": 33
+  },
+  {
+   "keyword": "LANDWALK",
+   "title": "Legendary landwalk",
+   "reminder": "This creature is unblockable as long as defending player controls a Legendary land.",
+   "detail": "Legendary land",
+   "card": "Ayumi, the Last Visitor",
+   "count": 2
+  },
+  {
+   "keyword": "LANDWALK",
+   "title": "Mountainwalk",
+   "reminder": "This creature is unblockable as long as defending player controls a Mountain.",
+   "detail": "Mountain",
+   "card": "Canyon Wildcat",
+   "count": 18
+  },
+  {
+   "keyword": "LANDWALK",
+   "title": "Nonbasic landwalk",
+   "reminder": "This creature is unblockable as long as defending player controls a Nonbasic land.",
+   "detail": "Nonbasic land",
+   "card": "Dryad Sophisticate",
+   "count": 1
+  },
+  {
+   "keyword": "LANDWALK",
+   "title": "Plainswalk",
+   "reminder": "This creature is unblockable as long as defending player controls a Plains.",
+   "detail": "Plains",
+   "card": "Boggart Arsonists",
+   "count": 4
+  },
+  {
+   "keyword": "LANDWALK",
+   "title": "snow Forestwalk",
+   "reminder": "This creature is unblockable as long as defending player controls a snow Forest.",
+   "detail": "snow Forest",
+   "card": "Rime Dryad",
+   "count": 1
+  },
+  {
+   "keyword": "LANDWALK",
+   "title": "snow Landwalk",
+   "reminder": "This creature is unblockable as long as defending player controls a snow Land.",
+   "detail": "snow Land",
+   "card": "Zombie Musher",
+   "count": 1
+  },
+  {
+   "keyword": "LANDWALK",
+   "title": "Snow Plainswalk",
+   "reminder": "This creature is unblockable as long as defending player controls a Snow Plains.",
+   "detail": "Snow Plains",
+   "card": "Old Fogey",
+   "count": 1
+  },
+  {
+   "keyword": "LANDWALK",
+   "title": "snow Swampwalk",
+   "reminder": "This creature is unblockable as long as defending player controls a snow Swamp.",
+   "detail": "snow Swamp",
+   "card": "Legions of Lim-Dûl",
+   "count": 1
+  },
+  {
+   "keyword": "LANDWALK",
+   "title": "Swampwalk",
+   "reminder": "This creature is unblockable as long as defending player controls a Swamp.",
+   "detail": "Swamp",
+   "card": "Anaconda",
+   "count": 41
+  },
+  {
+   "keyword": "LEVEL_UP",
+   "title": "Level up {2}{G}",
+   "reminder": "{2}{G}: Put a level counter on this. Level up only as a sorcery.",
+   "cost": "{2}{G}",
+   "card": "Beastbreaker of Bala Ged",
+   "count": 26
+  },
+  {
+   "keyword": "LIFELINK",
+   "title": "Lifelink",
+   "reminder": "Damage dealt by this creature also causes its controller to gain that much life.",
+   "card": "A-Ocelot Pride",
+   "count": 391
+  },
+  {
+   "keyword": "LIVING_METAL",
+   "title": "Living metal",
+   "reminder": "During your turn, this Vehicle is also a creature.",
+   "card": "Arcee, Acrobatic Coupe",
+   "count": 13
+  },
+  {
+   "keyword": "LIVING_WEAPON",
+   "title": "Living Weapon",
+   "reminder": "When this Equipment enters, create a 0/0 black Phyrexian Germ creature token, then attach this to it.",
+   "card": "Batterbone",
+   "count": 19
+  },
+  {
+   "keyword": "MADNESS",
+   "title": "Madness {1}{R}",
+   "reminder": "If you discard this card, discard it into exile. When you do, cast it for its madness cost or put it into your graveyard.",
+   "cost": "{1}{R}",
+   "card": "Abandon Reason",
+   "count": 61
+  },
+  {
+   "keyword": "MADNESS",
+   "title": "Madness—{2}{B}, Pay 8 life",
+   "reminder": "If you discard this card, discard it into exile. When you do, cast it for its madness cost or put it into your graveyard.",
+   "card": "Shadowgrange Archfiend",
+   "count": 1
+  },
+  {
+   "keyword": "MAYFLASHCOST",
+   "title": "MayFlashCost {2}",
+   "reminder": "You may cast Eselhafte Eskapaden as though it had flash if you pay {2} more to cast it.",
+   "cost": "{2}",
+   "card": "Asinine Antics",
+   "count": 9
+  },
+  {
+   "keyword": "MAYFLASHCOST",
+   "title": "MayFlashCost—Behold a Dragon",
+   "reminder": "You may cast Schmelzender Atem as though it had flash if you pay Behold a Dragon more to cast it.",
+   "card": "Molten Exhale",
+   "count": 1
+  },
+  {
+   "keyword": "MAYFLASHCOST",
+   "title": "MayFlashCost—Tap three untapped creatures with flyings you control",
+   "reminder": "You may cast Tegwylls Säuberung as though it had flash if you pay Tap three untapped creatures with flyings you control more to cast it.",
+   "card": "Tegwyll's Scouring",
+   "count": 1
+  },
+  {
+   "keyword": "MAYFLASHSAC",
+   "title": "MayFlashSac",
+   "reminder": "You may cast Dornenpanzer as though it had flash. If you cast it any time a sorcery couldn't have been cast, the controller of the permanent it becomes sacrifices it at the beginning of the next cleanup step.",
+   "card": "Armor of Thorns",
+   "count": 10
+  },
+  {
+   "keyword": "MAYHEM",
+   "title": "Mayhem",
+   "reminder": "You may play this card from your graveyard if you discarded it this turn. Timing rules still apply.",
+   "card": "Oscorp Industries",
+   "count": 1
+  },
+  {
+   "keyword": "MAYHEM",
+   "title": "Mayhem {4}{R}",
+   "reminder": "You may cast this card from your graveyard for {4}{R} if you discarded it this turn. Timing rules still apply.",
+   "cost": "{4}{R}",
+   "card": "Abomination, World Ravager",
+   "count": 15
+  },
+  {
+   "keyword": "MEGAMORPH",
+   "title": "Megamorph {5}{B}{B}",
+   "reminder": "You may cast this card face down as a 2/2 creature for {3}. Turn it face up any time for its megamorph cost and put a +1/+1 counter on it.",
+   "cost": "{5}{B}{B}",
+   "card": "Acid-Spewer Dragon",
+   "count": 31
+  },
+  {
+   "keyword": "MELEE",
+   "title": "Melee",
+   "reminder": "Whenever this creature attacks, it gets +1/+1 until end of turn for each opponent you attacked this combat.",
+   "card": "Adriana, Captain of the Guard",
+   "count": 12
+  },
+  {
+   "keyword": "MENACE",
+   "title": "Menace",
+   "reminder": "This creature can't be blocked except by two or more creatures.",
+   "card": "A-Harald, King of Skemfar",
+   "count": 422
+  },
+  {
+   "keyword": "MENTOR",
+   "title": "Mentor",
+   "reminder": "Whenever this creature attacks, put a +1/+1 counter on target attacking creature with lesser power.",
+   "card": "Aurelia, Exemplar of Justice",
+   "count": 19
+  },
+  {
+   "keyword": "MIRACLE",
+   "title": "Miracle {W}",
+   "reminder": "You may cast this card for its miracle cost when you draw it if it's the first card you drew this turn.",
+   "cost": "{W}",
+   "card": "Banishing Stroke",
+   "count": 17
+  },
+  {
+   "keyword": "MOBILIZE",
+   "title": "Mobilize X",
+   "reminder": "When this creature attacks, create X tapped and attacking 1/1 red Warrior creature tokens. Sacrifice them at the beginning of the next end step.",
+   "amount": "X",
+   "card": "Avenger of the Fallen",
+   "count": 15
+  },
+  {
+   "keyword": "MODULAR",
+   "title": "Modular 3",
+   "reminder": "This creature enters with three +1/+1 counters on it. When it dies, you may put its +1/+1 counters on target artifact creature.",
+   "amount": "3",
+   "card": "Arcbound Bruiser",
+   "count": 23
+  },
+  {
+   "keyword": "MODULAR",
+   "title": "Modular—Sunburst",
+   "reminder": "This enters with a +1/+1 counter on it for each color of mana spent to cast it. When it dies, you may put its +1/+1 counters on target artifact creature.",
+   "card": "Arcbound Wanderer",
+   "count": 1
+  },
+  {
+   "keyword": "MORE_THAN_MEETS_THE_EYE",
+   "title": "More Than Meets the Eye {R}{W}",
+   "reminder": "You may cast this card converted for {R}{W}.",
+   "cost": "{R}{W}",
+   "card": "Arcee, Sharpshooter",
+   "count": 15
+  },
+  {
+   "keyword": "MORPH",
+   "title": "Morph {2}{B}{G}{U}",
+   "reminder": "You may cast this card face down as a 2/2 creature for {3}. Turn it face up any time for its morph cost.",
+   "cost": "{2}{B}{G}{U}",
+   "card": "Abomination of Gudul",
+   "count": 141
+  },
+  {
+   "keyword": "MORPH",
+   "title": "Morph—Discard a card",
+   "reminder": "You may cast this card face down as a 2/2 creature for {3}. Turn it face up any time for its morph cost.",
+   "card": "Gathan Raiders",
+   "count": 1
+  },
+  {
+   "keyword": "MORPH",
+   "title": "Morph—Discard a Zombie card",
+   "reminder": "You may cast this card face down as a 2/2 creature for {3}. Turn it face up any time for its morph cost.",
+   "card": "Putrid Raptor",
+   "count": 1
+  },
+  {
+   "keyword": "MORPH",
+   "title": "Morph—Pay 5 life",
+   "reminder": "You may cast this card face down as a 2/2 creature for {3}. Turn it face up any time for its morph cost.",
+   "card": "Zombie Cutthroat",
+   "count": 1
+  },
+  {
+   "keyword": "MORPH",
+   "title": "Morph—Return a Bird you control to its owner's hand",
+   "reminder": "You may cast this card face down as a 2/2 creature for {3}. Turn it face up any time for its morph cost.",
+   "card": "Raven Guild Initiate",
+   "count": 1
+  },
+  {
+   "keyword": "MORPH",
+   "title": "Morph—Return two Islands you control to their owner's hand",
+   "reminder": "You may cast this card face down as a 2/2 creature for {3}. Turn it face up any time for its morph cost.",
+   "card": "Fathom Seer",
+   "count": 1
+  },
+  {
+   "keyword": "MORPH",
+   "title": "Morph—Reveal a black card from your Hand",
+   "reminder": "You may cast this card face down as a 2/2 creature for {3}. Turn it face up any time for its morph cost.",
+   "card": "Ruthless Ripper",
+   "count": 1
+  },
+  {
+   "keyword": "MORPH",
+   "title": "Morph—Reveal a blue card from your Hand",
+   "reminder": "You may cast this card face down as a 2/2 creature for {3}. Turn it face up any time for its morph cost.",
+   "card": "Dragon's Eye Savants",
+   "count": 1
+  },
+  {
+   "keyword": "MORPH",
+   "title": "Morph—Reveal a green card from your Hand",
+   "reminder": "You may cast this card face down as a 2/2 creature for {3}. Turn it face up any time for its morph cost.",
+   "card": "Temur Charger",
+   "count": 1
+  },
+  {
+   "keyword": "MORPH",
+   "title": "Morph—Reveal a red card from your Hand",
+   "reminder": "You may cast this card face down as a 2/2 creature for {3}. Turn it face up any time for its morph cost.",
+   "card": "Horde Ambusher",
+   "count": 1
+  },
+  {
+   "keyword": "MORPH",
+   "title": "Morph—Reveal a white card from your Hand",
+   "reminder": "You may cast this card face down as a 2/2 creature for {3}. Turn it face up any time for its morph cost.",
+   "card": "Watcher of the Roost",
+   "count": 1
+  },
+  {
+   "keyword": "MORPH",
+   "title": "Morph—Sacrifice another creature",
+   "reminder": "You may cast this card face down as a 2/2 creature for {3}. Turn it face up any time for its morph cost.",
+   "card": "Gift of Doom",
+   "count": 1
+  },
+  {
+   "keyword": "MORPH",
+   "title": "Morph—Sacrifice two Mountains",
+   "reminder": "You may cast this card face down as a 2/2 creature for {3}. Turn it face up any time for its morph cost.",
+   "card": "Skirk Volcanist",
+   "count": 1
+  },
+  {
+   "keyword": "MULTIKICKER",
+   "title": "Multikicker {1}{W}",
+   "reminder": "You may pay an additional {1}{W} any number of times as you cast this spell.",
+   "cost": "{1}{W}",
+   "card": "Apex Hawks",
+   "count": 19
+  },
+  {
+   "keyword": "MUTATE",
+   "title": "Mutate {5}{U}",
+   "reminder": "If you cast this spell for its mutate cost, put it over or under target non-Human creature you own. They mutate into the creature on top plus all abilities from under it.",
+   "cost": "{5}{U}",
+   "card": "Archipelagore",
+   "count": 34
+  },
+  {
+   "keyword": "MYRIAD",
+   "title": "Myriad",
+   "reminder": "Whenever this creature attacks, for each opponent other than defending player, you may create a token that's a copy of this creature that's tapped and attacking that player or a planeswalker they control. Exile the tokens at end of combat.",
+   "card": "Banshee of the Dread Choir",
+   "count": 23
+  },
+  {
+   "keyword": "NIGHTBOUND",
+   "title": "Nightbound",
+   "reminder": "If a player casts at least two spells during their own turn, it becomes day next turn.",
+   "card": "Arlinn, the Moon's Fury",
+   "count": 36
+  },
+  {
+   "keyword": "NINJUTSU",
+   "title": "Ninjutsu {1}{B}",
+   "reminder": "{1}{B}, Return an unblocked attacker you control to hand: Put this card onto the battlefield from your hand tapped and attacking.",
+   "cost": "{1}{B}",
+   "card": "A-Dokuchi Silencer",
+   "count": 44
+  },
+  {
+   "keyword": "NINJUTSU",
+   "title": "Ninjutsu {U}{B}",
+   "reminder": "{U}{B}, Return an unblocked attacker you control to hand: Put this card onto the battlefield from your hand or the command zone tapped and attacking.",
+   "cost": "{U}{B}",
+   "card": "Yuriko, the Tiger's Shadow",
+   "count": 1
+  },
+  {
+   "keyword": "OFFERING",
+   "title": "Offering artifact",
+   "reminder": "You may cast this card any time you could cast an instant by sacrificing a artifact and paying the difference in mana costs between this and the sacrificed artifact. Mana cost includes color.",
+   "detail": "artifact",
+   "card": "Blast-Furnace Hellkite",
+   "count": 1
+  },
+  {
+   "keyword": "OFFERING",
+   "title": "Offering Fox",
+   "reminder": "You may cast this card any time you could cast an instant by sacrificing a Fox and paying the difference in mana costs between this and the sacrificed Fox. Mana cost includes color.",
+   "detail": "Fox",
+   "card": "Patron of the Kitsune",
+   "count": 1
+  },
+  {
+   "keyword": "OFFERING",
+   "title": "Offering Goblin",
+   "reminder": "You may cast this card any time you could cast an instant by sacrificing a Goblin and paying the difference in mana costs between this and the sacrificed Goblin. Mana cost includes color.",
+   "detail": "Goblin",
+   "card": "Patron of the Akki",
+   "count": 1
+  },
+  {
+   "keyword": "OFFERING",
+   "title": "Offering Moonfolk",
+   "reminder": "You may cast this card any time you could cast an instant by sacrificing a Moonfolk and paying the difference in mana costs between this and the sacrificed Moonfolk. Mana cost includes color.",
+   "detail": "Moonfolk",
+   "card": "Patron of the Moon",
+   "count": 1
+  },
+  {
+   "keyword": "OFFERING",
+   "title": "Offering Rat",
+   "reminder": "You may cast this card any time you could cast an instant by sacrificing a Rat and paying the difference in mana costs between this and the sacrificed Rat. Mana cost includes color.",
+   "detail": "Rat",
+   "card": "Patron of the Nezumi",
+   "count": 1
+  },
+  {
+   "keyword": "OFFERING",
+   "title": "Offering Snake",
+   "reminder": "You may cast this card any time you could cast an instant by sacrificing a Snake and paying the difference in mana costs between this and the sacrificed Snake. Mana cost includes color.",
+   "detail": "Snake",
+   "card": "Patron of the Orochi",
+   "count": 1
+  },
+  {
+   "keyword": "OFFSPRING",
+   "title": "Offspring {1}{R}",
+   "reminder": "You may pay an additional {1}{R} as you cast this spell. If you do, when this creature enters, create a 1/1 token copy of it.",
+   "cost": "{1}{R}",
+   "card": "Agate Instigator",
+   "count": 21
+  },
+  {
+   "keyword": "OUTLAST",
+   "title": "Outlast {W}",
+   "reminder": "{W}, {T}: Put a +1/+1 counter on this creature. Outlast only as a sorcery.",
+   "cost": "{W}",
+   "card": "Abzan Battle Priest",
+   "count": 12
+  },
+  {
+   "keyword": "OVERLOAD",
+   "title": "Overload {2}{B}{B}",
+   "reminder": "You may cast this spell for its overload cost. If you do, change its text by replacing all instances of \"target\" with \"each.\"",
+   "cost": "{2}{B}{B}",
+   "card": "Bail Out",
+   "count": 28
+  },
+  {
+   "keyword": "PARADIGM",
+   "title": "Paradigm",
+   "reminder": "Then exile this spell. After you first resolve a spell with this name, you may cast a copy of it from exile without paying its mana cost at the beginning of each of your first main phases.",
+   "card": "Decorum Dissertation",
+   "count": 5
+  },
+  {
+   "keyword": "PARTNER",
+   "title": "Partner",
+   "reminder": "You can have two commanders if both have partner.",
+   "card": "Akiri, Line-Slinger",
+   "count": 59
+  },
+  {
+   "keyword": "PARTNER",
+   "title": "Partner — Character select",
+   "reminder": "You can have two commanders if both have this ability.",
+   "card": "April O'Neil, Live on the Scene",
+   "count": 6
+  },
+  {
+   "keyword": "PARTNER",
+   "title": "Partner — Father & Son",
+   "reminder": "You can have two commanders if both have this ability.",
+   "card": "Atreus, Impulsive Son",
+   "count": 2
+  },
+  {
+   "keyword": "PARTNER",
+   "title": "Partner — Friends forever",
+   "reminder": "You can have two commanders if both have this ability.",
+   "card": "Chief Jim Hopper",
+   "count": 7
+  },
+  {
+   "keyword": "PARTNER",
+   "title": "Partner — Survivors",
+   "reminder": "You can have two commanders if both have this ability.",
+   "card": "Abby, Merciless Soldier",
+   "count": 4
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Alisaie Leveilleur",
+   "reminder": "When this creature enters, target player may put Alisaie Leveilleur into their hand from their library, then shuffle.",
+   "detail": "Alisaie Leveilleur",
+   "card": "Alphinaud Leveilleur",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Alphinaud Leveilleur",
+   "reminder": "When this creature enters, target player may put Alphinaud Leveilleur into their hand from their library, then shuffle.",
+   "detail": "Alphinaud Leveilleur",
+   "card": "Alisaie Leveilleur",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Amy Pond",
+   "reminder": "When this creature enters, target player may put Amy Pond into their hand from their library, then shuffle.",
+   "detail": "Amy Pond",
+   "card": "Rory Williams",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Bebop",
+   "reminder": "When this creature enters, target player may put Bebop into their hand from their library, then shuffle.",
+   "detail": "Bebop",
+   "card": "Rocksteady, Mutant Marauder",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Blaring Captain",
+   "reminder": "When this creature enters, target player may put Blaring Captain into their hand from their library, then shuffle.",
+   "detail": "Blaring Captain",
+   "card": "Blaring Recruiter",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Blaring Recruiter",
+   "reminder": "When this creature enters, target player may put Blaring Recruiter into their hand from their library, then shuffle.",
+   "detail": "Blaring Recruiter",
+   "card": "Blaring Captain",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Blue or  Loyal Raptor",
+   "reminder": "When this creature enters, target player may put Blue or  Loyal Raptor into their hand from their library, then shuffle.",
+   "detail": "Blue or  Loyal Raptor",
+   "card": "Owen Grady, Raptor Trainer",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Brallin",
+   "reminder": "When this creature enters, target player may put Brallin into their hand from their library, then shuffle.",
+   "detail": "Brallin",
+   "card": "Shabraz, the Skyshark",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Cazur",
+   "reminder": "When this creature enters, target player may put Cazur into their hand from their library, then shuffle.",
+   "detail": "Cazur",
+   "card": "Ukkima, Stalking Shadow",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Chakram Retriever",
+   "reminder": "When this creature enters, target player may put Chakram Retriever into their hand from their library, then shuffle.",
+   "detail": "Chakram Retriever",
+   "card": "Chakram Slinger",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Chakram Slinger",
+   "reminder": "When this creature enters, target player may put Chakram Slinger into their hand from their library, then shuffle.",
+   "detail": "Chakram Slinger",
+   "card": "Chakram Retriever",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Evie Frye",
+   "reminder": "When this creature enters, target player may put Evie Frye into their hand from their library, then shuffle.",
+   "detail": "Evie Frye",
+   "card": "Jacob Frye",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Frodo",
+   "reminder": "When this creature enters, target player may put Frodo into their hand from their library, then shuffle.",
+   "detail": "Frodo",
+   "card": "Sam, Loyal Attendant",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Gorm the Great",
+   "reminder": "When this creature enters, target player may put Gorm the Great into their hand from their library, then shuffle.",
+   "detail": "Gorm the Great",
+   "card": "Virtus the Veiled",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Haldan",
+   "reminder": "When this creature enters, target player may put Haldan into their hand from their library, then shuffle.",
+   "detail": "Haldan",
+   "card": "Pako, Arcane Retriever",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Impetuous Protege",
+   "reminder": "When this creature enters, target player may put Impetuous Protege into their hand from their library, then shuffle.",
+   "detail": "Impetuous Protege",
+   "card": "Proud Mentor",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Jacob Frye",
+   "reminder": "When this creature enters, target player may put Jacob Frye into their hand from their library, then shuffle.",
+   "detail": "Jacob Frye",
+   "card": "Evie Frye",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Jenny Flint",
+   "reminder": "When this creature enters, target player may put Jenny Flint into their hand from their library, then shuffle.",
+   "detail": "Jenny Flint",
+   "card": "Madame Vastra",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Kamber or  the Plunderer",
+   "reminder": "When this creature enters, target player may put Kamber or  the Plunderer into their hand from their library, then shuffle.",
+   "detail": "Kamber or  the Plunderer",
+   "card": "Laurine, the Diversion",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Khorvath",
+   "reminder": "When this creature enters, target player may put Khorvath into their hand from their library, then shuffle.",
+   "detail": "Khorvath",
+   "card": "Sylvia Brightspear",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Krav",
+   "reminder": "When this creature enters, target player may put Krav into their hand from their library, then shuffle.",
+   "detail": "Krav",
+   "card": "Regna, the Redeemer",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Laurine or  the Diversion",
+   "reminder": "When this creature enters, target player may put Laurine or  the Diversion into their hand from their library, then shuffle.",
+   "detail": "Laurine or  the Diversion",
+   "card": "Kamber, the Plunderer",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Ley Weaver",
+   "reminder": "When this creature enters, target player may put Ley Weaver into their hand from their library, then shuffle.",
+   "detail": "Ley Weaver",
+   "card": "Lore Weaver",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Lore Weaver",
+   "reminder": "When this creature enters, target player may put Lore Weaver into their hand from their library, then shuffle.",
+   "detail": "Lore Weaver",
+   "card": "Ley Weaver",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Madame Vastra",
+   "reminder": "When this creature enters, target player may put Madame Vastra into their hand from their library, then shuffle.",
+   "detail": "Madame Vastra",
+   "card": "Jenny Flint",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Merry",
+   "reminder": "When this creature enters, target player may put Merry into their hand from their library, then shuffle.",
+   "detail": "Merry",
+   "card": "Pippin, Warden of Isengard",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Nikara",
+   "reminder": "When this creature enters, target player may put Nikara into their hand from their library, then shuffle.",
+   "detail": "Nikara",
+   "card": "Yannik, Scavenging Sentinel",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Okaun",
+   "reminder": "When this creature enters, target player may put Okaun into their hand from their library, then shuffle.",
+   "detail": "Okaun",
+   "card": "Zndrsplt, Eye of Wisdom",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Owen Grady or  Raptor Trainer",
+   "reminder": "When this creature enters, target player may put Owen Grady or  Raptor Trainer into their hand from their library, then shuffle.",
+   "detail": "Owen Grady or  Raptor Trainer",
+   "card": "Blue, Loyal Raptor",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Pako",
+   "reminder": "When this creature enters, target player may put Pako into their hand from their library, then shuffle.",
+   "detail": "Pako",
+   "card": "Haldan, Avid Arcanist",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Pippin",
+   "reminder": "When this creature enters, target player may put Pippin into their hand from their library, then shuffle.",
+   "detail": "Pippin",
+   "card": "Merry, Warden of Isengard",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Pir",
+   "reminder": "When this creature enters, target player may put Pir into their hand from their library, then shuffle.",
+   "detail": "Pir",
+   "card": "Toothy, Imaginary Friend",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Proud Mentor",
+   "reminder": "When this creature enters, target player may put Proud Mentor into their hand from their library, then shuffle.",
+   "detail": "Proud Mentor",
+   "card": "Impetuous Protege",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Regna",
+   "reminder": "When this creature enters, target player may put Regna into their hand from their library, then shuffle.",
+   "detail": "Regna",
+   "card": "Krav, the Unredeemed",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Rhoda or  Geist Avenger",
+   "reminder": "When this creature enters, target player may put Rhoda or  Geist Avenger into their hand from their library, then shuffle.",
+   "detail": "Rhoda or  Geist Avenger",
+   "card": "Timin, Youthful Geist",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Rocksteady",
+   "reminder": "When this creature enters, target player may put Rocksteady into their hand from their library, then shuffle.",
+   "detail": "Rocksteady",
+   "card": "Bebop, Skull & Crossbones",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Rory",
+   "reminder": "When this creature enters, target player may put Rory into their hand from their library, then shuffle.",
+   "detail": "Rory",
+   "card": "Amy Pond",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Rowan",
+   "reminder": "When this creature enters, target player may put Rowan into their hand from their library, then shuffle.",
+   "detail": "Rowan",
+   "card": "Will Kenrith",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Sam",
+   "reminder": "When this creature enters, target player may put Sam into their hand from their library, then shuffle.",
+   "detail": "Sam",
+   "card": "Frodo, Adventurous Hobbit",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Shabraz",
+   "reminder": "When this creature enters, target player may put Shabraz into their hand from their library, then shuffle.",
+   "detail": "Shabraz",
+   "card": "Brallin, Skyshark Rider",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Silvar",
+   "reminder": "When this creature enters, target player may put Silvar into their hand from their library, then shuffle.",
+   "detail": "Silvar",
+   "card": "Trynn, Champion of Freedom",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Soulblade Corrupter",
+   "reminder": "When this creature enters, target player may put Soulblade Corrupter into their hand from their library, then shuffle.",
+   "detail": "Soulblade Corrupter",
+   "card": "Soulblade Renewer",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Soulblade Renewer",
+   "reminder": "When this creature enters, target player may put Soulblade Renewer into their hand from their library, then shuffle.",
+   "detail": "Soulblade Renewer",
+   "card": "Soulblade Corrupter",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Sylvia",
+   "reminder": "When this creature enters, target player may put Sylvia into their hand from their library, then shuffle.",
+   "detail": "Sylvia",
+   "card": "Khorvath Brightflame",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Timin or  Youthful Geist",
+   "reminder": "When this creature enters, target player may put Timin or  Youthful Geist into their hand from their library, then shuffle.",
+   "detail": "Timin or  Youthful Geist",
+   "card": "Rhoda, Geist Avenger",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Toothy",
+   "reminder": "When this creature enters, target player may put Toothy into their hand from their library, then shuffle.",
+   "detail": "Toothy",
+   "card": "Pir, Imaginative Rascal",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Trynn",
+   "reminder": "When this creature enters, target player may put Trynn into their hand from their library, then shuffle.",
+   "detail": "Trynn",
+   "card": "Silvar, Devourer of the Free",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Ukkima",
+   "reminder": "When this creature enters, target player may put Ukkima into their hand from their library, then shuffle.",
+   "detail": "Ukkima",
+   "card": "Cazur, Ruthless Stalker",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Virtus the Veiled",
+   "reminder": "When this creature enters, target player may put Virtus the Veiled into their hand from their library, then shuffle.",
+   "detail": "Virtus the Veiled",
+   "card": "Gorm the Great",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Will",
+   "reminder": "When this creature enters, target player may put Will into their hand from their library, then shuffle.",
+   "detail": "Will",
+   "card": "Rowan Kenrith",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Yannik",
+   "reminder": "When this creature enters, target player may put Yannik into their hand from their library, then shuffle.",
+   "detail": "Yannik",
+   "card": "Nikara, Lair Scavenger",
+   "count": 1
+  },
+  {
+   "keyword": "PARTNER_WITH",
+   "title": "Partner with Zndrsplt",
+   "reminder": "When this creature enters, target player may put Zndrsplt into their hand from their library, then shuffle.",
+   "detail": "Zndrsplt",
+   "card": "Okaun, Eye of Chaos",
+   "count": 1
+  },
+  {
+   "keyword": "PERSIST",
+   "title": "Persist",
+   "reminder": "When this creature dies, if it had no -1/-1 counters on it, return it to the battlefield under its owner's control with a -1/-1 counter on it.",
+   "card": "Aerie Ouphes",
+   "count": 24
+  },
+  {
+   "keyword": "PHASING",
+   "title": "Phasing",
+   "reminder": "This phases in or out before you untap during each of your untap steps. While it's phased out, it's treated as though it doesn't exist.",
+   "card": "Breezekeeper",
+   "count": 13
+  },
+  {
+   "keyword": "PLOT",
+   "title": "Plot {1}{G}",
+   "reminder": "You may pay {1}{G} and exile this card from your hand. Cast it as a sorcery on a later turn without paying its mana cost. Plot only as a sorcery.",
+   "cost": "{1}{G}",
+   "card": "Aloe Alchemist",
+   "count": 33
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from Angel",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by Angel.",
+   "detail": "Angel",
+   "card": "Balefang the Unslayable",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from Arcane",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by Arcane.",
+   "detail": "Arcane",
+   "card": "Kitsune Riftwalker",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from Archon",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by Archon.",
+   "detail": "Archon",
+   "card": "Balefang the Unslayable",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from artifact",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by artifact.",
+   "detail": "artifact",
+   "card": "Angelic Curator",
+   "count": 9
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from Assassin",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by Assassin.",
+   "detail": "Assassin",
+   "card": "Haytham Kenway",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from Beast",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by Beast.",
+   "detail": "Beast",
+   "card": "Riptide Biologist",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from Cleric",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by Cleric.",
+   "detail": "Cleric",
+   "card": "Fallen Cleric",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from colored spells",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by colored spells.",
+   "detail": "colored spells",
+   "card": "Emrakul, the Aeons Torn",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from Coyote",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by Coyote.",
+   "detail": "Coyote",
+   "card": "Resilient Roadrunner",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from creature",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by creature.",
+   "detail": "creature",
+   "card": "Beloved Chaplain",
+   "count": 3
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from Demon",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by Demon.",
+   "detail": "Demon",
+   "card": "Baneslayer Angel",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from Dragon",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by Dragon.",
+   "detail": "Dragon",
+   "card": "Baneslayer Angel",
+   "count": 3
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from Elf",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by Elf.",
+   "detail": "Elf",
+   "card": "Nath's Buffoon",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from enchantment",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by enchantment.",
+   "detail": "enchantment",
+   "card": "Azorius First-Wing",
+   "count": 2
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from enemy-colored multicolored",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by enemy-colored multicolored.",
+   "detail": "enemy-colored multicolored",
+   "card": "Frenemy of the Guildpact",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from from black",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by from black.",
+   "detail": "from black",
+   "card": "Akroma, Angel of Wrath",
+   "count": 48
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from from blue",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by from blue.",
+   "detail": "from blue",
+   "card": "Akroma, Angel of Fury",
+   "count": 17
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from from each color",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by from each color.",
+   "detail": "from each color",
+   "card": "Iridescent Angel",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from from everything",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by from everything.",
+   "detail": "from everything",
+   "card": "Progenitus",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from from green",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by from green.",
+   "detail": "from green",
+   "card": "Blightbeetle",
+   "count": 12
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from from red",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by from red.",
+   "detail": "from red",
+   "card": "Abbey Gargoyles",
+   "count": 44
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from from white",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by from white.",
+   "detail": "from white",
+   "card": "Akroma, Angel of Fury",
+   "count": 32
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from Goblin",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by Goblin.",
+   "detail": "Goblin",
+   "card": "Foothill Guide",
+   "count": 2
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from God creatures",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by God creatures.",
+   "detail": "God creatures",
+   "card": "Sigrid, God-Favored",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from Homarid",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by Homarid.",
+   "detail": "Homarid",
+   "card": "Old Fogey",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from Human",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by Human.",
+   "detail": "Human",
+   "card": "Yawgmoth, Thran Physician",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from instants",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by instants.",
+   "detail": "instants",
+   "card": "Emrakul, the Promised End",
+   "count": 2
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from Kavu",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by Kavu.",
+   "detail": "Kavu",
+   "card": "Shoreline Raider",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from lands",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by lands.",
+   "detail": "lands",
+   "card": "Horizon Drake",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from legendary creatures",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by legendary creatures.",
+   "detail": "legendary creatures",
+   "card": "Tsabo Tavoc",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from mana value 3 or greater",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by mana value 3 or greater.",
+   "detail": "mana value 3 or greater",
+   "card": "Mistmeadow Skulk",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from mana value 3 or less",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by mana value 3 or less.",
+   "detail": "mana value 3 or less",
+   "card": "Reaver Titan",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from monocolored",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by monocolored.",
+   "detail": "monocolored",
+   "card": "Guardian of the Guildpact",
+   "count": 2
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from multicolored",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by multicolored.",
+   "detail": "multicolored",
+   "card": "Argentum Masticore",
+   "count": 6
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from non-Spirit creatures",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by non-Spirit creatures.",
+   "detail": "non-Spirit creatures",
+   "card": "Harbinger of Spring",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from permanents that were cast this turn",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by permanents that were cast this turn.",
+   "detail": "permanents that were cast this turn",
+   "card": "Emrakul, the World Anew",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from permanents with corruption counters on them",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by permanents with corruption counters on them.",
+   "detail": "permanents with corruption counters on them",
+   "card": "Geyadrone Dihada",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from planeswalker",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by planeswalker.",
+   "detail": "planeswalker",
+   "card": "Greensleeves, Maro-Sorcerer",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from planeswalkers",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by planeswalkers.",
+   "detail": "planeswalkers",
+   "card": "Sparkhunter Masticore",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from Robot",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by Robot.",
+   "detail": "Robot",
+   "card": "Bamboozling Beeble",
+   "count": 2
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from snow",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by snow.",
+   "detail": "snow",
+   "card": "Ronom Hulk",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from spells",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by spells.",
+   "detail": "spells",
+   "card": "Emrakul, the World Anew",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from Spirit",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by Spirit.",
+   "detail": "Spirit",
+   "card": "Kitsune Riftwalker",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from Vampire",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by Vampire.",
+   "detail": "Vampire",
+   "card": "Elite Inquisitor",
+   "count": 3
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from Werewolf",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by Werewolf.",
+   "detail": "Werewolf",
+   "card": "Elite Inquisitor",
+   "count": 2
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from Wizard",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by Wizard.",
+   "detail": "Wizard",
+   "card": "Greensleeves, Maro-Sorcerer",
+   "count": 1
+  },
+  {
+   "keyword": "PROTECTION",
+   "title": "Protection from Zombie",
+   "reminder": "This creature can't be blocked, targeted, dealt damage, or equipped/enchanted by Zombie.",
+   "detail": "Zombie",
+   "card": "Elite Inquisitor",
+   "count": 2
+  },
+  {
+   "keyword": "PROTOTYPE",
+   "title": "Prototype {1}{U}{U}",
+   "reminder": "You may cast this spell with different mana cost, color, and size. It keeps its abilities and types.",
+   "cost": "{1}{U}{U}",
+   "card": "Arcane Proxy",
+   "count": 21
+  },
+  {
+   "keyword": "PROVOKE",
+   "title": "Provoke",
+   "reminder": "Whenever this creature attacks, you may have target creature defending player controls untap and block it if able.",
+   "card": "Brontotherium",
+   "count": 8
+  },
+  {
+   "keyword": "PROWESS",
+   "title": "Prowess",
+   "reminder": "Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.",
+   "card": "Abbot of Keral Keep",
+   "count": 101
+  },
+  {
+   "keyword": "PROWL",
+   "title": "Prowl {1}{B}",
+   "reminder": "You may pay {1}{B} rather than pay this spell's mana cost if a player was dealt combat damage this turn by a source that, at the time it dealt that damage, was under your control and had any of this spell's creature types.",
+   "cost": "{1}{B}",
+   "card": "Auntie's Snitch",
+   "count": 10
+  },
+  {
+   "keyword": "RAMPAGE",
+   "title": "Rampage 3",
+   "reminder": "Whenever this creature becomes blocked, it gets +3/+3 until end of turn for each creature blocking it beyond the first.",
+   "amount": "3",
+   "card": "Aerathi Berserker",
+   "count": 15
+  },
+  {
+   "keyword": "RAVENOUS",
+   "title": "Ravenous",
+   "reminder": "This creature enters with X +1/+1 counters on it. If X is 5 or more, draw a card when it enters.",
+   "card": "Aberrant",
+   "count": 12
+  },
+  {
+   "keyword": "REACH",
+   "title": "Reach",
+   "reminder": "This creature can block creatures with flying.",
+   "card": "A-High-Rise Sawjack",
+   "count": 450
+  },
+  {
+   "keyword": "READ_AHEAD",
+   "title": "Read ahead",
+   "reminder": "Chapter abilities of this Saga can’t trigger the turn it entered the battlefield unless it has exactly the number of lore counters on it specified in the chapter symbol of that ability.",
+   "card": "Braids's Frightful Return",
+   "count": 10
+  },
+  {
+   "keyword": "REBOUND",
+   "title": "Rebound",
+   "reminder": "If you cast this spell from your hand, exile it as it resolves. At the beginning of your next upkeep, you may cast this card from exile without paying its mana cost.",
+   "card": "Artful Maneuver",
+   "count": 35
+  },
+  {
+   "keyword": "RECONFIGURE",
+   "title": "Reconfigure {2}",
+   "reminder": "{2}: Attach to target creature you control; or unattach from a creature. Reconfigure only as a sorcery. While attached, this isn't a creature.",
+   "cost": "{2}",
+   "card": "Acquisition Octopus",
+   "count": 21
+  },
+  {
+   "keyword": "RECOVER",
+   "title": "Recover {2}{U}{U}",
+   "reminder": "When a creature is put into your graveyard from the battlefield, you may pay {2}{U}{U}. If you do, return this card from your graveyard to your hand. Otherwise, exile this card.",
+   "cost": "{2}{U}{U}",
+   "card": "Controvert",
+   "count": 6
+  },
+  {
+   "keyword": "RECOVER",
+   "title": "Recover—Pay half your life, rounded up",
+   "reminder": "When a creature is put into your graveyard from the battlefield, you may pay Pay half your life, rounded up. If you do, return this card from your graveyard to your hand. Otherwise, exile this card.",
+   "card": "Garza's Assassin",
+   "count": 1
+  },
+  {
+   "keyword": "REFLECT",
+   "title": "Reflect {0}",
+   "reminder": "As this enters, each opponent may pay {0}. When they do, they create a token copy of this except it lacks this ability.",
+   "cost": "{0}",
+   "card": "Mirrored Lotus",
+   "count": 1
+  },
+  {
+   "keyword": "REINFORCE",
+   "title": "Reinforce 2—{1}{G}",
+   "reminder": "{1}{G}, Discard this card: Put two +1/+1 counters on target creature.",
+   "amount": "2",
+   "cost": "{1}{G}",
+   "card": "Bannerhide Krushok",
+   "count": 11
+  },
+  {
+   "keyword": "RENOWN",
+   "title": "Renown 1",
+   "reminder": "When this creature deals combat damage to a player, if it isn't renowned, put a +1/+1 counter on it and it becomes renowned.",
+   "amount": "1",
+   "card": "Acolyte of the Inferno",
+   "count": 20
+  },
+  {
+   "keyword": "REPLICATE",
+   "title": "Replicate {2}{G}",
+   "reminder": "As an additional cost to cast this spell, you may pay {2}{G} any number of times. If you do, copy it that many times. You may choose new targets for the copies.",
+   "cost": "{2}{G}",
+   "card": "Ate-o'-Clock",
+   "count": 18
+  },
+  {
+   "keyword": "REPLICATE",
+   "title": "Replicate—Pay {E}{E}{E}",
+   "reminder": "As an additional cost to cast this spell, you may pay Pay {E}{E}{E} any number of times. If you do, copy it that many times. You may choose new targets for the copies.",
+   "card": "Reiterating Bolt",
+   "count": 1
+  },
+  {
+   "keyword": "REPLICATE",
+   "title": "Replicate—Tap an untapped Dalek you control",
+   "reminder": "As an additional cost to cast this spell, you may pay Tap an untapped Dalek you control any number of times. If you do, copy it that many times. You may choose new targets for the copies.",
+   "card": "Exterminate!",
+   "count": 1
+  },
+  {
+   "keyword": "REPLICATE",
+   "title": "Replicate—Tap an untapped Horror you control",
+   "reminder": "As an additional cost to cast this spell, you may pay Tap an untapped Horror you control any number of times. If you do, copy it that many times. You may choose new targets for the copies.",
+   "card": "Psionic Ritual",
+   "count": 1
+  },
+  {
+   "keyword": "RETRACE",
+   "title": "Retrace",
+   "reminder": "You may cast this card from your graveyard by discarding a land card in addition to paying its other costs.",
+   "card": "Call the Skybreaker",
+   "count": 18
+  },
+  {
+   "keyword": "RIOT",
+   "title": "Riot",
+   "reminder": "This creature enters with your choice of a +1/+1 counter or haste.",
+   "card": "Arcbound Slasher",
+   "count": 13
+  },
+  {
+   "keyword": "RIPPLE",
+   "title": "Ripple 4",
+   "reminder": "When you cast this spell, you may reveal the top four cards of your library. You may cast any of those cards with the same name as this spell without paying their mana costs. Put the rest on the bottom of your library in any order.",
+   "amount": "4",
+   "card": "Surging Aether",
+   "count": 5
+  },
+  {
+   "keyword": "SADDLE",
+   "title": "Saddle 1",
+   "reminder": "Tap any number of other creatures you control with total power 1 or more: This Mount becomes saddled until end of turn. Saddle only as a sorcery.",
+   "amount": "1",
+   "card": "Alacrian Jaguar",
+   "count": 32
+  },
+  {
+   "keyword": "SCAVENGE",
+   "title": "Scavenge {5}{G}{G}",
+   "reminder": "{5}{G}{G}, Exile this card from your graveyard: Put a number of +1/+1 counters equal to this card's power on target creature. Scavenge only as a sorcery.",
+   "cost": "{5}{G}{G}",
+   "card": "Bannerhide Krushok",
+   "count": 14
+  },
+  {
+   "keyword": "SHADOW",
+   "title": "Shadow",
+   "reminder": "This creature can block or be blocked by only creatures with shadow.",
+   "card": "Augur il-Vec",
+   "count": 39
+  },
+  {
+   "keyword": "SHROUD",
+   "title": "Shroud",
+   "reminder": "This can't be the target of spells or abilities.",
+   "card": "1996 World Champion",
+   "count": 37
+  },
+  {
+   "keyword": "SKULK",
+   "title": "Skulk",
+   "reminder": "This creature can't be blocked by creatures with greater power.",
+   "card": "Cybermat",
+   "count": 15
+  },
+  {
+   "keyword": "SNEAK",
+   "title": "Sneak {W}{B}",
+   "reminder": "You may cast this spell for {W}{B} if you also return an unblocked attacker you control to hand during the declare blockers step.",
+   "cost": "{W}{B}",
+   "card": "Dark Leo & Shredder",
+   "count": 27
+  },
+  {
+   "keyword": "SOULBOND",
+   "title": "Soulbond",
+   "reminder": "You may pair this creature with another unpaired creature when either enters. They remain paired for as long as you control both of them.",
+   "card": "Breathkeeper Seraph",
+   "count": 25
+  },
+  {
+   "keyword": "SOULSHIFT",
+   "title": "Soulshift 8",
+   "reminder": "When this creature dies, you may return target Spirit card with mana value 8 or less from your graveyard to your hand.",
+   "amount": "8",
+   "card": "Body of Jukai",
+   "count": 26
+  },
+  {
+   "keyword": "SPACE_SCULPTOR",
+   "title": "Space sculptor",
+   "reminder": "Space Beleren divides the battlefield into alpha, beta, and gamma sectors. If a creature isn't assigned to a sector, its controller assigns it to one. Opponents assign first.",
+   "card": "Space Beleren",
+   "count": 1
+  },
+  {
+   "keyword": "SPECIALIZE",
+   "title": "Specialize {2}",
+   "reminder": "{2}, Choose a color, discard a card of that color or associated basic land type: This card perpetually specializes into that color. Activate only as a sorcery.",
+   "cost": "{2}",
+   "card": "Alora, Rogue Companion",
+   "count": 19
+  },
+  {
+   "keyword": "SPECTACLE",
+   "title": "Spectacle {2}{B}",
+   "reminder": "You may cast this spell for its spectacle cost rather than its mana cost if an opponent lost life this turn.",
+   "cost": "{2}{B}",
+   "card": "Blade Juggler",
+   "count": 11
+  },
+  {
+   "keyword": "SPLICE",
+   "title": "Splice onto Arcane {W}",
+   "reminder": "As you cast an Arcane spell, you may reveal this card from your hand and pay its splice cost. If you do, add this card's effects to that spell.",
+   "cost": "{W}",
+   "detail": "Arcane",
+   "card": "Blessed Breath",
+   "count": 22
+  },
+  {
+   "keyword": "SPLICE",
+   "title": "Splice onto Arcane—Exile four cards from your graveyard",
+   "reminder": "As you cast an Arcane spell, you may reveal this card from your hand and pay its splice cost. If you do, add this card's effects to that spell.",
+   "detail": "Arcane",
+   "card": "Horobi's Whisper",
+   "count": 1
+  },
+  {
+   "keyword": "SPLICE",
+   "title": "Splice onto Arcane—Have an opponent gain 5 life",
+   "reminder": "As you cast an Arcane spell, you may reveal this card from your hand and pay its splice cost. If you do, add this card's effects to that spell.",
+   "detail": "Arcane",
+   "card": "Roar of Jukai",
+   "count": 1
+  },
+  {
+   "keyword": "SPLICE",
+   "title": "Splice onto Arcane—Return a blue creature you control to its owner's hand",
+   "reminder": "As you cast an Arcane spell, you may reveal this card from your hand and pay its splice cost. If you do, add this card's effects to that spell.",
+   "detail": "Arcane",
+   "card": "Veil of Secrecy",
+   "count": 1
+  },
+  {
+   "keyword": "SPLICE",
+   "title": "Splice onto Arcane—Sacrifice two Mountains",
+   "reminder": "As you cast an Arcane spell, you may reveal this card from your hand and pay its splice cost. If you do, add this card's effects to that spell.",
+   "detail": "Arcane",
+   "card": "Torrent of Stone",
+   "count": 1
+  },
+  {
+   "keyword": "SPLICE",
+   "title": "Splice onto Arcane—Tap an untapped white creature you control",
+   "reminder": "As you cast an Arcane spell, you may reveal this card from your hand and pay its splice cost. If you do, add this card's effects to that spell.",
+   "detail": "Arcane",
+   "card": "Hundred-Talon Strike",
+   "count": 1
+  },
+  {
+   "keyword": "SPLICE",
+   "title": "Splice onto instant or sorcery {2}{U}",
+   "reminder": "As you cast an instant or sorcery spell, you may reveal this card from your hand and pay its splice cost. If you do, add this card's effects to that spell.",
+   "cost": "{2}{U}",
+   "detail": "instant or sorcery",
+   "card": "Everdream",
+   "count": 3
+  },
+  {
+   "keyword": "SPLIT_SECOND",
+   "title": "Split second",
+   "reminder": "As long as this spell is on the stack, players can't cast other spells or activate abilities that aren't mana abilities.",
+   "card": "Angel's Grace",
+   "count": 22
+  },
+  {
+   "keyword": "SPREE",
+   "title": "Spree",
+   "reminder": "Choose one or more additional costs.",
+   "card": "Caught in the Crossfire",
+   "count": 21
+  },
+  {
+   "keyword": "SQUAD",
+   "title": "Squad {2}",
+   "reminder": "As an additional cost to cast this spell, you may pay {2} any number of times. When this creature enters, create that many tokens that are copies of it.",
+   "cost": "{2}",
+   "card": "Arco-Flagellant",
+   "count": 13
+  },
+  {
+   "keyword": "SQUAD",
+   "title": "Squad—{1}, Discard a card",
+   "reminder": "As an additional cost to cast this spell, you may pay {1}, Discard a card any number of times. When this creature enters, create that many tokens that are copies of it.",
+   "card": "Thrill-Kill Disciple",
+   "count": 1
+  },
+  {
+   "keyword": "SQUAD",
+   "title": "Squad—Exile four cardss from your graveyard",
+   "reminder": "As an additional cost to cast this spell, you may pay Exile four cardss from your graveyard any number of times. When this creature enters, create that many tokens that are copies of it.",
+   "card": "Ruthless Radrat",
+   "count": 1
+  },
+  {
+   "keyword": "START_YOUR_ENGINES",
+   "title": "Start your engines",
+   "reminder": "If you have no speed, it starts at 1. It increases once on each of your turns when an opponent loses life. Max speed is 4.",
+   "card": "Aether Syphon",
+   "count": 46
+  },
+  {
+   "keyword": "STARTING_INTENSITY",
+   "title": "Starting intensity 0",
+   "reminder": "",
+   "amount": "0",
+   "card": "Arek, False Goldwarden",
+   "count": 20
+  },
+  {
+   "keyword": "STATION",
+   "title": "Station 12",
+   "reminder": "Tap another creature you control: Put charge counters equal to its power on this Spacecraft. Station only as a sorcery. It’s an artifact creature at 12+.",
+   "amount": "12",
+   "card": "Adagia, Windswept Bastion",
+   "count": 35
+  },
+  {
+   "keyword": "STORIED",
+   "title": "Storied",
+   "reminder": "If you control three or more artifacts, legendaries, and/or Sagas, you have an enduring story for the rest of the game.",
+   "card": "Balin, Loremaster",
+   "count": 9
+  },
+  {
+   "keyword": "STORM",
+   "title": "Storm",
+   "reminder": "When you cast this spell, copy it for each other spell that was cast before it this turn. You may choose new targets for the copies.",
+   "card": "Aeve, Progenitor Ooze",
+   "count": 37
+  },
+  {
+   "keyword": "STRIVE",
+   "title": "Strive {2}{U}",
+   "reminder": "Flugformation costs {2}{U} more to cast for each target beyond the first.",
+   "cost": "{2}{U}",
+   "card": "Aerial Formation",
+   "count": 20
+  },
+  {
+   "keyword": "SUNBURST",
+   "title": "Sunburst",
+   "reminder": "This enters with either a +1/+1 or charge counter on it for each color of mana spent to cast it based on whether it's a creature.",
+   "card": "Baton of Courage",
+   "count": 15
+  },
+  {
+   "keyword": "SURGE",
+   "title": "Surge {1}{R}",
+   "reminder": "You may cast this spell for its surge cost if you or a teammate has cast another spell this turn.",
+   "cost": "{1}{R}",
+   "card": "Boulder Salvo",
+   "count": 11
+  },
+  {
+   "keyword": "SUSPEND",
+   "title": "Suspend X—{X}{3}{U}",
+   "reminder": "If you could begin to cast this card by putting it onto the stack from your hand, you may pay {X}{3}{U} and exile it with X time counters on it. At the beginning of your upkeep, remove a time counter. When the last is removed, play it without paying its mana cost. If you cast a creature spell this way, it gains haste until you lose control of the spell or the permanent it becomes.",
+   "amount": "X",
+   "cost": "{X}{3}{U}",
+   "card": "Aeon Chronicler",
+   "count": 72
+  },
+  {
+   "keyword": "TEAMWORK",
+   "title": "Teamwork 4",
+   "reminder": "As an additional cost to cast this spell, you may tap any number of creatures you control with total power 4 or more.",
+   "amount": "4",
+   "card": "Atlantis Attacks",
+   "count": 17
+  },
+  {
+   "keyword": "TIERED",
+   "title": "Tiered",
+   "reminder": "Choose one additional cost.",
+   "card": "Cloud's Limit Break",
+   "count": 7
+  },
+  {
+   "keyword": "TOXIC",
+   "title": "Toxic 1",
+   "reminder": "Players dealt combat damage by this creature also get a poison counter.",
+   "amount": "1",
+   "card": "Annex Sentry",
+   "count": 44
+  },
+  {
+   "keyword": "TRAINING",
+   "title": "Training",
+   "reminder": "Whenever this creature attacks with another creature with greater power, put a +1/+1 counter on this creature.",
+   "card": "Apprentice Sharpshooter",
+   "count": 11
+  },
+  {
+   "keyword": "TRAMPLE",
+   "title": "Trample",
+   "reminder": "This creature can deal excess combat damage to the player or planeswalker it's attacking.",
+   "card": "A-Asari Captain",
+   "count": 1047
+  },
+  {
+   "keyword": "TRAMPLE",
+   "title": "Trample Over Planeswalkers",
+   "reminder": "This creature can deal excess combat damage to the controller of the planeswalker it's attacking.",
+   "detail": "planeswalker",
+   "card": "Kevin, Questing Dragon",
+   "count": 2
+  },
+  {
+   "keyword": "TRANSFIGURE",
+   "title": "Transfigure {1}{B}{B}",
+   "reminder": "{1}{B}{B}, Sacrifice this creature: Search your library for a creature card with the same mana value as this creature and put that card onto the battlefield, then shuffle. Transfigure only as a sorcery.",
+   "cost": "{1}{B}{B}",
+   "card": "Fleshwrither",
+   "count": 1
+  },
+  {
+   "keyword": "TRANSMUTE",
+   "title": "Transmute {1}{B}{B}",
+   "reminder": "{1}{B}{B}, Discard this card: Search your library for a card with the same mana value as this card, reveal it, and put it into your hand, then shuffle. Transmute only as a sorcery.",
+   "cost": "{1}{B}{B}",
+   "card": "Brainspoil",
+   "count": 14
+  },
+  {
+   "keyword": "TRIBUTE",
+   "title": "Tribute 1",
+   "reminder": "As this creature enters, an opponent of your choice may put a +1/+1 counter on it.",
+   "amount": "1",
+   "card": "Fanatic of Xenagos",
+   "count": 11
+  },
+  {
+   "keyword": "TYPECYCLING",
+   "title": "Affinitycycling {2}",
+   "reminder": "{2}, Discard this card: Search your library for a card with affinity, reveal it, put it into your hand, then shuffle.",
+   "cost": "{2}",
+   "detail": "Affinity",
+   "card": "Sojourner's Enforcermite",
+   "count": 1
+  },
+  {
+   "keyword": "TYPECYCLING",
+   "title": "Artifact landcycling {2}",
+   "reminder": "{2}, Discard this card: Search your library for an artifact land card, reveal it, put it into your hand, then shuffle.",
+   "cost": "{2}",
+   "detail": "artifact land",
+   "card": "Sojourner's Companion",
+   "count": 1
+  },
+  {
+   "keyword": "TYPECYCLING",
+   "title": "Basic landcycling {2}",
+   "reminder": "{2}, Discard this card: Search your library for a basic land card, reveal it, put it into your hand, then shuffle.",
+   "cost": "{2}",
+   "detail": "basic land",
+   "card": "A.I.M. Scientists",
+   "count": 41
+  },
+  {
+   "keyword": "TYPECYCLING",
+   "title": "Forestcycling {2}",
+   "reminder": "{2}, Discard this card: Search your library for a Forest card, reveal it, put it into your hand, then shuffle.",
+   "cost": "{2}",
+   "detail": "Forest",
+   "card": "Balamb T-Rexaur",
+   "count": 11
+  },
+  {
+   "keyword": "TYPECYCLING",
+   "title": "Halflingcycling {4}",
+   "reminder": "{4}, Discard this card: Search your library for a Halfling card, reveal it, put it into your hand, then shuffle.",
+   "cost": "{4}",
+   "detail": "Halfling",
+   "card": "Hobbit Hole",
+   "count": 1
+  },
+  {
+   "keyword": "TYPECYCLING",
+   "title": "Islandcycling {2}",
+   "reminder": "{2}, Discard this card: Search your library for an Island card, reveal it, put it into your hand, then shuffle.",
+   "cost": "{2}",
+   "detail": "Island",
+   "card": "Daggermaw Megalodon",
+   "count": 11
+  },
+  {
+   "keyword": "TYPECYCLING",
+   "title": "Mountaincycling {2}",
+   "reminder": "{2}, Discard this card: Search your library for a Mountain card, reveal it, put it into your hand, then shuffle.",
+   "cost": "{2}",
+   "detail": "Mountain",
+   "card": "Bedhead Beastie",
+   "count": 13
+  },
+  {
+   "keyword": "TYPECYCLING",
+   "title": "Plainscycling {2}",
+   "reminder": "{2}, Discard this card: Search your library for a Plains card, reveal it, put it into your hand, then shuffle.",
+   "cost": "{2}",
+   "detail": "Plains",
+   "card": "Alabaster Host Intercessor",
+   "count": 13
+  },
+  {
+   "keyword": "TYPECYCLING",
+   "title": "Slivercycling {3}",
+   "reminder": "{3}, Discard this card: Search your library for a Sliver card, reveal it, put it into your hand, then shuffle.",
+   "cost": "{3}",
+   "detail": "Sliver",
+   "card": "Homing Sliver",
+   "count": 1
+  },
+  {
+   "keyword": "TYPECYCLING",
+   "title": "Swampcycling {2}",
+   "reminder": "{2}, Discard this card: Search your library for a Swamp card, reveal it, put it into your hand, then shuffle.",
+   "cost": "{2}",
+   "detail": "Swamp",
+   "card": "Bebop, Warthog Warrior",
+   "count": 11
+  },
+  {
+   "keyword": "TYPECYCLING",
+   "title": "Wizardcycling {2}",
+   "reminder": "{2}, Discard this card: Search your library for a Wizard card, reveal it, put it into your hand, then shuffle.",
+   "cost": "{2}",
+   "detail": "Wizard",
+   "card": "Step Through",
+   "count": 2
+  },
+  {
+   "keyword": "UMBRA_ARMOR",
+   "title": "Umbra armor",
+   "reminder": "If enchanted permanent would be destroyed, instead remove all damage marked on it and destroy this Aura.",
+   "card": "Bear Umbra",
+   "count": 15
+  },
+  {
+   "keyword": "UNDAUNTED",
+   "title": "Undaunted",
+   "reminder": "This spell costs {1} less to cast for each opponent.",
+   "card": "Coastal Breach",
+   "count": 5
+  },
+  {
+   "keyword": "UNDYING",
+   "title": "Undying",
+   "reminder": "When this creature dies, if it had no +1/+1 counters on it, return it to the battlefield under its owner's control with a +1/+1 counter on it.",
+   "card": "Butcher Ghoul",
+   "count": 23
+  },
+  {
+   "keyword": "UNEARTH",
+   "title": "Unearth {5}{B}{R}",
+   "reminder": "{5}{B}{R}: Return this card from your graveyard to the battlefield. It gains haste. Exile it at the beginning of the next end step or if it would leave the battlefield. Unearth only as a sorcery.",
+   "cost": "{5}{B}{R}",
+   "card": "Anathemancer",
+   "count": 57
+  },
+  {
+   "keyword": "UNEARTH",
+   "title": "Unearth—Pay {E}{E}{E}{E}{E}{E}{E}{E}",
+   "reminder": "Pay {E}{E}{E}{E}{E}{E}{E}{E}: Return this card from your graveyard to the battlefield. It gains haste. Exile it at the beginning of the next end step or if it would leave the battlefield. Unearth only as a sorcery.",
+   "card": "Salvation Colossus",
+   "count": 1
+  },
+  {
+   "keyword": "UNLEASH",
+   "title": "Unleash",
+   "reminder": "You may have this creature enter with a +1/+1 counter on it. It can't block as long as it has a +1/+1 counter on it.",
+   "card": "Bloodfray Giant",
+   "count": 14
+  },
+  {
+   "keyword": "VANISHING",
+   "title": "Vanishing",
+   "reminder": "At the beginning of your upkeep, remove a time counter from this enchantment. When the last is removed, sacrifice it.",
+   "amount": "0",
+   "card": "Out of Time",
+   "count": 2
+  },
+  {
+   "keyword": "VANISHING",
+   "title": "Vanishing 3",
+   "reminder": "This permanent enters with three time counters on it. At the beginning of your upkeep, remove a time counter from it. When the last is removed, sacrifice it.",
+   "amount": "3",
+   "card": "Aven Riftwatcher",
+   "count": 19
+  },
+  {
+   "keyword": "VIGILANCE",
+   "title": "Vigilance",
+   "reminder": "Attacking doesn't cause this creature to tap.",
+   "card": "A-Geology Enthusiast",
+   "count": 759
+  },
+  {
+   "keyword": "WARD",
+   "title": "Ward {1}",
+   "reminder": "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player pays {1}.",
+   "cost": "{1}",
+   "card": "A-Dwarfhold Champion",
+   "count": 166
+  },
+  {
+   "keyword": "WARD",
+   "title": "Ward—{2}, Pay 2 life.",
+   "reminder": "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player {2}, Pay 2 life.",
+   "card": "Captain Howler, Sea Scourge",
+   "count": 2
+  },
+  {
+   "keyword": "WARD",
+   "title": "Ward—{3}, Pay 3 life.",
+   "reminder": "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player {3}, Pay 3 life.",
+   "card": "Ovika, Enigma Goliath",
+   "count": 1
+  },
+  {
+   "keyword": "WARD",
+   "title": "Ward—Blight 2.",
+   "reminder": "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player Blight 2.",
+   "card": "Auntie Ool, Cursewretch",
+   "count": 1
+  },
+  {
+   "keyword": "WARD",
+   "title": "Ward—Collect evidence 4.",
+   "reminder": "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player Collect evidence 4.",
+   "card": "Axebane Ferox",
+   "count": 1
+  },
+  {
+   "keyword": "WARD",
+   "title": "Ward—Discard a card at random.",
+   "reminder": "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player discards a card at random.",
+   "card": "Alpharael, Stonechosen",
+   "count": 1
+  },
+  {
+   "keyword": "WARD",
+   "title": "Ward—Discard a card or pay {2}",
+   "reminder": "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player discards a card or pays {2}.",
+   "card": "Titania, Rugged Rumbler",
+   "count": 1
+  },
+  {
+   "keyword": "WARD",
+   "title": "Ward—Discard a card.",
+   "reminder": "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player discards a card.",
+   "card": "Arna Kennerüd, Skycaptain",
+   "count": 14
+  },
+  {
+   "keyword": "WARD",
+   "title": "Ward—Discard an enchantment, instant or sorcery card card.",
+   "reminder": "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player discards an enchantment, instant or sorcery card card.",
+   "card": "Saruman of Many Colors",
+   "count": 1
+  },
+  {
+   "keyword": "WARD",
+   "title": "Ward—Get five Poison counters.",
+   "reminder": "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player Get five Poison counters.",
+   "card": "The Serpent Society",
+   "count": 1
+  },
+  {
+   "keyword": "WARD",
+   "title": "Ward—Pay 2 life.",
+   "reminder": "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player pays 2 life.",
+   "card": "A-Armory Veteran",
+   "count": 10
+  },
+  {
+   "keyword": "WARD",
+   "title": "Ward—Pay 3 life.",
+   "reminder": "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player pays 3 life.",
+   "card": "Amalia Benavides Aguirre",
+   "count": 8
+  },
+  {
+   "keyword": "WARD",
+   "title": "Ward—Pay 5 life.",
+   "reminder": "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player pays 5 life.",
+   "card": "Prismari, the Inspiration",
+   "count": 1
+  },
+  {
+   "keyword": "WARD",
+   "title": "Ward—Pay 7 life.",
+   "reminder": "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player pays 7 life.",
+   "card": "Sire of Seven Deaths",
+   "count": 1
+  },
+  {
+   "keyword": "WARD",
+   "title": "Ward—Pay 9 life.",
+   "reminder": "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player pays 9 life.",
+   "card": "Nine-Fingers Keene",
+   "count": 1
+  },
+  {
+   "keyword": "WARD",
+   "title": "Ward—Pay life equal to NICKNAME's power.",
+   "reminder": "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player pays life equal to NICKNAME's power.",
+   "card": "Raubahn, Bull of Ala Mhigo",
+   "count": 1
+  },
+  {
+   "keyword": "WARD",
+   "title": "Ward—Pay life equal to Phyrexianischer Fleischfresser's power.",
+   "reminder": "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player pays life equal to Phyrexianischer Fleischfresser's power.",
+   "card": "Phyrexian Fleshgorger",
+   "count": 1
+  },
+  {
+   "keyword": "WARD",
+   "title": "Ward—Sacrifice a creature.",
+   "reminder": "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player Sacrifice a creature.",
+   "card": "Forge, Neverwinter Charlatan",
+   "count": 2
+  },
+  {
+   "keyword": "WARD",
+   "title": "Ward—Sacrifice a Food.",
+   "reminder": "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player Sacrifice a Food.",
+   "card": "Ygra, Eater of All",
+   "count": 1
+  },
+  {
+   "keyword": "WARD",
+   "title": "Ward—Sacrifice a legendary artifact or legendary creature.",
+   "reminder": "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player Sacrifice a legendary artifact or legendary creature.",
+   "card": "Sauron, the Dark Lord",
+   "count": 1
+  },
+  {
+   "keyword": "WARD",
+   "title": "Ward—Sacrifice an a permanent with mana value 1 or greater.",
+   "reminder": "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player Sacrifice an a permanent with mana value 1 or greater.",
+   "card": "Ulamog's Dreadsire",
+   "count": 1
+  },
+  {
+   "keyword": "WARD",
+   "title": "Ward—Sacrifice three nonland permanents.",
+   "reminder": "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player Sacrifice three nonland permanents.",
+   "card": "Valgavoth, Terror Eater",
+   "count": 1
+  },
+  {
+   "keyword": "WARD",
+   "title": "Ward—Sacrifice three permanents.",
+   "reminder": "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player Sacrifice three permanents.",
+   "card": "Emrakul, the Exigent Doom",
+   "count": 1
+  },
+  {
+   "keyword": "WARD",
+   "title": "Ward—Sacrifice two permanents.",
+   "reminder": "Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player Sacrifice two permanents.",
+   "card": "Ulamog, the Defiler",
+   "count": 1
+  },
+  {
+   "keyword": "WARP",
+   "title": "Warp {1}{W}",
+   "reminder": "You may cast this card from your hand for its warp cost. Exile this creature at the beginning of the next end step, then you may cast it from exile on a later turn.",
+   "cost": "{1}{W}",
+   "card": "All-Fates Stalker",
+   "count": 36
+  },
+  {
+   "keyword": "WARP",
+   "title": "Warp—{B}, Pay 2 life",
+   "reminder": "You may cast this card from your hand for its warp cost. Exile this creature at the beginning of the next end step, then you may cast it from exile on a later turn.",
+   "card": "Timeline Culler",
+   "count": 1
+  },
+  {
+   "keyword": "WEB_SLINGING",
+   "title": "Web-slinging {2}{W}",
+   "reminder": "You may cast this spell for {2}{W} if you also return a tapped creature you control to its owner’s hand.",
+   "cost": "{2}{W}",
+   "card": "Amazing Spider-Girl",
+   "count": 10
+  },
+  {
+   "keyword": "WITHER",
+   "title": "Wither",
+   "reminder": "This deals damage to creatures in the form of -1/-1 counters.",
+   "card": "Boggart Ram-Gang",
+   "count": 27
+  }
+ ]
+}
