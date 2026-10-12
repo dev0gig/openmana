@@ -21,15 +21,19 @@ export type ImageSide = "front" | "back"
 
 /**
  * The picture versions OpenMana shows: Scryfall's WebP versions, which
- * replace the older JPEGs of the same size. thumb 146×204 (lists), grid
- * 488×680 (cards on screen), display 672×936 (the full card view).
+ * replace the older JPEGs of the same size - thumb 146×204 (lists), grid
+ * 488×680 (cards on screen), display 672×936 (card details) - and png
+ * 745×1040, Scryfall's largest (lossless, with its transparent round
+ * corners), for the card view of the game in full screen (prompt 47), where
+ * a card fills the screen and its text must stay sharp.
  */
-export type ImageSize = "thumb" | "grid" | "display"
+export type ImageSize = "thumb" | "grid" | "display" | "png"
 
 export const IMAGE_SIZES: Readonly<Record<ImageSize, { readonly width: number; readonly height: number }>> = {
   thumb: { width: 146, height: 204 },
   grid: { width: 488, height: 680 },
   display: { width: 672, height: 936 },
+  png: { width: 745, height: 1040 },
 }
 
 /** Every version Scryfall lists in image_uris, with its file type. */

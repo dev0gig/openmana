@@ -29,7 +29,7 @@ export interface TablePictureData {
   readonly src: string
   /** Scryfall's small and large version: the browser takes what the card's size on screen needs. */
   readonly srcSet: string
-  /** The card view's picture (prompt 14): Scryfall's large version, and the one between for smaller screens. */
+  /** The card view's picture (prompt 14; full screen since prompt 47): Scryfall's largest version (png), and the smaller ones for smaller cards - the browser takes what the card's size on screen needs. */
   readonly large: string
   readonly largeSrcSet: string
   /** The picture's language (de, en or another): an English picture in a German game is marked. */
@@ -104,8 +104,8 @@ export function pictureOf(resolution: Resolution, language: TextLanguage): Table
   const image = (p: NonNullable<typeof picture>): TablePictureData => ({
     src: p.urls.grid,
     srcSet: `${p.urls.thumb} ${IMAGE_SIZES.thumb.width}w, ${p.urls.grid} ${IMAGE_SIZES.grid.width}w`,
-    large: p.urls.display,
-    largeSrcSet: `${p.urls.grid} ${IMAGE_SIZES.grid.width}w, ${p.urls.display} ${IMAGE_SIZES.display.width}w`,
+    large: p.urls.png,
+    largeSrcSet: `${p.urls.grid} ${IMAGE_SIZES.grid.width}w, ${p.urls.display} ${IMAGE_SIZES.display.width}w, ${p.urls.png} ${IMAGE_SIZES.png.width}w`,
     lang: p.lang,
   })
   return {

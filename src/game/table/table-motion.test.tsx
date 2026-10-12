@@ -17,7 +17,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { REDUCED_MOTION_ATTRIBUTE } from "@/app/motion"
-import { sequenceMoment, TABLE_SEQUENCE } from "@/test/table-sequence"
+import { SEQUENCE_STEPS, sequenceMoment, TABLE_SEQUENCE } from "@/test/table-sequence"
 import { GameTable } from "../game-table"
 import { NO_PICTURES } from "../table-cards"
 import { DROP_WAIT_MS, MOTION_PROPERTIES } from "./motion-plan"
@@ -102,6 +102,11 @@ const ghosts = () => [...layer().querySelectorAll<HTMLElement>(".table-motion-gh
 const travels = () => played.filter((call) => call.target.classList.contains("table-motion-ghost") && String(call.keyframes[0]?.["transform"] ?? "").startsWith("translate("))
 
 describe("cards travel as themselves", () => {
+  it("the recorded run begins with Forge's draw and then the land played (the steps the tests below start from)", () => {
+    expect(SEQUENCE_STEPS.draw).toBe(1)
+    expect(SEQUENCE_STEPS.land).toBe(2)
+  })
+
   it("a card drawn comes from the library; nothing else travels; the card itself lies at its place", async () => {
     const view = render(table(0))
     expect(played).toEqual([])
@@ -252,8 +257,8 @@ describe("never in the way", () => {
 
 describe("effects follow Forge", () => {
   it("a spell put on the stack: its entry glides in, the damage's source flashes, the damaged card shakes", async () => {
-    const view = render(table(21))
-    view.rerender(table(22))
+    const view = render(table(SEQUENCE_STEPS.onStack - 1))
+    view.rerender(table(SEQUENCE_STEPS.onStack))
     await nextFrame()
     const last = layer().dataset["last"] ?? ""
     expect(last).toContain("entry-glide 1")
@@ -266,8 +271,8 @@ describe("effects follow Forge", () => {
   })
 
   it("Forge resolves the spell: the entry dissolves, the cards glide to the graveyard", async () => {
-    const view = render(table(23))
-    view.rerender(table(24))
+    const view = render(table(SEQUENCE_STEPS.dies - 1))
+    view.rerender(table(SEQUENCE_STEPS.dies))
     await nextFrame()
     const last = layer().dataset["last"] ?? ""
     expect(last).toContain("dissolve 1")
@@ -275,8 +280,8 @@ describe("effects follow Forge", () => {
   })
 
   it("a life total that changes: the medallion's number pulses and its ring of light flashes red", async () => {
-    const view = render(table(8))
-    view.rerender(table(9))
+    const view = render(table(SEQUENCE_STEPS.lifeLoss - 1))
+    view.rerender(table(SEQUENCE_STEPS.lifeLoss))
     await nextFrame()
     expect(layer().dataset["last"]).toContain("life-loss 1")
     const flash = document.querySelector<HTMLElement>('[data-area="opponent"] .table-medallion-flash')!
@@ -286,18 +291,18 @@ describe("effects follow Forge", () => {
 
   it("a card turns when Forge taps or untaps it", async () => {
     const turns = (from: string) => played.filter((call) => (call.target as HTMLElement).dataset["slot"] === "game-card-picture" && call.keyframes[0]!["transform"] === from && call.keyframes.at(-1)!["transform"] === "rotate(0deg)")
-    // Step 8 → 9: the attacking Goblin-Brandstifter (55) is tapped - its picture turns a quarter to the right.
-    const view = render(table(8))
-    view.rerender(table(9))
+    // The attacking Goblin-Brandstifter (55) is tapped - its picture turns a quarter to the right.
+    const view = render(table(SEQUENCE_STEPS.tapped - 1))
+    view.rerender(table(SEQUENCE_STEPS.tapped))
     await nextFrame()
     const goblin = document.querySelector('[data-area="field"] [data-card="55"] [data-slot="game-card-picture"]')
     expect(turns("rotate(-90deg)").map((call) => call.target)).toContain(goblin)
-    // Step 13 → 14: the player's untap step - it turns back.
+    // The player's next untap step - it turns back.
     played = []
-    view.rerender(table(13))
+    view.rerender(table(SEQUENCE_STEPS.untapped - 1))
     await nextFrame()
     played = []
-    view.rerender(table(14))
+    view.rerender(table(SEQUENCE_STEPS.untapped))
     await nextFrame()
     expect(turns("rotate(90deg)").map((call) => call.target)).toContain(document.querySelector('[data-area="field"] [data-card="55"] [data-slot="game-card-picture"]'))
   })

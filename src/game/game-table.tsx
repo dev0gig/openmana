@@ -17,7 +17,7 @@
  *
  * Cards (prompt 14): every card the player may see is a control. Looking at
  * it is always safe - its primary activation or a long press / right click
- * opens the card view (card-sheet.tsx), which sends nothing. A tap (Forge's
+ * opens the card view (card-view.tsx, full screen since prompt 47), which sends nothing. A tap (Forge's
  * card.tap) comes only from the page (onTapCard) and only where Forge offers
  * one (card-use.ts): as the card view's button, or at once in the steps whose
  * taps Forge lets the player take back (paying, attacking, blocking, the
@@ -103,7 +103,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { useCardPress, useFanPress } from "@/hooks/use-card-press"
 import { useElementHeight } from "@/hooks/use-element-height"
 import { useElementSize } from "@/hooks/use-element-size"
-import { ARMING_MS, CardSheet, type CardLook } from "./card-sheet"
+import { ARMING_MS, CardView, type CardLook } from "./card-view"
 import { questionCard, type CardBrowse } from "./card-view-model"
 import { HelpSheet } from "./help-sheet"
 import { STACK_TARGET_LABEL, stackTargetIds } from "./beginner-help"
@@ -441,7 +441,7 @@ export function GameTable({ replay = false,
         <HelpSheet open={helpOpen} onOpenChange={setHelpOpen} state={state} questions={questions} replay={replay} waiting={waiting} conceding={conceding} />
         <ZoneSheet onSourceChange={setZone} source={zone} state={state} pictures={pictures} onClose={() => setZone(null)} onLook={openCard} />
         <HistorySheet open={historyOpen} onOpenChange={setHistoryOpen} history={history} state={state} questions={questions} onLook={(id) => { lookAtQuestionCard(id); setInspectingHistory(true) }} />
-        <CardSheet
+        <CardView
           look={look}
           onBrowse={(id) => setLook((previous) => previous === null ? null : { ...previous, id })}
           onOpenChange={(open) => setLook((previous) => (previous === null ? null : { ...previous, open }))}

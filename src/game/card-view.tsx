@@ -1,7 +1,12 @@
 /*
- * The card view of the game table (prompt 14): one card large, with what
- * Forge says about it right now. Looking is safe (Bible §6 "Card
- * interaction", §16): opening, reading and closing it sends nothing.
+ * The card view of the game table (prompt 14; full screen since prompt 47):
+ * one card as large as the screen allows, the table darkened behind it -
+ * like taking a real card into the hand to read it. Beside it (below it on a
+ * narrow screen) small boxes explain the keywords Forge reports for the card
+ * now, and under the boxes (stacked: right under the card) its buttons:
+ * Forge's offer, turning a double-faced card, browsing. Looking is safe
+ * (Bible §6 "Card interaction", §16): opening, reading and closing it sends
+ * nothing.
  *
  * Where Forge offers a tap on the card (card-use.ts), the view's main button
  * does it - labelled with Forge's own words ("Spiele ein Land") - and only
@@ -18,38 +23,45 @@
  *  - held keys repeat nothing (a repeated keydown is dropped).
  *
  * Live, never stale (Anvil lesson): the view keeps only the card's id and
- * reads the card from every new state - its place, facts and Forge's offer
+ * reads the card from every new state - its place, keywords and Forge's offer
  * change while it is open, and a card Forge no longer shows says so. A card
  * of one of Forge's questions that lies in no zone the table shows (the top
  * of the library while scrying, a card to choose from a pile - prompt 15)
  * is resolved from its source question ID in the latest questions while
  * that question is open; it is answered in the decision region, never tapped here.
- * A card on the stack (prompt 16: a spell's own card, or the source of an
- * ability there) shows what it is there, whose, how far from the top, and
- * Forge's description with its targets; a card on the stack is only looked
- * at - it is not tapped, it is resolved.
- * Forge's texts (name, type line, rules text, the tap's words) are shown as
- * Forge sends them; the picture comes from the card catalog, never covered.
+ * A card on the stack (prompt 16) is only looked at - it is not tapped, it is resolved.
+ *
+ * What the player reads is the card itself: the facts the view listed before
+ * prompt 47 (place, counters, damage, stack and its targets, attachments …)
+ * are chips on the table and lines of the Zauberchronik; here they stay in the
+ * dialog's description for screen readers. Forge's texts (name, rules text,
+ * the tap's words) are shown as Forge sends them; the picture comes from the
+ * card catalog, never covered; without one, Forge's text stands in card form.
  */
 import { useEffect, useId, useRef, useState, type ReactNode } from "react"
 import type { GameState, VisibleCard } from "@openmana/engine-protocol"
-import { FactList, type Fact } from "@/components/fact-list"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { CardLightboxActions, CardLightboxAside, CardLightboxBoxes, CardLightboxContent, CardLightboxPicture, CardLightboxStage, useCloseWatcher, type CardLightboxArrangement } from "@/components/ui/card-lightbox"
 import { CardPicture } from "@/components/ui/card-picture"
-import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Dialog, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { browseIds, questionCard, type CardBrowse } from "./card-view-model"
 import { SICK_LABEL, SICK_NOTE } from "./attack-labels"
 import { cardUse, type CardUse, type TableMoment } from "./card-use"
+import { keywordBoxes, type KeywordBox } from "./keyword-texts"
 import { STACK_KIND_LABELS } from "./priority-labels"
 import type { TableCardLookup, TableCardPicture, TableFace, TablePictureData } from "./table-cards"
 import { captionFacts, cardName, placeLabel, spokenFacts, stackOwner, stackTargets } from "./table-labels"
 import { locateCard, pileOf, stackEntriesOf, visibleCards, type StackEntryView, type TableView } from "./table-model"
-import { useTableSheetSide } from "./table/use-table-layout"
+import { useTableLayout } from "./table/use-table-layout"
 
 /** How long after the view opened (or its button changed) presses on the button - or outside the view - are ignored. */
 export const ARMING_MS = 500
+
+/** The height of one row of buttons under the card (stacked): it stays on screen with the card. */
+const BUTTON_ROW_PX = 56
 
 /** The card being looked at: its id, whether the view is open, and which opening this is. */
 export interface CardLook {
@@ -61,7 +73,7 @@ export interface CardLook {
   readonly browse?: CardBrowse
 }
 
-export interface CardSheetProps {
+export interface CardViewProps {
   readonly look: CardLook | null
   readonly onOpenChange: (open: boolean) => void
   readonly onBrowse: (id: number) => void
@@ -73,23 +85,50 @@ export interface CardSheetProps {
   readonly onTap?: (id: number) => void
 }
 
-export function CardSheet({ look, onOpenChange, onBrowse, state, view, moment, pictures, onTap }: CardSheetProps) {
-  const side = useTableSheetSide()
+export function CardView({ look, onOpenChange, onBrowse, state, view, moment, pictures, onTap }: CardViewProps) {
+  // Arranged by the screen's room, never by device: the card on top in hoch, the card left in quadrat and breit.
+  const arrangement: CardLightboxArrangement = useTableLayout() === "hoch" ? "stacked" : "beside"
   const content = useRef<HTMLDivElement>(null)
   const openedAt = useRef(0)
   // What had the focus when the view opened: the card on the table, or the same card in Forge's question (the decision region).
   const opener = useRef<HTMLElement | null>(null)
   const id = look?.id ?? null
+  const open = look?.open ?? false
+  // The press that opened the view (a long press) ends inside it: the browser then sends that touch's mouse events
+  // and a click to whatever lies under the finger now - the view's button, say. Only a press that began in the view
+  // counts; the release of the one that opened it neither moves the focus nor clicks (a keyboard's click has no press).
+  const pressed = useRef(false)
+  const ghost = useRef(false)
+  // The system's back gesture closes the view (Chrome's CloseWatcher; Escape and the X stay Radix's).
+  useCloseWatcher(open, () => onOpenChange(false))
   return (
-    <Sheet open={look?.open ?? false} onOpenChange={onOpenChange}>
-      <SheetContent
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <CardLightboxContent
         ref={content}
-        side={side}
-        showCloseButton={false}
-        className="max-h-dvh overflow-y-auto"
+        data-slot="card-view"
+        {...(id !== null ? { "data-card-view": id } : {})}
+        onPointerDownCapture={() => {
+          pressed.current = true
+          ghost.current = false
+        }}
+        onMouseDownCapture={(event) => {
+          if (pressed.current) return
+          ghost.current = true
+          event.preventDefault()
+        }}
+        onClickCapture={(event) => {
+          if (ghost.current) {
+            event.preventDefault()
+            event.stopPropagation()
+          }
+          ghost.current = false
+          pressed.current = false
+        }}
         onOpenAutoFocus={(event) => {
           // The view takes the focus itself (its title is read), never its tap button.
           event.preventDefault()
+          pressed.current = false
+          ghost.current = false
           openedAt.current = performance.now()
           opener.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null
           content.current?.focus()
@@ -109,118 +148,108 @@ export function CardSheet({ look, onOpenChange, onBrowse, state, view, moment, p
         }}
       >
         {look !== null ? (
-          <><BrowseCards id={look.id} ids={browseIds(state, look.browse)} onBrowse={onBrowse} /><CardView key={`${look.serial}:${look.id}:${locateCard(state, look.id)?.card.key ?? ""}`} id={look.id} question={look.question} state={state} view={view} moment={moment} pictures={pictures} onTap={onTap} onClose={() => onOpenChange(false)} /></>
+          <CardContents
+            key={`${look.serial}:${look.id}:${locateCard(state, look.id)?.card.key ?? ""}`}
+            id={look.id}
+            question={look.question}
+            browse={browsing(look.id, browseIds(state, look.browse), onBrowse)}
+            state={state}
+            view={view}
+            moment={moment}
+            pictures={pictures}
+            onTap={onTap}
+            onClose={() => onOpenChange(false)}
+            arrangement={arrangement}
+          />
         ) : null}
-      </SheetContent>
-    </Sheet>
+      </CardLightboxContent>
+    </Dialog>
   )
 }
 
-function CardView({
+function CardContents({
   id,
   question,
+  browse,
   state,
   view,
   moment,
   pictures,
   onTap,
   onClose,
+  arrangement,
 }: {
   id: number
   question: number | undefined
+  browse: ReactNode
   state: GameState
   view: TableView
   moment: TableMoment
   pictures: TableCardLookup
   onTap: ((id: number) => void) | undefined
   onClose: () => void
+  arrangement: CardLightboxArrangement
 }) {
   const located = locateCard(state, id)
   const asked = question === undefined ? null : questionCard(moment.questions, id, question)
-  if (located === null && asked !== null) return <QuestionCardView card={asked.card} state={state} pictures={pictures} />
+  if (located === null && asked !== null) {
+    return (
+      <CardSpread card={asked.card} pictures={pictures} arrangement={arrangement} browse={browse} offer={null}>
+        <p>Aus Forges Frage – diese Karte liegt nicht sichtbar auf dem Tisch.</p>
+        <FactsForScreenReaders facts={facts(asked.card, state, null, pictures)} />
+        <p>Wählen kannst du sie im Entscheidungsbereich, dort, wo Forge fragt.</p>
+      </CardSpread>
+    )
+  }
   if (located === null) {
     return (
-      <>
-        <SheetHeader>
-          <SheetTitle>Karte nicht mehr zu sehen</SheetTitle>
-          <SheetDescription>Forge zeigt diese Karte gerade nirgends – sie hat den Tisch verlassen oder liegt verdeckt.</SheetDescription>
-        </SheetHeader>
-        <SheetFooter className="sticky bottom-0 bg-popover">
-          <CloseButton />
-        </SheetFooter>
-      </>
+      <div className="pointer-events-none! flex size-full items-center justify-center p-4">
+        <Card className="pointer-events-auto w-full max-w-sm">
+          <CardHeader>
+            <DialogTitle>Karte nicht mehr zu sehen</DialogTitle>
+            <DialogDescription>Forge zeigt diese Karte gerade nirgends – sie hat den Tisch verlassen oder liegt verdeckt.</DialogDescription>
+          </CardHeader>
+        </Card>
+      </div>
     )
   }
   const { card, zone, seat } = located
   const use = cardUse(card, { zone, mine: seat === "me" }, moment)
   const pile = zone === "battlefield" ? pileOf(view, id) : null
   const onStack = stackEntriesOf(view, id)
+  const offer = onTap !== undefined && use.tap !== null ? <TapButton identity={id} use={use} onTap={() => onTap(id)} onClose={onClose} /> : null
   return (
-    <>
-      <SheetHeader>
-        <div className="flex flex-wrap items-center gap-2">
-          <SheetTitle>{cardName(card)}</SheetTitle>
-          {use.markLabel ? <Badge variant={use.mark === "selected" ? "secondary" : "default"}>{use.markLabel}</Badge> : null}
-        </div>
-        <SheetDescription>{placeLabel(zone, seat)}</SheetDescription>
-      </SheetHeader>
-      <CardPresentation card={card} pictures={pictures}>
-        <FactList facts={facts(card, state, pile, pictures)} />
-        {onStack.length > 0 ? <StackFacts entries={onStack} view={view} /> : null}
-        {zone === "stack" && use.tap === null ? null : <ForgeOffer card={card} use={use} live={onTap !== undefined} />}
-      </CardPresentation>
-      {/* The buttons stay in view while the card scrolls above them (a phone turned sideways; Bible §6: the action stays easy to reach). */}
-      <SheetFooter className="sticky bottom-0 bg-popover in-data-[side=right]:flex-row in-data-[side=right]:flex-wrap">
-        {onTap !== undefined && use.tap !== null ? <TapButton identity={id} use={use} onTap={() => onTap(id)} onClose={onClose} /> : null}
-        <CloseButton />
-      </SheetFooter>
-    </>
+    <CardSpread card={card} pictures={pictures} arrangement={arrangement} browse={browse} offer={offer}>
+      <p>{placeLabel(zone, seat)}{use.markLabel ? ` · ${use.markLabel}` : ""}.</p>
+      <FactsForScreenReaders facts={facts(card, state, pile, pictures)} />
+      {onStack.length > 0 ? <StackFacts entries={onStack} view={view} /> : null}
+      {zone === "stack" && use.tap === null ? null : <ForgeOffer card={card} use={use} live={onTap !== undefined} />}
+    </CardSpread>
   )
+}
+
+/** Browsing the cards the view was opened from (a zone, a pile, the stack), or null where there is nothing to browse. */
+function browsing(id: number, ids: readonly number[], onBrowse: (id: number) => void): ReactNode {
+  if (ids.length === 0 || (ids.length < 2 && ids.includes(id))) return null
+  return <BrowseCards id={id} ids={ids} onBrowse={onBrowse} />
 }
 
 /** Navigation is inspection only. The list is resolved from the current snapshot. */
 function BrowseCards({ id, ids, onBrowse }: { id: number; ids: readonly number[]; onBrowse: (id: number) => void }) {
   const index = ids.indexOf(id)
-  if (ids.length < 2 && index >= 0) return null
-  if (ids.length === 0) return null
-  return <div role="group" aria-label="Karten durchsehen" className="flex items-center gap-2 px-6 pt-4">
+  return <div role="group" aria-label="Karten durchsehen" className="flex items-center gap-2">
     <Button variant="outline" size="default" disabled={index <= 0} onClick={() => { const next = ids[index - 1]; if (next !== undefined) onBrowse(next) }}>Vorige Karte</Button>
     <span className="text-sm tabular-nums" aria-live="polite">{index + 1} / {ids.length}</span>
     <Button variant="outline" size="default" disabled={index >= ids.length - 1} onClick={() => { const next = ids[index + 1]; if (next !== undefined) onBrowse(next) }}>Nächste Karte</Button>
   </div>
 }
 
-function CatalogFace({ face }: { face: TableFace }) {
-  return <section aria-label="Katalogangaben – nur ansehen" className="flex flex-col gap-1 text-sm">
-    <p className="font-medium">Katalogangaben – nur ansehen</p>
-    <p lang={face.name.lang}>{face.name.text}</p>
-    {face.typeLine !== null ? <p lang={face.typeLine.lang}>{face.typeLine.text}</p> : null}
-    {face.text !== null ? <p lang={face.text.lang} className="whitespace-pre-line">{face.text.text}</p> : null}
-    <p className="text-muted-foreground">Katalogtext: {face.text?.lang === "de" ? "deutsch" : face.textFallback ? "englisch (kein deutscher Text verfügbar)" : "englisch"}. Regeln und Aktionen bestimmt Forge.</p>
-  </section>
-}
-
-/** A card of Forge's question that lies in no zone the table shows: as the question shows it, answered in the decision region. */
-function QuestionCardView({ card, state, pictures }: { card: VisibleCard; state: GameState; pictures: TableCardLookup }) {
-  return (
-    <>
-      <SheetHeader>
-        <SheetTitle>{cardName(card)}</SheetTitle>
-        <SheetDescription>Aus Forges Frage – diese Karte liegt nicht sichtbar auf dem Tisch.</SheetDescription>
-      </SheetHeader>
-      <CardPresentation card={card} pictures={pictures}>
-        <FactList facts={facts(card, state, null, pictures)} />
-        <p className="text-sm text-muted-foreground">Wählen kannst du sie im Entscheidungsbereich, dort, wo Forge fragt.</p>
-      </CardPresentation>
-      <SheetFooter className="sticky bottom-0 bg-popover in-data-[side=right]:flex-row in-data-[side=right]:flex-wrap">
-        <CloseButton />
-      </SheetFooter>
-    </>
-  )
-}
-
-/** The same complete presentation for zone cards and cards only exposed by an open question. */
-function CardPresentation({ card, pictures, children }: { card: VisibleCard; pictures: TableCardLookup; children: ReactNode }) {
+/**
+ * The card in full size with what belongs to it: the keyword boxes, the
+ * buttons (Forge's offer, turning a double-faced card, browsing) and - for
+ * screen readers only - its facts (`children`, the dialog's description).
+ */
+function CardSpread({ card, pictures, arrangement, browse, offer, children }: { card: VisibleCard; pictures: TableCardLookup; arrangement: CardLightboxArrangement; browse: ReactNode; offer: ReactNode; children: ReactNode }) {
   const [inspection, setInspection] = useState<{ key: string | null; index: number } | null>(null)
   const picture = pictures(card)
   const faces = picture === "loading" || picture === "none" ? [] : picture.faces ?? []
@@ -228,46 +257,77 @@ function CardPresentation({ card, pictures, children }: { card: VisibleCard; pic
   const index = inspection !== null && inspection.key === (card.key ?? null) ? inspection.index : activeFace
   const chosen = faces.find((f) => f.index === index) ?? null
   const alternate = chosen !== null && chosen.index !== activeFace
+  const position = faces.findIndex((f) => f.index === index)
+  const next = faces.length > 1 ? faces[(position + 1) % faces.length] ?? null : null
+  const boxes = keywordBoxes(card.keywords)
+  const turn = next !== null ? (
+    <Button variant="outline" aria-label={`Umdrehen – zeigt „${next.name.text}“`} onClick={() => setInspection({ key: card.key ?? null, index: next.index })}>
+      Umdrehen
+    </Button>
+  ) : null
+  const navigation = browse !== null || turn !== null ? <CardLightboxActions role="group" aria-label="Karte ansehen">{browse}{turn}</CardLightboxActions> : null
+  const action = offer !== null ? <CardLightboxActions data-slot="card-view-offer">{offer}</CardLightboxActions> : null
+  const rows = (navigation !== null ? 1 : 0) + (action !== null ? 1 : 0)
+  const keywords = boxes.length > 0 ? (
+    <CardLightboxBoxes role="list" aria-label="Schlüsselwörter dieser Karte">
+      {boxes.map((box) => <KeywordCard key={box.key} box={box} />)}
+    </CardLightboxBoxes>
+  ) : null
+  const aside = keywords !== null || rows > 0
   return (
-    <div className="flex flex-row gap-4 px-6 in-data-[side=right]:flex-col">
-      <div className="w-32 shrink-0 sm:w-44 in-data-[side=right]:self-center">
-        <LargePicture card={card} picture={chosen === null ? picture : chosen.picture} name={chosen?.name.text} fallbackFace={chosen} />
-      </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-3">
-        {faces.length > 1 ? (
-          <div role="group" aria-label="Kartenseiten" className="flex flex-wrap gap-2">
-            {faces.map((f) => (
-              <Button key={f.index} variant={f.index === index ? "default" : "outline"} aria-pressed={f.index === index} onClick={() => setInspection({ key: card.key ?? null, index: f.index })}>
-                {f.name.text}
-              </Button>
-            ))}
-          </div>
+    <>
+      <DialogTitle className="sr-only">{cardName(card)}</DialogTitle>
+      <DialogDescription asChild>
+        <div className="sr-only">
+          {children}
+          {!card.text && !alternate && chosen?.text ? <p>Katalogtext: {chosen.text.lang === "de" ? "deutsch" : chosen.textFallback ? "englisch (kein deutscher Text verfügbar)" : "englisch"}. Regeln und Aktionen bestimmt Forge.</p> : null}
+          {alternate && chosen !== null ? <p>Du siehst die Kartenseite „{chosen.name.text}“ aus dem Katalog ({chosen.text?.lang === "de" ? "deutsch" : chosen.textFallback ? "englisch, kein deutscher Text verfügbar" : "englisch"}). Forges aktueller Zustand und die Aktion gehören weiter zu „{cardName(card)}“. Eine andere Kartenseite anzusehen ändert die Partie nicht.</p> : null}
+        </div>
+      </DialogDescription>
+      <CardLightboxStage arrangement={arrangement} aside={aside} reserve={arrangement === "stacked" ? rows * BUTTON_ROW_PX : 0}>
+        <CardLightboxPicture>
+          <LargePicture card={card} picture={chosen === null ? picture : chosen.picture} name={chosen?.name.text} fallbackFace={chosen} />
+        </CardLightboxPicture>
+        {aside ? (
+          <CardLightboxAside>
+            {/* Stacked, the buttons stay right under the card; beside, they stand under the boxes. */}
+            {arrangement === "stacked" ? <>{action}{navigation}{keywords}</> : <>{keywords}{navigation}{action}</>}
+          </CardLightboxAside>
         ) : null}
-        {chosen !== null && (alternate || !card.text) ? <CatalogFace face={chosen} /> : null}
-        {card.text ? <p className="text-sm whitespace-pre-line">{card.text}</p> : <p className="text-sm text-muted-foreground">Forge sendet hier keinen Regeltext.</p>}
-        {alternate ? <p className="text-sm text-muted-foreground">Forges aktueller Zustand und die Aktion gehören weiter zu „{cardName(card)}“. Eine andere Kartenseite anzusehen ändert die Partie nicht.</p> : null}
-        {children}
-      </div>
-    </div>
+      </CardLightboxStage>
+    </>
   )
 }
 
-function CloseButton() {
+/** One keyword of the card, explained: the name in bold, below it what it does. */
+function KeywordCard({ box }: { box: KeywordBox }) {
   return (
-    <SheetClose asChild>
-      <Button size="lg" variant="outline" className="in-data-[side=right]:flex-1">
-        Schließen
-      </Button>
-    </SheetClose>
+    <Card size="sm" role="listitem" data-slot="keyword-box" data-keyword={box.key} lang={box.lang} className="shrink-0">
+      <CardHeader>
+        <CardTitle className="flex flex-wrap items-center gap-2 font-semibold">
+          {box.name}
+          {box.lang === "en" ? <Badge variant="outline">englisch</Badge> : null}
+        </CardTitle>
+        <CardDescription className="text-card-foreground">{box.text}</CardDescription>
+      </CardHeader>
+      {box.forgeForm !== undefined ? (
+        <CardContent className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span>Bei dieser Karte, in Forges Worten:</span>
+          <span lang="en">{box.forgeForm}</span>
+          <Badge variant="outline">englisch</Badge>
+        </CardContent>
+      ) : null}
+    </Card>
   )
 }
 
-/** The card's picture, large: the catalog's in the player's card language, a placeholder while it is looked up, Forge's words without one. */
+/** The card's picture in full size: the catalog's in the player's card language, a placeholder while it is looked up, Forge's words in card form without one. */
 function LargePicture({ card, picture, name: shownName, fallbackFace }: { card: VisibleCard; picture: TableCardPicture | TablePictureData | null; name?: string | undefined; fallbackFace?: TableFace | null }) {
   const name = shownName ?? cardName(card)
   const cost = fallbackFace ? fallbackFace.manaCost : card.cost
   const type = fallbackFace ? fallbackFace.typeLine?.text : card.typeLine
   const text = fallbackFace ? fallbackFace.text?.text : card.text
+  const lang = fallbackFace ? fallbackFace.text?.lang : undefined
   if (picture === "loading") {
     return (
       <Skeleton className="aspect-63/88 w-full rounded-xl">
@@ -278,20 +338,35 @@ function LargePicture({ card, picture, name: shownName, fallbackFace }: { card: 
   return (
     <CardPicture
       src={picture === "none" || picture === null ? null : picture.large}
-      {...(picture === "none" || picture === null ? {} : { srcSet: picture.largeSrcSet, sizes: "(min-width: 640px) 11rem, 8rem" })}
+      // The browser takes the version the card's size on screen needs (sizes="auto": the card's laid-out width).
+      {...(picture === "none" || picture === null ? {} : { srcSet: picture.largeSrcSet, sizes: "auto" })}
       alt={`Kartenbild: ${name}`}
       draggable={false}
+      className="border-0 bg-transparent"
       fallback={
         <>
-          <span className="font-heading text-sm font-semibold">{name}</span>
-          {cost ? <span className="text-xs text-muted-foreground tabular-nums">{cost}</span> : null}
-          {type ? <span className="text-xs">{type}</span> : null}
-          {text ? <span className="line-clamp-6 text-xs whitespace-pre-line text-muted-foreground">{text}</span> : null}
-          <span className="mt-auto text-xs font-medium text-muted-foreground">{picture === "none" || picture === null ? "Kein Kartenbild – Forges Angaben." : "Das Bild konnte nicht geladen werden."}</span>
+          <span className="font-heading text-base font-semibold">{name}</span>
+          {cost ? <span className="text-sm text-muted-foreground tabular-nums">{cost}</span> : null}
+          {type ? <span className="text-sm">{type}</span> : null}
+          {text ? <span lang={lang} className="min-h-0 flex-1 overflow-y-auto text-sm whitespace-pre-line">{text}</span> : null}
+          <span className="text-xs font-medium text-muted-foreground">
+            {picture === "none" || picture === null ? "Kein Kartenbild – Forges Angaben." : "Das Bild konnte nicht geladen werden."}
+            {lang === "en" ? " Katalogtext englisch." : null}
+          </span>
         </>
       }
     />
   )
+}
+
+interface Fact {
+  readonly label: string
+  readonly value: string
+}
+
+/** Facts in sentences (the dialog's description; screen readers read them when the view opens). */
+function FactsForScreenReaders({ facts: list }: { facts: readonly Fact[] }) {
+  return <>{list.map((fact) => <p key={fact.label}>{fact.label}: {fact.value}.</p>)}</>
 }
 
 /** Forge's facts about the card now, in German (nothing computed). */
@@ -300,11 +375,12 @@ function facts(card: VisibleCard, state: GameState, pile: readonly number[] | nu
   const list: Fact[] = []
   if (card.typeLine) list.push({ label: "Typ", value: card.typeLine })
   if (card.cost) list.push({ label: "Manakosten", value: card.cost })
+  if (card.text) list.push({ label: "Regeltext", value: card.text })
   const shown = [...spokenFacts(card).filter((fact) => fact !== SICK_LABEL), ...captionFacts(card)]
   if (shown.length > 0) list.push({ label: "Zustand", value: shown.join(", ") })
-  if (state.stack.some((item) => item.targets.some((target) => target.kind === "card" && target.id === card.id))) list.push({ label: "Ziel auf dem Stapel", value: "Forge nennt diese Karte als Ziel. Das bietet keine zusätzliche Aktion an." })
+  if (state.stack.some((item) => item.targets.some((target) => target.kind === "card" && target.id === card.id))) list.push({ label: "Ziel auf dem Stapel", value: "Forge nennt diese Karte als Ziel. Das bietet keine zusätzliche Aktion an" })
   // Forge's summoning sickness (prompt 18): what it means, once.
-  if (card.sick) list.push({ label: SICK_LABEL, value: SICK_NOTE })
+  if (card.sick) list.push({ label: SICK_LABEL, value: SICK_NOTE.replace(/\.$/, "") })
   if (pile !== null && pile.length > 1) list.push({ label: "Gleiche Karten", value: `${pile.length} liegen hier als Stapel` })
   if (card.attachedTo !== undefined) list.push({ label: "Hängt an", value: cardName(cards.get(card.attachedTo)) })
   if (card.attached !== undefined) list.push({ label: "Daran hängt", value: card.attached.map((attached) => cardName(cards.get(attached))).join(", ") })
@@ -324,20 +400,20 @@ function facts(card: VisibleCard, state: GameState, pile: readonly number[] | nu
  */
 function StackFacts({ entries, view }: { entries: readonly StackEntryView[]; view: TableView }) {
   return (
-    <section aria-label="Auf dem Stapel" className="flex flex-col gap-2 text-sm">
+    <section aria-label="Auf dem Stapel">
       {entries.map((entry) => {
         const above = view.stack.indexOf(entry)
         const owner = stackOwner(entry.controller)
         const targets = stackTargets(entry)
         return (
-          <div key={entry.id} className="flex flex-col gap-0.5">
-            <p className="font-medium">
+          <div key={entry.id}>
+            <p>
               Auf dem Stapel: {STACK_KIND_LABELS[entry.kind]}
               {owner !== null ? ` ${owner}` : null}
               {above === 0 ? " – wird als Nächstes verrechnet." : above === 1 ? " – 1 Eintrag liegt darüber." : ` – ${above} Einträge liegen darüber.`}
             </p>
-            {entry.text !== null && entry.text.trim() !== "" ? <p className="text-muted-foreground">{entry.text}</p> : null}
-            {targets !== null ? <p className="text-muted-foreground">{targets}</p> : null}
+            {entry.text !== null && entry.text.trim() !== "" ? <p>{entry.text}</p> : null}
+            {targets !== null ? <p>{targets}</p> : null}
           </div>
         )
       })}
@@ -345,9 +421,9 @@ function StackFacts({ entries, view }: { entries: readonly StackEntryView[]; vie
   )
 }
 
-/** What Forge offers for the card now, in words. */
+/** What Forge offers for the card now, in words (for screen readers; the button says it on screen). */
 function ForgeOffer({ card, use, live }: { card: VisibleCard; use: CardUse; live: boolean }) {
-  const lines: ReactNode[] = []
+  const lines: string[] = []
   if (use.tap !== null) {
     lines.push(live ? `Forge bietet an: ${use.tap.label}.` : `Forge bot an: ${use.tap.label}.`)
     if (live && use.primary === "tap") lines.push("In diesem Schritt wirkt ein Tipp auf die Karte sofort. Forges Worte sagen, was ein weiterer Tipp tut; Forges Knopf bestätigt den Schritt.")
@@ -358,23 +434,10 @@ function ForgeOffer({ card, use, live }: { card: VisibleCard; use: CardUse; live
     lines.push("Mit dieser Karte bietet Forge gerade nichts an.")
   }
   const ways = card.ways ?? []
+  if (ways.length > 1) lines.push(`Forge kennt ${ways.length} Wege, die Karte zu nutzen; welchen, fragt Forge nach dem Antippen: ${ways.join("; ")}.`)
   return (
-    <section aria-label="Was Forge anbietet" className="flex flex-col gap-1 text-sm">
-      {lines.map((line, index) => (
-        <p key={index} className={index === 0 ? "font-medium" : "text-muted-foreground"}>
-          {line}
-        </p>
-      ))}
-      {ways.length > 1 ? (
-        <>
-          <p className="text-muted-foreground">Forge kennt {ways.length} Wege, die Karte zu nutzen; welchen, fragt Forge nach dem Antippen:</p>
-          <ul className="flex flex-col gap-0.5 text-muted-foreground">
-            {ways.map((way, index) => (
-              <li key={index}>{way}</li>
-            ))}
-          </ul>
-        </>
-      ) : null}
+    <section aria-label="Was Forge anbietet">
+      {lines.map((line, index) => <p key={index}>{line}</p>)}
     </section>
   )
 }
@@ -393,7 +456,6 @@ function TapButton({ identity, use, onTap, onClose }: { identity: number; use: C
       <Button
         size="lg"
         variant={use.tap.marked ? "default" : "outline"}
-        className="in-data-[side=right]:flex-1"
         disabled={use.blocked !== null}
         {...(use.blocked !== null ? { "aria-describedby": reason } : {})}
         onKeyDown={(event) => {
@@ -408,7 +470,7 @@ function TapButton({ identity, use, onTap, onClose }: { identity: number; use: C
         {use.tap.label}
       </Button>
       {use.blocked !== null ? (
-        <p id={reason} className="text-sm text-muted-foreground in-data-[side=right]:order-last in-data-[side=right]:basis-full">
+        <p id={reason} className="basis-full text-sm text-muted-foreground">
           {use.blocked}
         </p>
       ) : null}

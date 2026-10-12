@@ -28,7 +28,7 @@ import { writeSetting } from "@/storage/settings"
 import { StorageProvider } from "@/storage/storage-context"
 import { gameState, MULLIGAN_PROMPT, PRIORITY_BUTTONS, settle, SUPPORTED, testEngine, type TestEngine } from "@/test/game-fixtures"
 import { deck, openTestDatabase } from "@/test/storage-fixtures"
-import { ARMING_MS } from "./card-sheet"
+import { ARMING_MS } from "./card-view"
 import { GamePage } from "./game-page"
 
 const RED = deck({ id: "10000000-0000-4000-8000-00000000000a", name: "Rot", main: [{ count: 24, name: "Mountain" }, { count: 36, name: "Shock" }], sideboard: [] })

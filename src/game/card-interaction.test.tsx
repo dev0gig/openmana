@@ -18,7 +18,7 @@ import { toast } from "sonner"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { LONG_PRESS_MS } from "@/hooks/use-card-press"
 import { tableScene, type TableSceneName } from "@/test/table-scenes"
-import { ARMING_MS } from "./card-sheet"
+import { ARMING_MS } from "./card-view"
 import { GameTable, type GameTableProps } from "./game-table"
 import { NO_PICTURES } from "./table-cards"
 
@@ -83,9 +83,10 @@ describe("looking is safe", () => {
     await user.click(cardButton(25))
     const view = cardView()
     expect(view).toHaveAccessibleName("Gebirge")
-    expect(within(view).getByText("spielbar")).toBeInTheDocument()
-    expect(within(view).getByText("Deine Hand")).toBeInTheDocument()
+    // Full screen since prompt 47: the card itself is what one reads; Forge's facts stay in the view's description.
+    expect(view).toHaveAccessibleDescription(expect.stringContaining("Deine Hand · spielbar."))
     expect(within(within(view).getByRole("region", { name: "Was Forge anbietet" })).getByText("Forge bietet an: Spiele ein Land.")).toBeInTheDocument()
+    expect(view).toHaveAccessibleDescription(expect.stringContaining("Forge bietet an: Spiele ein Land."))
     // The view takes the focus itself, never its tap button.
     expect(view).toHaveFocus()
     expect(onTapCard).not.toHaveBeenCalled()
@@ -101,8 +102,8 @@ describe("looking is safe", () => {
     table("main-phase")
     await user.click(cardButton(28))
     const view = cardView()
-    expect(within(view).getByText("Dein Spielfeld")).toBeInTheDocument()
-    expect(within(view).getByText("6 liegen hier als Stapel")).toBeInTheDocument()
+    expect(view).toHaveAccessibleDescription(expect.stringContaining("Dein Spielfeld."))
+    expect(view).toHaveAccessibleDescription(expect.stringContaining("Gleiche Karten: 6 liegen hier als Stapel."))
     expect(within(view).getByText("Kein Kartenbild – Forges Angaben.")).toBeInTheDocument()
     // Forge's action for a card it does not mark: the view's secondary button.
     expect(within(view).getByRole("button", { name: "Aktiviere Fähigkeit" })).toBeEnabled()
@@ -113,8 +114,8 @@ describe("looking is safe", () => {
     const { onTapCard } = table("main-phase")
     await user.click(cardButton(77))
     const view = cardView()
-    expect(within(view).getByText("Spielfeld der Forge-KI")).toBeInTheDocument()
-    expect(within(view).getByText("Mit dieser Karte bietet Forge gerade nichts an.")).toBeInTheDocument()
+    expect(view).toHaveAccessibleDescription(expect.stringContaining("Spielfeld der Forge-KI."))
+    expect(view).toHaveAccessibleDescription(expect.stringContaining("Mit dieser Karte bietet Forge gerade nichts an."))
     expect(within(view).getAllByRole("button").map((button) => button.textContent)).toEqual(["Vorige Karte", "Nächste Karte", "Schließen"])
     expect(onTapCard).not.toHaveBeenCalled()
   })
@@ -136,7 +137,7 @@ describe("cards Forge reveals from the AI's hand (built: the recordings have non
     const row = screen.getByRole("toolbar", { name: /^Hand der Forge-KI:/ })
     expect(within(row).getAllByRole("button")).toHaveLength(1)
     await user.click(cardButton(9001))
-    expect(within(cardView()).getByText("Hand der Forge-KI (aufgedeckt)")).toBeInTheDocument()
+    expect(cardView()).toHaveAccessibleDescription(expect.stringContaining("Hand der Forge-KI (aufgedeckt)"))
     expect(onTapCard).not.toHaveBeenCalled()
   })
 })

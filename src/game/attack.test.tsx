@@ -15,7 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { tableScene, type TableSceneName } from "@/test/table-scenes"
 import { ATTACK_REFUSAL_WORDS, SICK_LABEL, SICK_NOTE } from "./attack-labels"
 import { attackView } from "./attack-model"
-import { ARMING_MS } from "./card-sheet"
+import { ARMING_MS } from "./card-view"
 import { cardUse, playerUse, type TableMoment } from "./card-use"
 import { GameTable, type GameTableProps } from "./game-table"
 import { NO_PICTURES } from "./table-cards"
@@ -258,6 +258,7 @@ describe("the table's cards", () => {
     const opponent = scene.state.players.find((player) => !player.me)!
     const sick = opponent.zones.battlefield.find((card): card is VisibleCard => !("hidden" in card) && card.sick)!
     fireEvent.contextMenu(screen.getByRole("region", { name: "Spielfeld der Forge-KI" }).querySelector(`[data-card="${sick.id}"]`)!)
-    expect(within(screen.getByRole("dialog")).getByText(SICK_NOTE)).toBeInTheDocument()
+    // Full screen since prompt 47: the card itself is shown; its facts are the view's description.
+    expect(screen.getByRole("dialog")).toHaveAccessibleDescription(expect.stringContaining(SICK_NOTE))
   })
 })

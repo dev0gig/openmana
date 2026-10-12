@@ -64,7 +64,8 @@ const SCENES = ["opening", "main-phase", "stack", "blockers", "defend", "command
 /** The foldable's sizes the table is also checked at in every scene since prompt 38 (scripts/e2e/run.ts FOLD_VIEWPORTS). */
 export const FOLD_SIZES = ["fold-closed", "fold-open", "fold-open-turned"] as const
 
-export function browserEvidence(appValue: unknown, pwaValue: unknown, requiredScenes: readonly string[] = SCENES, requiredFolds: readonly string[] = FOLD_SIZES) {
+/** requireViewer: the card view in full screen (prompt 47) at every size - reports before it have none. */
+export function browserEvidence(appValue: unknown, pwaValue: unknown, requiredScenes: readonly string[] = SCENES, requiredFolds: readonly string[] = FOLD_SIZES, requireViewer = true) {
   const app = object(appValue, "app")
   const pwa = object(pwaValue, "PWA")
   assert.equal(app["scope"], undefined, "focused E2E is not a full regression")
@@ -84,7 +85,9 @@ export function browserEvidence(appValue: unknown, pwaValue: unknown, requiredSc
   for (const viewport of VIEWPORTS) {
     const scenes = object(table[viewport], viewport)
     for (const scene of requiredScenes) object(scenes[scene], `${viewport}/${scene}`)
-    object(scenes["interaction"], `${viewport}/interaction`)
+    const interaction = object(scenes["interaction"], `${viewport}/interaction`)
+    // The card view in full screen (prompt 47): real keywords, Forge's button, several keywords, every way to close.
+    if (requireViewer) object(interaction["viewer"], `${viewport}/interaction/viewer`)
     object(scenes["history"], `${viewport}/history`)
   }
   if (requiredFolds.length > 0) {
@@ -92,6 +95,7 @@ export function browserEvidence(appValue: unknown, pwaValue: unknown, requiredSc
     for (const size of requiredFolds) {
       const scenes = object(folds[size], size)
       for (const scene of requiredScenes) object(scenes[scene], `${size}/${scene}`)
+      if (requireViewer) object(scenes["viewer"], `${size}/viewer`)
     }
   }
   let workerChecks = 0

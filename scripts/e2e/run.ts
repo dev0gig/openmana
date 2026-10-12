@@ -134,7 +134,7 @@ const NO_REAL_CLOUD = "--host-resolver-rules=MAP fellumrfugohnnvtxxye.supabase.c
 import { build, createServer, preview } from "vite"
 import { PROTOCOL_VERSION } from "../../engine/protocol/src/generated/constants.ts"
 import { SCHEMA_VERSION } from "../../src/storage/generated/constants.ts"
-import { TABLE_LAYOUT_QUERIES, TABLE_LAYOUTS, tableLayoutOf, tableSheetSide, type TableLayout } from "../../src/game/table/table-layout.ts"
+import { TABLE_LAYOUT_QUERIES, TABLE_LAYOUTS, tableLayoutOf, type TableLayout } from "../../src/game/table/table-layout.ts"
 import { ISOLATION_HEADERS } from "../../vite/isolation-headers.ts"
 import { playDeck, type StoredDeck } from "./engine-decks.ts"
 import { battlefieldPoint, cardPoint, dragCard, readTable } from "../readiness/player.ts"
@@ -2475,11 +2475,12 @@ async function lookInRealGame(page: Page, label: string, touch = false): Promise
   const title = (await view.getByRole("heading").first().textContent()) ?? ""
   const offer = (await view.getByRole("region", { name: "Was Forge anbietet" }).textContent()) ?? ""
   const buttons = await view.getByRole("button").allTextContents()
-  const footerButtons = await view.locator('[data-slot="sheet-footer"]').getByRole("button").allTextContents()
-  const faceButtons = await view.getByRole("group", { name: "Kartenseiten", exact: true }).getByRole("button").count()
+  // Prompt 47: the view in full screen - Forge's offer is a button under the card (none here), turning a double-faced card one more.
+  const offerButtons = await view.locator('[data-slot="card-view-offer"]').getByRole("button").count()
+  const turnButtons = await view.getByRole("button", { name: /^Umdrehen/ }).count()
   const picture = await view.locator('[data-slot="card-picture"]').getAttribute("data-state")
   check(name.startsWith(title) && title.length > 0, `${label}: the card view's title "${title}" for "${name}"`)
-  check(offer === "Mit dieser Karte bietet Forge gerade nichts an." && footerButtons.join("|") === "Schließen" && buttons.length === footerButtons.length + faceButtons, `${label}: in the first decision only close and inspection controls are offered ("${offer}", buttons ${buttons.join("|")})`)
+  check(offer === "Mit dieser Karte bietet Forge gerade nichts an." && offerButtons === 0 && buttons.length === 1 + turnButtons, `${label}: in the first decision only close and inspection controls are offered ("${offer}", buttons ${buttons.join("|")})`)
   check(picture === "loaded" || picture === "missing", `${label}: the card view's picture ${picture}`)
   const focused = await page.evaluate(() => document.activeElement?.getAttribute("role"))
   check(focused === "dialog", `${label}: the card view does not hold the focus itself (${focused})`)
@@ -4386,6 +4387,201 @@ async function touch(page: Page, element: Locator, gesture: { readonly holdMs?: 
   await cdp.detach()
 }
 
+/** The card view's arrangement on a screen of this size (prompt 47): the card on top in hoch, beside its boxes in quadrat and breit. */
+function cardViewArrangement(width: number, height: number): "stacked" | "beside" {
+  return tableLayoutOf(width, height) === "hoch" ? "stacked" : "beside"
+}
+
+/** The card view's picture before prompt 47 (a Sheet): 8 rem wide, 11 rem from 640 px. The full screen view is never smaller. */
+function cardViewBefore(width: number): number {
+  return width >= 640 ? 176 : 128
+}
+
+interface Rect { readonly x: number; readonly y: number; readonly width: number; readonly height: number }
+const overlaps = (a: Rect, b: Rect) => a.x < b.x + b.width - 0.5 && b.x < a.x + a.width - 0.5 && a.y < b.y + b.height - 0.5 && b.y < a.y + a.height - 0.5
+const inside = (a: Rect, width: number, height: number) => a.x >= -0.5 && a.y >= -0.5 && a.x + a.width <= width + 0.5 && a.y + a.height <= height + 0.5
+
+/**
+ * The open card view in full screen (prompt 47), measured: the darkening over the whole screen, the card whole and
+ * at least as large as the Sheet's picture was, in the card's proportions; the boxes beside it (quadrat, breit) or
+ * below it (hoch), readable, never on the card; Forge's button under the card or the boxes, never on the card, on
+ * screen; the close button on screen and off the card.
+ */
+async function cardViewFacts(page: Page, label: string, viewport: { readonly width: number; readonly height: number }, expect: { readonly boxes: readonly string[]; readonly offer: boolean }): Promise<Record<string, unknown>> {
+  const view = page.locator('[data-slot="card-view"]')
+  await view.waitFor()
+  await animationsDone(view)
+  await page.waitForFunction(() => {
+    const picture = document.querySelector('[data-slot="card-view"] [data-slot="card-picture"]')
+    return picture !== null && picture.getAttribute("data-state") !== "loading"
+  }, undefined, { timeout: 30_000 }).catch(() => undefined)
+  const facts = await page.evaluate(() => {
+    const rect = (element: Element | null) => {
+      if (element === null) return null
+      const r = element.getBoundingClientRect()
+      return { x: r.x, y: r.y, width: r.width, height: r.height }
+    }
+    const stage = document.querySelector<HTMLElement>('[data-slot="card-lightbox-stage"]')
+    const picture = document.querySelector('[data-slot="card-lightbox-picture"]')
+    const list = document.querySelector<HTMLElement>('[data-slot="card-lightbox-boxes"]')
+    return {
+      arrangement: stage?.dataset["arrangement"] ?? null,
+      stageScroll: stage === null ? null : { top: stage.scrollTop, client: stage.clientHeight, total: stage.scrollHeight },
+      overlay: rect(document.querySelector('[data-slot="card-lightbox-overlay"]')),
+      picture: rect(picture),
+      pictureState: picture?.querySelector('[data-slot="card-picture"]')?.getAttribute("data-state") ?? null,
+      source: picture?.querySelector("img")?.currentSrc ?? null,
+      aside: rect(document.querySelector('[data-slot="card-lightbox-aside"]')),
+      boxes: [...document.querySelectorAll('[data-slot="keyword-box"]')].map((box) => ({
+        ...rect(box)!,
+        name: box.querySelector('[data-slot="card-title"]')?.textContent ?? "",
+        lang: box.getAttribute("lang"),
+        font: parseFloat(getComputedStyle(box.querySelector('[data-slot="card-description"]') ?? box).fontSize),
+      })),
+      listScroll: list === null ? null : { top: list.scrollTop, client: list.clientHeight, total: list.scrollHeight },
+      offer: rect(document.querySelector('[data-slot="card-view-offer"] button')),
+      close: rect(document.querySelector('[data-slot="card-lightbox-close"]')),
+      focused: document.activeElement?.getAttribute("role") ?? null,
+    }
+  })
+  const { width, height } = viewport
+  const expected = cardViewArrangement(width, height)
+  check(facts.arrangement === expected, `${label}: card view arranged "${facts.arrangement}", expected "${expected}"`)
+  check(facts.overlay !== null && facts.overlay.x <= 0.5 && facts.overlay.y <= 0.5 && facts.overlay.width >= width - 0.5 && facts.overlay.height >= height - 0.5, `${label}: the darkening does not cover the whole table ${JSON.stringify(facts.overlay)}`)
+  const picture = facts.picture
+  check(picture !== null && inside(picture, width, height), `${label}: the card is not whole on screen ${JSON.stringify(picture)}`)
+  check(picture !== null && Math.abs(picture.height - (picture.width * 88) / 63) <= 2, `${label}: the card is not in its proportions ${JSON.stringify(picture)}`)
+  check(picture !== null && picture.width >= cardViewBefore(width), `${label}: the card ${picture?.width}px wide, smaller than the Sheet's ${cardViewBefore(width)}px`)
+  check(facts.pictureState === "loaded" || facts.pictureState === "missing", `${label}: the card's picture ${facts.pictureState}`)
+  check(facts.focused === "dialog", `${label}: the card view does not hold the focus itself (${facts.focused})`)
+  check(facts.boxes.map((box) => box.name).join("|") === expect.boxes.join("|"), `${label}: keyword boxes ${JSON.stringify(facts.boxes.map((box) => box.name))}, expected ${JSON.stringify(expect.boxes)}`)
+  for (const box of facts.boxes) {
+    check(box.font >= 12, `${label}: the box "${box.name}" in ${box.font}px`)
+    check(box.x >= -0.5 && box.x + box.width <= width + 0.5, `${label}: the box "${box.name}" off the screen's width ${JSON.stringify(box)}`)
+    check(picture === null || !overlaps(box, picture), `${label}: the box "${box.name}" lies on the card`)
+    if (expected === "beside") check(picture === null || box.x >= picture.x + picture.width - 0.5, `${label}: the box "${box.name}" not beside the card`)
+    else check(picture === null || box.y >= picture.y + picture.height - 0.5, `${label}: the box "${box.name}" not below the card`)
+  }
+  // Beside the card the boxes scroll in their column; below it the view scrolls - either way every box can be reached.
+  if (expected === "beside" && facts.boxes.length > 0 && facts.listScroll !== null && facts.listScroll.total <= facts.listScroll.client + 1) {
+    for (const box of facts.boxes) check(box.y >= -0.5 && box.y + box.height <= height + 0.5, `${label}: the box "${box.name}" off the screen and its column does not scroll`)
+  }
+  check(expect.offer === (facts.offer !== null), `${label}: Forge's button ${facts.offer === null ? "missing" : "shown"}`)
+  if (facts.offer !== null) {
+    check(inside(facts.offer, width, height), `${label}: Forge's button off the screen ${JSON.stringify(facts.offer)}`)
+    check(picture === null || !overlaps(facts.offer, picture), `${label}: Forge's button lies on the card`)
+    if (expected === "stacked") check(picture === null || facts.offer.y >= picture.y + picture.height - 0.5, `${label}: Forge's button not under the card`)
+  }
+  check(facts.close !== null && inside(facts.close, width, height) && (picture === null || !overlaps(facts.close, picture)), `${label}: the close button ${JSON.stringify(facts.close)}`)
+  return { arrangement: facts.arrangement, card: picture === null ? null : { width: Math.round(picture.width), height: Math.round(picture.height), before: cardViewBefore(width) }, source: facts.source, boxes: facts.boxes.map((box) => box.name), offer: facts.offer !== null }
+}
+
+/** Waits until no dialog is open (the card view closed). */
+async function viewClosed(page: Page): Promise<boolean> {
+  return page.waitForFunction(() => document.querySelector('[role="dialog"]') === null, undefined, { timeout: 5000 }).then(() => true, () => false)
+}
+
+/**
+ * The card view in full screen in real Chrome (prompt 47), on recorded scenes with Forge's real keywords:
+ *  - respond: Geborstener Blitz (Forge: Kicker {4}) opened by a long press (touch) or a right click (mouse) - one box
+ *    "Bonus {4}" and Forge's button; its picture, axe; the button pressed right after the view appeared taps nothing
+ *    (the double tap's guard), pressed later it plays the card (exactly one tap) and closes the view;
+ *  - respond: Schock (no keyword) - no boxes; closed with Escape;
+ *  - a card with several keywords (built: Forge's real keyword forms on a creature card, presentation=keywords),
+ *    one of them a form OpenMana says only in general (Forge's words beside it, marked English) - measured, axe;
+ *    a press on the darkened table right after it opened does not close it, a later one does;
+ *  - the close button (X) closes and the focus returns to the card.
+ * Each layout: whole card, at least as large as before, boxes beside or below, never on the card (cardViewFacts).
+ */
+async function cardViewer(open: (scene: string, query?: string) => Promise<Page>, label: string, viewport: Viewport): Promise<Record<string, unknown>> {
+  const results: Record<string, unknown> = {}
+  const shot = async (page: Page, name: string) => page.screenshot({ path: path.join(reportDir, "screens", `card-view-${viewport.name}-${name}.png`) })
+
+  // A real card with Forge's keyword and Forge's offer: looked at by a long press or a right click.
+  let page = await open("respond")
+  const blast = page.locator('button[data-card="26"]')
+  const position = await cardPoint(blast)
+  if (viewport.touch) await touch(page, blast, { holdMs: 900 })
+  else await blast.click({ button: "right", ...(position === undefined ? {} : { position }) })
+  results["keyword"] = await cardViewFacts(page, `${label}: Geborstener Blitz`, viewport, { boxes: ["Bonus {4}"], offer: true })
+  results["keywordAxe"] = await accessibility(page, `${label}: card view with a keyword`)
+  await shot(page, "keyword")
+  check((await harnessTaps(page)).length === 0, `${label}: looking at Geborstener Blitz tapped it`)
+  // The offer: armed - pressed right after the view appeared it taps nothing, later exactly once, and the view closes.
+  await page.keyboard.press("Escape")
+  check(await viewClosed(page), `${label}: Escape did not close the card view`)
+  await page.evaluate(async () => {
+    document.querySelector<HTMLButtonElement>('button[data-card="26"]')!.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true }))
+    await new Promise((resolve) => requestAnimationFrame(resolve))
+    ;[...document.querySelectorAll<HTMLButtonElement>('[data-slot="card-view-offer"] button')].find((button) => button.textContent === "Einen Zauberspruch sprechen")!.click()
+  })
+  check((await harnessTaps(page)).length === 0, `${label}: the card view's button tapped right after it appeared`)
+  await page.waitForTimeout(ARMED_AFTER_MS)
+  const offer = page.locator('[data-slot="card-view-offer"]').getByRole("button", { name: "Einen Zauberspruch sprechen", exact: true })
+  if (viewport.touch) await offer.tap()
+  else await offer.click()
+  check(await viewClosed(page), `${label}: the card view stayed open after Forge's button`)
+  const played = await harnessTaps(page)
+  check(played.join() === "26", `${label}: Forge's button tapped ${JSON.stringify(played)}`)
+  results["played"] = played
+  await page.close()
+
+  // A card without keywords: no boxes, no line about them; Escape closes.
+  page = await open("respond")
+  const shock = page.locator('button[data-card="29"]')
+  const shockAt = await cardPoint(shock)
+  if (viewport.touch) await touch(page, shock, { holdMs: 900 })
+  else await shock.click({ button: "right", ...(shockAt === undefined ? {} : { position: shockAt }) })
+  results["plain"] = await cardViewFacts(page, `${label}: Schock`, viewport, { boxes: [], offer: true })
+  check(!((await page.locator('[data-slot="card-view"]').textContent()) ?? "").includes("Schlüsselw"), `${label}: a card without keywords speaks of keywords`)
+  await shot(page, "plain")
+  await page.keyboard.press("Escape")
+  check(await viewClosed(page), `${label}: Escape did not close the card view`)
+  check((await harnessTaps(page)).length === 0, `${label}: looking at Schock tapped it`)
+  await page.close()
+
+  // Several keywords (built from Forge's real keyword forms): measured; the darkening closes it, not the double tap's second press.
+  page = await open("respond", "&presentation=keywords")
+  const angel = page.locator('button[data-card="26"]')
+  const angelAt = await cardPoint(angel)
+  if (viewport.touch) await touch(page, angel, { holdMs: 900 })
+  else await angel.click({ button: "right", ...(angelAt === undefined ? {} : { position: angelAt }) })
+  results["keywords"] = await cardViewFacts(page, `${label}: several keywords (built)`, viewport, { boxes: ["Fliegend", "Wachsamkeit", "Schutz vor Rot", "Abwehr"], offer: true })
+  results["keywordsAxe"] = await accessibility(page, `${label}: card view with several keywords (built)`)
+  const english = await page.locator('[data-slot="keyword-box"] [lang="en"]').allTextContents()
+  check(english.join("|") === "Ward—Pay 2 life.", `${label}: Forge's own words beside the general explanation ${JSON.stringify(english)}`)
+  await shot(page, "keywords")
+  // A free point of the darkening: left of the card, half way down (the stage keeps 16 px there).
+  const free = { x: 6, y: Math.round(viewport.height / 2) }
+  await page.keyboard.press("Escape")
+  await viewClosed(page)
+  await page.evaluate(() => document.querySelector<HTMLButtonElement>('button[data-card="26"]')!.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true })))
+  await page.locator('[data-slot="card-view"]').waitFor()
+  if (viewport.touch) await page.touchscreen.tap(free.x, free.y)
+  else await page.mouse.click(free.x, free.y)
+  check((await page.getByRole("dialog").count()) === 1, `${label}: the double tap's second press on the darkening closed the view`)
+  await page.waitForTimeout(ARMED_AFTER_MS)
+  if (viewport.touch) await page.touchscreen.tap(free.x, free.y)
+  else await page.mouse.click(free.x, free.y)
+  check(await viewClosed(page), `${label}: a press on the darkened table did not close the card view`)
+  // The close button, and the focus back on the card.
+  await page.evaluate(() => document.querySelector<HTMLButtonElement>('button[data-card="26"]')!.focus())
+  await page.keyboard.press("Enter")
+  await page.locator('[data-slot="card-view"]').waitFor()
+  const close = page.locator('[data-slot="card-lightbox-close"]')
+  const closeHeight = await layoutHeight(close)
+  if (viewport.touch) check(closeHeight >= 44, `${label}: the close button ${closeHeight}px high`)
+  if (viewport.touch) await close.tap()
+  else await close.click()
+  check(await viewClosed(page), `${label}: the close button did not close the card view`)
+  await page.waitForFunction(() => document.activeElement?.getAttribute("data-card") === "26", undefined, { timeout: 2000 }).catch(() => undefined)
+  check((await page.evaluate(() => document.activeElement?.getAttribute("data-card"))) === "26", `${label}: the focus did not return to the card`)
+  check((await harnessTaps(page)).length === 0, `${label}: looking at the built card tapped it`)
+  results["closing"] = { escape: true, darkening: true, closeButton: true, closeHeight, backGesture: "CloseWatcher - checked in the unit test (card-view.test.tsx); Chrome on a desktop has no back gesture" }
+  await page.close()
+  return results
+}
+
 async function closeCardView(page: Page): Promise<void> {
   await page.keyboard.press("Escape")
   await page.waitForFunction(() => document.querySelector('[role="dialog"]') === null)
@@ -4515,8 +4711,8 @@ async function tableInteractions(parent: Page, base: string, viewport: Viewport)
   try {
     const label = `game table (${viewport.name})`
     const results: Record<string, unknown> = {}
-    // The Sheets follow the table layout (prompt 38): from the bottom in hoch, from the right in quadrat and breit.
-    const sheetSide = tableSheetSide(tableLayoutOf(viewport.width, viewport.height))
+    // The card view in full screen follows the table layout (prompt 47): the card on top in hoch, beside its boxes in quadrat and breit.
+    const arrangement = cardViewArrangement(viewport.width, viewport.height)
 
     // Priority: look first, the view's button taps - armed.
     await scene("main-phase")
@@ -4525,8 +4721,8 @@ async function tableInteractions(parent: Page, base: string, viewport: Viewport)
     else await land.click()
     const view = page.getByRole("dialog", { name: "Gebirge" })
     await view.waitFor()
-    const side = await page.locator('[data-slot="sheet-content"]').getAttribute("data-side")
-    check(side === sheetSide, `${label}: the card view comes from "${side}", expected "${sheetSide}"`)
+    const side = await page.locator('[data-slot="card-lightbox-stage"]').getAttribute("data-arrangement")
+    check(side === arrangement, `${label}: the card view arranged "${side}", expected "${arrangement}"`)
     check((await harnessTaps(page)).length === 0, `${label}: looking at the land tapped it`)
     await animationsDone(view)
     results["viewAxe"] = await accessibility(page, `${label}: card view`)
@@ -4557,7 +4753,7 @@ async function tableInteractions(parent: Page, base: string, viewport: Viewport)
     results["priority"] = { side, tapHeight, taps: armedTaps }
 
     // A fold/rotation with an open viewer keeps the current ID and focus,
-    // and only repositions the Sheet. Inspection never becomes a card tap.
+    // and only arranges the view anew. Inspection never becomes a card tap.
     await scene("main-phase")
     await page.locator('button[data-card="25"]').click()
     await page.getByRole("dialog", { name: "Gebirge" }).waitFor()
@@ -4568,8 +4764,10 @@ async function tableInteractions(parent: Page, base: string, viewport: Viewport)
       await page.waitForTimeout(100)
       const sheet = page.getByRole("dialog", { name: "Gebirge" })
       await animationsDone(sheet)
-      const side = await sheet.getAttribute("data-side")
-      check(side === tableSheetSide(tableLayoutOf(size.width, size.height)), `${label}: resized card view on wrong side ${side}`)
+      const side = await sheet.locator('[data-slot="card-lightbox-stage"]').getAttribute("data-arrangement")
+      check(side === cardViewArrangement(size.width, size.height), `${label}: resized card view arranged "${side}"`)
+      const card = await sheet.locator('[data-slot="card-lightbox-picture"]').boundingBox()
+      check(card !== null && inside(card, size.width, size.height) && card.width >= cardViewBefore(size.width), `${label}: resized card view's card ${JSON.stringify(card)}`)
       check(await sheet.evaluate((node) => node.contains(document.activeElement)), `${label}: resized viewer lost focus`)
       const close = sheet.getByRole("button", { name: "Schließen", exact: true })
       const box = await close.boundingBox()
@@ -4599,6 +4797,16 @@ async function tableInteractions(parent: Page, base: string, viewport: Viewport)
     check((await harnessTaps(page)).length === 0 && (await harnessAnswers(page)).length === 0, `${label}: looking at a card on the stack sent something`)
     const stackCard = await layoutHeight(lower)
     results["stack"] = { card: lowerName, view: onStack, height: stackCard }
+
+    // The card view in full screen (prompt 47): real keywords, Forge's button, several keywords (built), every way to close.
+    results["viewer"] = await cardViewer(async (name, query = "") => {
+      sceneErrors()
+      sceneLog = null
+      const viewerPage = await parent.context().newPage()
+      sceneLog = watch(viewerPage)
+      await openScene(viewerPage, base, name, query)
+      return viewerPage
+    }, `${label}, card view`, viewport)
 
     // Blocking: a tap acts at once (a double one once); a right click or long press looks.
     await scene("defend")
@@ -5410,8 +5618,34 @@ function motionSequenceSteps(): number {
   return (JSON.parse(fs.readFileSync(path.join(root, "src/test/fixtures/table-sequence.json"), "utf8")) as { steps: unknown[] }).steps.length
 }
 
-/** Moments of the recorded run whose motion the image sequence shows (prompt 44): a draw, a land onto its pile, combat damage and life, the AI's creature, a spell cast with damage, its resolution. */
-const MOTION_SHOTS = [1, 2, 9, 12, 22, 24] as const
+/**
+ * Moments of the recorded run whose motion the image sequence shows (prompt 44): a draw, a land onto its pile,
+ * combat damage and life, the AI's creature, a spell cast with damage, its resolution - found in Forge's states by
+ * what happens (as src/test/table-sequence.ts SEQUENCE_STEPS), never by number: the bridge coalesces states within
+ * 120 ms, so a new recording of the same game can have more or fewer of them (prompt 47).
+ */
+function motionShots(): readonly number[] {
+  interface Card { readonly id?: number; readonly tapped?: boolean }
+  interface Step { readonly state: { readonly players: readonly { readonly me: boolean; readonly life: number; readonly zones: Record<string, readonly Card[]> }[]; readonly stack: readonly { readonly card: Card | null }[] }; readonly events: readonly { readonly kind: string }[] }
+  const steps = (JSON.parse(fs.readFileSync(path.join(root, "src/test/fixtures/table-sequence.json"), "utf8")) as { steps: Step[] }).steps
+  const zoneOf = (index: number, id: number) => {
+    const state = steps[index]!.state
+    for (const player of state.players) for (const [zone, cards] of Object.entries(player.zones)) if (cards.some((card) => card.id === id)) return `${player.me ? "me" : "ai"}:${zone}`
+    return state.stack.some((item) => item.card?.id === id) ? "stack" : null
+  }
+  const aiLife = (index: number) => steps[index]!.state.players.find((player) => !player.me)!.life
+  const first = (from: number, test: (index: number) => boolean) => {
+    for (let index = Math.max(1, from); index < steps.length; index++) if (test(index)) return index
+    throw new Error("the recorded motion sequence lacks a moment of its image sequence")
+  }
+  const draw = first(1, (i) => zoneOf(i, 27) === "me:hand" && zoneOf(i - 1, 27) !== "me:hand")
+  const land = first(1, (i) => zoneOf(i - 1, 33) === "me:hand" && zoneOf(i, 33) === "me:battlefield")
+  const lifeLoss = first(1, (i) => aiLife(i) < aiLife(i - 1))
+  const aiCreature = first(lifeLoss + 1, (i) => steps[i]!.events.some((event) => event.kind === "STACK_RESOLVE"))
+  const onStack = first(aiCreature + 1, (i) => zoneOf(i, 14) === "stack" && zoneOf(i - 1, 14) !== "stack")
+  const dies = first(onStack, (i) => zoneOf(i, 55) === "me:graveyard" && zoneOf(i - 1, 55) !== "me:graveyard")
+  return [draw, land, lifeLoss, aiCreature, onStack, dies]
+}
 
 /**
  * The table's motion (prompt 44, docs/design/SPIELTISCH.md §8) in real Chrome on Forge's consecutive real states (the
@@ -5588,7 +5822,7 @@ async function tableMotion(executablePath: string, base: string): Promise<Record
         shots.push(name)
       }
     }
-    await sequence(page, cdp, "phone", MOTION_SHOTS)
+    await sequence(page, cdp, "phone", motionShots())
     results["shots"] = shots
 
     // 6. Cost: the whole run with 4x CPU throttling at 412 x 915, with the motion and under less motion (the same states,
@@ -5670,7 +5904,8 @@ async function tableMotion(executablePath: string, base: string): Promise<Record
     const wideCdp = await desktop.newCDPSession(wide)
     await wideCdp.send("Animation.enable")
     const before = shots.length
-    await sequence(wide, wideCdp, "desktop", [2, 22, 24])
+    const [, landShot, , , castShot, resolveShot] = motionShots()
+    await sequence(wide, wideCdp, "desktop", [landShot!, castShot!, resolveShot!])
     results["shotsDesktop"] = shots.slice(before)
     for (const error of wideLog.errors) if (!/^\[requestfailed\] https:\/\/cards\.scryfall\.io\/.* net::ERR_ABORTED$/.test(error)) check(false, `table motion (desktop): ${error}`)
     await wideCdp.detach()
@@ -5736,6 +5971,16 @@ async function tableFoldSizes(executablePath: string, base: string): Promise<Rec
       scenes["drag"] = await handDrag(dragPage, dragLabel, viewport)
       for (const error of dragLog.errors) check(false, `${dragLabel}: ${error}`)
       await dragPage.close()
+      // The card view in full screen (prompt 47), also on the foldable.
+      const viewerLabel = `game table (${viewport.name}), card view`
+      const viewerLogs: PageLog[] = []
+      scenes["viewer"] = await cardViewer(async (name, query = "") => {
+        const viewerPage = await context.newPage()
+        viewerLogs.push(watch(viewerPage))
+        await openScene(viewerPage, base, name, query)
+        return viewerPage
+      }, viewerLabel, viewport)
+      for (const viewerLog of viewerLogs) for (const error of viewerLog.errors) check(false, `${viewerLabel}: ${error}`)
     } finally {
       await context.close()
       await foldBrowser.close()
@@ -5894,18 +6139,20 @@ async function zoneInteractions(parent: Page, base: string, viewport: Viewport):
       const hand = page.getByRole("region", { name: "Deine Hand", exact: true })
       await activate(hand.locator("button[data-card]").first())
       await view.waitFor()
-      await view.getByRole("group", { name: "Kartenseiten" }).waitFor()
-      const faces = view.getByRole("group", { name: "Kartenseiten" }).getByRole("button")
-      await activate(faces.nth(1))
+      // One button turns the card (prompt 47); what is shown is the other side's picture or text.
+      const turn = view.getByRole("button", { name: /^Umdrehen/ })
+      await turn.waitFor()
+      await activate(turn)
       await page.waitForFunction(() => [...document.querySelectorAll('[role="dialog"] img')].every((img) => (img as HTMLImageElement).complete))
       await safe()
       await accessibility(page, `${label}: ${presentation} (built)`)
       const action = view.getByRole("button", { name: "Spiele ein Land", exact: true })
       const box = await action.boundingBox()
       check(box !== null && box.y >= 0 && box.y + box.height <= viewport.height + 1, `${label}: viewer action outside viewport`)
-      check(await faces.nth(1).getAttribute("aria-pressed") === "true", `${label}: second face not selected`)
+      const description = await view.evaluate((node) => document.getElementById(node.getAttribute("aria-describedby") ?? "")?.textContent ?? "")
+      check(description.includes("Du siehst die Kartenseite"), `${label}: second face not shown ("${description.slice(0, 120)}")`)
       if (presentation === "dfc") check((await view.locator("img").first().getAttribute("src"))?.includes("/back/") === true, `${label}: DFC back picture`)
-      if (presentation === "fallback") check((await view.textContent())?.includes("englisch (kein deutscher Text verfügbar)") === true, `${label}: English fallback not marked`)
+      if (presentation === "fallback") check(description.includes("englisch, kein deutscher Text verfügbar"), `${label}: English fallback not marked`)
       await page.screenshot({ path: path.join(reportDir, "screens", `viewer-${viewport.name}-${presentation}.png`) })
       await activate(view.getByRole("button", { name: "Schließen", exact: true }))
       results[`${presentation} (built)`] = true

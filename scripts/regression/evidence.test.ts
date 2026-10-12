@@ -21,8 +21,10 @@ describe("full regression evidence", () => {
   it("accepts the complete historical report shapes, without calling them a new run", () => {
     expect(engineEvidence(sample("engine"), manifest, archived)).toMatchObject({ fixtures: 14, completeResults: ["loss", "win"] })
     // The historical reports predate the foldable's sizes (prompt 38); a new run must have them.
-    expect(() => browserEvidence(sample("app"), sample("pwa"), archived.scenes)).toThrow(/foldable/)
-    expect(browserEvidence(sample("app"), sample("pwa"), archived.scenes, [])).toMatchObject({ viewports: 8, workerChecks: 11 })
+    expect(() => browserEvidence(sample("app"), sample("pwa"), archived.scenes, undefined, false)).toThrow(/foldable/)
+    // They also predate the card view in full screen (prompt 47); a new run must have it at every size.
+    expect(() => browserEvidence(sample("app"), sample("pwa"), archived.scenes, [])).toThrow(/interaction\/viewer/)
+    expect(browserEvidence(sample("app"), sample("pwa"), archived.scenes, [], false)).toMatchObject({ viewports: 8, workerChecks: 11 })
   })
   it.each([
     ["skipped Chrome", (r: Sample) => { r["browserSkipped"] = true }],
@@ -51,15 +53,27 @@ describe("full regression evidence", () => {
     ["replay input leakage", (r: Sample) => { r["gameSession"]["liveRecordingReplay"]["noInput"] = false }],
   ] as const)("rejects app: %s", (_, mutate) => {
     const r = sample("app"); mutate(r)
-    expect(() => browserEvidence(r, sample("pwa"), archived.scenes, [])).toThrow()
+    expect(() => browserEvidence(r, sample("pwa"), archived.scenes, [], false)).toThrow()
   })
   it("rejects a run without a scene at one of the foldable's sizes", () => {
     const r = sample("app")
     const scenes = Object.fromEntries(archived.scenes.map((scene) => [scene, {}]))
     r["gameTable"]["folds"] = { "fold-closed": scenes, "fold-open": scenes, "fold-open-turned": { ...scenes } }
-    expect(browserEvidence(r, sample("pwa"), archived.scenes)).toMatchObject({ viewports: 8 })
+    expect(browserEvidence(r, sample("pwa"), archived.scenes, undefined, false)).toMatchObject({ viewports: 8 })
     delete r["gameTable"]["folds"]["fold-open-turned"]["built:input"]
-    expect(() => browserEvidence(r, sample("pwa"), archived.scenes)).toThrow(/fold-open-turned\/built:input/)
+    expect(() => browserEvidence(r, sample("pwa"), archived.scenes, undefined, false)).toThrow(/fold-open-turned\/built:input/)
+  })
+  it("rejects a run without the card view in full screen at a size (prompt 47)", () => {
+    const r = sample("app")
+    const scenes = Object.fromEntries(archived.scenes.map((scene) => [scene, {}]))
+    r["gameTable"]["folds"] = { "fold-closed": { ...scenes, viewer: {} }, "fold-open": { ...scenes, viewer: {} }, "fold-open-turned": { ...scenes, viewer: {} } }
+    for (const viewport of Object.keys(r["gameTable"]).filter((key) => key !== "folds")) r["gameTable"][viewport]["interaction"]["viewer"] = {}
+    expect(browserEvidence(r, sample("pwa"), archived.scenes)).toMatchObject({ viewports: 8 })
+    delete r["gameTable"]["folds"]["fold-open"]["viewer"]
+    expect(() => browserEvidence(r, sample("pwa"), archived.scenes)).toThrow(/fold-open\/viewer/)
+    r["gameTable"]["folds"]["fold-open"]["viewer"] = {}
+    delete r["gameTable"]["phone"]["interaction"]["viewer"]
+    expect(() => browserEvidence(r, sample("pwa"), archived.scenes)).toThrow(/phone\/interaction\/viewer/)
   })
   it.each([
     ["missing offline run", (r: Sample) => { delete r["offlineGame"] }],
@@ -72,6 +86,6 @@ describe("full regression evidence", () => {
     ["installation failure swallowed", (r: Sample) => { r["initialInstallFailure"]["visibleFailure"] = false }],
   ] as const)("rejects PWA: %s", (_, mutate) => {
     const r = sample("pwa"); mutate(r)
-    expect(() => browserEvidence(sample("app"), r, archived.scenes, [])).toThrow()
+    expect(() => browserEvidence(sample("app"), r, archived.scenes, [], false)).toThrow()
   })
 })

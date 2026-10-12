@@ -13,7 +13,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { tableScene, type TableSceneName } from "@/test/table-scenes"
-import { ARMING_MS } from "./card-sheet"
+import { ARMING_MS } from "./card-view"
 import { PHASE_LABELS } from "./game-labels"
 import { GameTable, type GameTableProps } from "./game-table"
 import { NO_PICTURES } from "./table-cards"
@@ -199,7 +199,7 @@ describe("the stack", () => {
     if (lower === null || "hidden" in lower) throw new Error("respond-own: the AI's spell must be visible")
     await user.click(within(stackRegion()).getByRole("button", { name: `${lower.name} ansehen` }))
     const view = await screen.findByRole("dialog", { name: lower.name! })
-    expect(within(view).getByText("Auf dem Stapel – von der Forge-KI")).toBeInTheDocument()
+    expect(view).toHaveAccessibleDescription(expect.stringContaining("Auf dem Stapel – von der Forge-KI."))
     expect(within(view).getByRole("region", { name: "Auf dem Stapel" })).toHaveTextContent("Auf dem Stapel: Zauberspruch von der Forge-KI – 1 Eintrag liegt darüber.")
     expect(within(view).getAllByRole("button").map((button) => button.textContent)).toEqual(["Schließen"])
     expect(onTapCard).not.toHaveBeenCalled()

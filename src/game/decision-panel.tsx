@@ -120,7 +120,7 @@ import { Item as ItemRow, ItemActions, ItemContent, ItemMedia, ItemTitle } from 
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Spinner } from "@/components/ui/spinner"
 import { useCardPress } from "@/hooks/use-card-press"
-import { ARMING_MS } from "./card-sheet"
+import { ARMING_MS } from "./card-view"
 import { attackTapNote, attackText, CALL_BACK_LABEL, declareLabel, declareNote, readyText } from "./attack-labels"
 import { attackView, type AttackView, type DefenderView } from "./attack-model"
 import { BLOCK_CONFIRM_NOTE, BLOCK_TAP_NOTE, blockConfirmLabel, blockText } from "./block-labels"

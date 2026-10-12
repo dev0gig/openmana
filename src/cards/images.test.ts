@@ -33,6 +33,9 @@ describe("picture URLs", () => {
     expect(imageUrl(single, "front", "thumb")).toBe(`https://cards.scryfall.io/thumb/front/7/6/${ID}.webp?5`)
     expect(imageUrl(single, "back", "grid")).toBeNull()
     expect(imageUrl({ id: ID, imageSides: 2, imageVersion: "5" }, "back", "display")).toBe(`https://cards.scryfall.io/display/back/7/6/${ID}.webp?5`)
+    // Scryfall's largest version (prompt 47): a PNG, built by the same rule.
+    expect(imageUrl({ id: ID, imageSides: 2, imageVersion: "5" }, "back", "png")).toBe(`https://cards.scryfall.io/png/back/7/6/${ID}.png?5`)
+    expect(parseImageUrl(`https://cards.scryfall.io/png/front/7/6/${ID}.png?5`)).toEqual({ version: "png", side: "front", id: ID, timestamp: "5" })
     expect(imageUrl({ id: ID, imageSides: 0 }, "front", "grid")).toBeNull()
   })
 })

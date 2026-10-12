@@ -39,7 +39,7 @@
  * next state - the test watches cards travel, turn, attack and leave.
  *
  * Not part of the app: only the test's dev server serves it,
- * /scripts/e2e/table-harness.html?scene=<name>[&built=<question>][&presentation=dfc|fallback][&hand=<cards>][&language=en][&waiting=0]
+ * /scripts/e2e/table-harness.html?scene=<name>[&built=<question>][&presentation=dfc|fallback|keywords][&hand=<cards>][&language=en][&waiting=0]
  * or ?sequence=first-attack[&step=<n>].
  */
 import { Menu } from "lucide-react"
@@ -54,7 +54,8 @@ import { useTableCards } from "@/game/table-cards"
 import { questionCards } from "@/game/decision-model"
 import { visibleCards } from "@/game/table-model"
 import { StorageProvider } from "@/storage/storage-context"
-import type { AnswerBody, ManaColor, Question, VisibleCard } from "@openmana/engine-protocol"
+import type { AnswerBody, CardKeyword, ManaColor, Question, VisibleCard } from "@openmana/engine-protocol"
+import keywordForms from "./fixtures/keyword-forms.json"
 import { BUILT_QUESTIONS, builtQuestion, type BuiltQuestionName } from "./built-questions"
 import { builtTableScene, isBuiltTableScene } from "./built-scenes"
 import { tableScene, type TableScene, type TableSceneName } from "./table-scenes"
@@ -121,8 +122,40 @@ function SceneTable({ scene, questions, prompt, language, waiting }: { scene: Ta
   )
 }
 
+/** Forge's real keyword objects (scripts/record-keyword-forms.ts) by keyword and title. */
+function forgeKeyword(keyword: string, title: string): CardKeyword {
+  const found = (keywordForms.forms as readonly (CardKeyword & { readonly card: string; readonly count: number })[]).find((form) => form.keyword === keyword && form.title === title)
+  if (found === undefined) throw new Error(`no recorded Forge keyword ${keyword} "${title}"`)
+  const { card: _card, count: _count, ...protocol } = found
+  return protocol
+}
+
+/**
+ * Built presentation (prompt 47, presentation=keywords): the card view with several keywords. The recorded games
+ * show one keyword per card; here the respond scene's Geborstener Blitz (id 26, Forge's offer kept) becomes the
+ * catalog's Serra Angel with Forge's real keyword objects - its own Flying and Vigilance, and Protection from red
+ * and Ward (pay 2 life) as an effect might give them; the last is a form OpenMana says only in general.
+ */
+function keywordScene(recorded: TableScene): TableScene {
+  const state = structuredClone(recorded.state)
+  const me = state.players.find((p) => p.me)!
+  me.zones.hand = me.zones.hand.map((card) => !("hidden" in card) && card.id === 26 ? {
+    ...card,
+    key: "Serra Angel",
+    name: "Serra-Engel",
+    typeLine: "Kreatur — Engel",
+    cost: "{3}{W}{W}",
+    power: 4,
+    toughness: 4,
+    text: "Fliegend\nWachsamkeit",
+    keywords: [forgeKeyword("FLYING", "Flying"), forgeKeyword("VIGILANCE", "Vigilance"), forgeKeyword("PROTECTION", "Protection from from red"), forgeKeyword("WARD", "Ward—Pay 2 life.")],
+  } : card)
+  return { ...recorded, state }
+}
+
 /** Built catalog presentation case, separate from the unchanged recorded scenes. */
 function presentationScene(recorded: TableScene, presentation: string | null): TableScene {
+  if (presentation === "keywords") return keywordScene(recorded)
   if (presentation !== "dfc" && presentation !== "fallback") return recorded
   const state = structuredClone(recorded.state)
   const me = state.players.find((p) => p.me)!

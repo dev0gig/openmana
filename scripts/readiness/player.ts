@@ -319,9 +319,11 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
     await tapCard(id)
     const view = page.getByRole("dialog")
     await view.waitFor({ timeout: 10_000 })
-    const main = view.locator('[data-slot="sheet-footer"] button').first()
-    const words = ((await main.textContent()) ?? "").trim()
-    const usable = words !== "Schließen" && (await main.isEnabled())
+    // Forge's offer: the one button under the card or its keyword boxes (prompt 47); none without an offer.
+    const main = view.locator('[data-slot="card-view-offer"] button').first()
+    const offered = (await main.count()) > 0
+    const words = offered ? ((await main.textContent()) ?? "").trim() : ""
+    const usable = offered && (await main.isEnabled())
     await page.keyboard.press("Escape")
     await page.waitForFunction(() => !document.querySelector('[role="dialog"]'), undefined, { timeout: 10_000 }).catch(() => undefined)
     if (!usable || !want(words)) return null
@@ -346,12 +348,12 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
     await tapCard(id)
     const view = page.getByRole("dialog")
     await view.waitFor({ timeout: 10_000 })
-    const buttons = view.locator('[data-slot="sheet-footer"] button')
+    const buttons = view.locator('[data-slot="card-view-offer"] button')
     let chosen: Locator | null = null
     let words: string | null = null
     for (let index = 0; index < (await buttons.count()); index++) {
       const text = ((await buttons.nth(index).textContent()) ?? "").trim()
-      if (text !== "Schließen" && (await buttons.nth(index).isEnabled()) && want(text)) {
+      if ((await buttons.nth(index).isEnabled()) && want(text)) {
         chosen = buttons.nth(index)
         words = text
         break
@@ -876,8 +878,9 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
 
 /**
  * Looks at cards of the hands and battlefields (a right click or long press: safe, sends nothing) and collects what
- * the card view says about languages: the name shown, the picture's language (fact "Kartenbild"), the catalog text's
- * language where the view shows the catalog face (cards Forge sends no rules text for), Forge's own rules text.
+ * the card view says about languages - in its description (prompt 47: the view shows the card in full screen, its
+ * facts are for screen readers): the name shown, the picture's language ("Kartenbild"), the catalog text's language
+ * where Forge sends no rules text ("Katalogtext"), Forge's own rules text ("Regeltext").
  */
 export async function cardLanguages(page: Page, limit = 16): Promise<Record<string, unknown>> {
   const cards = page.locator(
@@ -890,11 +893,10 @@ export async function cardLanguages(page: Page, limit = 16): Promise<Record<stri
     await cards.nth(index).click({ button: "right", ...(position === undefined ? {} : { position }) })
     const view = page.getByRole("dialog")
     if (!(await view.waitFor({ timeout: 5000 }).then(() => true, () => false))) continue
-    const facts = await view.locator("dl > div").evaluateAll((rows) => Object.fromEntries(rows.map((row) => [(row.querySelector("dt")?.textContent ?? "").trim(), (row.querySelector("dd")?.textContent ?? "").trim()])))
-    const content = (await view.textContent()) ?? ""
+    const description = await view.evaluate((node) => document.getElementById(node.getAttribute("aria-describedby") ?? "")?.textContent ?? "")
     const name = ((await view.getByRole("heading").first().textContent()) ?? "").trim()
-    const forgeText = await view.locator("p.whitespace-pre-line").first().textContent().catch(() => null)
-    seen.push({ name, picture: facts["Kartenbild"] ?? null, catalogText: /Katalogtext: ([^.]+)\./.exec(content)?.[1] ?? null, forgeText: forgeText === null ? null : forgeText.trim().slice(0, 80) })
+    const forgeText = /Regeltext: (.*?)\.(?:[A-ZÄÖÜ][a-zäöü]+:|$)/s.exec(description)?.[1] ?? null
+    seen.push({ name, picture: /Kartenbild: ([^.]+)\./.exec(description)?.[1] ?? null, catalogText: /Katalogtext: ([^.]+)\./.exec(description)?.[1] ?? null, forgeText: forgeText === null ? null : forgeText.trim().slice(0, 80) })
     await page.keyboard.press("Escape")
     await page.waitForFunction(() => !document.querySelector('[role="dialog"]'), undefined, { timeout: 10_000 }).catch(() => undefined)
   }

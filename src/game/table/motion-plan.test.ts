@@ -7,7 +7,7 @@
  */
 import { checkEngineMessage, checkGameState } from "@openmana/engine-protocol"
 import { describe, expect, it } from "vitest"
-import { sequenceMoment, TABLE_SEQUENCE } from "@/test/table-sequence"
+import { SEQUENCE_STEPS, sequenceMoment, TABLE_SEQUENCE } from "@/test/table-sequence"
 import {
   cardSeat,
   damagedCards,
@@ -52,14 +52,15 @@ describe("the recorded sequence", () => {
   })
 
   it("Forge keeps a card's id from the hand to the battlefield and from the battlefield to the graveyard", () => {
-    // Step 2: Gebirge (33) is played from the hand; step 24: Goblin-Brandstifter (55) goes to the graveyard.
+    // Gebirge (33) is played from the hand; Goblin-Brandstifter (55) goes to the graveyard (steps found by what happens: SEQUENCE_STEPS).
+    const { land, dies } = SEQUENCE_STEPS
     const inHand = (step: number, id: number) => state(step).players.find((p) => p.me)!.zones.hand.some((card) => !("hidden" in card) && card.id === id)
     const onField = (step: number, id: number) => state(step).players.find((p) => p.me)!.zones.battlefield.some((card) => !("hidden" in card) && card.id === id)
-    expect(inHand(1, 33) && !onField(1, 33)).toBe(true)
-    expect(!inHand(2, 33) && onField(2, 33)).toBe(true)
-    expect(onField(23, 55)).toBe(true)
-    expect(pileOfCard(state(24), 55)).toEqual({ seat: "me", zone: "graveyard" })
-    expect(pileOfCard(state(23), 55)).toBeNull()
+    expect(inHand(land - 1, 33) && !onField(land - 1, 33)).toBe(true)
+    expect(!inHand(land, 33) && onField(land, 33)).toBe(true)
+    expect(onField(dies - 1, 55)).toBe(true)
+    expect(pileOfCard(state(dies), 55)).toEqual({ seat: "me", zone: "graveyard" })
+    expect(pileOfCard(state(dies - 1), 55)).toBeNull()
   })
 })
 
@@ -126,43 +127,47 @@ describe("cards move only as themselves", () => {
 
 describe("effects follow Forge", () => {
   it("only the log entries since the last state; none when the log was cut back", () => {
-    const history = sequenceMoment(9).history
-    const seen = sequenceMoment(8).history.length
-    expect(newEvents(history, seen).map((event) => event.kind)).toEqual(TABLE_SEQUENCE.steps[9]!.events.map((event) => event.kind))
+    const { lifeLoss, land } = SEQUENCE_STEPS
+    const history = sequenceMoment(lifeLoss).history
+    const seen = sequenceMoment(lifeLoss - 1).history.length
+    expect(newEvents(history, seen).map((event) => event.kind)).toEqual(TABLE_SEQUENCE.steps[lifeLoss]!.events.map((event) => event.kind))
     expect(newEvents(history, history.length)).toEqual([])
-    expect(newEvents(sequenceMoment(3).history, sequenceMoment(9).history.length)).toEqual([])
+    expect(newEvents(sequenceMoment(land).history, sequenceMoment(lifeLoss).history.length)).toEqual([])
   })
 
   it("damage: the sources Forge's DAMAGE entries name, and the cards whose damage Forge reports grew", () => {
-    // Step 22: Magmastrahl (14) goes on the stack; Forge logs its DAMAGE to Goblin-Brandstifter (55), whose damage grows to 2.
-    const events = TABLE_SEQUENCE.steps[22]!.events
+    // Magmastrahl (14) goes on the stack; Forge logs its DAMAGE to Goblin-Brandstifter (55), whose damage grows to 2.
+    const { onStack } = SEQUENCE_STEPS
+    const events = TABLE_SEQUENCE.steps[onStack]!.events
     expect(hasEvent(events, "STACK_ADD")).toBe(true)
     expect(damageSources(events)).toEqual([14])
-    expect(damagedCards(state(21), state(22))).toEqual([55])
-    expect(damagedCards(state(22), state(23))).toEqual([])
+    expect(damagedCards(state(onStack - 1), state(onStack))).toEqual([55])
+    expect(damagedCards(state(onStack), state(onStack + 1))).toEqual([])
     // Kinds Forge does not send are no reason for anything.
     expect(damageSources([{ kind: "SOMETHING", text: null, card: 3 }])).toEqual([])
   })
 
   it("life: a loss and a gain by Forge's totals", () => {
-    // Step 9: the Goblin's combat damage - the AI loses 1.
-    const ai = state(9).players.find((player) => !player.me)!
-    expect(lifeChanges(state(8), state(9))).toEqual([{ player: ai.id, tone: "loss" }])
-    const healed = structuredClone(state(9))
+    // The Goblin's combat damage - the AI loses 1.
+    const { lifeLoss } = SEQUENCE_STEPS
+    const ai = state(lifeLoss).players.find((player) => !player.me)!
+    expect(lifeChanges(state(lifeLoss - 1), state(lifeLoss))).toEqual([{ player: ai.id, tone: "loss" }])
+    const healed = structuredClone(state(lifeLoss))
     healed.players.find((player) => !player.me)!.life += 3
-    expect(lifeChanges(state(9), healed)).toEqual([{ player: ai.id, tone: "gain" }])
-    expect(lifeChanges(state(9), state(10))).toEqual([])
+    expect(lifeChanges(state(lifeLoss), healed)).toEqual([{ player: ai.id, tone: "gain" }])
+    expect(lifeChanges(state(lifeLoss), state(lifeLoss + 1))).toEqual([])
   })
 
   it("the stack: new entries and gone ones by Forge's ids; whose a card is", () => {
-    const added = stackChanges(state(21), state(22))
-    expect(added.added).toEqual(state(22).stack.map((item) => item.id))
+    const { onStack, dies } = SEQUENCE_STEPS
+    const added = stackChanges(state(onStack - 1), state(onStack))
+    expect(added.added).toEqual(state(onStack).stack.map((item) => item.id))
     expect(added.gone).toEqual([])
-    const resolved = stackChanges(state(23), state(24))
+    const resolved = stackChanges(state(dies - 1), state(dies))
     expect(resolved.added).toEqual([])
-    expect(resolved.gone).toEqual(state(23).stack.map((item) => item.id))
-    expect(cardSeat(state(22), 14)).toBe("me")
-    expect(cardSeat(state(12), 77)).toBe("opponent")
-    expect(cardSeat(state(22), 999_999)).toBeNull()
+    expect(resolved.gone).toEqual(state(dies - 1).stack.map((item) => item.id))
+    expect(cardSeat(state(onStack), 14)).toBe("me")
+    expect(cardSeat(state(onStack), 77)).toBe("opponent")
+    expect(cardSeat(state(onStack), 999_999)).toBeNull()
   })
 })

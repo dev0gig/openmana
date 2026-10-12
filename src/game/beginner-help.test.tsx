@@ -107,11 +107,11 @@ describe("exact stack targets", () => {
     expect(document.querySelector(`[data-player="${foe.id}"]`)).toHaveAttribute("data-stack-target", "true")
     await userEvent.setup().click(target)
     const sheet = screen.getByRole("dialog")
-    expect(within(sheet).getByText(STACK_TARGET_LABEL)).toBeInTheDocument()
+    expect(sheet).toHaveAccessibleDescription(expect.stringContaining(STACK_TARGET_LABEL))
     expect(props.onTapCard).not.toHaveBeenCalled()
     rerender(<GameTable {...props} />)
     expect(target).not.toHaveAttribute("data-stack-target")
-    expect(within(sheet).queryByText(STACK_TARGET_LABEL)).not.toBeInTheDocument()
+    expect(sheet).not.toHaveAccessibleDescription(expect.stringContaining(STACK_TARGET_LABEL))
   })
   it("also marks a visible stack card named as a target, while hidden stack cards remain anonymous", () => {
     const scene = tableScene("stack")

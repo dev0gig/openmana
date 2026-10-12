@@ -1,9 +1,9 @@
 {
  "source": "Protocol messages of the fixture games of engine/scripts/test-engine.sh (JVM run, scripted rule-free test player), folded like EngineSession folds them; see scripts/record-table-scenes.ts.",
  "engine": {
-  "builtAt": "2026-10-08T03:24:32.441Z",
+  "builtAt": "2026-10-12T06:37:50.699Z",
   "forgeCommit": "ed0333fecb1fea0671b3e50cadc1da4f71db5798",
-  "protocol": 8
+  "protocol": 9
  },
  "scenes": [
   {
@@ -13,7 +13,7 @@
    "message": 5,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -281,10 +281,10 @@
    "name": "main-phase",
    "description": "The player's own main phase with priority, lands and creatures on both sides, the most permanents of such moments (human-3-de).",
    "fixture": "human-3-de",
-   "message": 479,
+   "message": 483,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -319,7 +319,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 82,
+    "seq": 84,
     "running": true,
     "turn": 14,
     "phase": "MAIN1",
@@ -540,6 +540,13 @@
          "set": "ANB",
          "power": 1,
          "toughness": 1,
+         "keywords": [
+          {
+           "keyword": "HASTE",
+           "title": "Haste",
+           "reminder": "This creature can attack and {T} as soon as it comes under your control."
+          }
+         ],
          "tapped": false,
          "sick": false,
          "faceDown": false,
@@ -643,6 +650,13 @@
          "power": 2,
          "toughness": 4,
          "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+         "keywords": [
+          {
+           "keyword": "REACH",
+           "title": "Reach",
+           "reminder": "This creature can block creatures with flying."
+          }
+         ],
          "tapped": true,
          "sick": false,
          "faceDown": false,
@@ -674,6 +688,13 @@
          "power": 2,
          "toughness": 4,
          "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+         "keywords": [
+          {
+           "keyword": "REACH",
+           "title": "Reach",
+           "reminder": "This creature can block creatures with flying."
+          }
+         ],
          "tapped": true,
          "sick": false,
          "faceDown": false,
@@ -1380,7 +1401,7 @@
    "message": 279,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -1675,6 +1696,13 @@
          "power": 2,
          "toughness": 4,
          "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+         "keywords": [
+          {
+           "keyword": "REACH",
+           "title": "Reach",
+           "reminder": "This creature can block creatures with flying."
+          }
+         ],
          "tapped": false,
          "sick": true,
          "faceDown": false,
@@ -2023,10 +2051,10 @@
    "name": "blockers",
    "description": "Combat with an attacker blocked by two creatures (blocks-multi).",
    "fixture": "blocks-multi",
-   "message": 464,
+   "message": 447,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -2058,7 +2086,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 99,
+    "seq": 88,
     "running": true,
     "turn": 11,
     "phase": "COMBAT_DAMAGE",
@@ -2176,6 +2204,13 @@
          "power": 2,
          "toughness": 4,
          "text": "",
+         "keywords": [
+          {
+           "keyword": "REACH",
+           "title": "Reach",
+           "reminder": "This creature can block creatures with flying."
+          }
+         ],
          "tapped": true,
          "sick": false,
          "faceDown": false,
@@ -2320,6 +2355,13 @@
          "power": 1,
          "toughness": 1,
          "text": "",
+         "keywords": [
+          {
+           "keyword": "HASTE",
+           "title": "Haste",
+           "reminder": "This creature can attack and {T} as soon as it comes under your control."
+          }
+         ],
          "tapped": false,
          "sick": false,
          "faceDown": false,
@@ -2366,6 +2408,13 @@
          "power": 1,
          "toughness": 1,
          "text": "",
+         "keywords": [
+          {
+           "keyword": "HASTE",
+           "title": "Haste",
+           "reminder": "This creature can attack and {T} as soon as it comes under your control."
+          }
+         ],
          "tapped": false,
          "sick": false,
          "faceDown": false,
@@ -2897,10 +2946,10 @@
    "name": "defend",
    "description": "The player's creature blocks while Forge asks for blockers (human-5-defend).",
    "fixture": "human-5-defend",
-   "message": 341,
+   "message": 342,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -2935,7 +2984,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 63,
+    "seq": 64,
     "running": true,
     "turn": 9,
     "phase": "COMBAT_DECLARE_BLOCKERS",
@@ -3096,6 +3145,13 @@
          "set": "ANB",
          "power": 1,
          "toughness": 1,
+         "keywords": [
+          {
+           "keyword": "HASTE",
+           "title": "Haste",
+           "reminder": "This creature can attack and {T} as soon as it comes under your control."
+          }
+         ],
          "tapped": false,
          "sick": false,
          "faceDown": false,
@@ -3231,6 +3287,13 @@
          "power": 2,
          "toughness": 4,
          "text": "",
+         "keywords": [
+          {
+           "keyword": "REACH",
+           "title": "Reach",
+           "reminder": "This creature can block creatures with flying."
+          }
+         ],
          "tapped": true,
          "sick": false,
          "faceDown": false,
@@ -3609,10 +3672,10 @@
    "name": "commander-late",
    "description": "A late Commander turn while the player declares attackers: the most permanents with the most attackers (tokens, counters, poison, commander tax and damage) (commander).",
    "fixture": "commander",
-   "message": 847,
+   "message": 815,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -3646,7 +3709,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 199,
+    "seq": 178,
     "running": true,
     "turn": 17,
     "phase": "COMBAT_DECLARE_ATTACKERS",
@@ -4345,6 +4408,13 @@
          "power": 1,
          "toughness": 3,
          "text": "",
+         "keywords": [
+          {
+           "keyword": "DEATHTOUCH",
+           "title": "Deathtouch",
+           "reminder": "Any amount of damage this deals to a creature is enough to destroy it."
+          }
+         ],
          "tapped": false,
          "sick": true,
          "faceDown": false,
@@ -4390,6 +4460,13 @@
          "power": 1,
          "toughness": 3,
          "text": "",
+         "keywords": [
+          {
+           "keyword": "DEATHTOUCH",
+           "title": "Deathtouch",
+           "reminder": "Any amount of damage this deals to a creature is enough to destroy it."
+          }
+         ],
          "tapped": false,
          "sick": false,
          "faceDown": false,
@@ -5327,10 +5404,10 @@
    "name": "command-effects",
    "description": "Forge's effect cards in the command zone of a Constructed game (an adventure; human-11).",
    "fixture": "human-11",
-   "message": 220,
+   "message": 213,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -5365,7 +5442,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 48,
+    "seq": 44,
     "running": true,
     "turn": 5,
     "phase": "UPKEEP",
@@ -5916,7 +5993,7 @@
    "message": 5,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -6053,7 +6130,7 @@
    "message": 391,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -7006,7 +7083,7 @@
    "message": 74,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -7384,7 +7461,7 @@
    "message": 297,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -7692,6 +7769,13 @@
          "power": 2,
          "toughness": 4,
          "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+         "keywords": [
+          {
+           "keyword": "REACH",
+           "title": "Reach",
+           "reminder": "This creature can block creatures with flying."
+          }
+         ],
          "tapped": false,
          "sick": true,
          "faceDown": false,
@@ -8076,10 +8160,10 @@
    "name": "discard",
    "description": "Two cards to discard from the hand: a selection of more than one, with Forge's prompt for it and no buttons (Forge ends it by itself; human-11).",
    "fixture": "human-11",
-   "message": 525,
+   "message": 503,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -8114,7 +8198,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 107,
+    "seq": 95,
     "running": true,
     "turn": 13,
     "phase": "MAIN1",
@@ -8318,6 +8402,13 @@
          "set": "ANB",
          "power": 1,
          "toughness": 1,
+         "keywords": [
+          {
+           "keyword": "HASTE",
+           "title": "Haste",
+           "reminder": "This creature can attack and {T} as soon as it comes under your control."
+          }
+         ],
          "tapped": false,
          "sick": false,
          "faceDown": false,
@@ -8453,6 +8544,13 @@
          "power": 2,
          "toughness": 4,
          "text": "",
+         "keywords": [
+          {
+           "keyword": "REACH",
+           "title": "Reach",
+           "reminder": "This creature can block creatures with flying."
+          }
+         ],
          "tapped": true,
          "sick": false,
          "faceDown": false,
@@ -8614,6 +8712,14 @@
        "cost": "{R}",
        "set": "SOC",
        "text": "",
+       "keywords": [
+        {
+         "keyword": "FLASHBACK",
+         "title": "Flashback {2}{R}",
+         "reminder": "You may cast this card from your graveyard for its flashback cost. Then exile it.",
+         "cost": "{2}{R}"
+        }
+       ],
        "tapped": false,
        "sick": false,
        "faceDown": false,
@@ -8714,6 +8820,14 @@
       "cost": "{R}",
       "set": "SOC",
       "text": "",
+      "keywords": [
+       {
+        "keyword": "FLASHBACK",
+        "title": "Flashback {2}{R}",
+        "reminder": "You may cast this card from your graveyard for its flashback cost. Then exile it.",
+        "cost": "{2}{R}"
+       }
+      ],
       "tapped": false,
       "sick": false,
       "faceDown": false,
@@ -9264,10 +9378,10 @@
    "name": "choose-mode",
    "description": "A modal spell: choose one of its modes, a blocking question (human-3-de).",
    "fixture": "human-3-de",
-   "message": 345,
+   "message": 347,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -9302,7 +9416,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 60,
+    "seq": 61,
     "running": true,
     "turn": 10,
     "phase": "MAIN1",
@@ -9589,6 +9703,13 @@
          "power": 2,
          "toughness": 4,
          "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+         "keywords": [
+          {
+           "keyword": "REACH",
+           "title": "Reach",
+           "reminder": "This creature can block creatures with flying."
+          }
+         ],
          "tapped": true,
          "sick": false,
          "faceDown": false,
@@ -9620,6 +9741,13 @@
          "power": 2,
          "toughness": 4,
          "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+         "keywords": [
+          {
+           "keyword": "REACH",
+           "title": "Reach",
+           "reminder": "This creature can block creatures with flying."
+          }
+         ],
          "tapped": false,
          "sick": true,
          "faceDown": false,
@@ -10064,7 +10192,7 @@
    "message": 280,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -10359,6 +10487,13 @@
          "power": 2,
          "toughness": 4,
          "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+         "keywords": [
+          {
+           "keyword": "REACH",
+           "title": "Reach",
+           "reminder": "This creature can block creatures with flying."
+          }
+         ],
          "tapped": false,
          "sick": true,
          "faceDown": false,
@@ -10761,10 +10896,10 @@
    "name": "ability",
    "description": "A card with two ways to play it (an adventure): which one, cancellable (options; human-11).",
    "fixture": "human-11",
-   "message": 124,
+   "message": 119,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -10799,7 +10934,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 26,
+    "seq": 23,
     "running": true,
     "turn": 3,
     "phase": "MAIN1",
@@ -11247,10 +11382,10 @@
    "name": "damage",
    "description": "An attacker blocked by two creatures: its combat damage to give out among them (distribute; blocks-double).",
    "fixture": "blocks-double",
-   "message": 437,
+   "message": 424,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -11282,7 +11417,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 89,
+    "seq": 82,
     "running": true,
     "turn": 11,
     "phase": "COMBAT_DAMAGE",
@@ -11396,6 +11531,13 @@
          "power": 2,
          "toughness": 4,
          "text": "",
+         "keywords": [
+          {
+           "keyword": "REACH",
+           "title": "Reach",
+           "reminder": "This creature can block creatures with flying."
+          }
+         ],
          "tapped": true,
          "sick": false,
          "faceDown": false,
@@ -11624,6 +11766,13 @@
          "power": 1,
          "toughness": 1,
          "text": "",
+         "keywords": [
+          {
+           "keyword": "HASTE",
+           "title": "Haste",
+           "reminder": "This creature can attack and {T} as soon as it comes under your control."
+          }
+         ],
          "tapped": false,
          "sick": false,
          "faceDown": false,
@@ -11741,6 +11890,13 @@
       "power": 2,
       "toughness": 4,
       "text": "",
+      "keywords": [
+       {
+        "keyword": "REACH",
+        "title": "Reach",
+        "reminder": "This creature can block creatures with flying."
+       }
+      ],
       "tapped": true,
       "sick": false,
       "faceDown": false,
@@ -11789,6 +11945,13 @@
         "power": 1,
         "toughness": 1,
         "text": "",
+        "keywords": [
+         {
+          "keyword": "HASTE",
+          "title": "Haste",
+          "reminder": "This creature can attack and {T} as soon as it comes under your control."
+         }
+        ],
         "tapped": false,
         "sick": false,
         "faceDown": false,
@@ -12150,7 +12313,7 @@
    "message": 236,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -12282,6 +12445,14 @@
          "cost": "{R}",
          "set": "SOA",
          "text": "Bonus {4} (Du kannst zusätzlich {4} bezahlen, sowie du diesen Zauberspruch wirkst.)\r\n\r\nDer Geborstene Blitz fügt einem Ziel deiner Wahl 2 Schadenspunkte zu. Falls die Bonuskosten dieses Zauberspruchs bezahlt wurden, fügt er stattdessen 4 Schadenspunkte zu.",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
          "tapped": false,
          "sick": false,
          "faceDown": false,
@@ -12317,6 +12488,14 @@
          "typeLine": "Spontanzauber",
          "cost": "{R}",
          "set": "SOA",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
          "tapped": false,
          "sick": false,
          "faceDown": false,
@@ -12595,7 +12774,7 @@
    "message": 249,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -12727,6 +12906,14 @@
          "cost": "{R}",
          "set": "SOA",
          "text": "Bonus {4} (Du kannst zusätzlich {4} bezahlen, sowie du diesen Zauberspruch wirkst.)\r\n\r\nDer Geborstene Blitz fügt einem Ziel deiner Wahl 2 Schadenspunkte zu. Falls die Bonuskosten dieses Zauberspruchs bezahlt wurden, fügt er stattdessen 4 Schadenspunkte zu.",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
          "tapped": false,
          "sick": false,
          "faceDown": false,
@@ -12762,6 +12949,14 @@
          "typeLine": "Spontanzauber",
          "cost": "{R}",
          "set": "SOA",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
          "tapped": false,
          "sick": false,
          "faceDown": false,
@@ -13088,7 +13283,7 @@
    "message": 415,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -13200,6 +13395,14 @@
          "cost": "{R}",
          "set": "SOA",
          "text": "Bonus {4} (Du kannst zusätzlich {4} bezahlen, sowie du diesen Zauberspruch wirkst.)\r\n\r\nDer Geborstene Blitz fügt einem Ziel deiner Wahl 2 Schadenspunkte zu. Falls die Bonuskosten dieses Zauberspruchs bezahlt wurden, fügt er stattdessen 4 Schadenspunkte zu.",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
          "tapped": false,
          "sick": false,
          "faceDown": false,
@@ -13235,6 +13438,14 @@
          "typeLine": "Spontanzauber",
          "cost": "{R}",
          "set": "SOA",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
          "tapped": false,
          "sick": false,
          "faceDown": false,
@@ -13690,7 +13901,7 @@
    "message": 260,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -13988,6 +14199,13 @@
          "power": 2,
          "toughness": 4,
          "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+         "keywords": [
+          {
+           "keyword": "REACH",
+           "title": "Reach",
+           "reminder": "This creature can block creatures with flying."
+          }
+         ],
          "tapped": false,
          "sick": true,
          "faceDown": false,
@@ -14073,6 +14291,13 @@
         "power": 2,
         "toughness": 4,
         "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+        "keywords": [
+         {
+          "keyword": "REACH",
+          "title": "Reach",
+          "reminder": "This creature can block creatures with flying."
+         }
+        ],
         "tapped": false,
         "sick": true,
         "faceDown": false,
@@ -14356,7 +14581,7 @@
    "message": 86,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -14727,7 +14952,7 @@
    "message": 180,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -15226,7 +15451,7 @@
    "message": 400,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -16060,7 +16285,7 @@
    "message": 133,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -16571,10 +16796,10 @@
    "name": "attack",
    "description": "Declaring attackers, none yet: creatures Forge would declare and creatures it names unavailable with its reasons - the most different reasons (attackers).",
    "fixture": "attackers",
-   "message": 321,
+   "message": 315,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -16598,7 +16823,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 62,
+    "seq": 58,
     "running": true,
     "turn": 8,
     "phase": "COMBAT_DECLARE_ATTACKERS",
@@ -16716,6 +16941,13 @@
          "power": 0,
          "toughness": 3,
          "text": "",
+         "keywords": [
+          {
+           "keyword": "DEFENDER",
+           "title": "Defender",
+           "reminder": "This creature can't attack."
+          }
+         ],
          "tapped": false,
          "sick": false,
          "faceDown": false,
@@ -16733,6 +16965,13 @@
          "power": 2,
          "toughness": 4,
          "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+         "keywords": [
+          {
+           "keyword": "REACH",
+           "title": "Reach",
+           "reminder": "This creature can block creatures with flying."
+          }
+         ],
          "tapped": false,
          "sick": true,
          "faceDown": false,
@@ -16899,6 +17138,13 @@
          "power": 2,
          "toughness": 4,
          "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+         "keywords": [
+          {
+           "keyword": "REACH",
+           "title": "Reach",
+           "reminder": "This creature can block creatures with flying."
+          }
+         ],
          "tapped": false,
          "sick": true,
          "faceDown": false,
@@ -17230,10 +17476,10 @@
    "name": "attack-declared",
    "description": "Attackers declared: Forge's Call Back instead of Alpha Strike, the attackers in combat, creatures that stay back (attackers).",
    "fixture": "attackers",
-   "message": 327,
+   "message": 321,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -17257,7 +17503,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 64,
+    "seq": 60,
     "running": true,
     "turn": 8,
     "phase": "COMBAT_DECLARE_ATTACKERS",
@@ -17375,6 +17621,13 @@
          "power": 0,
          "toughness": 3,
          "text": "",
+         "keywords": [
+          {
+           "keyword": "DEFENDER",
+           "title": "Defender",
+           "reminder": "This creature can't attack."
+          }
+         ],
          "tapped": false,
          "sick": false,
          "faceDown": false,
@@ -17392,6 +17645,13 @@
          "power": 2,
          "toughness": 4,
          "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+         "keywords": [
+          {
+           "keyword": "REACH",
+           "title": "Reach",
+           "reminder": "This creature can block creatures with flying."
+          }
+         ],
          "tapped": false,
          "sick": true,
          "faceDown": false,
@@ -17558,6 +17818,13 @@
          "power": 2,
          "toughness": 4,
          "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+         "keywords": [
+          {
+           "keyword": "REACH",
+           "title": "Reach",
+           "reminder": "This creature can block creatures with flying."
+          }
+         ],
          "tapped": false,
          "sick": true,
          "faceDown": false,
@@ -17896,10 +18163,10 @@
    "name": "attack-planeswalker",
    "description": "A planeswalker of the AI's as the defender: two defenders to choose from, the player marked as the other one (attackers).",
    "fixture": "attackers",
-   "message": 588,
+   "message": 571,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -17923,7 +18190,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 121,
+    "seq": 111,
     "running": true,
     "turn": 14,
     "phase": "COMBAT_DECLARE_ATTACKERS",
@@ -18005,6 +18272,13 @@
          "power": 2,
          "toughness": 4,
          "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+         "keywords": [
+          {
+           "keyword": "REACH",
+           "title": "Reach",
+           "reminder": "This creature can block creatures with flying."
+          }
+         ],
          "tapped": false,
          "sick": false,
          "faceDown": false,
@@ -18126,6 +18400,13 @@
          "set": "30A",
          "power": 0,
          "toughness": 3,
+         "keywords": [
+          {
+           "keyword": "DEFENDER",
+           "title": "Defender",
+           "reminder": "This creature can't attack."
+          }
+         ],
          "tapped": false,
          "sick": false,
          "faceDown": false,
@@ -18280,6 +18561,13 @@
          "power": 3,
          "toughness": 5,
          "text": "Die Riesenspinne kann fliegende Kreaturen blocken.",
+         "keywords": [
+          {
+           "keyword": "REACH",
+           "title": "Reach",
+           "reminder": "This creature can block creatures with flying."
+          }
+         ],
          "tapped": false,
          "sick": false,
          "faceDown": false,
@@ -19097,10 +19385,10 @@
    "name": "block-start",
    "description": "Forge asks for blockers, before assignment: the current attacker highlighted, its legal blockers carry action (blocks-multi).",
    "fixture": "blocks-multi",
-   "message": 559,
+   "message": 539,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -19132,7 +19420,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 116,
+    "seq": 103,
     "running": true,
     "turn": 14,
     "phase": "COMBAT_DECLARE_BLOCKERS",
@@ -19328,6 +19616,13 @@
          "set": "SLZ",
          "power": 2,
          "toughness": 4,
+         "keywords": [
+          {
+           "keyword": "REACH",
+           "title": "Reach",
+           "reminder": "This creature can block creatures with flying."
+          }
+         ],
          "tapped": false,
          "sick": false,
          "faceDown": false,
@@ -19405,6 +19700,13 @@
          "power": 1,
          "toughness": 1,
          "text": "",
+         "keywords": [
+          {
+           "keyword": "HASTE",
+           "title": "Haste",
+           "reminder": "This creature can attack and {T} as soon as it comes under your control."
+          }
+         ],
          "tapped": false,
          "sick": false,
          "faceDown": false,
@@ -19450,6 +19752,13 @@
          "power": 1,
          "toughness": 1,
          "text": "",
+         "keywords": [
+          {
+           "keyword": "HASTE",
+           "title": "Haste",
+           "reminder": "This creature can attack and {T} as soon as it comes under your control."
+          }
+         ],
          "tapped": false,
          "sick": false,
          "faceDown": false,
@@ -20131,10 +20440,10 @@
    "name": "block-multiple",
    "description": "The player assigns two blockers to one attacker while Forge's block input is still open (blocks-double).",
    "fixture": "blocks-double",
-   "message": 476,
+   "message": 462,
    "game": {
     "type": "game.started",
-    "protocol": 8,
+    "protocol": 9,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -20166,7 +20475,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 98,
+    "seq": 90,
     "running": true,
     "turn": 12,
     "phase": "COMBAT_DECLARE_BLOCKERS",
@@ -20370,6 +20679,13 @@
          "set": "SLZ",
          "power": 2,
          "toughness": 4,
+         "keywords": [
+          {
+           "keyword": "REACH",
+           "title": "Reach",
+           "reminder": "This creature can block creatures with flying."
+          }
+         ],
          "tapped": false,
          "sick": false,
          "faceDown": false,
@@ -20510,6 +20826,13 @@
          "power": 1,
          "toughness": 1,
          "text": "",
+         "keywords": [
+          {
+           "keyword": "HASTE",
+           "title": "Haste",
+           "reminder": "This creature can attack and {T} as soon as it comes under your control."
+          }
+         ],
          "tapped": false,
          "sick": false,
          "faceDown": false,

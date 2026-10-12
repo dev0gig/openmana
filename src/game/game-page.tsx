@@ -75,8 +75,8 @@ import {
 } from "./game-labels"
 import { questionCards } from "./decision-model"
 import { useGameStart, type StartState } from "./game-start"
-import { CardSheet } from "./card-sheet"
-import type { CardLook } from "./card-sheet"
+import { CardView } from "./card-view"
+import type { CardLook } from "./card-view"
 import { HistorySheet } from "./history-sheet"
 import { tableView } from "./table-model"
 import { GameTable } from "./game-table"
@@ -707,6 +707,6 @@ function FinishedHistory({ match }: { match: Of<"over"> | Of<"aborted"> }) {
   return <>
     <Button variant="outline" aria-haspopup="dialog" onClick={() => setOpen(true)}>Spielverlauf ansehen</Button>
     <HistorySheet open={open} onOpenChange={setOpen} history={match.history} state={match.state} questions={[]} onLook={(id) => setLook((previous) => ({ id, open: true, serial: (previous?.serial ?? 0) + 1 }))} />
-    {match.state !== null && view !== null ? <CardSheet look={look} onBrowse={(id) => setLook((previous) => previous === null ? null : { ...previous, id })} onOpenChange={(isOpen) => setLook((previous) => previous === null ? null : { ...previous, open: isOpen })} state={match.state} view={view} pictures={pictures} moment={{ questions: [], waiting: false, conceding: false, attack: null, combat: match.state.combat }} /> : null}
+    {match.state !== null && view !== null ? <CardView look={look} onBrowse={(id) => setLook((previous) => previous === null ? null : { ...previous, id })} onOpenChange={(isOpen) => setLook((previous) => previous === null ? null : { ...previous, open: isOpen })} state={match.state} view={view} pictures={pictures} moment={{ questions: [], waiting: false, conceding: false, attack: null, combat: match.state.combat }} /> : null}
   </>
 }
