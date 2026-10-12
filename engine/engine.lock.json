@@ -7,8 +7,8 @@
   },
   "sources": {
     "format": "openmana-engine-inputs/1",
-    "sha256": "9d3cdc3b1bb85dce6d67a769df9da33f3be2ba2737040e6e93efeff9fad0e9fb",
-    "files": 171
+    "sha256": "c59dc9702f3e03f31dbd762d7ab1f7030d1de95fb610272b4e30dcca00e5e1e3",
+    "files": 173
   },
   "patches": {
     "count": 9,
@@ -26,9 +26,9 @@
     ]
   },
   "protocol": {
-    "version": 8,
+    "version": 9,
     "schema": "engine/protocol/schema/protocol.schema.json",
-    "sha256": "bfce2b1989cc6967f3a7be35e241a075630eeb862c2929319aabde9ac7fde2d1"
+    "sha256": "0500a44da6d29d2b4189b59b5464d27afecb0ccbfac2d141f6566d8661d8a13e"
   },
   "toolchain": {
     "graalvm": "GraalVM CE 25.4.4.1.1 (oracle/graal@95ce1499c8c9)",
@@ -56,20 +56,20 @@
   "manifest": {
     "file": "engine-manifest.json",
     "bytes": 6047,
-    "sha256": "a9b4c26b1244eeebafc4f490e7166458319d663e00846bc421a5dc8dfc35fedd"
+    "sha256": "fba5601117ff684c6ac460495ee47bd9c3f1c0fe8f71c58a55a704337895fa3c"
   },
   "artefacts": {
     "engine-worker.js": {
-      "bytes": 431692,
-      "sha256": "35d655bc2a8c6b65c92a24f958bdeddb1968d4e15d6ef2a3f41c1510a0f9c5e1"
+      "bytes": 436334,
+      "sha256": "21c728b11dc12ac13dff7b69cbb31db5ebb7038eaa629ffc807e57a3d17e53ce"
     },
     "openmana-engine.js": {
       "bytes": 112916,
       "sha256": "edf456327b91601ab3ded0f35c6b1429adca8141a9fdd7d67849065185d72b42"
     },
     "openmana-engine.js.wasm": {
-      "bytes": 78972017,
-      "sha256": "4f45086e13cb0db6873f0f150aabfcdda5ef049bd45fe3c25fa82be429f17ec4"
+      "bytes": 78969211,
+      "sha256": "70801cb0b6d86f5db8369b481b504b04e012aab7ebd8e6a9d3c26333742f4903"
     },
     "forge-res.inventory.json": {
       "bytes": 4278015,
@@ -77,45 +77,85 @@
     }
   },
   "verification": {
-    "base": "e511e7395bb6be528cfe23b3494facb054d1721e",
+    "base": "b467bef53dfcbc31c4a839259fd691ca8f87d8e1",
     "protocol": {
       "before": 8,
-      "after": 8,
-      "changed": false,
-      "reason": "",
-      "adaptationPaths": []
+      "after": 9,
+      "changed": true,
+      "reason": "Prompt 47: VisibleCard.keywords - Forge's keyword abilities of a visible card (printed and given by effects) with their concrete form, reminder text and parts, for the full-screen card view's German keyword explanations",
+      "adaptationPaths": [
+        "AGENTS.md",
+        "STATUS.md",
+        "docs/DEPLOYMENT.md",
+        "docs/DESIGN_SYSTEM.md",
+        "docs/design/SPIELTISCH.md",
+        "docs/implementation/47-vollbild-kartenansicht.md",
+        "scripts/e2e/run.ts",
+        "scripts/keyword-texts.test.ts",
+        "scripts/readiness/player.ts",
+        "scripts/record-keyword-forms.ts",
+        "scripts/regression/evidence.test.ts",
+        "scripts/regression/evidence.ts",
+        "src/cards/images.test.ts",
+        "src/cards/images.ts",
+        "src/components/ui/card-lightbox.tsx",
+        "src/game/attack.test.tsx",
+        "src/game/beginner-help.test.tsx",
+        "src/game/block.test.tsx",
+        "src/game/card-interaction.test.tsx",
+        "src/game/card-sheet.tsx",
+        "src/game/card-view.test.tsx",
+        "src/game/card-view.tsx",
+        "src/game/decision-panel.test.tsx",
+        "src/game/decision-panel.tsx",
+        "src/game/game-page.test.tsx",
+        "src/game/game-page.tsx",
+        "src/game/game-table.tsx",
+        "src/game/keyword-texts.test.ts",
+        "src/game/keyword-texts.ts",
+        "src/game/priority.test.tsx",
+        "src/game/table-cards.ts",
+        "src/game/table/motion-plan.test.ts",
+        "src/game/table/table-motion.test.tsx",
+        "src/test/fixtures/keyword-forms.json",
+        "src/test/fixtures/replay.json",
+        "src/test/fixtures/table-scenes.json",
+        "src/test/fixtures/table-sequence.json",
+        "src/test/table-harness.tsx",
+        "src/test/table-sequence.ts"
+      ]
     },
     "engineRuns": 82,
     "browserRuns": 23,
     "browserSkipped": false,
     "reports": {
       "pipeline.json": {
-        "bytes": 3592,
-        "sha256": "bea1ef77e736418e5c15b44510bcbe365e6a4eef07ab97c9deba8032ae1f439d"
+        "bytes": 7337,
+        "sha256": "d919c3a03a903ce15e39fa68d4a80a94615277a22c67be9e557e048a04ef26fa"
       },
       "report/build-report.json": {
-        "bytes": 7729,
-        "sha256": "1e758c250e5a75e76fc10e86e73e3106d528f1cbf1b4216cdfdfbc2cf0a94d8c"
+        "bytes": 7730,
+        "sha256": "d376ecd81dbb79422c8734e42a1076a436078a8598d6debdc495cde1e8ca0ecc"
       },
       "report/jvm-tests.json": {
         "bytes": 261,
-        "sha256": "9b657b8de1760d1663835638334ba60903c6c1e3cac01963ce088733876692c7"
+        "sha256": "297c04e15c0646c3c137fccafdc902891ac8737fe721fa3d66f356f6acebd8f4"
       },
       "report/test-report.json": {
-        "bytes": 1135881,
-        "sha256": "ae9b33e02309edb4d5bbff0cb844cb203318cb3193803a521e7b568849782746"
+        "bytes": 1135674,
+        "sha256": "b686de638c9ff14919e0153c0bf0cbeb2698578778b3a4e9c30268b9f194e824"
       },
       "report/source-inputs.json": {
-        "bytes": 35705,
-        "sha256": "418d95c87b7434a46f3562c62c253912814d4cee6b896265008680ccae62cbf5"
+        "bytes": 36174,
+        "sha256": "bed0c32f05571b315f493e870ccdeb2dc06685001a2582d5e77bbd1876c1d59c"
       },
       "report/unit-tests.xml": {
         "bytes": 14671,
-        "sha256": "09cd33e5761eba81b14e2e57a0417a11bd2b8c71f1d08e325bcb3743a5811f05"
+        "sha256": "4c25be4af8db727ee35cf2a59f4edc4aea7e9522f5367bff3ac6e28ac159ca0b"
       },
       "catalog/card-catalog-manifest.json": {
         "bytes": 1302,
-        "sha256": "d640933b95e9fbef493d1bc2894f9ba557d7c2cd88bee04c2b6c19757779bea1"
+        "sha256": "a26b1acaa53af2575700739d945a2da4a25fc07b500348bca2d3599e5c48ffd0"
       }
     }
   }

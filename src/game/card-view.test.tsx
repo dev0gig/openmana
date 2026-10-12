@@ -141,6 +141,31 @@ describe("DFC catalog presentation separate from Forge", () => {
   const turn = () => within(dialog()).getByRole("button", { name: /^Umdrehen/ })
   const shown = () => within(dialog()).queryByRole("img")?.getAttribute("src") ?? null
 
+  it.each(["missing", "failed"] as const)("the %s current picture shows Forge's live text, while another face remains catalog presentation", (missing) => {
+    const state = structuredClone(tableScene("main-phase").state)
+    const me = state.players.find((player) => player.me)!
+    const forgeText = "Forges aktueller, durch einen Effekt geänderter Regeltext."
+    me.zones.hand = me.zones.hand.map((c) => isVisible(c) && c.id === 25 ? { ...c, name: "Aktuelle Forge-Karte", cost: "{2}", typeLine: "Kreatur — Probe", text: forgeText } : c)
+    const picture = missing === "missing" ? { ...dfc, faces: dfc.faces!.map((face) => face.index === 0 ? { ...face, picture: null } : face) } : dfc
+    const { props, rerender, tap } = table("main-phase", { state, pictures: () => picture })
+    fireEvent.click(card(25))
+    if (missing === "failed") fireEvent.error(within(dialog()).getByRole("img"))
+    const fallback = () => dialog().querySelector('[data-slot="card-picture-fallback"]')!
+    expect(fallback()).toHaveTextContent("Aktuelle Forge-Karte")
+    expect(fallback()).toHaveTextContent("Kreatur — Probe")
+    expect(fallback()).toHaveTextContent("{2}")
+    expect(fallback()).toHaveTextContent(forgeText)
+    expect(fallback()).not.toHaveTextContent("Vorderseitentext")
+    const next = structuredClone(state)
+    next.players.find((player) => player.me)!.zones.hand = me.zones.hand.map((c) => isVisible(c) && c.id === 25 ? { ...c, text: "Neuer Forge-Regeltext." } : c)
+    rerender(<GameTable {...props} state={next} />)
+    expect(fallback()).toHaveTextContent("Neuer Forge-Regeltext.")
+    expect(fallback()).not.toHaveTextContent(forgeText)
+    fireEvent.click(turn())
+    expect(shown()).toBe("https://example.invalid/1.jpg")
+    expect(tap).not.toHaveBeenCalled()
+  })
+
   it("both faces can be inspected, English fallback is marked, and no game input is sent", () => {
     const { tap } = table("main-phase", { pictures: () => dfc })
     fireEvent.click(card(25))

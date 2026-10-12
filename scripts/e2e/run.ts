@@ -4542,6 +4542,15 @@ async function cardViewer(open: (scene: string, query?: string) => Promise<Page>
 
   // Several keywords (built from Forge's real keyword forms): measured; the darkening closes it, not the double tap's second press.
   page = await open("respond", "&presentation=keywords")
+  // Keep the real browser watcher so its platform close-request path can be exercised, without a stand-in.
+  await page.evaluate(() => {
+    type Watcher = { requestClose(): void }
+    const browser = globalThis as typeof globalThis & { CloseWatcher?: new () => Watcher; cardViewWatcher?: Watcher | null }
+    const NativeWatcher = browser.CloseWatcher
+    if (NativeWatcher !== undefined) browser.CloseWatcher = class extends NativeWatcher {
+      constructor() { super(); browser.cardViewWatcher = this }
+    }
+  })
   const angel = page.locator('button[data-card="26"]')
   const angelAt = await cardPoint(angel)
   if (viewport.touch) await touch(page, angel, { holdMs: 900 })
@@ -4577,7 +4586,14 @@ async function cardViewer(open: (scene: string, query?: string) => Promise<Page>
   await page.waitForFunction(() => document.activeElement?.getAttribute("data-card") === "26", undefined, { timeout: 2000 }).catch(() => undefined)
   check((await page.evaluate(() => document.activeElement?.getAttribute("data-card"))) === "26", `${label}: the focus did not return to the card`)
   check((await harnessTaps(page)).length === 0, `${label}: looking at the built card tapped it`)
-  results["closing"] = { escape: true, darkening: true, closeButton: true, closeHeight, backGesture: "CloseWatcher - checked in the unit test (card-view.test.tsx); Chrome on a desktop has no back gesture" }
+  await page.evaluate(() => { (globalThis as typeof globalThis & { cardViewWatcher?: unknown }).cardViewWatcher = null })
+  await page.keyboard.press("Enter")
+  await page.locator('[data-slot="card-view"]').waitFor()
+  await page.waitForFunction(() => (globalThis as typeof globalThis & { cardViewWatcher?: unknown }).cardViewWatcher != null)
+  await page.evaluate(() => { (globalThis as typeof globalThis & { cardViewWatcher?: { requestClose(): void } }).cardViewWatcher!.requestClose() })
+  check(await viewClosed(page), `${label}: the real CloseWatcher's close request did not close the card view`)
+  check((await harnessTaps(page)).length === 0, `${label}: the platform close request tapped a card`)
+  results["closing"] = { escape: true, darkening: true, closeButton: true, closeHeight, closeWatcher: "real Chrome CloseWatcher.requestClose(); physical back gesture not emulated" }
   await page.close()
   return results
 }

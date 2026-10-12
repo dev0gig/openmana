@@ -262,7 +262,7 @@ function CardSpread({ card, pictures, arrangement, browse, offer, children }: { 
       </DialogDescription>
       <CardLightboxStage arrangement={arrangement} aside={aside} reserve={arrangement === "stacked" ? rows * BUTTON_ROW_PX : 0}>
         <CardLightboxPicture>
-          <LargePicture card={card} picture={chosen === null ? picture : chosen.picture} name={chosen?.name.text} fallbackFace={chosen} />
+          <LargePicture card={card} picture={chosen === null ? picture : chosen.picture} name={alternate ? chosen.name.text : undefined} fallbackFace={alternate ? chosen : null} />
         </CardLightboxPicture>
         {aside ? (
           <CardLightboxAside>
