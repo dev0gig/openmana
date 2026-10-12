@@ -19,6 +19,7 @@
  *    1.12 times the size of a full card - also when the fan made the cards
  *    smaller -, its bottom 0.4 rem above the hand's lower edge, so it stands
  *    whole above the hand (over the strips; the hand clips only downwards).
+ *  - Dragged out of the hand (prompt 46): a lifted full card's size, upright.
  *  - More cards than even small ones fit (some 13 on a phone): a row that
  *    scrolls sideways (mode "row"), cards that fit the hand's height and rise
  *    inside it, side by side as in the fan.
@@ -67,6 +68,8 @@ export interface HandFan {
   readonly sink: number
   /** A lifted card: its scale (around its bottom centre) and its move upwards from its resting place (px, negative). */
   readonly lift: { readonly scale: number; readonly y: number }
+  /** A card dragged out of the hand (prompt 46): a lifted full card's size (px) - also when the cards rest smaller or in a row. */
+  readonly drag: { readonly width: number; readonly height: number }
   readonly cards: readonly HandFanCard[]
 }
 
@@ -85,6 +88,7 @@ export function handFan(count: number, box: { readonly width: number; readonly h
   const turn = count > 1 ? Math.min(3.2, 24 / count) : 0
   const outer = (((count - 1) / 2) * turn * Math.PI) / 180
   const full = Math.min(height * FULL_HEIGHT * CARD_RATIO, FULL_MAX_REM * rem, width)
+  const drag = { width: round(LIFT_SCALE * full), height: round((LIFT_SCALE * full) / CARD_RATIO) }
   // The widest card for which all fit side by side: width = the cards + the gaps + what the outer cards' turn reaches beyond them.
   const cardWidth = Math.min(full, (width - (count - 1) * gap) / (count + (2 * Math.sin(outer)) / CARD_RATIO))
   if (cardWidth < MIN_CARD) {
@@ -97,6 +101,7 @@ export function handFan(count: number, box: { readonly width: number; readonly h
       gap: round(gap),
       sink: 0,
       lift: { scale: LIFT_SCALE, y: -1 },
+      drag,
       cards: Array.from({ length: count }, () => ({ rotate: 0, drop: 0 })),
     }
   }
@@ -110,6 +115,7 @@ export function handFan(count: number, box: { readonly width: number; readonly h
     gap: round(gap),
     sink: round(sink),
     lift: { scale: round((LIFT_SCALE * full) / cardWidth), y: round(-(sink + liftGap)) },
+    drag,
     cards: Array.from({ length: count }, (_, index) => {
       const d = index - (count - 1) / 2
       return { rotate: round(d * turn), drop: round(d * d * arc * cardHeight) }

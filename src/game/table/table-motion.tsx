@@ -36,6 +36,16 @@
  * Anchors for the tests: the layer `data-slot="table-motion"` with
  * `data-moving` while something moves and `data-last` (what the last state
  * moved: "travel 2 shift 3 …"), `data-states` (how many states it animated).
+ *
+ * A card dragged out of the hand (prompt 46, HandDrag below): its picture -
+ * a ghost like the travelling ones, a full card upright - follows the pointer
+ * while the card itself stays in the hand; over the battlefields or the
+ * middle the board says so (`data-hand-drop="over"`: their golden glow, only
+ * for a card Forge would play). Let go elsewhere, not played or cancelled, it
+ * glides back to its place in the hand; dropped and played, it waits where it
+ * was let go, and the card's travel of the next state starts there (no second
+ * picture from the hand) - or it fades when no travel takes it over. Under
+ * less motion it jumps: gone at once.
  */
 import { Component, createRef, type RefObject } from "react"
 import type { GameEvent, GameState } from "@openmana/engine-protocol"
@@ -43,6 +53,8 @@ import { motionReducedNow, watchReducedMotion } from "@/app/motion"
 import {
   appearFrames,
   cardSeat,
+  DROP_WAIT_MS,
+  dropFadeFrames,
   damagedCards,
   damageSources,
   EASE,
@@ -56,6 +68,7 @@ import {
   newEvents,
   phaseFrames,
   pileOfCard,
+  placeTransform,
   planCards,
   pulseFrames,
   REMEMBER_MS,
@@ -266,6 +279,204 @@ function pileElement(board: HTMLElement, pile: { readonly seat: "me" | "opponent
   return zone?.querySelector(".table-pile-card, .table-chip") ?? zone
 }
 
+// ── A card dragged out of the hand (prompt 46) ──
+
+/** The regions a hand card is dropped on: both battlefields - with the centre line between them - and the middle (stack and combat). */
+const FIELD_AREAS = ':scope > [data-slot="game-board-area"]:is([data-area="opponent-field"], [data-area="field"])'
+const CENTER_AREA = ':scope > [data-slot="game-board-area"][data-area="center"]'
+/** Where the pointer holds a dragged card: across its middle, at this share of its height (the card stands above a finger). */
+const HOLD_AT = 0.7
+
+/** A card dropped and played (prompt 46): its waiting picture where it was let go, for the travel of Forge's next state. */
+interface Drop {
+  /** The card's key (`card:<id>`). */
+  readonly card: string
+  /** Where it was let go (board coordinates, upright). */
+  readonly place: Place
+  readonly ghost: HTMLElement
+  readonly timer: ReturnType<typeof setTimeout>
+  readonly done: () => void
+}
+
+/** The drop waiting on each board (one at a time). */
+const drops = new WeakMap<HTMLElement, Drop>()
+
+/** The motion may run now: the browser animates and nobody asked for less motion. */
+function moving(): boolean {
+  return canAnimate() && !motionReducedNow()
+}
+
+/** The waiting picture of a drop goes (its travel took over, it faded, or a new drag began). */
+function settleDrop(board: HTMLElement, drop: Drop): void {
+  if (drops.get(board) !== drop) return
+  drops.delete(board)
+  clearTimeout(drop.timer)
+  drop.ghost.remove()
+  drop.done()
+}
+
+/**
+ * A card dragged out of the hand (prompt 46): an upright copy of its face at
+ * a full card's size - no ids, no slots, hidden from screen readers, no
+ * pointer events - in the motion's layer, following the pointer (moved by
+ * its transform only) and kept inside the board, so it is always seen whole.
+ * The card itself stays in the hand. The board carries `data-hand-drag`
+ * while it is dragged and `data-hand-drop="over"` while it lies over the
+ * battlefields or the middle and would be played (the golden glow, table.css).
+ */
+export class HandDrag {
+  private readonly board: HTMLElement
+  private readonly ghost: HTMLElement
+  /** Where the ghost is drawn (board coordinates); it stands at `at` by its transform. */
+  private readonly box: Place
+  private at: Place
+  private gone = false
+
+  private constructor(board: HTMLElement, ghost: HTMLElement, box: Place) {
+    this.board = board
+    this.ghost = ghost
+    this.box = box
+    this.at = box
+  }
+
+  /** Starts dragging the card whose face is `face` at `point` (client coordinates); null without the board's motion layer. */
+  static start(face: HTMLElement, size: { readonly width: number; readonly height: number }, point: { readonly x: number; readonly y: number }): HandDrag | null {
+    const board = face.closest<HTMLElement>('[data-slot="game-board"]')
+    const layer = board?.querySelector<HTMLElement>(':scope > [data-slot="table-motion"]')
+    if (board === null || board === undefined || layer === null || layer === undefined) return null
+    const waiting = drops.get(board)
+    if (waiting !== undefined) settleDrop(board, waiting)
+    const picture = face.querySelector<HTMLElement>('[data-slot="game-card-picture"]')
+    const scale = size.width / Math.max(1, face.offsetWidth || size.width)
+    const content = scrubbed(face, picture === null ? null : { w: picture.offsetWidth * scale, h: picture.offsetHeight * scale })
+    const box = HandDrag.place(board, size, point)
+    const ghost = ghostAt(content, box)
+    ghost.classList.add("table-hand-drag")
+    layer.append(ghost)
+    board.dataset["handDrag"] = ""
+    return new HandDrag(board, ghost, box)
+  }
+
+  /** The card's place for a pointer at `point`: held at HOLD_AT, its whole inside the board. */
+  private static place(board: HTMLElement, size: { readonly width: number; readonly height: number }, point: { readonly x: number; readonly y: number }): Place {
+    const origin = board.getBoundingClientRect()
+    const w = size.width
+    const h = size.height
+    const within = (value: number, half: number, length: number) => (length <= 2 * half ? length / 2 : Math.min(Math.max(value, half), length - half))
+    return {
+      x: within(point.x - origin.left, w / 2, origin.width),
+      y: within(point.y - origin.top - (HOLD_AT - 0.5) * h, h / 2, origin.height),
+      w,
+      h,
+      angle: 0,
+    }
+  }
+
+  /** The card follows the pointer. */
+  move(point: { readonly x: number; readonly y: number }): void {
+    if (this.gone) return
+    this.at = HandDrag.place(this.board, { width: this.box.w, height: this.box.h }, point)
+    this.ghost.style.transform = placeTransform(this.box, this.at)
+  }
+
+  /** The card's middle lies over the battlefields (or the centre line between them) or the middle of the table. */
+  over(): boolean {
+    const origin = this.board.getBoundingClientRect()
+    const x = origin.left + this.at.x
+    const y = origin.top + this.at.y
+    const inside = (box: { left: number; top: number; right: number; bottom: number }) => x >= box.left && x <= box.right && y >= box.top && y <= box.bottom
+    const shown = (element: Element | null): DOMRect | null => {
+      const rect = element?.getBoundingClientRect()
+      return rect === undefined || rect.width <= 0 || rect.height <= 0 ? null : rect
+    }
+    const center = shown(this.board.querySelector(CENTER_AREA))
+    if (center !== null && inside(center)) return true
+    const fields = [...this.board.querySelectorAll(FIELD_AREAS)].map(shown).filter((rect): rect is DOMRect => rect !== null)
+    if (fields.length === 0) return false
+    return inside({
+      left: Math.min(...fields.map((rect) => rect.left)),
+      top: Math.min(...fields.map((rect) => rect.top)),
+      right: Math.max(...fields.map((rect) => rect.right)),
+      bottom: Math.max(...fields.map((rect) => rect.bottom)),
+    })
+  }
+
+  /** The battlefields' golden glow: the card lies over them and would be played. */
+  glow(on: boolean): void {
+    if (on) this.board.dataset["handDrop"] = "over"
+    else delete this.board.dataset["handDrop"]
+  }
+
+  private finish(): void {
+    this.gone = true
+    this.glow(false)
+    delete this.board.dataset["handDrag"]
+  }
+
+  /** Not played: the card glides back to its place in the hand (`rest`, its face there), then `done`; under less motion at once. */
+  back(rest: HTMLElement | null, done: () => void): void {
+    if (this.gone) return
+    this.finish()
+    const rect = rest?.getBoundingClientRect()
+    if (rest === null || rect === undefined || rect.width < 1 || !moving()) {
+      this.ghost.remove()
+      done()
+      return
+    }
+    const origin = this.board.getBoundingClientRect()
+    const anchor = rest.closest<HTMLElement>("[data-card]") ?? rest
+    const to = placeOf(rect, origin, rest.offsetWidth || rect.width, rest.offsetHeight || rect.height, handAngle(anchor))
+    const played = this.ghost.animate(travelFrames(this.box, this.at, to), { duration: MOTION_MS.back, easing: EASE, fill: "forwards" })
+    played.finished.then(
+      () => undefined,
+      () => undefined,
+    ).finally(() => {
+      this.ghost.remove()
+      done()
+    })
+  }
+
+  /**
+   * Dropped and played (Forge's tap sent): the card waits where it was let go
+   * for Forge's next state, whose travel of the card starts there (TableMotion
+   * takes it over); without one within DROP_WAIT_MS it fades. `done` when it
+   * is gone. Under less motion it is gone at once.
+   */
+  drop(card: number, done: () => void): void {
+    if (this.gone) return
+    this.finish()
+    if (!moving()) {
+      this.ghost.remove()
+      done()
+      return
+    }
+    const board = this.board
+    const ghost = this.ghost
+    const at = this.at
+    const timer = setTimeout(() => {
+      const waiting = drops.get(board)
+      if (waiting === undefined || waiting.ghost !== ghost) return
+      drops.delete(board)
+      const fade = ghost.animate(dropFadeFrames(this.box, at), { duration: MOTION_MS.vanish, easing: "ease-out", fill: "forwards" })
+      fade.finished.then(
+        () => undefined,
+        () => undefined,
+      ).finally(() => {
+        ghost.remove()
+        done()
+      })
+    }, DROP_WAIT_MS)
+    drops.set(board, { card: `card:${card}`, place: at, ghost, timer, done })
+  }
+
+  /** The hand went while the card was dragged: the picture goes at once. */
+  cancel(): void {
+    if (this.gone) return
+    this.finish()
+    this.ghost.remove()
+  }
+}
+
 export class TableMotion extends Component<TableMotionProps> {
   private readonly root: RefObject<HTMLDivElement | null> = createRef<HTMLDivElement>()
   /** Forge's log entries the motion has already followed (those up to the last state). */
@@ -391,6 +602,10 @@ export class TableMotion extends Component<TableMotionProps> {
     const plan = planCards(before.cards, after)
     let ghosts = 0
     // A travelling card's ghost is a copy of its old face where it had one (its picture is there already), else of its new one.
+    // A card dropped onto the battlefield (prompt 46) travels from where it was let go, as its waiting picture showed it.
+    const dropped = drops.get(board) ?? null
+    const fromDrop = (key: string, snap: Snap): Snap => (dropped === null || dropped.card !== key ? snap : { ...snap, place: dropped.place, picture: snap.picture === null ? null : { w: (snap.picture.w * dropped.place.w) / Math.max(1, snap.place.w), h: (snap.picture.h * dropped.place.w) / Math.max(1, snap.place.w) } })
+    let dropTaken = false
     const travels: { snap: Snap; look: Snap; from: Place; to: Place }[] = []
     const shifts: { snap: Snap; from: Place; children: { element: HTMLElement; rect: DOMRect }[] }[] = []
     // A pile's cards share one place: it moves once.
@@ -399,7 +614,9 @@ export class TableMotion extends Component<TableMotionProps> {
       const snap = after.get(move.key)!
       if (!move.within && ghosts < MAX_GHOSTS) {
         ghosts++
-        travels.push({ snap, look: before.cards.get(move.key) ?? snap, from: move.from, to: move.to })
+        const look = fromDrop(move.key, before.cards.get(move.key) ?? snap)
+        if (look.place !== move.from) dropTaken = true
+        travels.push({ snap, look, from: look === snap ? move.from : look.place, to: move.to })
       } else if (move.within && !shifting.has(snap.anchor)) {
         shifting.add(snap.anchor)
         shifts.push({ snap, from: move.from, children: [...snap.anchor.children].filter((child): child is HTMLElement => child instanceof HTMLElement).map((element) => ({ element, rect: element.getBoundingClientRect() })) })
@@ -422,8 +639,10 @@ export class TableMotion extends Component<TableMotionProps> {
     }
     const departures: { snap: Snap; to: Place | null }[] = []
     for (const key of plan.departures) {
-      const snap = before.cards.get(key)!
-      if (snap.anchor.isConnected) continue
+      const left = before.cards.get(key)!
+      if (left.anchor.isConnected) continue
+      const snap = fromDrop(key, left)
+      if (snap !== left) dropTaken = true
       const pile = pileOfCard(state, Number(key.slice(5)))
       const target = pile === null ? null : pileElement(board, pile)
       if (pile === null) this.memory.set(key, { place: snap.place, at: now })
@@ -488,6 +707,8 @@ export class TableMotion extends Component<TableMotionProps> {
       count(dissolve ? "dissolve" : "entry-out")
     }
     if (fragment.childNodes.length > 0) layer.append(fragment)
+    // The dropped card's waiting picture hands over to its travel.
+    if (dropTaken && dropped !== null) settleDrop(board, dropped)
     for (const { snap, from, children } of shifts) {
       const to = snap.place
       const scale = Math.max(from.w, from.h) / Math.max(1, Math.max(to.w, to.h))

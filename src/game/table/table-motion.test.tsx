@@ -10,7 +10,9 @@
  * further state stops what runs (and a state that comes before the motion
  * started skips it); a click during the motion hits the card at its new
  * place; the effects follow Forge (damage, life, stack); the ghosts are
- * invisible to tests, screen readers and pointers.
+ * invisible to tests, screen readers and pointers. A hand card dragged onto
+ * the battlefield (prompt 46) travels from where it was let go, glides back
+ * when not played, and jumps under less motion.
  */
 import { act, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
@@ -18,7 +20,7 @@ import { REDUCED_MOTION_ATTRIBUTE } from "@/app/motion"
 import { sequenceMoment, TABLE_SEQUENCE } from "@/test/table-sequence"
 import { GameTable } from "../game-table"
 import { NO_PICTURES } from "../table-cards"
-import { MOTION_PROPERTIES } from "./motion-plan"
+import { DROP_WAIT_MS, MOTION_PROPERTIES } from "./motion-plan"
 import { MOTION_END_EVENT } from "./table-motion"
 
 interface Played {
@@ -298,5 +300,161 @@ describe("effects follow Forge", () => {
     view.rerender(table(14))
     await nextFrame()
     expect(turns("rotate(90deg)").map((call) => call.target)).toContain(document.querySelector('[data-area="field"] [data-card="55"] [data-slot="game-card-picture"]'))
+  })
+})
+
+describe("a hand card dragged onto the battlefield (prompt 46)", () => {
+  /** The live table of a sequence step: the page sends taps (recorded), Forge waits. */
+  function live(step: number, onTapCard: (id: number) => void) {
+    const moment = sequenceMoment(step)
+    return (
+      <GameTable
+        state={moment.state}
+        history={moment.history}
+        questions={moment.questions}
+        prompt={moment.prompt}
+        waiting
+        aiProfile={TABLE_SEQUENCE.game.aiProfile}
+        pictures={NO_PICTURES}
+        menu={<button type="button">Menü</button>}
+        onTapCard={onTapCard}
+      />
+    )
+  }
+  /** The hand's resting places as fakeRect draws its cards: card i from 20 + 70·i px. */
+  function restingPlaces() {
+    const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetLeft")!
+    Object.defineProperty(HTMLElement.prototype, "offsetLeft", {
+      configurable: true,
+      get(this: HTMLElement) {
+        return this.hasAttribute("data-hand-card") && this.parentElement !== null ? 20 + [...this.parentElement.children].indexOf(this) * 70 : 0
+      },
+    })
+    // The hand's size (useElementSize): a full card's size for the dragged picture (hand-fan.ts).
+    const sizes = (["clientWidth", "clientHeight"] as const).map((name) => [name, Object.getOwnPropertyDescriptor(Element.prototype, name)!] as const)
+    for (const [name, descriptor] of sizes) {
+      Object.defineProperty(HTMLElement.prototype, name, {
+        configurable: true,
+        get(this: HTMLElement) {
+          return this.classList.contains("table-hand") ? (name === "clientWidth" ? 600 : 120) : (descriptor.get?.call(this) as number)
+        },
+      })
+    }
+    return () => {
+      Object.defineProperty(HTMLElement.prototype, "offsetLeft", original)
+      for (const [name] of sizes) delete (HTMLElement.prototype as unknown as Record<string, unknown>)[name]
+    }
+  }
+  const touch = { pointerType: "touch", pointerId: 1 } as const
+  const button = (id: number) => document.querySelector<HTMLElement>(`[data-area="hand"] [data-card="${id}"]`)!
+  const dragGhost = () => layer().querySelector<HTMLElement>(".table-hand-drag")
+  /** The middle of your battlefield's stand-in box. */
+  const field = () => {
+    const box = document.querySelector<HTMLElement>('[data-slot="game-board-area"][data-area="field"]')!.getBoundingClientRect()
+    return { x: box.left + box.width / 2, y: box.top + box.height / 2 }
+  }
+  /** Card `id` (place `index` in the hand) dragged up and let go at `to`. */
+  function drop(id: number, index: number, to: { x: number; y: number }) {
+    const row = document.querySelector<HTMLElement>(".table-hand")!.getBoundingClientRect()
+    const x = row.left + 20 + index * 70 + 10
+    fireEvent.pointerDown(button(id), { ...touch, clientX: x, clientY: 760 })
+    fireEvent.pointerMove(button(id), { ...touch, clientX: x, clientY: 720 })
+    fireEvent.pointerMove(button(id), { ...touch, clientX: to.x, clientY: to.y })
+    fireEvent.pointerUp(button(id), { ...touch, clientX: to.x, clientY: to.y })
+    fireEvent.click(button(id))
+  }
+
+  it("dropped and played: the picture waits where it was let go, and the card's travel of the next state starts there - one picture, not two", async () => {
+    const restore = restingPlaces()
+    try {
+      const onTapCard = vi.fn()
+      const view = render(live(1, onTapCard))
+      const to = field()
+      // Step 1: Gebirge (33), second in the hand, playable.
+      drop(33, 1, to)
+      expect(onTapCard).toHaveBeenCalledExactlyOnceWith(33)
+      const waiting = dragGhost()
+      expect(waiting).not.toBeNull()
+      // Forge's next state: the land on the battlefield. Its travel begins at the drop (its box is drawn there).
+      view.rerender(live(2, onTapCard))
+      await nextFrame()
+      expect(travels()).toHaveLength(1)
+      const [travel] = travels()
+      expect(travel!.keyframes[0]!["transform"]).toBe("translate(0px, 0px) rotate(0deg) scale(1)")
+      const ghost = travel!.target as HTMLElement
+      expect(Number.parseFloat(ghost.style.left) + Number.parseFloat(ghost.style.width) / 2).toBeCloseTo(to.x, 0)
+      // Held at 70 % of its height: the card stands above the finger, its middle a fifth of its height above it.
+      const height = Number.parseFloat(ghost.style.height)
+      expect(height).toBeGreaterThan(0)
+      expect(Number.parseFloat(ghost.style.top) + height / 2).toBeCloseTo(to.y - 0.2 * height, 0)
+      // The waiting picture handed over: gone.
+      expect(waiting!.isConnected).toBe(false)
+      expect(dragGhost()).toBeNull()
+    } finally {
+      restore()
+    }
+  })
+
+  it("no next state in time: the waiting picture fades where it was let go, the card shows in the hand again", async () => {
+    const restore = restingPlaces()
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] })
+    try {
+      const onTapCard = vi.fn()
+      render(live(1, onTapCard))
+      drop(33, 1, field())
+      expect(document.querySelector('[data-hand-card="33"]')).toHaveAttribute("data-dragging")
+      act(() => vi.advanceTimersByTime(DROP_WAIT_MS))
+      const fade = played.find((call) => call.target === dragGhost())
+      expect(fade?.keyframes.at(-1)?.["opacity"]).toBe(0)
+      await act(async () => {
+        fade!.end()
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+      expect(dragGhost()).toBeNull()
+      expect(document.querySelector('[data-hand-card="33"]')).not.toHaveAttribute("data-dragging")
+    } finally {
+      vi.useRealTimers()
+      restore()
+    }
+  })
+
+  it("let go outside the battlefield: it glides back to its place in the hand (transform and opacity only), nothing is sent", async () => {
+    const restore = restingPlaces()
+    try {
+      const onTapCard = vi.fn()
+      render(live(1, onTapCard))
+      drop(33, 1, { x: 500, y: 640 })
+      expect(onTapCard).not.toHaveBeenCalled()
+      const back = played.find((call) => call.target === dragGhost())
+      expect(back).toBeDefined()
+      for (const frame of back!.keyframes) for (const property of Object.keys(frame)) if (property !== "offset") expect(MOTION_PROPERTIES).toContain(property)
+      await act(async () => {
+        back!.end()
+        await Promise.resolve()
+        await Promise.resolve()
+      })
+      expect(dragGhost()).toBeNull()
+      expect(document.querySelector('[data-hand-card="33"]')).not.toHaveAttribute("data-dragging")
+    } finally {
+      restore()
+    }
+  })
+
+  it("under less motion it jumps: dropped or not, the picture is gone at once and nothing is animated", () => {
+    document.documentElement.setAttribute(REDUCED_MOTION_ATTRIBUTE, "")
+    const restore = restingPlaces()
+    try {
+      const onTapCard = vi.fn()
+      render(live(1, onTapCard))
+      drop(33, 1, { x: 500, y: 640 })
+      expect(dragGhost()).toBeNull()
+      drop(36, 2, field())
+      expect(onTapCard).toHaveBeenCalledExactlyOnceWith(36)
+      expect(dragGhost()).toBeNull()
+      expect(played).toEqual([])
+    } finally {
+      restore()
+    }
   })
 })

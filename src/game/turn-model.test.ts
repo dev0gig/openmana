@@ -81,7 +81,7 @@ describe("the player's priority (recorded)", () => {
     expect(moment).toMatchObject({ turn: "me", depth: 0, top: null, pass: "continue", second: "endTurn" })
     expect(priorityHolder(scene.state)?.me).toBe(true)
     expect(PASS_LABELS[moment.pass]).toBe("Weiter")
-    expect(priorityText(moment)).toBe("Du kannst jetzt eine Karte spielen – oder weitergeben.")
+    expect(priorityText(moment)).toBe("Zieh eine gold umrandete Karte aufs Feld oder tippe sie an – oder gib weiter.")
     // Forge asked because it found something the player can do (APINA): its finding, and its marker on a card.
     const me = scene.state.players.find((player) => player.me)!
     expect(me.canAct).toBe(true)

@@ -174,6 +174,34 @@ export function cardUse(card: VisibleCard, place: CardPlace, moment: TableMoment
   }
 }
 
+/** What releasing a card of the player's hand over the battlefield does (prompt 46). */
+export interface CardDrop {
+  /** Forge's tap plays the card now: the same tap the card view's button sends. */
+  readonly play: boolean
+  /** Why it does not, where the table knows a reason (tapBlocked's words for a card Forge marks playable); null otherwise. */
+  readonly reason: string | null
+}
+
+const NO_DROP: CardDrop = { play: false, reason: null }
+
+/**
+ * Dragging a hand card onto the battlefield (prompt 46): the drop plays the
+ * card - Forge's `card.tap`, exactly what the card view's button sends - only
+ * where Forge marks it playable (its `playable`: the gold frame) and offers
+ * its tap, outside the steps whose taps choose instead of play (a selection,
+ * payment, attack, block, the London mulligan: there a card is tapped, never
+ * dragged), and only when a tap can be sent (tapBlocked: Forge waits, no
+ * blocking question, no concession on its way). Whether that is a land, a
+ * creature or an instant is Forge's, never the place the card was dropped.
+ * Forge sends no reason for a card it does not mark, so there is none.
+ */
+export function cardDrop(card: VisibleCard, place: CardPlace, moment: TableMoment): CardDrop {
+  if (place.zone !== "hand" || !place.mine || card.playable !== true || directTaps(moment.questions)) return NO_DROP
+  const use = cardUse(card, place, moment)
+  if (use.tap === null) return NO_DROP
+  return use.blocked === null ? { play: true, reason: null } : { play: false, reason: use.blocked }
+}
+
 /** InputBlock's action is the permission for THIS attacker; its general marker is not. */
 function blockUse(card: VisibleCard, place: CardPlace, moment: TableMoment): Omit<CardUse, "source"> {
   const combat = moment.combat ?? []

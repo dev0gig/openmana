@@ -536,6 +536,50 @@
   box-shadow: none;
 }
 
+/*
+ * Dragging a hand card onto the battlefield (prompt 46; HandDrag in
+ * table-motion.tsx, useFanPress in src/hooks/use-card-press.ts): the card
+ * itself stays in the hand, faint, while its picture - a ghost in the
+ * motion's layer - follows the pointer. While a card is dragged the board
+ * selects no text; over the battlefields or the middle, for a card Forge
+ * would play, those regions glow golden at their edges - a layer behind
+ * their cards (never over a picture), shown by its opacity.
+ */
+[data-slot="game-board"] .table-hand > li[data-dragging] {
+  opacity: 0.35;
+}
+
+[data-slot="game-board"][data-hand-drag] {
+  user-select: none;
+  cursor: grabbing;
+}
+
+[data-slot="game-board"][data-hand-drag] > [data-slot="game-board-area"]:is([data-area="opponent-field"], [data-area="center"], [data-area="field"]) {
+  isolation: isolate;
+}
+
+[data-slot="game-board"] > [data-slot="game-board-area"]:is([data-area="opponent-field"], [data-area="center"], [data-area="field"])::after {
+  content: "";
+  position: absolute;
+  inset: 0.125rem;
+  z-index: -1;
+  border-radius: 0.5rem;
+  box-shadow:
+    inset 0 0 0 2px var(--primary),
+    inset 0 0 1.5rem color-mix(in oklch, var(--primary) 45%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease-out;
+}
+
+[data-slot="game-board"][data-hand-drop="over"] > [data-slot="game-board-area"]:is([data-area="opponent-field"], [data-area="center"], [data-area="field"])::after {
+  opacity: 1;
+}
+
+[data-slot="game-board"] .table-hand-drag {
+  z-index: 1;
+}
+
 /* Cards Forge reveals from the AI's hand (a toolbar as before): the same card shape and shadow. */
 [data-slot="game-board"] .table-hand-revealed [data-slot="game-card-face"] {
   border-radius: 0.3rem;

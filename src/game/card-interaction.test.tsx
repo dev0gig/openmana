@@ -7,11 +7,14 @@
  * a swipe that scrolls is no press); the view follows the live state. The
  * hand is a fan (prompt 42): a finger lifts the card under it and a swipe the
  * card under the finger, a tap is the lifted card's, a swipe nothing.
+ * Dragging a hand card onto the battlefield (prompt 46) plays it - one tap,
+ * where Forge marks it playable and a tap can be sent - and does nothing else.
  * The table never sends anything itself: onTapCard is the page's.
  */
 import type { GameState, VisibleCard } from "@openmana/engine-protocol"
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+import { toast } from "sonner"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { LONG_PRESS_MS } from "@/hooks/use-card-press"
 import { tableScene, type TableSceneName } from "@/test/table-scenes"
@@ -430,5 +433,192 @@ describe("keyboard", () => {
     expect(cardView()).toBeInTheDocument()
     await user.keyboard("{Escape}")
     expect(onTapCard).not.toHaveBeenCalled()
+  })
+})
+
+describe("dragging a hand card onto the battlefield (prompt 46)", () => {
+  /**
+   * The table's layout in jsdom (none of its own): the board 400 × 800 px, the AI's battlefield 100-300, the middle
+   * 300-340, your battlefield 340-560, your strip 560-600, the hand 600-700, the decision below; the hand's cards side by
+   * side, card i's resting place from 40·i px.
+   */
+  function layout() {
+    const rows: Record<string, readonly [number, number]> = { header: [0, 40], opponent: [40, 100], "opponent-field": [100, 300], center: [300, 340], field: [340, 560], me: [560, 600], hand: [600, 700], decision: [700, 800] }
+    const box = (top: number, bottom: number) => ({ x: 0, y: top, left: 0, top, right: 400, bottom, width: 400, height: bottom - top, toJSON: () => ({}) }) as DOMRect
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+      if (this.getAttribute("data-slot") === "game-board") return box(0, 800)
+      const area = this.getAttribute("data-slot") === "game-board-area" ? this.getAttribute("data-area") : null
+      const row = area === null ? undefined : rows[area]
+      return row === undefined ? box(0, 0) : box(row[0], row[1])
+    })
+    const index = (element: HTMLElement) => (element.parentElement === null ? -1 : [...element.parentElement.children].indexOf(element))
+    vi.spyOn(HTMLElement.prototype, "offsetLeft", "get").mockImplementation(function (this: HTMLElement) {
+      return this.hasAttribute("data-hand-card") ? index(this) * 40 : 0
+    })
+  }
+  const board = () => document.querySelector<HTMLElement>('[data-slot="game-board"]')!
+  const item = (id: number) => document.querySelector<HTMLElement>(`[data-hand-card="${id}"]`)!
+  /** The middle of card `id`'s resting place, low in the hand. */
+  const rest = (id: number) => ({ clientX: index(id) * 40 + 20, clientY: 680 })
+  const index = (id: number) => [...item(id).parentElement!.children].indexOf(item(id))
+  const touch = { pointerType: "touch", pointerId: 1 } as const
+  /** A finger on card `id`, up out of the hand, over to `to` (y), released there (or not: `release` false). */
+  function dragTo(id: number, y: number, { release = true, pointerId = 1 }: { release?: boolean; pointerId?: number } = {}) {
+    const start = rest(id)
+    const finger = { ...touch, pointerId }
+    fireEvent.pointerDown(cardButton(id), { ...finger, ...start })
+    fireEvent.pointerMove(cardButton(id), { ...finger, clientX: start.clientX, clientY: start.clientY - 40 })
+    fireEvent.pointerMove(cardButton(id), { ...finger, clientX: 200, clientY: y })
+    if (!release) return
+    fireEvent.pointerUp(cardButton(id), { ...finger, clientX: 200, clientY: y })
+    fireEvent.click(cardButton(id))
+  }
+  const ghost = () => document.querySelector('[data-slot="table-motion"] .table-hand-drag')
+
+  it("a playable land dropped on your battlefield: the battlefields glow while it is over them, exactly one tap - no view", () => {
+    layout()
+    const { onTapCard } = table("main-phase")
+    dragTo(25, 450, { release: false })
+    // The picture follows the finger: a copy without ids, slots or names; the card itself stays in the hand, faint.
+    expect(ghost()).not.toBeNull()
+    expect(ghost()!.querySelector("[data-card], [data-slot], [id], [aria-label]")).toBeNull()
+    expect(ghost()!.closest('[aria-hidden="true"]')).not.toBeNull()
+    expect(item(25)).toHaveAttribute("data-dragging")
+    expect(board()).toHaveAttribute("data-hand-drop", "over")
+    // Back over your strip (not the battlefield): no glow.
+    fireEvent.pointerMove(cardButton(25), { ...touch, clientX: 200, clientY: 580 })
+    expect(board()).not.toHaveAttribute("data-hand-drop")
+    fireEvent.pointerMove(cardButton(25), { ...touch, clientX: 200, clientY: 450 })
+    expect(board()).toHaveAttribute("data-hand-drop", "over")
+    fireEvent.pointerUp(cardButton(25), { ...touch, clientX: 200, clientY: 450 })
+    fireEvent.click(cardButton(25))
+    expect(onTapCard).toHaveBeenCalledExactlyOnceWith(25)
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    // Under jsdom (no animations) the picture is gone at once, and the board is quiet again.
+    expect(ghost()).toBeNull()
+    expect(board()).not.toHaveAttribute("data-hand-drag")
+    expect(board()).not.toHaveAttribute("data-hand-drop")
+  })
+
+  it("the AI's battlefield and the middle take the card too; a second drop right after it counts once (the double-tap guard)", () => {
+    layout()
+    const { onTapCard } = table("main-phase")
+    dragTo(25, 150)
+    expect(onTapCard).toHaveBeenCalledExactlyOnceWith(25)
+    dragTo(25, 320)
+    expect(onTapCard).toHaveBeenCalledTimes(1)
+    wait(ARMING_MS)
+    dragTo(25, 320)
+    expect(onTapCard).toHaveBeenCalledTimes(2)
+  })
+
+  it("a spell (an instant at the AI's spell): one tap - Forge asks for its target afterwards, as when tapped", () => {
+    layout()
+    const { onTapCard } = table("respond")
+    dragTo(29, 200)
+    expect(onTapCard).toHaveBeenCalledExactlyOnceWith(29)
+  })
+
+  it("let go in the hand, over your strip or the decision: it goes back, nothing is sent", () => {
+    layout()
+    const { onTapCard } = table("main-phase")
+    for (const y of [650, 580, 750]) {
+      dragTo(25, y)
+      expect(item(25)).not.toHaveAttribute("data-dragging")
+      expect(ghost()).toBeNull()
+    }
+    expect(onTapCard).not.toHaveBeenCalled()
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+  })
+
+  it("a card Forge does not mark playable: lifted and dragged, no glow, nothing sent - and no words made up", () => {
+    layout()
+    const { onTapCard } = table("opening")
+    dragTo(55, 450, { release: false })
+    expect(ghost()).not.toBeNull()
+    expect(board()).not.toHaveAttribute("data-hand-drop")
+    fireEvent.pointerUp(cardButton(55), { ...touch, clientX: 200, clientY: 450 })
+    expect(onTapCard).not.toHaveBeenCalled()
+    expect(toast.getToasts()).toHaveLength(0)
+  })
+
+  it("while a concession is on its way, Forge computes or a blocking question waits: nothing is sent, the table's reason shows", () => {
+    layout()
+    const { onTapCard, rerender } = table("main-phase", { conceding: true })
+    dragTo(25, 450, { release: false })
+    expect(board()).not.toHaveAttribute("data-hand-drop")
+    fireEvent.pointerUp(cardButton(25), { ...touch, clientX: 200, clientY: 450 })
+    expect(toast.getToasts().map((shown) => ("title" in shown ? shown.title : null))).toEqual(["Die Aufgabe ist unterwegs."])
+    rerender({ conceding: false, waiting: false })
+    dragTo(25, 450)
+    expect(onTapCard).not.toHaveBeenCalled()
+    cleanup()
+    const ability = table("ability")
+    dragTo(54, 450)
+    expect(ability.onTapCard).not.toHaveBeenCalled()
+  })
+
+  it("in a step whose taps choose (a selection naming the hand's cards): a drop plays nothing", () => {
+    layout()
+    const { onTapCard } = table("discard")
+    dragTo(56, 450)
+    expect(onTapCard).not.toHaveBeenCalled()
+  })
+
+  it("Escape, a second finger or pointercancel take the card back: nothing is sent", () => {
+    layout()
+    const { onTapCard } = table("main-phase")
+    dragTo(25, 450, { release: false })
+    fireEvent.keyDown(window, { key: "Escape" })
+    expect(ghost()).toBeNull()
+    expect(board()).not.toHaveAttribute("data-hand-drop")
+    fireEvent.pointerUp(cardButton(25), { ...touch, clientX: 200, clientY: 450 })
+    fireEvent.click(cardButton(25))
+    dragTo(25, 450, { release: false, pointerId: 2 })
+    fireEvent.pointerDown(cardButton(25), { ...touch, pointerId: 3, clientX: 100, clientY: 680 })
+    expect(ghost()).toBeNull()
+    fireEvent.pointerUp(cardButton(25), { ...touch, pointerId: 2, clientX: 200, clientY: 450 })
+    fireEvent.pointerUp(cardButton(25), { ...touch, pointerId: 3, clientX: 100, clientY: 680 })
+    fireEvent.click(cardButton(25))
+    dragTo(25, 450, { release: false, pointerId: 4 })
+    fireEvent.pointerCancel(cardButton(25), { ...touch, pointerId: 4 })
+    expect(ghost()).toBeNull()
+    expect(onTapCard).not.toHaveBeenCalled()
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+  })
+
+  it("the mouse: pressed and moved beyond its slop, it drags; dropped on the battlefield, one tap - the click after it opens nothing", () => {
+    layout()
+    const { onTapCard } = table("main-phase")
+    const start = rest(25)
+    const mouse = { pointerType: "mouse", pointerId: 1, button: 0, buttons: 1 } as const
+    fireEvent.pointerDown(cardButton(25), { ...mouse, ...start })
+    fireEvent.pointerMove(cardButton(25), { ...mouse, clientX: 200, clientY: 450 })
+    expect(board()).toHaveAttribute("data-hand-drop", "over")
+    fireEvent.pointerUp(cardButton(25), { ...mouse, buttons: 0, clientX: 200, clientY: 450 })
+    fireEvent.click(cardButton(25))
+    expect(onTapCard).toHaveBeenCalledExactlyOnceWith(25)
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+  })
+
+  it("only looked at (a replay): the hand drags nothing", () => {
+    layout()
+    const scene = tableScene("main-phase")
+    render(<GameTable state={scene.state} questions={scene.questions} prompt={scene.prompt} waiting aiProfile="Default" pictures={NO_PICTURES} menu={null} />)
+    dragTo(25, 450, { release: false })
+    expect(ghost()).toBeNull()
+    expect(board()).not.toHaveAttribute("data-hand-drag")
+  })
+
+  it("the card leaves the hand while it is dragged (a new state): its picture goes", () => {
+    layout()
+    const scene = tableScene("main-phase")
+    const { rerender } = table("main-phase")
+    dragTo(25, 450, { release: false })
+    expect(ghost()).not.toBeNull()
+    const state: GameState = { ...scene.state, players: scene.state.players.map((player) => (player.me ? { ...player, zones: { ...player.zones, hand: [] } } : player)) as GameState["players"] }
+    rerender({ state })
+    expect(ghost()).toBeNull()
+    expect(board()).not.toHaveAttribute("data-hand-drag")
   })
 })

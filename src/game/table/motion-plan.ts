@@ -40,7 +40,16 @@ export const MOTION_MS = {
   phase: 300,
   /** The shimmer across the main button at a new priority. */
   shimmer: 720,
+  /** A card dragged out of the hand gliding back to its place (prompt 46: not dropped, or not played). */
+  back: 220,
 } as const
+
+/**
+ * How long a card dropped onto the battlefield (prompt 46) waits where it was
+ * let go for Forge's next state (ms): the card's travel then starts there; if
+ * none comes - Forge keeps the card in the hand while it asks - it fades.
+ */
+export const DROP_WAIT_MS = 1500
 
 /** How long a card's last place is remembered after it left the table (ms): a spell leaves the hand while it is paid for and appears on the stack afterwards. */
 export const REMEMBER_MS = 15_000
@@ -187,6 +196,14 @@ export function vanishFrames(): Keyframe[] {
   ]
 }
 
+/** A dropped card (prompt 46) that no travel took over: it fades where it was let go (drawn at `box`, standing at `at`). */
+export function dropFadeFrames(box: Place, at: Place): Keyframe[] {
+  return [
+    { transform: placeTransform(box, at), opacity: 1 },
+    { transform: placeTransform(box, at, 0.9), opacity: 0 },
+  ]
+}
+
 /** A Zauberchronik entry that is new: it glides in from the top of the list. */
 export function entryInFrames(glide: boolean): Keyframe[] {
   return glide
@@ -252,6 +269,7 @@ export const KEYFRAME_SAMPLES: readonly Keyframe[][] = [
   turnFrames(false),
   appearFrames(),
   vanishFrames(),
+  dropFadeFrames({ x: 0, y: 0, w: 80, h: 112, angle: 0 }, { x: 40, y: -30, w: 80, h: 112, angle: 0 }),
   entryInFrames(true),
   entryInFrames(false),
   entryOutFrames(true),

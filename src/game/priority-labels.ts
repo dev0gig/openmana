@@ -70,6 +70,9 @@ export const PASS_NOTES: Readonly<Record<PriorityMoment["pass"], string>> = {
   resolve: "„Verrechnen lassen“ gibt die Priorität ab. Antwortet danach niemand mehr, wird das Oberste auf dem Stapel verrechnet.",
 }
 
+/** The player's own priority with an empty stack, in words that name the gestures (prompt 46) - only words, no logic. */
+export const PLAY_HINT = "Zieh eine gold umrandete Karte aufs Feld oder tippe sie an – oder gib weiter."
+
 /** What lies on top of the stack, from Forge's flags and who put it there. */
 function topLine(top: StackTop): string {
   const name = top.card === null ? null : `„${cardName(top.card)}“`
@@ -96,7 +99,8 @@ function topLine(top: StackTop): string {
 export function priorityText(moment: PriorityMoment): string {
   const { top } = moment
   if (top === null) {
-    return moment.turn === "opponent" ? "Zug der Forge-KI: Du kannst jetzt etwas spielen – oder weitergeben." : "Du kannst jetzt eine Karte spielen – oder weitergeben."
+    // In the player's own turn the words name the gestures for beginners (prompt 46): drag a gold-framed card onto the battlefield, or tap it.
+    return moment.turn === "opponent" ? "Zug der Forge-KI: Du kannst jetzt etwas spielen – oder weitergeben." : PLAY_HINT
   }
   const pronoun = top.kind === "spell" ? "es" : "sie"
   const answer = top.controller === "me" ? `Du kannst noch etwas darauflegen – oder ${pronoun} verrechnen lassen.` : `Du kannst darauf antworten – oder ${pronoun} verrechnen lassen.`

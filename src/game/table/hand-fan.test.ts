@@ -27,6 +27,9 @@ describe("handFan", () => {
     expect(fan.sink).toBeCloseTo(fan.cardHeight * 0.09, 1)
     // The lifted card: a full card's 1.12, its lower edge 0.4 rem above the hand's.
     expect(fan.lift).toEqual({ scale: 1.12, y: -Math.round((fan.sink + 6.4) * 100) / 100 })
+    // Dragged out of the hand (prompt 46): the lifted card's size, upright.
+    expect(fan.drag.width).toBeCloseTo(fan.cardWidth * 1.12, 1)
+    expect(fan.drag.height).toBeCloseTo(fan.cardHeight * 1.12, 1)
   })
 
   it("seven cards on a phone: smaller cards that fit the width side by side, never overlapping; the lifted card at a full card's size", () => {
@@ -74,6 +77,9 @@ describe("handFan", () => {
     expect(fan.cards.every((card) => card.rotate === 0 && card.drop === 0)).toBe(true)
     // Lifted it stays inside the hand: 1.12 times its height and 1 px up still fit.
     expect(fan.cardHeight * fan.lift.scale - fan.lift.y).toBeLessThanOrEqual(103)
+    // Dragged out of the hand (prompt 46) it is a full card again, not the row's small one.
+    expect(fan.drag.height).toBeCloseTo(103 * 1.1 * 1.12, 1)
+    expect(fan.drag.width).toBeGreaterThan(fan.cardWidth * 1.12)
   })
 
   it("one card: full size, upright, in the middle; no cards or no size: nothing to arrange", () => {

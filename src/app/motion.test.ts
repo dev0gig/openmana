@@ -18,7 +18,9 @@
  * motionReducedNow() before it measures or moves anything and stops when the
  * wish for less motion changes (watchReducedMotion), and all its keyframes
  * come from src/game/table/motion-plan.ts, which builds only transform and
- * opacity.
+ * opacity. Prompt 46 adds a hand card dragged onto the battlefield: its
+ * picture follows the pointer by its transform, glides back or fades there -
+ * in the same file, with the same keyframe builders and the same question.
  */
 import fs from "node:fs"
 import path from "node:path"
@@ -304,7 +306,8 @@ describe("less motion on the game table", () => {
     expect(source).not.toMatch(/\.animate\(\s*[[{]/)
     const calls = [...source.matchAll(/\.animate\(\s*(?:[^(),]*\?\s*)?([A-Za-z]+)\(/g)].map((match) => match[1])
     expect(calls.length).toBe(source.match(/\.animate\(/g)?.length)
-    expect(new Set(calls)).toEqual(new Set(["travelFrames", "hiddenWhileTravelling", "vanishFrames", "entryOutFrames", "shiftFrames", "turnFrames", "appearFrames", "flashFrames", "shakeFrames", "pulseFrames", "entryInFrames", "phaseFrames", "shimmerFrames"]))
+    // Prompt 46: a dragged hand card glides back (travelFrames) or fades where it was dropped (dropFadeFrames).
+    expect(new Set(calls)).toEqual(new Set(["travelFrames", "hiddenWhileTravelling", "vanishFrames", "entryOutFrames", "shiftFrames", "turnFrames", "appearFrames", "flashFrames", "shakeFrames", "pulseFrames", "entryInFrames", "phaseFrames", "shimmerFrames", "dropFadeFrames"]))
     expect([...MOTION_PROPERTIES]).toEqual(["transform", "opacity"])
     for (const frames of KEYFRAME_SAMPLES) for (const frame of frames) for (const property of Object.keys(frame)) if (property !== "offset") expect(MOVING).toContain(property)
   })

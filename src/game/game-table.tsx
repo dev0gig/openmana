@@ -90,7 +90,8 @@
  */
 import { CircleSlash, Crosshair, Crown, Hourglass, Layers, ScrollText, Shield, Swords } from "lucide-react"
 import { cn } from "cn"
-import { createContext, use, useCallback, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react"
+import { toast } from "sonner"
+import { createContext, use, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react"
 import type { AnswerBody, Card, GameEvent, GameState, ManaColor, Question, VisibleCard } from "@openmana/engine-protocol"
 import { Badge } from "@/components/ui/badge"
 import { GameBoard, GameBoardArea, type GameBoardDecision } from "@/components/ui/game-board"
@@ -108,7 +109,7 @@ import { HelpSheet } from "./help-sheet"
 import { STACK_TARGET_LABEL, stackTargetIds } from "./beginner-help"
 import { HistorySheet } from "./history-sheet"
 import { ZoneSheet, type ZoneLook } from "./zone-sheet"
-import { cardUse, currentStep, openSelection, playerUse, stepSource, type CardPlace, type CardUse, type TableMoment } from "./card-use"
+import { cardDrop, cardUse, currentStep, openSelection, playerUse, stepSource, type CardPlace, type CardUse, type TableMoment } from "./card-use"
 import { currentDecision } from "./decision-model"
 import { DecisionPanel, decisionNeedsRoom } from "./decision-panel"
 import { aiProfileLabel, phaseLabel } from "./game-labels"
@@ -135,7 +136,7 @@ import { Chronicle } from "./table/chronicle"
 import { handFan, restingCardAt } from "./table/hand-fan"
 import { PhasePanel } from "./table/phase-panel"
 import { TableArrows } from "./table/table-arrows"
-import { TableMotion } from "./table/table-motion"
+import { HandDrag, TableMotion } from "./table/table-motion"
 import { TableArt, TableCardBack, TableEmblem } from "./table/table-art"
 import { MedallionFace, StripChip, ZoneCount, ZoneCounter, ZonePile } from "./table/strip-parts"
 import { TableSurface } from "./table/table-surface"
@@ -200,6 +201,13 @@ interface CardControls {
   readonly live: boolean
   readonly look: (id: number) => void
   readonly primary: (card: VisibleCard, use: CardUse) => void
+  /**
+   * Plays a hand card dropped onto the battlefield (prompt 46): Forge's tap,
+   * sent once where cardDrop allows it - the card view's button's guards
+   * (Forge waits, no blocking question, no concession, a double tap counts
+   * once). True when it was sent.
+   */
+  readonly play: (card: VisibleCard) => boolean
   /** Taps a player (prompt 17); null: the table is only looked at. */
   readonly tapPlayer: ((player: number) => void) | null
   /** Opens the zone view of a player's zone (prompt 39: the strip's piles) - looking only. */
@@ -315,6 +323,15 @@ export function GameTable({ replay = false,
         }
         lastTap.current = { id: card.id, at: now }
         onTapCard(card.id)
+      },
+      play: (card) => {
+        const now = performance.now()
+        const last = lastTap.current
+        if (onTapCard === undefined || !cardDrop(card, HAND_PLACE, moment).play) return false
+        if (last !== null && last.id === card.id && now - last.at < ARMING_MS) return false
+        lastTap.current = { id: card.id, at: now }
+        onTapCard(card.id)
+        return true
       },
       tapPlayer: onTapPlayer === undefined ? null : tapPlayer,
       lookZone: (player, zone) => setZone({ kind: "zone", player, zone }),
@@ -1003,6 +1020,31 @@ function FannedHand({ cards, pictures }: { cards: readonly Card[]; pictures: Tab
     liftedNow.current = lifted
   })
   const visible = (key: string) => cards.find((card): card is VisibleCard => isVisible(card) && String(card.id) === key) ?? null
+  // Dragging a card onto the battlefield (prompt 46): its picture over the board (HandDrag), the card itself dimmed in
+  // the hand until the picture is back, gone into Forge's next state, or faded.
+  const [dragged, setDragged] = useState<{ readonly hand: string; readonly card: string } | null>(null)
+  const draggedNow = dragged !== null && dragged.hand === hand ? dragged.card : null
+  const drag = useRef<{ readonly key: string; readonly picture: HandDrag } | null>(null)
+  // What a drop reads: the latest cards and controls (a new state may come while a card is dragged).
+  const latest = useRef({ visible, controls })
+  useLayoutEffect(() => {
+    latest.current = { visible, controls }
+  })
+  // The dragged card left the hand (a new state) or the hand went: its picture goes.
+  useEffect(() => {
+    const current = drag.current
+    if (current !== null && !hand.split(",").includes(current.key)) {
+      current.picture.cancel()
+      drag.current = null
+    }
+  }, [hand])
+  useEffect(
+    () => () => {
+      drag.current?.picture.cancel()
+      drag.current = null
+    },
+    [],
+  )
   const press = useFanPress({
     pick: (x, target) => {
       const row = list.current
@@ -1027,6 +1069,53 @@ function FannedHand({ cards, pictures }: { cards: readonly Card[]; pictures: Tab
     onLook: (key) => {
       const card = visible(key)
       if (card !== null && controls !== null) cardActions(controls, card, HAND_PLACE).look()
+    },
+    // Dragging a card out of the hand onto the battlefield (prompt 46).
+    drag: {
+      start: (key, point) => {
+        // A replay (no page to send taps) drags nothing.
+        if (controls === null || !controls.live) return false
+        const row = list.current
+        const face = row?.querySelector<HTMLElement>(`:scope > [data-hand-card="${key}"] [data-slot="game-card-face"]`)
+        if (row === null || face === null || face === undefined || visible(key) === null) return false
+        // A full card's size (hand-fan.ts); before the hand was measured, the card's own.
+        const picture = HandDrag.start(face, fan?.drag ?? { width: face.offsetWidth, height: face.offsetHeight }, point)
+        if (picture === null) return false
+        drag.current = { key, picture }
+        setLift(null)
+        setDragged({ hand, card: key })
+        return true
+      },
+      move: (point) => {
+        const current = drag.current
+        if (current === null) return
+        current.picture.move(point)
+        const card = latest.current.visible(current.key)
+        const now = latest.current.controls
+        current.picture.glow(card !== null && now !== null && current.picture.over() && cardDrop(card, HAND_PLACE, now.moment).play)
+      },
+      end: (point) => {
+        const current = drag.current
+        if (current === null) return
+        drag.current = null
+        const card = latest.current.visible(current.key)
+        const now = latest.current.controls
+        const release = () => setDragged((previous) => (previous?.card === current.key ? null : previous))
+        if (point !== null && card !== null && now !== null) {
+          current.picture.move(point)
+          if (current.picture.over()) {
+            if (now.play(card)) {
+              current.picture.drop(card.id, release)
+              return
+            }
+            // Not played: Forge's card is not playable now - the table's reason where it knows one, nothing made up.
+            const reason = cardDrop(card, HAND_PLACE, now.moment).reason
+            if (reason !== null) toast(reason, { id: "hand-drop", position: "top-center" })
+          }
+        }
+        const rest = list.current?.querySelector<HTMLElement>(`:scope > [data-hand-card="${current.key}"] [data-slot="game-card-face"]`) ?? null
+        current.picture.back(rest, release)
+      },
     },
   })
   const rowStyle = (
@@ -1058,7 +1147,8 @@ function FannedHand({ cards, pictures }: { cards: readonly Card[]; pictures: Tab
           <GameCardRowItem
             key={key}
             data-hand-card={key}
-            data-lifted={lifted === key || undefined}
+            data-lifted={(lifted === key && draggedNow !== key) || undefined}
+            data-dragging={draggedNow === key || undefined}
             style={place === undefined ? undefined : ({ "--rot": `${place.rotate}deg`, "--drop": `${place.drop}px` } as CSSProperties)}
           >
             {isVisible(card) ? (

@@ -76,7 +76,7 @@ describe("the player's priority", () => {
     const question = priorityOf("main-phase")
     expect(scene.prompt).toMatch(/^Priorität: /)
     expect(within(decision()).queryByText(scene.prompt!)).not.toBeInTheDocument()
-    expect(within(decision()).getByText("Du kannst jetzt eine Karte spielen – oder weitergeben.")).toBeInTheDocument()
+    expect(within(decision()).getByText("Zieh eine gold umrandete Karte aufs Feld oder tippe sie an – oder gib weiter.")).toBeInTheDocument()
     expect(decision().querySelector('[data-slot="game-decision-header"] p')).toHaveTextContent("Priorität")
     const buttons = within(answersGroup()).getAllByRole("button")
     expect(buttons.map((button) => button.textContent)).toEqual(["Weiter", "Zug beenden …"])

@@ -289,7 +289,7 @@ describe("the game page: Forge's decisions (prompt 15)", () => {
     act(() => engine.worker().priority({ answered: 1 }))
     const ok = await within(decision).findByRole("button", { name: "Weiter" })
     expect(within(decision).getByRole("button", { name: "Zug beenden …" })).toBeInTheDocument()
-    expect(within(decision).getByText("Du kannst jetzt eine Karte spielen – oder weitergeben.")).toBeInTheDocument()
+    expect(within(decision).getByText("Zieh eine gold umrandete Karte aufs Feld oder tippe sie an – oder gib weiter.")).toBeInTheDocument()
     expect(within(decision).queryByText(/^Priorität: Spieler/)).not.toBeInTheDocument()
 
     // Playing a land is the card's tap (its view's button), not an answer.

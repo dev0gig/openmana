@@ -9,7 +9,7 @@
 import type { Player, Question, VisibleCard } from "@openmana/engine-protocol"
 import { describe, expect, it } from "vitest"
 import { tableScene, type TableSceneName } from "@/test/table-scenes"
-import { cardUse, currentStep, directTaps, openSelection, playerUse, stepSource, tapBlocked, type CardPlace, type TableMoment } from "./card-use"
+import { cardDrop, cardUse, currentStep, directTaps, openSelection, playerUse, stepSource, tapBlocked, type CardPlace, type TableMoment } from "./card-use"
 import { isVisible, locateCard } from "./table-model"
 
 function moment(name: TableSceneName, overrides: Partial<TableMoment> = {}): TableMoment {
@@ -215,5 +215,36 @@ describe("players (prompt 17)", () => {
     expect(playerUse(opponent({ selectable: true }), { ...selecting, waiting: false }).blocked).toBe("Forge rechnet gerade.")
     expect(playerUse(opponent({ selectable: true }), { ...selecting, conceding: true }).blocked).toBe("Die Aufgabe ist unterwegs.")
     expect(playerUse(opponent(), { ...selecting, waiting: false }).blocked).toBeNull()
+  })
+})
+
+describe("a hand card dropped onto the battlefield (prompt 46)", () => {
+  function dropOf(name: TableSceneName, id: number, overrides: Partial<TableMoment> = {}) {
+    const found = card(name, id)
+    return cardDrop(found.card, found.place, moment(name, overrides))
+  }
+
+  it("plays where Forge marks the card playable and its tap can be sent: a land, an instant at the AI's spell", () => {
+    expect(dropOf("main-phase", 25)).toEqual({ play: true, reason: null })
+    expect(dropOf("respond", 29)).toEqual({ play: true, reason: null })
+  })
+
+  it("never for a card Forge does not mark playable, and never says why (Forge sends no reason)", () => {
+    expect(dropOf("opening", 55)).toEqual({ play: false, reason: null })
+    expect(dropOf("stack", 24)).toEqual({ play: false, reason: null })
+  })
+
+  it("not while no tap can be sent: the table's reason (the card view's words)", () => {
+    expect(dropOf("main-phase", 25, { conceding: true })).toEqual({ play: false, reason: "Die Aufgabe ist unterwegs." })
+    expect(dropOf("main-phase", 25, { waiting: false })).toEqual({ play: false, reason: "Forge rechnet gerade." })
+    // A blocking question waits (Forge asks which ability): the playable cards in the hand are not played by a drop.
+    expect(dropOf("ability", 54)).toEqual({ play: false, reason: "Forge wartet zuerst auf deine Antwort auf seine Frage." })
+  })
+
+  it("not in the steps whose taps choose (a selection naming the hand's cards) - and never a card outside the player's hand", () => {
+    expect(dropOf("discard", 56)).toEqual({ play: false, reason: null })
+    expect(dropOf("main-phase", 28)).toEqual({ play: false, reason: null })
+    const land = card("main-phase", 25).card
+    expect(cardDrop(land, { zone: "hand", mine: false }, moment("main-phase"))).toEqual({ play: false, reason: null })
   })
 })
