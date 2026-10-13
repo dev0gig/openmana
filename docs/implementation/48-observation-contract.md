@@ -190,15 +190,99 @@ Only at (1) can an observation **hold**.
   `test-engine.sh` with `OPENMANA_FIXTURES=…` for a focused run, refused as
   acceptance by `engine-lock.mjs` and `scripts/regression/evidence.ts`.
 
+## Candidate
+
+The local development engine candidate for prompts 49–51 (built from commit
+`8cf8bfd` with `engine/scripts/build.sh`, toolchain of `publish-47b`; its card
+catalog with `npm run cards:build -- --bulk cards/build/cache/all-cards-20260924211809.jsonl.gz`):
+
+| | |
+|---|---|
+| directory | `engine/build/candidate-48` (`dist/`, `catalog/`, `report/`, `jvm/`) |
+| engine manifest SHA-256 | `f25d52a52720f6499eb5b5015006e2aeba59e78e0333c714f34b4e6041e6b2fe` |
+| engine sources SHA-256 | `f3af74fe328f94a5a743676de4b69209f9da399e73d9dec0b4385f1683e7be25` |
+| Forge | `ed0333fecb1fea0671b3e50cadc1da4f71db5798` + patches 0001–0010 |
+| protocol | 10 |
+| `openmana-engine.js.wasm` | `9f59df7956861d91edf66766cbe0ac25da7010b06c85a6c1879fc9b4835598a3` |
+| `openmana-engine.js` | `edf456327b91601ab3ded0f35c6b1429adca8141a9fdd7d67849065185d72b42` |
+| `engine-worker.js` | `bd33dbbd1aa0103a23d4159780e1156c334d94623a3e58d4e4117acad57b538c` |
+| `forge-res.inventory.json` | `94b447cec329319b12be9c17e1838da1bdfd681fa45bb871b2d7dafb0ea1afa1` |
+| JVM tests of the build | 105 passed, none skipped |
+| catalog | id `0c2afda8fc8bd1fd`, `card-catalog.jsonl.gz` SHA-256 `0c2afda8fc8bd1fd37a04804fcb9268e9836095e12a2ff79ece36100bb5be2ce`, manifest SHA-256 `87eff7be2c246e5b7c1cb25deaa43b6f7d1364ebec0e414ef149b35b133cd79e` |
+
+Before using it: `node scripts/engine-candidate.mjs engine/build/candidate-48`
+(artefacts against the manifest, the manifest against today's engine sources -
+any engine source change makes it stale -, Forge pin, protocol, JVM evidence,
+catalog). Build or serve the app with
+`OPENMANA_ENGINE_DIR=engine/build/candidate-48/dist OPENMANA_CARDS_DIR=engine/build/candidate-48/catalog`.
+It is no lock (`engine/engine.lock.json` still names the protocol-9 engine
+`engine-p9-fba5601117ff`, which today's app refuses), no release and never a
+publication build; prompt 52 builds, accepts and publishes the final engine.
+Earlier builds of this prompt stay for reference: `candidate-48-failed-1`
+(the complete JVM suite found a crash at the end of a resolution and the
+missing protocol-10 names in the contract test - both fixed),
+`candidate-48-superseded-1` (before a state is sent with an observation only
+when Forge changed something).
+
 ## Verification
 
-The development candidate, its hashes and the focused checks with their
-results are recorded in the central Dropzone report of this prompt
-(`workflow/reports/openmana-48-openmana-spielfluss-20261013T132251Z.md`) and
-summarized here in `## Candidate` below. The complete acceptance - every
-fixture, all AI games and card probes on JVM/Node/Chrome, `npm run check`,
-PWA and the readiness games - is deliberately prompt 52's (series rule of
-2026-10-12).
+Targeted checks of what this prompt changed (series rule of 2026-10-12), all
+on the candidate above unless named otherwise:
+
+- **JVM** (the candidate's build): 105 bridge tests, none skipped - among them
+  `ObservationTest` (10: same game log and engine trace with and without
+  holds, the same observations but for the hold flag, the AI's land, spells,
+  attack, resolutions and combat damage observed, a held observation refuses
+  answers and taps and other releases and serves a state request and a
+  settings change, a real priority question in the AI's turn only after the
+  release, concession and mode off while held, start settings, Forge's
+  auto-pass `never`, an unknown setting refused) and `LandsTest` (5: Forge's
+  reasons only where the state says so, the second land refused and the next
+  own turn allowing it, Exploration's two lands, Rampant Growth's land as a
+  move and never a land play, asking changes nothing). The first candidate's
+  complete JVM run found two problems (a crash when Forge finishes a
+  resolution with the stack already empty; the contract test's lists), both
+  fixed before this candidate.
+- **Engine, focused** (`OPENMANA_FIXTURES=lands,priority-respond,priority-respond-observe
+  bash engine/scripts/test-engine.sh`, report `focused`, 0 failures): the
+  three fixtures on the JVM (traces checked, coverage of `lands` and of the
+  observe categories, message schema with the observation checks), replayed
+  in Node (lazy; the observe variant also eager) and in Chrome (lazy) with
+  equal engine traces - `priority-respond` and `priority-respond-observe`
+  share one trace (SHA-256 `0288241c71ad…`) on JVM, Node and Chrome with 37
+  holds, the refused inputs agreeing between client and engine; one AI game
+  JVM/Node; `node-observe.ts` (long look 10 s against a 3 s stall timeout,
+  concession, mode off, abort - each while held); Chrome's long look (12 s
+  against 5 s, no stall).
+- **Unit tests:** `engine` 107 (protocol schema with every protocol-10
+  example, client lifecycle of observations and settings, fixtures, trace
+  coverage), the app's 536 tests of the files that use the re-recorded scenes
+  and sequence, the session, recording/replay (protocol-9 recording replayed
+  unchanged, protocol 8 exportable only, observations no frame) and the
+  regression evidence (a focused run is refused); typecheck (app and engine),
+  oxlint, generated files.
+- **Chrome with the app built on the candidate:** `--table-only` (all 312
+  recorded/built scene and viewport checks and every table interaction on the
+  re-recorded scenes), `--replay-only` (the protocol-9 recording imported and
+  replayed at three sizes), `--drag-only` (two real games with the candidate
+  engine, mouse and touch).
+
+The table scenes and the run of consecutive states were re-recorded with
+protocol 10 (`scripts/record-table-scenes.ts`, `scripts/record-table-sequence.ts`,
+the sequence now begins at the last state before the draw). Their changes are
+real ones: questions of a finished step (a payment that is done, the attack
+once declared) are withdrawn before the AI decides, and Forge sends more
+states at the start of a turn. The tests keep their intent on the new
+recordings (the payment tests use the recorded payment scene, the spell's
+damage is a step after it goes on the stack, the double-blocked combat has no
+open question). The replay fixture `src/test/fixtures/replay.json` stays the
+protocol-9 recording on purpose: it proves that older recordings stay
+readable.
+
+Not run here, by the series rule: the complete engine suite (all fixtures, AI
+games, card probes), `npm run check` with the whole E2E and PWA suites, the
+regression runner and the readiness games - prompt 52 runs them once on the
+finished whole before anything is released.
 
 ## Limits
 
