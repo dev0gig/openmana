@@ -113,17 +113,27 @@ describe("which question is answered now", () => {
     expect(currentDecision([])).toEqual({ kind: "none" })
   })
 
-  it("a blocking question stands alone, although the step's buttons are still open under it (recorded: modes during priority, scrying during payment, combat damage while attacking)", () => {
+  it("a blocking question stands alone, although the step's buttons are still open under it (recorded: modes and ways to play during priority)", () => {
     for (const [name, kind] of [
       ["choose-mode", "choose"],
-      ["scry", "arrange"],
       ["ability", "options"],
-      ["damage", "distribute"],
     ] as const) {
       const scene = tableScene(name)
       expect(scene.questions.some((question) => question.kind === "buttons")).toBe(true)
       const decision = currentDecision(scene.questions)
       expect(decision.kind).toBe("blocking")
+      expect(decision.kind === "blocking" && decision.question.kind).toBe(kind)
+    }
+  })
+
+  it("a blocking question after a finished step stands alone: the finished step's buttons are withdrawn (prompt 48: scrying after a payment, combat damage after the attack)", () => {
+    for (const [name, kind] of [
+      ["scry", "arrange"],
+      ["damage", "distribute"],
+    ] as const) {
+      const scene = tableScene(name)
+      expect(scene.questions.map((question) => question.kind)).toEqual([kind])
+      const decision = currentDecision(scene.questions)
       expect(decision.kind === "blocking" && decision.question.kind).toBe(kind)
     }
   })
@@ -394,7 +404,8 @@ describe("distribute (recorded: 2 combat damage between two blockers)", () => {
 describe("the cards of questions", () => {
   it("the asking card, the items' cards and revealed cards - for the picture lookup", () => {
     const ids = (name: TableSceneName) => questionCards(tableScene(name).questions).map((card) => card.id)
-    expect(ids("scry")).toEqual([14, 56, 30])
+    // Since prompt 48 the payment's buttons of the spell that scries are withdrawn once its payment is done (their card 14 is gone).
+    expect(ids("scry")).toEqual([56, 30])
     expect(ids("damage")).toEqual([18, 101, 115])
     expect(ids("choose-mode")).toEqual([])
     const revealed: Question = { type: "question", kind: "options", id: 70, blocking: true, text: "Forge zeigt", items: [{ nr: 1, text: "OK" }], revealed: tableScene("damage").questions.flatMap((question) => ("items" in question && question.items !== undefined ? question.items : [])) }

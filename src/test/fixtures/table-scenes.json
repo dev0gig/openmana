@@ -1,19 +1,19 @@
 {
  "source": "Protocol messages of the fixture games of engine/scripts/test-engine.sh (JVM run, scripted rule-free test player), folded like EngineSession folds them; see scripts/record-table-scenes.ts.",
  "engine": {
-  "builtAt": "2026-10-12T06:37:50.699Z",
+  "builtAt": "2026-10-13T14:25:20.506Z",
   "forgeCommit": "ed0333fecb1fea0671b3e50cadc1da4f71db5798",
-  "protocol": 9
+  "protocol": 10
  },
  "scenes": [
   {
    "name": "opening",
    "description": "The mulligan: seven cards in the player's hand, the AI's hand hidden, Forge's German prompt (human-3-de).",
    "fixture": "human-3-de",
-   "message": 5,
+   "message": 6,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -125,7 +125,8 @@
          "faceDown": false,
          "damage": 0,
          "owner": 0,
-         "controller": 0
+         "controller": 0,
+         "landRefusal": "notYourTurn"
         },
         {
          "id": 55,
@@ -156,7 +157,8 @@
          "faceDown": false,
          "damage": 0,
          "owner": 0,
-         "controller": 0
+         "controller": 0,
+         "landRefusal": "notYourTurn"
         },
         {
          "id": 37,
@@ -170,7 +172,8 @@
          "faceDown": false,
          "damage": 0,
          "owner": 0,
-         "controller": 0
+         "controller": 0,
+         "landRefusal": "notYourTurn"
         },
         {
          "id": 33,
@@ -184,7 +187,8 @@
          "faceDown": false,
          "damage": 0,
          "owner": 0,
-         "controller": 0
+         "controller": 0,
+         "landRefusal": "notYourTurn"
         }
        ],
        "graveyard": [],
@@ -281,10 +285,10 @@
    "name": "main-phase",
    "description": "The player's own main phase with priority, lands and creatures on both sides, the most permanents of such moments (human-3-de).",
    "fixture": "human-3-de",
-   "message": 483,
+   "message": 647,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -319,7 +323,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 84,
+    "seq": 141,
     "running": true,
     "turn": 14,
     "phase": "MAIN1",
@@ -1398,10 +1402,10 @@
    "name": "stack",
    "description": "A spell on the stack while Forge asks the player (human-3-de).",
    "fixture": "human-3-de",
-   "message": 279,
+   "message": 347,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -1436,7 +1440,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 51,
+    "seq": 74,
     "running": true,
     "turn": 8,
     "phase": "DRAW",
@@ -1554,7 +1558,8 @@
          "faceDown": false,
          "damage": 0,
          "owner": 0,
-         "controller": 0
+         "controller": 0,
+         "landRefusal": "timing"
         },
         {
          "id": 27,
@@ -1568,7 +1573,8 @@
          "faceDown": false,
          "damage": 0,
          "owner": 0,
-         "controller": 0
+         "controller": 0,
+         "landRefusal": "timing"
         }
        ],
        "graveyard": [
@@ -1772,39 +1778,57 @@
    "questions": [
     {
      "type": "question",
-     "kind": "buttons",
-     "text": "Magmastrahl (14) - Magmastrahl (14) deals 2 damage to Goblin-Brandstifter (55). Player scries 2.  Zahle die Spruchkosten: {1}{R}",
-     "purpose": "payment",
-     "buttons": [
+     "kind": "arrange",
+     "text": "Bewege Karte an Anfang oder Ende der Bibliothek",
+     "toTop": true,
+     "toBottom": true,
+     "toAnywhere": false,
+     "others": 48,
+     "items": [
       {
        "nr": 1,
-       "label": "Auto",
-       "enabled": true
+       "text": "Goblin-Brandstifter (56)",
+       "card": 56,
+       "cardView": {
+        "id": 56,
+        "key": "Goblin Arsonist",
+        "name": "Goblin-Brandstifter",
+        "typeLine": "Kreatur — Goblin, Schamane",
+        "cost": "{R}",
+        "set": "J25",
+        "power": 1,
+        "toughness": 1,
+        "text": "Wenn der Goblin-Brandstifter aus dem Spiel auf einen Friedhof gelegt wird, kannst du ihn einer Kreatur oder einem Spieler deiner Wahl 1 Schadenspunkt zufügen lassen.",
+        "tapped": false,
+        "sick": false,
+        "faceDown": false,
+        "damage": 0,
+        "owner": 0,
+        "controller": 0
+       }
       },
       {
        "nr": 2,
-       "label": "Abbrechen",
-       "enabled": true
+       "text": "Gebirge (30)",
+       "card": 30,
+       "cardView": {
+        "id": 30,
+        "key": "Mountain",
+        "name": "Gebirge",
+        "typeLine": "Land",
+        "set": "TRK",
+        "text": "",
+        "tapped": false,
+        "sick": false,
+        "faceDown": false,
+        "damage": 0,
+        "owner": 0,
+        "controller": 0
+       }
       }
      ],
-     "card": 14,
-     "cardView": {
-      "id": 14,
-      "key": "Magma Jet",
-      "name": "Magmastrahl",
-      "typeLine": "Spontanzauber",
-      "cost": "{1}{R}",
-      "set": "JMP",
-      "text": "Der Magmastrahl fügt einer Kreatur oder einem Spieler deiner Wahl 2 Schadenspunkte zu. Hellsicht 2. (Schaue dir die obersten zwei Karten deiner Bibliothek an. Du kannst eine beliebige Anzahl davon unter deine Bibliothek legen und den Rest in beliebiger Reihenfolge oben darauf.)",
-      "tapped": false,
-      "sick": false,
-      "faceDown": false,
-      "damage": 0,
-      "owner": 0,
-      "controller": 0
-     },
-     "id": 30,
-     "blocking": false
+     "id": 31,
+     "blocking": true
     }
    ],
    "prompt": "Magmastrahl (14) - Magmastrahl (14) deals 2 damage to Goblin-Brandstifter (55). Player scries 2.  Zahle die Spruchkosten: {1}",
@@ -2051,10 +2075,10 @@
    "name": "blockers",
    "description": "Combat with an attacker blocked by two creatures (blocks-multi).",
    "fixture": "blocks-multi",
-   "message": 447,
+   "message": 577,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -2086,10 +2110,10 @@
    },
    "state": {
     "type": "state",
-    "seq": 88,
+    "seq": 134,
     "running": true,
     "turn": 11,
-    "phase": "COMBAT_DAMAGE",
+    "phase": "COMBAT_DECLARE_BLOCKERS",
     "activePlayer": 0,
     "me": 0,
     "players": [
@@ -2540,30 +2564,7 @@
      }
     ]
    },
-   "questions": [
-    {
-     "type": "question",
-     "kind": "buttons",
-     "text": "Select creatures to attack null or select player/card you wish to attack.",
-     "purpose": "attackDeclared",
-     "buttons": [
-      {
-       "nr": 1,
-       "label": "OK",
-       "enabled": true,
-       "meaning": "declare"
-      },
-      {
-       "nr": 2,
-       "label": "Call Back",
-       "enabled": true,
-       "meaning": "callBack"
-      }
-     ],
-     "id": 50,
-     "blocking": false
-    }
-   ],
+   "questions": [],
    "prompt": "Select creatures to attack null or select player/card you wish to attack.",
    "notices": [
     {
@@ -2946,10 +2947,10 @@
    "name": "defend",
    "description": "The player's creature blocks while Forge asks for blockers (human-5-defend).",
    "fixture": "human-5-defend",
-   "message": 342,
+   "message": 419,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -2984,7 +2985,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 64,
+    "seq": 91,
     "running": true,
     "turn": 9,
     "phase": "COMBAT_DECLARE_BLOCKERS",
@@ -3672,10 +3673,10 @@
    "name": "commander-late",
    "description": "A late Commander turn while the player declares attackers: the most permanents with the most attackers (tokens, counters, poison, commander tax and damage) (commander).",
    "fixture": "commander",
-   "message": 815,
+   "message": 1031,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -3709,7 +3710,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 178,
+    "seq": 255,
     "running": true,
     "turn": 17,
     "phase": "COMBAT_DECLARE_ATTACKERS",
@@ -4147,7 +4148,8 @@
          "faceDown": false,
          "damage": 0,
          "owner": 0,
-         "controller": 0
+         "controller": 0,
+         "landRefusal": "timing"
         },
         {
          "id": 57,
@@ -4161,7 +4163,8 @@
          "faceDown": false,
          "damage": 0,
          "owner": 0,
-         "controller": 0
+         "controller": 0,
+         "landRefusal": "timing"
         }
        ],
        "graveyard": [
@@ -5404,10 +5407,10 @@
    "name": "command-effects",
    "description": "Forge's effect cards in the command zone of a Constructed game (an adventure; human-11).",
    "fixture": "human-11",
-   "message": 213,
+   "message": 257,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -5442,7 +5445,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 44,
+    "seq": 57,
     "running": true,
     "turn": 5,
     "phase": "UPKEEP",
@@ -5746,19 +5749,35 @@
    "questions": [
     {
      "type": "question",
-     "kind": "buttons",
-     "text": "Stomp (54) - Damage can't be prevented this turn. Stomp deals 2 damage to any target. Stomp (54) deals 2 damage to Goblin Arsonist (58).  Pay Mana Cost: {1}{R}",
-     "purpose": "payment",
-     "buttons": [
+     "kind": "select",
+     "text": "Stomp (54) - Damage can't be prevented this turn. Stomp deals 2 damage to any target. Stomp (54) deals 2 damage to Goblin Arsonist (58).  Pay Mana Cost: {1}",
+     "min": 1,
+     "max": 1,
+     "cards": [
+      92
+     ],
+     "items": [
       {
        "nr": 1,
-       "label": "Auto",
-       "enabled": true
-      },
-      {
-       "nr": 2,
-       "label": "Cancel",
-       "enabled": true
+       "text": "Llanowar Elves (92)",
+       "card": 92,
+       "cardView": {
+        "id": 92,
+        "key": "Llanowar Elves",
+        "name": "Llanowar Elves",
+        "typeLine": "Creature - Elf Druid",
+        "cost": "{G}",
+        "set": "SLZ",
+        "power": 1,
+        "toughness": 1,
+        "text": "",
+        "tapped": false,
+        "sick": false,
+        "faceDown": false,
+        "damage": 0,
+        "owner": 1,
+        "controller": 1
+       }
       }
      ],
      "card": 54,
@@ -5777,7 +5796,7 @@
       "owner": 0,
       "controller": 0
      },
-     "id": 24,
+     "id": 25,
      "blocking": false
     }
    ],
@@ -5990,10 +6009,10 @@
    "name": "play-draw",
    "description": "The player won the coin toss: Forge's two buttons without a purpose (play or draw) before the opening hands (blocks-double).",
    "fixture": "blocks-double",
-   "message": 5,
+   "message": 6,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -6127,10 +6146,10 @@
    "name": "target",
    "description": "A spell's target: Forge names the creatures to choose from (select), no player (Dismember), and waits with OK off and cancel on (targets-payment).",
    "fixture": "targets-payment",
-   "message": 391,
+   "message": 501,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -6165,7 +6184,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 73,
+    "seq": 112,
     "running": true,
     "turn": 10,
     "phase": "DRAW",
@@ -7080,10 +7099,10 @@
    "name": "target-player",
    "description": "A spell whose only targets are players: Forge's selection names no card, the state marks the players Forge takes (human-3-de).",
    "fixture": "human-3-de",
-   "message": 74,
+   "message": 81,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -7118,7 +7137,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 15,
+    "seq": 17,
     "running": true,
     "turn": 2,
     "phase": "MAIN1",
@@ -7192,7 +7211,8 @@
          "faceDown": false,
          "damage": 0,
          "owner": 0,
-         "controller": 0
+         "controller": 0,
+         "landRefusal": "limit"
         },
         {
          "id": 4,
@@ -7221,7 +7241,8 @@
          "faceDown": false,
          "damage": 0,
          "owner": 0,
-         "controller": 0
+         "controller": 0,
+         "landRefusal": "limit"
         },
         {
          "id": 55,
@@ -7458,10 +7479,10 @@
    "name": "yes-no",
    "description": "A trigger that may be used: Forge's own yes/no as its two buttons (human-3-de).",
    "fixture": "human-3-de",
-   "message": 297,
+   "message": 366,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -7496,7 +7517,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 55,
+    "seq": 79,
     "running": true,
     "turn": 8,
     "phase": "DRAW",
@@ -7597,7 +7618,8 @@
          "faceDown": false,
          "damage": 0,
          "owner": 0,
-         "controller": 0
+         "controller": 0,
+         "landRefusal": "timing"
         },
         {
          "id": 27,
@@ -7611,7 +7633,8 @@
          "faceDown": false,
          "damage": 0,
          "owner": 0,
-         "controller": 0
+         "controller": 0,
+         "landRefusal": "timing"
         }
        ],
        "graveyard": [
@@ -8160,10 +8183,10 @@
    "name": "discard",
    "description": "Two cards to discard from the hand: a selection of more than one, with Forge's prompt for it and no buttons (Forge ends it by itself; human-11).",
    "fixture": "human-11",
-   "message": 503,
+   "message": 661,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -8198,7 +8221,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 95,
+    "seq": 147,
     "running": true,
     "turn": 13,
     "phase": "MAIN1",
@@ -9378,10 +9401,10 @@
    "name": "choose-mode",
    "description": "A modal spell: choose one of its modes, a blocking question (human-3-de).",
    "fixture": "human-3-de",
-   "message": 347,
+   "message": 447,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -9416,7 +9439,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 61,
+    "seq": 96,
     "running": true,
     "turn": 10,
     "phase": "MAIN1",
@@ -10189,10 +10212,10 @@
    "name": "scry",
    "description": "Scrying: the library's top cards to the top or the bottom (arrange), a blocking question (human-3-de).",
    "fixture": "human-3-de",
-   "message": 280,
+   "message": 347,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -10227,7 +10250,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 51,
+    "seq": 74,
     "running": true,
     "turn": 8,
     "phase": "DRAW",
@@ -10345,7 +10368,8 @@
          "faceDown": false,
          "damage": 0,
          "owner": 0,
-         "controller": 0
+         "controller": 0,
+         "landRefusal": "timing"
         },
         {
          "id": 27,
@@ -10359,7 +10383,8 @@
          "faceDown": false,
          "damage": 0,
          "owner": 0,
-         "controller": 0
+         "controller": 0,
+         "landRefusal": "timing"
         }
        ],
        "graveyard": [
@@ -10561,42 +10586,6 @@
     "combat": []
    },
    "questions": [
-    {
-     "type": "question",
-     "kind": "buttons",
-     "text": "Magmastrahl (14) - Magmastrahl (14) deals 2 damage to Goblin-Brandstifter (55). Player scries 2.  Zahle die Spruchkosten: {1}{R}",
-     "purpose": "payment",
-     "buttons": [
-      {
-       "nr": 1,
-       "label": "Auto",
-       "enabled": true
-      },
-      {
-       "nr": 2,
-       "label": "Abbrechen",
-       "enabled": true
-      }
-     ],
-     "card": 14,
-     "cardView": {
-      "id": 14,
-      "key": "Magma Jet",
-      "name": "Magmastrahl",
-      "typeLine": "Spontanzauber",
-      "cost": "{1}{R}",
-      "set": "JMP",
-      "text": "Der Magmastrahl fügt einer Kreatur oder einem Spieler deiner Wahl 2 Schadenspunkte zu. Hellsicht 2. (Schaue dir die obersten zwei Karten deiner Bibliothek an. Du kannst eine beliebige Anzahl davon unter deine Bibliothek legen und den Rest in beliebiger Reihenfolge oben darauf.)",
-      "tapped": false,
-      "sick": false,
-      "faceDown": false,
-      "damage": 0,
-      "owner": 0,
-      "controller": 0
-     },
-     "id": 30,
-     "blocking": false
-    },
     {
      "type": "question",
      "kind": "arrange",
@@ -10896,10 +10885,10 @@
    "name": "ability",
    "description": "A card with two ways to play it (an adventure): which one, cancellable (options; human-11).",
    "fixture": "human-11",
-   "message": 119,
+   "message": 141,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -10934,7 +10923,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 23,
+    "seq": 30,
     "running": true,
     "turn": 3,
     "phase": "MAIN1",
@@ -11382,10 +11371,10 @@
    "name": "damage",
    "description": "An attacker blocked by two creatures: its combat damage to give out among them (distribute; blocks-double).",
    "fixture": "blocks-double",
-   "message": 424,
+   "message": 539,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -11417,7 +11406,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 82,
+    "seq": 123,
     "running": true,
     "turn": 11,
     "phase": "COMBAT_DAMAGE",
@@ -11855,28 +11844,6 @@
    "questions": [
     {
      "type": "question",
-     "kind": "buttons",
-     "text": "Select creatures to attack null or select player/card you wish to attack.",
-     "purpose": "attackDeclared",
-     "buttons": [
-      {
-       "nr": 1,
-       "label": "OK",
-       "enabled": true,
-       "meaning": "declare"
-      },
-      {
-       "nr": 2,
-       "label": "Call Back",
-       "enabled": true,
-       "meaning": "callBack"
-      }
-     ],
-     "id": 45,
-     "blocking": false
-    },
-    {
-     "type": "question",
      "kind": "distribute",
      "text": "2 combat damage",
      "card": 18,
@@ -12310,10 +12277,10 @@
    "name": "opponent-turn",
    "description": "The player's priority in the AI's turn with the stack empty: Forge asks only because the player holds an answer (priority-respond).",
    "fixture": "priority-respond",
-   "message": 236,
+   "message": 260,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -12341,7 +12308,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 44,
+    "seq": 53,
     "running": true,
     "turn": 4,
     "phase": "UPKEEP",
@@ -12771,10 +12738,10 @@
    "name": "respond",
    "description": "The player's priority with the AI's spell on top of the stack: answer it or let it resolve (priority-respond).",
    "fixture": "priority-respond",
-   "message": 249,
+   "message": 278,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -12802,7 +12769,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 46,
+    "seq": 57,
     "running": true,
     "turn": 4,
     "phase": "MAIN1",
@@ -13280,10 +13247,10 @@
    "name": "respond-own",
    "description": "The player's answer on top of the AI's spell, and the player's priority again (stack depth 2; priority-respond).",
    "fixture": "priority-respond",
-   "message": 415,
+   "message": 460,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -13311,7 +13278,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 77,
+    "seq": 93,
     "running": true,
     "turn": 6,
     "phase": "MAIN2",
@@ -13898,10 +13865,10 @@
    "name": "target-both",
    "description": "A spell with any target: Forge names the creatures and marks the players it would take (human-3-de).",
    "fixture": "human-3-de",
-   "message": 260,
+   "message": 322,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -13936,7 +13903,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 45,
+    "seq": 67,
     "running": true,
     "turn": 8,
     "phase": "DRAW",
@@ -14056,7 +14023,8 @@
          "faceDown": false,
          "damage": 0,
          "owner": 0,
-         "controller": 0
+         "controller": 0,
+         "landRefusal": "timing"
         },
         {
          "id": 27,
@@ -14070,7 +14038,8 @@
          "faceDown": false,
          "damage": 0,
          "owner": 0,
-         "controller": 0
+         "controller": 0,
+         "landRefusal": "timing"
         }
        ],
        "graveyard": [
@@ -14578,10 +14547,10 @@
    "name": "payment",
    "description": "Paying a spell's cost by hand: Forge's payment with what is still to pay, the mana sources Forge marks, Auto and Cancel (targets-payment).",
    "fixture": "targets-payment",
-   "message": 86,
+   "message": 94,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -14616,7 +14585,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 19,
+    "seq": 22,
     "running": true,
     "turn": 2,
     "phase": "MAIN1",
@@ -14676,7 +14645,8 @@
          "faceDown": false,
          "damage": 0,
          "owner": 0,
-         "controller": 0
+         "controller": 0,
+         "landRefusal": "limit"
         },
         {
          "id": 46,
@@ -14690,7 +14660,8 @@
          "faceDown": false,
          "damage": 0,
          "owner": 0,
-         "controller": 0
+         "controller": 0,
+         "landRefusal": "limit"
         },
         {
          "id": 2,
@@ -14949,10 +14920,10 @@
    "name": "payment-pool",
    "description": "Floating mana from Dark Ritual while a spell is paid: Forge would take it from the pool (targets-payment).",
    "fixture": "targets-payment",
-   "message": 180,
+   "message": 212,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -14987,7 +14958,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 37,
+    "seq": 48,
     "running": true,
     "turn": 4,
     "phase": "MAIN1",
@@ -15059,7 +15030,8 @@
          "faceDown": false,
          "damage": 0,
          "owner": 0,
-         "controller": 0
+         "controller": 0,
+         "landRefusal": "limit"
         },
         {
          "id": 2,
@@ -15088,7 +15060,8 @@
          "faceDown": false,
          "damage": 0,
          "owner": 0,
-         "controller": 0
+         "controller": 0,
+         "landRefusal": "limit"
         }
        ],
        "graveyard": [
@@ -15448,10 +15421,10 @@
    "name": "payment-life",
    "description": "Phyrexian mana: Forge's payment takes the player's life - their seat is marked (Gitaxian Probe, Dismember; targets-payment).",
    "fixture": "targets-payment",
-   "message": 400,
+   "message": 510,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -15486,7 +15459,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 75,
+    "seq": 114,
     "running": true,
     "turn": 10,
     "phase": "DRAW",
@@ -16282,10 +16255,10 @@
    "name": "cast-x",
    "description": "A decision while a spell is cast: the value of X for Blaze, a blocking choice before its target and payment (targets-payment).",
    "fixture": "targets-payment",
-   "message": 133,
+   "message": 161,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -16320,7 +16293,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 25,
+    "seq": 35,
     "running": true,
     "turn": 4,
     "phase": "MAIN1",
@@ -16392,7 +16365,8 @@
          "faceDown": false,
          "damage": 0,
          "owner": 0,
-         "controller": 0
+         "controller": 0,
+         "landRefusal": "limit"
         },
         {
          "id": 54,
@@ -16436,7 +16410,8 @@
          "faceDown": false,
          "damage": 0,
          "owner": 0,
-         "controller": 0
+         "controller": 0,
+         "landRefusal": "limit"
         }
        ],
        "graveyard": [
@@ -16796,10 +16771,10 @@
    "name": "attack",
    "description": "Declaring attackers, none yet: creatures Forge would declare and creatures it names unavailable with its reasons - the most different reasons (attackers).",
    "fixture": "attackers",
-   "message": 315,
+   "message": 386,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -16823,7 +16798,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 58,
+    "seq": 82,
     "running": true,
     "turn": 8,
     "phase": "COMBAT_DECLARE_ATTACKERS",
@@ -17476,10 +17451,10 @@
    "name": "attack-declared",
    "description": "Attackers declared: Forge's Call Back instead of Alpha Strike, the attackers in combat, creatures that stay back (attackers).",
    "fixture": "attackers",
-   "message": 321,
+   "message": 392,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -17503,7 +17478,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 60,
+    "seq": 84,
     "running": true,
     "turn": 8,
     "phase": "COMBAT_DECLARE_ATTACKERS",
@@ -18163,10 +18138,10 @@
    "name": "attack-planeswalker",
    "description": "A planeswalker of the AI's as the defender: two defenders to choose from, the player marked as the other one (attackers).",
    "fixture": "attackers",
-   "message": 571,
+   "message": 749,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -18190,7 +18165,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 111,
+    "seq": 174,
     "running": true,
     "turn": 14,
     "phase": "COMBAT_DECLARE_ATTACKERS",
@@ -19385,10 +19360,10 @@
    "name": "block-start",
    "description": "Forge asks for blockers, before assignment: the current attacker highlighted, its legal blockers carry action (blocks-multi).",
    "fixture": "blocks-multi",
-   "message": 539,
+   "message": 702,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -19420,7 +19395,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 103,
+    "seq": 162,
     "running": true,
     "turn": 14,
     "phase": "COMBAT_DECLARE_BLOCKERS",
@@ -20440,10 +20415,10 @@
    "name": "block-multiple",
    "description": "The player assigns two blockers to one attacker while Forge's block input is still open (blocks-double).",
    "fixture": "blocks-double",
-   "message": 462,
+   "message": 583,
    "game": {
     "type": "game.started",
-    "protocol": 9,
+    "protocol": 10,
     "human": "Player",
     "ai": "Forge AI",
     "aiProfile": "Default",
@@ -20475,7 +20450,7 @@
    },
    "state": {
     "type": "state",
-    "seq": 90,
+    "seq": 134,
     "running": true,
     "turn": 12,
     "phase": "COMBAT_DECLARE_BLOCKERS",

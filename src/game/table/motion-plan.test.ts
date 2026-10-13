@@ -136,13 +136,14 @@ describe("effects follow Forge", () => {
   })
 
   it("damage: the sources Forge's DAMAGE entries name, and the cards whose damage Forge reports grew", () => {
-    // Magmastrahl (14) goes on the stack; Forge logs its DAMAGE to Goblin-Brandstifter (55), whose damage grows to 2.
-    const { onStack } = SEQUENCE_STEPS
-    const events = TABLE_SEQUENCE.steps[onStack]!.events
-    expect(hasEvent(events, "STACK_ADD")).toBe(true)
+    // Magmastrahl (14) goes on the stack; Forge logs its DAMAGE to Goblin-Brandstifter (55), whose damage grows to 2
+    // (since prompt 48 Forge's state with the spell on the stack comes first, the damage in a later step).
+    const { onStack, damaged } = SEQUENCE_STEPS
+    expect(hasEvent(TABLE_SEQUENCE.steps[onStack]!.events, "STACK_ADD")).toBe(true)
+    const events = TABLE_SEQUENCE.steps[damaged]!.events
     expect(damageSources(events)).toEqual([14])
-    expect(damagedCards(state(onStack - 1), state(onStack))).toEqual([55])
-    expect(damagedCards(state(onStack), state(onStack + 1))).toEqual([])
+    expect(damagedCards(state(damaged - 1), state(damaged))).toEqual([55])
+    expect(damagedCards(state(damaged), state(damaged + 1))).toEqual([])
     // Kinds Forge does not send are no reason for anything.
     expect(damageSources([{ kind: "SOMETHING", text: null, card: 3 }])).toEqual([])
   })

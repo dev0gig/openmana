@@ -459,8 +459,8 @@ describe("the Zauberchronik, the Phasen-Tafel and the main button (prompt 41)", 
     ["attack", ["Nicht angreifen"], "declare"],
     ["attack-declared", ["Mit 1 Kreatur angreifen"], "declare"],
     ["block-start", ["Nicht blocken"], null],
-    // Forge's own buttons of the attack (no declaration in progress to word them): its OK is still the confirmation.
-    ["blockers", ["OK"], null],
+    // Blocks declared, nothing asked (since prompt 48 the attack's buttons are withdrawn once the attack is declared): no main button.
+    ["blockers", [], null],
     ["opening", ["Behalten"], null],
     ["payment", [], null],
     ["yes-no", [], null],

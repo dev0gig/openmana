@@ -60,8 +60,9 @@ describe("marks and taps from Forge's markers (real scenes)", () => {
   })
 
   it("payment: cards Forge names nothing for stay a look", () => {
-    expect(currentStep(tableScene("stack").questions)).toBe("payment")
-    expect(useOf("stack", 24)).toEqual({ mark: null, markLabel: null, source: false, tap: null, primary: "look", blocked: null, unavailable: null })
+    // Since prompt 48 Forge's payment of the recorded games is the scenes' own (the "stack" scene's payment buttons were left over from a payment that was done).
+    expect(currentStep(tableScene("payment-pool").questions)).toBe("payment")
+    expect(useOf("payment-pool", 39)).toEqual({ mark: null, markLabel: null, source: false, tap: null, primary: "look", blocked: null, unavailable: null })
   })
 })
 
@@ -69,7 +70,7 @@ describe("the steps that tap at once", () => {
   it("block, attack, payment and a selection tap at once; priority and the mulligan's keep-or-not do not", () => {
     expect(directTaps(tableScene("defend").questions)).toBe(true)
     expect(directTaps(tableScene("commander-late").questions)).toBe(true)
-    expect(directTaps(tableScene("stack").questions)).toBe(true)
+    expect(directTaps(tableScene("payment-pool").questions)).toBe(true)
     expect(directTaps(tableScene("main-phase").questions)).toBe(false)
     expect(directTaps(tableScene("opening").questions)).toBe(false)
     expect(directTaps([])).toBe(false)
@@ -77,8 +78,8 @@ describe("the steps that tap at once", () => {
   })
 
   it("payment: a card Forge marks without words is tapped at once, named neutrally", () => {
-    const land = { ...card("stack", 36).card, playable: true as const }
-    expect(cardUse(land, { zone: "battlefield", mine: true }, moment("stack"))).toEqual({
+    const land = { ...card("payment-pool", 39).card, playable: true as const }
+    expect(cardUse(land, { zone: "battlefield", mine: true }, moment("payment-pool"))).toEqual({
       mark: "usable",
       markLabel: "kann bezahlen",
       source: false,

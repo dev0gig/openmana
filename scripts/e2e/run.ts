@@ -3736,7 +3736,8 @@ function recordedStackIds(scene: string): number[] {
 }
 
 /** Recorded scenes whose decision has a main button (prompt 41): the player's priority (pass) and the confirmations of attack, block and the mulligan. */
-const SCENE_MAIN_BUTTON: ReadonlySet<string> = new Set(["opening", "main-phase", "blockers", "defend", "commander-late", "opponent-turn", "respond", "respond-own", "attack", "attack-declared", "attack-planeswalker", "block-start", "block-multiple", "attack-planeswalker-declared"])
+// "blockers": since prompt 48 nothing is asked there (the attack's buttons are withdrawn once it is declared).
+const SCENE_MAIN_BUTTON: ReadonlySet<string> = new Set(["opening", "main-phase", "defend", "commander-late", "opponent-turn", "respond", "respond-own", "attack", "attack-declared", "attack-planeswalker", "block-start", "block-multiple", "attack-planeswalker-declared"])
 
 /**
  * Prompt 41 (docs/design/SPIELTISCH.md §4.11-4.14): the Zauberchronik and the Phasen-Tafel in every scene and size.

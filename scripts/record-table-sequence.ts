@@ -14,7 +14,8 @@
  * Nothing is edited. The stretch is chosen from structured messages only:
  * from the first state of the first turn in which a creature of the player
  * attacks, up to the state in which a creature of the player first went from
- * the battlefield to the graveyard.
+ * the battlefield to the graveyard - from the last state before Forge's draw of
+ * that turn.
  *
  *   node scripts/record-table-sequence.ts [--transcripts <dir>] [--manifest <file>] [--out <file>]
  *
@@ -101,7 +102,12 @@ const last = steps.findIndex((step, index) => {
 })
 if (last < 0) throw new Error(`${FIXTURE}: no creature of the player goes to the graveyard after turn ${turn}`)
 
-const stretch = steps.slice(first, last + 1)
+// The stretch begins with the last state before Forge's draw of that turn: since prompt 48 Forge's turn
+// begins with more states (one at the upkeep, before the AI is asked), and the motion's tests start from the draw.
+const library = (state: GameState) => mine(state)?.library ?? 0
+const draw = steps.findIndex((step, index) => index > first && step.state.turn === turn && library(step.state) < library(steps[index - 1]!.state))
+const start = draw > first ? draw - 1 : first
+const stretch = steps.slice(start, last + 1)
 const manifest = JSON.parse(fs.readFileSync(option("--manifest", path.join(root, "engine/build/dist/engine-manifest.json")), "utf8")) as {
   readonly builtAt: string
   readonly forge: { readonly commit: string }

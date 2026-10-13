@@ -58,8 +58,14 @@ export interface SequenceLandmarks {
   readonly lifeLoss: number
   /** The Goblin untaps again (the player's next untap step). */
   readonly untapped: number
-  /** Magmastrahl (14) goes on the stack; Forge logs its DAMAGE to the Goblin. */
+  /** Magmastrahl (14) goes on the stack. */
   readonly onStack: number
+  /**
+   * Forge logs Magmastrahl's DAMAGE to the Goblin and the Goblin's damage grows
+   * (since prompt 48 a step of its own: Forge sends the state with the spell on
+   * the stack before the AI's next decision; it may also be the same step).
+   */
+  readonly damaged: number
   /** The spell resolves: the Goblin goes to the graveyard. */
   readonly dies: number
 }
@@ -84,8 +90,10 @@ function landmarks(): SequenceLandmarks {
   const lifeLoss = first("lifeLoss", 1, (i) => aiLife(state(i)) < aiLife(state(i - 1)))
   const untapped = first("untapped", tappedAt + 1, (i) => !tapped(state(i), 55) && tapped(state(i - 1), 55))
   const onStack = first("onStack", untapped, (i) => zoneOf(state(i), 14) === "stack" && zoneOf(state(i - 1), 14) !== "stack")
+  const damage = (s: GameState, id: number) => { const found = card(s, id); return found !== undefined && !("hidden" in found) ? found.damage : 0 }
+  const damaged = first("damaged", onStack, (i) => damage(state(i), 55) > damage(state(i - 1), 55))
   const dies = first("dies", onStack, (i) => zoneOf(state(i), 55) === "me:graveyard" && zoneOf(state(i - 1), 55) !== "me:graveyard")
-  return { draw, land, tapped: tappedAt, lifeLoss, untapped, onStack, dies }
+  return { draw, land, tapped: tappedAt, lifeLoss, untapped, onStack, damaged, dies }
 }
 
 export const SEQUENCE_STEPS: SequenceLandmarks = landmarks()

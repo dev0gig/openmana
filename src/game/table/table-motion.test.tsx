@@ -260,8 +260,15 @@ describe("effects follow Forge", () => {
     const view = render(table(SEQUENCE_STEPS.onStack - 1))
     view.rerender(table(SEQUENCE_STEPS.onStack))
     await nextFrame()
+    expect(layer().dataset["last"] ?? "").toContain("entry-glide 1")
+    // Forge's DAMAGE: in the same step or - since prompt 48, when Forge sends the spell on the stack first - a later one.
+    if (SEQUENCE_STEPS.damaged !== SEQUENCE_STEPS.onStack) {
+      view.rerender(table(SEQUENCE_STEPS.damaged - 1))
+      await nextFrame()
+      view.rerender(table(SEQUENCE_STEPS.damaged))
+      await nextFrame()
+    }
     const last = layer().dataset["last"] ?? ""
-    expect(last).toContain("entry-glide 1")
     expect(last).toContain("shake 1")
     expect(last).toMatch(/flash [12]/)
     // The shake is added to whatever else moves the card; the flash is the glow layer around the picture.

@@ -359,14 +359,21 @@ final class BridgeGuiGame extends AbstractGuiGame {
      * fresh state (the picture they explain). {@code stablePoint}: called
      * where the engine may wait (before the AI decides); elsewhere - before a
      * wait for the player or a question - an observation never holds: a real
-     * decision of the player comes first. Returns whether a state was sent.
+     * decision of the player comes first. Returns whether the current state
+     * went out (sent now, or the last one is still current).
      */
     private boolean observe(final boolean stablePoint) {
         if (finished || !observations.hasPending()) {
             return false;
         }
         final List<JsonObject> actions = observations.drain();
-        sendStateNow();
+        // The picture these actions explain: a fresh state if Forge changed anything since the last one
+        // (the same rule as before a wait for the player), else the last one still is.
+        if (dirty || state.lastSeq() == 0) {
+            sendStateNow();
+        } else {
+            sendEvents();
+        }
         final long id = ++lastObservationId;
         final boolean hold = stablePoint && Protocol.OBSERVATION_HOLD.equals(observationMode)
                 && ObservationLog.holds(actions, getCurrentPlayer());
@@ -1062,9 +1069,9 @@ final class BridgeGuiGame extends AbstractGuiGame {
     @Override
     public void finishGame() {
         checkThread("finishGame");
-        if (!observe(false)) {
-            sendStateNow();
-        }
+        observe(false);
+        // The last picture of the game (running: false) always goes out.
+        sendStateNow();
         withdrawAll();
         finished = true;
         final JsonObject o = new JsonObject();
