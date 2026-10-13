@@ -50,8 +50,9 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { SWIPE_TOUCH, useSwipe, type SwipeDirection } from "@/hooks/use-swipe"
 import { browseIds, browsePosition, questionCard, type BrowsePosition, type CardBrowse } from "./card-view-model"
 import { SICK_LABEL, SICK_NOTE } from "./attack-labels"
-import { cardUse, type CardUse, type TableMoment } from "./card-use"
+import { cardRefusal, cardUse, type CardRefusal, type CardUse, type TableMoment } from "./card-use"
 import { keywordBoxes, type KeywordBox } from "./keyword-texts"
+import { UNOFFERED_CARD } from "./land-labels"
 import { STACK_KIND_LABELS } from "./priority-labels"
 import type { TableCardLookup, TableCardPicture, TableFace, TablePictureData } from "./table-cards"
 import { captionFacts, cardName, placeLabel, spokenFacts, stackOwner, stackTargets } from "./table-labels"
@@ -219,16 +220,20 @@ function CardContents({
     )
   }
   const { card, zone, seat } = located
-  const use = cardUse(card, { zone, mine: seat === "me" }, moment)
+  const place = { zone, mine: seat === "me" }
+  const use = cardUse(card, place, moment)
+  // Why not (prompt 51): Forge's reason, or that Forge offers nothing - read from this state, like the offer.
+  const refusal = cardRefusal(card, place, moment)
   const pile = zone === "battlefield" ? pileOf(view, id) : null
   const onStack = stackEntriesOf(view, id)
-  const offer = onTap !== undefined && use.tap !== null ? <TapButton identity={id} use={use} onTap={() => onTap(id)} onClose={onClose} /> : null
+  const offer =
+    onTap === undefined ? null : use.tap !== null ? <TapButton identity={id} use={use} onTap={() => onTap(id)} onClose={onClose} /> : refusal !== null ? <RefusalNote refusal={refusal} /> : null
   return (
     <CardSpread card={card} pictures={pictures} arrangement={arrangement} browse={browse} onSwipe={onSwipe} offer={offer}>
       <p>{placeLabel(zone, seat)}{use.markLabel ? ` · ${use.markLabel}` : ""}.</p>
       <FactsForScreenReaders facts={facts(card, state, pile, pictures)} />
       {onStack.length > 0 ? <StackFacts entries={onStack} view={view} /> : null}
-      {zone === "stack" && use.tap === null ? null : <ForgeOffer card={card} use={use} live={onTap !== undefined} />}
+      {zone === "stack" && use.tap === null ? null : <ForgeOffer card={card} use={use} refusal={refusal} live={onTap !== undefined} />}
     </CardSpread>
   )
 }
@@ -461,8 +466,11 @@ function StackFacts({ entries, view }: { entries: readonly StackEntryView[]; vie
   )
 }
 
-/** What Forge offers for the card now, in words (for screen readers; the button says it on screen). */
-function ForgeOffer({ card, use, live }: { card: VisibleCard; use: CardUse; live: boolean }) {
+/**
+ * What Forge offers for the card now, in words (for screen readers; the button says it on screen) - or why not
+ * (prompt 51: Forge's reason; the refusal note says it on screen in a running game).
+ */
+function ForgeOffer({ card, use, refusal, live }: { card: VisibleCard; use: CardUse; refusal: CardRefusal | null; live: boolean }) {
   const lines: string[] = []
   if (use.tap !== null) {
     lines.push(live ? `Forge bietet an: ${use.tap.label}.` : `Forge bot an: ${use.tap.label}.`)
@@ -470,8 +478,11 @@ function ForgeOffer({ card, use, live }: { card: VisibleCard; use: CardUse; live
   } else if (use.unavailable !== null) {
     // Forge's reason why it would not declare the creature an attacker now (prompt 18).
     lines.push(`Kann gerade nicht angreifen: ${use.unavailable.short}.`, use.unavailable.why)
+  } else if (refusal?.land !== undefined) {
+    // Forge's reason why it would not let the player play this land now (prompt 51).
+    lines.push(live ? `Nicht spielbar: ${refusal.why}` : `Forge ließ das Land nicht spielen: ${refusal.why}`)
   } else if (card.controller !== null) {
-    lines.push("Mit dieser Karte bietet Forge gerade nichts an.")
+    lines.push(UNOFFERED_CARD)
   }
   const ways = card.ways ?? []
   if (ways.length > 1) lines.push(`Forge kennt ${ways.length} Wege, die Karte zu nutzen; welchen, fragt Forge nach dem Antippen: ${ways.join("; ")}.`)
@@ -479,6 +490,23 @@ function ForgeOffer({ card, use, live }: { card: VisibleCard; use: CardUse; live
     <section aria-label="Was Forge anbietet">
       {lines.map((line, index) => <p key={index}>{line}</p>)}
     </section>
+  )
+}
+
+/**
+ * Why there is no button (prompt 51; cardRefusal): Forge's reason - a land
+ * it would not let the player play now, a creature it would not declare an
+ * attacker -, or, for a card of the player's hand Forge names no reason for,
+ * that Forge offers nothing for it now. On screen where the button would be,
+ * only in a running game (a replay offers nothing); never a toast - looking
+ * and browsing tell nothing that pops up. The table's own reasons (Forge
+ * computes, a question waits) stand under the disabled button instead.
+ */
+function RefusalNote({ refusal }: { refusal: CardRefusal }) {
+  return (
+    <p data-slot="card-view-refusal" data-refusal={refusal.land ?? refusal.source} className="basis-full text-sm text-foreground">
+      {refusal.source === "unknown" ? UNOFFERED_CARD : refusal.why}
+    </p>
   )
 }
 

@@ -111,10 +111,11 @@ import { StartHandView } from "./start-hand-view"
 import { STACK_TARGET_LABEL, stackTargetIds } from "./beginner-help"
 import { HistorySheet } from "./history-sheet"
 import { ZoneSheet, type ZoneLook } from "./zone-sheet"
-import { cardDrop, cardUse, currentStep, openSelection, playerUse, stepSource, type CardPlace, type CardUse, type TableMoment } from "./card-use"
+import { cardDrop, cardUse, currentStep, momentLands, openSelection, playerUse, stepSource, type CardPlace, type CardUse, type TableMoment } from "./card-use"
 import { currentDecision } from "./decision-model"
 import { DecisionPanel, decisionNeedsRoom } from "./decision-panel"
 import { aiProfileLabel, phaseLabel } from "./game-labels"
+import { landPlayFact, type LandPlayFact } from "./land-labels"
 import { turnOwnerLabel } from "./priority-labels"
 import type { TableCardLookup } from "./table-cards"
 import {
@@ -272,7 +273,10 @@ export function GameTable({ replay = false,
 }: GameTableProps) {
   const view = useMemo(() => tableView(state, questions), [state, questions])
   const profile = profileDrawn ? `${aiProfileLabel(aiProfile)} (zufällig)` : aiProfileLabel(aiProfile)
-  const moment = useMemo<TableMoment>(() => ({ questions, waiting, conceding, attack: state.attack ?? null, combat: state.combat }), [questions, waiting, conceding, state.attack, state.combat])
+  const lands = useMemo(() => momentLands(state), [state])
+  // The player's land plays this turn on their strip (prompt 51).
+  const landFact = useMemo(() => landPlayFact(state), [state])
+  const moment = useMemo<TableMoment>(() => ({ questions, waiting, conceding, attack: state.attack ?? null, combat: state.combat, lands }), [questions, waiting, conceding, state.attack, state.combat, lands])
   const [look, setLook] = useState<CardLook | null>(null)
   const [helpOpen, setHelpOpen] = useState(false)
   const helpPhaseId = useId()
@@ -459,7 +463,7 @@ export function GameTable({ replay = false,
         </GameBoardArea>
 
         <GameBoardArea area="me" aria-label="Du">
-          {view.me ? <PlayerBar side={view.me} profile={null} pictures={pictures} /> : null}
+          {view.me ? <PlayerBar side={view.me} profile={null} pictures={pictures} lands={landFact} /> : null}
         </GameBoardArea>
 
         <GameBoardArea area="hand" aria-label="Deine Hand">
@@ -555,7 +559,7 @@ function TurnInfo({ turn, seat }: { turn: number; seat: Seat | null }) {
  * only when Forge reports any. Nothing is left out that the strip showed
  * before; whose turn it is glows on the medallion and stands in the header.
  */
-function PlayerBar({ side, profile, pictures }: { side: TableSide; profile: string | null; pictures: TableCardLookup }) {
+function PlayerBar({ side, profile, pictures, lands = null }: { side: TableSide; profile: string | null; pictures: TableCardLookup; lands?: LandPlayFact | null }) {
   const controls = use(CardControlsContext)
   if (controls === null) throw new Error("PlayerBar outside GameTable")
   const { player, counts } = side
@@ -574,6 +578,7 @@ function PlayerBar({ side, profile, pictures }: { side: TableSide; profile: stri
         <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 justify-self-start">
           {me ? null : <OpponentHand cards={side.hand} pictures={pictures} />}
           <ZoneCount name="Hand" count={counts.hand} />
+          {lands !== null ? <LandPlays lands={lands} /> : null}
           {profile !== null ? <StripChip data-strip-fact="profile">{profile}</StripChip> : null}
           {player.hasPriority ? <StripChip data-strip-fact="priority">Priorität</StripChip> : null}
           {player.lost ? <StripChip data-strip-fact="lost" tone="danger">verloren</StripChip> : null}
@@ -624,6 +629,26 @@ function PlayerBar({ side, profile, pictures }: { side: TableSide; profile: stri
         </div>
       ) : null}
     </div>
+  )
+}
+
+/**
+ * The player's land plays this turn (prompt 51, land-labels.ts): Forge's
+ * `landsPlayed` of `landsAllowed` ("Länder 1/1", "unbegrenzt" with Forge's
+ * `landsUnlimited`) in the player's own turn - never the lands lying on the
+ * battlefield, which may come from earlier turns or effects -, in the AI's
+ * turn that Forge offers no land then, before the first turn nothing. Only
+ * read; its sentence is the title and what screen readers hear.
+ */
+function LandPlays({ lands }: { lands: LandPlayFact }) {
+  return (
+    <StripChip data-strip-fact="lands" data-lands-turn={lands.turn} data-lands-used={lands.used || undefined} title={lands.sentence}>
+      <span aria-hidden>
+        {lands.label}
+        {lands.value !== null ? <> <span className="font-medium text-foreground tabular-nums">{lands.value}</span></> : null}
+      </span>
+      <span className="sr-only">{lands.sentence}</span>
+    </StripChip>
   )
 }
 
@@ -1183,7 +1208,8 @@ function FannedHand({ cards, pictures }: { cards: readonly Card[]; pictures: Tab
               current.picture.drop(card.id, release)
               return
             }
-            // Not played: Forge's card is not playable now - the table's reason where it knows one, nothing made up.
+            // Not played (prompt 51): why, from the moment of the drop - the table's reason, Forge's for a land, or that Forge
+            // offers nothing now; one toast that the next drop replaces, never one per move.
             const reason = cardDrop(card, HAND_PLACE, now.moment).reason
             if (reason !== null) toast(reason, { id: "hand-drop", position: "top-center" })
           }

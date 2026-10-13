@@ -41,8 +41,9 @@
  * the assigned blockers; the highlighted attacker is the current block
  * target. No action means inspection only, even with a general marker.
  */
-import type { Attack, ButtonsPurpose, CombatEntry, EntityRef, Player, Question, SelectQuestion, VisibleCard } from "@openmana/engine-protocol"
+import type { Attack, ButtonsPurpose, CombatEntry, EntityRef, GameState, LandRefusal, Player, Question, SelectQuestion, VisibleCard } from "@openmana/engine-protocol"
 import { ATTACK_REFUSAL_WORDS } from "./attack-labels"
+import { landRefusalWords, UNOFFERED_ACTION } from "./land-labels"
 import type { CardZone } from "./table-model"
 
 /** How the table marks a card: chosen (Forge's highlight) or usable now (Forge's marker, or named by a selection). */
@@ -63,6 +64,22 @@ export interface TableMoment {
   readonly attack?: Attack | null
   /** Forge's planned block assignments, from the same full state. */
   readonly combat?: readonly CombatEntry[]
+  /** Forge's land facts of the player from the same full state (prompt 51, `momentLands`); absent or null: none are used. */
+  readonly lands?: MomentLands | null
+}
+
+/** What the reasons of a land of the player's hand need of Forge's land facts (prompt 51). */
+export interface MomentLands {
+  /** The game has begun (Forge's first turn): before it - the start questions - no land reason is told. */
+  readonly begun: boolean
+  /** Forge's limit of the player's land plays this turn (`Player.landsAllowed`): the words of the limit for more than one. */
+  readonly allowed: number
+}
+
+/** The land facts of a state for its moment (prompt 51): the player's own (Forge's `me`); null without one. */
+export function momentLands(state: GameState): MomentLands | null {
+  const me = state.players.find((player) => player.me)
+  return me === undefined ? null : { begun: state.turn > 0, allowed: me.landsAllowed }
 }
 
 export interface CardTap {
@@ -174,11 +191,50 @@ export function cardUse(card: VisibleCard, place: CardPlace, moment: TableMoment
   }
 }
 
+/**
+ * Why the player cannot do with a card what they might want to now (prompt
+ * 51) - one answer for the card view, a failed drag and the table:
+ *  - `forge`: Forge's own reason - why it would not declare a creature an
+ *    attacker (prompt 18, `Attack.unavailable`), why it would not let the
+ *    player play a land of their hand (protocol 10, `VisibleCard.landRefusal`);
+ *  - `table`: Forge offers the tap, but none can be sent now (tapBlocked:
+ *    Forge computes, a blocking question waits, a concession is on its way);
+ *  - `unknown`: a card of the player's hand Forge offers nothing for and names
+ *    no reason for - honestly that, never a guessed one (missing mana, a wrong
+ *    target, the card's effect are Forge's to say).
+ * Null where nothing is refused (Forge offers a tap that can be sent) or the
+ * card is no candidate (another zone, the opponent's card: looked at only).
+ * Before the game begins (the start questions) a card of the hand gets none:
+ * nothing is played then, the start hand only looks.
+ */
+export interface CardRefusal {
+  readonly source: "forge" | "table" | "unknown"
+  /** A few words (a chip, a card's name). */
+  readonly short: string
+  /** One sentence why. */
+  readonly why: string
+  /** Forge's land reason, where it is one. */
+  readonly land?: LandRefusal
+}
+
+export function cardRefusal(card: VisibleCard, place: CardPlace, moment: TableMoment): CardRefusal | null {
+  const use = cardUse(card, place, moment)
+  if (use.tap !== null) return use.blocked === null ? null : { source: "table", short: "gerade nicht", why: use.blocked }
+  if (use.unavailable !== null) return { source: "forge", ...use.unavailable }
+  if (place.zone !== "hand" || !place.mine) return null
+  const lands = moment.lands ?? null
+  if (lands !== null && !lands.begun) return null
+  // Forge's playable marker wins over its land check (it knows permissions the check does not see); a card it marks is
+  // offered a tap above, so a reason here is one Forge gave for a land it does not offer.
+  if (lands !== null && card.landRefusal !== undefined) return { source: "forge", ...landRefusalWords(card.landRefusal, lands.allowed), land: card.landRefusal }
+  return { source: "unknown", short: "nicht angeboten", why: UNOFFERED_ACTION }
+}
+
 /** What releasing a card of the player's hand over the battlefield does (prompt 46). */
 export interface CardDrop {
   /** Forge's tap plays the card now: the same tap the card view's button sends. */
   readonly play: boolean
-  /** Why it does not, where the table knows a reason (tapBlocked's words for a card Forge marks playable); null otherwise. */
+  /** Why it does not (prompt 51: cardRefusal's sentence - Forge's reason, the table's, or that Forge offers nothing); null for a card outside the player's hand. */
   readonly reason: string | null
 }
 
@@ -193,13 +249,18 @@ const NO_DROP: CardDrop = { play: false, reason: null }
  * dragged), and only when a tap can be sent (tapBlocked: Forge waits, no
  * blocking question, no concession on its way). Whether that is a land, a
  * creature or an instant is Forge's, never the place the card was dropped.
- * Forge sends no reason for a card it does not mark, so there is none.
+ * Otherwise the drop says why (prompt 51): the table's reason, Forge's reason
+ * for a land (`landRefusal`), or - where Forge gives none - that Forge does
+ * not offer this action now. Read from the moment of the drop, never from the
+ * one the drag began in.
  */
 export function cardDrop(card: VisibleCard, place: CardPlace, moment: TableMoment): CardDrop {
-  if (place.zone !== "hand" || !place.mine || card.playable !== true || directTaps(moment.questions)) return NO_DROP
+  if (place.zone !== "hand" || !place.mine) return NO_DROP
+  // In a step whose taps choose, a drop plays nothing - whatever a tap on the card would do there.
+  if (directTaps(moment.questions)) return { play: false, reason: UNOFFERED_ACTION }
   const use = cardUse(card, place, moment)
-  if (use.tap === null) return NO_DROP
-  return use.blocked === null ? { play: true, reason: null } : { play: false, reason: use.blocked }
+  if (card.playable === true && use.tap !== null) return use.blocked === null ? { play: true, reason: null } : { play: false, reason: use.blocked }
+  return { play: false, reason: cardRefusal(card, place, moment)?.why ?? UNOFFERED_ACTION }
 }
 
 /** InputBlock's action is the permission for THIS attacker; its general marker is not. */

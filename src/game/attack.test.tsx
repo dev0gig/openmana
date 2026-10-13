@@ -249,7 +249,9 @@ describe("the table's cards", () => {
     fireEvent.contextMenu(screen.getByRole("region", { name: "Dein Spielfeld" }).querySelector(`[data-card="${entry!.card}"]`)!)
     const view = within(screen.getByRole("dialog"))
     expect(view.getByText(`Kann gerade nicht angreifen: ${words.short}.`)).toBeInTheDocument()
-    expect(view.getByText(words.why)).toBeInTheDocument()
+    // Prompt 51: the same reason on screen, where the button would be (the refusal note); its words for screen readers too.
+    expect(document.querySelector('[data-slot="card-view-refusal"]')).toHaveTextContent(words.why)
+    expect(screen.getByRole("dialog")).toHaveAccessibleDescription(expect.stringContaining(words.why))
   })
 
   it("the card view says what summoning sickness means - also on the AI's creature, still sick in the player's turn", () => {

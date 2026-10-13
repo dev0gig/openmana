@@ -8,7 +8,8 @@
  * hand is a fan (prompt 42): a finger lifts the card under it and a swipe the
  * card under the finger, a tap is the lifted card's, a swipe nothing.
  * Dragging a hand card onto the battlefield (prompt 46) plays it - one tap,
- * where Forge marks it playable and a tap can be sent - and does nothing else.
+ * where Forge marks it playable and a tap can be sent - and does nothing else
+ * (prompt 51: a drop that plays nothing says why, land-hints.test.tsx).
  * The table never sends anything itself: onTapCard is the page's.
  */
 import type { GameState, VisibleCard } from "@openmana/engine-protocol"
@@ -532,7 +533,7 @@ describe("dragging a hand card onto the battlefield (prompt 46)", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
   })
 
-  it("a card Forge does not mark playable: lifted and dragged, no glow, nothing sent - and no words made up", () => {
+  it("a card Forge does not mark playable: lifted and dragged, no glow, nothing sent - and no words made up (prompt 51: only that Forge offers nothing)", () => {
     layout()
     const { onTapCard } = table("opening")
     dragTo(55, 450, { release: false })
@@ -540,7 +541,8 @@ describe("dragging a hand card onto the battlefield (prompt 46)", () => {
     expect(board()).not.toHaveAttribute("data-hand-drop")
     fireEvent.pointerUp(cardButton(55), { ...touch, clientX: 200, clientY: 450 })
     expect(onTapCard).not.toHaveBeenCalled()
-    expect(toast.getToasts()).toHaveLength(0)
+    // The start questions: no land reason (the game has not begun) - Forge's reasons on lands: land-hints.test.tsx.
+    expect(toast.getToasts().map((shown) => ("title" in shown ? shown.title : null))).toEqual(["Forge bietet diese Aktion gerade nicht an."])
   })
 
   it("while a concession is on its way, Forge computes or a blocking question waits: nothing is sent, the table's reason shows", () => {

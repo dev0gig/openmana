@@ -9,12 +9,14 @@
 import type { Player, Question, VisibleCard } from "@openmana/engine-protocol"
 import { describe, expect, it } from "vitest"
 import { tableScene, type TableSceneName } from "@/test/table-scenes"
-import { cardDrop, cardUse, currentStep, directTaps, openSelection, playerUse, stepSource, tapBlocked, type CardPlace, type TableMoment } from "./card-use"
+import { landMoment, type LandMomentName } from "@/test/land-plays"
+import { cardDrop, cardRefusal, cardUse, currentStep, directTaps, momentLands, openSelection, playerUse, stepSource, tapBlocked, type CardPlace, type TableMoment } from "./card-use"
+import { UNOFFERED_ACTION } from "./land-labels"
 import { isVisible, locateCard } from "./table-model"
 
 function moment(name: TableSceneName, overrides: Partial<TableMoment> = {}): TableMoment {
   const scene = tableScene(name)
-  return { questions: scene.questions, waiting: true, conceding: false, attack: scene.state.attack ?? null, combat: scene.state.combat, ...overrides }
+  return { questions: scene.questions, waiting: true, conceding: false, attack: scene.state.attack ?? null, combat: scene.state.combat, lands: momentLands(scene.state), ...overrides }
 }
 
 /** A card of a scene and its place, found by id. */
@@ -230,9 +232,12 @@ describe("a hand card dropped onto the battlefield (prompt 46)", () => {
     expect(dropOf("respond", 29)).toEqual({ play: true, reason: null })
   })
 
-  it("never for a card Forge does not mark playable, and never says why (Forge sends no reason)", () => {
-    expect(dropOf("opening", 55)).toEqual({ play: false, reason: null })
-    expect(dropOf("stack", 24)).toEqual({ play: false, reason: null })
+  it("never for a card Forge does not mark playable - it says why (prompt 51): Forge's reason for a land, else that Forge offers nothing", () => {
+    // The opening hand (the start questions): nothing is played before the game begins - no land reason, only that.
+    expect(dropOf("opening", 55)).toEqual({ play: false, reason: UNOFFERED_ACTION })
+    // A land in the draw step: Forge's reason (timing); a spell Forge offers nothing for and names no reason: only that.
+    expect(dropOf("stack", 36)).toEqual({ play: false, reason: "Ein Land spielst du nur in deiner Hauptphase, wenn der Stapel leer ist." })
+    expect(dropOf("stack", 24)).toEqual({ play: false, reason: UNOFFERED_ACTION })
   })
 
   it("not while no tap can be sent: the table's reason (the card view's words)", () => {
@@ -243,9 +248,78 @@ describe("a hand card dropped onto the battlefield (prompt 46)", () => {
   })
 
   it("not in the steps whose taps choose (a selection naming the hand's cards) - and never a card outside the player's hand", () => {
-    expect(dropOf("discard", 56)).toEqual({ play: false, reason: null })
+    expect(dropOf("discard", 56)).toEqual({ play: false, reason: UNOFFERED_ACTION })
     expect(dropOf("main-phase", 28)).toEqual({ play: false, reason: null })
     const land = card("main-phase", 25).card
     expect(cardDrop(land, { zone: "hand", mine: false }, moment("main-phase"))).toEqual({ play: false, reason: null })
+  })
+})
+
+describe("why not (prompt 51): Forge's reason, the table's, or that Forge offers nothing", () => {
+  /** A card of a recorded land moment of the fixture game `lands`, with that moment's questions and land facts. */
+  function landCard(name: LandMomentName, id: number, overrides: Partial<TableMoment> = {}) {
+    const { state, questions } = landMoment(name)
+    const located = locateCard(state, id)
+    if (located === null) throw new Error(`no card ${id} in moment ${name}`)
+    const at: TableMoment = { questions, waiting: true, conceding: false, attack: state.attack ?? null, combat: state.combat, lands: momentLands(state), ...overrides }
+    const place = { zone: located.zone, mine: located.seat === "me" }
+    return { refusal: cardRefusal(located.card, place, at), drop: cardDrop(located.card, place, at), use: cardUse(located.card, place, at) }
+  }
+
+  it("the first land of the turn is played; the second in the same turn is refused with Forge's reason - by the card view and by a drop", () => {
+    expect(landCard("first-land", 45)).toMatchObject({ refusal: null, drop: { play: true, reason: null } })
+    const second = landCard("land-played", 45)
+    expect(second.use.tap).toBeNull()
+    expect(second.refusal).toEqual({ source: "forge", short: "Land schon gespielt", why: "Dein Land für diesen Zug ist bereits gespielt.", land: "limit" })
+    expect(second.drop).toEqual({ play: false, reason: "Dein Land für diesen Zug ist bereits gespielt." })
+  })
+
+  it("the next own turn allows the refused land again", () => {
+    expect(landCard("next-turn", 45)).toMatchObject({ refusal: null, drop: { play: true, reason: null } })
+  })
+
+  it("an effect raises Forge's limit (Exploration): after one land the next is still played, no reason", () => {
+    expect(landCard("extra-allowed", 42)).toMatchObject({ refusal: null, drop: { play: true, reason: null } })
+  })
+
+  it("Forge's other reasons: not the player's turn (the AI's), not now (the beginning of the turn)", () => {
+    expect(landCard("opponent-turn", 38).refusal).toMatchObject({ source: "forge", land: "notYourTurn", why: "Länder spielst du nur in deinem eigenen Zug." })
+    expect(landCard("timing", 38).refusal).toMatchObject({ source: "forge", land: "timing" })
+  })
+
+  it("a card that is no land and not offered: honestly that Forge offers nothing - no guessed mana, target or effect", () => {
+    // A spell in the draw step (Forge asks where a card goes): Forge marks nothing, names no action and no reason.
+    const found = card("stack", 24)
+    expect(cardRefusal(found.card, found.place, moment("stack"))).toEqual({ source: "unknown", short: "nicht angeboten", why: UNOFFERED_ACTION })
+    // Grizzly Bears without the mana for them: Forge names its action ("cast spell") but does not mark the card playable -
+    // the card view keeps Forge's words as before (its button not marked), a drop plays nothing and says only that.
+    const bears = landCard("first-land", 5)
+    expect(bears.use.tap).toEqual({ label: "cast spell", marked: false })
+    expect(bears.refusal).toBeNull()
+    expect(bears.drop).toEqual({ play: false, reason: UNOFFERED_ACTION })
+  })
+
+  it("before the game begins nothing is refused in words (the start hand only looks) - a drop says only that nothing is offered", () => {
+    expect(landCard("before-start", 37)).toMatchObject({ refusal: null, drop: { play: false, reason: UNOFFERED_ACTION } })
+  })
+
+  it("without Forge's land facts in the moment, a land reason is not used: unknown stays unknown", () => {
+    expect(landCard("land-played", 45, { lands: null }).refusal).toMatchObject({ source: "unknown" })
+  })
+
+  it("a card Forge offers a tap on: no refusal - unless no tap can be sent now (the table's reason, under the card view's button)", () => {
+    expect(landCard("first-land", 45, { waiting: false })).toMatchObject({ refusal: { source: "table", why: "Forge rechnet gerade." }, drop: { play: false, reason: "Forge rechnet gerade." } })
+  })
+
+  it("the attack's reasons stay Forge's (prompt 18): the creature that cannot attack", () => {
+    const scene = tableScene("attack")
+    const entry = scene.state.attack?.unavailable[0]
+    if (entry === undefined) throw new Error("the attack scene names no creature that stays back")
+    const found = card("attack", entry.card)
+    expect(cardRefusal(found.card, found.place, moment("attack"))).toMatchObject({ source: "forge" })
+  })
+
+  it("the opponent's cards and cards outside the hand: looked at, nothing refused", () => {
+    expect(landCard("land-played", 38).refusal).toBeNull()
   })
 })
