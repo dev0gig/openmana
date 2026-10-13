@@ -76,7 +76,7 @@
  * confirmations of attack, block and the mulligan's choice; the others in the
  * panel's style, clearly second. Words, arming and meanings are unchanged.
  */
-import { ArrowDown, ArrowUp, Minus, Plus, Search, X } from "lucide-react"
+import { ArrowDown, ArrowUp, Maximize2, Minus, Plus, Search, X } from "lucide-react"
 import { cn } from "cn"
 import { createContext, use, useEffect, useId, useMemo, useRef, useState, type ComponentProps, type ReactNode } from "react"
 import type {
@@ -227,6 +227,12 @@ export interface DecisionPanelProps {
   readonly form?: DecisionForm
   /** The turn's phases (PhasePanel): at the top of the panel, or in the bar beside the buttons. */
   readonly phases?: ReactNode
+  /**
+   * Prompt 50: opens the start hand in full screen (start-hand-view.tsx) - a
+   * button beside Forge's start questions (keep or mulligan, the cards for the
+   * bottom). Absent: none.
+   */
+  readonly onShowStartHand?: () => void
 }
 
 export type DecisionForm = "panel" | "bar"
@@ -250,6 +256,8 @@ interface DecisionContextValue {
   readonly form: DecisionForm
   /** What stands beside the answers in the bar (the compact phases in hoch), or null. */
   readonly lead: ReactNode
+  /** Opens the start hand in full screen (prompt 50), or null. */
+  readonly showStartHand: (() => void) | null
 }
 
 const DecisionContext = createContext<DecisionContextValue | null>(null)
@@ -280,7 +288,7 @@ export function decisionNeedsRoom(decision: Decision, state: GameState | null): 
   return false
 }
 
-export function DecisionPanel({ state, questions, prompt, waiting, conceding, pictures, alerts, observing = null, autoPass = null, onAnswer, onLook, onTapPlayer, onTapCard, onUseMana, form = "bar", phases = null }: DecisionPanelProps) {
+export function DecisionPanel({ state, questions, prompt, waiting, conceding, pictures, alerts, observing = null, autoPass = null, onAnswer, onLook, onTapPlayer, onTapCard, onUseMana, form = "bar", phases = null, onShowStartHand }: DecisionPanelProps) {
   const decision = currentDecision(questions)
   const blocked = answerBlocked({ live: onAnswer !== undefined, conceding, waiting })
   const blockedId = useId()
@@ -302,8 +310,9 @@ export function DecisionPanel({ state, questions, prompt, waiting, conceding, pi
       payWithMana: onUseMana ?? (() => undefined),
       form,
       lead,
+      showStartHand: onShowStartHand ?? null,
     }),
-    [state, pictures, blocked, blockedId, onAnswer, onLook, moment, tapReason, onTapPlayer, onTapCard, onUseMana, form, lead],
+    [state, pictures, blocked, blockedId, onAnswer, onLook, moment, tapReason, onTapPlayer, onTapCard, onUseMana, form, lead, onShowStartHand],
   )
   const question = decisionQuestion(decision)
   return (
@@ -385,7 +394,7 @@ function sourceOf(question: Question | null): { readonly id: number; readonly ca
 }
 
 /** What Forge asks: the asking card (its picture opens the card view), the kind of decision, Forge's words. */
-function DecisionHeading({ label, text, source }: { label: string; text: string | null; source: { readonly id: number; readonly card: VisibleCard } | null }) {
+function DecisionHeading({ label, text, source, action = null }: { label: string; text: string | null; source: { readonly id: number; readonly card: VisibleCard } | null; action?: ReactNode }) {
   const { pictures, look, moment } = useDecision()
   const current = currentDecision(moment.questions)
   const active = current.kind === "blocking" ? current.question : current.kind === "step" ? current.select ?? current.buttons : null
@@ -416,6 +425,7 @@ function DecisionHeading({ label, text, source }: { label: string; text: string 
         </p>
         {text ? <p className="text-sm font-medium break-words">{text}</p> : null}
       </div>
+      {action}
     </GameDecisionHeader>
   )
 }
@@ -427,10 +437,7 @@ function DecisionHeading({ label, text, source }: { label: string; text: string 
  */
 function SendButton({ armKey, onSend, reasonId, disabled = false, main = false, className, ...props }: Omit<ComponentProps<typeof Button>, "onClick"> & { armKey: number | string; onSend: () => void; reasonId?: string | undefined; main?: boolean }) {
   const { blocked, blockedId } = useDecision()
-  const armedAt = useRef<number | null>(null)
-  useEffect(() => {
-    armedAt.current = performance.now()
-  }, [armKey])
+  const arming = useArming(armKey)
   const off = disabled || blocked !== null
   const describedBy = [blocked !== null ? blockedId : null, reasonId ?? null].filter((id) => id !== null).join(" ")
   return (
@@ -441,17 +448,32 @@ function SendButton({ armKey, onSend, reasonId, disabled = false, main = false, 
       {...(main ? { "data-main": "" } : {})}
       className={cn(main ? "table-main-button" : null, className)}
       {...(describedBy ? { "aria-describedby": describedBy } : {})}
-      onKeyDown={(event) => {
-        if (event.repeat) event.preventDefault()
-      }}
+      onKeyDown={arming.onKeyDown}
       onClick={() => {
-        const at = armedAt.current
-        if (at === null || performance.now() - at < ARMING_MS) return
-        onSend()
+        if (arming.armed()) onSend()
       }}
       {...props}
     />
   )
+}
+
+/**
+ * The guards of a sending button (see above), for the start hand's answers
+ * too (prompt 50): armed ARMING_MS after `armKey` changed (its question
+ * appeared, the panel opened, a card view over it closed), a held key
+ * repeats nothing.
+ */
+export function useArming(armKey: number | string): { readonly armed: () => boolean; readonly onKeyDown: (event: { readonly repeat: boolean; preventDefault(): void }) => void } {
+  const armedAt = useRef<number | null>(null)
+  useEffect(() => {
+    armedAt.current = performance.now()
+  }, [armKey])
+  return {
+    armed: () => armedAt.current !== null && performance.now() - armedAt.current >= ARMING_MS,
+    onKeyDown: (event) => {
+      if (event.repeat) event.preventDefault()
+    },
+  }
 }
 
 /**
@@ -636,7 +658,7 @@ function useSearch(items: readonly Item[], labelOf: (item: Item) => string): { r
 // ── A running step: Forge's buttons and its selection ──────────────────────
 
 function StepDecision({ buttons, select, prompt }: { buttons: ButtonsQuestion | null; select: SelectQuestion | null; prompt: string | null }) {
-  const { state } = useDecision()
+  const { state, showStartHand } = useDecision()
   if (buttons?.purpose === "priority" && select === null) return <PriorityDecision moment={priorityMoment(state, buttons)} />
   if (buttons?.purpose === "block" && select === null) return <BlockDecision view={blockView(state, buttons)} />
   if ((buttons?.purpose === "attack" || buttons?.purpose === "attackDeclared") && select === null) {
@@ -649,9 +671,16 @@ function StepDecision({ buttons, select, prompt }: { buttons: ButtonsQuestion | 
   // Forge's current prompt line; the questions' own texts are the line of the moment the step began (see above).
   const text = prompt ?? (main?.text.trim() ? main.text : null)
   const open = [buttons, select].filter((question): question is ButtonsQuestion | SelectQuestion => question !== null)
+  // Prompt 50: the start hand in full screen, beside Forge's start questions - looking only, it answers nothing.
+  const startHand = showStartHand !== null && select === null && (buttons?.purpose === "mulligan" || buttons?.purpose === "mulliganBottom") ? (
+    <Button variant="outline" size="sm" data-start-hand-open="" aria-haspopup="dialog" onClick={showStartHand}>
+      <Maximize2 data-icon="inline-start" aria-hidden />
+      Starthand ansehen
+    </Button>
+  ) : null
   return (
     <>
-      <DecisionHeading label={label} text={text} source={sourceOf(buttons) ?? sourceOf(select)} />
+      <DecisionHeading label={label} text={text} source={sourceOf(buttons) ?? sourceOf(select)} action={startHand} />
       {select !== null && selection !== null ? <SelectPart question={select} view={selection} /> : null}
       {buttons?.purpose === "payment" && select === null ? <PaymentPart /> : null}
       {buttons?.purpose === "mulliganBottom" ? <MulliganChosen /> : null}

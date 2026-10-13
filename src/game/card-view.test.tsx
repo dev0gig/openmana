@@ -348,3 +348,85 @@ describe("closing", () => {
     expect(card(25)).toHaveFocus()
   })
 })
+
+describe("browsing the player's hand (prompt 50)", () => {
+  /** A swipe of one finger on the card in the view (touch: the browser leaves sideways moves to the page). */
+  const swipe = (from: number, to: number, y = 400, pointerType = "touch") => {
+    const picture = document.querySelector('[data-slot="card-lightbox-picture"]')!
+    fireEvent.pointerDown(picture, { pointerId: 7, pointerType, clientX: from, clientY: y })
+    fireEvent.pointerMove(picture, { pointerId: 7, pointerType, clientX: (from + to) / 2, clientY: y })
+    fireEvent.pointerUp(picture, { pointerId: 7, pointerType, clientX: to, clientY: y })
+  }
+  const position = () => document.querySelector('[data-slot="card-view-position"]')?.textContent ?? null
+
+  it("a hand card opened on the table browses the hand: a swipe to the left is the next card, to the right the previous, never past the ends", () => {
+    const { tap } = table("respond")
+    fireEvent.click(card(8))
+    expect(dialog()).toHaveAccessibleName("Blitzeinschlag")
+    expect(position()).toBe("1 von 4")
+    expect(within(dialog()).getByRole("group", { name: "Deine Hand durchsehen" })).toBeInTheDocument()
+    expect(document.querySelector('[data-slot="card-lightbox-picture"]')).toHaveClass("touch-pan-y")
+    swipe(600, 400)
+    expect(dialog()).toHaveAccessibleName("Schock")
+    expect(position()).toBe("2 von 4")
+    swipe(400, 600)
+    expect(dialog()).toHaveAccessibleName("Blitzeinschlag")
+    // The first card: to the right nothing - no wrapping round to the last.
+    swipe(400, 600)
+    expect(dialog()).toHaveAccessibleName("Blitzeinschlag")
+    expect(tap).not.toHaveBeenCalled()
+  })
+
+  it("the play button after a swipe: armed again for the new card - the swipe's release never plays it", () => {
+    const { tap } = table("respond")
+    // A new press first: the click after an earlier test's swipe is no longer swallowed (real timers here).
+    fireEvent.pointerDown(card(8))
+    fireEvent.click(card(8))
+    clock += ARMING_MS
+    swipe(600, 400)
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Einen Zauberspruch sprechen" }))
+    expect(tap).not.toHaveBeenCalled()
+    clock += ARMING_MS
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Einen Zauberspruch sprechen" }))
+    expect(tap).toHaveBeenCalledExactlyOnceWith(29)
+  })
+
+  it("no swipe: up and down, too short, the mouse, the screen's edge", () => {
+    table("respond")
+    fireEvent.click(card(8))
+    const picture = document.querySelector('[data-slot="card-lightbox-picture"]')!
+    fireEvent.pointerDown(picture, { pointerId: 1, pointerType: "touch", clientX: 500, clientY: 600 })
+    fireEvent.pointerUp(picture, { pointerId: 1, pointerType: "touch", clientX: 470, clientY: 300 })
+    swipe(500, 470)
+    swipe(600, 300, 400, "mouse")
+    swipe(5, 300)
+    expect(dialog()).toHaveAccessibleName("Blitzeinschlag")
+  })
+
+  it("a card that leaves the hand meanwhile stays in view where it went; the list says so and browses on from its former place", () => {
+    const { props, rerender, tap } = table("respond")
+    fireEvent.click(card(26))
+    expect(position()).toBe("3 von 4")
+    const state = structuredClone(props.state)
+    const me = state.players.find((p) => p.me)!
+    const played = me.zones.hand.find((c): c is VisibleCard => isVisible(c) && c.id === 26)!
+    me.zones.hand = me.zones.hand.filter((c) => !isVisible(c) || c.id !== 26)
+    me.zones.graveyard = [...me.zones.graveyard, played]
+    rerender(<GameTable {...props} state={state} />)
+    expect(dialog()).toHaveAccessibleName("Geborstener Blitz")
+    expect(position()).toBe("Nicht mehr in deiner Hand · 3 Karten")
+    fireEvent.click(within(dialog()).getByRole("button", { name: "Nächste Karte" }))
+    expect(dialog()).toHaveAccessibleName("Sengender Speer")
+    fireEvent.keyDown(dialog(), { key: "ArrowLeft" })
+    expect(dialog()).toHaveAccessibleName("Schock")
+    expect(tap).not.toHaveBeenCalled()
+  })
+
+  it("a replay browses the hand too and offers nothing", () => {
+    table("respond", { onTapCard: undefined as unknown as (id: number) => void })
+    fireEvent.click(card(8))
+    fireEvent.keyDown(dialog(), { key: "ArrowRight" })
+    expect(dialog()).toHaveAccessibleName("Schock")
+    expect(within(dialog()).queryByRole("button", { name: "Einen Zauberspruch sprechen" })).toBeNull()
+  })
+})

@@ -1116,6 +1116,40 @@ engine's observations (prompt 48, protocol 10;
 - **Checked** in Chrome with the real engine at the eight sizes and the
   foldable's three while the stage holds (end-to-end `--opponent-only`).
 
+### 4.18 The start hand and browsing the hand (prompt 50)
+
+The project owner (2026-10-12): before keeping or taking a mulligan, see the
+whole hand large, without cards over each other; open a card and swipe to the
+next or previous one (`docs/implementation/50-starthand-und-handkarten-blaettern.md`).
+
+- **Start hand** (`StartHandView`, `src/game/start-hand-view.tsx`, on
+  `src/components/ui/hand-spread.tsx`; slot `hand-spread`): a shadcn
+  `Dialog` in full screen over the table at Forge's start questions
+  (`mulligan`, `mulliganBottom`) - by itself in the running game at each new
+  hand, else through "Starthand ansehen" beside the question. At the top
+  "Deine Starthand" / "Karten unter die Bibliothek legen", the count and
+  Forge's prompt line; in the middle every card whole, side by side and below
+  each other, never overlapping, as large as the room allows
+  (`handSpreadFit`: the columns that give the widest card, 88 px to 22 rem,
+  scrolling inside only below 88 px); at the bottom Forge's buttons (armed,
+  Forge's enabled state). During the London mulligan's choice a button under
+  each card ("Nach unten" / "Doch behalten": Forge's `card.tap`), the marked
+  cards in the "chosen" frame, the count; Forge's OK confirms once. A tap on a
+  card opens the card view over the panel. Closing (X, Escape, back) answers
+  nothing; after an answer it waits ("Forge rechnet …") for Forge's next
+  start question and closes when the game begins.
+- **Browsing the hand** in the card view: every card opened from the
+  player's own hand browses the hand of the current state - a swipe of one
+  finger on the card (left = next, right = previous; `touch-action: pan-y
+  pinch-zoom`, so scrolling and pinching stay the browser's; not from the
+  screen's edge, not after a long press, not with two fingers), the buttons
+  "Vorige Karte" / "Nächste Karte", ArrowLeft / ArrowRight, "3 von 7"; no
+  wrapping. Forge's offer re-arms for each card; a card that left the hand
+  stays in view, "Nicht mehr in deiner Hand · N Karten".
+- **Checked** in Chrome with the recorded mulligan at the eight sizes and the
+  foldable's three, gestures on a phone, a phone turned and a desktop, and two
+  real games (end-to-end `--starthand-only`).
+
 ## 5. Tokens
 
 Defined once in `:root` of `src/index.css` (prompt 36), mapped for Tailwind
@@ -1348,6 +1382,10 @@ only (`MOTION_PROPERTIES`, checked by `motion-plan.test.ts` and
 - The card view (prompt 47): `src/game/card-view.tsx` on
   `src/components/ui/card-lightbox.tsx`; the German keyword texts
   `src/game/keyword-texts.ts`.
+- The start hand and browsing the hand (prompt 50): `src/game/start-hand-view.tsx`
+  on `src/components/ui/hand-spread.tsx`, its model `src/game/start-hand.ts`,
+  the swipe `src/hooks/use-swipe.ts`, the browse position
+  `src/game/card-view-model.ts`.
 - The opponent's turn (prompt 49): `src/game/table/opponent-stage.tsx`
   (stage, band), the steps' words `src/game/observation-model.ts`, the
   stepping `src/game/observation-playback.ts`, the page's hook
@@ -1422,6 +1460,17 @@ From the shared rules of the series - end-to-end section 12,
   (`data-seat`), the header badge's `data-observing`, the decision's
   `data-interrupt` and the regions "Gegnerzug ansehen" / "Aufgezeichnete
   Aktion" (end-to-end `opponentTurnInRealGame`);
+- since prompt 50 the start hand's slots `hand-spread` (with
+  `hand-spread-overlay`, `hand-spread-close`, `hand-spread-header`,
+  `hand-spread-grid` with `data-columns` and `data-scroll`,
+  `hand-spread-item`, `hand-spread-card`, `hand-spread-footer`), its cards'
+  `data-start-hand-card`, the buttons `data-bottom-toggle`,
+  `data-start-answer` (Forge's button number) in the group with
+  `data-start-question`, the count `data-start-hand-chosen`, the decision's
+  `data-start-hand-open` ("Starthand ansehen"), and in the card view
+  `card-view-position`, `data-swipe` and the groups "Deine Hand durchsehen" /
+  "Karten durchsehen" (end-to-end `startHandHarness`,
+  `startHandInRealGame`; `startHandAway` for the other real games);
 - the toolbars' names.
 
 The regression evidence stays complete (8 sizes × 38 scenes, at least 600

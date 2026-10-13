@@ -47,7 +47,8 @@ import { CardLightboxActions, CardLightboxAside, CardLightboxBoxes, CardLightbox
 import { CardPicture } from "@/components/ui/card-picture"
 import { Dialog, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
-import { browseIds, questionCard, type CardBrowse } from "./card-view-model"
+import { SWIPE_TOUCH, useSwipe, type SwipeDirection } from "@/hooks/use-swipe"
+import { browseIds, browsePosition, questionCard, type BrowsePosition, type CardBrowse } from "./card-view-model"
 import { SICK_LABEL, SICK_NOTE } from "./attack-labels"
 import { cardUse, type CardUse, type TableMoment } from "./card-use"
 import { keywordBoxes, type KeywordBox } from "./keyword-texts"
@@ -94,6 +95,22 @@ export function CardView({ look, onOpenChange, onBrowse, state, view, moment, pi
   const opener = useRef<HTMLElement | null>(null)
   const id = look?.id ?? null
   const open = look?.open ?? false
+  // Browsing (prompt 50): the list from this state; the card's place in it as last seen (for a card that left the list).
+  const ids = look === null ? [] : browseIds(state, look.browse)
+  const index = look === null ? -1 : ids.indexOf(look.id)
+  const [known, setKnown] = useState<{ readonly serial: number; readonly id: number; readonly index: number } | null>(null)
+  if (look !== null && index >= 0 && (known?.serial !== look.serial || known.id !== look.id || known.index !== index)) setKnown({ serial: look.serial, id: look.id, index })
+  const formerIndex = look !== null && index < 0 && known?.serial === look.serial && known.id === look.id ? known.index : null
+  const browse = look === null ? null : browsing(look.id, ids, look.browse, formerIndex)
+  // The browse button pressed last: it keeps the focus while the card it shows changes (the view's contents are new).
+  const [refocus, setRefocus] = useState<{ readonly serial: number; readonly target: number; readonly direction: SwipeDirection } | null>(null)
+  const go = (direction: SwipeDirection, from: "button" | "other") => {
+    const target = browse === null ? null : direction === "next" ? browse.position.next : browse.position.previous
+    if (target === null || look === null) return
+    setRefocus(from === "button" ? { serial: look.serial, target, direction } : null)
+    onBrowse(target)
+  }
+  const focusAfter = look !== null && refocus !== null && refocus.serial === look.serial && refocus.target === look.id ? refocus.direction : null
   // The system's back gesture closes the view (Chrome's CloseWatcher; Escape and the X stay Radix's).
   useCloseWatcher(open, () => onOpenChange(false))
   return (
@@ -113,11 +130,18 @@ export function CardView({ look, onOpenChange, onBrowse, state, view, moment, pi
           // The second tap of a double tap does not close the view it just opened.
           if (performance.now() - openedAt.current < ARMING_MS) event.preventDefault()
         }}
+        onKeyDown={(event) => {
+          // The arrow keys browse (prompt 50): one card per press, a held key repeats nothing.
+          if (browse === null || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
+          if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return
+          event.preventDefault()
+          if (!event.repeat) go(event.key === "ArrowRight" ? "next" : "previous", "other")
+        }}
         onCloseAutoFocus={(event) => {
           // Back to what opened it; else to the card - also where it moved (hand → battlefield); gone: to Forge's decision.
           event.preventDefault()
           const from = opener.current
-          const back = from?.isConnected && (from.closest('[data-slot="sheet-content"]') !== null || (id !== null && (from.dataset["card"] === String(id) || from.dataset["questionCard"] === String(id)))) ? from : null
+          const back = from?.isConnected && (from.closest('[data-slot="sheet-content"], [data-slot="hand-spread"]') !== null || (id !== null && (from.dataset["card"] === String(id) || from.dataset["questionCard"] === String(id)))) ? from : null
           opener.current = null
           const card = id === null ? null : document.querySelector<HTMLElement>(`button[data-card="${id}"]`)
           ;(back ?? card ?? document.querySelector<HTMLElement>('[data-area="decision"]'))?.focus()
@@ -128,7 +152,8 @@ export function CardView({ look, onOpenChange, onBrowse, state, view, moment, pi
             key={`${look.serial}:${look.id}:${locateCard(state, look.id)?.card.key ?? ""}`}
             id={look.id}
             question={look.question}
-            browse={browsing(look.id, browseIds(state, look.browse), onBrowse)}
+            browse={browse === null ? null : <BrowseCards browse={browse} refocus={focusAfter} onGo={(direction) => go(direction, "button")} />}
+            onSwipe={browse === null ? null : (direction) => go(direction, "other")}
             state={state}
             view={view}
             moment={moment}
@@ -138,6 +163,8 @@ export function CardView({ look, onOpenChange, onBrowse, state, view, moment, pi
             arrangement={arrangement}
           />
         ) : null}
+        {/* Where the card stands in the list, said once per card (outside the contents, which are new for every card). */}
+        <p className="sr-only" aria-live="polite">{browse === null ? "" : browseWords(browse)}</p>
       </CardLightboxContent>
     </Dialog>
   )
@@ -147,6 +174,7 @@ function CardContents({
   id,
   question,
   browse,
+  onSwipe,
   state,
   view,
   moment,
@@ -158,6 +186,7 @@ function CardContents({
   id: number
   question: number | undefined
   browse: ReactNode
+  onSwipe: ((direction: SwipeDirection) => void) | null
   state: GameState
   view: TableView
   moment: TableMoment
@@ -170,7 +199,7 @@ function CardContents({
   const asked = question === undefined ? null : questionCard(moment.questions, id, question)
   if (located === null && asked !== null) {
     return (
-      <CardSpread card={asked.card} pictures={pictures} arrangement={arrangement} browse={browse} offer={null}>
+      <CardSpread card={asked.card} pictures={pictures} arrangement={arrangement} browse={browse} onSwipe={onSwipe} offer={null}>
         <p>Aus Forges Frage – diese Karte liegt nicht sichtbar auf dem Tisch.</p>
         <FactsForScreenReaders facts={facts(asked.card, state, null, pictures)} />
         <p>Wählen kannst du sie im Entscheidungsbereich, dort, wo Forge fragt.</p>
@@ -195,7 +224,7 @@ function CardContents({
   const onStack = stackEntriesOf(view, id)
   const offer = onTap !== undefined && use.tap !== null ? <TapButton identity={id} use={use} onTap={() => onTap(id)} onClose={onClose} /> : null
   return (
-    <CardSpread card={card} pictures={pictures} arrangement={arrangement} browse={browse} offer={offer}>
+    <CardSpread card={card} pictures={pictures} arrangement={arrangement} browse={browse} onSwipe={onSwipe} offer={offer}>
       <p>{placeLabel(zone, seat)}{use.markLabel ? ` · ${use.markLabel}` : ""}.</p>
       <FactsForScreenReaders facts={facts(card, state, pile, pictures)} />
       {onStack.length > 0 ? <StackFacts entries={onStack} view={view} /> : null}
@@ -204,20 +233,53 @@ function CardContents({
   )
 }
 
-/** Browsing the cards the view was opened from (a zone, a pile, the stack), or null where there is nothing to browse. */
-function browsing(id: number, ids: readonly number[], onBrowse: (id: number) => void): ReactNode {
-  if (ids.length === 0 || (ids.length < 2 && ids.includes(id))) return null
-  return <BrowseCards id={id} ids={ids} onBrowse={onBrowse} />
+/** Browsing the list the view was opened from (a zone, the hand, a pile, the stack): the card's place in it and what it is called. */
+interface Browsing {
+  readonly position: BrowsePosition
+  /** The player's own hand (prompt 50): its words. */
+  readonly hand: boolean
 }
 
-/** Navigation is inspection only. The list is resolved from the current snapshot. */
-function BrowseCards({ id, ids, onBrowse }: { id: number; ids: readonly number[]; onBrowse: (id: number) => void }) {
-  const index = ids.indexOf(id)
-  return <div role="group" aria-label="Karten durchsehen" className="flex items-center gap-2">
-    <Button variant="outline" size="default" disabled={index <= 0} onClick={() => { const next = ids[index - 1]; if (next !== undefined) onBrowse(next) }}>Vorige Karte</Button>
-    <span className="text-sm tabular-nums" aria-live="polite">{index + 1} / {ids.length}</span>
-    <Button variant="outline" size="default" disabled={index >= ids.length - 1} onClick={() => { const next = ids[index + 1]; if (next !== undefined) onBrowse(next) }}>Nächste Karte</Button>
-  </div>
+/** Browsing, or null where there is nothing to browse (no list, or the card alone in it). */
+function browsing(id: number, ids: readonly number[], source: CardBrowse | undefined, formerIndex: number | null): Browsing | null {
+  if (ids.length === 0 || (ids.length < 2 && ids.includes(id))) return null
+  return { position: browsePosition(ids, id, formerIndex), hand: source?.kind === "zone" && source.zone === "hand" }
+}
+
+/** "3 von 7" - or, for a card that left the list meanwhile, that it did and how many are left. */
+function browseWords({ position, hand }: Browsing): string {
+  if (position.index !== null) return `${position.index + 1} von ${position.total}`
+  const left = hand ? "Nicht mehr in deiner Hand" : "Nicht mehr hier"
+  return `${left} · ${position.total === 1 ? "1 Karte" : `${position.total} Karten`}`
+}
+
+/**
+ * Navigation is inspection only (prompt 20; prompt 50: also the hand, by
+ * swiping and the arrow keys). The list is resolved from the current
+ * snapshot; it never wraps around at its ends.
+ */
+function BrowseCards({ browse, refocus, onGo }: { browse: Browsing; refocus: SwipeDirection | null; onGo: (direction: SwipeDirection) => void }) {
+  const previous = useRef<HTMLButtonElement>(null)
+  const next = useRef<HTMLButtonElement>(null)
+  const { position } = browse
+  // The pressed button keeps the focus while the card changes (these controls are new for every card); at the end of the
+  // list - the button off - the other one takes it.
+  useEffect(() => {
+    if (refocus === null) return
+    // Only where the focus was lost with the former card's controls (on the page, or taken back by the dialog).
+    const active = document.activeElement
+    if (active !== null && active !== document.body && active.getAttribute("data-slot") !== "card-view") return
+    const wanted = refocus === "next" ? next.current : previous.current
+    const other = refocus === "next" ? previous.current : next.current
+    ;(wanted !== null && !wanted.disabled ? wanted : other)?.focus()
+  }, [refocus])
+  return (
+    <div role="group" aria-label={browse.hand ? "Deine Hand durchsehen" : "Karten durchsehen"} className="flex items-center gap-2">
+      <Button ref={previous} variant="outline" size="default" disabled={position.previous === null} onClick={() => onGo("previous")}>Vorige Karte</Button>
+      <span data-slot="card-view-position" className="text-sm tabular-nums">{browseWords(browse)}</span>
+      <Button ref={next} variant="outline" size="default" disabled={position.next === null} onClick={() => onGo("next")}>Nächste Karte</Button>
+    </div>
+  )
 }
 
 /**
@@ -225,8 +287,10 @@ function BrowseCards({ id, ids, onBrowse }: { id: number; ids: readonly number[]
  * buttons (Forge's offer, turning a double-faced card, browsing) and - for
  * screen readers only - its facts (`children`, the dialog's description).
  */
-function CardSpread({ card, pictures, arrangement, browse, offer, children }: { card: VisibleCard; pictures: TableCardLookup; arrangement: CardLightboxArrangement; browse: ReactNode; offer: ReactNode; children: ReactNode }) {
+function CardSpread({ card, pictures, arrangement, browse, onSwipe, offer, children }: { card: VisibleCard; pictures: TableCardLookup; arrangement: CardLightboxArrangement; browse: ReactNode; onSwipe: ((direction: SwipeDirection) => void) | null; offer: ReactNode; children: ReactNode }) {
   const [inspection, setInspection] = useState<{ key: string | null; index: number } | null>(null)
+  // A sideways swipe on the card browses (prompt 50); turning a double-faced card stays its own button.
+  const swipe = useSwipe(onSwipe)
   const picture = pictures(card)
   const faces = picture === "loading" || picture === "none" ? [] : picture.faces ?? []
   const activeFace = picture === "loading" || picture === "none" ? 0 : picture.face ?? 0
@@ -261,7 +325,7 @@ function CardSpread({ card, pictures, arrangement, browse, offer, children }: { 
         </div>
       </DialogDescription>
       <CardLightboxStage arrangement={arrangement} aside={aside} reserve={arrangement === "stacked" ? rows * BUTTON_ROW_PX : 0}>
-        <CardLightboxPicture>
+        <CardLightboxPicture {...(onSwipe !== null ? { ...swipe, "data-swipe": "", className: SWIPE_TOUCH } : {})}>
           <LargePicture card={card} picture={chosen === null ? picture : chosen.picture} name={alternate ? chosen.name.text : undefined} fallbackFace={alternate ? chosen : null} />
         </CardLightboxPicture>
         {aside ? (

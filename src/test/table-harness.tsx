@@ -39,7 +39,7 @@
  * next state - the test watches cards travel, turn, attack and leave.
  *
  * Not part of the app: only the test's dev server serves it,
- * /scripts/e2e/table-harness.html?scene=<name>[&built=<question>][&presentation=dfc|fallback|keywords][&hand=<cards>][&language=en][&waiting=0]
+ * /scripts/e2e/table-harness.html?scene=<name>[&built=<question>][&presentation=dfc|fallback|keywords][&hand=<cards>][&starthand=1|bottom][&language=en][&waiting=0]
  * or ?sequence=first-attack[&step=<n>].
  */
 import { Menu } from "lucide-react"
@@ -94,7 +94,7 @@ function recordMana(color: ManaColor): void {
   window.__openmanaMana = [...(window.__openmanaMana ?? []), color]
 }
 
-function SceneTable({ scene, questions, prompt, language, waiting }: { scene: TableScene; questions: readonly Question[]; prompt: string | null; language: "de" | "en"; waiting: boolean }) {
+function SceneTable({ scene, questions, prompt, language, waiting, startHand = false }: { scene: TableScene; questions: readonly Question[]; prompt: string | null; language: "de" | "en"; waiting: boolean; startHand?: boolean }) {
   const cards = useMemo(() => [...visibleCards(scene.state).values(), ...questionCards(questions)], [scene, questions])
   const pictures = useTableCards(cards, language)
   return (
@@ -110,6 +110,7 @@ function SceneTable({ scene, questions, prompt, language, waiting }: { scene: Ta
         onAnswer={recordAnswer}
         onTapPlayer={recordPlayerTap}
         onUseMana={recordMana}
+        startHandOpens={startHand}
         aiProfile={scene.game.aiProfile}
         pictures={pictures}
         menu={
@@ -164,6 +165,21 @@ function presentationScene(recorded: TableScene, presentation: string | null): T
 }
 
 /**
+ * The start hand (prompt 50, starthand=1|bottom): the panel opens by itself
+ * as in the running game (startHandOpens). `bottom` is built: Forge's London
+ * mulligan question for the bottom (OK and Auto as Forge labels them, OK on)
+ * on the scene's state, the first two hand cards marked as Forge marks chosen
+ * ones (highlighted) - never a claim of Forge's.
+ */
+function bottomScene(recorded: TableScene): TableScene {
+  const state = structuredClone(recorded.state)
+  const me = state.players.find((p) => p.me)!
+  me.zones.hand = me.zones.hand.map((card, index) => (index < 2 && !("hidden" in card) ? { ...card, highlighted: true as const } : card))
+  const questions: Question[] = [{ type: "question", kind: "buttons", id: 900, blocking: false, text: "", purpose: "mulliganBottom", buttons: [{ nr: 1, label: "OK", enabled: true }, { nr: 2, label: "Auto", enabled: true }] }]
+  return { ...recorded, state, questions, prompt: null }
+}
+
+/**
  * Built hand size (prompt 42, the fan with many cards): the scene's own hand
  * cards repeated under new ids up to `count` cards - a presentation boundary
  * the recorded games do not reach (at most seven cards), never a claim of
@@ -212,7 +228,11 @@ function SceneHarness() {
   // Explicitly built presentation boundary: real catalog DFC, no claim of a Forge transform.
   const presentation = params.get("presentation")
   const handSize = params.get("hand")
-  const [scene, setScene] = useState(() => handScene(presentationScene(recorded, presentation), handSize === null ? 0 : Number(handSize)))
+  const startHand = params.get("starthand")
+  const [scene, setScene] = useState(() => {
+    const shown = handScene(presentationScene(recorded, presentation), handSize === null ? 0 : Number(handSize))
+    return startHand === "bottom" ? bottomScene(shown) : shown
+  })
   useEffect(() => {
     window.__openmanaShowScene = (name) => setScene(structuredClone(tableScene(name)))
     return () => {
@@ -235,7 +255,7 @@ function SceneHarness() {
       </p>
     )
   }
-  return <SceneTable scene={scene} questions={built?.questions ?? scene.questions} prompt={built === null ? scene.prompt : built.prompt} language={language} waiting={waiting} />
+  return <SceneTable scene={scene} questions={built?.questions ?? scene.questions} prompt={built === null ? scene.prompt : built.prompt} language={language} waiting={waiting} startHand={startHand === "1" || startHand === "bottom"} />
 }
 
 /** The recorded sequence (prompt 44): one step at a time, the next one by window.__openmanaShowStep. */

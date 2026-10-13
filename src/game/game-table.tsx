@@ -104,8 +104,10 @@ import { useCardPress, useFanPress } from "@/hooks/use-card-press"
 import { useElementHeight } from "@/hooks/use-element-height"
 import { useElementSize } from "@/hooks/use-element-size"
 import { ARMING_MS, CardView, type CardLook } from "./card-view"
-import { questionCard, type CardBrowse } from "./card-view-model"
+import { handOf, questionCard, type CardBrowse } from "./card-view-model"
 import { HelpSheet } from "./help-sheet"
+import { nextStartHandMemory, pastStart, START_HAND_MEMORY, startHandKey, startHandOpen, startQuestion, type StartHandMemory } from "./start-hand"
+import { StartHandView } from "./start-hand-view"
 import { STACK_TARGET_LABEL, stackTargetIds } from "./beginner-help"
 import { HistorySheet } from "./history-sheet"
 import { ZoneSheet, type ZoneLook } from "./zone-sheet"
@@ -207,6 +209,13 @@ export interface GameTableProps {
   readonly observing?: string | null
   /** Prompt 49: what Forge's auto-pass does, said while Forge plays on by itself (null: the general words). */
   readonly autoPass?: string | null
+  /**
+   * Prompt 50: the start hand in full screen (start-hand-view.tsx) opens by
+   * itself at each of Forge's start questions - the running game passes it.
+   * Without it (a replay, the tests' scenes) it opens only through
+   * "Starthand ansehen" beside the question.
+   */
+  readonly startHandOpens?: boolean
 }
 
 /** What a card of the table needs to be operated: the moment's questions and Forge's state of waiting, and the two ways to use it. */
@@ -215,8 +224,11 @@ interface CardControls {
   readonly moment: TableMoment
   /** Taps can be sent (the page gave onTapCard). */
   readonly live: boolean
-  readonly look: (id: number) => void
-  readonly primary: (card: VisibleCard, use: CardUse) => void
+  /** Opens the card view; `browse`: the list it browses (prompt 50: the player's hand). */
+  readonly look: (id: number, browse?: CardBrowse) => void
+  readonly primary: (card: VisibleCard, use: CardUse, browse?: CardBrowse) => void
+  /** The player's own hand as the card view's list (prompt 50), resolved from each state. */
+  readonly handBrowse: CardBrowse | null
   /**
    * Plays a hand card dropped onto the battlefield (prompt 46): Forge's tap,
    * sent once where cardDrop allows it - the card view's button's guards
@@ -256,6 +268,7 @@ export function GameTable({ replay = false,
   turnBand = null,
   observing = null,
   autoPass = null,
+  startHandOpens = false,
 }: GameTableProps) {
   const view = useMemo(() => tableView(state, questions), [state, questions])
   const profile = profileDrawn ? `${aiProfileLabel(aiProfile)} (zufällig)` : aiProfileLabel(aiProfile)
@@ -270,6 +283,19 @@ export function GameTable({ replay = false,
   const [historyOpen, setHistoryOpen] = useState(false)
   const [inspectingHistory, setInspectingHistory] = useState(false)
   const [zone, setZone] = useState<ZoneLook | null>(null)
+  // The player's hand as the card view's list: one object per player, not per state (the controls stay the same).
+  const myId = state.players.find((player) => player.me)?.id
+  const ownHand = useMemo(() => (myId === undefined ? null : handOf(myId)), [myId])
+  // The start hand in full screen (prompt 50, start-hand.ts): Forge's start question, the hand it is about, open or not.
+  const start = startQuestion(questions)
+  const startKey = start === null ? null : startHandKey(start, state)
+  const past = pastStart(state, questions)
+  const [startMemory, setStartMemory] = useState<StartHandMemory>(START_HAND_MEMORY)
+  const startOpen = startHandOpen(startMemory, startKey, startHandOpens && onAnswer !== undefined && !conceding, past)
+  // What this state changes: the wait after an answer from the panel ends with the next start question or when the game
+  // begins; the hand shown last keeps the panel open between two of Forge's questions.
+  const startNext = nextStartHandMemory(startMemory, startKey, startOpen, past)
+  if (startNext !== startMemory) setStartMemory(startNext)
   const openCard = useCallback((id: number, browse?: CardBrowse, question?: number) => {
     setInspectingHistory(false)
     const pile = browse === undefined ? pileOf(view, id) : null
@@ -333,12 +359,13 @@ export function GameTable({ replay = false,
       targets,
       live: onTapCard !== undefined,
       look: open,
-      primary: (card, use) => {
+      handBrowse: ownHand,
+      primary: (card, use, browse) => {
         const now = performance.now()
         const last = lastTap.current
         if (last !== null && last.id === card.id && now - last.at < ARMING_MS) return
         if (onTapCard === undefined || use.primary !== "tap") {
-          open(card.id)
+          open(card.id, browse)
           return
         }
         lastTap.current = { id: card.id, at: now }
@@ -356,7 +383,7 @@ export function GameTable({ replay = false,
       tapPlayer: onTapPlayer === undefined ? null : tapPlayer,
       lookZone: (player, zone) => setZone({ kind: "zone", player, zone }),
     }
-  }, [moment, targets, onTapCard, onTapPlayer, tapPlayer, openCard])
+  }, [moment, targets, onTapCard, onTapPlayer, tapPlayer, openCard, ownHand])
   return (
     <CardControlsContext value={controls}>
       <GameBoard decision={room}>
@@ -458,6 +485,7 @@ export function GameTable({ replay = false,
             observing={observing}
             autoPass={autoPass}
             onLook={lookAtQuestionCard}
+            {...(startKey !== null ? { onShowStartHand: () => setStartMemory((previous) => ({ ...previous, dismissed: null, requested: startKey, awaiting: null })) } : {})}
             {...(onAnswer !== undefined ? { onAnswer } : {})}
             {...(onTapPlayer !== undefined ? { onTapPlayer: tapPlayer } : {})}
             {...(onTapCard !== undefined ? { onTapCard: tapCardNow } : {})}
@@ -471,6 +499,21 @@ export function GameTable({ replay = false,
         <HelpSheet open={helpOpen} onOpenChange={setHelpOpen} state={state} questions={questions} replay={replay} waiting={waiting} conceding={conceding} />
         <ZoneSheet onSourceChange={setZone} source={zone} state={state} pictures={pictures} onClose={() => setZone(null)} onLook={openCard} />
         <HistorySheet open={historyOpen} onOpenChange={setHistoryOpen} history={history} state={state} questions={questions} onLook={(id) => { lookAtQuestionCard(id); setInspectingHistory(true) }} />
+        {/* The start hand in full screen (prompt 50): over the table, under a card view opened from it. */}
+        <StartHandView
+          open={startOpen}
+          onClose={() => setStartMemory({ dismissed: startKey, requested: null, awaiting: null, shown: null })}
+          question={start}
+          state={state}
+          prompt={prompt}
+          moment={moment}
+          pictures={pictures}
+          inspecting={look?.open === true}
+          onLook={(id) => openCard(id, ownHand ?? undefined)}
+          onAnswer={onAnswer}
+          onAnswered={() => setStartMemory((previous) => ({ ...previous, requested: null, awaiting: startKey }))}
+          onTapCard={onTapCard === undefined ? undefined : tapCardNow}
+        />
         <CardView
           look={look}
           onBrowse={(id) => setLook((previous) => previous === null ? null : { ...previous, id })}
@@ -700,7 +743,9 @@ function cardActions(controls: CardControls, card: VisibleCard, place: CardPlace
   const found = cardUse(card, place, controls.moment)
   // Only looked at (no page to send taps): the primary activation looks too.
   const usage: CardUse = controls.live ? found : { ...found, primary: "look" }
-  return { usage, primary: () => controls.primary(card, usage), look: () => controls.look(card.id) }
+  // A card of the player's own hand is looked at with the hand to browse (prompt 50).
+  const browse = place.zone === "hand" && place.mine ? (controls.handBrowse ?? undefined) : undefined
+  return { usage, primary: () => controls.primary(card, usage, browse), look: () => controls.look(card.id, browse) }
 }
 
 /**

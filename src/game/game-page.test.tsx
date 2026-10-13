@@ -8,7 +8,7 @@
  * scripted worker (src/test/game-fixtures.ts); the decks come from the
  * local database.
  */
-import { act, render, screen, waitFor, within } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { createMemoryRouter, Outlet, RouterProvider } from "react-router"
 import { afterEach, describe, expect, it, vi } from "vitest"
@@ -165,6 +165,7 @@ describe("the play page", () => {
     expect(within(panel).getByRole("link", { name: "Zur Partie" })).toHaveAttribute("href", "/play/game")
     await user.click(screen.getByRole("button", { name: "Zur laufenden Partie" }))
     expect(router.state.location.pathname).toBe("/play/game")
+    await closeStartHand()
     expect(await screen.findByRole("region", { name: "Deine Hand" })).toBeInTheDocument()
     expect(engine.worker().matchStarts()).toHaveLength(1)
   })
@@ -222,6 +223,13 @@ describe("the play page: the AI profile (prompt 12)", () => {
 })
 
 /** A ready engine running a game up to Forge's mulligan question. */
+/** Prompt 50: the start hand in full screen opens by itself at Forge's mulligan; Escape closes it and answers nothing. */
+async function closeStartHand(): Promise<void> {
+  const panel = await screen.findByRole("dialog", { name: "Deine Starthand" })
+  fireEvent.keyDown(panel, { key: "Escape" })
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Deine Starthand" })).not.toBeInTheDocument())
+}
+
 async function runningGame(): Promise<TestEngine> {
   const engine = testEngine()
   engine.session.start()
@@ -257,6 +265,8 @@ describe("the game page: the opponent's turn (prompt 49)", () => {
     db.close()
     const engine = await runningGame()
     renderAt("/play/game", engine)
+    // Prompt 50: the start hand opens by itself at Forge's mulligan; closing it answers nothing.
+    await closeStartHand()
     const decision = await screen.findByRole("region", { name: "Entscheidung" })
     const header = screen.getByRole("region", { name: "Spielstand" })
     // Forge confirms the start's settings; the saved auto-pass differs: sent once through settings.change.
@@ -381,6 +391,31 @@ describe("the game page: cards (prompt 14)", () => {
 })
 
 describe("the game page: Forge's decisions (prompt 15)", () => {
+  it("prompt 50: the start hand opens by itself; its \"Behalten\" is Forge's answer through the client, once; it waits for Forge and goes at the first priority", { timeout: 20_000 }, async () => {
+    let clock = 50_000
+    vi.spyOn(performance, "now").mockImplementation(() => clock)
+    const user = userEvent.setup()
+    await store([RED, GREEN])
+    const engine = await runningGame()
+    renderAt("/play/game", engine)
+    const panel = await screen.findByRole("dialog", { name: "Deine Starthand" })
+    expect(panel.querySelectorAll("[data-start-hand-card]")).toHaveLength(7)
+    // Opening it sent nothing; a press right away is dropped (armed).
+    expect(engine.worker().inputs()).toEqual([])
+    const keep = within(within(panel).getByRole("group", { name: "Antworten, die Forge anbietet" })).getByRole("button", { name: "Behalten" })
+    await user.click(keep)
+    expect(engine.worker().inputs()).toEqual([])
+    clock += ARMING_MS
+    await user.click(keep)
+    expect(engine.worker().inputs()).toEqual([{ type: "answer", seq: 1, question: 1, kind: "buttons", button: 1 }])
+    // Forge computes: the panel stays and says so; then the first priority - back to the table.
+    expect(within(panel).getByRole("button", { name: "Behalten" })).toBeDisabled()
+    act(() => engine.worker().priority({ answered: 1 }))
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Deine Starthand" })).not.toBeInTheDocument())
+    expect(await within(screen.getByRole("region", { name: "Entscheidung" })).findByRole("button", { name: "Weiter" })).toBeInTheDocument()
+    expect(engine.worker().inputs()).toEqual([])
+  })
+
   it("keeping the hand, playing a land, passing priority: each only when the player presses; Forge's refusal shows", { timeout: 20_000 }, async () => {
     let clock = 50_000
     vi.spyOn(performance, "now").mockImplementation(() => clock)
@@ -388,6 +423,8 @@ describe("the game page: Forge's decisions (prompt 15)", () => {
     await store([RED, GREEN])
     const engine = await runningGame()
     renderAt("/play/game", engine)
+    // Prompt 50: the start hand opens by itself at Forge's mulligan; closing it answers nothing.
+    await closeStartHand()
     const decision = await screen.findByRole("region", { name: "Entscheidung" })
     // Forge asks; nothing is answered for the player.
     expect(engine.worker().inputs()).toEqual([])
@@ -555,6 +592,8 @@ describe("the game page", () => {
     await store([RED, GREEN])
     const engine = await runningGame()
     renderAt("/play/game", engine)
+    // Prompt 50: the start hand opens by itself at Forge's mulligan; closing it answers nothing.
+    await closeStartHand()
     const header = await screen.findByRole("region", { name: "Spielstand" })
     expect(screen.getByRole("heading", { level: 1, name: "Partie" })).toBeInTheDocument()
     expect(within(header).getByText("Vor dem ersten Zug")).toBeInTheDocument()
@@ -665,6 +704,8 @@ describe("the game page", () => {
     await store([RED, GREEN])
     const engine = await runningGame()
     renderAt("/play/game", engine)
+    // Prompt 50: the start hand opens by itself at Forge's mulligan; closing it answers nothing.
+    await closeStartHand()
     await screen.findByRole("region", { name: "Deine Hand" })
     act(() => engine.worker().send({ type: "events", entries: [{ kind: "LIFE", text: "Vor dem technischen Abbruch" }] }))
     act(() => engine.worker().crash("Uncaught RuntimeError: unreachable"))
@@ -740,6 +781,8 @@ describe("the game page", () => {
     await store([RED, GREEN])
     const engine = await runningGame()
     renderAt("/play/game", engine)
+    // Prompt 50: the start hand opens by itself at Forge's mulligan; closing it answers nothing.
+    await closeStartHand()
     await screen.findByRole("region", { name: "Deine Hand" })
     act(() => engine.worker().send({ type: "message", kind: "notice", title: "Forge-KI", text: "Forge-KI zeigt dir eine Karte." }))
     const toast = await screen.findByText("Forge-KI: Forge-KI zeigt dir eine Karte.", { selector: "[data-title]" })

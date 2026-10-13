@@ -333,6 +333,13 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Assumptions (changeable): the tempo values; the stage over the player's half; "Weiter" also while the tempo runs; the auto-pass setting under `display.*` (device-local like the tempo).
 - Evidence: `docs/implementation/49-gegnerzug-und-spieltempo.md`; local only, complete acceptance in prompt 52.
 
+### The start hand and browsing the hand (Prompt 50, series openmana-spielfluss 3/5)
+
+- At Forge's mulligan questions the start hand opens in full screen (`StartHandView`, shadcn Dialog on `hand-spread.tsx`): every card whole, not overlapping, as large as the room allows; exactly Forge's buttons (armed), the London mulligan's choice through buttons under the cards (Forge's `card.tap`), closing answers nothing, "Starthand ansehen" reopens it; it follows Forge's real order (bottom choice right after each mulligan, then keep or mulligan again).
+- Every card opened from the own hand browses the hand: swipes, buttons, arrow keys, "3 von 7", no wrapping, never an input; a card that left the hand stays in view.
+- Assumptions (changeable): the panel opens by itself once per hand (closed, it stays closed for that hand); the choice for the bottom uses a button under each card while a tap on the card only looks; swipes only with touch/pen (the mouse uses buttons and keys); the smallest card before the grid scrolls is 88 px.
+- Evidence: `docs/implementation/50-starthand-und-handkarten-blaettern.md`; local only, complete acceptance in prompt 52.
+
 ### ORYX Cloud Sync (outside the queue, 2026-09-25)
 - The project owner's direct assignment, not a queue prompt (outside the numbered program): the player's collection syncs through their ORYX account (the launcher's Supabase cloud) with the vendored ORYX SDK 1.0.0 (`src/cloud/oryx-sdk.js` and `.d.ts`, byte-identical copies of `oryx-games/shared`, checksum-tested, excluded from lint only themselves). Active only on `https://openmana.vercel.app/`; locally, in tests and previews inactive (no request, nothing stored). Local stays the source of truth.
 - One slot `collection` = one document (`src/storage/collection.ts`, schema `CollectionDocument`, version = `SCHEMA_VERSION`): valid decks, deletion marks (90 days) and every setting except `display.*`; never caches, recorded matches or `meta`.
@@ -346,7 +353,7 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 ## Currently In Progress
 Prompts 46 (drag and drop) and 47 (the full-screen card view, protocol 9) are implemented and locally verified: the final engine update pipeline, complete regression and seven readiness games passed. The deployment manifest selects `engine-p9-fba5601117ff`; its authorized publication and production acceptance are tracked in the central Dropzone completion report. The table redesign 36–45 remains complete; transferring its style to the rest of the app is a separate series.
 
-Series *openmana-spielfluss* (48–52): prompt 48 (protocol 10, observable engine steps, local engine candidate) and prompt 49 (the opponent's turn on the table, tempo, "Weiter") are implemented with their targeted checks; 50–51 build the table's part on that candidate, 52 runs the complete acceptance, promotes the lock and publishes. Until 52 the locked/deployed engine stays `engine-p9-fba5601117ff` (protocol 9), which today's app (protocol 10) no longer accepts locally - build with the candidate.
+Series *openmana-spielfluss* (48–52): prompt 48 (protocol 10, observable engine steps, local engine candidate), prompt 49 (the opponent's turn on the table, tempo, "Weiter") and prompt 50 (the start hand in full screen, browsing the hand) are implemented with their targeted checks; 51 builds the table's part on that candidate, 52 runs the complete acceptance, promotes the lock and publishes. Until 52 the locked/deployed engine stays `engine-p9-fba5601117ff` (protocol 9), which today's app (protocol 10) no longer accepts locally - build with the candidate.
 
 Any agent entering the repository must first reconcile this statement with the central Dropzone task state and Git state.
 

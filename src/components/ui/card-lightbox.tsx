@@ -101,7 +101,7 @@ export function useCloseWatcher(active: boolean, onClose: () => void): void {
  * began after the dialog opened counts: the release of the one that opened it neither moves the focus, nor clicks,
  * nor closes (a keyboard's click comes without a press and stays).
  */
-function useOwnPresses() {
+export function useOwnPresses() {
   const press = React.useRef({ pressed: false, ghost: false })
   return React.useMemo(() => ({
     reset: () => { press.current = { pressed: false, ghost: false } },

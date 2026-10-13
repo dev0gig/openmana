@@ -10,6 +10,7 @@
  *   npm run test:e2e -- --no-build --table-only   complete table checks at all eight sizes, no fresh engine boot
  *   npm run test:e2e -- --no-build --drag-only    playing by dragging in two real games (mouse, touch; prompt 46)
  *   npm run test:e2e -- --no-build --opponent-only following the AI's turn in two real games (tempo, "Weiter", layouts; prompt 49)
+ *   npm run test:e2e -- --no-build --starthand-only the start hand and browsing the hand: recorded scene at eleven sizes, two real games (prompt 50)
  *   npm run test:e2e -- --no-build --help-only    contextual help on recorded/built scenes, no engine boot
  *   npm run test:e2e -- --no-build --history-only recorded Forge history and current sources only
  *   npm run test:e2e -- --no-build --zones-only   visible zones, piles and DFC inspection only
@@ -152,8 +153,9 @@ const helpOnly = process.argv.includes("--help-only")
 const tableOnly = process.argv.includes("--table-only")
 const dragOnly = process.argv.includes("--drag-only")
 const opponentOnly = process.argv.includes("--opponent-only")
+const startHandOnly = process.argv.includes("--starthand-only")
 const focusedTable = combatOnly || zonesOnly || historyOnly || helpOnly
-const reportDir = path.join(root, "reports", oryxOnly ? "oryx-e2e" : responsiveOnly ? "responsive-e2e" : replayOnly ? "replay-e2e" : tableOnly ? "table-e2e" : dragOnly ? "drag-e2e" : opponentOnly ? "opponent-e2e" : helpOnly ? "help-e2e" : combatOnly ? "combat-e2e" : zonesOnly ? "zones-e2e" : historyOnly ? "history-e2e" : "e2e")
+const reportDir = path.join(root, "reports", oryxOnly ? "oryx-e2e" : responsiveOnly ? "responsive-e2e" : replayOnly ? "replay-e2e" : tableOnly ? "table-e2e" : dragOnly ? "drag-e2e" : opponentOnly ? "opponent-e2e" : startHandOnly ? "starthand-e2e" : helpOnly ? "help-e2e" : combatOnly ? "combat-e2e" : zonesOnly ? "zones-e2e" : historyOnly ? "history-e2e" : "e2e")
 const require = createRequire(import.meta.url)
 
 interface Viewport {
@@ -2353,9 +2355,34 @@ async function checkFirstDecision(page: Page, label: string, expect: { readonly 
   return { decision: text, answers, players: facts }
 }
 
+/**
+ * Prompt 50: the start hand in full screen opens by itself at Forge's mulligan (start-hand-view.tsx). The checks that
+ * play on the table close it - closing answers nothing, Forge's question stays in the decision region; `--starthand-only`
+ * checks the panel itself. A card view over it closes first. True when something was closed.
+ */
+async function startHandAway(page: Page): Promise<boolean> {
+  let closed = false
+  for (let round = 0; round < 3 && (await page.locator('[data-slot="hand-spread"]').count()) > 0; round++) {
+    await page.keyboard.press("Escape")
+    await page.waitForTimeout(150)
+    closed = true
+  }
+  await page.locator('[data-slot="hand-spread"]').waitFor({ state: "detached", timeout: 10_000 })
+  return closed
+}
+
+/** Forge waits for the player ("Du bist dran" in the header); the start hand, if it opened, is closed (prompt 50: startHandAway). */
+async function youAreAsked(page: Page): Promise<void> {
+  await page.waitForFunction(() => [...(document.querySelector('section[aria-label="Spielstand"]')?.querySelectorAll('[data-slot="badge"]') ?? [])].some((badge) => (badge.textContent ?? "").trim() === "Du bist dran"), undefined, { timeout: 180_000 })
+  await startHandAway(page)
+}
+
 /** Waits until Forge asks the player on the running game's table; if it does not, says what the page shows instead (a refusal, an abort, a silent engine …). */
 async function waitForDecision(page: Page): Promise<void> {
   try {
+    // The start hand (prompt 50) hides the table from the accessibility tree while it is open: wait for either, close it.
+    await page.waitForFunction(() => document.querySelector('[data-slot="hand-spread"]') !== null || [...document.querySelectorAll('section[aria-label="Entscheidung"] h2')].some((heading) => (heading.textContent ?? "").trim() === "Forge wartet auf deine Entscheidung"), undefined, { timeout: 180_000 })
+    await startHandAway(page)
     await page.getByRole("region", { name: "Entscheidung" }).getByRole("heading", { name: "Forge wartet auf deine Entscheidung" }).waitFor({ timeout: 180_000 })
   } catch (error) {
     const shown = ((await page.locator("body").innerText().catch(() => "")) || "").replace(/\s+/g, " ").slice(0, 800)
@@ -2541,7 +2568,7 @@ async function playRealGame(page: Page, label: string, touch = false): Promise<R
   }
   /** Waits until Forge waits for the player with a decision; returns its kind (the first line of the decision) and its question. */
   const next = async (): Promise<{ readonly kind: string; readonly question: string | null }> => {
-    await tableHeader(page).getByText("Du bist dran", { exact: true }).waitFor({ timeout: 180_000 })
+    await youAreAsked(page)
     await waitForDecision(page)
     // The first line is the kind, then - after " · " - the asking card's name, if Forge names one.
     const line = ((await decision.locator('[data-slot="game-decision-header"] p').first().textContent()) ?? "").trim()
@@ -2661,7 +2688,7 @@ async function finishedRecordingCheck(page: Page, label: string): Promise<Record
 }
 
 async function liveReplayCheck(page: Page, label: string): Promise<Record<string, unknown>> {
-  await tableHeader(page).getByText("Du bist dran", { exact: true }).waitFor({ timeout: 180_000 })
+  await youAreAsked(page)
   await waitForDecision(page)
   await page.waitForTimeout(300) // flush the last received batch before comparing the read-only inspection
   const before = await dumpDatabase(page)
@@ -2797,7 +2824,7 @@ async function gameSession(browser: Browser, page: Page, pageLog: PageLog, base:
   // Answering Forge (prompt 15): keep, pass, play a land, pass - in the real game.
   results["played"] = await playRealGame(page, "game (Constructed, playing)")
   // Forge plays on after the last press: measure once it waits for the player again (the table stands still).
-  await tableHeader(page).getByText("Du bist dran", { exact: true }).waitFor({ timeout: 180_000 })
+  await youAreAsked(page)
   results["playedAxe"] = await accessibility(page, "game (Constructed, playing)")
   await page.screenshot({ path: path.join(reportDir, "screens", "desktop-game-played.png") })
 
@@ -2893,7 +2920,7 @@ async function dragInRealGame(browser: Browser, base: string, viewport: Viewport
     let casting = false
     let aiLife: number | null = null
     for (let step = 0; step < 120 && aiLife === null && Date.now() - started < 420_000; step++) {
-      await tableHeader(page).getByText("Du bist dran", { exact: true }).waitFor({ timeout: 180_000 })
+      await youAreAsked(page)
       await waitForDecision(page)
       await page.waitForTimeout(150)
       const view = await readTable(page)
@@ -3417,6 +3444,7 @@ async function opponentTurnInRealGame(browser: Browser, base: string, viewport: 
         await page.waitForTimeout(200)
         continue
       }
+      await startHandAway(page)
       const view = await readTable(page)
       if (view.turn !== lastTurn) {
         lastTurn = view.turn
@@ -7236,6 +7264,599 @@ async function oryxNavigation(browser: Browser, base: string): Promise<void> {
   report["oryxWebIntegration"] = { evidence: "Desktop Chrome with CSS/touch emulation, a stand-in launcher and actual IndexedDB. No physical Android/TWA acceptance.", deviceAcceptance: "pending", results }
 }
 
+// ── The start hand and browsing the hand (prompt 50, --starthand-only) ─────
+
+interface Point { readonly x: number; readonly y: number }
+
+/**
+ * Chrome's own touch input along straight lines, one per finger (CDP Input.dispatchTouchEvent): all fingers laid on
+ * together, held, moved in `steps` steps, lifted. A single finger moving sideways is a swipe; others are not.
+ */
+async function touchGesture(page: Page, fingers: readonly { readonly from: Point; readonly to: Point }[], options: { readonly holdMs?: number; readonly steps?: number } = {}): Promise<void> {
+  const cdp = await page.context().newCDPSession(page)
+  const at = (t: number) => fingers.map((finger, id) => ({ x: finger.from.x + (finger.to.x - finger.from.x) * t, y: finger.from.y + (finger.to.y - finger.from.y) * t, id }))
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: at(0) })
+  if (options.holdMs !== undefined) await page.waitForTimeout(options.holdMs)
+  const steps = options.steps ?? 10
+  for (let step = 1; step <= steps; step++) {
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: at(step / steps) })
+    await page.waitForTimeout(16)
+  }
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] })
+  await cdp.detach()
+  await page.waitForTimeout(250)
+}
+
+/** The card view's card (its id) and where it stands in the list ("3 von 7"). */
+async function viewedCard(page: Page): Promise<{ readonly id: string | null; readonly position: string | null }> {
+  return page.evaluate(() => ({ id: document.querySelector('[data-slot="card-view"]')?.getAttribute("data-card-view") ?? null, position: document.querySelector('[data-slot="card-view-position"]')?.textContent ?? null }))
+}
+
+/** Waits until the start hand's pictures (and an open card view's) have loaded: closing a panel aborts pictures still on their way. */
+async function startHandPictures(page: Page): Promise<void> {
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-slot="hand-spread"] [data-slot="card-picture"], [data-slot="card-view"] [data-slot="card-picture"]')].every((picture) => picture.getAttribute("data-state") !== "loading"), undefined, { timeout: 30_000 }).catch(() => undefined)
+}
+
+/** Waits until an opened card view stands (its opening animation ended, its pictures loaded): a person reads before pressing Escape. */
+async function cardViewSettled(page: Page): Promise<void> {
+  const view = page.locator('[data-slot="card-view"]')
+  await view.waitFor()
+  await animationsDone(view)
+  await startHandPictures(page)
+}
+
+/** The middle of the card in the open card view. */
+async function viewPicture(page: Page): Promise<Point> {
+  const box = await page.locator('[data-slot="card-lightbox-picture"]').boundingBox()
+  if (box === null) throw new Error("the card view shows no card")
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+}
+
+/**
+ * The open start hand, measured: every card whole on the screen (or reachable by scrolling the grid), in its proportions,
+ * at least the smallest size, none over another or under the header, the footer or the X; Forge's buttons on screen,
+ * 44 px on touch; under each card its button for the bottom (the London mulligan) - below the card, never on another.
+ */
+async function startHandFacts(page: Page, label: string, viewport: { readonly width: number; readonly height: number; readonly touch: boolean }, expect: { readonly cards: number; readonly toggles: boolean }): Promise<Record<string, unknown>> {
+  const panel = page.locator('[data-slot="hand-spread"]')
+  await panel.waitFor()
+  await animationsDone(panel)
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-slot="hand-spread"] [data-slot="card-picture"]')].every((picture) => picture.getAttribute("data-state") !== "loading"), undefined, { timeout: 30_000 }).catch(() => undefined)
+  const facts = await page.evaluate(() => {
+    const rect = (element: Element | null) => {
+      if (element === null) return null
+      const r = element.getBoundingClientRect()
+      return { x: r.x, y: r.y, width: r.width, height: r.height }
+    }
+    const grid = document.querySelector<HTMLElement>('[data-slot="hand-spread-grid"]')
+    return {
+      scroll: grid?.hasAttribute("data-scroll") ?? false,
+      columns: Number(grid?.dataset["columns"] ?? 0),
+      grid: rect(grid),
+      header: rect(document.querySelector('[data-slot="hand-spread-header"]')),
+      footer: rect(document.querySelector('[data-slot="hand-spread-footer"]')),
+      close: rect(document.querySelector('[data-slot="hand-spread-close"]')),
+      cards: [...document.querySelectorAll("[data-start-hand-card]")].map((card) => ({ id: card.getAttribute("data-start-hand-card"), mark: card.getAttribute("data-mark"), ...rect(card.querySelector('[data-slot="game-card-face"]') ?? card)!, picture: card.querySelector('[data-slot="card-picture"]')?.getAttribute("data-state") ?? null })),
+      toggles: [...document.querySelectorAll("[data-bottom-toggle]")].map((toggle) => ({ id: toggle.getAttribute("data-bottom-toggle"), ...rect(toggle)! })),
+      answers: [...document.querySelectorAll("[data-start-answer]")].map((button) => ({ name: (button.textContent ?? "").trim(), disabled: (button as HTMLButtonElement).disabled, ...rect(button)! })),
+      title: document.querySelector('[data-slot="hand-spread"] h2')?.textContent ?? null,
+    }
+  })
+  const { width, height } = viewport
+  check(facts.cards.length === expect.cards, `${label}: ${facts.cards.length} cards in the start hand, expected ${expect.cards}`)
+  for (const card of facts.cards) {
+    check(Math.abs(card.height - (card.width * 88) / 63) <= 2, `${label}: card ${card.id} not in its proportions ${JSON.stringify(card)}`)
+    check(card.width >= 87.5, `${label}: card ${card.id} only ${card.width}px wide`)
+    check(card.picture === "loaded" || card.picture === "missing", `${label}: card ${card.id}'s picture ${card.picture}`)
+    if (!facts.scroll) {
+      check(inside(card, width, height), `${label}: card ${card.id} not whole on screen ${JSON.stringify(card)}`)
+      check(facts.footer === null || card.y + card.height <= facts.footer.y + 0.5, `${label}: card ${card.id} under the footer`)
+      check(facts.header === null || card.y >= facts.header.y + facts.header.height - 0.5, `${label}: card ${card.id} under the header`)
+    } else check(card.x >= -0.5 && card.x + card.width <= width + 0.5, `${label}: card ${card.id} off the screen's width in the scrolling grid`)
+    check(facts.close === null || !overlaps(card, facts.close), `${label}: the X lies on card ${card.id}`)
+  }
+  for (let a = 0; a < facts.cards.length; a++) for (let b = a + 1; b < facts.cards.length; b++) check(!overlaps(facts.cards[a]!, facts.cards[b]!), `${label}: cards ${facts.cards[a]!.id} and ${facts.cards[b]!.id} overlap`)
+  check(facts.answers.length >= 2 && facts.answers.every((button) => inside(button, width, height)), `${label}: Forge's buttons not on screen ${JSON.stringify(facts.answers)}`)
+  if (viewport.touch) check(facts.answers.every((button) => button.height >= 44), `${label}: Forge's buttons smaller than 44 px ${JSON.stringify(facts.answers)}`)
+  check(facts.close !== null && inside(facts.close, width, height), `${label}: the X ${JSON.stringify(facts.close)}`)
+  if (expect.toggles) {
+    check(facts.toggles.length === expect.cards, `${label}: ${facts.toggles.length} buttons for the bottom`)
+    for (const toggle of facts.toggles) {
+      const card = facts.cards.find((each) => each.id === toggle.id)
+      check(card !== undefined && toggle.y >= card.y + card.height - 0.5 && toggle.x >= card.x - 1 && toggle.x + toggle.width <= card.x + card.width + 1, `${label}: the button of card ${toggle.id} not under its card ${JSON.stringify({ toggle, card })}`)
+      for (const other of facts.cards) check(!overlaps(toggle, other), `${label}: the button of card ${toggle.id} lies on card ${other.id}`)
+      if (viewport.touch) check(toggle.height >= 44, `${label}: the button of card ${toggle.id} ${toggle.height}px high`)
+      if (!facts.scroll) check(inside(toggle, width, height) && (facts.footer === null || toggle.y + toggle.height <= facts.footer.y + 0.5), `${label}: the button of card ${toggle.id} off screen or under the footer`)
+    }
+  } else check(facts.toggles.length === 0, `${label}: buttons for the bottom at the keep-or-mulligan question`)
+  return { title: facts.title, columns: facts.columns, scroll: facts.scroll, card: facts.cards[0] === undefined ? null : { width: Math.round(facts.cards[0].width), height: Math.round(facts.cards[0].height) }, answers: facts.answers.map((button) => `${button.name}${button.disabled ? " (aus)" : ""}`), marked: facts.cards.filter((card) => card.mark === "selected").map((card) => card.id) }
+}
+
+/**
+ * The start hand on the recorded "opening" scene (Forge's real mulligan, seven cards with the catalog's pictures) in
+ * real Chrome, `starthand=1` as in the running game:
+ *  - at the eight sizes and the foldable's three: every card whole, not overlapping, as large as the room allows (the
+ *    grid scrolls only below the smallest size), Forge's buttons in view; with the London mulligan's choice (built:
+ *    `starthand=bottom`, two cards marked) at four of them; axe in each layout;
+ *  - on a phone (touch), a phone turned (touch) and a desktop (mouse, keyboard): a double tap on a card opens the card
+ *    view once with "1 von 7"; swipes to the left and right browse, at the first card nothing, up and down, a long
+ *    press, two fingers and a touch from the screen's edge do not (touch); arrow keys and buttons (desktop); a
+ *    double-faced card turns only by its button; closing the view comes back to the panel, the focus on the card; a
+ *    press on "Behalten" right after that is dropped, later it is exactly one answer; Escape, the X and the system's
+ *    close request (CloseWatcher) close the panel and answer nothing; "Starthand ansehen" opens it again.
+ * The harness records every tap and answer: looking sends nothing.
+ */
+async function startHandHarness(executablePath: string): Promise<Record<string, unknown>> {
+  log("Start hand (recorded mulligan in the real table)")
+  const server = await createServer({ root, configFile: path.join(root, "vite.config.ts"), logLevel: "warn", server: { host: "127.0.0.1", port: 0 } })
+  await server.listen()
+  const base = server.resolvedUrls?.local[0]
+  if (!base) throw new Error("the dev server did not report its URL")
+  const results: Record<string, unknown> = {}
+  const harnessBrowser = await launchBrowser(executablePath)
+  try {
+    // The dev server prepares its modules on the first request: give that one time.
+    const warm = await harnessBrowser.newPage()
+    await warm.goto(new URL("/scripts/e2e/table-harness.html?scene=opening", base).href, { waitUntil: "domcontentloaded", timeout: 300_000 })
+    await warm.close()
+    const sizes: Record<string, unknown> = {}
+    const axeAt = new Set(["small-phone", "phone-landscape", "fold-open", "desktop"])
+    for (const viewport of [...RESPONSIVE_VIEWPORTS, ...FOLD_VIEWPORTS]) {
+      const context = await newContext(harnessBrowser, viewport)
+      try {
+        const page = await context.newPage()
+        const pageLog = watch(page)
+        const label = `start hand (${viewport.name})`
+        await openScene(page, base, "opening", "&starthand=1")
+        const keep = await startHandFacts(page, label, viewport, { cards: 7, toggles: false })
+        await page.screenshot({ path: path.join(reportDir, "screens", `starthand-${viewport.name}.png`) })
+        const axe = axeAt.has(viewport.name) ? await accessibility(page, label) : null
+        let bottom: Record<string, unknown> | null = null
+        for (const error of pageLog.errors) check(false, `${label}: ${error}`)
+        check((await harnessTaps(page)).length === 0 && (await harnessAnswers(page)).length === 0, `${label}: showing the start hand sent an input`)
+        await page.close()
+        if (axeAt.has(viewport.name) || viewport.name === "fold-closed") {
+          // A fresh page (navigating away aborts the pictures still loading).
+          const page = await context.newPage()
+          const pageLog = watch(page)
+          await openScene(page, base, "opening", "&starthand=bottom")
+          bottom = await startHandFacts(page, `${label}, the bottom (built)`, viewport, { cards: 7, toggles: true })
+          check(JSON.stringify(bottom["marked"]) === JSON.stringify(["53", "59"]), `${label}: the marked cards ${JSON.stringify(bottom["marked"])}`)
+          check(((await page.locator("[data-start-hand-chosen]").textContent()) ?? "") === "2 ausgewählt", `${label}: the count of marked cards`)
+          await page.screenshot({ path: path.join(reportDir, "screens", `starthand-${viewport.name}-bottom.png`) })
+          if (axeAt.has(viewport.name)) await accessibility(page, `${label}, the bottom (built)`)
+          check((await harnessTaps(page)).length === 0 && (await harnessAnswers(page)).length === 0, `${label}: showing the choice for the bottom sent an input`)
+          for (const error of pageLog.errors) check(false, `${label}: ${error}`)
+          await page.close()
+        }
+        sizes[viewport.name] = { layout: tableLayoutOf(viewport.width, viewport.height), keep, bottom, axe }
+      } finally {
+        await context.close()
+      }
+    }
+    results["sizes"] = sizes
+    const interactions: Record<string, unknown> = {}
+    for (const viewport of [VIEWPORTS[0]!, RESPONSIVE_VIEWPORTS[2]!, VIEWPORTS[2]!]) {
+      const context = await newContext(harnessBrowser, viewport)
+      try {
+        interactions[viewport.name] = await startHandInteractions(context, base, viewport)
+      } finally {
+        await context.close()
+      }
+    }
+    results["interactions"] = interactions
+  } finally {
+    await harnessBrowser.close()
+    await server.close()
+  }
+  return results
+}
+
+async function startHandInteractions(context: BrowserContext, base: string, viewport: Viewport): Promise<Record<string, unknown>> {
+  const label = `start hand (${viewport.name})`
+  const touch = viewport.touch
+  const page = await context.newPage()
+  const pageLog = watch(page)
+  const results: Record<string, unknown> = {}
+  const safe = async (what: string) => check((await harnessTaps(page)).length === 0 && (await harnessAnswers(page)).length === 0, `${label}: ${what} sent an input ${JSON.stringify({ taps: await harnessTaps(page), answers: await harnessAnswers(page) })}`)
+  const shot = (name: string) => page.screenshot({ path: path.join(reportDir, "screens", `starthand-${viewport.name}-${name}.png`) })
+  await openScene(page, base, "opening", "&starthand=1")
+  await page.locator('[data-slot="hand-spread"]').waitFor()
+  await startHandPictures(page)
+  const first = page.locator('[data-start-hand-card="53"]')
+  // A double tap / double click on a card: its view opens once; nothing is sent.
+  const box = await first.boundingBox()
+  if (box === null) throw new Error("the first card has no box")
+  if (touch) {
+    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2)
+    await page.waitForTimeout(90)
+    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2)
+  } else await page.mouse.dblclick(box.x + box.width / 2, box.y + box.height / 2)
+  await page.locator('[data-slot="card-view"]').waitFor()
+  await page.waitForTimeout(300)
+  results["doubleTap"] = { views: await page.locator('[data-slot="card-view"]').count(), card: await viewedCard(page) }
+  check((await page.locator('[data-slot="card-view"]').count()) === 1 && (await viewedCard(page)).position === "1 von 7", `${label}: a double tap on a card ${JSON.stringify(results["doubleTap"])}`)
+  await safe("a double tap on a card")
+  results["cardViewAxe"] = await accessibility(page, `${label}: card view over the start hand`)
+  await shot("card-view")
+  const order = ["53", "59", "45", "55", "34", "37", "33"]
+  if (touch) {
+    const centre = await viewPicture(page)
+    const swipe = (dx: number, dy = 0, from = centre) => touchGesture(page, [{ from, to: { x: from.x + dx, y: from.y + dy } }])
+    const seen: Record<string, unknown> = {}
+    await swipe(-140)
+    await startHandPictures(page)
+    seen["left"] = await viewedCard(page)
+    await swipe(140)
+    await startHandPictures(page)
+    seen["right"] = await viewedCard(page)
+    await swipe(140)
+    seen["rightAtFirst"] = await viewedCard(page)
+    await swipe(-20, -220)
+    seen["vertical"] = await viewedCard(page)
+    await touchGesture(page, [{ from: centre, to: { x: centre.x - 140, y: centre.y } }], { holdMs: 750 })
+    seen["longPressThenMove"] = await viewedCard(page)
+    await touchGesture(page, [{ from: centre, to: { x: centre.x - 140, y: centre.y } }, { from: { x: centre.x, y: centre.y + 60 }, to: { x: centre.x - 140, y: centre.y + 60 } }])
+    seen["twoFingers"] = await viewedCard(page)
+    await touchGesture(page, [{ from: { x: 4, y: centre.y }, to: { x: 150, y: centre.y } }])
+    seen["fromTheEdge"] = await viewedCard(page)
+    results["swipes"] = seen
+    const at = (key: string) => (seen[key] as { id: string | null; position: string | null }).id
+    check(at("left") === order[1] && (seen["left"] as { position: string }).position === "2 von 7", `${label}: a swipe to the left ${JSON.stringify(seen["left"])}`)
+    check(at("right") === order[0], `${label}: a swipe to the right ${JSON.stringify(seen["right"])}`)
+    for (const key of ["rightAtFirst", "vertical", "longPressThenMove", "twoFingers", "fromTheEdge"]) check(at(key) === order[0], `${label}: ${key} changed the card ${JSON.stringify(seen[key])}`)
+  } else {
+    const seen: Record<string, unknown> = {}
+    await page.keyboard.press("ArrowRight")
+    await startHandPictures(page)
+    seen["arrowRight"] = await viewedCard(page)
+    await page.keyboard.press("ArrowLeft")
+    await startHandPictures(page)
+    seen["arrowLeft"] = await viewedCard(page)
+    await page.keyboard.press("ArrowLeft")
+    seen["arrowLeftAtFirst"] = await viewedCard(page)
+    await page.locator('[data-slot="card-view"]').getByRole("button", { name: "Nächste Karte", exact: true }).click()
+    await startHandPictures(page)
+    seen["button"] = await viewedCard(page)
+    seen["focus"] = await page.evaluate(() => document.activeElement?.textContent ?? null)
+    await page.keyboard.press("Enter")
+    await startHandPictures(page)
+    seen["enterOnButton"] = await viewedCard(page)
+    // A mouse dragging across the card browses nothing (only touch and pen swipe).
+    const centre = await viewPicture(page)
+    await page.mouse.move(centre.x, centre.y)
+    await page.mouse.down()
+    await page.mouse.move(centre.x - 160, centre.y, { steps: 8 })
+    await page.mouse.up()
+    seen["mouseDrag"] = await viewedCard(page)
+    results["keys"] = seen
+    const id = (key: string) => (seen[key] as { id: string | null }).id
+    check(id("arrowRight") === order[1] && id("arrowLeft") === order[0] && id("arrowLeftAtFirst") === order[0] && id("button") === order[1], `${label}: arrow keys and buttons ${JSON.stringify(seen)}`)
+    check(seen["focus"] === "Nächste Karte" && id("enterOnButton") === order[2] && id("mouseDrag") === order[2], `${label}: the focus on "Nächste Karte" and Enter, a mouse drag ${JSON.stringify(seen)}`)
+  }
+  await safe("browsing the hand")
+  await startHandPictures(page)
+  // Back to the panel; Forge's buttons re-armed: a press right after that is dropped.
+  if (touch) await page.locator('[data-slot="card-lightbox-close"]').tap()
+  else await page.keyboard.press("Escape")
+  await page.locator('[data-slot="card-view"]').waitFor({ state: "detached" })
+  const keep = page.locator('[data-start-answer="1"]')
+  if (touch) await keep.tap()
+  else await keep.click()
+  await page.waitForTimeout(100)
+  const focusBack = await page.evaluate(() => document.activeElement?.getAttribute("data-start-hand-card") ?? document.activeElement?.getAttribute("data-slot") ?? null)
+  check((await harnessAnswers(page)).length === 0, `${label}: "Behalten" right after the card view closed answered`)
+  if (!touch) check(focusBack !== null, `${label}: the focus after the card view ${focusBack}`)
+  results["afterView"] = { panel: await page.locator('[data-slot="hand-spread"]').count(), focus: focusBack }
+  check((await page.locator('[data-slot="hand-spread"]').count()) === 1, `${label}: the panel is gone after the card view`)
+  // Closing answers nothing: Escape / the X; "Starthand ansehen" opens it again; the system's close request.
+  await startHandPictures(page)
+  if (touch) await page.locator('[data-slot="hand-spread-close"]').tap()
+  else await page.keyboard.press("Escape")
+  await page.locator('[data-slot="hand-spread"]').waitFor({ state: "detached" })
+  const reopen = page.locator("[data-start-hand-open]")
+  check((await reopen.count()) === 1, `${label}: no "Starthand ansehen" beside Forge's question`)
+  const reopenHeight = await layoutHeight(reopen)
+  if (touch) check(reopenHeight >= 44, `${label}: "Starthand ansehen" ${reopenHeight}px high`)
+  await page.evaluate(() => {
+    type Watcher = { requestClose(): void }
+    const browser = globalThis as typeof globalThis & { CloseWatcher?: new () => Watcher; startHandWatchers?: Watcher[] }
+    const NativeWatcher = browser.CloseWatcher
+    browser.startHandWatchers = []
+    if (NativeWatcher !== undefined) browser.CloseWatcher = class extends NativeWatcher {
+      constructor() { super(); browser.startHandWatchers!.push(this) }
+    }
+  })
+  if (touch) await reopen.tap()
+  else await reopen.click()
+  await page.locator('[data-slot="hand-spread"]').waitFor()
+  await startHandPictures(page)
+  await page.waitForFunction(() => ((globalThis as typeof globalThis & { startHandWatchers?: unknown[] }).startHandWatchers ?? []).length > 0, undefined, { timeout: 2000 }).catch(() => undefined)
+  const watcher = await page.evaluate(() => {
+    const list = (globalThis as typeof globalThis & { startHandWatchers?: { requestClose(): void }[] }).startHandWatchers ?? []
+    list.at(-1)?.requestClose()
+    return list.length
+  })
+  await page.waitForTimeout(300)
+  const closedByWatcher = (await page.locator('[data-slot="hand-spread"]').count()) === 0
+  check(watcher === 0 || closedByWatcher, `${label}: the system's close request did not close the panel`)
+  await safe("closing and opening the start hand")
+  results["closing"] = { escapeOrX: true, reopen: true, reopenHeight, closeWatcher: watcher > 0 ? closedByWatcher : "CloseWatcher not available" }
+  // Keep, armed: exactly one answer.
+  if (closedByWatcher) {
+    if (touch) await reopen.tap()
+    else await reopen.click()
+    await page.locator('[data-slot="hand-spread"]').waitFor()
+  }
+  await page.waitForTimeout(ARMED_AFTER_MS)
+  if (touch) await keep.tap()
+  else await keep.click()
+  await page.waitForTimeout(200)
+  const answers = await harnessAnswers(page)
+  check(JSON.stringify(answers) === JSON.stringify([[1, { kind: "buttons", button: 1 }]]) && (await harnessTaps(page)).length === 0, `${label}: "Behalten" answered ${JSON.stringify(answers)}`)
+  results["keep"] = answers
+  // A double-faced card (built presentation: the catalog's Delver of Secrets) turns only by its button; a swipe browses.
+  if (touch) {
+    await startHandPictures(page)
+    await openScene(page, base, "opening", "&starthand=1&presentation=dfc")
+    await startHandPictures(page)
+    await page.locator('[data-start-hand-card="53"]').tap()
+    await cardViewSettled(page)
+    const turn = await page.locator('[data-slot="card-view"]').getByRole("button", { name: /^Umdrehen/ }).count()
+    const centre = await viewPicture(page)
+    await touchGesture(page, [{ from: centre, to: { x: centre.x - 140, y: centre.y } }])
+    const swiped = await viewedCard(page)
+    await startHandPictures(page)
+    results["dfc"] = { turnButton: turn, afterSwipe: swiped }
+    check(turn === 1 && swiped.id === order[1], `${label}: a double-faced card and a swipe ${JSON.stringify(results["dfc"])}`)
+    await safe("a double-faced card")
+  }
+  for (const error of pageLog.errors) check(false, `${label}: ${error}`)
+  await page.close()
+  return results
+}
+
+/**
+ * The start hand in a real game with the real engine (prompt 50), a thumb on a phone and mouse and keyboard on a
+ * desktop: the panel opens by itself at Forge's mulligan with the seven cards; a card opened from it and browsed sends
+ * nothing; the panel closed (X) leaves Forge's question in the decision region and "Starthand ansehen" (pressed twice
+ * quickly) opens it again without answering; "Mulligan" twice - each time the panel waits for Forge and shows the new
+ * hand -, then "Behalten": the London mulligan's choice for the bottom - two cards marked through their buttons
+ * (Forge's card.tap; Forge's highlight shows; one taken back and chosen again), Forge's OK only once Forge enables it,
+ * one press -; then the game: the panel is gone, five cards in the hand. A hand card opened on the table browses the
+ * hand ("1 von 5", swipe or arrow keys) and sends nothing. The replay shows the start hand only when asked, read only.
+ * Every input counted in the game's recording.
+ */
+async function startHandInRealGame(browser: Browser, base: string, viewport: Viewport): Promise<Record<string, unknown>> {
+  const label = `start hand in a real game (${viewport.name})`
+  const touch = viewport.touch
+  const context = await newContext(browser, viewport)
+  const page = await context.newPage()
+  const pageLog = watch(page)
+  const results: Record<string, unknown> = {}
+  const shot = (name: string) => page.screenshot({ path: path.join(reportDir, "screens", `starthand-game-${viewport.name}-${name}.png`) })
+  const activate = async (locator: Locator) => (touch ? locator.tap() : locator.click())
+  const panel = page.locator('[data-slot="hand-spread"]')
+  const handIds = () => page.evaluate(() => [...document.querySelectorAll("[data-start-hand-card]")].map((card) => card.getAttribute("data-start-hand-card")).join(","))
+  const answer = async (nr: 1 | 2) => {
+    await page.waitForTimeout(ARMED_AFTER_MS)
+    await activate(page.locator(`[data-start-answer="${nr}"]`))
+  }
+  try {
+    await loadDecks(page, base, dragDecks())
+    await page.goto(new URL("/play", base).href, { waitUntil: "domcontentloaded" })
+    await chooseDeck(page, "Dein Deck wählen", "E2E Ziehen")
+    await chooseDeck(page, "Deck der KI wählen", "E2E Ziehen Gegner")
+    await enginePanel(page).getByText("Bereit", { exact: true }).waitFor({ timeout: 180_000 })
+    await page.getByRole("button", { name: "Partie starten" }).first().click()
+    await page.waitForURL(/\/play\/game$/)
+    // Play or draw (the player won the coin toss) comes first: "Spielen".
+    const first = await page.waitForFunction(() => (document.querySelector('[data-slot="hand-spread"]') !== null ? "panel" : [...document.querySelectorAll('section[aria-label="Entscheidung"] button')].some((button) => (button.textContent ?? "").trim() === "Spielen") ? "play" : false), undefined, { timeout: 180_000 }).then((handle) => handle.jsonValue())
+    if (first === "play") {
+      await page.waitForTimeout(ARMED_AFTER_MS)
+      await activate(page.getByRole("region", { name: "Entscheidung" }).getByRole("button", { name: "Spielen", exact: true }))
+    }
+    // The mulligan: the panel by itself.
+    await panel.waitFor({ timeout: 180_000 })
+    await page.waitForFunction(() => document.querySelectorAll("[data-start-hand-card]").length === 7 && !(document.querySelector('[data-start-answer="1"]') as HTMLButtonElement | null)?.disabled, undefined, { timeout: 60_000 })
+    results["first"] = await startHandFacts(page, `${label}: the first hand`, viewport, { cards: 7, toggles: false })
+    await shot("first")
+    const inputsAtStart = await recordedInputs(page)
+    // What was asked and answered before the start hand (play or draw, when the player won the coin toss).
+    results["beforeStartHand"] = (((await dumpDatabase(page, ["matchLog"]))["matchLog"] ?? []) as { from: string; message: Record<string, unknown> }[])
+      .filter((entry) => entry.message["type"] === "answer" || entry.message["type"] === "question" || (entry.message["type"] === "message" && entry.message["kind"] === "prompt"))
+      .map((entry) => (entry.message["type"] === "answer" ? `answer ${String(entry.message["question"])}: ${String(entry.message["button"])}` : entry.message["type"] === "question" ? `question ${String(entry.message["id"])}: ${String(entry.message["purpose"] ?? entry.message["kind"])}` : `prompt: ${String(entry.message["text"])}`))
+    // A card large, browsed, back.
+    const third = page.locator("[data-start-hand-card]").nth(2)
+    await activate(third)
+    await cardViewSettled(page)
+    const opened = await viewedCard(page)
+    if (touch) {
+      const centre = await viewPicture(page)
+      await touchGesture(page, [{ from: centre, to: { x: centre.x - 140, y: centre.y } }])
+    } else await page.keyboard.press("ArrowRight")
+    const browsed = await viewedCard(page)
+    await shot("card-view")
+    if (touch) await page.locator('[data-slot="card-lightbox-close"]').tap()
+    else await page.keyboard.press("Escape")
+    await page.locator('[data-slot="card-view"]').waitFor({ state: "detached" })
+    results["look"] = { opened, browsed, panelStays: (await panel.count()) === 1 }
+    check(opened.position === "3 von 7" && browsed.position === "4 von 7" && (await panel.count()) === 1, `${label}: looking at a card of the start hand ${JSON.stringify(results["look"])}`)
+    // Closed: Forge's question stays; "Starthand ansehen" twice quickly opens it again, answering nothing.
+    await activate(page.locator('[data-slot="hand-spread-close"]'))
+    await panel.waitFor({ state: "detached" })
+    const decision = page.getByRole("region", { name: "Entscheidung" })
+    const stays = await decision.getByRole("group", { name: "Antworten, die Forge anbietet" }).getByRole("button").allTextContents()
+    const reopen = page.locator("[data-start-hand-open]")
+    const at = await reopen.boundingBox()
+    if (at === null) throw new Error("\"Starthand ansehen\" has no box")
+    if (touch) {
+      await page.touchscreen.tap(at.x + at.width / 2, at.y + at.height / 2)
+      await page.waitForTimeout(90)
+      await page.touchscreen.tap(at.x + at.width / 2, at.y + at.height / 2)
+    } else await page.mouse.dblclick(at.x + at.width / 2, at.y + at.height / 2)
+    await panel.waitFor()
+    await page.waitForTimeout(400)
+    if ((await page.locator('[data-slot="card-view"]').count()) > 0) await page.keyboard.press("Escape")
+    const inputsAfterLooking = await recordedInputs(page)
+    results["closeAndReopen"] = { decisionKeeps: stays, inputsAtStart, inputsAfterLooking }
+    check(stays.join("|") === "Behalten|Mulligan" && JSON.stringify(inputsAfterLooking) === JSON.stringify(inputsAtStart), `${label}: closing and reopening the start hand ${JSON.stringify(results["closeAndReopen"])}`)
+    // Two mulligans. Forge's London mulligan (MulliganService, LondonMulligan.mulliganDraw): after each mulligan Forge
+    // draws seven new cards and asks at once for the cards to put under the library - one per mulligan taken - and then
+    // asks again whether to keep the smaller hand. The panel waits for Forge between the questions and shows each hand.
+    // The question Forge asks now (a new id after every answer and every tap): the next one is another.
+    let lastQuestion: string | null = null
+    const startQuestion = () =>
+      page.waitForFunction((last) => {
+        const answer = document.querySelector('[data-start-answer="1"]') as HTMLButtonElement | null
+        const question = document.querySelector("[data-start-question]")?.getAttribute("data-start-question") ?? null
+        if (answer === null || question === null || question === last || document.querySelector('[data-slot="card-view"]') !== null) return false
+        const bottom = document.querySelectorAll("[data-bottom-toggle]").length > 0
+        if (!bottom && answer.disabled) return false
+        return { bottom, question, ids: [...document.querySelectorAll("[data-start-hand-card]")].map((card) => card.getAttribute("data-start-hand-card")).join(","), title: document.querySelector('[data-slot="hand-spread"] h2')?.textContent ?? "" }
+      }, lastQuestion, { timeout: 120_000 }).then((handle) => handle.jsonValue() as Promise<{ bottom: boolean; question: string; ids: string; title: string }>)
+    const rounds: Record<string, unknown>[] = []
+    let mulligans = 0
+    let toggled = 0
+    let bottomFacts: Record<string, unknown> | null = null
+    const before = await recordedInputs(page)
+    for (let step = 0; step < 8; step++) {
+      const now = await startQuestion().catch(async (error: unknown) => {
+        await shot(`step-${step}-timeout`)
+        throw new Error(`${label}: no start question at step ${step}: ${JSON.stringify({ rounds, now: await handIds(), page: ((await page.locator("body").innerText().catch(() => "")) || "").replace(/\s+/g, " ").slice(0, 600) })}`, { cause: error })
+      })
+      const cards = now.ids.split(",").filter((id) => id !== "")
+      const settle = async () => {
+        lastQuestion = await page.locator("[data-start-question]").getAttribute("data-start-question")
+      }
+      if (!now.bottom) {
+        rounds.push({ step: "mulligan", cards: cards.length, ids: now.ids })
+        check(cards.length === 7 - mulligans, `${label}: the hand to keep has ${cards.length} cards after ${mulligans} mulligans`)
+        await shot(`keep-${mulligans}`)
+        if (mulligans < 2) {
+          mulligans++
+          await settle()
+          await answer(2)
+          continue
+        }
+        await answer(1)
+        break
+      }
+      // The choice for the bottom: the new hand (seven cards, other ones than before), Forge's OK off at first.
+      const facts = await startHandFacts(page, `${label}: the choice for the bottom after mulligan ${mulligans}`, viewport, { cards: 7, toggles: true })
+      const okOff = await page.locator('[data-start-answer="1"]').isDisabled()
+      const previous = rounds.findLast((round) => round["step"] === "mulligan")?.["ids"]
+      rounds.push({ step: "bottom", cards: cards.length, ids: now.ids, okOffAtFirst: okOff, newHand: now.ids !== previous })
+      check(okOff && now.ids !== previous, `${label}: the choice for the bottom after mulligan ${mulligans} ${JSON.stringify(rounds.at(-1))}`)
+      const toggles = page.locator("[data-bottom-toggle]")
+      const choose = async (index: number, expectChosen: number) => {
+        await page.waitForTimeout(ARMED_AFTER_MS)
+        await activate(toggles.nth(index))
+        toggled++
+        await page.waitForFunction((count) => document.querySelector("[data-start-hand-chosen]")?.getAttribute("data-start-hand-chosen") === String(count), expectChosen, { timeout: 60_000 })
+      }
+      await choose(0, 1)
+      if (bottomFacts === null) {
+        // A card looked at in between (its view, the hand to browse), one taken back and chosen again.
+        await activate(page.locator("[data-start-hand-card]").nth(1))
+        await cardViewSettled(page)
+        const midLook = await viewedCard(page)
+        await startHandPictures(page)
+        if (touch) await page.locator('[data-slot="card-lightbox-close"]').tap()
+        else await page.keyboard.press("Escape")
+        await page.locator('[data-slot="card-view"]').waitFor({ state: "detached" })
+        await choose(0, 0)
+        await choose(0, 1)
+        bottomFacts = { facts, midLook }
+        check(midLook.position === "2 von 7", `${label}: a card looked at during the choice ${JSON.stringify(midLook)}`)
+      }
+      for (let index = 1; index < mulligans; index++) await choose(index, index + 1)
+      await page.waitForFunction(() => !(document.querySelector('[data-start-answer="1"]') as HTMLButtonElement | null)?.disabled, undefined, { timeout: 60_000 })
+      const marked = await page.evaluate(() => [...document.querySelectorAll('[data-start-hand-card][data-mark="selected"]')].map((card) => card.getAttribute("data-start-hand-card")))
+      check(marked.length === mulligans, `${label}: ${marked.length} cards marked for the bottom after ${mulligans} mulligans`)
+      await shot(`bottom-${mulligans}`)
+      await settle()
+      await answer(1)
+    }
+    await panel.waitFor({ state: "detached", timeout: 180_000 })
+    const afterChoice = await recordedInputs(page)
+    results["rounds"] = rounds
+    results["bottom"] = { ...bottomFacts, toggled, inputsBefore: before, inputsAfter: afterChoice }
+    check(rounds.map((round) => round["step"]).join(",") === "mulligan,bottom,mulligan,bottom,mulligan", `${label}: Forge's start questions ${JSON.stringify(rounds.map((round) => round["step"]))}`)
+    check(((afterChoice["card.tap"] ?? 0) - (before["card.tap"] ?? 0)) === toggled, `${label}: ${toggled} presses on the buttons for the bottom, ${(afterChoice["card.tap"] ?? 0) - (before["card.tap"] ?? 0)} taps sent`)
+    // The game: Forge waits for the player on the table; five cards in the hand.
+    await youAreAsked(page)
+    await waitForDecision(page)
+    const inputsAfterStart = await recordedInputs(page)
+    const handSize = await page.locator('[data-area="hand"] button[data-slot="game-card"]').count()
+    // Five cards kept; one more when the player's first decision comes after the draw of their own turn (on the draw).
+    const firstView = await readTable(page)
+    const drew = firstView.owner === "me" && firstView.turn >= 2
+    results["handAfterStart"] = { cards: handSize, turn: firstView.turn, owner: firstView.owner, drew }
+    check(handSize === (drew ? 6 : 5), `${label}: ${handSize} cards in the hand after two mulligans ${JSON.stringify(results["handAfterStart"])}`)
+    const answers = (inputsAfterStart["answer"] ?? 0) - (inputsAtStart["answer"] ?? 0)
+    check(answers === 5, `${label}: ${answers} answers for two mulligans, two choices for the bottom and keeping`)
+    // A hand card on the table: its view browses the hand; nothing is sent.
+    const handCard = page.locator('[data-area="hand"] button[data-slot="game-card"]').first()
+    const point = await cardPoint(handCard)
+    if (touch) await touchGesture(page, [{ from: { x: (await handCard.boundingBox())!.x + (point?.x ?? 10), y: (await handCard.boundingBox())!.y + (point?.y ?? 10) }, to: { x: (await handCard.boundingBox())!.x + (point?.x ?? 10), y: (await handCard.boundingBox())!.y + (point?.y ?? 10) } }], { holdMs: 750, steps: 1 })
+    else await handCard.click({ button: "right", ...(point === undefined ? {} : { position: point }) })
+    await cardViewSettled(page)
+    const tableLook: Record<string, unknown> = { opened: await viewedCard(page), group: await page.locator('[data-slot="card-view"]').getByRole("group", { name: "Deine Hand durchsehen" }).count() }
+    if (touch) {
+      const centre = await viewPicture(page)
+      await touchGesture(page, [{ from: centre, to: { x: centre.x - 140, y: centre.y } }])
+    } else await page.keyboard.press("ArrowRight")
+    tableLook["browsed"] = await viewedCard(page)
+    await shot("table-hand-view")
+    await page.keyboard.press("Escape")
+    await page.locator('[data-slot="card-view"]').waitFor({ state: "detached" })
+    const inputsAfterTableLook = await recordedInputs(page)
+    tableLook["inputs"] = { before: inputsAfterStart, after: inputsAfterTableLook }
+    results["tableHand"] = tableLook
+    check((tableLook["opened"] as { position: string }).position === `1 von ${handSize}` && (tableLook["browsed"] as { position: string }).position === `2 von ${handSize}` && tableLook["group"] === 1, `${label}: a hand card's view on the table ${JSON.stringify(tableLook)}`)
+    check(JSON.stringify(inputsAfterTableLook) === JSON.stringify(inputsAfterStart), `${label}: browsing the hand on the table sent an input ${JSON.stringify(tableLook["inputs"])}`)
+    results["axe"] = await accessibility(page, `${label}: the table after the start`)
+    await concedeGame(page)
+    // The replay: the start hand only when asked, read only.
+    await page.goto(new URL("/matches", base).href, { waitUntil: "domcontentloaded" })
+    await page.getByRole("list", { name: "Gespeicherte Partien" }).getByRole("link", { name: "Ansehen", exact: true }).first().click()
+    await page.getByRole("heading", { level: 1, name: "Wiedergabe", exact: true }).waitFor()
+    const recordingBefore = JSON.stringify((await dumpDatabase(page, ["matchLog"]))["matchLog"])
+    let replay: Record<string, unknown> | null = null
+    for (let step = 0; step < 40 && replay === null; step++) {
+      if ((await page.locator("[data-start-hand-open]").count()) > 0) {
+        const autoOpened = await panel.count()
+        await activate(page.locator("[data-start-hand-open]"))
+        await panel.waitFor()
+        const buttons = await page.locator("[data-start-answer]").evaluateAll((list) => list.map((button) => (button as HTMLButtonElement).disabled))
+        await activate(page.locator("[data-start-hand-card]").first())
+        await cardViewSettled(page)
+        const card = await viewedCard(page)
+        const offers = await page.locator('[data-slot="card-view-offer"]').count()
+        await page.keyboard.press("Escape")
+        await page.locator('[data-slot="card-view"]').waitFor({ state: "detached" })
+        await page.keyboard.press("Escape")
+        await panel.waitFor({ state: "detached" })
+        replay = { step, autoOpened, buttonsOff: buttons.every(Boolean), card, offers }
+        await shot("replay")
+        break
+      }
+      const next = page.getByRole("button", { name: "Nächster Schritt" })
+      if ((await next.count()) === 0 || (await next.isDisabled())) break
+      await next.click()
+      await page.waitForTimeout(150)
+    }
+    results["replay"] = replay
+    check(replay !== null && replay["autoOpened"] === 0 && replay["buttonsOff"] === true && replay["offers"] === 0 && (replay["card"] as { position: string | null }).position === "1 von 7", `${label}: the replay's start hand ${JSON.stringify(replay)}`)
+    check(JSON.stringify((await dumpDatabase(page, ["matchLog"]))["matchLog"]) === recordingBefore, `${label}: the replay changed the recording`)
+    for (const error of pageLog.errors) check(false, `${label}: ${error}`)
+    return results
+  } finally {
+    await context.close()
+  }
+}
+
 // ── Run ──────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -7274,6 +7895,15 @@ async function main(): Promise<void> {
       report["opponent"] = {
         ...(which === "desktop" ? {} : { phone: await opponentTurnInRealGame(browser, base, VIEWPORTS[0]!) }),
         ...(which === "phone" ? {} : { desktop: await opponentTurnInRealGame(browser, base, VIEWPORTS[2]!) }),
+      }
+    } else if (startHandOnly) {
+      report["scope"] = "The start hand in full screen and browsing the hand (prompt 50): the recorded mulligan in the real table at the eight sizes and the foldable's three, gestures on a phone, a phone turned and a desktop, and two real games with the real engine (a thumb on a phone, mouse and keyboard on a desktop: two mulligans, the London mulligan's choice, the hand browsed on the table, the replay); no complete application suite."
+      // OPENMANA_STARTHAND_ONLY=harness|phone|desktop runs one part (while working on it); all by default.
+      const which = process.env["OPENMANA_STARTHAND_ONLY"]
+      report["startHand"] = {
+        ...(which === undefined || which === "phone" ? { phone: await startHandInRealGame(browser, base, VIEWPORTS[0]!) } : {}),
+        ...(which === undefined || which === "desktop" ? { desktop: await startHandInRealGame(browser, base, VIEWPORTS[2]!) } : {}),
+        ...(which === undefined || which === "harness" ? { harness: await startHandHarness(executablePath) } : {}),
       }
     } else if (focusedTable || tableOnly) {
       report["scope"] = tableOnly ? `All ${(TABLE_SCENES.length + BUILT_SCENES.length) * TABLE_VIEWPORTS.length} recorded/built scene/viewport checks and every original table/history/decision/combat/zone interaction; no fresh engine boot or complete application suite.` : helpOnly ? "Recorded Forge scenes and explicitly built question families; help, target markings, three viewports; no engine boot or full application suite." : historyOnly ? "Recorded real Forge log entries and current card inspection, three viewports; no engine boot or full application suite." : zonesOnly ? "Recorded Forge zones and explicitly built DFC presentation, three viewports, one page at a time; no engine boot or complete application regression suite." : "Recorded Forge combat scenes and one built order request, three viewports, one page at a time; no engine boot or complete application regression suite."

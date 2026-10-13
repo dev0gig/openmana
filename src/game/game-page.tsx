@@ -644,6 +644,7 @@ function Playing({ match }: { match: Of<"playing"> }) {
           turnBand={opponent.turnBand}
           observing={opponent.observing}
           autoPass={opponent.autoPass}
+          startHandOpens
         />
       )}
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
