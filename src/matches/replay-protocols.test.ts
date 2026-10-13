@@ -47,7 +47,7 @@ describe("replay of recordings of earlier protocols", () => {
   it("replays a protocol-10 recording with observations; observations are no frame of their own", async () => {
     const doc = withProtocol(await recording(), PROTOCOL_VERSION)
     const at = doc.log.findIndex((entry) => entry.from === "engine" && entry.message.type === "state")
-    const state = doc.log[at]!.message as { seq: number }
+    const state = doc.log[at]!.message as unknown as { seq: number }
     const observation = { type: "observation", id: 1, hold: false, state: state.seq, actions: [{ n: 1, kind: "turn", player: 0, turn: 1 }] }
     const settings = { type: "settings.applied", seq: null, observation: "off", autoPass: "noActions" }
     const log = [...doc.log.slice(0, at + 1), { ...doc.log[at]!, message: settings }, { ...doc.log[at]!, message: observation }, ...doc.log.slice(at + 1)].map((entry, seq) => ({ ...entry, seq }))
