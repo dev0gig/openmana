@@ -1081,13 +1081,16 @@ engine's observations (prompt 48, protocol 10;
   (over cards and arrows, under the motion's ghosts). The opponent's
   battlefield, both strips, the hand, the header and the decision stay free.
   Left the action's cards (`TablePicture`, whole: as tall as the stage
-  allows, together at most 55 % of its width, at most 17 rem each; a hidden
-  card is the back), right the words: the step's place, the action in one
+  allows, together at most 55 % of its width, at most 17 rem each; on a stage
+  narrower than 30 rem only the first card, large; a hidden card is the back), right the words: the step's place, the action in one
   sentence (a change of turn: "Zug N" in gold and whose turn), the results
   in short lines, at the player's turn the summary of the AI's last turn;
   below "Weiter" (the large gold button) and what happens next; a thin gold
-  line running down the step's time. The words scroll inside, "Weiter" always
-  stays in view; a stage lower than 11 rem sets the turn in one line.
+  line running down the step's time. The words scroll inside (then a focus
+  stop), "Weiter" always stays in view; a stage lower than 11 rem sets the
+  turn in one line; a step without a card takes only its words' height,
+  centred. A released step goes with Forge's next message and never comes
+  back.
 - **Tempo** Langsam / Normal / Schnell (3.2 / 1.7 / 0.8 s per step, a bit more
   for several result lines), **stepwise** "Nach jeder Gegneraktion warten":
   Settings → Gegnerzug and the table's menu. "Weiter" moves one step (armed

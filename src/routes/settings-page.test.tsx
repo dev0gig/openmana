@@ -41,7 +41,9 @@ async function stored<T>(definition: SettingDefinition<T>): Promise<T | undefine
 const radio = (group: string, name: RegExp) => within(screen.getByRole("radiogroup", { name: group })).getByRole("radio", { name })
 
 describe("settings: the AI profile", () => {
-  it("offers Forge's four verified profiles and random, the default chosen, and says there are no difficulty levels", async () => {
+  // The first render of the whole settings page (since prompt 49 with the opponent's-turn card) takes about 1 s alone; with
+  // every test file in parallel it took over 5 s once - a longer limit, the same checks.
+  it("offers Forge's four verified profiles and random, the default chosen, and says there are no difficulty levels", { timeout: 15_000 }, async () => {
     renderAt("/settings")
     await waitFor(() => expect(radio("KI-Profil", /Standard \(Vorgabe\)/)).toBeEnabled())
     const group = screen.getByRole("radiogroup", { name: "KI-Profil" })

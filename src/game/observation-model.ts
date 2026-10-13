@@ -181,6 +181,18 @@ function actionCards(actions: readonly ObservedAction[]): Map<number, VisibleCar
   return cards
 }
 
+/** Who attacks whom, equal attackers of the same defender together: "Grizzlybären (3) greifen dich an". */
+function attackLines(attacks: readonly { readonly attacker: string; readonly defender: string | null }[]): string[] {
+  const groups = new Map<string, { readonly attacker: string; readonly defender: string | null; count: number }>()
+  for (const each of attacks) {
+    const key = `${each.attacker}\u0000${each.defender ?? ""}`
+    const group = groups.get(key)
+    if (group === undefined) groups.set(key, { ...each, count: 1 })
+    else group.count++
+  }
+  return [...groups.values()].map(({ attacker, defender, count }) => `${count === 1 ? attacker : `${attacker} (${count})`} ${count === 1 ? "greift" : "greifen"} ${defender === null ? "an" : `${defender} an`}`)
+}
+
 const STACK_WORDS = { spell: "", ability: "Die Fähigkeit von ", trigger: "Die ausgelöste Fähigkeit von " } as const
 
 /**
@@ -238,7 +250,7 @@ export function observationSteps(observation: Observation, state: GameState | nu
           ...base,
           title: `${subject(actor)} ${verb(actor, "greifst", "greift")} mit ${count === 1 ? "einer Kreatur" : `${count} Kreaturen`} an`,
           cards: action.attacks.slice(0, MAX_CARDS).map((each) => each.attacker),
-          lines: action.attacks.map((each) => `${name(each.attacker)} greift ${each.defender === null ? "an" : `${refWords(each.defender, me, known)} an`}`),
+          lines: attackLines(action.attacks.map((each) => ({ attacker: name(each.attacker), defender: each.defender === null ? null : refWords(each.defender, me, known) }))),
         })
         break
       }

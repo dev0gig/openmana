@@ -43,7 +43,7 @@ On the stage, one step after the other (`observationSteps`,
 | turn's end alone | "Zug 1 endet" | none |
 | land | "Die Forge-KI spielt ein Land: Wald" | the land |
 | cast / activate / trigger | "Die Forge-KI wirkt Llanowarelfen", "… aktiviert eine Fähigkeit von …", "Eine Fähigkeit von … wird ausgelöst"; targets "Ziel: dich" | the spell / the source |
-| attack | "Die Forge-KI greift mit 2 Kreaturen an"; per attacker "Grizzlybären greift dich an" | up to three attackers |
+| attack | "Die Forge-KI greift mit 2 Kreaturen an"; per attacker "Grizzlybären greift dich an", equal ones together "Grizzlybären (3) greifen dich an" | up to three attackers |
 | block | "Deine Blocker" / "Du blockst nicht"; "X blockt Y", "Y wird nicht geblockt" | up to three blockers |
 | resolve | "Llanowarelfen wird verrechnet", "… ohne Wirkung verrechnet – kein Ziel ist mehr gültig"; results: "Llanowarelfen kommt auf das Spielfeld der Forge-KI.", "Geborstener Blitz fügt der Forge-KI 2 Schadenspunkte zu.", "Forge-KI: 20 → 18 Lebenspunkte." | the spell / the source |
 | combat damage | "Kampfschaden"; "Du: 20 → 17 Lebenspunkte." | none |
@@ -53,14 +53,21 @@ the player's card language, a hidden card as OpenMana's back - never a
 guessed identity. The cards are `TablePicture`s (catalog pictures, Forge's
 words without card data), whole and never cropped: as tall as the stage
 allows, all together at most 55 % of its width, at most 17 rem wide (a size
-container, `cqh`/`cqw`). No text lies on a picture; the words stand beside
-it, scroll inside when they need more room, and "Weiter" below them always
-stays in view (a low stage sets the turn's words in one line). Above the words
+container, `cqh`/`cqw`); on a stage narrower than 30 rem (a phone upright)
+only the first card, large (at most 42 % of the width) - the lines name all
+of them. No text lies on a picture; the words stand beside
+it, scroll inside when they need more room (then focusable, so a keyboard
+reaches them), and "Weiter" below them always stays in view (a low stage sets
+the turn's words in one line). A step without a card (a change of turn,
+combat damage) takes only the height its words need, centred on the
+player's half. Above the words
 the step's place ("Aktion 2 von 3", "Zugwechsel"), below them what happens
 next ("Geht von selbst weiter (Normal).", "Wartet auf „Weiter“ – Forge hält so
 lange an.", "Angehalten, solange OpenMana im Hintergrund ist.", "Forge spielt
 weiter …"). A thin gold line runs down the step's time (a transform; still
-under less motion).
+under less motion). After its release the step stays only until Forge says
+anything new (a state, a question, waiting) - then it is gone for good, never
+shown again over a newer moment.
 
 The stage is no dialog: nothing is trapped, the header, the menu and the hand
 stay usable, and the engine asks no question while it holds. The header's
@@ -92,10 +99,13 @@ an." with the mode's note.
 - Less motion: the stage's entrance, the line and the band do not move; the
   words, the cards and "Weiter" are unchanged.
 
-Measured in Chrome on the real engine (end-to-end `--opponent-only`, median
-time between two steps): see the report table below. Normal leaves time to
-read a one-line step and see the card; Fast is still followable for known
-decks; Slow suits reading results calmly.
+Measured in Chrome on the real engine (end-to-end `--opponent-only`, the
+median time a step stood by itself before it was released or replaced, two
+games): Normal 1.70 s, Schnell 0.80–0.81 s, Langsam 3.21–3.22 s; a step with
+several lines longer (an attack with four lines at Langsam 5.3 s). On the
+screenshots at all eleven sizes a one-line step and its card are taken in
+within Normal's time; Schnell is still followable for known decks; Langsam
+suits reading results calmly.
 
 ### Changes of turn
 
@@ -179,12 +189,15 @@ unchanged.
 
 ## Verification (targeted, series rule)
 
-See the central report for the exact commands and results. In short:
+Commands and results in the central report (Dropzone,
+`workflow/reports/openmana-49-*.md`). In short:
 typecheck, oxlint, the candidate check, the Vitest files of the changed
 areas (`src/app`, `src/game`, `src/engine`, `src/matches`, the settings page,
 the collection, the board), and `--opponent-only` in Chrome with the
 candidate engine: two real games (a phone with touch and touch emulation, a
-desktop with mouse and keyboard and the card data installed) - the AI's land,
+desktop with mouse and keyboard, the card data installed and Forge's
+auto-pass "Bei Zauber und Angriff der KI anhalten", which reached Forge in
+`match.start` and `settings.applied`) - the AI's land,
 spell, resolution and attack on the stage at Normal, Schnell and Langsam
 switched during the game; stepwise with a 4 s look, a double tap / double
 click and a held Enter key each moving exactly one step and sending only

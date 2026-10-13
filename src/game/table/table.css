@@ -2031,6 +2031,13 @@
   }
 }
 
+/* A step without a card (a change of turn, combat damage) takes only the height its words need, centred on the player's half. */
+[data-slot="game-board"] > .table-stage[data-cards="0"] {
+  align-self: center;
+  container-type: inline-size;
+  max-height: 100%;
+}
+
 [data-slot="game-board"] .table-stage-cards {
   display: flex;
   flex: none;
@@ -2045,6 +2052,21 @@
   flex: none;
   width: min(calc((100cqh - 0.25rem) * 63 / 88), calc(55cqw / var(--stage-cards, 1) - 0.375rem), 17rem);
   border-radius: 0.75rem;
+}
+
+/* A narrow stage (a phone upright): one card large rather than several small ones - all of them are named in the lines. */
+@container (max-width: 30rem) {
+  [data-slot="game-board"] .table-stage-cards {
+    --stage-cards: 1;
+  }
+
+  [data-slot="game-board"] .table-stage-card:nth-child(n + 2) {
+    display: none;
+  }
+
+  [data-slot="game-board"] .table-stage-card {
+    width: min(calc((100cqh - 0.25rem) * 63 / 88), 42cqw);
+  }
 }
 
 [data-slot="game-board"] .table-stage-text {
@@ -2066,6 +2088,12 @@
   gap: 0.25rem;
   min-height: 0;
   overflow-y: auto;
+  border-radius: 0.25rem;
+}
+
+[data-slot="game-board"] .table-stage-body:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
 
 [data-slot="game-board"] .table-stage-actions {

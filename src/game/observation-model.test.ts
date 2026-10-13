@@ -84,7 +84,19 @@ describe("the steps of an observation (real observations of Forge)", () => {
     expect(step!.kind).toBe("attack")
     expect(step!.title).toMatch(/^Die Forge-KI greift mit (einer Kreatur|\d+ Kreaturen) an$/)
     expect(step!.cards.length).toBeGreaterThan(0)
-    expect(step!.lines.every((line) => line.endsWith("greift dich an"))).toBe(true)
+    expect(step!.lines.every((line) => /greif(t|en) dich an$/.test(line))).toBe(true)
+  })
+
+  it("equal attackers of one defender are named together (built from the recorded attack: its first attacker three times)", () => {
+    const { observation, state } = recorded("held-attack")
+    const attack = observation.actions.find((action) => action.kind === "attack")!
+    if (attack.kind !== "attack") throw new Error("no attack")
+    const first = attack.attacks[0]
+    const built = { ...observation, actions: [{ ...attack, attacks: [first, { ...first }, { ...first }] }] } as Observation
+    const [step] = observationSteps(built, state)
+    expect(step!.title).toBe("Die Forge-KI greift mit 3 Kreaturen an")
+    expect(step!.lines).toEqual([expect.stringMatching(/^.+ \(3\) greifen dich an$/)])
+    expect(step!.cards).toHaveLength(3)
   })
 
   it("blocks: every attacker with its blockers or unblocked", () => {

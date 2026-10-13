@@ -23,7 +23,7 @@
  * "Weiter" and "Zurück" only step through the recorded observation.
  */
 import { ChevronLeft, ChevronRight, Hourglass, Pause } from "lucide-react"
-import type { CSSProperties, KeyboardEvent } from "react"
+import { useId, type CSSProperties, type KeyboardEvent } from "react"
 import type { Card } from "@openmana/engine-protocol"
 import { Button } from "@/components/ui/button"
 import type { ObservationStep } from "../observation-model"
@@ -76,7 +76,8 @@ function dropRepeat(event: KeyboardEvent<HTMLButtonElement>): void {
 export function OpponentStage({ step, index, count, pictures, summary, status, durationMs, timerKey, onNext, onPrevious, replay = false }: OpponentStageProps) {
   const cards = step.cards
   const turn = step.turn
-  const style = { "--stage-cards": String(Math.max(1, cards.length)), ...(durationMs !== null ? { "--stage-ms": `${durationMs}ms` } : {}) } as CSSProperties
+  const titleId = useId()
+  const style = (durationMs !== null ? { "--stage-ms": `${durationMs}ms` } : {}) as CSSProperties
   return (
     <section
       data-slot="opponent-stage"
@@ -90,25 +91,27 @@ export function OpponentStage({ step, index, count, pictures, summary, status, d
       style={style}
     >
       {cards.length > 0 ? (
-        <div className="table-stage-cards">
+        <div className="table-stage-cards" style={{ "--stage-cards": String(cards.length) } as CSSProperties}>
           {cards.map((card, at) => (
             <StageCard key={isVisible(card) ? card.id : `hidden-${at}`} card={card} pictures={pictures} />
           ))}
         </div>
       ) : null}
       <div className="table-stage-text">
-        <div className="table-stage-body">
+        {/* Focusable: its words scroll inside when the stage is low, and a keyboard must reach them too (axe scrollable-region-focusable). */}
+        {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
+        <div className="table-stage-body" tabIndex={0} role="group" aria-labelledby={titleId}>
           <p className="text-xs font-medium tracking-wide text-muted-foreground tabular-nums">
             {turn !== null ? "Zugwechsel" : count > 1 ? `Aktion ${index + 1} von ${count}` : "Aktion"}
             {replay ? " · Aufzeichnung" : ""}
           </p>
           {turn !== null ? (
-            <h2 className="font-heading text-xl leading-tight font-semibold text-foreground quadrat:text-2xl breit:text-2xl" aria-live="polite">
+            <h2 id={titleId} className="font-heading text-xl leading-tight font-semibold text-foreground quadrat:text-2xl breit:text-2xl" aria-live="polite">
               Zug <span className="text-primary tabular-nums">{turn.number}</span>
               <span data-stage-seat="" className="block text-base font-medium">{turn.seat === "me" ? "Du bist am Zug" : turn.seat === "opponent" ? "Die Forge-KI ist am Zug" : "Ein neuer Zug beginnt"}</span>
             </h2>
           ) : (
-            <h2 className="text-base leading-snug font-semibold text-foreground breit:text-lg" aria-live="polite">
+            <h2 id={titleId} className="text-base leading-snug font-semibold text-foreground breit:text-lg" aria-live="polite">
               {step.title}
             </h2>
           )}

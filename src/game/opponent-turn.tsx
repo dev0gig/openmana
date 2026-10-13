@@ -100,7 +100,7 @@ export function useOpponentTurn(match: Playing, pictures: TableCardLookup): Oppo
     const timer = setTimeout(() => setBand((current) => (current === bandId ? null : current)), bandMs)
     return () => clearTimeout(timer)
     // The time is the tempo's when the band came; a later change of tempo does not restart it.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [bandId])
 
   // "Unterbrechung": the opponent's latest action (held and seen, or not) is something to answer - a spell or an ability on
@@ -123,7 +123,15 @@ export function useOpponentTurn(match: Playing, pictures: TableCardLookup): Oppo
   const me = myId(match.state)
   const summary = turnSummaryText(match.opponentTurn)
   const step = playback.step
-  const stageShown = step !== null && (match.observationHeld || (playback.released && !match.waiting && match.questions.length === 0))
+  // After its release the step stays on screen only until Forge says anything new (a state, a question, waiting) - then
+  // it is gone for good, never shown again over a newer moment.
+  const [gone, setGone] = useState<number | null>(null)
+  const releasedId = playback.released && observation !== null ? observation.id : null
+  const lingering = releasedId !== null && gone !== releasedId && !match.waiting && match.questions.length === 0 && match.state?.seq === observation?.state
+  useEffect(() => {
+    if (releasedId !== null && !lingering) setGone(releasedId)
+  }, [releasedId, lingering])
+  const stageShown = step !== null && (match.observationHeld || lingering)
   const status = playback.released
     ? "Forge spielt weiter …"
     : stepwise

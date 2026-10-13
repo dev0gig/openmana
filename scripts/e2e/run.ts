@@ -3037,21 +3037,31 @@ interface StageSeen {
   readonly at: number
   readonly cards: number
   readonly status: string
+  /** When the step stopped being shown by itself (released or gone). */
+  readonly end?: number
 }
 
 /** Records every step of the opponent's stage and every turn band the page shows, with page time (prompt 49). */
 function stageRecorder(): void {
   const state = { key: null as string | null, band: null as string | null }
   const seen: unknown[] = []
+  const again: unknown[] = []
   const bands: unknown[] = []
+  ;(window as unknown as { __again: unknown[] }).__again = again
   ;(window as unknown as { __stage: unknown[]; __bands: unknown[] }).__stage = seen
   ;(window as unknown as { __stage: unknown[]; __bands: unknown[] }).__bands = bands
   const look = () => {
     const stage = document.querySelector<HTMLElement>('[data-slot="opponent-stage"]')
     const key = stage?.dataset["step"] ?? null
+    // How long a step was shown before the game went on: from its appearance until its status says Forge plays on or it is gone.
+    const status = (stage?.querySelector("[data-stage-status]")?.textContent ?? "").trim()
+    const open = seen.at(-1) as { key: string; end?: number } | undefined
+    if (open !== undefined && open.end === undefined && (open.key !== key || status === "Forge spielt weiter …")) open.end = performance.now()
     if (key !== state.key) {
       state.key = key
-      if (stage !== null && key !== null) {
+      // A step counts once, at its first appearance (a step shown again would be a step played back over a newer moment: flagged).
+      if (stage !== null && key !== null && seen.some((each) => (each as { key: string }).key === key)) again.push({ key, at: performance.now() })
+      else if (stage !== null && key !== null) {
         seen.push({ key, kind: stage.dataset["kind"], actor: stage.dataset["actor"], title: (stage.querySelector("h2")?.textContent ?? "").trim(), at: performance.now(), cards: Number(stage.dataset["cards"] ?? 0), status: (stage.querySelector("[data-stage-status]")?.textContent ?? "").trim() })
       }
     }
@@ -3062,13 +3072,13 @@ function stageRecorder(): void {
       if (text !== null) bands.push({ text, seat: band?.dataset["seat"], at: performance.now() })
     }
   }
-  const start = () => new MutationObserver(look).observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-step", "data-slot"] })
+  const start = () => new MutationObserver(look).observe(document.documentElement, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["data-step", "data-slot"] })
   if (document.documentElement) start()
   else document.addEventListener("DOMContentLoaded", start)
 }
 
-async function stageLog(page: Page): Promise<{ readonly steps: readonly StageSeen[]; readonly bands: readonly { readonly text: string; readonly seat: string; readonly at: number }[] }> {
-  return page.evaluate(() => ({ steps: (window as unknown as { __stage: StageSeen[] }).__stage, bands: (window as unknown as { __bands: { text: string; seat: string; at: number }[] }).__bands }))
+async function stageLog(page: Page): Promise<{ readonly steps: readonly StageSeen[]; readonly again: readonly { readonly key: string }[]; readonly bands: readonly { readonly text: string; readonly seat: string; readonly at: number }[] }> {
+  return page.evaluate(() => ({ steps: (window as unknown as { __stage: StageSeen[] }).__stage, again: (window as unknown as { __again: { key: string }[] }).__again, bands: (window as unknown as { __bands: { text: string; seat: string; at: number }[] }).__bands }))
 }
 
 /** The stage, its box, its cards' boxes and its "Weiter" (prompt 49): whole, inside the board, never over the hand or the decision. */
@@ -3083,7 +3093,7 @@ async function stageFacts(page: Page): Promise<Record<string, unknown> | null> {
     const inside = (inner: DOMRect, outer: DOMRect) => inner.left >= outer.left - 1 && inner.top >= outer.top - 1 && inner.right <= outer.right + 1 && inner.bottom <= outer.bottom + 1
     const stageBox = stage.getBoundingClientRect()
     const board = document.querySelector('[data-slot="game-board"]')!.getBoundingClientRect()
-    const cards = [...stage.querySelectorAll(".table-stage-card")].map((card) => {
+    const cards = [...stage.querySelectorAll<HTMLElement>(".table-stage-card")].filter((card) => card.getClientRects().length > 0).map((card) => {
       const r = card.getBoundingClientRect()
       const picture = card.querySelector('[data-slot="card-picture"], [data-slot="game-card-back"]')?.getBoundingClientRect()
       return { width: Math.round(r.width), height: Math.round(r.height), inside: inside(r, stageBox), whole: picture !== undefined && Math.abs(picture.width / picture.height - 63 / 88) < 0.02 && inside(picture, stageBox) }
@@ -3126,7 +3136,9 @@ async function recordedInputs(page: Page): Promise<Record<string, number>> {
 async function setOpponentTempo(page: Page, tempo: "Langsam" | "Normal" | "Schnell", stepwise: boolean): Promise<void> {
   const menu = await openTableMenu(page)
   const section = menu.getByRole("region", { name: "Gegnerzug" }).or(menu.locator('section[aria-labelledby="game-opponent-turn-title"]'))
-  await section.getByRole("radio", { name: new RegExp(`^${tempo}`) }).click()
+  const radio = section.getByRole("radio", { name: new RegExp(`^${tempo}`) })
+  await radio.click()
+  await page.waitForFunction((element) => element?.getAttribute("aria-checked") === "true", await radio.elementHandle(), { timeout: 10_000 })
   const toggle = section.getByRole("switch", { name: "Nach jeder Gegneraktion warten" })
   if ((await toggle.getAttribute("aria-checked")) !== String(stepwise)) await toggle.click()
   await page.waitForFunction(([wanted]) => document.querySelector('[role="switch"]')?.getAttribute("aria-checked") === wanted, [String(stepwise)])
@@ -3206,12 +3218,28 @@ async function opponentTurnInRealGame(browser: Browser, base: string, viewport: 
     const back = Object.fromEntries((((await dumpDatabase(page, ["settings"]))["settings"] ?? []) as { key: string; value: unknown }[]).map((record) => [record.key, record.value]))
     check(back["display.opponentTempo"] === "normal" && back["display.opponentStepwise"] === false, `${label}: the settings did not go back to Normal without waiting ${JSON.stringify(back)}`)
     results["settingsReload"] = { ...reloaded, keys: stored.map((record) => record.key).filter((key) => key.startsWith("display.")) }
+    // The desktop game with Forge's auto-pass "Bei Zauber und Angriff der KI anhalten": Forge then asks at the AI's spell
+    // even when the player could only pass - the setting reaches Forge (match.start, settings.applied) and the
+    // interruption is sure to come.
+    if (!touch) {
+      await card.getByRole("radio", { name: /^Bei Zauber und Angriff der KI anhalten/ }).click()
+      await page.waitForFunction(() => [...document.querySelectorAll('[aria-labelledby="settings-opponent-turn-title"] [role="radio"]')].some((radio) => radio.getAttribute("aria-checked") === "true" && (document.getElementById(radio.getAttribute("aria-labelledby") ?? "")?.textContent ?? "").startsWith("Bei Zauber")), undefined, { timeout: 10_000 })
+    }
 
     await page.goto(new URL("/play", base).href, { waitUntil: "domcontentloaded" })
     await chooseDeck(page, "Dein Deck wählen", "E2E Gegnerzug")
     await chooseDeck(page, "Deck der KI wählen", "E2E Gegnerzug KI")
     await enginePanel(page).getByText("Bereit", { exact: true }).waitFor({ timeout: 180_000 })
     results["startMs"] = await startAndWait(page)
+    {
+      await page.waitForTimeout(200)
+      const log = ((await dumpDatabase(page, ["matchLog"]))["matchLog"] ?? []) as { from: string; message: Record<string, unknown> }[]
+      const start = log.find((entry) => entry.message["type"] === "match.start")?.message["match"] as { settings?: unknown } | undefined
+      const applied = log.find((entry) => entry.from === "engine" && entry.message["type"] === "settings.applied")?.message
+      const wanted = touch ? "noActions" : "noActionsRespectInterrupts"
+      results["matchSettings"] = { request: start?.settings, applied }
+      check(JSON.stringify(start?.settings) === JSON.stringify({ observation: "hold", autoPass: wanted }) && applied?.["observation"] === "hold" && applied["autoPass"] === wanted, `${label}: the game's settings did not reach Forge ${JSON.stringify(results["matchSettings"])}`)
+    }
     const decision = page.getByRole("region", { name: "Entscheidung" })
     const answers = decision.getByRole("group", { name: "Antworten, die Forge anbietet" })
     const handCard = (id: number) => page.locator(`[data-area="hand"] button[data-slot="game-card"][data-card="${id}"]`)
@@ -3253,8 +3281,33 @@ async function opponentTurnInRealGame(browser: Browser, base: string, viewport: 
       if (now === "ended") break
       if (now === "stage") {
         if (phase === "stepwise") {
-          // Stepwise: the stage waits for "Weiter" however long the player looks; the engine holds.
+          // Stepwise: the stage waits for "Weiter" however long the player looks; the engine holds. Checked at a step with a
+          // card (a land, a spell, an attack); a change of turn before it is passed with one "Weiter".
           const facts = await stageFacts(page)
+          if (stepwiseFacts !== null && !touch) {
+            // A key held down on "Weiter" (keyboard): one step, however often the key repeats.
+            await page.waitForTimeout(ARMED_AFTER_MS)
+            const before3 = (await stageLog(page)).steps.length
+            const inputs3 = await recordedInputs(page)
+            await stage.locator("[data-stage-next]").focus()
+            await page.keyboard.down("Enter")
+            for (let repeat = 0; repeat < 6; repeat++) await page.keyboard.down("Enter")
+            await page.keyboard.up("Enter")
+            await page.waitForTimeout(400)
+            const moved3 = (await stageLog(page)).steps.length - before3
+            const released3 = ((await recordedInputs(page))["observation.release"] ?? 0) - (inputs3["observation.release"] ?? 0)
+            check(moved3 + released3 === 1, `${label}: a held Enter on "Weiter" moved ${moved3} steps and released ${released3}`)
+            stepwiseFacts["heldKey"] = { moved: moved3, released: released3, step: facts?.["key"] }
+            phase = "done"
+            await setOpponentTempo(page, "Normal", false).catch(() => undefined)
+            continue
+          }
+          if (((facts?.["cards"] as unknown[] | undefined) ?? []).length === 0) {
+            await page.waitForTimeout(ARMED_AFTER_MS)
+            await activate(stage.locator("[data-stage-next]"))
+            await page.waitForTimeout(300)
+            continue
+          }
           const before = await recordedInputs(page)
           const first = facts?.["key"]
           await page.waitForTimeout(4000)
@@ -3272,7 +3325,7 @@ async function opponentTurnInRealGame(browser: Browser, base: string, viewport: 
               const next = at?.["next"] as { height: number; width: number } | null
               check(at !== null && at["key"] === first, `${label}: resizing to ${size.name} changed or lost the held step (${String(at?.["key"])} instead of ${String(first)})`)
               check(at?.["insideBoard"] === true && at["overHand"] === false && at["overDecision"] === false && at["overHeader"] === false, `${label}: the stage at ${size.name} leaves the board or covers the hand, the decision or the header ${JSON.stringify(at)}`)
-              check(cards.every((each) => each.inside && each.whole && each.width >= 44), `${label}: a stage card at ${size.name} is cut or too small ${JSON.stringify(cards)}`)
+              check(cards.length > 0 && cards.every((each) => each.inside && each.whole && each.width >= 44), `${label}: a stage card at ${size.name} is cut, too small or missing ${JSON.stringify(cards)}`)
               const stageBox = at?.["stage"] as { top: number; bottom: number } | undefined
               check(next !== null && next.height >= (touch ? 44 : 24) && stageBox !== undefined && (next as unknown as { top: number }).top >= stageBox.top && (next as unknown as { bottom: number }).bottom <= stageBox.bottom, `${label}: "Weiter" at ${size.name} is too small or cut ${JSON.stringify({ next, stageBox })}`)
               await page.screenshot({ path: path.join(reportDir, "screens", `opponent-${viewport.name}-stage-${size.name}.png`) })
@@ -3309,25 +3362,12 @@ async function opponentTurnInRealGame(browser: Browser, base: string, viewport: 
           const others = Object.entries(afterDouble).filter(([type]) => type !== "observation.release").map(([type, n]) => n - (afterLook[type] ?? 0))
           check(others.every((n) => n === 0), `${label}: "Weiter" sent more than a release ${JSON.stringify({ afterLook, afterDouble })}`)
           stepwiseFacts = { heldMs: 4000, held, first, movedSteps, releases, secondTapLooked: looked, inputsBefore: afterLook, inputsAfter: afterDouble }
-          // A key held down on "Weiter" (keyboard): one step, however often the key repeats.
-          const third = await stage.locator("[data-stage-next]").waitFor({ timeout: 120_000 }).then(() => true, () => false)
-          if (third && !touch) {
-            await page.waitForTimeout(ARMED_AFTER_MS)
-            const before3 = (await stageLog(page)).steps.length
-            const inputs3 = await recordedInputs(page)
-            await stage.locator("[data-stage-next]").focus()
-            await page.keyboard.down("Enter")
-            for (let repeat = 0; repeat < 6; repeat++) await page.keyboard.down("Enter")
-            await page.keyboard.up("Enter")
-            await page.waitForTimeout(400)
-            const moved3 = (await stageLog(page)).steps.length - before3
-            const released3 = ((await recordedInputs(page))["observation.release"] ?? 0) - (inputs3["observation.release"] ?? 0)
-            check(moved3 + released3 === 1, `${label}: a held Enter on "Weiter" moved ${moved3} steps and released ${released3}`)
-            stepwiseFacts["heldKey"] = { moved: moved3, released: released3 }
-          }
           await shot("stepwise")
-          phase = "done"
-          await setOpponentTempo(page, "Normal", false).catch(() => undefined)
+          // The keyboard (desktop) at the next held step; a thumb is done.
+          if (touch) {
+            phase = "done"
+            await setOpponentTempo(page, "Normal", false).catch(() => undefined)
+          }
           continue
         }
         if (phase === "normal" && background === null && (await stageLog(page)).steps.length >= 4) {
@@ -3460,8 +3500,13 @@ async function opponentTurnInRealGame(browser: Browser, base: string, viewport: 
     const log = await stageLog(page)
     const opponentSteps = log.steps.filter((each) => each.actor === "opponent")
     const kinds = [...new Set(log.steps.map((each) => each.kind))]
-    // The tempo: the time between consecutive steps of one held run (a step followed by the next within its observation or the next one).
-    const gaps = (from: number, to: number) => log.steps.slice(from, to).map((each, at, all) => (at + 1 < all.length ? all[at + 1]!.at - each.at : null)).filter((gap): gap is number => gap !== null && gap < 8000)
+    // The tempo: how long each step stood by itself (its appearance until it was released or replaced), for the steps
+    // that went on by the tempo ("Geht von selbst weiter").
+    const gaps = (from: number, to: number) =>
+      log.steps
+        .slice(from, to)
+        .filter((each) => each.status.startsWith("Geht von selbst weiter") && each.end !== undefined)
+        .map((each) => each.end! - each.at)
     const median = (values: readonly number[]) => (values.length === 0 ? null : [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)]!)
     const tempo = {
       normal: median(gaps(0, tempoMarks["fast"] ?? log.steps.length)),
@@ -3469,19 +3514,22 @@ async function opponentTurnInRealGame(browser: Browser, base: string, viewport: 
       slow: tempoMarks["slow"] !== undefined ? median(gaps(tempoMarks["slow"], tempoMarks["stepwise"] ?? log.steps.length)) : null,
     }
     results["tempoMedianMs"] = tempo
-    check(tempo.normal !== null && tempo.normal >= 1500 && tempo.normal <= 4500, `${label}: Normal does not hold each step for about 1.7 s ${JSON.stringify(tempo)}`)
+    check(tempo.normal !== null && tempo.normal >= 1600 && tempo.normal <= 2600, `${label}: Normal does not hold each step for about 1.7 s ${JSON.stringify(tempo)}`)
+    check(tempo.fast === null || (tempo.fast >= 700 && tempo.fast <= 1400), `${label}: Schnell does not hold each step for about 0.8 s ${JSON.stringify(tempo)}`)
+    check(tempo.slow === null || (tempo.slow >= 3000 && tempo.slow <= 4500), `${label}: Langsam does not hold each step for about 3.2 s ${JSON.stringify(tempo)}`)
     check(tempo.fast === null || (tempo.normal !== null && tempo.fast < tempo.normal), `${label}: Schnell is not faster than Normal ${JSON.stringify(tempo)}`)
     check(tempo.slow === null || (tempo.normal !== null && tempo.slow > tempo.normal), `${label}: Langsam is not slower than Normal ${JSON.stringify(tempo)}`)
     check(opponentSteps.some((each) => each.kind === "land") && opponentSteps.some((each) => each.kind === "cast") && log.steps.some((each) => each.kind === "resolve"), `${label}: the AI's land, spell and resolution were not all shown ${JSON.stringify(kinds)}`)
     check(opponentSteps.some((each) => each.kind === "attack"), `${label}: the AI's attack was not shown ${JSON.stringify(kinds)}`)
     check(log.steps.some((each) => each.kind === "turn") || log.bands.length > 0, `${label}: no change of turn was shown`)
+    check(log.again.length === 0, `${label}: a step was shown again after it was gone ${JSON.stringify(log.again.slice(0, 5))}`)
     const ownTurns = [...new Set(lands.map((each) => each.turn))]
     check(lands.length >= 2 && ownTurns.length === lands.length && lands.every((each) => each.owner === "me"), `${label}: the player's lands are not in distinct own turns ${JSON.stringify(lands)}`)
     // Between two lands of the player the AI's turn was shown (its beginning on the stage or as a band).
     const aiTurnShown = log.steps.some((each) => each.kind === "turn" && each.actor === "opponent") || log.bands.some((each) => each.seat === "opponent")
     check(aiTurnShown, `${label}: the AI's turn beginning was never shown`)
     check(reaction !== null, `${label}: no real decision interrupted the AI's turn`)
-    check(stepwiseFacts !== null, `${label}: the stepwise mode was not reached`)
+    check(stepwiseFacts !== null && (touch || stepwiseFacts["heldKey"] !== undefined), `${label}: the stepwise mode (and on a desktop the held key) was not reached ${JSON.stringify(stepwiseFacts)}`)
     results["lands"] = lands
     results["reaction"] = reaction
     results["stackMoments"] = stackMoments
@@ -3489,14 +3537,16 @@ async function opponentTurnInRealGame(browser: Browser, base: string, viewport: 
     results["background"] = background
     results["lessMotion"] = lessMotion
     results["layouts"] = layouts
-    results["stageSteps"] = log.steps.map((each) => ({ key: each.key, kind: each.kind, actor: each.actor, title: each.title, cards: each.cards, status: each.status, at: Math.round(each.at) }))
+    results["stageSteps"] = log.steps.map((each) => ({ key: each.key, kind: each.kind, actor: each.actor, title: each.title, cards: each.cards, status: each.status, at: Math.round(each.at), shownMs: each.end === undefined ? null : Math.round(each.end - each.at) }))
     results["bands"] = log.bands
     results["inputs"] = await recordedInputs(page)
     await shot("end")
 
     // The recording replays the same public steps, read only.
     const matchId = (((await dumpDatabase(page, ["matches"]))["matches"] ?? []) as { id: string }[])[0]?.id
-    await concedeGame(page)
+    const over = (await page.getByRole("heading", { level: 2, name: /^(Gewonnen|Verloren|Unentschieden)$/ }).count()) > 0
+    results["endedBy"] = over ? ((await page.getByRole("heading", { level: 2, name: /^(Gewonnen|Verloren|Unentschieden)$/ }).first().textContent()) ?? "") : "conceded"
+    if (!over) await concedeGame(page)
     // The recording is complete once nothing more arrives (match.finished follows the result).
     let logEntries: { seq: number; from: string; message: { type: string; hold?: boolean } }[] = []
     for (let tries = 0; tries < 20; tries++) {

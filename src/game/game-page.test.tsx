@@ -337,8 +337,10 @@ describe("the game page: the opponent's turn (prompt 49)", () => {
     await user.click(pass)
     expect(engine.worker().inputs()).toEqual([{ type: "answer", seq: 6, question: 2, kind: "buttons", button: 1 }])
     await waitFor(() => expect(within(decision).queryByText("Unterbrechung: Die Forge-KI wirkt Grizzlybären")).not.toBeInTheDocument())
+    // Forge closes the question and computes: the released step does not come back over this newer moment.
+    act(() => engine.worker().send({ type: "question.answered", id: 2, seq: 6 }))
+    expect(screen.queryByRole("region", { name: "Gegnerzug ansehen" })).not.toBeInTheDocument()
     act(() => {
-      engine.worker().send({ type: "question.answered", id: 2, seq: 6 })
       engine.worker().send({ type: "question", kind: "buttons", id: 3, blocking: false, text: "", purpose: "priority", buttons: PRIORITY_BUTTONS })
       engine.worker().send({ type: "engine.waiting", consumed: 6 })
     })
