@@ -756,9 +756,9 @@ details in `docs/implementation/46-drag-and-drop.md`:
   `onTapCard` (the card view's double-tap guard); Forge's further questions
   come in the decision region as after a tap. Otherwise nothing is sent and
   the card glides back to its place in the hand (`travelFrames`, 220 ms);
-  for a playable card that cannot be played now the table's reason
-  (`tapBlocked`'s words) shows as a toast; for a card Forge does not mark,
-  nothing (Forge sends no reason).
+  since prompt 51 one toast says why (§4.19): the table's reason
+  (`tapBlocked`'s words), Forge's land reason, or that Forge does not offer
+  this action now - never a reason made up.
 - Cancelling: Escape, a second finger, `pointercancel`, or dragging back
   over the hand. A card that leaves the hand while it is dragged (a new
   state) takes its picture with it.
@@ -1149,6 +1149,26 @@ next or previous one (`docs/implementation/50-starthand-und-handkarten-blaettern
 - **Checked** in Chrome with the recorded mulligan at the eight sizes and the
   foldable's three, gestures on a phone, a phone turned and a desktop, and two
   real games (end-to-end `--starthand-only`).
+
+### 4.19 Land plays and refused actions (prompt 51)
+
+The project owner (2026-10-12): see how many lands one played this turn and
+understand why an action is not possible
+(`docs/implementation/51-laender-und-aktionshinweise.md`).
+
+- **Strip chip** (`LandPlays` in `game-table.tsx`, `data-strip-fact="lands"`):
+  on the player's own strip after the hand's count, a `StripChip`: "Länder 0/1"
+  / "Länder 1/1" (Forge's `landsPlayed`/`landsAllowed`, the numbers in
+  `.tabular-nums`), "Länder 2 · unbegrenzt", in the AI's turn "Kein Land im
+  KI-Zug", before the first turn none. Its sentence is the `title` and the
+  screen-reader text; `data-lands-turn`, `data-lands-used`.
+- **Refusal note** in the card view (`data-slot="card-view-refusal"`): where
+  Forge offers no tap, Forge's reason (or "Mit dieser Karte bietet Forge gerade
+  nichts an.") where the button would be - under the card (stacked) or the
+  boxes, never on it; only in a running game.
+- **Drop:** a refused drop's reason as one toast at the top (`hand-drop`).
+- **Checked** in Chrome at the eight sizes and the foldable's three on recorded
+  scenes and in two real games (end-to-end `--lands-only`).
 
 ## 5. Tokens
 

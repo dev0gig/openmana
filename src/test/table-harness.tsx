@@ -38,6 +38,9 @@
  * from `step=N`; window.__openmanaShowStep(n) puts step n on the table as the
  * next state - the test watches cards travel, turn, attack and leave.
  *
+ * The toasts (prompt 51): the app shell's Toaster, so a refused drop's reason
+ * shows as in the app.
+ *
  * Not part of the app: only the test's dev server serves it,
  * /scripts/e2e/table-harness.html?scene=<name>[&built=<question>][&presentation=dfc|fallback|keywords][&hand=<cards>][&starthand=1|bottom][&language=en][&waiting=0]
  * or ?sequence=first-attack[&step=<n>].
@@ -48,6 +51,7 @@ import { createRoot } from "react-dom/client"
 import "@/index.css"
 import { CardCatalogProvider, useCardCatalog } from "@/cards/card-catalog-context"
 import { Button } from "@/components/ui/button"
+import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { GameTable } from "@/game/game-table"
 import { useTableCards } from "@/game/table-cards"
@@ -291,6 +295,8 @@ createRoot(container).render(
       <CardCatalogProvider>
         <TooltipProvider>
           <Harness />
+          {/* The app's toasts (prompt 51: a refused drop says why), as the app shell shows them. */}
+          <Toaster />
         </TooltipProvider>
       </CardCatalogProvider>
     </StorageProvider>

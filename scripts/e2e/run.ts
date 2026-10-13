@@ -11,6 +11,7 @@
  *   npm run test:e2e -- --no-build --drag-only    playing by dragging in two real games (mouse, touch; prompt 46)
  *   npm run test:e2e -- --no-build --opponent-only following the AI's turn in two real games (tempo, "Weiter", layouts; prompt 49)
  *   npm run test:e2e -- --no-build --starthand-only the start hand and browsing the hand: recorded scene at eleven sizes, two real games (prompt 50)
+ *   npm run test:e2e -- --no-build --lands-only   land plays and refusal hints: recorded scenes at eleven sizes, two real games (prompt 51)
  *   npm run test:e2e -- --no-build --help-only    contextual help on recorded/built scenes, no engine boot
  *   npm run test:e2e -- --no-build --history-only recorded Forge history and current sources only
  *   npm run test:e2e -- --no-build --zones-only   visible zones, piles and DFC inspection only
@@ -154,8 +155,9 @@ const tableOnly = process.argv.includes("--table-only")
 const dragOnly = process.argv.includes("--drag-only")
 const opponentOnly = process.argv.includes("--opponent-only")
 const startHandOnly = process.argv.includes("--starthand-only")
+const landsOnly = process.argv.includes("--lands-only")
 const focusedTable = combatOnly || zonesOnly || historyOnly || helpOnly
-const reportDir = path.join(root, "reports", oryxOnly ? "oryx-e2e" : responsiveOnly ? "responsive-e2e" : replayOnly ? "replay-e2e" : tableOnly ? "table-e2e" : dragOnly ? "drag-e2e" : opponentOnly ? "opponent-e2e" : startHandOnly ? "starthand-e2e" : helpOnly ? "help-e2e" : combatOnly ? "combat-e2e" : zonesOnly ? "zones-e2e" : historyOnly ? "history-e2e" : "e2e")
+const reportDir = path.join(root, "reports", oryxOnly ? "oryx-e2e" : responsiveOnly ? "responsive-e2e" : replayOnly ? "replay-e2e" : tableOnly ? "table-e2e" : dragOnly ? "drag-e2e" : opponentOnly ? "opponent-e2e" : startHandOnly ? "starthand-e2e" : landsOnly ? "lands-e2e" : helpOnly ? "help-e2e" : combatOnly ? "combat-e2e" : zonesOnly ? "zones-e2e" : historyOnly ? "history-e2e" : "e2e")
 const require = createRequire(import.meta.url)
 
 interface Viewport {
@@ -2962,14 +2964,16 @@ async function dragInRealGame(browser: Browser, base: string, viewport: Viewport
         }
         const stuck = view.hand.find((each) => each.mark !== "usable")
         if (mine && unplayable === null && stuck !== undefined) {
-          // A card Forge does not mark playable (Shock without mana, a Mountain after the land of the turn): dropped, nothing is sent, no words made up.
+          // A card Forge does not mark playable (Shock without mana, a Mountain after the land of the turn): dropped, nothing is
+          // sent, no words made up - since prompt 51 one toast says why: Forge's land reason or that Forge offers nothing.
           const before = await inputs()
           await dragCard(page, card(stuck.id), field, touch)
           await page.waitForTimeout(800)
           const after = await inputs()
-          const notices = await page.locator("[data-sonner-toast]").count()
+          const notices = await toastTexts(page)
           unplayable = { card: stuck.label, before, after, notices, inHand: (await card(stuck.id).count()) === 1 }
-          check(after === before && notices === 0 && (await card(stuck.id).count()) === 1, `${label}: dropping a card Forge does not mark playable ${JSON.stringify(unplayable)}`)
+          const honest = notices.length === 1 && [LIMIT_WORDS, TIMING_WORDS, UNOFFERED_ACTION_WORDS].includes(notices[0]!)
+          check(after === before && honest && (await card(stuck.id).count()) === 1, `${label}: dropping a card Forge does not mark playable ${JSON.stringify(unplayable)}`)
           continue
         }
         const landCard = playable.find((each) => named(each.label, ["Gebirge", "Mountain"]))
@@ -7857,6 +7861,496 @@ async function startHandInRealGame(browser: Browser, base: string, viewport: Vie
   }
 }
 
+// ── Land plays and refusal hints (prompt 51, --lands-only) ─────────────────
+
+/** Recorded scenes of the land hints: the player's main phase (0/1), a land played (1/1, two lands refused), the AI's turn, the start questions. */
+const LAND_SCENES: readonly { readonly scene: string; readonly chip: string | null; readonly turn: "mine" | "opponent" | null }[] = [
+  { scene: "main-phase", chip: "Länder 0/1", turn: "mine" },
+  { scene: "cast-x", chip: "Länder 1/1", turn: "mine" },
+  { scene: "respond", chip: "Kein Land im KI-Zug", turn: "opponent" },
+  { scene: "opening", chip: null, turn: null },
+]
+
+/** Forge's reasons as the table says them (src/game/land-labels.ts). */
+const LIMIT_WORDS = "Dein Land für diesen Zug ist bereits gespielt."
+const LIMIT_MANY_WORDS = "Deine Länder für diesen Zug sind bereits gespielt."
+const NOT_YOUR_TURN_WORDS = "Länder spielst du nur in deinem eigenen Zug."
+const TIMING_WORDS = "Ein Land spielst du nur in deiner Hauptphase, wenn der Stapel leer ist."
+const UNOFFERED_ACTION_WORDS = "Forge bietet diese Aktion gerade nicht an."
+const UNOFFERED_CARD_WORDS = "Mit dieser Karte bietet Forge gerade nichts an."
+
+/**
+ * The land plays on the player's strip, measured: one chip (or none before the first turn) with its words, on the
+ * player's own strip, whole inside it and the window, over nothing else of the strip (the medallion, the piles); the
+ * strip does not spill (stripFacts), and the table keeps its regions and battlefields (checkTableFits).
+ */
+async function landChipFacts(page: Page, label: string, viewport: Viewport, expected: { readonly chip: string | null; readonly turn: string | null }): Promise<Record<string, unknown>> {
+  const facts = await page.evaluate(() => {
+    const rect = (element: Element | null) => {
+      if (element === null) return null
+      const r = element.getBoundingClientRect()
+      return { x: r.x, y: r.y, width: r.width, height: r.height }
+    }
+    const chips = [...document.querySelectorAll<HTMLElement>('[data-strip-fact="lands"]')]
+    const chip = chips[0] ?? null
+    const strip = chip?.closest(".table-strip") ?? null
+    return {
+      count: chips.length,
+      shown: chip?.querySelector('[aria-hidden="true"]')?.textContent?.replace(/\s+/g, " ").trim() ?? null,
+      turn: chip?.dataset["landsTurn"] ?? null,
+      title: chip?.getAttribute("title") ?? null,
+      own: chip?.closest('section[aria-label="Du"]') !== null && chip !== null,
+      chip: rect(chip),
+      strip: rect(strip),
+      others: strip === null ? [] : [...strip.querySelectorAll('[data-slot="game-player"], [data-zone-pile], [data-strip-fact]:not([data-strip-fact="lands"]), .table-count')].map((element) => rect(element)!),
+    }
+  })
+  check(facts.count === (expected.chip === null ? 0 : 1), `${label}: ${facts.count} land chips`)
+  if (expected.chip !== null) {
+    check(facts.shown === expected.chip && facts.turn === expected.turn && facts.own, `${label}: the land chip says "${facts.shown}" (${facts.turn}, own ${facts.own}), expected "${expected.chip}"`)
+    check(facts.title !== null && facts.title.length > 20, `${label}: the land chip has no sentence ${facts.title}`)
+    if (facts.chip !== null) {
+      check(inside(facts.chip, viewport.width, viewport.height), `${label}: the land chip outside the window ${JSON.stringify(facts.chip)}`)
+      check(facts.strip === null || (facts.chip.x >= facts.strip.x - 0.5 && facts.chip.x + facts.chip.width <= facts.strip.x + facts.strip.width + 0.5), `${label}: the land chip outside its strip ${JSON.stringify(facts)}`)
+      for (const other of facts.others) check(!overlaps(facts.chip, other), `${label}: the land chip lies on another part of the strip ${JSON.stringify({ chip: facts.chip, other })}`)
+    }
+  }
+  const strips = await stripFacts(page, label, viewport.touch)
+  const fits = await checkTableFits(page, label)
+  return { chip: facts.shown, turn: facts.turn, box: facts.chip === null ? null : { width: Math.round(facts.chip.width), height: Math.round(facts.chip.height) }, strips: strips["sides"], battlefields: { opponent: (fits["areas"] as Record<string, { height: number }>)["opponent-field"]?.height, mine: (fits["areas"] as Record<string, { height: number }>)["field"]?.height } }
+}
+
+/** The open card view's refusal note: its words, whole on screen, never on the card's picture or under another element. */
+async function refusalNoteFacts(page: Page, label: string, viewport: Viewport, expected: string | null): Promise<Record<string, unknown>> {
+  const view = page.locator('[data-slot="card-view"]')
+  await view.waitFor()
+  await animationsDone(view)
+  const facts = await page.evaluate(() => {
+    const rect = (element: Element | null) => {
+      if (element === null) return null
+      const r = element.getBoundingClientRect()
+      return { x: r.x, y: r.y, width: r.width, height: r.height }
+    }
+    const note = document.querySelector('[data-slot="card-view-refusal"]')
+    const box = rect(note)
+    const top = box === null ? null : document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)
+    return {
+      text: note?.textContent ?? null,
+      refusal: note?.getAttribute("data-refusal") ?? null,
+      box,
+      picture: rect(document.querySelector('[data-slot="card-lightbox-picture"]')),
+      onTop: top !== null && note !== null && note.contains(top),
+      offer: document.querySelectorAll('[data-slot="card-view-offer"] button').length,
+      name: document.querySelector('[data-slot="card-view"] h2')?.textContent ?? null,
+    }
+  })
+  if (expected === null) check(facts.text === null, `${label}: a refusal note "${facts.text}" where none belongs`)
+  else {
+    check(facts.text === expected, `${label}: the card view says "${facts.text}", expected "${expected}"`)
+    check(facts.box !== null && inside(facts.box, viewport.width, viewport.height) && facts.onTop, `${label}: the refusal note not whole on screen or covered ${JSON.stringify(facts)}`)
+    check(facts.box === null || facts.picture === null || !overlaps(facts.box, facts.picture), `${label}: the refusal note lies on the card ${JSON.stringify(facts)}`)
+    check(facts.offer === 0, `${label}: a refused card offers ${facts.offer} buttons`)
+  }
+  return { text: facts.text, refusal: facts.refusal, box: facts.box === null ? null : { width: Math.round(facts.box.width), height: Math.round(facts.box.height) } }
+}
+
+/** The toasts on the page now (sonner), their words. */
+function toastTexts(page: Page): Promise<string[]> {
+  return page.evaluate(() => [...document.querySelectorAll('[data-sonner-toast]:not([data-removed="true"])')].map((toast) => (toast.querySelector("[data-title]")?.textContent ?? toast.textContent ?? "").trim()))
+}
+
+/**
+ * The land hints on recorded scenes in the real table (the harness; prompt 51):
+ *  - at the eight sizes and the foldable's three: the player's land plays on their strip - "Länder 0/1" in the main
+ *    phase, "Länder 1/1" after the land of the turn, "Kein Land im KI-Zug" in the AI's turn, nothing before the first
+ *    turn -, whole on the strip, the strip not spilling, the battlefields keeping their room; axe at four sizes;
+ *  - on a phone, a phone turned, the foldable closed and a desktop (touch, mouse and keyboard): the card view of a
+ *    land refused for the turn says Forge's reason where its button would be, a spell Forge offers nothing for says
+ *    that - browsing the hand changes the words, never pops anything up -, axe over the view; a refused land dropped
+ *    on the battlefield sends nothing and says Forge's reason once (a second drop replaces it).
+ * The harness records every tap and answer: none of this sends anything.
+ */
+async function landsHarness(executablePath: string): Promise<Record<string, unknown>> {
+  log("Land hints (recorded scenes in the real table)")
+  const server = await createServer({ root, configFile: path.join(root, "vite.config.ts"), logLevel: "warn", server: { host: "127.0.0.1", port: 0 } })
+  await server.listen()
+  const base = server.resolvedUrls?.local[0]
+  if (!base) throw new Error("the dev server did not report its URL")
+  const results: Record<string, unknown> = {}
+  const harnessBrowser = await launchBrowser(executablePath)
+  try {
+    const warm = await harnessBrowser.newPage()
+    await warm.goto(new URL("/scripts/e2e/table-harness.html?scene=cast-x", base).href, { waitUntil: "domcontentloaded", timeout: 300_000 })
+    await warm.close()
+    const sizes: Record<string, unknown> = {}
+    const axeAt = new Set(["small-phone", "phone-landscape", "fold-open", "desktop"])
+    for (const viewport of [...RESPONSIVE_VIEWPORTS, ...FOLD_VIEWPORTS]) {
+      const context = await newContext(harnessBrowser, viewport)
+      try {
+        const scenes: Record<string, unknown> = {}
+        for (const { scene, chip, turn } of LAND_SCENES) {
+          const page = await context.newPage()
+          const pageLog = watch(page)
+          const label = `land hints (${viewport.name}, ${scene})`
+          await openScene(page, base, scene)
+          await page.locator('[data-slot="game-board"] section[aria-label="Du"]').waitFor({ timeout: 60_000 })
+          await page.waitForTimeout(150)
+          scenes[scene] = await landChipFacts(page, label, viewport, { chip, turn })
+          if (scene === "cast-x" || (scene === "respond" && viewport.name === "small-phone")) await page.screenshot({ path: path.join(reportDir, "screens", `lands-${viewport.name}-${scene}.png`) })
+          if (scene === "cast-x" && axeAt.has(viewport.name)) (scenes[scene] as Record<string, unknown>)["axe"] = await accessibility(page, label)
+          check((await harnessTaps(page)).length === 0 && (await harnessAnswers(page)).length === 0, `${label}: showing the table sent an input`)
+          for (const error of pageLog.errors) check(false, `${label}: ${error}`)
+          await page.close()
+        }
+        sizes[viewport.name] = { layout: tableLayoutOf(viewport.width, viewport.height), scenes }
+      } finally {
+        await context.close()
+      }
+    }
+    results["sizes"] = sizes
+    const interactions: Record<string, unknown> = {}
+    for (const viewport of [VIEWPORTS[0]!, RESPONSIVE_VIEWPORTS[2]!, FOLD_VIEWPORTS[0]!, VIEWPORTS[2]!]) {
+      const context = await newContext(harnessBrowser, viewport)
+      try {
+        interactions[viewport.name] = await landsInteractions(context, base, viewport)
+      } finally {
+        await context.close()
+      }
+    }
+    results["interactions"] = interactions
+  } finally {
+    await harnessBrowser.close()
+    await server.close()
+  }
+  return results
+}
+
+async function landsInteractions(context: BrowserContext, base: string, viewport: Viewport): Promise<Record<string, unknown>> {
+  const label = `land hints (${viewport.name})`
+  const touch = viewport.touch
+  const page = await context.newPage()
+  const pageLog = watch(page)
+  const results: Record<string, unknown> = {}
+  const safe = async (what: string) => check((await harnessTaps(page)).length === 0 && (await harnessAnswers(page)).length === 0, `${label}: ${what} sent an input ${JSON.stringify({ taps: await harnessTaps(page), answers: await harnessAnswers(page) })}`)
+  // The scene "cast-x": the player's land of the turn played (1/1), the Gebirge (46) and the Sumpf (13) refused (limit),
+  // Schwarzer Ritus (54) and Lichtbogen-Spur (7) without Forge's offer; Forge asks for X (a blocking question).
+  await openScene(page, base, "cast-x")
+  const hand = (id: number) => page.locator(`[data-area="hand"] button[data-slot="game-card"][data-card="${id}"]`)
+  const open = async (id: number) => {
+    const card = hand(id)
+    const own = await cardPoint(card)
+    // A long press (touch) or a right click (mouse) looks at a card in every step; the keyboard: Enter on the card.
+    if (touch) {
+      const box = (await card.boundingBox())!
+      const at = own === undefined ? { x: box.x + box.width / 2, y: box.y + box.height / 2 } : { x: box.x + own.x, y: box.y + own.y }
+      await touchGesture(page, [{ from: at, to: at }], { holdMs: 700, steps: 1 })
+    } else await card.click({ button: "right", ...(own === undefined ? {} : { position: own }) })
+    await cardViewSettled(page)
+  }
+  // The harness's own notices (the card data set up) go first: only what the hints show is counted.
+  await page.waitForFunction(() => document.querySelector("[data-sonner-toast]") === null, undefined, { timeout: 15_000 }).catch(() => undefined)
+  await open(46)
+  results["limit"] = await refusalNoteFacts(page, `${label}: the Gebirge after the land of the turn`, viewport, LIMIT_WORDS)
+  results["axe"] = await accessibility(page, `${label}: card view with Forge's reason`)
+  await page.screenshot({ path: path.join(reportDir, "screens", `lands-${viewport.name}-card-view.png`) })
+  // Browsing: the next cards - Forge's reason for the Sumpf, "nothing offered" for a spell; nothing pops up, nothing is sent.
+  const seen: Record<string, unknown> = {}
+  const order = ["46", "54", "7", "13"]
+  for (let step = 1; step < order.length; step++) {
+    if (touch) {
+      const centre = await viewPicture(page)
+      await touchGesture(page, [{ from: centre, to: { x: centre.x - 140, y: centre.y } }])
+    } else await page.keyboard.press("ArrowRight")
+    await startHandPictures(page)
+    const card = await viewedCard(page)
+    check(card.id === order[step], `${label}: browsing showed card ${card.id}, expected ${order[step]}`)
+    seen[card.id ?? "?"] = await refusalNoteFacts(page, `${label}: browsed to ${card.id}`, viewport, card.id === "13" ? LIMIT_WORDS : UNOFFERED_CARD_WORDS)
+  }
+  results["browsed"] = seen
+  check((await toastTexts(page)).length === 0, `${label}: looking and browsing popped up ${JSON.stringify(await toastTexts(page))}`)
+  await safe("looking and browsing")
+  if (touch) await page.locator('[data-slot="card-lightbox-close"]').tap()
+  else await page.keyboard.press("Escape")
+  await page.locator('[data-slot="card-view"]').waitFor({ state: "detached" })
+  // Keyboard (desktop): Tab to the hand, Enter on a card opens its view with the same words.
+  if (!touch) {
+    await hand(13).focus()
+    await page.keyboard.press("Enter")
+    await cardViewSettled(page)
+    results["keyboard"] = await refusalNoteFacts(page, `${label}: the Sumpf opened with Enter`, viewport, LIMIT_WORDS)
+    await page.keyboard.press("Escape")
+    await page.locator('[data-slot="card-view"]').waitFor({ state: "detached" })
+  }
+  // A refused land dropped on the battlefield: nothing sent, Forge's reason once; a second drop replaces it.
+  const field = await battlefieldPoint(page)
+  await dragCard(page, hand(46), field, touch)
+  await page.waitForTimeout(600)
+  const first = await toastTexts(page)
+  await dragCard(page, hand(13), field, touch)
+  await page.waitForTimeout(600)
+  const second = await toastTexts(page)
+  // A spell Forge offers nothing for (Schwarzer Ritus): only that.
+  await dragCard(page, hand(54), field, touch)
+  await page.waitForTimeout(600)
+  const spell = await toastTexts(page)
+  results["drops"] = { first, second, spell }
+  check(JSON.stringify(first) === JSON.stringify([LIMIT_WORDS]) && JSON.stringify(second) === JSON.stringify([LIMIT_WORDS]) && JSON.stringify(spell) === JSON.stringify([UNOFFERED_ACTION_WORDS]), `${label}: the refused drops said ${JSON.stringify({ first, second, spell })}`)
+  check((await hand(46).count()) === 1 && (await hand(13).count()) === 1 && (await hand(54).count()) === 1, `${label}: a refused card left the hand`)
+  await page.screenshot({ path: path.join(reportDir, "screens", `lands-${viewport.name}-drop.png`) })
+  results["toastAxe"] = await accessibility(page, `${label}: the drop's reason`)
+  await safe("dropping refused lands")
+  for (const error of pageLog.errors) check(false, `${label}: ${error}`)
+  await page.close()
+  return results
+}
+
+/** Prompt 51: the decks of the land game - the player's Forests and Exploration (an additional land each turn), the AI's Mountains. */
+function landDecks(): readonly unknown[] {
+  const now = new Date().toISOString()
+  const deck = (name: string, main: readonly { readonly count: number; readonly name: string }[]) => ({
+    id: randomUUID(),
+    name,
+    format: "constructed",
+    main,
+    sideboard: [],
+    commander: [],
+    source: { kind: "arena", text: `Deck\n${main.map((entry) => `${entry.count} ${entry.name}`).join("\n")}`, importedAt: now },
+    createdAt: now,
+    updatedAt: now,
+  })
+  return [
+    deck("E2E Länder", [
+      { count: 34, name: "Forest" },
+      { count: 26, name: "Exploration" },
+    ]),
+    deck("E2E Länder KI", [{ count: 60, name: "Mountain" }]),
+  ]
+}
+
+/**
+ * The land hints in a real game with the real engine (prompt 51, `--lands-only`), with Forge's auto-pass "Immer fragen"
+ * (so Forge asks in every step, also in the second main phase and the AI's turn) and the AI's turn at "Schnell":
+ *  - the player's first land: "Länder 0/1" before, "Länder 1/1" after; a second Forest in the same turn is refused - the
+ *    card view says Forge's reason where its button would be, a drop sends nothing and says the same reason;
+ *  - Exploration cast: Forge allows two ("Länder 1/2"), the next Forest is playable and played ("Länder 2/2"), a third
+ *    refused in Forge's plural words; a spell Forge does not offer (another Exploration without mana) dropped: only
+ *    that Forge offers nothing;
+ *  - the second main phase shares the limit (the chip still used up, the reason the same);
+ *  - the AI's turn: "Kein Land im KI-Zug" and Forge's reason on a Forest; the player's beginning of the turn: Forge's
+ *    reason "not now";
+ *  - the next own turn: Forge counts afresh, a Forest is playable again.
+ * Every input counted in the game's recording (the player's messages): the hints send nothing.
+ */
+async function landsInRealGame(browser: Browser, base: string, viewport: Viewport): Promise<Record<string, unknown>> {
+  const label = `land hints (${viewport.name}, real game)`
+  const touch = viewport.touch
+  const context = await newContext(browser, viewport)
+  const page = await context.newPage()
+  const pageLog = watch(page)
+  const started = Date.now()
+  const results: Record<string, unknown> = {}
+  const shot = (name: string) => page.screenshot({ path: path.join(reportDir, "screens", `lands-${viewport.name}-game-${name}.png`) })
+  try {
+    await loadDecks(page, base, landDecks())
+    // The settings: Forge asks at every priority ("Immer fragen"), the AI's turn fast.
+    await page.goto(new URL("/settings", base).href, { waitUntil: "domcontentloaded" })
+    const settings = page.getByRole("region", { name: "Gegnerzug" })
+    await settings.waitFor()
+    await page.waitForFunction(() => document.querySelector('[aria-labelledby="settings-opponent-turn-title"] [role="radio"]:not([disabled])') !== null)
+    await settings.getByRole("radio", { name: /^Schnell/ }).click()
+    await settings.getByRole("radio", { name: /^Immer fragen/ }).click()
+    await page.waitForFunction(() => [...document.querySelectorAll('[aria-labelledby="settings-opponent-turn-title"] [role="radio"]')].some((radio) => radio.getAttribute("aria-checked") === "true" && (document.getElementById(radio.getAttribute("aria-labelledby") ?? "")?.textContent ?? "").startsWith("Immer fragen")), undefined, { timeout: 10_000 })
+    await page.waitForTimeout(300)
+    await page.goto(new URL("/play", base).href, { waitUntil: "domcontentloaded" })
+    await chooseDeck(page, "Dein Deck wählen", "E2E Länder")
+    await chooseDeck(page, "Deck der KI wählen", "E2E Länder KI")
+    await enginePanel(page).getByText("Bereit", { exact: true }).waitFor({ timeout: 180_000 })
+    results["startMs"] = await startAndWait(page)
+    const decision = page.getByRole("region", { name: "Entscheidung" })
+    const answers = decision.getByRole("group", { name: "Antworten, die Forge anbietet" })
+    const card = (id: number) => page.locator(`[data-area="hand"] button[data-slot="game-card"][data-card="${id}"]`)
+    const inputs = async () => ((await dumpDatabase(page, ["matchLog"]))["matchLog"] ?? []).filter((entry) => (entry as { from: string }).from === "player").length
+    /** The player's inputs since `before`, once the recorder has stored them (it writes in batches of 100 ms). */
+    const sentSince = async (before: number, expected: number) => {
+      for (let tries = 0; tries < 20 && (await inputs()) - before < expected; tries++) await page.waitForTimeout(150)
+      return (await inputs()) - before
+    }
+    const activate = async (locator: Locator) => (touch ? locator.tap() : locator.click())
+    const press = async (name: string) => {
+      const button = answers.getByRole("button", { name, exact: true })
+      await button.waitFor()
+      await page.waitForTimeout(ARMED_AFTER_MS)
+      await activate(button)
+    }
+    const named = (text: string, names: readonly string[]) => names.some((name) => text.startsWith(name))
+    const FOREST = ["Wald", "Forest"]
+    const EXPLORATION = ["Erforschung", "Exploration"]
+    const chip = () => page.evaluate(() => document.querySelector('[data-strip-fact="lands"] [aria-hidden="true"]')?.textContent?.replace(/\s+/g, " ").trim() ?? null)
+    const chipChanged = (before: string | null) => page.waitForFunction((was) => (document.querySelector('[data-strip-fact="lands"] [aria-hidden="true"]')?.textContent?.replace(/\s+/g, " ").trim() ?? null) !== was, before, { timeout: 60_000 })
+    /** Looks at hand card `id`: its card view's refusal note (or none), closed again; nothing may be sent. */
+    const look = async (id: number, expected: string | null, what: string) => {
+      const before = await inputs()
+      const target = card(id)
+      const own = await cardPoint(target)
+      if (touch) await target.tap(own === undefined ? {} : { position: own })
+      else await target.click(own === undefined ? {} : { position: own })
+      await cardViewSettled(page)
+      const facts = await refusalNoteFacts(page, `${label}: ${what}`, viewport, expected)
+      await shot(what.replace(/[^a-z0-9]+/gi, "-").toLowerCase())
+      const axe = await accessibility(page, `${label}: ${what}`)
+      if (touch) await page.locator('[data-slot="card-lightbox-close"]').tap()
+      else await page.keyboard.press("Escape")
+      await page.locator('[data-slot="card-view"]').waitFor({ state: "detached" })
+      check((await inputs()) === before, `${label}: looking at a card (${what}) sent an input`)
+      return { ...facts, axe }
+    }
+    /** Drops hand card `id` on the battlefield where Forge refuses it: nothing sent, `expected` once. */
+    const refusedDrop = async (id: number, expected: string, what: string) => {
+      const before = await inputs()
+      await dragCard(page, card(id), await battlefieldPoint(page), touch)
+      await page.waitForTimeout(800)
+      const said = await toastTexts(page)
+      const after = await inputs()
+      check(after === before && (await card(id).count()) === 1 && said.includes(expected), `${label}: dropping ${what} ${JSON.stringify({ said, before, after, inHand: await card(id).count() })}`)
+      return { said, sent: after - before }
+    }
+    const goals: Record<string, unknown> = {}
+    const steps: string[] = []
+    let firstTurn: number | null = null
+    let allowedTwo = false
+    let extraTurn: number | null = null
+    for (let step = 0; step < 400 && Date.now() - started < 900_000; step++) {
+      await youAreAsked(page)
+      await waitForDecision(page)
+      await page.waitForTimeout(200)
+      const view = await readTable(page)
+      steps.push(`${view.turn}:${view.phase}:${view.kind}`)
+      if (view.kind === "Entscheidung") {
+        await press(view.answers.some((button) => button.name === "Spielen") ? "Spielen" : view.answers.find((button) => button.enabled)!.name)
+        continue
+      }
+      if (view.kind === "Mulligan") {
+        await press("Behalten")
+        continue
+      }
+      if (view.kind !== "Priorität") {
+        // Exploration's resolution asks nothing; anything else (paying its cost) is answered with Forge's first offer, never "Abbrechen".
+        const ok = view.answers.find((button) => button.enabled && button.name !== "Abbrechen")
+        if (ok === undefined) {
+          check(false, `${label}: an unexpected decision "${view.kind}" (${view.line} ${view.text})`)
+          break
+        }
+        await press(ok.name)
+        continue
+      }
+      const stackEmpty = view.answers.some((button) => button.meaning === "pass" && button.name === "Weiter")
+      if (!stackEmpty) {
+        await press("Verrechnen lassen")
+        continue
+      }
+      const shown = await chip()
+      const forests = view.hand.filter((each) => named(each.label, FOREST))
+      const playableForest = forests.find((each) => each.mark === "usable")
+      const refusedForest = forests.find((each) => each.mark !== "usable")
+      const mainOwn = view.owner === "me" && (view.phase === "MAIN1" || view.phase === "MAIN2")
+      // The AI's turn: no numbers, Forge's reason on a Forest of the hand.
+      if (view.owner === "ai" && goals["opponent"] === undefined && forests.length > 0) {
+        check(shown === "Kein Land im KI-Zug", `${label}: in the AI's turn the chip says "${shown}"`)
+        goals["opponent"] = { turn: view.turn, phase: view.phase, chip: shown, look: await look(forests[0]!.id, NOT_YOUR_TURN_WORDS, "a Forest in the AI's turn") }
+      }
+      // The player's beginning of the turn (Forge asks in the upkeep or the draw step): Forge's reason "not now".
+      if (view.owner === "me" && (view.phase === "UPKEEP" || view.phase === "DRAW") && goals["timing"] === undefined && forests.length > 0) {
+        goals["timing"] = { turn: view.turn, phase: view.phase, chip: shown, look: await look(forests[0]!.id, TIMING_WORDS, "a Forest at the beginning of the turn") }
+      }
+      if (mainOwn && view.phase === "MAIN1" && firstTurn === null && playableForest !== undefined && forests.length >= 2 && /^Länder 0\/1$/.test(shown ?? "")) {
+        // 1. The first land of the turn: 0/1, played by dragging, 1/1.
+        const before = await inputs()
+        await dragCard(page, card(playableForest.id), await battlefieldPoint(page), touch)
+        await page.waitForFunction((id) => document.querySelector(`section[aria-label="Dein Spielfeld"] [data-card="${id}"], section[aria-label="Dein Spielfeld"] [data-pile-cards~="${id}"]`) !== null, String(playableForest.id), { timeout: 60_000 })
+        await chipChanged(shown).catch(() => undefined)
+        const after = await chip()
+        const sent = await sentSince(before, 1)
+        check(after === "Länder 1/1" && sent === 1, `${label}: after the first land the chip says "${after}", ${sent} inputs`)
+        firstTurn = view.turn
+        goals["first"] = { turn: view.turn, before: shown, after }
+        await shot("first-land")
+        continue
+      }
+      if (mainOwn && view.turn === firstTurn && goals["second"] === undefined && refusedForest !== undefined) {
+        // 2. The second land of the same turn: Forge's reason in the card view and on a drop; nothing sent.
+        check(shown === "Länder 1/1", `${label}: before the second land the chip says "${shown}"`)
+        goals["second"] = { chip: shown, look: await look(refusedForest.id, LIMIT_WORDS, "the second Forest of the turn"), drop: await refusedDrop(refusedForest.id, LIMIT_WORDS, "the second Forest of the turn") }
+        continue
+      }
+      const exploration = view.hand.find((each) => named(each.label, EXPLORATION) && each.mark === "usable")
+      if (mainOwn && goals["second"] !== undefined && !allowedTwo && exploration !== undefined && view.phase === "MAIN1" && shown === "Länder 1/1") {
+        // 3. Exploration: dragged onto the battlefield (cast; Forge's priority with it on the stack is passed above).
+        const before = await inputs()
+        await dragCard(page, card(exploration.id), await battlefieldPoint(page), touch)
+        await page.waitForFunction((was) => document.querySelector('[data-slot="game-decision"]')?.getAttribute("data-question") !== was, view.question, { timeout: 60_000 })
+        const sent = await sentSince(before, 1)
+        check(sent === 1, `${label}: casting Exploration sent ${sent} inputs`)
+        allowedTwo = true
+        extraTurn = view.turn
+        continue
+      }
+      if (mainOwn && view.turn === extraTurn && goals["extra"] === undefined && shown === "Länder 1/2" && playableForest !== undefined) {
+        // 4. Forge allows two: the next Forest is playable and played - 2/2; a third is refused in Forge's plural words.
+        await dragCard(page, card(playableForest.id), await battlefieldPoint(page), touch)
+        await page.waitForFunction((id) => document.querySelector(`section[aria-label="Dein Spielfeld"] [data-card="${id}"], section[aria-label="Dein Spielfeld"] [data-pile-cards~="${id}"]`) !== null, String(playableForest.id), { timeout: 60_000 })
+        await chipChanged(shown).catch(() => undefined)
+        const after = await chip()
+        check(after === "Länder 2/2", `${label}: after the second land with Exploration the chip says "${after}"`)
+        goals["extra"] = { before: shown, after }
+        await shot("two-lands")
+        continue
+      }
+      if (mainOwn && view.turn === extraTurn && goals["extra"] !== undefined && goals["extraRefused"] === undefined) {
+        const third = view.hand.find((each) => named(each.label, FOREST) && each.mark !== "usable")
+        const spell = view.hand.find((each) => named(each.label, EXPLORATION) && each.mark !== "usable")
+        goals["extraRefused"] = {
+          chip: shown,
+          look: third === undefined ? "no third Forest in the hand" : await look(third.id, LIMIT_MANY_WORDS, "a third Forest with Exploration"),
+          spell: spell === undefined ? "no Exploration left in the hand" : await refusedDrop(spell.id, UNOFFERED_ACTION_WORDS, "an Exploration Forge does not offer"),
+        }
+        continue
+      }
+      if (view.owner === "me" && view.phase === "MAIN2" && view.turn === firstTurn && goals["main2"] === undefined && refusedForest !== undefined) {
+        // 5. The second main phase shares the limit.
+        check(shown === "Länder 1/1" || shown === "Länder 2/2", `${label}: in the second main phase the chip says "${shown}"`)
+        goals["main2"] = { chip: shown, look: await look(refusedForest.id, shown === "Länder 2/2" ? LIMIT_MANY_WORDS : LIMIT_WORDS, "a Forest in the second main phase") }
+        await shot("main2")
+        await press("Weiter")
+        continue
+      }
+      if (view.owner === "me" && view.phase === "MAIN1" && firstTurn !== null && view.turn > firstTurn && goals["next"] === undefined) {
+        // 6. The next own turn: Forge counts afresh, a Forest is playable again.
+        check(/^Länder 0\/[12]$/.test(shown ?? "") && (playableForest !== undefined || forests.length === 0), `${label}: the next own turn: chip "${shown}", Forests ${JSON.stringify(forests)}`)
+        goals["next"] = { turn: view.turn, chip: shown, playable: playableForest !== undefined }
+        await shot("next-turn")
+      }
+      if (goals["next"] !== undefined && !allowedTwo && view.owner === "me" && view.phase === "MAIN1" && shown === "Länder 0/1" && playableForest !== undefined && view.hand.some((each) => named(each.label, EXPLORATION))) {
+        // Exploration not yet cast (none in the hand before): the land of this turn first, then Exploration (above).
+        await dragCard(page, card(playableForest.id), await battlefieldPoint(page), touch)
+        await chipChanged(shown).catch(() => undefined)
+        continue
+      }
+      // Done once Exploration's turn is over too (it may come in a later turn, when the hand had none before).
+      if (goals["next"] !== undefined && (goals["extraRefused"] !== undefined || view.turn > (firstTurn ?? 0) + 8) && view.owner === "me" && view.phase === "MAIN1" && view.turn !== extraTurn) break
+      await press("Weiter")
+    }
+    results["goals"] = goals
+    check(["first", "second", "main2", "opponent", "next", "extra", "extraRefused"].every((goal) => goals[goal] !== undefined), `${label}: not everything was reached ${JSON.stringify({ goals: Object.keys(goals), steps: steps.slice(-40) })}`)
+    results["steps"] = steps.length
+    await concedeGame(page)
+    for (const error of pageLog.errors) check(false, `${label}: ${error}`)
+    results["ms"] = Date.now() - started
+    return results
+  } finally {
+    await context.close()
+  }
+}
+
 // ── Run ──────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -7904,6 +8398,15 @@ async function main(): Promise<void> {
         ...(which === undefined || which === "phone" ? { phone: await startHandInRealGame(browser, base, VIEWPORTS[0]!) } : {}),
         ...(which === undefined || which === "desktop" ? { desktop: await startHandInRealGame(browser, base, VIEWPORTS[2]!) } : {}),
         ...(which === undefined || which === "harness" ? { harness: await startHandHarness(executablePath) } : {}),
+      }
+    } else if (landsOnly) {
+      report["scope"] = "The land plays and refusal hints (prompt 51): recorded scenes in the real table at the eight sizes and the foldable's three (the strip's land chip, the battlefields' room, axe), the card view's reason and the refused drop on a phone, a phone turned, the foldable closed and a desktop, and two real games with the real engine (a thumb on a phone, mouse and keyboard on a desktop: the first land, the second refused, Exploration, the second main phase, the AI's turn, the next own turn); no complete application suite."
+      // OPENMANA_LANDS_ONLY=harness|phone|desktop runs one part (while working on it); all by default.
+      const which = process.env["OPENMANA_LANDS_ONLY"]
+      report["lands"] = {
+        ...(which === undefined || which === "phone" ? { phone: await landsInRealGame(browser, base, VIEWPORTS[0]!) } : {}),
+        ...(which === undefined || which === "desktop" ? { desktop: await landsInRealGame(browser, base, VIEWPORTS[2]!) } : {}),
+        ...(which === undefined || which === "harness" ? { harness: await landsHarness(executablePath) } : {}),
       }
     } else if (focusedTable || tableOnly) {
       report["scope"] = tableOnly ? `All ${(TABLE_SCENES.length + BUILT_SCENES.length) * TABLE_VIEWPORTS.length} recorded/built scene/viewport checks and every original table/history/decision/combat/zone interaction; no fresh engine boot or complete application suite.` : helpOnly ? "Recorded Forge scenes and explicitly built question families; help, target markings, three viewports; no engine boot or full application suite." : historyOnly ? "Recorded real Forge log entries and current card inspection, three viewports; no engine boot or full application suite." : zonesOnly ? "Recorded Forge zones and explicitly built DFC presentation, three viewports, one page at a time; no engine boot or complete application regression suite." : "Recorded Forge combat scenes and one built order request, three viewports, one page at a time; no engine boot or complete application regression suite."
