@@ -43,7 +43,8 @@ import java.util.TreeSet;
  * { "command": "human-match", "seed": 42 (optional), "format": "constructed" | "commander",
  *   "human": { "name": "…", "deck": DECK },
  *   "ai":    { "name": "…", "profile": "Default", "deck": DECK },   (profile: one of BootReport.aiProfiles)
- *   "trace": true (optional, engine tests only) }
+ *   "trace": true (optional, engine tests only),
+ *   "settings": { "observation": "off"|"hold", "autoPass": "noActions"|"noActionsRespectInterrupts"|"never" } (optional, protocol 10) }
  * DECK = { "name": "…", "main": [ {"card": "Mountain", "count": 22}, … ],
  *          "sideboard": […], "commander": […] }
  * </pre>
@@ -104,6 +105,13 @@ public final class HumanMatch {
         final Deck humanDeck = deck(object(humanSpec, "deck"), "Human deck");
         final Deck aiDeck = deck(object(aiSpec, "deck"), "AI deck");
         final String profile = string(aiSpec, "profile", "Default");
+        // Protocol 10: observation mode and Forge's auto-pass setting at the start.
+        final JsonObject settings = request.has("settings") && !request.get("settings").isJsonNull() ? object(request, "settings") : new JsonObject();
+        final String observation = string(settings, "observation", Protocol.OBSERVATION_OFF);
+        final String autoPass = string(settings, "autoPass", Protocol.AUTO_PASS_NO_ACTIONS);
+        if (!BridgeGuiGame.knownSettings(observation, autoPass)) {
+            throw new InvalidRequest("unknown match settings " + settings);
+        }
         // Forge takes any name and plays an unknown one with its built-in
         // defaults (AiProps), which are none of its profiles - silently.
         if (!ForgeEngine.aiProfiles().contains(profile)) {
@@ -118,7 +126,9 @@ public final class HumanMatch {
         // The singleton GUI player (Forge compares against it in places);
         // naming it also sets PLAYER_NAME, so HostedMatch does not ask for a name.
         final LobbyPlayer human = GamePlayerUtil.getGuiPlayer(string(humanSpec, "name", "Player"), 0, 0, true);
-        final LobbyPlayer ai = GamePlayerUtil.createAiPlayer(string(aiSpec, "name", "Forge AI"), 1, 0, null, profile);
+        // Forge's AI seat as GamePlayerUtil.createAiPlayer makes it, with the
+        // bridge's stable point before each of its decisions (protocol 10).
+        final ObservedAiPlayer ai = ObservedAiPlayer.create(string(aiSpec, "name", "Forge AI"), 1, 0, profile);
 
         final RegisteredPlayer humanSeat = type == GameType.Commander
                 ? RegisteredPlayer.forCommander(humanDeck) : new RegisteredPlayer(humanDeck);
@@ -146,7 +156,8 @@ public final class HumanMatch {
         started.add("cardNames", cardNames(humanDeck, aiDeck));
         host.emit(started);
 
-        final BridgeGuiGame gui = new BridgeGuiGame(host, trace);
+        final BridgeGuiGame gui = new BridgeGuiGame(host, trace, observation, autoPass);
+        ai.onPriority(gui::aiPriority);
         final HostedMatch match = new HostedMatch();
         gui.installPump();
         final long start = System.nanoTime();

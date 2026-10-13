@@ -24,13 +24,13 @@ import {
 import { FIXTURES_DIR, loadFixtures } from "./fixtures.ts";
 
 const player = (id: number, extra: Partial<TraceSnapshot["players"][number]> = {}): TraceSnapshot["players"][number] => ({
-  id, life: 20, lost: false, counters: {}, mana: {}, lands: 0, library: [], hand: [], graveyard: [], exile: [], command: [], battlefield: [], ...extra,
+  id, life: 20, lost: false, counters: {}, mana: {}, lands: 0, landsAllowed: 1, landsUnlimited: false, library: [], hand: [], graveyard: [], exile: [], command: [], battlefield: [], ...extra,
 });
 
 function entry(n: number, events: TraceEntry["events"], snapshot: Partial<TraceSnapshot> = {}, at: TraceEntry["at"] = "input", inputs = n - 1): TraceEntry {
   return {
     type: "diagnostics.trace", n, at, inputs, events,
-    snapshot: { turn: 1, phase: "MAIN1", active: 0, priority: 0, human: 0, players: [player(0), player(1)], stack: [], combat: [], gui: { playable: [], highlighted: [], selectable: [], players: [], highlightedPlayers: [] }, questions: [], ...snapshot },
+    snapshot: { turn: 1, phase: "MAIN1", active: 0, priority: 0, human: 0, players: [player(0), player(1)], stack: [], combat: [], gui: { playable: [], highlighted: [], selectable: [], players: [], highlightedPlayers: [], landRefusals: [] }, questions: [], ...snapshot },
   };
 }
 
@@ -229,7 +229,7 @@ describe("coverage", () => {
 
   test("declaring attackers: the defender switched, Alpha Strike, Call Back, a planeswalker attacked, Forge's reasons (prompt 18)", () => {
     const A = (id: number, purpose: "attack" | "attackDeclared") => ({ id, kind: "buttons" as const, blocking: false, purpose, buttons: [true, true] });
-    const gui = (attack: NonNullable<NonNullable<TraceSnapshot["gui"]>["attack"]>) => ({ playable: [], highlighted: [], selectable: [], players: [], highlightedPlayers: [], attack });
+    const gui = (attack: NonNullable<NonNullable<TraceSnapshot["gui"]>["attack"]>) => ({ playable: [], highlighted: [], selectable: [], players: [], highlightedPlayers: [], landRefusals: [], attack });
     const defenders = [{ kind: "player" as const, id: 1 }, { kind: "card" as const, id: 68 }, { kind: "card" as const, id: 74 }];
     const atPlayer = { defender: defenders[0]!, defenders, unavailable: [] };
     const atWalker = { defender: defenders[1]!, defenders, unavailable: [] };

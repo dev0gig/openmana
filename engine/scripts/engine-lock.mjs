@@ -66,8 +66,10 @@ export function validateEvidence(dir) {
   }
   const tests = readJson(path.join(dir, "report/test-report.json"));
   if (tests.format !== "openmana-engine-tests/1" || tests.failures !== 0 || tests.browserSkipped !== false || tests.manifestSha256 !== manifestDigest.sha256) throw new Error("Engine tests missing, skipped, failed or from another build");
+  // A focused run (OPENMANA_FIXTURES, prompt 48) is never a complete engine acceptance.
+  if (tests.focused !== undefined) throw new Error("Engine tests were a focused run, not the complete suite");
   const runs = Object.keys(tests.runs);
-  for (const name of ["jvm-traces", "jvm-messages-schema", "jvm-cards-check", "node-protocol", "node-divergence", "browser-negative", "browser-protocol-mismatch"]) {
+  for (const name of ["jvm-traces", "jvm-messages-schema", "jvm-cards-check", "node-protocol", "node-divergence", "node-observe", "browser-negative", "browser-protocol-mismatch", "browser-observe-long-look"]) {
     if (!Object.hasOwn(tests.runs, name)) throw new Error(`Missing engine evidence: ${name}`);
   }
   for (const prefix of ["jvm-fixture-", "node-replay-", "browser-replay-"]) {

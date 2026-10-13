@@ -19,6 +19,30 @@ import { logRange, pruneMatchTransaction, type StoredMatch } from "@/storage/mat
 
 export const MAX_REPLAY_BYTES = 100 * 1024 * 1024
 
+/**
+ * Engine protocols whose recordings today's replay reads (prompt 48). Protocol
+ * 10 only added messages (observations, their release, the settings), inputs
+ * (observation.release, settings.change) and optional fields (landsUnlimited,
+ * landRefusal); every message of a protocol-9 recording is a protocol-10
+ * message but for the version number its game.started and engine.ready carry.
+ * Such a recording is checked with that number read as today's and replayed
+ * unchanged; nothing in it is rewritten. Older protocols stay exportable only.
+ */
+export const READABLE_PROTOCOLS: readonly number[] = [PROTOCOL_VERSION, 9]
+
+export function readableProtocol(protocol: number): boolean {
+  return READABLE_PROTOCOLS.includes(protocol)
+}
+
+/** A recorded engine message of a readable protocol, checked against today's schema (see READABLE_PROTOCOLS). */
+function checkRecordedMessage(message: Record<string, unknown>, protocol: number): ReturnType<typeof checkEngineMessage> {
+  if (protocol !== PROTOCOL_VERSION && (message["type"] === "game.started" || message["type"] === "engine.ready") && message["protocol"] === protocol) {
+    checkEngineMessage({ ...message, protocol: PROTOCOL_VERSION })
+    return message as unknown as ReturnType<typeof checkEngineMessage>
+  }
+  return checkEngineMessage(message)
+}
+
 export function exportReplay(stored: StoredMatch): Blob {
   const document: ReplayDocument = {
     format: "openmana-replay",
@@ -45,9 +69,9 @@ export function checkReplay(value: unknown): ReplayDocument {
       )
     previousAt = entry.at
     // Historical protocol transcripts travel intact; never reinterpret them with today's shape.
-    if (value.match.engine.protocol !== PROTOCOL_VERSION) return
+    if (!readableProtocol(value.match.engine.protocol)) return
     try {
-      if (entry.from === "engine") checkEngineMessage(entry.message)
+      if (entry.from === "engine") checkRecordedMessage(entry.message, value.match.engine.protocol)
       else if (entry.message.type === "match.start") checkMatchRequest(entry.message["match"])
       else if (entry.message.type === "recording.boot") {
         if (
@@ -65,10 +89,10 @@ export function checkReplay(value: unknown): ReplayDocument {
   })
   if (value.match.endedAt !== null && value.match.endedAt < value.match.startedAt)
     throw new StorageError("invalid-record", "Das Ende der Aufzeichnung liegt vor ihrem Beginn.")
-  if (value.match.engine.protocol === PROTOCOL_VERSION) {
+  if (readableProtocol(value.match.engine.protocol)) {
     const messages = value.log
       .filter((entry) => entry.from === "engine")
-      .map((entry) => checkEngineMessage(entry.message))
+      .map((entry) => checkRecordedMessage(entry.message, value.match.engine.protocol))
     const starts = messages.filter((message) => message.type === "game.started")
     if (
       starts.length !== 1 ||
@@ -169,7 +193,7 @@ export function replayFrames(stored: StoredMatch): ReplayFrame[] {
     match: stored.match,
     log: [...stored.log],
   })
-  if (stored.match.engine.protocol !== PROTOCOL_VERSION)
+  if (!readableProtocol(stored.match.engine.protocol))
     throw new StorageError(
       "invalid-record",
       "Diese Aufzeichnung verwendet ein anderes Engine-Protokoll. JSON speichern bleibt verfügbar.",
@@ -181,7 +205,7 @@ export function replayFrames(stored: StoredMatch): ReplayFrame[] {
   const frames: ReplayFrame[] = []
   for (const entry of stored.log) {
     if (entry.from === "engine") {
-      const message = checkEngineMessage(entry.message)
+      const message = checkRecordedMessage(entry.message, stored.match.engine.protocol)
       switch (message.type) {
         case "state":
           state = message

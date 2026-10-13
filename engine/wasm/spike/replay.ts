@@ -35,7 +35,7 @@
 import type { EngineClient, EngineClientEvent, EngineInputDraft, EngineInputError } from "../../client/src/index.ts";
 import type { EngineInputErrorReason } from "../../client/src/errors.ts";
 import type { AnswerBody, EngineMessage, MatchRequest, MatchSummary, RejectReason } from "../../protocol/src/index.ts";
-import { opponentHand, snapshotProblems } from "./invariants.ts";
+import { observationProblems, opponentHand, snapshotProblems, visibleCardIds } from "./invariants.ts";
 import { describeDivergence, TraceComparison, traceDigest, type TraceEntry } from "./trace.ts";
 
 /** 3: with the engine settings and the engine trace of the JVM game (JvmHumanMatchMain). */
@@ -96,9 +96,10 @@ const ENGINE_REASONS: Readonly<Record<EngineInputErrorReason, readonly RejectRea
   "no-match": [],
   "queue-full": [],
   "too-large": [],
+  observing: ["observing"],
 };
 /** Reasons the client would have seen coming (lazy mode: then it must have refused itself). */
-const CLIENT_KNOWABLE: ReadonlySet<RejectReason> = new Set(["stale", "not-active", "unknown-card", "unknown-player", "malformed"]);
+const CLIENT_KNOWABLE: ReadonlySet<RejectReason> = new Set(["stale", "not-active", "unknown-card", "unknown-player", "malformed", "observing"]);
 
 const SAME_AS_JVM = ["logSha256", "logEntries", "protocolSha256", "protocolMessages", "forgeCallbacks", "inputs", "turns", "result", "winner", "reason", "conceded", "trace"];
 
@@ -115,7 +116,18 @@ function withoutSeq(input: Record<string, unknown>): EngineInputDraft {
  * Plays the recording once the client is ready (or right away if it already
  * is) and resolves with the verdict when the match is finished or aborted.
  */
-export function replay(client: EngineClient, transcript: Transcript, feeding: Feeding, now: () => number): Promise<ReplayVerdict> {
+/**
+ * Options of a replay. holdDelayMs/holdDelays (protocol 10): before the first
+ * holdDelays releases of a held observation, wait holdDelayMs - the player
+ * looking at the observation for a long time; with a stall timeout shorter
+ * than that this proves that waiting to be looked at is never a stall.
+ */
+export interface ReplayOptions {
+  holdDelayMs?: number;
+  holdDelays?: number;
+}
+
+export function replay(client: EngineClient, transcript: Transcript, feeding: Feeding, now: () => number, options: ReplayOptions = {}): Promise<ReplayVerdict> {
   if (!transcript || transcript.format !== TRANSCRIPT_FORMAT) {
     throw new Error(`not an OpenMana input transcript of format ${TRANSCRIPT_FORMAT}`);
   }
@@ -139,6 +151,8 @@ export function replay(client: EngineClient, transcript: Transcript, feeding: Fe
   const engineVerdict = new Map<number, RejectReason>();
   let summary: MatchSummary | null = null;
   let snapshotIssues = 0;
+  /** Protocol 10: every card a state showed so far. */
+  const seenCards = new Set<number>();
   const traced = Array.isArray(transcript.trace);
   if (traced && transcript.request.trace !== true) {
     throw new Error("the transcript carries an engine trace, but its request does not ask for one");
@@ -199,12 +213,30 @@ export function replay(client: EngineClient, transcript: Transcript, feeding: Fe
         return client.requestState();
       case "concede":
         return client.concede();
+      case "observation.release":
+        return client.releaseObservation(draft.observation);
+      case "settings.change": {
+        const { type: _type, ...settings } = draft;
+        return client.changeSettings(settings);
+      }
     }
   }
 
+  let delaysLeft = options.holdDelays ?? 0;
   function feed(): void {
     if (feeding === "lazy") {
-      if (next < inputs.length) write();
+      if (next < inputs.length) {
+        if (delaysLeft > 0 && (options.holdDelayMs ?? 0) > 0 && inputs[next]!["type"] === "observation.release" && client.heldObservation !== null) {
+          // The player looks at the held observation for a long time (protocol 10).
+          delaysLeft--;
+          count("observation:release-delayed");
+          setTimeout(() => {
+            if (client.status === "playing") write();
+          }, options.holdDelayMs);
+          return;
+        }
+        write();
+      }
       return;
     }
     while (next < inputs.length && write()) {
@@ -328,6 +360,12 @@ export function replay(client: EngineClient, transcript: Transcript, feeding: Fe
             snapshotIssues++;
             fail(`state ${message.seq}: ${problems.join("; ")}`);
           }
+          for (const id of visibleCardIds(message)) seenCards.add(id);
+          return;
+        }
+        case "observation": {
+          count(message.hold ? "observation:held" : "observation:sent");
+          for (const problem of observationProblems(message, seenCards)) fail(problem);
           return;
         }
         case "question":

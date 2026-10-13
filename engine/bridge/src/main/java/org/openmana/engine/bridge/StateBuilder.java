@@ -8,6 +8,7 @@ import forge.card.ColorSet;
 import forge.card.MagicColor;
 import forge.game.GameEntityView;
 import forge.game.GameView;
+import forge.game.Game;
 import forge.game.card.Card;
 import forge.game.card.CardView;
 import forge.game.card.CardView.CardStateView;
@@ -141,6 +142,10 @@ final class StateBuilder {
         o.addProperty("maxHandSize", p.getMaxHandSize());
         o.addProperty("landsPlayed", p.getNumLandThisTurn());
         o.addProperty("landsAllowed", p.getMaxLandPlay());
+        // Protocol 10: Forge lets this player play any number of lands now.
+        if (p.hasUnlimitedLandPlay()) {
+            o.addProperty("landsUnlimited", true);
+        }
         o.add("counters", counters(p.getCounters()));
         o.add("mana", mana(p));
 
@@ -151,7 +156,11 @@ final class StateBuilder {
             final Iterable<CardView> content = p.getCards(zone);
             if (content != null) {
                 for (final CardView c : content) {
-                    cards.add(card(c, WITH_TEXT.contains(zone) || (zone == ZoneType.Hand && p.equals(me))));
+                    final JsonObject card = card(c, WITH_TEXT.contains(zone) || (zone == ZoneType.Hand && p.equals(me)));
+                    if (zone == ZoneType.Hand && p.equals(me)) {
+                        landRefusal(game, me, c, card);
+                    }
+                    cards.add(card);
                 }
             }
             zones.add(ZONE_NAMES[i], cards);
@@ -220,12 +229,43 @@ final class StateBuilder {
     }
 
     /**
+     * Protocol 10: why Forge would not let the player play this land of their
+     * hand now ({@link LandPlays}); not for a card Forge marks playable.
+     */
+    private void landRefusal(final GameView view, final PlayerView me, final CardView c, final JsonObject card) {
+        if (!card.has("id") || card.has("playable") || view.getGame() == null) {
+            return;
+        }
+        final Game game = view.getGame();
+        final String refusal = LandPlays.refusal(game.getPlayer(me), game.findById(c.getId()));
+        if (refusal != null) {
+            card.addProperty("landRefusal", refusal);
+        }
+    }
+
+    /** The number of the last state built (0 before the first). */
+    long lastSeq() {
+        return sequence;
+    }
+
+    /**
      * One card. {@code key} is the English oracle name (stable identity for
      * Scryfall); {@code name}/{@code type}/{@code text} are Forge's display
      * texts in the engine's language.
      */
     JsonObject card(final CardView c, final boolean withText) {
         return card(c, withText, true);
+    }
+
+    /**
+     * A card in an observed action (protocol 10): what the player sees of it,
+     * with its rules text, without any marker of what can be done with it or
+     * of a running input - nothing here asks Forge anything with a side effect.
+     */
+    JsonObject publicCard(final CardView c) {
+        final JsonObject o = card(c, true, false);
+        o.remove("highlighted");
+        return o;
     }
 
     /**

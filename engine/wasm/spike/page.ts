@@ -47,6 +47,10 @@ const feeding = (params.get("feeding") ?? "lazy") as Feeding;
 const queueCapacity = params.get("queueCapacity") ? Number(params.get("queueCapacity")) : undefined;
 const announceProtocol = params.get("announceProtocol") ? Number(params.get("announceProtocol")) : undefined;
 const traceUrl = params.get("trace");
+// Protocol 10: replay a long look at held observations against a short stall timeout.
+const holdDelayMs = params.get("holdDelayMs") ? Number(params.get("holdDelayMs")) : 0;
+const holdDelays = params.get("holdDelays") ? Number(params.get("holdDelays")) : 0;
+const stallTimeoutMs = params.get("stallTimeoutMs") ? Number(params.get("stallTimeoutMs")) : undefined;
 let traceComparison: TraceComparison | null = null;
 let traceReference = 0;
 let traceDiverged = false;
@@ -102,6 +106,7 @@ const client = new EngineClient({
   engineArgs: [`--card-loading=${cardLoading}`, `--language=${language}`, ...(cardLanguage ? [`--card-language=${cardLanguage}`] : [])],
   // The card probe's whole-database pass keeps the engine busy without messages.
   ...(state.mode === "cards" ? { stallTimeoutMs: 600_000 } : {}),
+  ...(stallTimeoutMs !== undefined ? { stallTimeoutMs } : {}),
   ...(queueCapacity ? { queueCapacity } : {}),
   ...(announceProtocol !== undefined ? { announceProtocol } : {}),
 });
@@ -205,7 +210,7 @@ async function main(): Promise<void> {
     }
     const transcript = (await response.json()) as Transcript;
     statusEl.textContent = `Engine startet, danach aufgezeichnete Partie (Seed ${transcript.request.seed}, ${transcript.inputs.length} Eingaben, ${feeding}) …`;
-    const run = replay(client, transcript, feeding, () => performance.now());
+    const run = replay(client, transcript, feeding, () => performance.now(), { holdDelayMs, holdDelays });
     client.start();
     const verdict = await run;
     state.verdict = verdict;

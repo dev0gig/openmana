@@ -21,4 +21,15 @@ public interface EngineHost {
      * returns it. Called only when Forge waits for the human.
      */
     JsonObject awaitInput();
+
+    /**
+     * UI to engine while the engine holds an observation (protocol 10):
+     * like {@link #awaitInput()}, at a stable point between Forge's actions
+     * instead of a decision of the player. Wrappers that observe the game
+     * (the engine trace) tell the two apart: waiting to be looked at is not
+     * a game input. Wrappers must pass it on to the host they wrap.
+     */
+    default JsonObject awaitObservationInput() {
+        return awaitInput();
+    }
 }

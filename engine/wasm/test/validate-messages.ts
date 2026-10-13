@@ -13,7 +13,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { checkEngineMessage, ProtocolViolation, type EngineMessage } from "../../protocol/src/index.ts";
-import { snapshotProblems } from "../spike/invariants.ts";
+import { observationProblems, snapshotProblems, visibleCardIds } from "../spike/invariants.ts";
 
 const args = process.argv.slice(2);
 const outIndex = args.indexOf("--out");
@@ -43,6 +43,11 @@ for (const file of files) {
   let ended = false;
   let traceEntries = 0;
   let lastTraceAt: string | null = null;
+  // Protocol 10: observations - ids increasing, actions numbered without gaps, right after their state, no question while held, only cards the player saw.
+  const seen = new Set<number>();
+  let lastObservation = 0;
+  let lastAction = 0;
+  let held: number | null = null;
   const lines = fs.readFileSync(file, "utf8").split("\n").filter((l) => l.trim() !== "");
   lines.forEach((line, index) => {
     const where = `line ${index + 1}`;
@@ -63,9 +68,30 @@ for (const file of files) {
         if (message.seq <= lastSeq) report.problems.push(`${where}: state ${message.seq} after ${lastSeq}`);
         lastSeq = message.seq;
         for (const p of snapshotProblems(message)) report.problems.push(`${where} (state ${message.seq}): ${p}`);
+        for (const id of visibleCardIds(message)) seen.add(id);
+        break;
+      case "observation":
+        if (held !== null) report.problems.push(`${where}: observation ${message.id} while ${held} is held`);
+        if (message.id <= lastObservation) report.problems.push(`${where}: observation ${message.id} after ${lastObservation}`);
+        lastObservation = message.id;
+        if (message.state !== lastSeq) report.problems.push(`${where}: observation ${message.id} names state ${message.state}, the last state is ${lastSeq}`);
+        for (const action of message.actions) {
+          if (action.n !== lastAction + 1) report.problems.push(`${where}: action ${action.n} after ${lastAction}`);
+          lastAction = action.n;
+        }
+        if (message.hold) {
+          if (open.size > 0) report.problems.push(`${where}: observation ${message.id} held while questions ${[...open].join(", ")} are open`);
+          held = message.id;
+        }
+        for (const p of observationProblems(message, seen)) report.problems.push(`${where}: ${p}`);
+        break;
+      case "observation.released":
+        if (held !== message.id) report.problems.push(`${where}: observation ${message.id} released, ${held ?? "none"} held`);
+        held = null;
         break;
       case "question":
         report.questions++;
+        if (held !== null) report.problems.push(`${where}: question ${message.id} while observation ${held} is held`);
         if (message.id <= lastQuestion) report.problems.push(`${where}: question id ${message.id} after ${lastQuestion}`);
         lastQuestion = message.id;
         open.add(message.id);

@@ -26,6 +26,12 @@ export const card: VisibleCard = {
   counters: { P1P1: 1 },
 };
 
+/** A land as Forge shows it (protocol 10: landRefusal, observed lands). */
+export const land: VisibleCard = {
+  id: 35, key: "Mountain", name: "Mountain", typeLine: "Basic Land - Mountain", set: "M21",
+  tapped: false, sick: false, faceDown: false, damage: 0, owner: 0, controller: 0,
+};
+
 export const matchRequest: MatchRequest = {
   seed: 3,
   format: "constructed",
@@ -135,9 +141,9 @@ export const engineMessages: EngineMessage[] = [
     snapshot: {
       turn: 0, phase: null, active: null, priority: null, human: 0,
       players: [
-        { id: 0, life: 20, lost: false, counters: {}, mana: {}, lands: 0, library: [43, 27, 24], hand: [{ id: 53, key: "Bonecrusher Giant" }], graveyard: [], exile: [], command: [], battlefield: [] },
+        { id: 0, life: 20, lost: false, counters: {}, mana: {}, lands: 0, landsAllowed: 1, landsUnlimited: false, library: [43, 27, 24], hand: [{ id: 53, key: "Bonecrusher Giant" }], graveyard: [], exile: [], command: [], battlefield: [] },
         {
-          id: 1, life: 40, lost: false, counters: { Poison: 2 }, mana: { G: 1 }, lands: 1, library: [106], hand: [{ id: 116, key: "Forest" }], graveyard: [], exile: [],
+          id: 1, life: 40, lost: false, counters: { Poison: 2 }, mana: { G: 1 }, lands: 1, landsAllowed: 2, landsUnlimited: false, library: [106], hand: [{ id: 116, key: "Forest" }], graveyard: [], exile: [],
           command: [{ id: 201, key: "Fynn, the Fangbearer" }],
           battlefield: [{ id: 80, key: "Grizzly Bears", tapped: true, sick: true, power: 3, toughness: 3, counters: { "+1/+1": 1 } }, { id: 90, key: "Delver of Secrets", state: "Transformed", attachedTo: "c80" }],
           commanders: [{ card: 201, cast: 1, damage: { "0": 3 } }],
@@ -145,7 +151,7 @@ export const engineMessages: EngineMessage[] = [
       ],
       stack: [{ card: 49, key: "Shock", player: 0, api: "DealDamage", spell: true, trigger: false, targets: ["p1", "c80", "s12"] }],
       combat: [{ attacker: 80, defender: "p0", blockers: [] }],
-      gui: { playable: [], highlighted: [], selectable: [], players: [1], highlightedPlayers: [], payment: { cost: "{1}{B/P}", pool: "BC" } },
+      gui: { playable: [], highlighted: [], selectable: [], players: [1], highlightedPlayers: [], landRefusals: [{ card: 116, reason: "limit" }], payment: { cost: "{1}{B/P}", pool: "BC" } },
       questions: [{ id: 2, kind: "buttons", blocking: false, purpose: "mulliganBottom", buttons: [false, true] }, { id: 5, kind: "choose", blocking: true, min: 1, max: 1, suggested: [1], items: ["c53", "p1", "hidden", "#4"] }],
     },
   },
@@ -155,9 +161,9 @@ export const engineMessages: EngineMessage[] = [
     players: [
       { id: 0, name: "Player", ai: false, me: true, life: 20, hasPriority: true, canAct: true, lost: false, maxHandSize: 7,
         landsPlayed: 1, landsAllowed: 1, counters: {}, mana: { W: 0, U: 0, B: 0, R: 1, G: 0, C: 0 },
-        zones: { battlefield: [], hand: [card], graveyard: [], exile: [], command: [] }, library: 50, commanders: [] },
+        zones: { battlefield: [], hand: [card, { ...land, landRefusal: "limit" }], graveyard: [], exile: [], command: [] }, library: 50, commanders: [] },
       { id: 1, name: "Forge AI", ai: true, me: false, life: 18, hasPriority: false, canAct: false, selectable: true, highlighted: true, lost: false, maxHandSize: 7,
-        landsPlayed: 0, landsAllowed: 1, counters: { POISON: 1 }, mana: { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 },
+        landsPlayed: 0, landsAllowed: 1, landsUnlimited: true, counters: { POISON: 1 }, mana: { W: 0, U: 0, B: 0, R: 0, G: 0, C: 0 },
         zones: { battlefield: [], hand: [{ hidden: true }, { hidden: true }], graveyard: [], exile: [], command: [] }, library: 49,
         commanders: [{ card, cast: 1, tax: 2, damage: [{ player: 0, amount: 5 }] }] },
     ],
@@ -183,6 +189,28 @@ export const engineMessages: EngineMessage[] = [
   { type: "question.withdrawn", id: 3 },
   { type: "question.answered", id: 4, seq: 12 },
   { type: "input.rejected", seq: 13, reason: "stale", detail: "question 9999999 is not open", input: { type: "answer", seq: 13, question: 9999999, kind: "buttons", button: 1 } },
+  // Protocol 10 (prompt 48): settings, observations and their holds.
+  { type: "settings.applied", seq: null, observation: "hold", autoPass: "noActions" },
+  { type: "settings.applied", seq: 15, observation: "off", autoPass: "noActionsRespectInterrupts" },
+  {
+    type: "observation", id: 4, hold: true, state: 7,
+    actions: [
+      { n: 11, kind: "turnEnd", player: 0, turn: 2 },
+      { n: 12, kind: "turn", player: 1, turn: 3 },
+      { n: 13, kind: "land", player: 1, card: { ...land, id: 95, key: "Forest", name: "Forest", typeLine: "Basic Land - Forest", owner: 1, controller: 1 } },
+      { n: 14, kind: "cast", player: 1, card: { ...card, id: 48 }, targets: [{ kind: "player", id: 0 }, { kind: "card", id: 54 }] },
+      { n: 15, kind: "trigger", player: 0, card: card, targets: [] },
+      { n: 16, kind: "activate", player: 1, card: null, targets: [] },
+      { n: 17, kind: "resolve", player: 1, card: { ...card, id: 48 }, stack: "spell", fizzled: false,
+        results: { moves: [{ card: { ...card, id: 48 }, from: { zone: "stack", player: null }, to: { zone: "graveyard", player: 1 } }, { card: { ...card, id: 60 }, from: null, to: { zone: "battlefield", player: 1 } }], damage: [{ target: { kind: "player", id: 0 }, amount: 2, source: 48 }], life: [{ player: 0, from: 20, to: 18 }] } },
+      { n: 18, kind: "attack", player: 1, attacks: [{ attacker: { ...card, id: 19 }, defender: { kind: "player", id: 0 } }, { attacker: { hidden: true }, defender: null }] },
+      { n: 19, kind: "block", player: 0, blocks: [{ attacker: 19, blockers: [card] }] },
+      { n: 20, kind: "combatDamage", player: 1, results: { moves: [], damage: [{ target: { kind: "card", id: 54 }, amount: 3, source: 19 }], life: [] } },
+      { n: 21, kind: "resolve", player: 0, card: { hidden: true }, stack: "trigger", fizzled: true, continued: true, results: { moves: [], damage: [], life: [] } },
+    ],
+  },
+  { type: "observation.released", id: 4, seq: 16, by: "release" },
+  { type: "input.rejected", seq: 17, reason: "observing", detail: "observation 5 is held: release it first", input: { type: "card.tap", seq: 17, card: 35 } },
   { type: "game.end", winner: "Forge AI", reason: "Concede", turns: 4, result: "loss", players: [{ id: 0, name: "Player", life: 20, me: true }], conceded: true },
 ];
 
@@ -201,6 +229,9 @@ export const engineInputs: EngineInput[] = [
   { type: "mana.use", seq: 12, color: "C" },
   { type: "state.request", seq: 13 },
   { type: "concede", seq: 14 },
+  { type: "settings.change", seq: 15, observation: "off", autoPass: "noActionsRespectInterrupts" },
+  { type: "settings.change", seq: 16, autoPass: "never" },
+  { type: "observation.release", seq: 17, observation: 4 },
 ];
 
 export const workerCommands: WorkerCommand[] = [
@@ -209,5 +240,6 @@ export const workerCommands: WorkerCommand[] = [
   { type: "diagnostics.ai-match", seed: 42, includeLog: false },
   { type: "diagnostics.ai-match", seed: 7, includeLog: false, trace: true },
   { type: "match.start", match: { ...matchRequest, trace: true } },
+  { type: "match.start", match: { ...matchRequest, settings: { observation: "hold", autoPass: "never" } } },
   { type: "diagnostics.card-probe" },
 ];

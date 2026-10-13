@@ -16,6 +16,10 @@
  * - malformed: the input does not conform to the protocol schema
  * - queue-full: the engine has not read the pending inputs yet (try again when it waits)
  * - too-large: the input can never fit into the input queue
+ * - observing: the engine holds an observation (protocol 10): only its release, a
+ *   settings change, a state request or a concession are taken now
+ *
+ * A release of an observation that is not held is stale.
  */
 export type EngineInputErrorReason =
   | "no-match"
@@ -27,7 +31,8 @@ export type EngineInputErrorReason =
   | "unknown-player"
   | "malformed"
   | "queue-full"
-  | "too-large";
+  | "too-large"
+  | "observing";
 
 export class EngineInputError extends Error {
   readonly reason: EngineInputErrorReason;

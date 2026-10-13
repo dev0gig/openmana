@@ -461,3 +461,73 @@ describe("queue and watchdog", () => {
     assert.throws(() => client.requestState(), inputError("no-match"));
   });
 });
+
+describe("observations and settings (protocol 10)", () => {
+  const land = (n: number) => ({ n, kind: "land" as const, player: 1, card: { hidden: true as const } });
+  const observation = (id: number, hold: boolean, state = 7, actions = [land(id)]) => ({ type: "observation", id, hold, state, actions });
+
+  test("a held observation: only its release, settings, a state request and a concession; answers and taps are refused as observing", () => {
+    const { client, worker, aborts } = playing();
+    worker.send(observation(1, true));
+    assert.equal(client.heldObservation?.id, 1);
+    assert.throws(() => client.tapCard(54), inputError("observing"));
+    assert.throws(() => client.tapPlayer(1), inputError("observing"));
+    assert.throws(() => client.useMana("R"), inputError("observing"));
+    assert.throws(() => client.answer(3, { kind: "buttons", button: 1 }), inputError("observing"));
+    assert.throws(() => client.releaseObservation(2), inputError("stale"), "only exactly the held one");
+    client.requestState();
+    client.changeSettings({ autoPass: "never" });
+    const seq = client.releaseObservation(1);
+    assert.deepEqual(worker.inputs(), [
+      { type: "state.request", seq: 1 },
+      { type: "settings.change", seq: 2, autoPass: "never" },
+      { type: "observation.release", seq: 3, observation: 1 },
+    ]);
+    worker.send({ type: "settings.applied", seq: 2, observation: "hold", autoPass: "never" });
+    assert.equal(client.settings?.autoPass, "never");
+    worker.send({ type: "observation.released", id: 1, seq, by: "release" });
+    assert.equal(client.heldObservation, null);
+    assert.throws(() => client.releaseObservation(1), inputError("stale"), "an old release is stale");
+    assert.deepEqual(aborts(), []);
+  });
+
+  test("waiting at a held observation, however long, is not a stall", () => {
+    const { client, worker, timers, events } = playing({ stallTimeoutMs: 5000 });
+    worker.send(observation(1, true));
+    worker.send({ type: "engine.waiting", consumed: 0 });
+    timers.advance(10 * 60_000);
+    assert.equal(events.filter((e) => e.kind === "stalled").length, 0, "looking is not a stall");
+    assert.equal(client.engineWaiting, true);
+    client.releaseObservation(1);
+    timers.advance(5000);
+    assert.equal(events.filter((e) => e.kind === "stalled").length, 1, "after the release the working engine is watched again");
+  });
+
+  for (const [what, send, pattern] of [
+    ["a question while an observation is held", (s: ReturnType<typeof playing>) => { s.worker.send(observation(1, true)); s.worker.send(buttons(3)); }, /question 3 while observation 1 is held/],
+    ["an observation while one is held", (s: ReturnType<typeof playing>) => { s.worker.send(observation(1, true)); s.worker.send(observation(2, false, 7, [land(2)])); }, /observation 2 while observation 1 is held/],
+    ["an observation of an old state", (s: ReturnType<typeof playing>) => { s.worker.send(observation(1, false, 6)); }, /names state 6, the latest state is 7/],
+    ["observed actions with a gap", (s: ReturnType<typeof playing>) => { s.worker.send(observation(1, false, 7, [land(2)])); }, /action 2 after action 0/],
+    ["an observation id used again", (s: ReturnType<typeof playing>) => { s.worker.send(observation(2, false, 7, [land(1)])); s.worker.send(observation(2, false, 7, [land(2)])); }, /ids must increase/],
+    ["a hold while a question is open", (s: ReturnType<typeof playing>) => { s.worker.send(buttons(3)); s.worker.send(observation(1, true)); }, /held while questions 3 are open/],
+    ["a release of an observation that is not held", (s: ReturnType<typeof playing>) => { s.worker.send(observation(1, false)); s.worker.send({ type: "observation.released", id: 1, seq: 1, by: "release" }); }, /observation 1 released, but none is held/],
+    ["the game ending while an observation is held", (s: ReturnType<typeof playing>) => { s.worker.send(observation(1, true)); s.worker.send(engineMessages.find((m) => m.type === "game.end")); }, /game.end while observation 1 is held/],
+  ] as const) {
+    test(`protocol violation: ${what}`, () => {
+      const s = playing();
+      send(s);
+      assert.equal(s.aborts().length, 1);
+      assert.equal(s.client.abortInfo?.reason, "protocol-violation");
+      assert.match(s.client.abortInfo?.message ?? "", pattern);
+    });
+  }
+
+  test("an observation that does not hold leaves every input open; a release then is stale", () => {
+    const { client, worker, aborts } = playing();
+    worker.send(observation(1, false));
+    assert.equal(client.heldObservation, null);
+    assert.throws(() => client.releaseObservation(1), inputError("stale"));
+    client.tapCard(54);
+    assert.deepEqual(aborts(), []);
+  });
+});

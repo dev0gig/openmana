@@ -8,6 +8,7 @@
 //   node engine/wasm/test/node-replay.ts --transcript t.json [--feeding lazy|eager]
 //        [--queue-capacity <bytes>] [--card-loading lazy|eager] [--language en-US|de-DE]
 //        [--card-language en-US|de-DE] [--out result.json] [--dist <dir>]
+//        [--hold-delay-ms <ms> --hold-delays <n> --stall-timeout-ms <ms>]   (protocol 10: look long at held observations)
 //
 // Card loading and the languages default to the transcript's engine settings.
 // Exit code 0 only if the game ends exactly as on the JVM.
@@ -22,6 +23,9 @@ const transcriptFile = option(args, "--transcript", null);
 const feeding = option(args, "--feeding", "lazy") as Feeding;
 const queueCapacity = Number(option(args, "--queue-capacity", feeding === "eager" ? "256" : "65536"));
 const outFile = option(args, "--out", null);
+const holdDelayMs = Number(option(args, "--hold-delay-ms", "0"));
+const holdDelays = Number(option(args, "--hold-delays", "0"));
+const stallTimeoutMs = option(args, "--stall-timeout-ms", null);
 const TIMEOUT_MS = 600_000;
 if (!transcriptFile || (feeding !== "lazy" && feeding !== "eager")) {
   console.error("--transcript <file> is required, --feeding is lazy or eager");
@@ -36,7 +40,7 @@ const baselineMiB = vmHwmMiB();
 const origin = performance.now();
 const since = () => Math.round(performance.now() - origin);
 const phases: Record<string, number> = {};
-const client = nodeClient(distDir, cardLoading, { queueCapacity }, language, cardLanguage);
+const client = nodeClient(distDir, cardLoading, { queueCapacity, ...(stallTimeoutMs ? { stallTimeoutMs: Number(stallTimeoutMs) } : {}) }, language, cardLanguage);
 client.subscribe((event) => {
   if (event.kind === "message" && (event.message.type === "engine.boot" || event.message.type === "engine.ready")) {
     phases[event.message.type === "engine.boot" ? event.message.phase : "ready"] = since();
@@ -44,7 +48,7 @@ client.subscribe((event) => {
   if (event.kind === "message" && event.message.type === "game.started") phases["gameStarted"] = since();
 });
 const timer = setTimeout(() => client.abort(`replay timeout after ${TIMEOUT_MS / 1000} s`), TIMEOUT_MS);
-const run = replay(client, transcript, feeding, () => performance.now());
+const run = replay(client, transcript, feeding, () => performance.now(), { holdDelayMs, holdDelays });
 client.start();
 const verdict = await run;
 clearTimeout(timer);

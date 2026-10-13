@@ -1,0 +1,12 @@
+{
+  "name": "OpenMana Smoke Green Lands",
+  "main": [
+    { "card": "Forest", "count": 22 },
+    { "card": "Exploration", "count": 8 },
+    { "card": "Rampant Growth", "count": 8 },
+    { "card": "Llanowar Elves", "count": 4 },
+    { "card": "Grizzly Bears", "count": 6 },
+    { "card": "Centaur Courser", "count": 6 },
+    { "card": "Kalonian Tusker", "count": 6 }
+  ]
+}

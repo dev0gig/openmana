@@ -13,7 +13,10 @@
  *    (REQUIRED_COVERAGE).
  * Writes a report with digest, counts and coverage per fixture.
  *
- *   node engine/wasm/test/check-traces.ts --transcripts <dir> [--out report.json]
+ *   node engine/wasm/test/check-traces.ts --transcripts <dir> [--only <fixture,...>] [--out report.json]
+ *
+ * --only (a focused run, prompt 48): only these fixtures; the union of the
+ * required coverage is not checked then - never a complete acceptance.
  *
  * Transcripts: <dir>/<fixture>.json (JvmHumanMatchMain --scenario, format 3).
  * Exit code 0 only if everything holds.
@@ -27,6 +30,7 @@ import { compareTraces, describeDivergence, REQUIRED_COVERAGE, traceCoverage, tr
 const args = process.argv.slice(2);
 const dir = option(args, "--transcripts", null);
 const outFile = option(args, "--out", null);
+const only = option(args, "--only", null);
 if (!dir) {
   console.error("usage: check-traces.ts --transcripts <dir> [--out report.json]");
   process.exit(2);
@@ -46,7 +50,16 @@ interface FixtureReport {
   problems: string[];
 }
 
-const fixtures = loadFixtures();
+const all = loadFixtures();
+const selected = only === null ? null : new Set(only.split(","));
+if (selected) {
+  const unknown = [...selected].filter((name) => !all.some((f) => f.name === name));
+  if (unknown.length > 0) {
+    console.error(`--only names unknown fixtures: ${unknown.join(", ")}`);
+    process.exit(2);
+  }
+}
+const fixtures = selected ? all.filter((f) => selected.has(f.name)) : all;
 const traces = new Map<string, TraceEntry[]>();
 const reports: FixtureReport[] = [];
 const problems: string[] = [];
@@ -108,10 +121,10 @@ for (const fixture of fixtures.filter((f) => f.sameGameAs)) {
 
 const covered = new Set(fixtures.filter((f) => !f.sameGameAs).flatMap((f) => f.covers));
 const uncovered = REQUIRED_COVERAGE.filter((c) => !covered.has(c));
-if (uncovered.length > 0) problems.push(`the fixtures together do not cover: ${uncovered.join(", ")} (prompt 05)`);
+if (!selected && uncovered.length > 0) problems.push(`the fixtures together do not cover: ${uncovered.join(", ")} (prompt 05)`);
 for (const r of reports) problems.push(...r.problems.map((p) => `${r.name}: ${p}`));
 
-const text = JSON.stringify({ ok: problems.length === 0, problems, required: REQUIRED_COVERAGE, fixtures: reports }, null, 2);
+const text = JSON.stringify({ ok: problems.length === 0, ...(selected ? { focused: [...selected] } : {}), problems, required: REQUIRED_COVERAGE, fixtures: reports }, null, 2);
 if (outFile) fs.writeFileSync(outFile, text + "\n");
 console.log(problems.length === 0 ? `engine traces of ${fixtures.length} fixtures consistent` : problems.join("\n"));
 process.exit(problems.length === 0 ? 0 : 1);

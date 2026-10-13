@@ -24,7 +24,9 @@ import forge.gamemodes.match.input.Input;
 import forge.gamemodes.match.input.InputBlock;
 import forge.gamemodes.match.input.InputSyncronizedBase;
 import forge.gui.interfaces.IGuiGame;
+import forge.gamemodes.match.YieldController;
 import forge.interfaces.IGameController;
+import forge.localinstance.properties.ForgePreferences.FPref;
 import forge.item.PaperCard;
 import forge.localinstance.skin.FSkinProp;
 import forge.player.PlayerZoneUpdate;
@@ -41,6 +43,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 /**
@@ -70,6 +73,18 @@ import java.util.TreeMap;
  * selectable cards ({@code setSelectables}). The last two are non-blocking
  * questions that belong to the input that asked; they are withdrawn as soon as
  * Forge changes them or that input is gone.
+ *
+ * <p>Observations (protocol 10, prompt 48): Forge's public actions
+ * ({@link ObservationLog}) go out as one {@code observation} right after a
+ * fresh state at stable points - before Forge asks the AI what it plays
+ * (a player gets priority: state-based actions checked, triggers on the
+ * stack; {@link ObservedAiPlayer}), before the bridge waits for the player
+ * or asks a question, at the end of the game. Only at the first kind, and
+ * only in the observation mode {@code hold}, the engine may wait for the
+ * observation's release ({@link #aiPriority()}). Waiting there is outside
+ * Forge's event bus, cost payment and stack resolution; it reads inputs on
+ * this thread like any wait for the player, and a concession, a state
+ * request or a change of the settings are served at once.
  *
  * <p>This class makes no game decision and knows no card, mechanic or rule.
  */
@@ -112,7 +127,17 @@ final class BridgeGuiGame extends AbstractGuiGame {
     /** The engine trace of this game (engine tests), or null. */
     private final EngineTrace trace;
     private final StateBuilder state = new StateBuilder(this);
+    /** Forge's public actions since the last observation (protocol 10). */
+    private final ObservationLog observations = new ObservationLog(this, state);
     private final Thread engineThread;
+
+    /** The observation mode now (MatchSettings.observation). */
+    private String observationMode;
+    /** Forge's auto-pass setting now (MatchSettings.autoPass). */
+    private String autoPass;
+    private long lastObservationId;
+    /** The observation the engine holds now, 0 if none. */
+    private long heldObservation;
 
     private long lastQuestionId;
     private final Map<Long, OpenQuestion> open = new LinkedHashMap<>();
@@ -133,8 +158,18 @@ final class BridgeGuiGame extends AbstractGuiGame {
     private JsonObject endMessage;
 
     BridgeGuiGame(final EngineHost host, final EngineTrace trace) {
+        this(host, trace, Protocol.OBSERVATION_OFF, Protocol.AUTO_PASS_NO_ACTIONS);
+    }
+
+    /**
+     * @param observationMode the observation mode at the start (protocol 10, checked by HumanMatch)
+     * @param autoPass Forge's auto-pass setting at the start (protocol 10, checked by HumanMatch)
+     */
+    BridgeGuiGame(final EngineHost host, final EngineTrace trace, final String observationMode, final String autoPass) {
         this.host = host;
         this.trace = trace;
+        this.observationMode = observationMode;
+        this.autoPass = autoPass;
         this.engineThread = Thread.currentThread();
     }
 
@@ -163,7 +198,9 @@ final class BridgeGuiGame extends AbstractGuiGame {
             return;
         }
         withdrawQuestionsOfFinishedInputs();
-        sendState();
+        if (!observe(false)) {
+            sendState();
+        }
         final JsonObject input = nextInput();
         switch (typeOf(input)) {
             case Protocol.ANSWER -> answerOpenQuestion(input);
@@ -172,6 +209,8 @@ final class BridgeGuiGame extends AbstractGuiGame {
             case Protocol.MANA_USE -> useMana(input);
             case Protocol.STATE_REQUEST -> sendStateNow();
             case Protocol.CONCEDE -> concedeNow();
+            case Protocol.OBSERVATION_RELEASE -> reject(input, Protocol.REJECT_STALE, "no observation is held");
+            case Protocol.SETTINGS_CHANGE -> changeSettings(input);
             default -> reject(input, Protocol.REJECT_MALFORMED, "unknown input type");
         }
     }
@@ -293,6 +332,184 @@ final class BridgeGuiGame extends AbstractGuiGame {
         }
     }
 
+    // ══ Observations and settings (protocol 10) ═════════════════════════════════
+
+    /**
+     * Forge is about to ask the AI what it plays: a player gets priority, so
+     * Forge has checked the state-based actions and put the triggers on the
+     * stack, and nothing of Forge's runs (no event, no cost, no resolution).
+     * The actions since the last observation go out; in the mode hold, if
+     * they are worth a stop ({@link ObservationLog#holds}), the engine waits
+     * here for their release. Called by {@link ObservedAiPlayer}'s controller.
+     */
+    void aiPriority() {
+        checkThread("aiPriority");
+        if (isGameOver() || heldObservation != 0) {
+            return;
+        }
+        // No input of the player runs while the AI decides: a question of a
+        // finished input (a payment that is done) is withdrawn now, so nothing
+        // stays open while the engine may hold an observation.
+        withdrawQuestionsOfFinishedInputs();
+        observe(true);
+    }
+
+    /**
+     * Sends the actions collected since the last observation, right after a
+     * fresh state (the picture they explain). {@code stablePoint}: called
+     * where the engine may wait (before the AI decides); elsewhere - before a
+     * wait for the player or a question - an observation never holds: a real
+     * decision of the player comes first. Returns whether a state was sent.
+     */
+    private boolean observe(final boolean stablePoint) {
+        if (finished || !observations.hasPending()) {
+            return false;
+        }
+        final List<JsonObject> actions = observations.drain();
+        sendStateNow();
+        final long id = ++lastObservationId;
+        final boolean hold = stablePoint && Protocol.OBSERVATION_HOLD.equals(observationMode)
+                && ObservationLog.holds(actions, getCurrentPlayer());
+        final JsonObject o = new JsonObject();
+        o.addProperty("type", Protocol.OBSERVATION);
+        o.addProperty("id", id);
+        o.addProperty("hold", hold);
+        o.addProperty("state", state.lastSeq());
+        final JsonArray a = new JsonArray();
+        actions.forEach(a::add);
+        o.add("actions", a);
+        host.emit(o);
+        if (hold) {
+            holdObservation(id);
+        }
+        return true;
+    }
+
+    /**
+     * Waits until the held observation is released - exactly this one -, the
+     * mode is switched off or the player concedes. Meanwhile a state request
+     * is served; an answer or a tap is refused (observing): looking at the
+     * game and deciding in it are different inputs. Nothing is decided here.
+     */
+    private void holdObservation(final long id) {
+        heldObservation = id;
+        try {
+            while (true) {
+                final JsonObject input = nextInput(true);
+                switch (typeOf(input)) {
+                    case Protocol.OBSERVATION_RELEASE -> {
+                        final long released = longField(input, "observation");
+                        if (released == id) {
+                            released(id, input, Protocol.RELEASED_BY_RELEASE);
+                            return;
+                        }
+                        reject(input, Protocol.REJECT_STALE, "observation " + released + " is not held; observation " + id + " is");
+                    }
+                    case Protocol.SETTINGS_CHANGE -> {
+                        if (changeSettings(input) && Protocol.OBSERVATION_OFF.equals(observationMode)) {
+                            released(id, input, Protocol.RELEASED_BY_SETTINGS);
+                            return;
+                        }
+                    }
+                    case Protocol.STATE_REQUEST -> sendStateNow();
+                    case Protocol.CONCEDE -> {
+                        released(id, input, Protocol.RELEASED_BY_CONCEDE);
+                        concedeNow();
+                        return;
+                    }
+                    case Protocol.ANSWER, Protocol.CARD_TAP, Protocol.PLAYER_TAP, Protocol.MANA_USE ->
+                            reject(input, Protocol.REJECT_OBSERVING, "observation " + id + " is held: release it first");
+                    default -> reject(input, Protocol.REJECT_MALFORMED, "unknown input type");
+                }
+            }
+        } finally {
+            heldObservation = 0;
+        }
+    }
+
+    private void released(final long id, final JsonObject input, final String by) {
+        final JsonObject o = new JsonObject();
+        o.addProperty("type", Protocol.OBSERVATION_RELEASED);
+        o.addProperty("id", id);
+        o.addProperty("seq", input.get("seq").getAsLong());
+        o.addProperty("by", by);
+        host.emit(o);
+    }
+
+    /**
+     * settings.change: the observation mode and/or Forge's auto-pass setting.
+     * A value the protocol does not know is refused (invalid) and changes
+     * nothing. Returns whether the settings were applied.
+     */
+    private boolean changeSettings(final JsonObject input) {
+        final String mode = optionalString(input, "observation");
+        final String pass = optionalString(input, "autoPass");
+        if ((mode == null && pass == null)
+                || (input.has("observation") && mode == null) || (input.has("autoPass") && pass == null)
+                || (mode != null && !Set.of(Protocol.OBSERVATION_OFF, Protocol.OBSERVATION_HOLD).contains(mode))
+                || (pass != null && !AUTO_PASS_VALUES.contains(pass))) {
+            reject(input, Protocol.REJECT_INVALID, "settings.change needs a known observation mode and/or auto-pass setting");
+            return false;
+        }
+        if (mode != null) {
+            observationMode = mode;
+        }
+        if (pass != null && !pass.equals(autoPass)) {
+            final String previous = autoPass;
+            autoPass = pass;
+            settingsApplied(input.get("seq").getAsLong());
+            applyAutoPass(previous, pass);
+            return true;
+        }
+        settingsApplied(input.get("seq").getAsLong());
+        return true;
+    }
+
+    private static final Set<String> AUTO_PASS_VALUES = Set.of(
+            Protocol.AUTO_PASS_NO_ACTIONS, Protocol.AUTO_PASS_NO_ACTIONS_RESPECT_INTERRUPTS, Protocol.AUTO_PASS_NEVER);
+
+    /** Whether a match request's settings are known values (HumanMatch). */
+    static boolean knownSettings(final String mode, final String pass) {
+        return Set.of(Protocol.OBSERVATION_OFF, Protocol.OBSERVATION_HOLD).contains(mode) && AUTO_PASS_VALUES.contains(pass);
+    }
+
+    /**
+     * Forge's own auto-pass preferences for the player's controller (its
+     * YieldController: YIELD_AUTO_PASS_NO_ACTIONS, YIELD_AUTO_PASS_RESPECTS_INTERRUPTS),
+     * set for this game only, never Forge's saved preferences. Switching APINA
+     * on goes through Forge's own setYieldPref, which lets Forge pass a priority
+     * without actions that waits right now - as Forge's own toggle does.
+     */
+    private void applyAutoPass(final String previous, final String now) {
+        final IGameController controller = getGameController();
+        if (controller == null) {
+            return;
+        }
+        final boolean apina = !Protocol.AUTO_PASS_NEVER.equals(now);
+        final boolean wasApina = !Protocol.AUTO_PASS_NEVER.equals(previous);
+        final YieldController yields = controller.getYieldController();
+        yields.setPref(FPref.YIELD_AUTO_PASS_RESPECTS_INTERRUPTS,
+                String.valueOf(Protocol.AUTO_PASS_NO_ACTIONS_RESPECT_INTERRUPTS.equals(now)));
+        yields.setPref(FPref.YIELD_AUTO_PASS_NO_ACTIONS, String.valueOf(apina));
+        if (apina && !wasApina) {
+            controller.setYieldPref(FPref.YIELD_AUTO_PASS_NO_ACTIONS, "true");
+        }
+    }
+
+    private void settingsApplied(final Long seq) {
+        final JsonObject o = new JsonObject();
+        o.addProperty("type", Protocol.SETTINGS_APPLIED);
+        o.addProperty("seq", seq);
+        o.addProperty("observation", observationMode);
+        o.addProperty("autoPass", autoPass);
+        host.emit(o);
+    }
+
+    /** Whether the player may see this card now; never throws (ObservationLog). */
+    boolean mayViewNow(final CardView c) {
+        return mayViewSafely(c);
+    }
+
     // ══ Blocking questions (Forge methods with a return value) ═══════════════════
 
     /**
@@ -314,7 +531,9 @@ final class BridgeGuiGame extends AbstractGuiGame {
         final long previousBlocking = blockingQuestion;
         blockingQuestion = id;
         try {
-            sendStateNow();
+            if (!observe(false)) {
+                sendStateNow();
+            }
             host.emit(question);
             while (true) {
                 final JsonObject input = nextInput();
@@ -345,6 +564,10 @@ final class BridgeGuiGame extends AbstractGuiGame {
                     withdraw(q);
                     concedeNow();
                     return afterGameEnd;
+                } else if (Protocol.OBSERVATION_RELEASE.equals(type)) {
+                    reject(input, Protocol.REJECT_STALE, "no observation is held");
+                } else if (Protocol.SETTINGS_CHANGE.equals(type)) {
+                    changeSettings(input);
                 } else {
                     reject(input, Protocol.REJECT_MALFORMED, "unknown input type");
                 }
@@ -721,7 +944,9 @@ final class BridgeGuiGame extends AbstractGuiGame {
         oq.enabled1 = enable1;
         oq.enabled2 = enable2;
         buttonsQuestion = oq;
-        sendStateNow();
+        if (!observe(false)) {
+            sendStateNow();
+        }
         host.emit(q);
     }
 
@@ -766,7 +991,9 @@ final class BridgeGuiGame extends AbstractGuiGame {
         // One answer taps at most as many cards as there are and Forge takes.
         oq.max = Math.max(Math.min(upper, selectable.size()), 1);
         selectQuestion = oq;
-        sendStateNow();
+        if (!observe(false)) {
+            sendStateNow();
+        }
         host.emit(q);
     }
 
@@ -835,7 +1062,9 @@ final class BridgeGuiGame extends AbstractGuiGame {
     @Override
     public void finishGame() {
         checkThread("finishGame");
-        sendStateNow();
+        if (!observe(false)) {
+            sendStateNow();
+        }
         withdrawAll();
         finished = true;
         final JsonObject o = new JsonObject();
@@ -885,6 +1114,12 @@ final class BridgeGuiGame extends AbstractGuiGame {
             trace.attach(getGameView().getGame());
             trace.setGui(this);
         }
+        observations.attach(getGameView().getGame());
+        // Protocol 10: the settings the game starts with.
+        if (!Protocol.AUTO_PASS_NO_ACTIONS.equals(autoPass)) {
+            applyAutoPass(Protocol.AUTO_PASS_NO_ACTIONS, autoPass);
+        }
+        settingsApplied(null);
         sendStateNow();
     }
 
@@ -1426,7 +1661,12 @@ final class BridgeGuiGame extends AbstractGuiGame {
      * and the game must not go on on a false basis: technical abort.
      */
     private JsonObject nextInput() {
-        final JsonObject input = host.awaitInput();
+        return nextInput(false);
+    }
+
+    /** {@code observing}: read while an observation is held (protocol 10, EngineHost.awaitObservationInput). */
+    private JsonObject nextInput(final boolean observing) {
+        final JsonObject input = observing ? host.awaitObservationInput() : host.awaitInput();
         if (input == null) {
             throw new IllegalStateException("the host returned no input");
         }
@@ -1447,6 +1687,16 @@ final class BridgeGuiGame extends AbstractGuiGame {
     private static long questionId(final JsonObject input) {
         final JsonElement id = input.get("question");
         return id != null && id.isJsonPrimitive() && id.getAsJsonPrimitive().isNumber() ? id.getAsLong() : -1;
+    }
+
+    private static long longField(final JsonObject input, final String field) {
+        final JsonElement e = input.get(field);
+        return e != null && e.isJsonPrimitive() && e.getAsJsonPrimitive().isNumber() ? e.getAsLong() : -1;
+    }
+
+    private static String optionalString(final JsonObject input, final String field) {
+        final JsonElement e = input.get(field);
+        return e != null && e.isJsonPrimitive() && e.getAsJsonPrimitive().isString() ? e.getAsString() : null;
     }
 
     private static int intField(final JsonObject input, final String field) {

@@ -719,3 +719,64 @@ describe("EngineSession: Forge history", () => {
     engine.session.stop()
   })
 })
+
+describe("EngineSession: observations and settings (protocol 10, prompt 48)", () => {
+  const observation = (id: number, hold: boolean, state: number) =>
+    ({ type: "observation", id, hold, state, actions: [{ n: id, kind: "turn", player: 1, turn: 2 }] }) as const
+
+  it("keeps Forge's latest observation, knows when it is held, releases exactly it and records the input", async () => {
+    const engine = await playing()
+    const recorded: unknown[] = []
+    engine.session.subscribeRecording((event) => { if (event.kind === "input") recorded.push(event.message) })
+    const worker = engine.worker()
+    worker.send({ type: "settings.applied", seq: null, observation: "hold", autoPass: "noActions" })
+    worker.send({ type: "question.withdrawn", id: 1 })
+    worker.send(gameState(4, { turn: 2, phase: "UPKEEP", activePlayer: 1 }))
+    worker.send(observation(1, true, 4))
+    worker.send({ type: "engine.waiting", consumed: 0 })
+    let running = match(engine, "playing")
+    expect(running.settings).toMatchObject({ observation: "hold", autoPass: "noActions" })
+    expect(running.observation?.id).toBe(1)
+    expect(running.observationCount).toBe(1)
+    expect(running.observationHeld).toBe(true)
+    expect(running.waiting).toBe(true)
+    // Looking and deciding are different inputs: a tap while held is refused by the client, nothing is sent.
+    expect(engine.session.tapCard(1)).toEqual({ ok: false, reason: "Forge hält für die Betrachtung an – erst weiter, dann geht das." })
+    expect(engine.session.releaseObservation(2)).toEqual({ ok: false, reason: "Forge hält diese Aktion nicht mehr an – sie ist schon freigegeben." })
+    expect(worker.inputs()).toEqual([])
+    expect(engine.session.releaseObservation(1)).toEqual({ ok: true })
+    expect(worker.inputs()).toEqual([{ type: "observation.release", seq: 1, observation: 1 }])
+    worker.send({ type: "observation.released", id: 1, seq: 1, by: "release" })
+    running = match(engine, "playing")
+    expect(running.observationHeld).toBe(false)
+    expect(running.observation?.id).toBe(1)
+    worker.send(gameState(5, { turn: 2, phase: "MAIN1", activePlayer: 1 }))
+    worker.send(observation(2, false, 5))
+    expect(match(engine, "playing")).toMatchObject({ observationCount: 2, observationHeld: false })
+    expect(recorded).toEqual([{ type: "observation.release", seq: 1, observation: 1 }])
+  })
+
+  it("changes the settings at any time, also while Forge computes, and records the input", async () => {
+    const engine = await playing()
+    const recorded: unknown[] = []
+    engine.session.subscribeRecording((event) => { if (event.kind === "input") recorded.push(event.message) })
+    engine.session.tapCard(1)
+    engine.worker().inputs()
+    expect(engine.session.changeSettings({ observation: "off", autoPass: "never" })).toEqual({ ok: true })
+    expect(engine.worker().inputs()).toEqual([{ type: "settings.change", seq: 2, observation: "off", autoPass: "never" }])
+    expect(recorded.at(-1)).toEqual({ type: "settings.change", seq: 2, observation: "off", autoPass: "never" })
+    engine.worker().send({ type: "settings.applied", seq: 2, observation: "off", autoPass: "never" })
+    expect(match(engine, "playing").settings).toMatchObject({ seq: 2, autoPass: "never" })
+  })
+
+  it("never without a running game or during a concession", async () => {
+    const engine = await ready()
+    expect(engine.session.releaseObservation(1)).toEqual({ ok: false, reason: "Es läuft keine Partie." })
+    expect(engine.session.changeSettings({ observation: "hold" })).toEqual({ ok: false, reason: "Es läuft keine Partie." })
+    engine.session.startMatch(testSetup())
+    engine.worker().startGame()
+    engine.session.concede()
+    expect(engine.session.changeSettings({ observation: "hold" })).toEqual({ ok: false, reason: "Die Aufgabe ist unterwegs." })
+    expect(engine.session.releaseObservation(1)).toEqual({ ok: false, reason: "Die Aufgabe ist unterwegs." })
+  })
+})

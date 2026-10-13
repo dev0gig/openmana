@@ -21,7 +21,7 @@ public final class Protocol {
      * ProtocolVersion). UI, worker host and engine must speak exactly the same
      * version; change it together with the schema.
      */
-    public static final int VERSION = 9;
+    public static final int VERSION = 10;
 
     // --- engine -> UI ---------------------------------------------------------
     public static final String GAME_STARTED = "game.started";
@@ -34,6 +34,12 @@ public final class Protocol {
     public static final String QUESTION_ANSWERED = "question.answered";
     public static final String INPUT_REJECTED = "input.rejected";
     public static final String GAME_END = "game.end";
+    /** Protocol 10: Forge's public actions since the previous observation, at a stable point (ObservationLog). */
+    public static final String OBSERVATION = "observation";
+    /** Protocol 10: a held observation is over. */
+    public static final String OBSERVATION_RELEASED = "observation.released";
+    /** Protocol 10: the match settings in effect (at the start and after settings.change). */
+    public static final String SETTINGS_APPLIED = "settings.applied";
     /**
      * Engine tests only: one entry of the engine trace (org.openmana.engine.trace.EngineTrace),
      * sent when the match request asks for it ("trace": true). Never shown to a player.
@@ -48,6 +54,21 @@ public final class Protocol {
     public static final String MANA_USE = "mana.use";
     public static final String STATE_REQUEST = "state.request";
     public static final String CONCEDE = "concede";
+    /** Protocol 10: release the held observation (exactly that one). */
+    public static final String OBSERVATION_RELEASE = "observation.release";
+    /** Protocol 10: change the observation mode and/or Forge's auto-pass setting. */
+    public static final String SETTINGS_CHANGE = "settings.change";
+
+    // --- match settings (protocol 10) ---------------------------------------------
+    public static final String OBSERVATION_OFF = "off";
+    public static final String OBSERVATION_HOLD = "hold";
+    public static final String AUTO_PASS_NO_ACTIONS = "noActions";
+    public static final String AUTO_PASS_NO_ACTIONS_RESPECT_INTERRUPTS = "noActionsRespectInterrupts";
+    public static final String AUTO_PASS_NEVER = "never";
+    /** How a held observation ended (ObservationReleased.by). */
+    public static final String RELEASED_BY_RELEASE = "release";
+    public static final String RELEASED_BY_SETTINGS = "settings";
+    public static final String RELEASED_BY_CONCEDE = "concede";
 
     // --- question kinds (Anvil: antippen, karten, knoepfe, jaNein, optionen, zahl, ordnen, verteilen)
     public static final String KIND_SELECT = "select";
@@ -122,4 +143,14 @@ public final class Protocol {
     public static final String REJECT_UNKNOWN_PLAYER = "unknown-player";
     /** Forge accepted the tap but it had no effect in the current step. */
     public static final String REJECT_NO_EFFECT = "no-effect";
+    /** Protocol 10: the engine holds an observation; an answer or a tap is not carried out. */
+    public static final String REJECT_OBSERVING = "observing";
+
+    // --- why Forge would not let the player play a land (VisibleCard.landRefusal, protocol 10) ---
+    public static final String LAND_REFUSAL_NOT_YOUR_TURN = "notYourTurn";
+    public static final String LAND_REFUSAL_TIMING = "timing";
+    public static final String LAND_REFUSAL_NOT_OWNER = "notOwner";
+    public static final String LAND_REFUSAL_ZONE = "zone";
+    public static final String LAND_REFUSAL_RESTRICTED = "restricted";
+    public static final String LAND_REFUSAL_LIMIT = "limit";
 }

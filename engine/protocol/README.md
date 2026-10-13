@@ -1,4 +1,4 @@
-# OpenMana-Protokoll (Version 9)
+# OpenMana-Protokoll (Version 10)
 
 Der **einzige Vertrag** zwischen der OpenMana-Oberfläche und der Engine (Forge
 im Dedicated Worker). Die Oberfläche sieht keine Forge-Klassen und rechnet
@@ -12,7 +12,8 @@ Version 5 mit Prompt 16 (siehe [unten](#änderungen-in-version-5-prompt-16)),
 Version 6 mit Prompt 17 (siehe [unten](#änderungen-in-version-6-prompt-17)),
 Version 7 mit Prompt 18 (siehe [unten](#änderungen-in-version-7-prompt-18)),
 Version 8 mit Prompt 30 (siehe [unten](#änderungen-in-version-8-prompt-30)),
-Version 9 mit Prompt 47 (siehe [unten](#änderungen-in-version-9-prompt-47)).
+Version 9 mit Prompt 47 (siehe [unten](#änderungen-in-version-9-prompt-47)),
+Version 10 mit Prompt 48 (siehe [unten](#änderungen-in-version-10-prompt-48)).
 
 ```
  UI ──ruft──▶ EngineClient (Main Thread) ──WorkerCommand (postMessage, nur wenn der Worker frei ist)──▶ Worker-Host
@@ -33,7 +34,7 @@ Version 9 mit Prompt 47 (siehe [unten](#änderungen-in-version-9-prompt-47)).
 
 ## Versionen
 
-- `ProtocolVersion` ist eine ganze Zahl (jetzt **9**). UI, Worker-Host und
+- `ProtocolVersion` ist eine ganze Zahl (jetzt **10**). UI, Worker-Host und
   Engine müssen **genau dieselbe** Version sprechen; es gibt keine
   Aushandlung. Eine App liefert UI und Engine immer zusammen aus
   (`engine.lock.json`, Prompt 25/26); eine Abweichung heißt „alter Cache“ oder
@@ -78,12 +79,16 @@ Version 9 mit Prompt 47 (siehe [unten](#änderungen-in-version-9-prompt-47)).
 | `question.withdrawn` | Forge fragt das nicht mehr (normal, kein Fehler) |
 | `question.answered` | Die Antwort mit `seq` wurde angenommen und hat die Frage geschlossen |
 | `input.rejected` | Eine Eingabe wurde **nicht** ausgeführt: `seq`, `reason`, `detail`, `input` |
+| `observation` | Forges öffentliche Aktionen seit der vorigen Beobachtung, direkt nach dem Zustand, den sie erklären (Protokoll 10); `hold`: die Engine wartet auf ihre Freigabe |
+| `observation.released` | Die gehaltene Beobachtung ist vorbei: `by` = `release`, `settings` oder `concede` |
+| `settings.applied` | Die geltenden Einstellungen der Partie (Beobachtungsmodus, Forges Auto-Pass): beim Start (`seq` null) und nach jeder Änderung |
 | `game.end` | Spielende aus Sicht des Spielers; alle Felder immer vorhanden (notfalls `null`) |
 
 ### UI → Engine (`EngineInput`, Warteschlange)
 
 `answer` (mit `question`, `kind` und den Feldern seiner Art), `card.tap`,
-`player.tap`, `mana.use` (Protokoll 6), `state.request`, `concede`. Jede Eingabe trägt `seq` = 1, 2, 3 …
+`player.tap`, `mana.use` (Protokoll 6), `state.request`, `concede`,
+`observation.release` und `settings.change` (Protokoll 10). Jede Eingabe trägt `seq` = 1, 2, 3 …
 ohne Lücken; der Client vergibt sie, die Bridge prüft sie. Eine Lücke, eine
 Wiederholung oder eine fehlende Nummer heißt, dass der Transport kaputt ist:
 **technischer Abbruch** statt eines Spiels auf falscher Grundlage.
@@ -255,6 +260,53 @@ die Hand der KI).
 
 Vergleich, Prüfsumme und Abdeckung: [`engine/wasm/spike/trace.ts`](../wasm/spike/trace.ts);
 die Testpartien: [`engine/fixtures`](../fixtures/README.md).
+
+## Änderungen in Version 10 (Prompt 48)
+
+Vertrag und Begründung: [`docs/implementation/48-observation-contract.md`](../../docs/implementation/48-observation-contract.md).
+
+- **Beobachtungen:** `observation {id, hold, state, actions}` – Forges
+  öffentliche Aktionen (`ObservedAction`: `turn`, `turnEnd`, `land`, `cast`,
+  `activate`, `trigger`, `attack`, `block`, `resolve`, `combatDamage`; je mit
+  `n` = 1, 2, 3 … ohne Lücke über die ganze Partie und dem handelnden Spieler),
+  gebaut aus Forges eigenen Spielereignissen (Bridge `ObservationLog`), nie aus
+  Zustandsunterschieden oder Forges Texten. `resolve` und `combatDamage` tragen
+  ihre öffentlichen Ergebnisse (`ActionResults`: Zonenwechsel sichtbarer Karten,
+  Schaden, Lebenspunkte), samt der zustandsbasierten Aktionen bis zur nächsten
+  Aktion; ein Land, das ein Effekt ins Spiel bringt, ist ein Zonenwechsel dort,
+  nie eine `land`-Aktion. Eine Karte ist nur sichtbar, wenn der Spieler sie in
+  dem Moment sehen darf, sonst `{hidden: true}`; Karten in verdeckte Zonen
+  fehlen in den Ergebnissen. `state` = `seq` des Zustands direkt davor.
+- **Halten:** Im Modus `hold` (`MatchRequest.settings.observation`,
+  `settings.change`) wartet die Engine an einer Beobachtung mit einer Aktion
+  des Gegners, einem Zugbeginn oder -ende oder Kampfschaden, bevor Forge die KI
+  fragt, was sie spielt – an einer stabilen Stelle zwischen Forges Aktionen,
+  nie im Ereignisbus, beim Bezahlen oder Verrechnen –, bis
+  `observation.release {observation}` genau diese freigibt
+  (`observation.released`). Währenddessen gehen `state.request`,
+  `settings.change` (Modus `off` beendet das Halten) und `concede` (beendet
+  zuerst das Halten); Antworten und Antippen lehnt sie ab (`observing`), eine
+  andere Freigabe ist `stale`. Keine Frage, solange gehalten wird; eine
+  Beobachtung vor einer Frage hält nie. Die Engine wartet dabei in der
+  Warteschlange (`engine.waiting`) – kein Watchdog-Fall.
+- **Gleiche Partie:** Die Engine-Spur zeichnet das Warten und die dabei
+  gelesenen Eingaben nicht auf und zählt Eingaben als Spieleingaben
+  (`TraceEvent` `input`/`answered`/`rejected` nach dieser Nummer); eine
+  Beobachtung steht in der Spur ohne `hold` und `state`, Karten nur als
+  Verweis. Dieselbe Partie mit und ohne Halten hat dieselbe Spur
+  (`priority-respond-observe`).
+- **Forges Auto-Pass:** `MatchSettings.autoPass` = `noActions` (APINA,
+  Standard), `noActionsRespectInterrupts` oder `never` – Forges eigene
+  Yield-Einstellungen des Spieler-Controllers für diese Partie;
+  `settings.applied` bestätigt. Unbekannte Werte: `invalid`.
+- **Länder:** `Player.landsUnlimited` (nur wenn wahr), `VisibleCard.landRefusal`
+  auf Ländern der eigenen Hand, die Forge nicht als spielbar markiert:
+  `notYourTurn`, `timing`, `notOwner`, `zone`, `restricted`, `limit` – Forges
+  eigene Prüfung (Forge-Patch 0010, `Player.landPlayRefusal`). Spur:
+  `TracePlayer.landsAllowed`/`landsUnlimited`, `TraceMarkers.landRefusals`.
+- Nachweise: `ObservationTest`, `LandsTest` (JVM), die Testpartien `lands` und
+  `priority-respond-observe` auf JVM, Node und Chrome,
+  `wasm/test/node-observe.ts`, `client/test/engine-client.test.ts`.
 
 ## Änderungen in Version 9 (Prompt 47)
 

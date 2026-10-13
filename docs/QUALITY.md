@@ -94,6 +94,20 @@ parity requirements. They are never used by the full runner as evidence
 of the current execution. Unit tests use fake IndexedDB/workers where labelled;
 the separate real suites establish the integration behavior.
 
+## Focused engine runs and the series test split (prompt 48)
+
+`OPENMANA_FIXTURES=<fixture,…> bash engine/scripts/test-engine.sh` runs only
+the listed differential fixtures (a variant's base listed too) on the JVM, in
+Node and in Chrome, one AI game on the JVM and in Node and - with
+`priority-respond-observe` - the observation scenarios (`node-observe.ts`)
+and the long look at a held observation in Chrome. Its report carries
+`focused`; `engine/scripts/engine-lock.mjs` and `scripts/regression/evidence.ts`
+refuse it as acceptance. Without the variable the complete suite runs as
+always. Prompts 48-51 of the series *openmana-spielfluss* use such targeted
+checks by the project owner's decision of 2026-10-12 (`AGENTS.md`, "Test split
+of the series openmana-spielfluss"); prompt 52 runs the complete regression,
+`npm run check` and the readiness games once on the finished whole.
+
 ## Focused developer checks
 
 ```bash

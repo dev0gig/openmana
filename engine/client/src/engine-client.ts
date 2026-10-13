@@ -19,6 +19,13 @@
  *
  * It knows no Magic rule. Whether an action is legal is Forge's decision; the
  * client only checks what the protocol itself states (ids, kinds, blocking).
+ *
+ * Protocol 10: observations (Forge's public actions) are checked for their
+ * order - each right after the state it names, ids increasing, actions
+ * numbered without gaps - and a held observation is tracked: while it is
+ * held no question may come and only its release, a settings change, a
+ * state request or a concession are sent. The engine waits then (engine.waiting),
+ * so waiting to be looked at is never "engine does not respond".
  */
 import {
   checkEngineMessage,
@@ -43,6 +50,11 @@ import {
   type GameStarted,
   type GameState,
   type ManaColor,
+  type MatchSettings,
+  type Observation,
+  type ObservationMode,
+  type AutoPass,
+  type SettingsApplied,
   type InputQueueWriter,
   type MatchRequest,
   type MatchSummary,
@@ -131,6 +143,10 @@ const ALLOWED: Readonly<Record<string, readonly EngineStatus[]>> = {
   "question.withdrawn": ["playing"],
   "question.answered": ["playing"],
   "input.rejected": ["playing"],
+  // Protocol 10.
+  observation: ["playing"],
+  "observation.released": ["playing"],
+  "settings.applied": ["playing"],
   "game.end": ["playing"],
   "match.finished": ["ended"],
   "diagnostics.result": ["diagnostics"],
@@ -164,6 +180,11 @@ export class EngineClient {
   #players = new Set<number>();
   #consumed = 0;
   #waiting = false;
+  /** Protocol 10: the observation the engine holds, the last observation id and action number, the settings in effect. */
+  #held: Observation | null = null;
+  #lastObservation = 0;
+  #lastAction = 0;
+  #settings: SettingsApplied | null = null;
   /** Engine tests: the match or AI diagnostics asked for the engine trace, and how many entries arrived. */
   #traceRequested = false;
   #traceEntries = 0;
@@ -356,6 +377,14 @@ export class EngineClient {
   get traceEntries(): number {
     return this.#traceEntries;
   }
+  /** Protocol 10: the observation the engine holds now (waiting for its release), or null. */
+  get heldObservation(): Observation | null {
+    return this.#held;
+  }
+  /** Protocol 10: the match settings the engine confirmed last (settings.applied), or null before the game. */
+  get settings(): SettingsApplied | null {
+    return this.#settings;
+  }
 
   // ── Inputs ──────────────────────────────────────────────────────────────────
 
@@ -372,7 +401,15 @@ export class EngineClient {
     if (problems) {
       return new EngineInputError("malformed", `the input does not conform to the protocol: ${formatProblems(problems)}`);
     }
+    if (this.#held && (draft.type === "answer" || draft.type === "card.tap" || draft.type === "player.tap" || draft.type === "mana.use")) {
+      return new EngineInputError("observing", `observation ${this.#held.id} is held: release it first`);
+    }
     switch (draft.type) {
+      case "observation.release":
+        if (!this.#held) return new EngineInputError("stale", `no observation is held (observation ${draft.observation})`);
+        return draft.observation === this.#held.id ? null : new EngineInputError("stale", `observation ${draft.observation} is not held; observation ${this.#held.id} is`);
+      case "settings.change":
+        return null;
       case "answer": {
         const question = this.#open.get(draft.question);
         if (!question) {
@@ -436,6 +473,23 @@ export class EngineClient {
   /** Concedes. Confirm with the player BEFORE calling this: the engine does not ask again. */
   concede(): number {
     return this.#send({ type: "concede" });
+  }
+
+  /**
+   * Protocol 10: releases the held observation - exactly this one. Passes no
+   * priority and answers nothing; the game goes on as Forge plays it.
+   */
+  releaseObservation(observation: number | Observation): number {
+    const id = typeof observation === "number" ? observation : observation.id;
+    return this.#send({ type: "observation.release", observation: id });
+  }
+
+  /** Protocol 10: changes the observation mode and/or Forge's auto-pass setting (confirmed by settings.applied). */
+  changeSettings(settings: MatchSettings): number {
+    const draft: { type: "settings.change"; observation?: ObservationMode; autoPass?: AutoPass } = { type: "settings.change" };
+    if (settings.observation !== undefined) draft.observation = settings.observation;
+    if (settings.autoPass !== undefined) draft.autoPass = settings.autoPass;
+    return this.#send(draft);
   }
 
   /**
@@ -585,6 +639,9 @@ export class EngineClient {
         return null;
       }
       case "question": {
+        if (this.#held) {
+          return `question ${message.id} while observation ${this.#held.id} is held`;
+        }
         if (message.id <= this.#highestQuestion) {
           return `question ${message.id} after question ${this.#highestQuestion}: ids must increase`;
         }
@@ -615,9 +672,50 @@ export class EngineClient {
       }
       case "input.rejected":
         return message.seq > this.inputsSent ? `input.rejected for input ${message.seq}, but only ${this.inputsSent} were sent` : null;
+      case "observation": {
+        if (this.#held) {
+          return `observation ${message.id} while observation ${this.#held.id} is held`;
+        }
+        if (message.id <= this.#lastObservation) {
+          return `observation ${message.id} after observation ${this.#lastObservation}: ids must increase`;
+        }
+        if (!this.#state || message.state !== this.#state.seq) {
+          return `observation ${message.id} names state ${message.state}, the latest state is ${this.#state?.seq ?? "none"}`;
+        }
+        for (const action of message.actions) {
+          if (action.n !== this.#lastAction + 1) {
+            return `observed action ${action.n} after action ${this.#lastAction}: actions are numbered without gaps`;
+          }
+          this.#lastAction = action.n;
+        }
+        if (message.hold && this.#open.size > 0) {
+          return `observation ${message.id} is held while questions ${[...this.#open.keys()].join(", ")} are open`;
+        }
+        this.#lastObservation = message.id;
+        if (message.hold) this.#held = message;
+        return null;
+      }
+      case "observation.released":
+        if (!this.#held || this.#held.id !== message.id) {
+          return `observation ${message.id} released, but ${this.#held ? `observation ${this.#held.id}` : "none"} is held`;
+        }
+        if (message.seq > this.inputsSent) {
+          return `observation.released by input ${message.seq}, but only ${this.inputsSent} were sent`;
+        }
+        this.#held = null;
+        return null;
+      case "settings.applied":
+        if (message.seq !== null && message.seq > this.inputsSent) {
+          return `settings.applied by input ${message.seq}, but only ${this.inputsSent} were sent`;
+        }
+        this.#settings = message;
+        return null;
       case "game.end":
         if (this.#open.size > 0) {
           return `game.end while questions ${[...this.#open.keys()].join(", ")} are still open`;
+        }
+        if (this.#held) {
+          return `game.end while observation ${this.#held.id} is held`;
         }
         this.#result = message;
         this.#setStatus("ended");
@@ -723,6 +821,7 @@ export class EngineClient {
     this.#port = null;
     this.#open.clear();
     this.#blocking = null;
+    this.#held = null;
     this.#waiting = false;
     this.#setStatus("aborted");
     this.#emit({ kind: "message", message });

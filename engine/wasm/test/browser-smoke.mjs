@@ -7,6 +7,7 @@
 //   node engine/wasm/test/browser-smoke.mjs --seed 42 [--card-loading lazy|eager]
 //        [--expect-log-sha256 <hex>] [--expect-trace <jvm-trace.jsonl>] [--out result.json]
 //   node engine/wasm/test/browser-smoke.mjs --transcript t.json [--feeding lazy|eager]
+//        [--hold-delay-ms <ms> --hold-delays <n> --stall-timeout-ms <ms>]   (protocol 10)
 //        [--queue-capacity <bytes>] [--card-loading …] [--out result.json]
 //   node engine/wasm/test/browser-smoke.mjs --cards [--card-loading …] [--expect jvm-probe.json] [--out result.json]
 //   node engine/wasm/test/browser-smoke.mjs --negative [--out result.json]
@@ -58,6 +59,10 @@ const expectFile = option("--expect", null);
 const expectedSha = option("--expect-log-sha256", null);
 const expectTrace = option("--expect-trace", null);
 const outFile = option("--out", null);
+// Protocol 10: look long at held observations against a short stall timeout (replays only).
+const holdDelayMs = option("--hold-delay-ms", null);
+const holdDelays = option("--hold-delays", null);
+const stallTimeoutMs = option("--stall-timeout-ms", null);
 const TEST_TIMEOUT_MS = negative || announceProtocol ? 30000 : transcriptFile || cards ? 840000 : 540000;
 
 function rssKb(pid) {
@@ -117,7 +122,7 @@ const cardParam = cardLanguage ? `&cardLanguage=${cardLanguage}` : "";
 const query = announceProtocol
   ? `announceProtocol=${announceProtocol}`
   : transcriptFile
-    ? `replay=transcripts/replay.json&cardLoading=${cardLoading}&language=${language}${cardParam}&feeding=${feeding}${queueCapacity ? `&queueCapacity=${queueCapacity}` : ""}`
+    ? `replay=transcripts/replay.json&cardLoading=${cardLoading}&language=${language}${cardParam}&feeding=${feeding}${queueCapacity ? `&queueCapacity=${queueCapacity}` : ""}${holdDelayMs ? `&holdDelayMs=${holdDelayMs}&holdDelays=${holdDelays ?? 1}` : ""}${stallTimeoutMs ? `&stallTimeoutMs=${stallTimeoutMs}` : ""}`
     : cards
       ? `cards=1&cardLoading=${cardLoading}&language=${language}${cardParam}`
       : `seed=${seed}&cardLoading=${cardLoading}&language=${language}${cardParam}${expectTrace ? "&trace=traces/expected.jsonl" : ""}`;

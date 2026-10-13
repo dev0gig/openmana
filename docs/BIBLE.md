@@ -190,6 +190,10 @@ How the player's priority, the stack and the turn's steps are shown - Forge's ow
 
 Blocker declaration uses Forge's selected attacker, its actions for that target and its complete assignments. Inspection stays safe and confirmation is explicit; Forge's order/damage requests use the generic decision controls. The implementation and verification limits are described in [implementation/19-combat-blockers.md](implementation/19-combat-blockers.md).
 
+### Following the opponent's turn
+
+The player must be able to follow what the opponent does: lands, spells, abilities, attacks, blocks and what resolved. Forge reports these public actions as structured observations from its own game events, after the state they explain, and - when the player asks for it - waits at stable points between its actions until the player has looked (protocol 10). Looking is never a decision: releasing an observation passes no priority and answers nothing, a real question of Forge comes first, and the same inputs give the same game with and without waiting. The contract is described in [implementation/48-observation-contract.md](implementation/48-observation-contract.md); the table's tempo and "Weiter" follow in prompt 49.
+
 ### Card interaction
 
 Looking at a card must be safe. Committing an irreversible action requires clear intent. Full card view must be quickly accessible. Touch gestures must not cause accidental plays/activations.
@@ -252,6 +256,7 @@ Carry forward:
 7. History should come from Forge's game log, not invented UI prose.
 8. Do not infer actor/legality from localized text when structured data exists.
 9. Cost payment, mulligans, targeting and combat need explicit protocol tests.
+10. What the opponent did comes from Forge's events, sent at stable points with the state it explains; looking at it waits only where Forge is between actions and decides nothing (prompt 48).
 
 Anvil decision families include card/selectable selection, buttons, yes/no, options, numeric input, ordering and distribution. The bridge must cover every Forge path required by supported formats.
 

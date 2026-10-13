@@ -19,6 +19,7 @@ import forge.game.spellability.SpellAbilityStackInstance;
 import forge.game.spellability.TargetChoices;
 import forge.game.zone.ZoneType;
 import forge.gamemodes.match.AbstractGuiGame;
+import org.openmana.engine.bridge.LandPlays;
 import org.openmana.engine.bridge.RunningInput;
 
 import java.util.Collection;
@@ -86,6 +87,9 @@ final class TraceSnapshot {
         o.add("counters", counters(p.getCounters()));
         o.add("mana", mana(p));
         o.addProperty("lands", p.getLandsPlayedThisTurn());
+        // Protocol 10: Forge's limit of land plays this turn, or none.
+        o.addProperty("landsAllowed", p.getMaxLandPlays());
+        o.addProperty("landsUnlimited", p.getMaxLandPlaysInfinite());
         // The library in order, ids only: a card's key shows once it is drawn.
         o.add("library", TraceRefs.cardIds(p.getZone(ZoneType.Library).getCards()));
         for (int i = 0; i < CARD_ZONES.length; i++) {
@@ -278,12 +282,31 @@ final class TraceSnapshot {
                 highlightedPlayers.add(p.getId());
             }
         }
+        // Protocol 10: why Forge would not let the human play a land of their
+        // hand now (LandPlays, as in the state), for the lands it does not mark playable.
+        final JsonArray landRefusals = new JsonArray();
+        final Player human = gui.getCurrentPlayer() == null ? null : game.getPlayer(gui.getCurrentPlayer());
+        if (human != null) {
+            for (final Card c : human.getZone(ZoneType.Hand).getCards()) {
+                if (gui.isWeaklySelectable(c.getView())) {
+                    continue;
+                }
+                final String refusal = LandPlays.refusal(human, c);
+                if (refusal != null) {
+                    final JsonObject r = new JsonObject();
+                    r.addProperty("card", c.getId());
+                    r.addProperty("reason", refusal);
+                    landRefusals.add(r);
+                }
+            }
+        }
         final JsonObject o = new JsonObject();
         o.add("playable", playable);
         o.add("highlighted", highlighted);
         o.add("selectable", selectable);
         o.add("players", players);
         o.add("highlightedPlayers", highlightedPlayers);
+        o.add("landRefusals", landRefusals);
         final JsonObject payment = RunningInput.payment(gui.getGameController());
         if (payment != null) {
             o.add("payment", payment);

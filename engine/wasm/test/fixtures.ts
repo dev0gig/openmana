@@ -25,7 +25,9 @@
  *     "covers":  [ coverage categories of engine/wasm/spike/trace.ts the game must show ] }
  * or a variant of another fixture that must be the very same game (equal
  * engine trace), with other engine settings:
- *   { "description": "…", "sameGameAs": "<fixture>", "engine": { … }, "wasm": { … } }
+ *   { "description": "…", "sameGameAs": "<fixture>", "engine": { … }, "wasm": { … },
+ *     "observation": "hold" }        (optional, protocol 10: the match asks for observation holds,
+ *                                     the player releases each and sends refused inputs while held)
  * Anything unknown is refused: a typo must not silently test less.
  */
 import fs from "node:fs";
@@ -48,6 +50,8 @@ export interface PlayerPolicy {
   /** cards: cards first where Forge offers cards and players; players: the opponent first (prompt 17). */
   target: "cards" | "players";
   concedeInTurn: number;
+  /** Protocol 10: while an observation is held, also send inputs that must be refused (variants with observation hold). */
+  observeFaults: boolean;
 }
 
 export interface Fixture {
@@ -116,7 +120,9 @@ export function loadFixtures(dir = FIXTURES_DIR): Fixture[] {
   for (const [name, value] of raw) {
     const where = `fixture ${name}`;
     const variantOf = value["sameGameAs"];
-    onlyKeys(where, value, variantOf === undefined ? ["description", "match", "player", "engine", "wasm", "covers"] : ["description", "sameGameAs", "engine", "wasm"]);
+    onlyKeys(where, value, variantOf === undefined ? ["description", "match", "player", "engine", "wasm", "covers"] : ["description", "sameGameAs", "engine", "wasm", "observation"]);
+    const observation = value["observation"];
+    if (observation !== undefined && observation !== "hold") throw new Error(`${where}: observation is "hold" (a variant played with observation holds)`);
     if (typeof value["description"] !== "string" || value["description"].trim() === "") throw new Error(`${where}: description missing`);
     let base = value;
     if (variantOf !== undefined) {
@@ -137,6 +143,7 @@ export function loadFixtures(dir = FIXTURES_DIR): Fixture[] {
       human: { ...human, deck: deck(dir, human["deck"], `${where} human`) },
       ai: { ...ai, deck: deck(dir, ai["deck"], `${where} ai`) },
       trace: true,
+      ...(observation === "hold" ? { settings: { observation: "hold" } } : {}),
     } as MatchRequest;
     checkMatchRequest(request);
 
@@ -149,6 +156,7 @@ export function loadFixtures(dir = FIXTURES_DIR): Fixture[] {
       play: (player["play"] ?? "all") as PlayerPolicy["play"],
       target: (player["target"] ?? "cards") as PlayerPolicy["target"],
       concedeInTurn: (player["concedeInTurn"] ?? 0) as number,
+      observeFaults: observation === "hold",
     };
     if (!["all", "none", "alternate", "guided"].includes(policy.attack)) throw new Error(`${where}: player.attack is all, none, alternate or guided`);
     if (!["none", "one", "assign"].includes(policy.block)) throw new Error(`${where}: player.block is none, one or assign`);

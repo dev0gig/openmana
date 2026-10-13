@@ -80,6 +80,18 @@ import java.util.TreeMap;
  * defenders, a creature Forge would not declare is the player's, on the
  * battlefield, not attacking, offers no attack action, and is tapped or
  * summoning sick where that is the reason.
+ *
+ * <p>Observations (protocol 10): the player releases every held observation
+ * right away - releasing changes nothing in the game, so a fixture played
+ * with holds is the very same game as without. On every observation it
+ * checks the protocol: ids increase, the actions are numbered without gaps,
+ * the observation follows the state it names, no question is open while one
+ * is held, and every card it shows was visible in a state before or comes
+ * into being there (a created token) - a hidden card must never appear.
+ * With {@code observeFaults} it also sends, while observations are held,
+ * inputs that must be refused (a card tap and an answer: observing; a
+ * release of an observation that is not held: stale), asks for the state
+ * and changes the settings without leaving the mode.
  */
 public final class ScriptedHuman implements EngineHost {
 
@@ -116,6 +128,18 @@ public final class ScriptedHuman implements EngineHost {
     private int blockingExtraStep;
     /** A state.request was sent; the next state message answers it. */
     private boolean stateRequested;
+    /** Protocol 10: the observation the engine holds now, or null. */
+    private JsonObject heldObservation;
+    private long lastObservationId;
+    private long lastActionNr;
+    private long lastStateSeq;
+    private long lastReleasedObservation;
+    private int holdsSeen;
+    private int observeFaultStep;
+    /** Send refused inputs while observations are held (fixture policy observeFaults). */
+    private boolean observeFaults;
+    /** Ids of every card a state showed so far (visible cards only). */
+    private final Set<Integer> seenCards = new HashSet<>();
     /** When the player attacks (see class comment). */
     public enum Attack { ALL, NONE, ALTERNATE, GUIDED }
 
@@ -171,7 +195,7 @@ public final class ScriptedHuman implements EngineHost {
      */
     public static ScriptedHuman fromPolicy(final JsonObject policy) {
         for (final String field : policy.keySet()) {
-            if (!Set.of("attack", "block", "play", "target", "concedeInTurn").contains(field)) {
+            if (!Set.of("attack", "block", "play", "target", "concedeInTurn", "observeFaults").contains(field)) {
                 throw new IllegalArgumentException("unknown player policy field '" + field + "'");
             }
         }
@@ -186,6 +210,7 @@ public final class ScriptedHuman implements EngineHost {
         if (policy.has("target")) {
             human.target = Target.valueOf(policy.get("target").getAsString().toUpperCase(java.util.Locale.ROOT));
         }
+        human.observeFaults = policy.has("observeFaults") && policy.get("observeFaults").getAsBoolean();
         return human;
     }
 
@@ -216,6 +241,8 @@ public final class ScriptedHuman implements EngineHost {
         switch (type) {
             case Protocol.STATE -> {
                 state = message;
+                lastStateSeq = message.get("seq").getAsLong();
+                rememberVisible(message, seenCards);
                 checkAttack(message);
                 if (stateRequested) {
                     stateRequested = false;
@@ -247,6 +274,9 @@ public final class ScriptedHuman implements EngineHost {
             }
             case Protocol.QUESTION -> {
                 final long id = message.get("id").getAsLong();
+                if (heldObservation != null) {
+                    count("protocol:question-while-holding");
+                }
                 open.put(id, message);
                 final String kind = message.get("kind").getAsString();
                 count("question:" + kind);
@@ -303,14 +333,119 @@ public final class ScriptedHuman implements EngineHost {
                     }
                 }
             }
+            case Protocol.OBSERVATION -> observation(message);
+            case Protocol.OBSERVATION_RELEASED -> {
+                final long id = message.get("id").getAsLong();
+                if (heldObservation == null || heldObservation.get("id").getAsLong() != id) {
+                    count("protocol:released-not-held");
+                }
+                count("observation:released:" + message.get("by").getAsString());
+                lastReleasedObservation = id;
+                heldObservation = null;
+            }
+            case Protocol.SETTINGS_APPLIED -> count("settings:applied:" + message.get("observation").getAsString()
+                    + ":" + message.get("autoPass").getAsString());
             case Protocol.GAME_END -> {
                 end = message;
+                if (heldObservation != null) {
+                    count("protocol:held-at-game-end");
+                }
                 if (!unclosed.isEmpty()) {
                     count("protocol:open-at-game-end");
                 }
             }
             default -> { }
         }
+    }
+
+    /** Protocol 10: an observation; checks its order, numbering, state and visibility (see the class comment). */
+    private void observation(final JsonObject message) {
+        final long id = message.get("id").getAsLong();
+        count("observation:sent");
+        if (id <= lastObservationId) {
+            count("protocol:observation-id-not-increasing");
+        }
+        lastObservationId = id;
+        if (message.get("state").getAsLong() != lastStateSeq) {
+            count("protocol:observation-not-after-its-state");
+        }
+        if (heldObservation != null) {
+            count("protocol:observation-while-holding");
+        }
+        final Set<Integer> created = new HashSet<>();
+        for (final JsonElement e : message.getAsJsonArray("actions")) {
+            final JsonObject a = e.getAsJsonObject();
+            if (a.get("n").getAsLong() != lastActionNr + 1) {
+                count("protocol:action-gap");
+            }
+            lastActionNr = a.get("n").getAsLong();
+            final JsonElement player = a.get("player");
+            final String who = player == null || player.isJsonNull() ? "none"
+                    : state != null && myId() == player.getAsInt() ? "me" : "opponent";
+            count("action:" + a.get("kind").getAsString() + ":" + who);
+            if (a.has("continued")) {
+                count("action:continued");
+            }
+            if (a.has("results")) {
+                for (final JsonElement m : a.getAsJsonObject("results").getAsJsonArray("moves")) {
+                    final JsonObject move = m.getAsJsonObject();
+                    if (move.get("from").isJsonNull()) {
+                        created.add(move.getAsJsonObject("card").get("id").getAsInt());
+                    }
+                    if (!move.get("to").isJsonNull() && "battlefield".equals(move.getAsJsonObject("to").get("zone").getAsString())
+                            && !move.get("from").isJsonNull()) {
+                        count("action:result:to-battlefield-from-" + move.getAsJsonObject("from").get("zone").getAsString());
+                    }
+                }
+            }
+        }
+        final Set<Integer> shown = new HashSet<>();
+        visibleIds(message.getAsJsonArray("actions"), shown);
+        for (final int card : shown) {
+            if (!seenCards.contains(card) && !created.contains(card)) {
+                count("protocol:observation-unseen-card");
+            }
+        }
+        if (message.get("hold").getAsBoolean()) {
+            count("observation:held");
+            holdsSeen++;
+            if (!unclosed.isEmpty()) {
+                count("protocol:hold-with-open-question");
+            }
+            heldObservation = message;
+        }
+    }
+
+    private int myId() {
+        for (final JsonElement p : state.getAsJsonArray("players")) {
+            if (p.getAsJsonObject().get("me").getAsBoolean()) {
+                return p.getAsJsonObject().get("id").getAsInt();
+            }
+        }
+        return Integer.MIN_VALUE;
+    }
+
+    /** Ids of every visible card (an object with id, owner and tapped) anywhere in this JSON. */
+    private static void visibleIds(final JsonElement e, final Set<Integer> out) {
+        if (e.isJsonArray()) {
+            for (final JsonElement item : e.getAsJsonArray()) {
+                visibleIds(item, out);
+            }
+        } else if (e.isJsonObject()) {
+            final JsonObject o = e.getAsJsonObject();
+            if (o.has("id") && o.has("owner") && o.has("tapped")) {
+                out.add(o.get("id").getAsInt());
+            }
+            for (final Map.Entry<String, JsonElement> f : o.entrySet()) {
+                visibleIds(f.getValue(), out);
+            }
+        }
+    }
+
+    /** Every visible card of a state: its zones and the cards on its stack. */
+    private static void rememberVisible(final JsonObject state, final Set<Integer> out) {
+        visibleIds(state.getAsJsonArray("players"), out);
+        visibleIds(state.getAsJsonArray("stack"), out);
     }
 
     private void closeQuestion(final long id) {
@@ -413,6 +548,9 @@ public final class ScriptedHuman implements EngineHost {
             o.addProperty("type", Protocol.CONCEDE);
             return o;
         }
+        if (heldObservation != null) {
+            return whileHolding();
+        }
         final JsonObject blocking = latestOpen(true);
         if (blocking != null) {
             final JsonObject extra = nextBlockingExtra();
@@ -479,6 +617,69 @@ public final class ScriptedHuman implements EngineHost {
                 return null;
             }
         }
+    }
+
+    /**
+     * Protocol 10: the engine holds an observation. Release it - with
+     * observeFaults first, at the first hold, a card tap and an answer
+     * (refused: observing), a release of an observation that is not held
+     * (stale), a state request and a settings change that keeps the mode; at
+     * the second hold a release of the one released before (stale).
+     */
+    private JsonObject whileHolding() {
+        final long held = heldObservation.get("id").getAsLong();
+        if (observeFaults && holdsSeen == 1) {
+            switch (observeFaultStep) {
+                case 0 -> {
+                    observeFaultStep++;
+                    JsonObject card = firstCard(true, "battlefield", c -> true, "observing-tap");
+                    if (card == null) {
+                        card = firstCard(true, "hand", c -> true, "observing-tap");
+                    }
+                    if (card != null) {
+                        count("fault:tap-while-observing");
+                        return cardTap(card);
+                    }
+                }
+                case 1 -> {
+                    observeFaultStep++;
+                    count("fault:answer-while-observing");
+                    return answer(1L, Protocol.KIND_BUTTONS, "button", 1);
+                }
+                case 2 -> {
+                    observeFaultStep++;
+                    count("fault:release-not-held");
+                    return release(held + 1);
+                }
+                case 3 -> {
+                    observeFaultStep++;
+                    return stateRequest("observing");
+                }
+                case 4 -> {
+                    observeFaultStep++;
+                    count("extra:settings-while-observing");
+                    final JsonObject o = new JsonObject();
+                    o.addProperty("type", Protocol.SETTINGS_CHANGE);
+                    o.addProperty("observation", Protocol.OBSERVATION_HOLD);
+                    return o;
+                }
+                default -> { }
+            }
+        }
+        if (observeFaults && holdsSeen == 2 && observeFaultStep == 5 && lastReleasedObservation > 0) {
+            observeFaultStep++;
+            count("fault:release-old");
+            return release(lastReleasedObservation);
+        }
+        count("observation:release");
+        return release(held);
+    }
+
+    private static JsonObject release(final long id) {
+        final JsonObject o = new JsonObject();
+        o.addProperty("type", Protocol.OBSERVATION_RELEASE);
+        o.addProperty("observation", id);
+        return o;
     }
 
     /**

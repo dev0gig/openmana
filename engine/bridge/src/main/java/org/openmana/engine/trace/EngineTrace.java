@@ -36,6 +36,12 @@ import java.util.function.Consumer;
  * The same seed and the same inputs must give the same trace on every
  * runtime; the first difference says where a game went differently.
  *
+ * <p>Protocol 10: an observation is traced by its structure (ids, kinds,
+ * references - no hold flag, no card texts, no state number, which follows
+ * a clock). Waiting while an observation is held is no game input: no
+ * checkpoint, the inputs read then are neither recorded nor counted. So the
+ * same game played with and without observation holds has the same trace.
+ *
  * <p>Engine tests only: the trace contains hidden information (libraries,
  * the AI's hand). A match emits it only if the request asks for it
  * ({@code "trace": true}); the UI never does.
@@ -50,7 +56,7 @@ public final class EngineTrace {
     /** Every checkpoint kind; the protocol schema lists the same (ProtocolContractTest). */
     public static final Set<String> CHECKPOINTS = Set.of(AT_INPUT, AT_PHASE, AT_END);
     /** Kinds of the bridge's own events in a trace (the schema lists them with Forge's). */
-    public static final Set<String> BRIDGE_EVENTS = Set.of("started", "question", "withdrawn", "answered", "rejected", "message", "end", "input");
+    public static final Set<String> BRIDGE_EVENTS = Set.of("started", "question", "withdrawn", "answered", "rejected", "message", "end", "input", "observation");
 
     private final Consumer<JsonObject> out;
     private Game game;
@@ -62,6 +68,13 @@ public final class EngineTrace {
     private int entries;
     private int events;
     private int inputs;
+    /**
+     * Protocol 10: the seq of each game input -> its number among the game
+     * inputs. Inputs read while an observation was held are no game inputs:
+     * the trace numbers game inputs by this number, so the same game played
+     * with and without holds has the same trace.
+     */
+    private final Map<Long, Long> gameInputs = new java.util.HashMap<>();
     private RuntimeException failure;
 
     /** @param out receives every trace entry as a protocol message */
@@ -165,9 +178,22 @@ public final class EngineTrace {
                 inputs++;
                 final JsonObject o = new JsonObject();
                 o.addProperty("e", "input");
-                o.add("input", input == null ? null : input.deepCopy());
+                JsonObject traced = input == null ? null : input.deepCopy();
+                if (traced != null && traced.has("seq") && traced.get("seq").isJsonPrimitive()) {
+                    // The game input's number (protocol 10: inputs read while an observation was held do not count).
+                    gameInputs.put(traced.get("seq").getAsLong(), (long) inputs);
+                    traced.addProperty("seq", inputs);
+                }
+                o.add("input", traced);
                 add(o);
                 return input;
+            }
+
+            /** Protocol 10: waiting to be looked at is no game input (see the class comment). */
+            @Override
+            public JsonObject awaitObservationInput() {
+                checkHealthy();
+                return inner.awaitObservationInput();
             }
         };
     }
@@ -190,6 +216,14 @@ public final class EngineTrace {
         pending = new JsonArray();
         entry.add("snapshot", TraceSnapshot.of(game, gui, gui == null ? null : questions.values()));
         out.accept(entry);
+    }
+
+    private long gameInput(final long seq) {
+        final Long nr = gameInputs.get(seq);
+        if (nr == null) {
+            throw new IllegalStateException("engine trace: no game input with seq " + seq);
+        }
+        return nr;
     }
 
     private String keyOf(final int cardId) {
@@ -224,11 +258,17 @@ public final class EngineTrace {
             case "question.answered" -> {
                 questions.remove(message.get("id").getAsLong());
                 o.addProperty("e", "answered");
-                copy(message, o, "id", "seq");
+                copy(message, o, "id");
+                o.addProperty("seq", gameInput(message.get("seq").getAsLong()));
             }
             case "input.rejected" -> {
+                if (!gameInputs.containsKey(message.get("seq").getAsLong())) {
+                    // refused while an observation was held: no game input (protocol 10)
+                    return;
+                }
                 o.addProperty("e", "rejected");
-                copy(message, o, "seq", "reason");
+                o.addProperty("seq", gameInput(message.get("seq").getAsLong()));
+                copy(message, o, "reason");
             }
             case "message" -> {
                 o.addProperty("e", "message");
@@ -238,11 +278,51 @@ public final class EngineTrace {
                 o.addProperty("e", "end");
                 copy(message, o, "winner", "reason", "turns", "result", "conceded");
             }
+            case "observation" -> {
+                o.addProperty("e", "observation");
+                copy(message, o, "id");
+                final JsonArray actions = new JsonArray();
+                for (final JsonElement a : message.getAsJsonArray("actions")) {
+                    actions.add(observedAction(a.getAsJsonObject()));
+                }
+                o.add("actions", actions);
+            }
             default -> {
                 return;
             }
         }
         add(o);
+    }
+
+    /**
+     * An observed action by its structure (protocol 10): every field as sent,
+     * a card only as its reference ("c12", "hidden") - a card's view carries
+     * Forge's words in the engine's language.
+     */
+    private static JsonElement observedAction(final JsonElement e) {
+        if (e.isJsonArray()) {
+            final JsonArray a = new JsonArray();
+            for (final JsonElement item : e.getAsJsonArray()) {
+                a.add(observedAction(item));
+            }
+            return a;
+        }
+        if (!e.isJsonObject()) {
+            return e.deepCopy();
+        }
+        final JsonObject in = e.getAsJsonObject();
+        if (in.has("hidden") && in.get("hidden").isJsonPrimitive() && in.size() == 1) {
+            return new com.google.gson.JsonPrimitive("hidden");
+        }
+        if (in.has("tapped") && in.has("id") && in.has("owner")) {
+            // a VisibleCard
+            return new com.google.gson.JsonPrimitive("c" + in.get("id").getAsInt());
+        }
+        final JsonObject out = new JsonObject();
+        for (final Map.Entry<String, JsonElement> f : in.entrySet()) {
+            out.add(f.getKey(), observedAction(f.getValue()));
+        }
+        return out;
     }
 
     /** A question without its words: kind, limits, flags and what its items refer to. */

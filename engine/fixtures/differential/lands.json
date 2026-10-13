@@ -1,0 +1,12 @@
+{
+  "description": "Prompt 48 (protocol 10): Forge's land facts and the observed game. The player plays green lands, Exploration (an additional land each turn) and Rampant Growth (a basic land from the library onto the battlefield - not a land play); Forge says why a land of the hand cannot be played (the land for the turn is played, not the player's turn, not now). The AI's turns - lands, creatures, burn, attacks - arrive as observations with their public results.",
+  "match": {
+    "seed": 6,
+    "format": "constructed",
+    "human": { "name": "Player", "deck": "smoke-green-lands" },
+    "ai": { "name": "Forge AI", "profile": "Default", "deck": "smoke-red" }
+  },
+  "player": { "attack": "alternate", "block": "one", "play": "all" },
+  "wasm": { "node": ["lazy"], "browser": ["lazy"] },
+  "covers": ["land", "land-limit", "land-extra", "land-by-effect", "observe-turn", "observe-land-opponent", "observe-cast-opponent", "observe-resolve", "observe-attack-opponent", "observe-combat-damage"]
+}

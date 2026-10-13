@@ -39,6 +39,11 @@ OPENMANA_NATIVE_IMAGE_XMX=6g OPENMANA_NATIVE_IMAGE_PARALLELISM=2 \
 node engine/scripts/validate-forge-update.mjs --base <REVIEW_BASE>
 ```
 
+Ein fokussierter Testlauf (`OPENMANA_FIXTURES=…` für `test-engine.sh`, Prompt 48)
+ist für gezielte Prüfungen einzelner Änderungen gedacht und nie Teil eines
+Updates: die Pipeline setzt die Variable nicht, und `engine-lock.mjs` lehnt
+einen fokussierten Bericht ab.
+
 Der Lauf braucht freien RAM/Swap und mehrere GB freien Plattenplatz. Auf einer
 gemeinsam genutzten Maschine den verfügbaren Speicher vorher prüfen; keine
 fremden Prozesse oder Swapdateien verändern. Die Angaben sind Ressourcenlimits,

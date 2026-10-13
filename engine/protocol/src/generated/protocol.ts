@@ -5,9 +5,9 @@
  */
 
 /**
- * Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace). 4: card language (boot argument --card-language, BootReport.cardLanguage) and Forge's AI profiles (BootReport.aiProfiles; match.start with any other profile is refused). 5: priority, stack and phases (prompt 16): a stack item carries its card as Forge shows it (StackItem.card) and says whether it is an ability (StackItem.ability), its source id only for a card the player may see; Forge's buttons of the priority step say what they do (Button.meaning); a selection's cards are only those the player may see. 6: targets and cost payment (prompt 17): Forge's players a player.tap would take now (Player.selectable) and its highlight on chosen players (Player.highlighted); the payment in progress (GameState.payment: the mana still to pay, the pool's colours Forge would take now) and paying from the mana pool (mana.use); a player.tap or mana.use Forge would not take is refused (no-effect). 7: declaring attackers (prompt 18): the declaration in progress (GameState.attack: the defender a creature tapped now attacks, every defender Forge offers, and the player's creatures a tap would not declare now with Forge's reason), the defending players a player.tap would switch to (Player.selectable), and what Forge's buttons of the declaration do (Button.meaning declare, attackAll, callBack). 8: Anvil parity (prompt 30): Forge distribution maximums/prerequisites and postponement, absolute arrangement positions, cancellable inputs with allowed values, and changed colors including colorless. 9: the keywords of a card (prompt 47): every keyword ability Forge reports for a visible card now (VisibleCard.keywords: Forge's keyword, its concrete form and Forge's reminder text, the parts of the concrete form as Forge parsed them).
+ * Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace). 4: card language (boot argument --card-language, BootReport.cardLanguage) and Forge's AI profiles (BootReport.aiProfiles; match.start with any other profile is refused). 5: priority, stack and phases (prompt 16): a stack item carries its card as Forge shows it (StackItem.card) and says whether it is an ability (StackItem.ability), its source id only for a card the player may see; Forge's buttons of the priority step say what they do (Button.meaning); a selection's cards are only those the player may see. 6: targets and cost payment (prompt 17): Forge's players a player.tap would take now (Player.selectable) and its highlight on chosen players (Player.highlighted); the payment in progress (GameState.payment: the mana still to pay, the pool's colours Forge would take now) and paying from the mana pool (mana.use); a player.tap or mana.use Forge would not take is refused (no-effect). 7: declaring attackers (prompt 18): the declaration in progress (GameState.attack: the defender a creature tapped now attacks, every defender Forge offers, and the player's creatures a tap would not declare now with Forge's reason), the defending players a player.tap would switch to (Player.selectable), and what Forge's buttons of the declaration do (Button.meaning declare, attackAll, callBack). 8: Anvil parity (prompt 30): Forge distribution maximums/prerequisites and postponement, absolute arrangement positions, cancellable inputs with allowed values, and changed colors including colorless. 9: the keywords of a card (prompt 47): every keyword ability Forge reports for a visible card now (VisibleCard.keywords: Forge's keyword, its concrete form and Forge's reminder text, the parts of the concrete form as Forge parsed them). 10: observable engine steps (prompt 48): Forge's public actions as structured observations at stable points between Forge's actions (observation: turn, land, cast, activate, trigger, attack, block, resolve, combatDamage with their public results; the state they explain), optional observation holds the player releases (MatchSettings.observation, observation.release, observation.released; settings.change, settings.applied) without passing priority or answering anything, Forge's auto-pass setting (MatchSettings.autoPass), unlimited land plays (Player.landsUnlimited) and why Forge would not let the player play a land now (VisibleCard.landRefusal, Forge patch 0010); a tap, player tap, mana or answer during a hold is refused (observing).
  */
-export type ProtocolVersion = 9;
+export type ProtocolVersion = 10;
 /**
  * Everything the worker posts to the page: lifecycle messages of the worker host (engine.*, match.finished, diagnostics.*) and the game messages of the bridge.
  */
@@ -29,6 +29,9 @@ export type EngineMessage =
   | QuestionWithdrawn
   | QuestionAnswered
   | InputRejected
+  | Observation
+  | ObservationReleased
+  | SettingsApplied
   | GameEnd;
 /**
  * worker-features: the worker checked the browser; launcher-load: the engine launcher script is loading; wasm-fetch-compile: the ~70 MB module is fetched and compiled; java-main: Forge unpacks its data and initialises.
@@ -74,7 +77,7 @@ export type PlayerId = number;
  */
 export type TraceCheckpoint = "input" | "phase" | "end";
 /**
- * Forge's game events (bridge TraceEvents: one kind per Forge event class, e.g. cast, resolve, move, attackers, blockers, damage, mana, priority, phase, log) and the bridge's own: started (game.started), question, withdrawn, answered, rejected (input.rejected), message (kind only), end (game.end), input (what the engine read).
+ * Forge's game events (bridge TraceEvents: one kind per Forge event class, e.g. cast, resolve, move, attackers, blockers, damage, mana, priority, phase, log) and the bridge's own: started (game.started), question, withdrawn, answered, rejected (input.rejected), message (kind only), end (game.end), input (what the engine read at a game input; inputs read while an observation is held are not traced, protocol 10), observation (an observation without its hold flag: its id, state seq and actions by their structure, protocol 10).
  */
 export type TraceEventKind =
   | "answered"
@@ -108,6 +111,7 @@ export type TraceEventKind =
   | "mode"
   | "move"
   | "mulligan"
+  | "observation"
   | "outcome"
   | "phase"
   | "phased"
@@ -173,6 +177,10 @@ export type TraceEntityRef = string;
  */
 export type TraceTarget = string;
 /**
+ * Protocol 10, VisibleCard.landRefusal - only on a card in the player's own hand that Forge could play as a land, absent if Forge would let the player play it and on every other card: why Forge would not let the player play a land now, from Forge's own check (Player.landPlayRefusal, Forge patch 0010; canPlayLand is the same check): notYourTurn (only in the player's own turn), timing (only when a sorcery could be cast: a main phase with an empty stack), notOwner (another player's card without a permission to play it), zone (not from this zone), restricted (an effect forbids playing it), limit (the lands the player may play this turn are used up - Forge counts lands played, never lands put onto the battlefield by an effect).
+ */
+export type LandRefusal = "notYourTurn" | "timing" | "notOwner" | "zone" | "restricted" | "limit";
+/**
  * Why Forge would not declare a creature an attacker of the defender now (Forge's CombatUtil.attackRefusal, in its order of checks): tapped; sick = summoning sickness (no haste, no effect lets it attack); phasedOut; goaded = it must attack a player who did not goad it; restricted = a keyword or effect says it can't attack (e.g. defender); defender = it could attack another defender Forge offers, not this one; notCreature and tooLate for completeness (Forge's other refusals).
  */
 export type AttackRefusal =
@@ -226,14 +234,50 @@ export type ButtonMeaning = "pass" | "endTurn" | "undo" | "declare" | "attackAll
  */
 export type Seq = number;
 /**
- * stale: the question is not open (withdrawn, answered or unknown); not-active: a blocking question must be answered first; invalid: the answer does not fit its question (kind, range, count, sum, disabled button); malformed: unknown input type; unknown-card: no card with this id is visible to the player; unknown-player: no such player; no-effect: Forge did not accept the tap in the current step (a card tap Forge ignored, a player or mana Forge's running input would not take).
+ * stale: the question is not open (withdrawn, answered or unknown); not-active: a blocking question must be answered first; invalid: the answer does not fit its question (kind, range, count, sum, disabled button); malformed: unknown input type; unknown-card: no card with this id is visible to the player; unknown-player: no such player; no-effect: Forge did not accept the tap in the current step (a card tap Forge ignored, a player or mana Forge's running input would not take); observing (protocol 10): the engine holds an observation and takes only its release, settings.change, state.request and concede - an answer or tap is not carried out. An observation.release of an observation that is not held (old, released already, unknown) is stale.
  */
 export type RejectReason =
-  "stale" | "not-active" | "invalid" | "malformed" | "unknown-card" | "unknown-player" | "no-effect";
+  "stale" | "not-active" | "invalid" | "malformed" | "unknown-card" | "unknown-player" | "no-effect" | "observing";
+/**
+ * Number of an observation within the match: 1, 2, 3 … strictly increasing, never reused.
+ */
+export type ObservationId = number;
+/**
+ * One public action of the game, from Forge's game events. player: who acted (the turn's player, the land's player, the stack item's activating player, the attacking or blocking player, the resolving item's activating player, the active player for combat damage).
+ */
+export type ObservedAction =
+  | TurnAction
+  | TurnEndAction
+  | LandAction
+  | StackAction
+  | AttackAction
+  | BlockAction
+  | ResolveAction
+  | CombatDamageAction;
+/**
+ * Number of an observed action within the match: 1, 2, 3 … without gaps over all observations, each action reported exactly once.
+ */
+export type ActionNr = number;
+/**
+ * off: the engine reports observations and never waits for them. hold: at an observation with an action of the opponent, a turn begin or end or combat damage (Observation.hold) the engine waits on its single thread, at a stable point between Forge's actions, until the player releases exactly that observation (observation.release), changes the mode to off or concedes. Waiting is no game decision: the same inputs give the same game in both modes.
+ */
+export type ObservationMode = "off" | "hold";
+/**
+ * Forge's own auto-pass setting for the player's priority (Forge's yield preferences of the player's controller; nothing is passed by the UI): noActions - Forge passes a priority in which it finds nothing the player can do (YIELD_AUTO_PASS_NO_ACTIONS, the default since prompt 16); noActionsRespectInterrupts - the same, but Forge asks once when an interrupt it knows happens (an opponent's spell, the player being attacked: YIELD_AUTO_PASS_RESPECTS_INTERRUPTS with Forge's default interrupts); never - Forge asks at every priority of the player. Switching to an auto-pass while Forge waits at a priority without actions lets Forge pass it at once (Forge's own behaviour).
+ */
+export type AutoPass = "noActions" | "noActionsRespectInterrupts" | "never";
 /**
  * What the player does, written into the SharedArrayBuffer input queue. Forge reads one input whenever it waits for the player. `seq` numbers the inputs of a match from 1 without gaps; the bridge refuses to continue if the sequence breaks (technical abort).
  */
-export type EngineInput = AnswerInput | CardTapInput | PlayerTapInput | ManaUseInput | StateRequestInput | ConcedeInput;
+export type EngineInput =
+  | AnswerInput
+  | CardTapInput
+  | PlayerTapInput
+  | ManaUseInput
+  | StateRequestInput
+  | ConcedeInput
+  | ObservationReleaseInput
+  | SettingsChangeInput;
 /**
  * Answer to an open question. kind must be the question's kind.
  */
@@ -549,7 +593,7 @@ export interface DiagnosticsTrace {
   n: number;
   at: TraceCheckpoint;
   /**
-   * Inputs the engine had read at this checkpoint.
+   * Game inputs the engine had read at this checkpoint (protocol 10: not the inputs read while an observation was held).
    */
   inputs: number;
   events: TraceEvent[];
@@ -600,6 +644,14 @@ export interface TracePlayer {
    * Lands played this turn.
    */
   lands: number;
+  /**
+   * Protocol 10: Forge's limit of land plays this turn (Player.getMaxLandPlays).
+   */
+  landsAllowed: number;
+  /**
+   * Protocol 10: Forge lets the player play any number of lands.
+   */
+  landsUnlimited: boolean;
   /**
    * Top first, ids only.
    */
@@ -683,6 +735,13 @@ export interface TraceMarkers {
    */
   players: PlayerId[];
   highlightedPlayers: PlayerId[];
+  /**
+   * Protocol 10: the lands of the human's hand Forge does not mark playable, with Forge's reason (as VisibleCard.landRefusal).
+   */
+  landRefusals: {
+    card: CardId;
+    reason: LandRefusal;
+  }[];
   payment?: Payment;
   attack?: Attack;
 }
@@ -808,7 +867,14 @@ export interface Player {
   lost: boolean;
   maxHandSize: number;
   landsPlayed: number;
+  /**
+   * Forge: the lands this player may play this turn (Player.getMaxLandPlays, effects included); see landsUnlimited.
+   */
   landsAllowed: number;
+  /**
+   * Forge: this player may play any number of lands this turn (protocol 10); landsAllowed is then not a limit.
+   */
+  landsUnlimited?: true;
   counters: Counters;
   mana: ManaPool;
   zones: Zones;
@@ -895,6 +961,7 @@ export interface VisibleCard {
    * @minItems 1
    */
   keywords?: [CardKeyword, ...CardKeyword[]];
+  landRefusal?: LandRefusal;
 }
 /**
  * One keyword ability of a card as Forge reports it (Forge's KeywordView). keyword: the name of Forge's Keyword enum constant (never UNDEFINED); title: Forge's concrete form in English (e.g. 'Protection from red', 'Kicker {2}{R}'); reminder: Forge's English reminder text for that form, empty if Forge has none (CARDNAME replaced by the card's name). amount, cost and detail are the parts of the concrete form as Forge's own parser reads them: amount a number or X, cost Forge's mana symbols (only for a cost of mana alone), detail Forge's English description of a type or quality. The UI shows its German text for a keyword only where it matches this form exactly; otherwise Forge's English words, marked.
@@ -1205,6 +1272,163 @@ export interface InputRejected {
   input: {};
 }
 /**
+ * Protocol 10: Forge's public actions since the previous observation, in Forge's order, sent at a stable point - when a player would get priority (Forge has checked state-based actions and put triggers on the stack), or before the engine waits for the player or asks a question. Always right after the state it explains (state = that state's seq). Built from Forge's own game events, never from state differences or Forge's prose; only what the player may see. hold: the engine waits until this observation is released (observation.release), the mode is switched off or the player concedes; it never holds while a question is open or asks one while holding.
+ */
+export interface Observation {
+  type: "observation";
+  id: ObservationId;
+  hold: boolean;
+  /**
+   * seq of the state message right before this observation: the consistent picture after these actions.
+   */
+  state: number;
+  /**
+   * @minItems 1
+   */
+  actions: [ObservedAction, ...ObservedAction[]];
+}
+/**
+ * A turn began (Forge's GameEventTurnBegan): its number and its player.
+ */
+export interface TurnAction {
+  n: ActionNr;
+  kind: "turn";
+  player: PlayerId;
+  turn: number;
+}
+/**
+ * A turn ended (Forge's GameEventTurnEnded): its number and its player.
+ */
+export interface TurnEndAction {
+  n: ActionNr;
+  kind: "turnEnd";
+  player: PlayerId | null;
+  turn: number;
+}
+/**
+ * A player played a land (Forge's GameEventLandPlayed: the land play Forge counts in landsPlayed). A land put onto the battlefield by an effect is a move in the results of a resolve action instead.
+ */
+export interface LandAction {
+  n: ActionNr;
+  kind: "land";
+  player: PlayerId | null;
+  card: Card;
+}
+/**
+ * A spell was cast (cast), an activated ability activated (activate) or a triggered ability put on the stack (trigger) - Forge's GameEventSpellAbilityCast. card: the spell's card or the ability's source as Forge shows it to the player at that moment (hidden for a face-down spell), null if Forge names none; targets: the targets the player may see.
+ */
+export interface StackAction {
+  n: ActionNr;
+  kind: "cast" | "activate" | "trigger";
+  player: PlayerId | null;
+  card: Card | null;
+  targets: EntityRef[];
+}
+/**
+ * Attackers were declared (Forge's GameEventAttackersDeclared): each attacker as Forge shows it and whom it attacks (a player or a planeswalker/battle; null if Forge names none), ordered by attacker id.
+ */
+export interface AttackAction {
+  n: ActionNr;
+  kind: "attack";
+  player: PlayerId | null;
+  /**
+   * @minItems 1
+   */
+  attacks: [
+    {
+      attacker: Card;
+      defender: EntityRef | null;
+    },
+    ...{
+      attacker: Card;
+      defender: EntityRef | null;
+    }[]
+  ];
+}
+/**
+ * Blockers were declared (Forge's GameEventBlockersDeclared): for every attacker (by id, ascending) its blockers as Forge shows them, empty if it is not blocked.
+ */
+export interface BlockAction {
+  n: ActionNr;
+  kind: "block";
+  player: PlayerId | null;
+  blocks: {
+    attacker: CardId;
+    blockers: Card[];
+  }[];
+}
+/**
+ * A spell or ability resolved (Forge resolving its stack's top; GameEventSpellResolved), with what that publicly did: results collects Forge's events from the beginning of the resolution up to the next action, including the state-based actions checked before the next priority (a creature dying of the damage). fizzled: Forge found every target illegal. continued: the same resolution goes on after an observation that was sent in its middle (a question to the player during the resolution), with the results after it.
+ */
+export interface ResolveAction {
+  n: ActionNr;
+  kind: "resolve";
+  player: PlayerId | null;
+  card: Card | null;
+  stack: "spell" | "ability" | "trigger";
+  fizzled: boolean;
+  continued?: true;
+  results: ActionResults;
+}
+/**
+ * Public results of a resolution or of combat damage, each in Forge's order: cards that changed zones (only cards the player may see after the move: a card moving into a hidden zone - a hand, a library, face down - is left out; created tokens come from no zone), damage dealt to a card the player sees or to a player, and changed life totals.
+ */
+export interface ActionResults {
+  moves: {
+    card: VisibleCard;
+    from: ActionZone | null;
+    to: ActionZone | null;
+  }[];
+  damage: {
+    target: EntityRef;
+    amount: number;
+    /**
+     * The source's id if the player may see it.
+     */
+    source: CardId | null;
+  }[];
+  life: {
+    player: PlayerId;
+    from: number;
+    to: number;
+  }[];
+}
+/**
+ * A zone of a player (player null for a zone without owner, e.g. the stack).
+ */
+export interface ActionZone {
+  zone: "battlefield" | "hand" | "graveyard" | "exile" | "command" | "library" | "stack" | "other";
+  player: PlayerId | null;
+}
+/**
+ * Combat damage was dealt (the combat damage steps), with its public results up to the next action (creatures dying of it included). continued: as for ResolveAction.
+ */
+export interface CombatDamageAction {
+  n: ActionNr;
+  kind: "combatDamage";
+  player: PlayerId | null;
+  continued?: true;
+  results: ActionResults;
+}
+/**
+ * Protocol 10: the held observation is over; the game goes on. by: release (its observation.release, seq), settings (a settings.change to off, seq), concede (the concession, seq).
+ */
+export interface ObservationReleased {
+  type: "observation.released";
+  id: ObservationId;
+  seq: Seq;
+  by: "release" | "settings" | "concede";
+}
+/**
+ * Protocol 10: the settings now in effect - once when the game starts (seq null, from MatchRequest.settings) and after every settings.change (its seq).
+ */
+export interface SettingsApplied {
+  type: "settings.applied";
+  seq: Seq | null;
+  observation: ObservationMode;
+  autoPass: AutoPass;
+}
+/**
  * The game is over. result is from the player's point of view. All questions are closed before this message.
  */
 export interface GameEnd {
@@ -1357,6 +1581,23 @@ export interface ConcedeInput {
   seq: Seq;
 }
 /**
+ * Protocol 10: release the observation the engine holds - exactly that one. Passes no priority, answers no question, chooses nothing. A release of an observation that is not held (old, released already, unknown) is refused as stale.
+ */
+export interface ObservationReleaseInput {
+  type: "observation.release";
+  seq: Seq;
+  observation: ObservationId;
+}
+/**
+ * Protocol 10: change the observation mode and/or Forge's auto-pass setting; taken at any time, also while a blocking question waits or an observation is held (switching the observation off releases a held observation). Confirmed by settings.applied.
+ */
+export interface SettingsChangeInput {
+  type: "settings.change";
+  seq: Seq;
+  observation?: ObservationMode;
+  autoPass?: AutoPass;
+}
+/**
  * Start the engine in this (fresh) worker. The worker checks the protocol version first, then the runtime features, then the input queue, and only then loads the ~70 MB engine.
  */
 export interface EngineStartCommand {
@@ -1393,6 +1634,7 @@ export interface MatchRequest {
    * Engine tests only (differential tests, prompt 05): the engine also sends its trace (diagnostics.trace), which contains hidden information. The UI never sets it.
    */
   trace?: boolean;
+  settings?: MatchSettings;
   format: MatchFormat;
   human: {
     name: NonEmptyString;
@@ -1403,6 +1645,13 @@ export interface MatchRequest {
     profile: NonEmptyString;
     deck: Deck;
   };
+}
+/**
+ * Protocol 10 (MatchRequest.settings, each field absent = its default; changed during the game with settings.change): settings of the running game that change neither Forge's rules nor the AI. observation (default off): whether the engine waits at a holding observation for its release. autoPass (default noActions): Forge's own auto-pass setting for the player's priority.
+ */
+export interface MatchSettings {
+  observation?: ObservationMode;
+  autoPass?: AutoPass;
 }
 export interface Deck {
   name: NonEmptyString;

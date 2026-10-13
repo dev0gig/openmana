@@ -74,6 +74,8 @@ const env = {
   OPENMANA_ENGINE_DIR: path.join(out, "dist"),
   OPENMANA_CARDS_DIR: path.join(out, "catalog"),
   OPENMANA_ENGINE: "required", OPENMANA_CARDS: "required", OPENMANA_SKIP_BROWSER: "0",
+  // A focused engine run (prompt 48) is never part of an update: always the complete suite.
+  OPENMANA_FIXTURES: "",
   OPENMANA_WASM_DEBUG_NAMES: "0",
   VITEST_MAX_WORKERS: "1",
 };

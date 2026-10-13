@@ -286,6 +286,15 @@ export const COVERAGE: Readonly<Record<string, string>> = {
   "commander-tax": "the player cast its commander again (commander tax)",
   "commander-return": "the player's commander returned to the command zone",
   "commander-damage": "the player's commander dealt combat damage",
+  "observe-turn": "an observation reported a turn beginning (protocol 10, prompt 48)",
+  "observe-land-opponent": "an observation reported a land the AI played (prompt 48)",
+  "observe-cast-opponent": "an observation reported a spell the AI cast (prompt 48)",
+  "observe-resolve": "an observation reported a resolution with a public result (prompt 48)",
+  "observe-attack-opponent": "an observation reported the AI's attackers (prompt 48)",
+  "observe-combat-damage": "an observation reported combat damage with a public result (prompt 48)",
+  "land-limit": "Forge said a land of the player's hand could not be played: the land for this turn was played (prompt 48)",
+  "land-extra": "Forge let the player play two or more lands in one turn (an effect raised the limit; prompt 48)",
+  "land-by-effect": "an effect put a land from the player's library onto the battlefield, outside the land plays Forge counts (prompt 48)",
 };
 
 /**
@@ -347,7 +356,51 @@ export const REQUIRED_COVERAGE: readonly string[] = [
   "commander-tax",
   "commander-return",
   "commander-damage",
+  "observe-turn",
+  "observe-land-opponent",
+  "observe-cast-opponent",
+  "observe-resolve",
+  "observe-attack-opponent",
+  "observe-combat-damage",
+  "land-limit",
+  "land-extra",
+  "land-by-effect",
 ];
+
+/** Coverage of one observed action as the trace carries it (protocol 10: references instead of card views). */
+function observedCoverage(action: Record<string, unknown>, human: number | null, hit: (key: string) => void): void {
+  const opponent = human !== null && typeof action["player"] === "number" && action["player"] !== human;
+  const results = isObject(action["results"]) ? action["results"] : null;
+  const moves = Array.isArray(results?.["moves"]) ? (results["moves"] as Record<string, unknown>[]) : [];
+  const publicResult = moves.length > 0 || (Array.isArray(results?.["damage"]) && results["damage"].length > 0) || (Array.isArray(results?.["life"]) && results["life"].length > 0);
+  switch (action["kind"]) {
+    case "turn":
+      hit("observe-turn");
+      break;
+    case "land":
+      if (opponent) hit("observe-land-opponent");
+      break;
+    case "cast":
+      if (opponent) hit("observe-cast-opponent");
+      break;
+    case "attack":
+      if (opponent) hit("observe-attack-opponent");
+      break;
+    case "resolve":
+      if (publicResult) hit("observe-resolve");
+      break;
+    case "combatDamage":
+      if (publicResult) hit("observe-combat-damage");
+      break;
+    default:
+      break;
+  }
+  for (const move of moves) {
+    const from = isObject(move["from"]) ? move["from"] : null;
+    const to = isObject(move["to"]) ? move["to"] : null;
+    if (human !== null && from?.["zone"] === "library" && to?.["zone"] === "battlefield" && to["player"] === human) hit("land-by-effect");
+  }
+}
 
 /** Whether the declaration of attackers at this checkpoint offers this player or card as a defender other than the current one. */
 function isDefender(snapshot: TraceSnapshot | null, kind: "player" | "card", id: number | undefined): boolean {
@@ -513,11 +566,22 @@ export function traceCoverage(entries: readonly TraceEntry[]): Record<string, nu
           if (typeof e["result"] === "string") hit(`end-${e["result"]}`);
           if (e["conceded"] === true) hit("end-concede");
           break;
+        case "observation":
+          for (const action of Array.isArray(e["actions"]) ? (e["actions"] as Record<string, unknown>[]) : []) {
+            observedCoverage(action, human, hit);
+          }
+          break;
         default:
           break;
       }
     }
     previous = entry.snapshot;
+    if (human !== null) {
+      // Protocol 10: Forge's land facts for the human seat.
+      if ((entry.snapshot.gui?.landRefusals ?? []).some((r) => r.reason === "limit")) hit("land-limit");
+      const me = entry.snapshot.players.find((p) => p.id === human);
+      if (me && me.lands >= 2) hit("land-extra");
+    }
     for (const refused of entry.snapshot.gui?.attack?.unavailable ?? []) {
       if (refused.reason === "sick") hit("attack-unavailable-sick");
       if (refused.reason === "tapped") hit("attack-unavailable-tapped");

@@ -13,7 +13,8 @@ import java.security.NoSuchAlgorithmException;
  *
  * <p>State and event messages are left out on purpose. Their batching follows
  * a clock (state at most every 120 ms, events ride along), so it may differ
- * between runs. Everything fingerprinted here depends only on Forge and the
+ * between runs. For the same reason an observation (protocol 10) is
+ * fingerprinted without the number of the state it follows. Everything fingerprinted here depends only on Forge and the
  * player's inputs: for the same seed and the same inputs the fingerprint is
  * the same on the JVM and in WebAssembly, question ids included. The Wasm
  * replay tests compare it.
@@ -33,7 +34,12 @@ final class ProtocolTrace implements EngineHost {
     public void emit(final JsonObject message) {
         final String type = message.get("type").getAsString();
         if (!Protocol.STATE.equals(type) && !Protocol.EVENTS.equals(type)) {
-            digest.update(message.toString().getBytes(StandardCharsets.UTF_8));
+            JsonObject fingerprinted = message;
+            if (Protocol.OBSERVATION.equals(type)) {
+                fingerprinted = message.deepCopy();
+                fingerprinted.remove("state");
+            }
+            digest.update(fingerprinted.toString().getBytes(StandardCharsets.UTF_8));
             digest.update((byte) '\n');
             messages++;
         }
@@ -43,6 +49,11 @@ final class ProtocolTrace implements EngineHost {
     @Override
     public JsonObject awaitInput() {
         return host.awaitInput();
+    }
+
+    @Override
+    public JsonObject awaitObservationInput() {
+        return host.awaitObservationInput();
     }
 
     /** Number of fingerprinted messages. */

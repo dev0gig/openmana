@@ -78,7 +78,11 @@ fixtures/
   verlangt (`REQUIRED_COVERAGE`).
 
 Eine **Variante** ist dieselbe Partie mit anderen Engine-Einstellungen und muss
-exakt dieselbe Spur haben:
+exakt dieselbe Spur haben (seit Prompt 48 auch mit `"observation": "hold"`:
+die Partie läuft mit Beobachtungshalten, der Testspieler gibt jede gehaltene
+Beobachtung frei und schickt währenddessen Eingaben, die abgelehnt werden
+müssen – `observeFaults` –; Freigeben entscheidet nichts, die Spur bleibt
+dieselbe):
 
 ```json
 { "description": "…", "sameGameAs": "human-3", "engine": { "language": "de-DE" }, "wasm": { "node": ["lazy"], "browser": [] } }
@@ -106,6 +110,8 @@ Unit-Test bei jedem Build).
 | `targets-payment` | Rakdos gegen Grün, Seed 6, deutsch | wählt zuerst Spieler (`target: players`) | Spieler als Ziel per Antippen, zwei Ziele, Mana aus dem Vorrat, Leben für Phyrexia-Mana, Entscheidungen beim Wirken (Prompt 17) |
 | `attackers` | Grün gegen grüne Planeswalker, Seed 8, deutsch | greift auf drei Arten an (`attack: guided`), ein Blocker je Kampf | Planeswalker angegriffen, Angriffsziel per Antippen gewechselt, „Alle angreifen“, „Zurückrufen“, Forges Gründe, warum eine Kreatur nicht angreifen kann: Einsatzverzögerung, getappt, Verteidiger (Prompt 18) |
 | `commander` | Krenko gegen Fynn (je 100 Karten, regelkonform), Seed 5 | greift an | Kommandant aus der Kommandozone, zurück dorthin, erneut mit Kommandantensteuer, Kommandantenschaden, 40 Leben, Sieg |
+| `lands` | grüne Länder, Exploration und Rampant Growth gegen Rot, Seed 6 | greift jeden zweiten Kampf an, ein Blocker je Kampf | Forges Landauskünfte: Landspiel verbraucht (`limit`), zwei Länder in einem Zug durch Exploration, Land per Effekt ins Spiel (kein Landspiel); die Züge der KI als Beobachtungen (Prompt 48) |
+| `priority-respond-observe` | Variante von `priority-respond` | mit Beobachtungshalten | jede gehaltene Beobachtung freigegeben, abgelehnte Eingaben dabei; dieselbe Spur wie `priority-respond` (Prompt 48) |
 | `parity-trample` | grünes Trample-Deck gegen Grün, Seed 3 | greift an, ordnet Blocker zu, beachtet Forges Verteilungsgrenzen | tatsächlich angenommener Schaden an den verteidigenden Spieler und Zuweisungen mit Forges Voraussetzungen, reguläres Spielende; Node lazy/eager und Chrome lazy (Prompt 30) |
 
 ## Eine Partie hinzufügen

@@ -11,8 +11,8 @@
   "$defs": {
     "ProtocolVersion": {
       "title": "ProtocolVersion",
-      "description": "Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace). 4: card language (boot argument --card-language, BootReport.cardLanguage) and Forge's AI profiles (BootReport.aiProfiles; match.start with any other profile is refused). 5: priority, stack and phases (prompt 16): a stack item carries its card as Forge shows it (StackItem.card) and says whether it is an ability (StackItem.ability), its source id only for a card the player may see; Forge's buttons of the priority step say what they do (Button.meaning); a selection's cards are only those the player may see. 6: targets and cost payment (prompt 17): Forge's players a player.tap would take now (Player.selectable) and its highlight on chosen players (Player.highlighted); the payment in progress (GameState.payment: the mana still to pay, the pool's colours Forge would take now) and paying from the mana pool (mana.use); a player.tap or mana.use Forge would not take is refused (no-effect). 7: declaring attackers (prompt 18): the declaration in progress (GameState.attack: the defender a creature tapped now attacks, every defender Forge offers, and the player's creatures a tap would not declare now with Forge's reason), the defending players a player.tap would switch to (Player.selectable), and what Forge's buttons of the declaration do (Button.meaning declare, attackAll, callBack). 8: Anvil parity (prompt 30): Forge distribution maximums/prerequisites and postponement, absolute arrangement positions, cancellable inputs with allowed values, and changed colors including colorless. 9: the keywords of a card (prompt 47): every keyword ability Forge reports for a visible card now (VisibleCard.keywords: Forge's keyword, its concrete form and Forge's reminder text, the parts of the concrete form as Forge parsed them).",
-      "const": 9
+      "description": "Version of this contract. UI, worker host and engine must speak exactly the same version; anything else is refused loudly (engine.abort, reason protocol-mismatch). 2: engine language (boot argument --language, BootReport.language), EngineBuild.resourcesSha256, diagnostics.card-probe. 3: engine trace for the differential tests (MatchRequest.trace, DiagnosticsAiMatchCommand.trace, diagnostics.trace, MatchSummary.trace, AiMatchResult.trace). 4: card language (boot argument --card-language, BootReport.cardLanguage) and Forge's AI profiles (BootReport.aiProfiles; match.start with any other profile is refused). 5: priority, stack and phases (prompt 16): a stack item carries its card as Forge shows it (StackItem.card) and says whether it is an ability (StackItem.ability), its source id only for a card the player may see; Forge's buttons of the priority step say what they do (Button.meaning); a selection's cards are only those the player may see. 6: targets and cost payment (prompt 17): Forge's players a player.tap would take now (Player.selectable) and its highlight on chosen players (Player.highlighted); the payment in progress (GameState.payment: the mana still to pay, the pool's colours Forge would take now) and paying from the mana pool (mana.use); a player.tap or mana.use Forge would not take is refused (no-effect). 7: declaring attackers (prompt 18): the declaration in progress (GameState.attack: the defender a creature tapped now attacks, every defender Forge offers, and the player's creatures a tap would not declare now with Forge's reason), the defending players a player.tap would switch to (Player.selectable), and what Forge's buttons of the declaration do (Button.meaning declare, attackAll, callBack). 8: Anvil parity (prompt 30): Forge distribution maximums/prerequisites and postponement, absolute arrangement positions, cancellable inputs with allowed values, and changed colors including colorless. 9: the keywords of a card (prompt 47): every keyword ability Forge reports for a visible card now (VisibleCard.keywords: Forge's keyword, its concrete form and Forge's reminder text, the parts of the concrete form as Forge parsed them). 10: observable engine steps (prompt 48): Forge's public actions as structured observations at stable points between Forge's actions (observation: turn, land, cast, activate, trigger, attack, block, resolve, combatDamage with their public results; the state they explain), optional observation holds the player releases (MatchSettings.observation, observation.release, observation.released; settings.change, settings.applied) without passing priority or answering anything, Forge's auto-pass setting (MatchSettings.autoPass), unlimited land plays (Player.landsUnlimited) and why Forge would not let the player play a land now (VisibleCard.landRefusal, Forge patch 0010); a tap, player tap, mana or answer during a hold is refused (observing).",
+      "const": 10
     },
 
     "EngineMessage": {
@@ -38,6 +38,9 @@
         { "$ref": "#/$defs/QuestionWithdrawn" },
         { "$ref": "#/$defs/QuestionAnswered" },
         { "$ref": "#/$defs/InputRejected" },
+        { "$ref": "#/$defs/Observation" },
+        { "$ref": "#/$defs/ObservationReleased" },
+        { "$ref": "#/$defs/SettingsApplied" },
         { "$ref": "#/$defs/GameEnd" }
       ]
     },
@@ -53,7 +56,9 @@
         { "$ref": "#/$defs/PlayerTapInput" },
         { "$ref": "#/$defs/ManaUseInput" },
         { "$ref": "#/$defs/StateRequestInput" },
-        { "$ref": "#/$defs/ConcedeInput" }
+        { "$ref": "#/$defs/ConcedeInput" },
+        { "$ref": "#/$defs/ObservationReleaseInput" },
+        { "$ref": "#/$defs/SettingsChangeInput" }
       ]
     },
 
@@ -309,7 +314,7 @@
         "type": { "const": "diagnostics.trace" },
         "n": { "type": "integer", "minimum": 1, "description": "Entry number: 1, 2, 3 … without gaps." },
         "at": { "$ref": "#/$defs/TraceCheckpoint" },
-        "inputs": { "type": "integer", "minimum": 0, "description": "Inputs the engine had read at this checkpoint." },
+        "inputs": { "type": "integer", "minimum": 0, "description": "Game inputs the engine had read at this checkpoint (protocol 10: not the inputs read while an observation was held)." },
         "events": { "type": "array", "items": { "$ref": "#/$defs/TraceEvent" } },
         "snapshot": { "$ref": "#/$defs/TraceSnapshot" }
       }
@@ -321,8 +326,8 @@
     },
     "TraceEventKind": {
       "title": "TraceEventKind",
-      "description": "Forge's game events (bridge TraceEvents: one kind per Forge event class, e.g. cast, resolve, move, attackers, blockers, damage, mana, priority, phase, log) and the bridge's own: started (game.started), question, withdrawn, answered, rejected (input.rejected), message (kind only), end (game.end), input (what the engine read).",
-      "enum": ["answered", "ante", "attach", "attackers", "blockers", "cast", "coin", "combatChanged", "combatEnded", "combatUpdate", "control", "counters", "damage", "dayTime", "destroyed", "die", "door", "end", "finished", "foretold", "gameStarted", "input", "land", "life", "log", "mana", "manaBurn", "message", "mode", "move", "mulligan", "outcome", "phase", "phased", "playerCounters", "playerDamage", "playerStats", "plotted", "poison", "priority", "question", "radiation", "randomLog", "regenerated", "rejected", "resolve", "restarted", "sacrificed", "scry", "shards", "shuffle", "snapshotRestored", "speed", "sprocket", "started", "stats", "subgameEnd", "subgameStart", "surveil", "tap", "token", "turn", "turnEnded", "unstack", "withdrawn", "zone"]
+      "description": "Forge's game events (bridge TraceEvents: one kind per Forge event class, e.g. cast, resolve, move, attackers, blockers, damage, mana, priority, phase, log) and the bridge's own: started (game.started), question, withdrawn, answered, rejected (input.rejected), message (kind only), end (game.end), input (what the engine read at a game input; inputs read while an observation is held are not traced, protocol 10), observation (an observation without its hold flag: its id, state seq and actions by their structure, protocol 10).",
+      "enum": ["answered", "ante", "attach", "attackers", "blockers", "cast", "coin", "combatChanged", "combatEnded", "combatUpdate", "control", "counters", "damage", "dayTime", "destroyed", "die", "door", "end", "finished", "foretold", "gameStarted", "input", "land", "life", "log", "mana", "manaBurn", "message", "mode", "move", "mulligan", "observation", "outcome", "phase", "phased", "playerCounters", "playerDamage", "playerStats", "plotted", "poison", "priority", "question", "radiation", "randomLog", "regenerated", "rejected", "resolve", "restarted", "sacrificed", "scry", "shards", "shuffle", "snapshotRestored", "speed", "sprocket", "started", "stats", "subgameEnd", "subgameStart", "surveil", "tap", "token", "turn", "turnEnded", "unstack", "withdrawn", "zone"]
     },
     "TraceEvent": {
       "title": "TraceEvent",
@@ -357,7 +362,7 @@
       "title": "TracePlayer",
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "life", "lost", "counters", "mana", "lands", "library", "hand", "graveyard", "exile", "command", "battlefield"],
+      "required": ["id", "life", "lost", "counters", "mana", "lands", "landsAllowed", "landsUnlimited", "library", "hand", "graveyard", "exile", "command", "battlefield"],
       "properties": {
         "id": { "$ref": "#/$defs/PlayerId" },
         "life": { "type": "integer" },
@@ -373,6 +378,8 @@
           }
         },
         "lands": { "type": "integer", "minimum": 0, "description": "Lands played this turn." },
+        "landsAllowed": { "type": "integer", "minimum": 0, "description": "Protocol 10: Forge's limit of land plays this turn (Player.getMaxLandPlays)." },
+        "landsUnlimited": { "type": "boolean", "description": "Protocol 10: Forge lets the player play any number of lands." },
         "library": { "type": "array", "items": { "$ref": "#/$defs/CardId" }, "description": "Top first, ids only." },
         "hand": { "type": "array", "items": { "$ref": "#/$defs/TraceCard" } },
         "graveyard": { "type": "array", "items": { "$ref": "#/$defs/TraceCard" } },
@@ -464,13 +471,14 @@
       "description": "What Forge marked for the human seat's GUI (look-ups in the GUI's own sets): playable (weakly selectable), highlighted, selectable; the players the running input would take, the highlighted players, the payment and the declaration of attackers in progress (as in the state).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["playable", "highlighted", "selectable", "players", "highlightedPlayers"],
+      "required": ["playable", "highlighted", "selectable", "players", "highlightedPlayers", "landRefusals"],
       "properties": {
         "playable": { "type": "array", "items": { "$ref": "#/$defs/CardId" } },
         "highlighted": { "type": "array", "items": { "$ref": "#/$defs/CardId" } },
         "selectable": { "type": "array", "items": { "$ref": "#/$defs/CardId" } },
         "players": { "type": "array", "items": { "$ref": "#/$defs/PlayerId" }, "description": "Players a click would take in the running input (protocol 6: Player.selectable)." },
         "highlightedPlayers": { "type": "array", "items": { "$ref": "#/$defs/PlayerId" } },
+        "landRefusals": { "type": "array", "description": "Protocol 10: the lands of the human's hand Forge does not mark playable, with Forge's reason (as VisibleCard.landRefusal).", "items": { "type": "object", "additionalProperties": false, "required": ["card", "reason"], "properties": { "card": { "$ref": "#/$defs/CardId" }, "reason": { "$ref": "#/$defs/LandRefusal" } } } },
         "payment": { "$ref": "#/$defs/Payment" },
         "attack": { "$ref": "#/$defs/Attack" }
       }
@@ -802,7 +810,8 @@
         "lost": { "type": "boolean" },
         "maxHandSize": { "type": "integer" },
         "landsPlayed": { "type": "integer", "minimum": 0 },
-        "landsAllowed": { "type": "integer", "minimum": 0 },
+        "landsAllowed": { "type": "integer", "minimum": 0, "description": "Forge: the lands this player may play this turn (Player.getMaxLandPlays, effects included); see landsUnlimited." },
+        "landsUnlimited": { "const": true, "description": "Forge: this player may play any number of lands this turn (protocol 10); landsAllowed is then not a limit." },
         "counters": { "$ref": "#/$defs/Counters" },
         "mana": { "$ref": "#/$defs/ManaPool" },
         "zones": { "$ref": "#/$defs/Zones" },
@@ -917,8 +926,14 @@
         "counters": { "$ref": "#/$defs/Counters" },
         "attachedTo": { "$ref": "#/$defs/CardId" },
         "attached": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/CardId" } },
-        "keywords": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/CardKeyword" }, "description": "Forge: the card's keyword abilities now (printed or given by an effect), each once, in the order of Forge's Keyword enum; absent if it has none." }
+        "keywords": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/CardKeyword" }, "description": "Forge: the card's keyword abilities now (printed or given by an effect), each once, in the order of Forge's Keyword enum; absent if it has none." },
+        "landRefusal": { "$ref": "#/$defs/LandRefusal" }
       }
+    },
+    "LandRefusal": {
+      "title": "LandRefusal",
+      "description": "Protocol 10, VisibleCard.landRefusal - only on a card in the player's own hand that Forge could play as a land, absent if Forge would let the player play it and on every other card: why Forge would not let the player play a land now, from Forge's own check (Player.landPlayRefusal, Forge patch 0010; canPlayLand is the same check): notYourTurn (only in the player's own turn), timing (only when a sorcery could be cast: a main phase with an empty stack), notOwner (another player's card without a permission to play it), zone (not from this zone), restricted (an effect forbids playing it), limit (the lands the player may play this turn are used up - Forge counts lands played, never lands put onto the battlefield by an effect).",
+      "enum": ["notYourTurn", "timing", "notOwner", "zone", "restricted", "limit"]
     },
     "CardKeyword": {
       "title": "CardKeyword",
@@ -1346,8 +1361,8 @@
     },
     "RejectReason": {
       "title": "RejectReason",
-      "description": "stale: the question is not open (withdrawn, answered or unknown); not-active: a blocking question must be answered first; invalid: the answer does not fit its question (kind, range, count, sum, disabled button); malformed: unknown input type; unknown-card: no card with this id is visible to the player; unknown-player: no such player; no-effect: Forge did not accept the tap in the current step (a card tap Forge ignored, a player or mana Forge's running input would not take).",
-      "enum": ["stale", "not-active", "invalid", "malformed", "unknown-card", "unknown-player", "no-effect"]
+      "description": "stale: the question is not open (withdrawn, answered or unknown); not-active: a blocking question must be answered first; invalid: the answer does not fit its question (kind, range, count, sum, disabled button); malformed: unknown input type; unknown-card: no card with this id is visible to the player; unknown-player: no such player; no-effect: Forge did not accept the tap in the current step (a card tap Forge ignored, a player or mana Forge's running input would not take); observing (protocol 10): the engine holds an observation and takes only its release, settings.change, state.request and concede - an answer or tap is not carried out. An observation.release of an observation that is not held (old, released already, unknown) is stale.",
+      "enum": ["stale", "not-active", "invalid", "malformed", "unknown-card", "unknown-player", "no-effect", "observing"]
     },
 
     "GameEnd": {
@@ -1646,6 +1661,317 @@
         "type": { "const": "diagnostics.card-probe" }
       }
     },
+    "MatchSettings": {
+      "title": "MatchSettings",
+      "description": "Protocol 10 (MatchRequest.settings, each field absent = its default; changed during the game with settings.change): settings of the running game that change neither Forge's rules nor the AI. observation (default off): whether the engine waits at a holding observation for its release. autoPass (default noActions): Forge's own auto-pass setting for the player's priority.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "observation": { "$ref": "#/$defs/ObservationMode" },
+        "autoPass": { "$ref": "#/$defs/AutoPass" }
+      }
+    },
+    "ObservationMode": {
+      "title": "ObservationMode",
+      "description": "off: the engine reports observations and never waits for them. hold: at an observation with an action of the opponent, a turn begin or end or combat damage (Observation.hold) the engine waits on its single thread, at a stable point between Forge's actions, until the player releases exactly that observation (observation.release), changes the mode to off or concedes. Waiting is no game decision: the same inputs give the same game in both modes.",
+      "enum": ["off", "hold"]
+    },
+    "AutoPass": {
+      "title": "AutoPass",
+      "description": "Forge's own auto-pass setting for the player's priority (Forge's yield preferences of the player's controller; nothing is passed by the UI): noActions - Forge passes a priority in which it finds nothing the player can do (YIELD_AUTO_PASS_NO_ACTIONS, the default since prompt 16); noActionsRespectInterrupts - the same, but Forge asks once when an interrupt it knows happens (an opponent's spell, the player being attacked: YIELD_AUTO_PASS_RESPECTS_INTERRUPTS with Forge's default interrupts); never - Forge asks at every priority of the player. Switching to an auto-pass while Forge waits at a priority without actions lets Forge pass it at once (Forge's own behaviour).",
+      "enum": ["noActions", "noActionsRespectInterrupts", "never"]
+    },
+    "ObservationId": {
+      "title": "ObservationId",
+      "description": "Number of an observation within the match: 1, 2, 3 … strictly increasing, never reused.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "ActionNr": {
+      "title": "ActionNr",
+      "description": "Number of an observed action within the match: 1, 2, 3 … without gaps over all observations, each action reported exactly once.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "ObservationReleaseInput": {
+      "title": "ObservationReleaseInput",
+      "description": "Protocol 10: release the observation the engine holds - exactly that one. Passes no priority, answers no question, chooses nothing. A release of an observation that is not held (old, released already, unknown) is refused as stale.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "seq", "observation"],
+      "properties": {
+        "type": { "const": "observation.release" },
+        "seq": { "$ref": "#/$defs/Seq" },
+        "observation": { "$ref": "#/$defs/ObservationId" }
+      }
+    },
+    "SettingsChangeInput": {
+      "title": "SettingsChangeInput",
+      "description": "Protocol 10: change the observation mode and/or Forge's auto-pass setting; taken at any time, also while a blocking question waits or an observation is held (switching the observation off releases a held observation). Confirmed by settings.applied.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "seq"],
+      "minProperties": 3,
+      "properties": {
+        "type": { "const": "settings.change" },
+        "seq": { "$ref": "#/$defs/Seq" },
+        "observation": { "$ref": "#/$defs/ObservationMode" },
+        "autoPass": { "$ref": "#/$defs/AutoPass" }
+      }
+    },
+    "SettingsApplied": {
+      "title": "SettingsApplied",
+      "description": "Protocol 10: the settings now in effect - once when the game starts (seq null, from MatchRequest.settings) and after every settings.change (its seq).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "seq", "observation", "autoPass"],
+      "properties": {
+        "type": { "const": "settings.applied" },
+        "seq": { "anyOf": [{ "$ref": "#/$defs/Seq" }, { "type": "null" }] },
+        "observation": { "$ref": "#/$defs/ObservationMode" },
+        "autoPass": { "$ref": "#/$defs/AutoPass" }
+      }
+    },
+    "Observation": {
+      "title": "Observation",
+      "description": "Protocol 10: Forge's public actions since the previous observation, in Forge's order, sent at a stable point - when a player would get priority (Forge has checked state-based actions and put triggers on the stack), or before the engine waits for the player or asks a question. Always right after the state it explains (state = that state's seq). Built from Forge's own game events, never from state differences or Forge's prose; only what the player may see. hold: the engine waits until this observation is released (observation.release), the mode is switched off or the player concedes; it never holds while a question is open or asks one while holding.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "hold", "state", "actions"],
+      "properties": {
+        "type": { "const": "observation" },
+        "id": { "$ref": "#/$defs/ObservationId" },
+        "hold": { "type": "boolean" },
+        "state": { "type": "integer", "minimum": 1, "description": "seq of the state message right before this observation: the consistent picture after these actions." },
+        "actions": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/ObservedAction" } }
+      }
+    },
+    "ObservationReleased": {
+      "title": "ObservationReleased",
+      "description": "Protocol 10: the held observation is over; the game goes on. by: release (its observation.release, seq), settings (a settings.change to off, seq), concede (the concession, seq).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "seq", "by"],
+      "properties": {
+        "type": { "const": "observation.released" },
+        "id": { "$ref": "#/$defs/ObservationId" },
+        "seq": { "$ref": "#/$defs/Seq" },
+        "by": { "enum": ["release", "settings", "concede"] }
+      }
+    },
+    "ObservedAction": {
+      "title": "ObservedAction",
+      "description": "One public action of the game, from Forge's game events. player: who acted (the turn's player, the land's player, the stack item's activating player, the attacking or blocking player, the resolving item's activating player, the active player for combat damage).",
+      "type": "object",
+      "discriminator": { "propertyName": "kind" },
+      "required": ["n", "kind"],
+      "properties": {
+        "n": { "$ref": "#/$defs/ActionNr" },
+        "kind": { "enum": ["turn", "turnEnd", "land", "cast", "activate", "trigger", "attack", "block", "resolve", "combatDamage"] }
+      },
+      "oneOf": [
+        { "$ref": "#/$defs/TurnAction" },
+        { "$ref": "#/$defs/TurnEndAction" },
+        { "$ref": "#/$defs/LandAction" },
+        { "$ref": "#/$defs/StackAction" },
+        { "$ref": "#/$defs/AttackAction" },
+        { "$ref": "#/$defs/BlockAction" },
+        { "$ref": "#/$defs/ResolveAction" },
+        { "$ref": "#/$defs/CombatDamageAction" }
+      ]
+    },
+    "TurnAction": {
+      "title": "TurnAction",
+      "description": "A turn began (Forge's GameEventTurnBegan): its number and its player.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["n", "kind", "player", "turn"],
+      "properties": {
+        "n": { "$ref": "#/$defs/ActionNr" },
+        "kind": { "const": "turn" },
+        "player": { "$ref": "#/$defs/PlayerId" },
+        "turn": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "TurnEndAction": {
+      "title": "TurnEndAction",
+      "description": "A turn ended (Forge's GameEventTurnEnded): its number and its player.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["n", "kind", "player", "turn"],
+      "properties": {
+        "n": { "$ref": "#/$defs/ActionNr" },
+        "kind": { "const": "turnEnd" },
+        "player": { "anyOf": [{ "$ref": "#/$defs/PlayerId" }, { "type": "null" }] },
+        "turn": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "LandAction": {
+      "title": "LandAction",
+      "description": "A player played a land (Forge's GameEventLandPlayed: the land play Forge counts in landsPlayed). A land put onto the battlefield by an effect is a move in the results of a resolve action instead.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["n", "kind", "player", "card"],
+      "properties": {
+        "n": { "$ref": "#/$defs/ActionNr" },
+        "kind": { "const": "land" },
+        "player": { "anyOf": [{ "$ref": "#/$defs/PlayerId" }, { "type": "null" }] },
+        "card": { "$ref": "#/$defs/Card" }
+      }
+    },
+    "StackAction": {
+      "title": "StackAction",
+      "description": "A spell was cast (cast), an activated ability activated (activate) or a triggered ability put on the stack (trigger) - Forge's GameEventSpellAbilityCast. card: the spell's card or the ability's source as Forge shows it to the player at that moment (hidden for a face-down spell), null if Forge names none; targets: the targets the player may see.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["n", "kind", "player", "card", "targets"],
+      "properties": {
+        "n": { "$ref": "#/$defs/ActionNr" },
+        "kind": { "enum": ["cast", "activate", "trigger"] },
+        "player": { "anyOf": [{ "$ref": "#/$defs/PlayerId" }, { "type": "null" }] },
+        "card": { "anyOf": [{ "$ref": "#/$defs/Card" }, { "type": "null" }] },
+        "targets": { "type": "array", "items": { "$ref": "#/$defs/EntityRef" } }
+      }
+    },
+    "AttackAction": {
+      "title": "AttackAction",
+      "description": "Attackers were declared (Forge's GameEventAttackersDeclared): each attacker as Forge shows it and whom it attacks (a player or a planeswalker/battle; null if Forge names none), ordered by attacker id.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["n", "kind", "player", "attacks"],
+      "properties": {
+        "n": { "$ref": "#/$defs/ActionNr" },
+        "kind": { "const": "attack" },
+        "player": { "anyOf": [{ "$ref": "#/$defs/PlayerId" }, { "type": "null" }] },
+        "attacks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["attacker", "defender"],
+            "properties": {
+              "attacker": { "$ref": "#/$defs/Card" },
+              "defender": { "anyOf": [{ "$ref": "#/$defs/EntityRef" }, { "type": "null" }] }
+            }
+          }
+        }
+      }
+    },
+    "BlockAction": {
+      "title": "BlockAction",
+      "description": "Blockers were declared (Forge's GameEventBlockersDeclared): for every attacker (by id, ascending) its blockers as Forge shows them, empty if it is not blocked.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["n", "kind", "player", "blocks"],
+      "properties": {
+        "n": { "$ref": "#/$defs/ActionNr" },
+        "kind": { "const": "block" },
+        "player": { "anyOf": [{ "$ref": "#/$defs/PlayerId" }, { "type": "null" }] },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["attacker", "blockers"],
+            "properties": {
+              "attacker": { "$ref": "#/$defs/CardId" },
+              "blockers": { "type": "array", "items": { "$ref": "#/$defs/Card" } }
+            }
+          }
+        }
+      }
+    },
+    "ResolveAction": {
+      "title": "ResolveAction",
+      "description": "A spell or ability resolved (Forge resolving its stack's top; GameEventSpellResolved), with what that publicly did: results collects Forge's events from the beginning of the resolution up to the next action, including the state-based actions checked before the next priority (a creature dying of the damage). fizzled: Forge found every target illegal. continued: the same resolution goes on after an observation that was sent in its middle (a question to the player during the resolution), with the results after it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["n", "kind", "player", "card", "stack", "fizzled", "results"],
+      "properties": {
+        "n": { "$ref": "#/$defs/ActionNr" },
+        "kind": { "const": "resolve" },
+        "player": { "anyOf": [{ "$ref": "#/$defs/PlayerId" }, { "type": "null" }] },
+        "card": { "anyOf": [{ "$ref": "#/$defs/Card" }, { "type": "null" }] },
+        "stack": { "enum": ["spell", "ability", "trigger"] },
+        "fizzled": { "type": "boolean" },
+        "continued": { "const": true },
+        "results": { "$ref": "#/$defs/ActionResults" }
+      }
+    },
+    "CombatDamageAction": {
+      "title": "CombatDamageAction",
+      "description": "Combat damage was dealt (the combat damage steps), with its public results up to the next action (creatures dying of it included). continued: as for ResolveAction.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["n", "kind", "player", "results"],
+      "properties": {
+        "n": { "$ref": "#/$defs/ActionNr" },
+        "kind": { "const": "combatDamage" },
+        "player": { "anyOf": [{ "$ref": "#/$defs/PlayerId" }, { "type": "null" }] },
+        "continued": { "const": true },
+        "results": { "$ref": "#/$defs/ActionResults" }
+      }
+    },
+    "ActionResults": {
+      "title": "ActionResults",
+      "description": "Public results of a resolution or of combat damage, each in Forge's order: cards that changed zones (only cards the player may see after the move: a card moving into a hidden zone - a hand, a library, face down - is left out; created tokens come from no zone), damage dealt to a card the player sees or to a player, and changed life totals.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["moves", "damage", "life"],
+      "properties": {
+        "moves": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["card", "from", "to"],
+            "properties": {
+              "card": { "$ref": "#/$defs/VisibleCard" },
+              "from": { "anyOf": [{ "$ref": "#/$defs/ActionZone" }, { "type": "null" }] },
+              "to": { "anyOf": [{ "$ref": "#/$defs/ActionZone" }, { "type": "null" }] }
+            }
+          }
+        },
+        "damage": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["target", "amount", "source"],
+            "properties": {
+              "target": { "$ref": "#/$defs/EntityRef" },
+              "amount": { "type": "integer", "minimum": 0 },
+              "source": { "anyOf": [{ "$ref": "#/$defs/CardId" }, { "type": "null" }], "description": "The source's id if the player may see it." }
+            }
+          }
+        },
+        "life": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["player", "from", "to"],
+            "properties": {
+              "player": { "$ref": "#/$defs/PlayerId" },
+              "from": { "type": "integer" },
+              "to": { "type": "integer" }
+            }
+          }
+        }
+      }
+    },
+    "ActionZone": {
+      "title": "ActionZone",
+      "description": "A zone of a player (player null for a zone without owner, e.g. the stack).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["zone", "player"],
+      "properties": {
+        "zone": { "enum": ["battlefield", "hand", "graveyard", "exile", "command", "library", "stack", "other"] },
+        "player": { "anyOf": [{ "$ref": "#/$defs/PlayerId" }, { "type": "null" }] }
+      }
+    },
     "MatchRequest": {
       "title": "MatchRequest",
       "description": "A game human (through this protocol) against Forge's AI. Decks come from the UI (IndexedDB later), card names in English (front face of double-faced cards). ai.profile: one of the engine's AI profiles (BootReport.aiProfiles, Forge's res/ai/*.ai), e.g. Default; any other is refused (engine.error invalid-request) instead of Forge silently playing its built-in defaults.",
@@ -1655,6 +1981,7 @@
       "properties": {
         "seed": { "type": ["integer", "null"], "description": "Fixed seed for reproducible games (tests); absent or null = random." },
         "trace": { "type": "boolean", "description": "Engine tests only (differential tests, prompt 05): the engine also sends its trace (diagnostics.trace), which contains hidden information. The UI never sets it." },
+        "settings": { "$ref": "#/$defs/MatchSettings" },
         "format": { "$ref": "#/$defs/MatchFormat" },
         "human": {
           "type": "object",

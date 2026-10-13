@@ -36,6 +36,15 @@
 # scenarios, transcripts and message logs in engine/build/report/.
 # Exit code != 0 if anything fails. Set OPENMANA_SKIP_BROWSER=1 to leave out
 # the Chrome runs (e.g. on a machine without Chrome).
+#
+# Focused run (prompt 48, for the targeted checks of a single change; never a
+# complete acceptance): OPENMANA_FIXTURES=<fixture,fixture,...> runs only these
+# fixtures (a variant's base must be listed too) on the JVM, in Node and in
+# Chrome, checks their traces among themselves, one AI game (seed 42, lazy)
+# on the JVM and in Node, and - if priority-respond-observe is listed - the
+# observation scenarios in Node and a long look at a held observation in
+# Chrome. The report says "focused"; the regression evidence refuses it as a
+# complete run. Without the variable everything runs, as always.
 source "$(dirname "$0")/lib.sh"
 
 om_require_node_typescript
@@ -61,6 +70,15 @@ tests="$OM_ENGINE_DIR/wasm/test"
 # lines "name language cardLanguage cardLoading sameGameAs node-feedings browser-feedings".
 node "$tests/fixtures.ts" resolve "$scenarios" || om_die "Fixtures fehlerhaft (engine/fixtures)"
 FIXTURES="$(node "$tests/fixtures.ts" list)" || om_die "Fixtures fehlerhaft (engine/fixtures)"
+focused="${OPENMANA_FIXTURES:-}"
+if [ -n "$focused" ]; then
+    FIXTURES="$(printf '%s\n' "$FIXTURES" | awk -F'\t' -v only="$focused" 'BEGIN { n = split(only, a, ","); for (i = 1; i <= n; i++) keep[a[i]] = 1 } keep[$1]')"
+    [ "$(printf '%s\n' "$FIXTURES" | grep -c .)" -eq "$(printf '%s' "$focused" | tr ',' '\n' | grep -c .)" ] \
+        || om_die "OPENMANA_FIXTURES nennt unbekannte Fixtures: $focused"
+    om_log "Fokussierter Lauf (keine vollstaendige Abnahme): $focused"
+fi
+observe_listed=false
+if [ -z "$focused" ] || printf '%s' ",$focused," | grep -q ',priority-respond-observe,'; then observe_listed=true; fi
 
 # Suffix of run names for a language other than English: jvm-lazy-42-de-DE,
 # and for cards in another language than Forge's words: jvm-cards-lazy-de-DE-cards-en-US.
@@ -177,64 +195,93 @@ if (ra.logSha256 === rb.logSha256) { console.error("the game log did not change 
         || { om_log "Sprache aendert die Partie ($label, siehe $runs/same-game-$label.log)"; failures=$((failures + 1)); }
 }
 
+# Protocol 10: the player looks at a held observation far longer than the
+# client's stall timeout - in Chrome, during the replay of the observe variant.
+observe_long_look_browser() {
+    [ -f "$transcripts/priority-respond-observe.json" ] || { om_log "Keine Aufzeichnung priority-respond-observe"; failures=$((failures + 1)); return; }
+    node "$tests/browser-smoke.mjs" --transcript "$transcripts/priority-respond-observe.json" --feeding lazy --language de-DE \
+        --card-loading eager --hold-delay-ms 12000 --hold-delays 1 --stall-timeout-ms 5000 \
+        --out "$runs/browser-observe-long-look.json" > "$runs/browser-observe-long-look.log" 2>&1 \
+        || { om_log "Langes Betrachten im Browser fehlgeschlagen (siehe $runs/browser-observe-long-look.log)"; failures=$((failures + 1)); }
+}
+
 om_log "1/4 JVM-Referenz"
 jvm_run 42 lazy
-jvm_run 42 eager
-jvm_run 7 lazy
-jvm_run 42 lazy de-DE
-[ "$(jvm_sha lazy 42)" = "$(jvm_sha eager 42)" ] || { om_log "JVM: lazy und eager spielen verschiedene Partien"; failures=$((failures + 1)); }
-same_trace "$runs/jvm-lazy-42.trace.jsonl" "$runs/jvm-eager-42.trace.jsonl" ai-42-lazy-eager
-same_trace "$runs/jvm-lazy-42.trace.jsonl" "$runs/jvm-lazy-42-de-DE.trace.jsonl" ai-42-de
-same_game_other_language "$runs/jvm-lazy-42.json" "$runs/jvm-lazy-42-de-DE.json" ai-42
+if [ -z "$focused" ]; then
+    jvm_run 42 eager
+    jvm_run 7 lazy
+    jvm_run 42 lazy de-DE
+    [ "$(jvm_sha lazy 42)" = "$(jvm_sha eager 42)" ] || { om_log "JVM: lazy und eager spielen verschiedene Partien"; failures=$((failures + 1)); }
+    same_trace "$runs/jvm-lazy-42.trace.jsonl" "$runs/jvm-eager-42.trace.jsonl" ai-42-lazy-eager
+    same_trace "$runs/jvm-lazy-42.trace.jsonl" "$runs/jvm-lazy-42-de-DE.trace.jsonl" ai-42-de
+    same_game_other_language "$runs/jvm-lazy-42.json" "$runs/jvm-lazy-42-de-DE.json" ai-42
+fi
 while IFS=$'\t' read -r name _; do
     jvm_fixture_run "$name"
 done <<< "$FIXTURES"
-node "$tests/check-traces.ts" --transcripts "$transcripts" --out "$runs/jvm-traces.json" > "$runs/jvm-traces.log" 2>&1 \
+node "$tests/check-traces.ts" --transcripts "$transcripts" ${focused:+--only "$focused"} --out "$runs/jvm-traces.json" > "$runs/jvm-traces.log" 2>&1 \
     || { om_log "Engine-Spuren der JVM-Partien unvollstaendig oder ungleich (siehe $runs/jvm-traces.log)"; failures=$((failures + 1)); }
-same_game_other_language "$runs/jvm-fixture-human-3.json" "$runs/jvm-fixture-human-3-de.json" human-3
-same_game_other_language "$runs/jvm-fixture-human-3-de.json" "$runs/jvm-fixture-human-3-de-cards-en.json" human-3-cards-en
+if [ -z "$focused" ]; then
+    same_game_other_language "$runs/jvm-fixture-human-3.json" "$runs/jvm-fixture-human-3-de.json" human-3
+    same_game_other_language "$runs/jvm-fixture-human-3-de.json" "$runs/jvm-fixture-human-3-de-cards-en.json" human-3-cards-en
+fi
 node "$tests/validate-messages.ts" "$transcripts"/*.messages.jsonl --out "$runs/jvm-messages-schema.json" \
     > "$runs/jvm-messages-schema.log" 2>&1 \
     || { om_log "JVM-Nachrichten verletzen das Protokoll (siehe $runs/jvm-messages-schema.json)"; failures=$((failures + 1)); }
-jvm_cards_run lazy
-jvm_cards_run eager
-jvm_cards_run lazy de-DE
-jvm_cards_run lazy de-DE en-US
-node "$tests/check-card-probes.ts" --lazy "$runs/jvm-cards-lazy.json" --eager "$runs/jvm-cards-eager.json" \
-    --german "$runs/jvm-cards-lazy-de-DE.json" --german-english-cards "$runs/jvm-cards-lazy-de-DE-cards-en-US.json" \
-    --out "$runs/jvm-cards-check.json" > "$runs/jvm-cards-check.log" 2>&1 \
-    || { om_log "JVM-Kartenpruefungen passen nicht zusammen (siehe $runs/jvm-cards-check.json)"; failures=$((failures + 1)); }
+if [ -z "$focused" ]; then
+    jvm_cards_run lazy
+    jvm_cards_run eager
+    jvm_cards_run lazy de-DE
+    jvm_cards_run lazy de-DE en-US
+    node "$tests/check-card-probes.ts" --lazy "$runs/jvm-cards-lazy.json" --eager "$runs/jvm-cards-eager.json" \
+        --german "$runs/jvm-cards-lazy-de-DE.json" --german-english-cards "$runs/jvm-cards-lazy-de-DE-cards-en-US.json" \
+        --out "$runs/jvm-cards-check.json" > "$runs/jvm-cards-check.log" 2>&1 \
+        || { om_log "JVM-Kartenpruefungen passen nicht zusammen (siehe $runs/jvm-cards-check.json)"; failures=$((failures + 1)); }
+fi
 
 om_log "2/4 Wasm in Node"
 wasm_ai_run node 42 lazy
-wasm_ai_run node 42 eager
-wasm_ai_run node 7 lazy
-wasm_ai_run node 42 lazy de-DE
+if [ -z "$focused" ]; then
+    wasm_ai_run node 42 eager
+    wasm_ai_run node 7 lazy
+    wasm_ai_run node 42 lazy de-DE
+fi
 replay_fixtures node
-wasm_cards_run node lazy
-wasm_cards_run node eager
-wasm_cards_run node lazy de-DE
-wasm_cards_run node lazy de-DE en-US
-node "$tests/node-protocol.ts" --transcript "$transcripts/human-3-concede.json" --out "$runs/node-protocol.json" \
-    > "$runs/node-protocol.log" 2>&1 || { om_log "Protokoll-Szenarien in Node fehlgeschlagen (siehe $runs/node-protocol.log)"; failures=$((failures + 1)); }
-node "$tests/node-divergence.ts" --transcript "$transcripts/human-3-concede.json" --out "$runs/node-divergence.json" \
-    > "$runs/node-divergence.log" 2>&1 || { om_log "Verfaelschte Spuren wurden nicht (an der richtigen Stelle) erkannt (siehe $runs/node-divergence.log)"; failures=$((failures + 1)); }
+if [ -z "$focused" ]; then
+    wasm_cards_run node lazy
+    wasm_cards_run node eager
+    wasm_cards_run node lazy de-DE
+    wasm_cards_run node lazy de-DE en-US
+    node "$tests/node-protocol.ts" --transcript "$transcripts/human-3-concede.json" --out "$runs/node-protocol.json" \
+        > "$runs/node-protocol.log" 2>&1 || { om_log "Protokoll-Szenarien in Node fehlgeschlagen (siehe $runs/node-protocol.log)"; failures=$((failures + 1)); }
+    node "$tests/node-divergence.ts" --transcript "$transcripts/human-3-concede.json" --out "$runs/node-divergence.json" \
+        > "$runs/node-divergence.log" 2>&1 || { om_log "Verfaelschte Spuren wurden nicht (an der richtigen Stelle) erkannt (siehe $runs/node-divergence.log)"; failures=$((failures + 1)); }
+fi
+if [ "$observe_listed" = true ]; then
+    node "$tests/node-observe.ts" --transcript "$transcripts/priority-respond-observe.json" --out "$runs/node-observe.json" \
+        > "$runs/node-observe.log" 2>&1 || { om_log "Betrachtungs-Szenarien in Node fehlgeschlagen (siehe $runs/node-observe.log)"; failures=$((failures + 1)); }
+fi
 
 if [ "${OPENMANA_SKIP_BROWSER:-0}" != "1" ]; then
     om_log "3/4 Wasm in Chrome"
-    wasm_ai_run browser 42 lazy
-    wasm_ai_run browser 42 eager
-    wasm_ai_run browser 7 lazy
-    wasm_ai_run browser 42 lazy de-DE
+    if [ -z "$focused" ]; then
+        wasm_ai_run browser 42 lazy
+        wasm_ai_run browser 42 eager
+        wasm_ai_run browser 7 lazy
+        wasm_ai_run browser 42 lazy de-DE
+    fi
     replay_fixtures browser
-    wasm_cards_run browser lazy
-    wasm_cards_run browser eager
-    wasm_cards_run browser lazy de-DE en-US
-    node "$tests/browser-smoke.mjs" --announce-protocol 999 --out "$runs/browser-protocol-mismatch.json" \
-        > "$runs/browser-protocol-mismatch.log" 2>&1 || { om_log "Versionskonflikt im Browser nicht laut abgewiesen"; failures=$((failures + 1)); }
-    om_log "4/4 Chrome ohne COOP/COEP"
-    node "$tests/browser-smoke.mjs" --negative --out "$runs/browser-negative.json" \
-        > "$runs/browser-negative.log" 2>&1 || { om_log "Negativtest fehlgeschlagen"; failures=$((failures + 1)); }
+    [ "$observe_listed" = true ] && observe_long_look_browser
+    if [ -z "$focused" ]; then
+        wasm_cards_run browser lazy
+        wasm_cards_run browser eager
+        wasm_cards_run browser lazy de-DE en-US
+        node "$tests/browser-smoke.mjs" --announce-protocol 999 --out "$runs/browser-protocol-mismatch.json" \
+            > "$runs/browser-protocol-mismatch.log" 2>&1 || { om_log "Versionskonflikt im Browser nicht laut abgewiesen"; failures=$((failures + 1)); }
+        om_log "4/4 Chrome ohne COOP/COEP"
+        node "$tests/browser-smoke.mjs" --negative --out "$runs/browser-negative.json" \
+            > "$runs/browser-negative.log" 2>&1 || { om_log "Negativtest fehlgeschlagen"; failures=$((failures + 1)); }
+    fi
 else
     om_log "Chrome-Laeufe uebersprungen (OPENMANA_SKIP_BROWSER=1)"
 fi
@@ -262,8 +309,9 @@ const dir = process.argv[1];
 const runs = {};
 for (const f of fs.readdirSync(dir).filter((f) => f.endsWith(".json")).sort()) runs[f.replace(/\.json$/, "")] = JSON.parse(fs.readFileSync(path.join(dir, f), "utf8"));
 const measure = fs.existsSync(dir + "/measure.jsonl") ? fs.readFileSync(dir + "/measure.jsonl", "utf8").trim().split("\n").map(JSON.parse) : [];
-fs.writeFileSync(path.join(dir, "..", "test-report.json"), JSON.stringify({ format: "openmana-engine-tests/1", manifestSha256: process.argv[3], browserSkipped: process.argv[4] === "true", failures: +process.argv[2], runs, jvmProcesses: measure }, null, 2) + "\n");
-' "$runs" "$failures" "$manifest_sha" "$browser_skipped"
+const focused = process.argv[5] ? process.argv[5].split(",") : null;
+fs.writeFileSync(path.join(dir, "..", "test-report.json"), JSON.stringify({ format: "openmana-engine-tests/1", manifestSha256: process.argv[3], browserSkipped: process.argv[4] === "true", ...(focused ? { focused } : {}), failures: +process.argv[2], runs, jvmProcesses: measure }, null, 2) + "\n");
+' "$runs" "$failures" "$manifest_sha" "$browser_skipped" "$focused"
 
 [ "$manifest_sha" = "$(sha256sum "$OM_DIST_DIR/engine-manifest.json" | awk '{print $1}')" ] || om_die "Engine-Manifest wurde waehrend der Tests geaendert"
 

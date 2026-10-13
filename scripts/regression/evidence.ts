@@ -21,14 +21,19 @@ function yes(value: unknown, label: string) { assert.equal(value, true, label) }
 
 // Tests can explicitly use archived requirements to validate archived report
 // shapes. The runner always uses the current fixtures and required coverage.
-export function engineEvidence(value: unknown, manifestSha256: string, requirements: { fixtures: readonly Pick<Fixture, "name" | "wasm" | "covers" | "sameGameAs">[], coverage: readonly string[] } = { fixtures: loadFixtures(), coverage: REQUIRED_COVERAGE }) {
+/** Runs every complete engine test has; since prompt 48 also the observation scenarios (Node) and the long look (Chrome). */
+const ENGINE_RUNS = ["node-protocol", "node-divergence", "browser-negative", "browser-protocol-mismatch", "jvm-messages-schema", "jvm-cards-check", "jvm-traces"] as const
+const OBSERVATION_RUNS = ["node-observe", "browser-observe-long-look"] as const
+
+export function engineEvidence(value: unknown, manifestSha256: string, requirements: { fixtures: readonly Pick<Fixture, "name" | "wasm" | "covers" | "sameGameAs">[], coverage: readonly string[], runs?: readonly string[] } = { fixtures: loadFixtures(), coverage: REQUIRED_COVERAGE, runs: [...ENGINE_RUNS, ...OBSERVATION_RUNS] }) {
   const report = object(value, "engine")
   assert.equal(report["format"], "openmana-engine-tests/1")
   assert.equal(report["manifestSha256"], manifestSha256, "engine: different artifact set")
   assert.equal(report["failures"], 0)
   assert.equal(report["browserSkipped"], false, "engine: Chrome was skipped")
+  assert.equal(report["focused"], undefined, "engine: a focused run (OPENMANA_FIXTURES) is no complete acceptance")
   const runs = object(report["runs"], "engine runs")
-  for (const name of ["node-protocol", "node-divergence", "browser-negative", "browser-protocol-mismatch", "jvm-messages-schema", "jvm-cards-check", "jvm-traces"]) {
+  for (const name of requirements.runs ?? ENGINE_RUNS) {
     yes(object(runs[name], name)["ok"], `${name}: failed`)
   }
   const traces = object(runs["jvm-traces"], "traces")

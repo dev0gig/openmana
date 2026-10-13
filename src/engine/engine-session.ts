@@ -50,8 +50,11 @@ import type {
   InputRejected,
   ManaColor,
   MatchRequest,
+  MatchSettings,
   MatchSummary,
+  Observation,
   Question,
+  SettingsApplied,
 } from "@openmana/engine-protocol"
 import { describeMissingFeatures, detectEngineFeatures } from "@openmana/engine-protocol/features"
 import { BOOT_PHASES } from "@openmana/engine-protocol/generated/constants"
@@ -179,6 +182,18 @@ export type MatchSnapshot =
       readonly notices: readonly GameNotice[]
       /** How many notices this game has had in all (the newest are the last of `notices`): the table announces new ones. */
       readonly noticeCount: number
+      /**
+       * Protocol 10 (prompt 48): Forge's latest observation - its public actions
+       * since the one before, after the state they explain - or null. Not a
+       * second history: the next one replaces it; Forge's log stays `history`.
+       */
+      readonly observation: Observation | null
+      /** How many observations this game has had (the table can tell a new one from the same). */
+      readonly observationCount: number
+      /** The engine holds `observation` until it is released (releaseObservation) - it waits, it is not stuck. */
+      readonly observationHeld: boolean
+      /** The match settings Forge confirmed last (observation mode, Forge's auto-pass), null until the game confirms them. */
+      readonly settings: SettingsApplied | null
     })
   | (MatchBase & {
       readonly status: "over"
@@ -214,7 +229,7 @@ export function matchInProgress(match: MatchSnapshot | null): boolean {
 }
 
 /** The part of EngineClient the session uses (tests pass a fake). */
-export type SessionClient = Pick<EngineClient, "start" | "subscribe" | "dispose" | "startMatch" | "concede" | "tapCard" | "tapPlayer" | "useMana" | "answer" | "abort" | "engineWaiting">
+export type SessionClient = Pick<EngineClient, "start" | "subscribe" | "dispose" | "startMatch" | "concede" | "tapCard" | "tapPlayer" | "useMana" | "answer" | "abort" | "engineWaiting" | "releaseObservation" | "changeSettings">
 
 /** Where the engine is (the worker script, GraalVM's launcher, the module) and how it boots. */
 export interface EngineLaunch {
@@ -283,6 +298,7 @@ const INPUT_REFUSALS: Readonly<Record<string, string>> = {
   malformed: "Die Eingabe passt nicht zum Protokoll.",
   "queue-full": "Forge hat die letzten Eingaben noch nicht gelesen – gleich noch einmal versuchen.",
   "too-large": "Die Eingabe ist zu groß.",
+  observing: "Forge hält für die Betrachtung an – erst weiter, dann geht das.",
 }
 
 function refusal(error: unknown): string {
@@ -539,6 +555,48 @@ export class EngineSession {
   }
 
   /**
+   * Protocol 10 (prompt 48): releases the observation the engine holds -
+   * exactly this one. It passes no priority and answers nothing: Forge goes on
+   * as it plays. Only the player's own wish (a "Weiter" or the chosen tempo)
+   * sends it; never during a concession on its way.
+   */
+  releaseObservation(observation: number): InputResult {
+    const match = this.#snapshot.match
+    const client = this.#client
+    if (match?.status !== "playing" || client === null) return { ok: false, reason: "Es läuft keine Partie." }
+    if (match.conceding) return { ok: false, reason: "Die Aufgabe ist unterwegs." }
+    try {
+      const seq = client.releaseObservation(observation)
+      this.#record({ kind: "input", message: { type: "observation.release", seq, observation } })
+    } catch (error) {
+      const stale = error instanceof Error && "reason" in error && error.reason === "stale"
+      return { ok: false, reason: stale ? "Forge hält diese Aktion nicht mehr an – sie ist schon freigegeben." : refusal(error) }
+    }
+    this.#set({ ...this.#snapshot, match: { ...match, waiting: client.engineWaiting } })
+    return { ok: true }
+  }
+
+  /**
+   * Protocol 10: changes the observation mode and/or Forge's own auto-pass
+   * setting during the game; Forge confirms with settings.applied. Taken at
+   * any time - also while Forge computes, an observation is held or a
+   * blocking question waits; switching the observation off releases a held one.
+   */
+  changeSettings(settings: MatchSettings): InputResult {
+    const match = this.#snapshot.match
+    const client = this.#client
+    if (match?.status !== "playing" || client === null) return { ok: false, reason: "Es läuft keine Partie." }
+    if (match.conceding) return { ok: false, reason: "Die Aufgabe ist unterwegs." }
+    try {
+      const seq = client.changeSettings(settings)
+      this.#record({ kind: "input", message: { type: "settings.change", seq, ...settings } })
+    } catch (error) {
+      return { ok: false, reason: refusal(error) }
+    }
+    return { ok: true }
+  }
+
+  /**
    * Ends a game that is starting or running by terminating the engine (for
    * an engine that stopped responding). The game ends without a result.
    */
@@ -678,6 +736,10 @@ export class EngineSession {
             history: [],
             notices: [],
             noticeCount: 0,
+            observation: null,
+            observationCount: 0,
+            observationHeld: false,
+            settings: null,
           },
         })
         return
@@ -725,6 +787,15 @@ export class EngineSession {
           engine,
           match: { ...match, notices: keep(match.notices, message), noticeCount: match.noticeCount + 1, conceding: match.conceding && message.seq !== this.#concedeSeq, waiting },
         })
+        return
+      case "observation":
+        this.#set({ engine, match: { ...match, observation: message, observationCount: match.observationCount + 1, observationHeld: message.hold, waiting } })
+        return
+      case "observation.released":
+        this.#set({ engine, match: { ...match, observationHeld: false, waiting } })
+        return
+      case "settings.applied":
+        this.#set({ engine, match: { ...match, settings: message, waiting } })
         return
       case "game.end":
         this.#set({

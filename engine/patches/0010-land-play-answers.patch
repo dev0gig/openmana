@@ -1,0 +1,107 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: dev0gig <115336867+dev0gig@users.noreply.github.com>
+Date: Tue, 13 Oct 2026 15:30:00 +0200
+Subject: [PATCH] Read-only answer for GUIs: why a player may not play a land
+
+Forge's own GUIs simply leave a land unmarked when canPlayLand refuses
+it (or show nothing after a click). A GUI that says why - not the
+player's turn, not at sorcery speed, the land for this turn is played
+already, an effect forbids it - needs Forge's own answer instead of
+counting lands or reading card types itself:
+
+- Player.landPlayRefusal(Card, boolean, SpellAbility): the reason
+  canPlayLand refuses, or null. The checks of canPlayLand moved
+  unchanged, in the same order, into landPlayRefusal; canPlayLand is
+  landPlayRefusal == null. The limit (getMaxLandPlays, unlimited land
+  plays) is Forge's as before.
+
+No rule, card or AI behaviour changes: the new method only asks, and
+the moved code runs as before.
+
+Written for OpenMana on 2026-10-13.
+---
+ .../main/java/forge/game/player/Player.java   | 41 +++++++++++++++----
+ 1 file changed, 34 insertions(+), 7 deletions(-)
+
+diff --git a/forge-game/src/main/java/forge/game/player/Player.java b/forge-game/src/main/java/forge/game/player/Player.java
+index 4cbb6de..ae8167f 100644
+--- a/forge-game/src/main/java/forge/game/player/Player.java
++++ b/forge-game/src/main/java/forge/game/player/Player.java
+@@ -1656,40 +1656,67 @@ public class Player extends GameEntity implements Comparable<Player> {
+     }
+ 
+     public final boolean canPlayLand(final Card land, final boolean ignoreZoneAndTiming, SpellAbility landSa) {
++        // OpenMana patch 0010 (2026-10-13): the checks moved unchanged, in the same order, into landPlayRefusal.
++        return landPlayRefusal(land, ignoreZoneAndTiming, landSa) == null;
++    }
++
++    /**
++     * OpenMana patch 0010 (2026-10-13): why this player may not play a land
++     * now. canPlayLand refuses exactly when this names a reason; its checks
++     * run here unchanged and in the same order, so a GUI can say why Forge
++     * does not offer a land instead of guessing.
++     */
++    public enum LandPlayRefusal {
++        /** CR 305.3: only during the player's own turn. */
++        NOT_YOUR_TURN,
++        /** Only when a sorcery could be cast (main phase, empty stack), unless the land may be played with flash. */
++        TIMING,
++        /** Another player's card without a permission to play it. */
++        NOT_OWNER,
++        /** Not from this zone (the battlefield, or another zone than the hand without a permission). */
++        ZONE,
++        /** A static ability forbids playing this land (CantBeCast). */
++        RESTRICTED,
++        /** The lands this player may play this turn are used up. */
++        LIMIT
++    }
++
++    /** OpenMana patch 0010 (2026-10-13): why canPlayLand(land, ignoreZoneAndTiming, landSa) refuses, or null if it does not. */
++    public final LandPlayRefusal landPlayRefusal(final Card land, final boolean ignoreZoneAndTiming, SpellAbility landSa) {
+         if (!ignoreZoneAndTiming) {
+             // CR 305.3
+             if (!game.getPhaseHandler().isPlayerTurn(this)) {
+-                return false;
++                return LandPlayRefusal.NOT_YOUR_TURN;
+             }
+             if (!canCastSorcery() && (landSa == null || !landSa.withFlash(land, this))) {
+-                return false;
++                return LandPlayRefusal.TIMING;
+             }
+ 
+             final boolean mayPlay = landSa == null ? !land.mayPlay(this).isEmpty() : landSa.getMayPlay() != null;
+             if (land.getOwner() != this && !mayPlay) {
+-                return false;
++                return LandPlayRefusal.NOT_OWNER;
+             }
+ 
+             final Zone zone = game.getZoneOf(land);
+             if (zone != null && (zone.is(ZoneType.Battlefield) || (!zone.is(ZoneType.Hand) && !mayPlay
+                     && (landSa == null || !landSa.isAlternativeCost(AlternativeCost.Mayhem))))) {
+-                return false;
++                return LandPlayRefusal.ZONE;
+             }
+         }
+ 
+         // CantBeCast static abilities
+         if (StaticAbilityCantBeCast.cantPlayLandAbility(landSa, land, this)) {
+-            return false;
++            return LandPlayRefusal.RESTRICTED;
+         }
+ 
+         // **** Check for land play limit per turn ****
+         // Dev Mode
+         if (getMaxLandPlaysInfinite()) {
+-            return true;
++            return null;
+         }
+ 
+         // check for adjusted max lands play per turn
+-        return getLandsPlayedThisTurn() < getMaxLandPlays();
++        return getLandsPlayedThisTurn() < getMaxLandPlays() ? null : LandPlayRefusal.LIMIT;
+     }
+ 
+     public final int getMaxLandPlays() {
+-- 
+2.47.3
+

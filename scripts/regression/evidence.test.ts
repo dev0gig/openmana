@@ -7,6 +7,8 @@ import fs from "node:fs"
 import path from "node:path"
 import { describe, expect, it } from "vitest"
 import { engineEvidence, browserEvidence } from "./evidence.ts"
+import { REQUIRED_COVERAGE } from "../../engine/wasm/spike/trace.ts"
+import { loadFixtures } from "../../engine/wasm/test/fixtures.ts"
 
 type Sample = Record<string, any> // report mutation deliberately exercises invalid shapes
 const sample = (name: string): Sample => JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "fixtures", `${name}.json`), "utf8"))
@@ -15,7 +17,9 @@ const manifest = sample("engine")["manifestSha256"] as string
 
 describe("full regression evidence", () => {
   it("refuses historical reports as evidence for the new parity requirements", () => {
-    expect(() => engineEvidence(sample("engine"), manifest)).toThrow(/parity-trample/)
+    // Since prompt 48 a complete run also has the observation scenarios; without them its fixtures (lands; parity-trample of prompt 30) are still missing.
+    expect(() => engineEvidence(sample("engine"), manifest)).toThrow(/node-observe/)
+    expect(() => engineEvidence(sample("engine"), manifest, { fixtures: loadFixtures(), coverage: REQUIRED_COVERAGE })).toThrow(/missing\/duplicate fixture (lands|parity-trample)/)
     expect(() => browserEvidence(sample("app"), sample("pwa"))).toThrow(/arrange-anywhere/)
   })
   it("accepts the complete historical report shapes, without calling them a new run", () => {
@@ -28,6 +32,7 @@ describe("full regression evidence", () => {
   })
   it.each([
     ["skipped Chrome", (r: Sample) => { r["browserSkipped"] = true }],
+    ["focused run", (r: Sample) => { r["focused"] = ["lands"] }],
     ["foreign build", (r: Sample) => { r["manifestSha256"] = "foreign" }],
     ["failed game", (r: Sample) => { r["failures"] = 1 }],
     ["missing JVM fixture", (r: Sample) => { delete r["runs"]["jvm-fixture-commander"] }],

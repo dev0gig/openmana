@@ -134,4 +134,5 @@ export const REJECT_REASON_LABELS: Readonly<Record<RejectReason, string>> = {
   "unknown-card": "Diese Karte ist gerade nicht sichtbar.",
   "unknown-player": "Diesen Spieler gibt es nicht.",
   "no-effect": "Forge hat das in diesem Schritt nicht angenommen.",
+  observing: "Forge hielt gerade zur Betrachtung an – nichts wurde ausgeführt.",
 }

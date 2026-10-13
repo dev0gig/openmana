@@ -1,0 +1,7 @@
+{
+  "description": "priority-respond played with observation holds (protocol 10, prompt 48): the engine waits at every observation worth a stop - the AI's lands, spells and attacks, turns, combat damage - until the player releases exactly that observation; meanwhile a card tap and an answer are refused (observing), releases of observations not held are refused (stale), a state request and a settings change are served. Releasing decides nothing: the engine trace must equal priority-respond's, with the player's real answers in the AI's turn after the releases.",
+  "sameGameAs": "priority-respond",
+  "observation": "hold",
+  "engine": { "language": "de-DE" },
+  "wasm": { "node": ["lazy", "eager"], "browser": ["lazy"] }
+}
