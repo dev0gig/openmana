@@ -15,9 +15,11 @@ import { writeSetting } from "@/storage/settings"
 import { StorageProvider } from "@/storage/storage-context"
 import { useSaveSetting } from "@/storage/use-save-setting"
 import { settle, testEngine, type TestEngine } from "@/test/game-fixtures"
-import { openTestDatabase, putRaw, setting } from "@/test/storage-fixtures"
+import { createBackup, importBackup, readBackup } from "@/storage/backup"
+import { SCHEMA_VERSION } from "@/storage/generated/constants"
+import { APP, backupEnd, backupFile, backupHeader, openTestDatabase, putRaw, setting } from "@/test/storage-fixtures"
 import { MOTION, REDUCED_MOTION_ATTRIBUTE } from "./motion"
-import { PreferencesProvider, usePreferences } from "./preferences"
+import { PreferencesProvider, readPreferences, usePreferences } from "./preferences"
 
 afterEach(() => {
   document.documentElement.removeAttribute(REDUCED_MOTION_ATTRIBUTE)
@@ -136,6 +138,25 @@ describe("PreferencesProvider", () => {
     expect(await screen.findByText("Status: ready")).toBeInTheDocument()
     expect(screen.getByText("Gegnerzug: normal/false/noActions")).toBeInTheDocument()
     expect(screen.getByText("Ungültig: display.opponentTempo,display.opponentStepwise,display.autoPass")).toBeInTheDocument()
+  })
+
+  it("backups (prompt 52): one from before prompt 49 brings the defaults back, a newer one keeps tempo, waiting and auto-pass", async () => {
+    const PLENTY = { estimate: async () => ({ usage: 1_000, quota: 10_000_000_000 }), persisted: async () => false }
+    const db = await openTestDatabase()
+    await writeSetting(db, OPPONENT_TEMPO, "fast")
+    await writeSetting(db, OPPONENT_STEPWISE, true)
+    await writeSetting(db, AUTO_PASS, "never")
+    const newer = (await createBackup(db, { app: APP })).blob
+    // A backup of the app before the opponent's turn existed: same schema version, only the settings it knew.
+    const older = await backupFile([backupHeader({ schemaVersion: SCHEMA_VERSION }), { type: "record", store: "settings", record: setting("display.cardLanguage", "en") }, backupEnd({ settings: 1 })])
+    await importBackup(db, await readBackup(older), "replace", { storage: PLENTY })
+    const fromOlder = await readPreferences(db)
+    expect([fromOlder.opponentTempo, fromOlder.opponentStepwise, fromOlder.autoPass, fromOlder.cardLanguage]).toEqual(["normal", false, "noActions", "en"])
+    expect(fromOlder.invalid).toEqual([])
+    await importBackup(db, await readBackup(newer), "replace", { storage: PLENTY })
+    const fromNewer = await readPreferences(db)
+    expect([fromNewer.opponentTempo, fromNewer.opponentStepwise, fromNewer.autoPass]).toEqual(["fast", true, "never"])
+    db.close()
   })
 
   it("outside the provider every preference is its default", () => {

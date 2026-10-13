@@ -28,7 +28,7 @@ import { saveDeck } from "@/storage/decks"
 import type { DeckRecord } from "@/storage/generated/records"
 import { writeSetting } from "@/storage/settings"
 import { StorageProvider } from "@/storage/storage-context"
-import { gameState, MULLIGAN_PROMPT, PRIORITY_BUTTONS, settle, SUPPORTED, testEngine, type TestEngine } from "@/test/game-fixtures"
+import { gameEnd, gameState, MULLIGAN_PROMPT, PRIORITY_BUTTONS, settle, summary, SUPPORTED, testEngine, type TestEngine } from "@/test/game-fixtures"
 import { deck, openTestDatabase } from "@/test/storage-fixtures"
 import { ARMING_MS } from "./card-view"
 import { GamePage } from "./game-page"
@@ -356,6 +356,56 @@ describe("the game page: the opponent's turn (prompt 49)", () => {
     })
     await within(decision).findByRole("button", { name: "Verrechnen lassen" })
     expect(within(decision).queryByText("Unterbrechung: Die Forge-KI wirkt Grizzlybären")).not.toBeInTheDocument()
+    vi.restoreAllMocks()
+  })
+})
+
+describe("the game page: conceding while the engine holds (prompt 52)", () => {
+  it("conceding at a held action of the AI sends only the concession - no release, no answer; the stage goes with the game", { timeout: 20_000 }, async () => {
+    let clock = 50_000
+    vi.spyOn(performance, "now").mockImplementation(() => clock)
+    const user = userEvent.setup()
+    await store([RED, GREEN])
+    const db = await openTestDatabase()
+    await writeSetting(db, OPPONENT_STEPWISE, true)
+    db.close()
+    const engine = await runningGame()
+    renderAt("/play/game", engine)
+    await closeStartHand()
+    const decision = await screen.findByRole("region", { name: "Entscheidung" })
+    act(() => {
+      engine.worker().send({ type: "settings.applied", seq: null, observation: "hold", autoPass: "noActions" })
+      engine.worker().send({ type: "engine.waiting", consumed: 0 })
+    })
+    clock += ARMING_MS
+    await user.click(within(decision).getByRole("button", { name: "Behalten" }))
+    expect(engine.worker().inputs()).toEqual([{ type: "answer", seq: 1, question: 1, kind: "buttons", button: 1 }])
+    act(() => {
+      engine.worker().send({ type: "question.answered", id: 1, seq: 1 })
+      engine.worker().send(gameState(4, { turn: 2, phase: "UPKEEP", activePlayer: 1 }))
+      engine.worker().send({ type: "observation", id: 1, hold: true, state: 4, actions: [{ n: 1, kind: "turn", player: 1, turn: 2 }] })
+      engine.worker().send({ type: "engine.waiting", consumed: 1 })
+    })
+    await screen.findByRole("region", { name: "Gegnerzug ansehen" })
+    // The menu stays reachable while the engine holds; conceding is asked first, then only "concede" goes.
+    await user.click(within(screen.getByRole("region", { name: "Spielstand" })).getByRole("button", { name: "Menü" }))
+    const menu = await screen.findByRole("dialog", { name: "Partie" })
+    await user.click(within(menu).getByRole("button", { name: "Aufgeben" }))
+    const dialog = await screen.findByRole("alertdialog", { name: "Partie aufgeben?" })
+    await user.click(within(dialog).getByRole("button", { name: "Aufgeben" }))
+    expect(engine.worker().inputs()).toEqual([{ type: "concede", seq: 2 }])
+    // Forge ends the hold by the concession and the game; nothing else is sent, the stage is gone.
+    act(() => {
+      engine.worker().send({ type: "observation.released", id: 1, seq: 2, by: "concede" })
+      engine.worker().send({ type: "events", entries: [{ kind: "GAME_OUTCOME", text: "Spieler hat aufgegeben", actor: "me" }] })
+      engine.worker().send(gameState(5, { running: false }))
+      engine.worker().send(gameEnd(true))
+      engine.worker().send({ type: "match.finished", summary: summary(1) })
+    })
+    expect(await screen.findByRole("heading", { level: 2, name: "Verloren" })).toBeInTheDocument()
+    expect(screen.queryByRole("region", { name: "Gegnerzug ansehen" })).not.toBeInTheDocument()
+    clock += 60_000
+    expect(engine.worker().inputs()).toEqual([])
     vi.restoreAllMocks()
   })
 })

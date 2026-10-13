@@ -17,6 +17,18 @@
  *  - every other kind of question through its own controls (choices, options,
  *    a list Forge shows, numbers, order, arrangement, distribution).
  *
+ * The opponent's turn (prompts 48/49): while the engine holds an action of the
+ * AI to be looked at, the header says "Gegnerzug" and no question is open - the
+ * player waits for the stage, or, with "Nach jeder Gegneraktion warten"
+ * (`stepwise`), presses the stage's own "Weiter" (`[data-stage-next]` inside
+ * `[data-slot="opponent-stage"]`, never a button of the decision region - the
+ * priority's pass is also called "Weiter"). It never presses the stage while a
+ * question is open, and never answers a question to get past the stage. The
+ * start questions (prompt 50) are answered in the full-screen start hand that
+ * opens by itself (its own buttons: Forge's words, the London mulligan's
+ * "Nach unten"), or - `startHandView: false` - after closing it, in the
+ * decision region.
+ *
  * The policy is deterministic per seed - not an AI of its own, it plays to
  * exercise the paths, not to win. Every send waits until the button is armed
  * (ARMING_MS). After every action the table must change (Forge took it); six
@@ -156,6 +168,38 @@ export interface PlayOptions {
   readonly measureMemory?: () => Promise<number | null>
   /** Called once per turn the table shows (at the player's first priority in it), before the player acts; optional (prompt 45: the table's listeners and animations per turn). */
   readonly sampleTurn?: (turn: number) => Promise<void>
+  /**
+   * The game runs with "Nach jeder Gegneraktion warten" (prompt 49, set by the caller in the settings): the player
+   * presses the stage's own "Weiter" for every step the engine holds. Without it the stage goes on by the tempo and the
+   * player only looks.
+   */
+  readonly stepwise?: boolean
+  /** Answers the start questions in the full-screen start hand (prompt 50, the default) or, false, closes it and answers in the decision region. */
+  readonly startHandView?: boolean
+  /** Called once when the start hand first stands open at a start question, before the player answers there (looking only); optional. */
+  readonly atStartHand?: () => Promise<void>
+}
+
+/** What the player saw of the AI's turn and the start hand (prompts 49/50). */
+export interface ObservedFlow {
+  /** Steps of the AI's actions the stage showed (each step once, by its key). */
+  readonly steps: number
+  /** The steps by kind (land, cast, attack, turn …). */
+  readonly kinds: Record<string, number>
+  /** Steps with at least one card shown. */
+  readonly withCards: number
+  /** "Weiter" pressed on the stage (stepwise). */
+  readonly stagePresses: number
+  /** Questions that came with "Unterbrechung" (an action of the AI to answer). */
+  readonly interruptions: number
+  /** Changes of turn shown by the turn band (without holding). */
+  readonly bands: number
+  /** The start hand opened by itself at a start question. */
+  readonly startHandOpened: number
+  /** Start answers given in the start hand itself (Forge's buttons, "Nach unten"). */
+  readonly startHandAnswers: number
+  /** The land chip's words seen on the player's strip ("Länder 0/1", "Kein Land im KI-Zug" …). */
+  readonly landChips: readonly string[]
 }
 
 export interface PlayResult extends GameStats {
@@ -169,6 +213,50 @@ export interface PlayResult extends GameStats {
   readonly languages: Record<string, unknown> | null
   /** The highest value `measureMemory` reported with the engine running (sampled every five turns from turn 5), bytes; null without it. */
   readonly memoryInGame: number | null
+  /** What the player saw of the AI's turn and the start hand (prompts 49-51). */
+  readonly observed: ObservedFlow
+}
+
+/**
+ * Watches the stage, the turn band and the start hand in the page (a MutationObserver of the running game page - the
+ * app is one page, it stays): every step once by its key, every band once by its text, every opening of the start hand.
+ */
+function watchFlow(): void {
+  type Flow = { keys: string[]; kinds: Record<string, number>; withCards: number; bands: number; lastBand: string | null; startHand: number; startOpen: boolean; landChips: string[] }
+  const w = window as unknown as { __playerFlow?: Flow }
+  if (w.__playerFlow !== undefined) return
+  const flow: Flow = { keys: [], kinds: {}, withCards: 0, bands: 0, lastBand: null, startHand: 0, startOpen: false, landChips: [] }
+  w.__playerFlow = flow
+  const look = () => {
+    const stage = document.querySelector<HTMLElement>('[data-slot="opponent-stage"]')
+    const key = stage?.dataset["step"]
+    if (stage !== null && key !== undefined && !flow.keys.includes(key)) {
+      flow.keys.push(key)
+      const kind = stage.dataset["kind"] ?? "?"
+      flow.kinds[kind] = (flow.kinds[kind] ?? 0) + 1
+      if (Number(stage.dataset["cards"] ?? 0) > 0) flow.withCards++
+    }
+    const band = document.querySelector('[data-slot="turn-band"]')
+    const text = band === null ? null : (band.textContent ?? "").trim()
+    if (text !== flow.lastBand) {
+      flow.lastBand = text
+      if (text !== null && text !== "") flow.bands++
+    }
+    const open = document.querySelector('[data-slot="hand-spread"] [data-start-question]') !== null
+    if (open && !flow.startOpen) flow.startHand++
+    flow.startOpen = open
+    const chip = (document.querySelector('section[aria-label="Du"] [data-strip-fact="lands"]')?.textContent ?? "").trim()
+    if (chip !== "" && !flow.landChips.includes(chip) && flow.landChips.length < 40) flow.landChips.push(chip)
+  }
+  new MutationObserver(look).observe(document.documentElement, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["data-step", "data-slot", "data-start-question"] })
+  look()
+}
+
+function readFlow(page: Page): Promise<{ keys: string[]; kinds: Record<string, number>; withCards: number; bands: number; startHand: number; landChips: string[] }> {
+  return page.evaluate(() => {
+    const flow = (window as unknown as { __playerFlow?: { keys: string[]; kinds: Record<string, number>; withCards: number; bands: number; startHand: number; landChips: string[] } }).__playerFlow
+    return flow === undefined ? { keys: [], kinds: {}, withCards: 0, bands: 0, startHand: 0, landChips: [] } : { keys: flow.keys, kinds: flow.kinds, withCards: flow.withCards, bands: flow.bands, startHand: flow.startHand, landChips: flow.landChips }
+  })
 }
 
 /** A small deterministic random source per game (mulberry32): the policy's choices repeat with the seed. */
@@ -310,6 +398,15 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
     return index < 0 ? null : decision.getByRole("group", { name: "Antworten, die Forge anbietet" }).getByRole("button").nth(index)
   }
   const decisionButton = (name: string | RegExp) => decision.locator('[data-slot="game-decision-actions"]').getByRole("button", { name, exact: typeof name === "string" })
+  /** The full-screen start hand (prompt 50) while it shows one of Forge's start questions. */
+  const startView = page.locator('[data-slot="hand-spread"]').filter({ has: page.locator("[data-start-question]") })
+  const useStartView = game.startHandView !== false
+  const startAnswer = (name: string) => startView.locator("[data-start-answer]").filter({ hasText: new RegExp(`^${name}$`) }).first()
+  let startHandAnswers = 0
+  let startHandLooked = false
+  let stagePresses = 0
+  let interruptions = 0
+  const interruptionsSeen = new Set<string>()
 
   /**
    * Plays a card by dragging it onto the battlefield (prompt 46) if Forge's words for it pass `want`: its view is only
@@ -396,6 +493,7 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
   let nextMemoryTurn = 5
   let sampledTurn = 0
 
+  await page.evaluate(watchFlow)
   for (let step = 0; step < 4000; step++) {
     if (Date.now() - started > game.maxMinutes * 60_000) {
       check(false, `${game.id}: no result after ${game.maxMinutes} min (turn ${maxTurn})`)
@@ -403,21 +501,45 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
     }
     // Forge waits for the player: the header says so ("Du bist dran", engine.waiting) and a question is open. A question
     // shown while Forge still computes (its answer on the way) is not one to act on.
+    // The engine holding an action of the AI to be looked at (prompts 48/49) is no question: the header says
+    // "Gegnerzug", the stage shows the step - with `stepwise` it waits for the stage's own "Weiter".
     const state = await page
       .waitForFunction(
-        () => {
+        (stepwise) => {
           const h2 = [...document.querySelectorAll("h2")].map((heading) => (heading.textContent ?? "").trim())
           if (h2.some((text) => /^(Gewonnen|Verloren|Unentschieden)$/.test(text))) return "ended"
-          const waiting = [...(document.querySelector('section[aria-label="Spielstand"]')?.querySelectorAll('[data-slot="badge"]') ?? [])].some((badge) => (badge.textContent ?? "").trim() === "Du bist dran")
-          return waiting && h2.includes("Forge wartet auf deine Entscheidung") ? "asked" : false
+          const badges = [...(document.querySelector('section[aria-label="Spielstand"]')?.querySelectorAll('[data-slot="badge"]') ?? [])].map((badge) => (badge.textContent ?? "").trim())
+          const asked = h2.includes("Forge wartet auf deine Entscheidung")
+          if (stepwise && !asked && badges.includes("Gegnerzug") && document.querySelector('[data-slot="opponent-stage"] [data-stage-next]') !== null) return "stage"
+          return badges.includes("Du bist dran") && asked ? "asked" : false
         },
-        undefined,
+        game.stepwise === true,
         { timeout: 600_000, polling: 100 },
       )
       .then((handle) => handle.jsonValue() as Promise<string>, () => "silent")
     if (state === "ended") {
       ended = ((await result.first().textContent()) ?? "").trim()
       break
+    }
+    if (state === "stage") {
+      // Stepwise: the stage's own "Weiter" once it is armed - only while the engine holds and no question is open. The
+      // step moves on (or the stage goes, the observation released); nothing else is pressed here.
+      const stage = page.locator('[data-slot="opponent-stage"]')
+      const key = await stage.getAttribute("data-step").catch(() => null)
+      await page.waitForTimeout(ARMED_AFTER_MS)
+      const still = await page.evaluate((stepKey) => {
+        const stage = document.querySelector<HTMLElement>('[data-slot="opponent-stage"]')
+        const badges = [...(document.querySelector('section[aria-label="Spielstand"]')?.querySelectorAll('[data-slot="badge"]') ?? [])].map((badge) => (badge.textContent ?? "").trim())
+        const asked = [...document.querySelectorAll("h2")].some((heading) => (heading.textContent ?? "").trim() === "Forge wartet auf deine Entscheidung")
+        return stage !== null && stage.dataset["step"] === stepKey && stage.querySelector("[data-stage-next]") !== null && badges.includes("Gegnerzug") && !asked
+      }, key)
+      if (!still) continue
+      if (stagePresses < 3) await game.shot(`${game.id}-stage-${stagePresses + 1}`)
+      await activate(stage.locator("[data-stage-next]"))
+      stagePresses++
+      count("stage:next")
+      await page.waitForFunction((stepKey) => document.querySelector<HTMLElement>('[data-slot="opponent-stage"]')?.dataset["step"] !== stepKey, key, { timeout: 15_000, polling: 50 }).catch(() => undefined)
+      continue
     }
     if (state !== "asked") {
       check(false, `${game.id}: Forge neither asked nor ended the game within 10 min (turn ${maxTurn})`)
@@ -428,12 +550,28 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
       bootMs = Date.now() - started
       await game.shot(`${game.id}-first-decision`)
     }
-    // A view left open (a card that left the table meanwhile …) is closed first: looking never answers.
-    if (await page.locator('[role="dialog"],[role="alertdialog"]').count()) {
+    // A view left open (a card that left the table meanwhile …) is closed first: looking never answers. The start
+    // hand that opened by itself at a start question stays open when the player answers there (prompt 50).
+    const inStartView = useStartView && (await startView.count()) > 0 && (await page.locator('[role="dialog"],[role="alertdialog"]').count()) === 1
+    if (!inStartView && (await page.locator('[role="dialog"],[role="alertdialog"]').count())) {
       await page.keyboard.press("Escape")
       await page.waitForTimeout(300)
     }
+    if (inStartView && !startHandLooked) {
+      startHandLooked = true
+      await game.shot(`${game.id}-start-hand`)
+      if (game.atStartHand !== undefined) {
+        await game.atStartHand()
+        continue
+      }
+    }
     const view = await readTable(page)
+    // "Unterbrechung" (prompt 49): the AI's latest action is something to answer - the question came with it.
+    const interruption = await page.evaluate(() => [...document.querySelectorAll('[data-slot="alert"]')].map((alert) => (alert.textContent ?? "").trim()).find((text) => text.startsWith("Unterbrechung")) ?? null)
+    if (interruption !== null && !interruptionsSeen.has(`${view.question}:${interruption}`)) {
+      interruptionsSeen.add(`${view.question}:${interruption}`)
+      interruptions++
+    }
     maxTurn = Math.max(maxTurn, view.turn)
     if (view.turn >= lastShotTurn + 5) {
       lastShotTurn = view.turn
@@ -486,6 +624,24 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
           return false
         }
         case "Mulligan": {
+          if (inStartView) {
+            // In the start hand itself: Forge's buttons with Forge's words, armed like the decision's.
+            const name = !mulliganTaken ? "Mulligan" : "Behalten"
+            const button = startAnswer(name)
+            if ((await button.count()) && (await button.isEnabled())) {
+              if (name === "Mulligan") mulliganTaken = true
+              await press(button, name === "Mulligan" ? "mulligan" : "keep")
+              startHandAnswers++
+              return true
+            }
+            const keep = startAnswer("Behalten")
+            if ((await keep.count()) && (await keep.isEnabled())) {
+              await press(keep, "keep")
+              startHandAnswers++
+              return true
+            }
+            return false
+          }
           if (!mulliganTaken) {
             const mulligan = answerButton((button) => button.name === "Mulligan", view)
             if (mulligan !== null) {
@@ -502,6 +658,22 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
           return false
         }
         case "Karten unter die Bibliothek legen": {
+          if (inStartView) {
+            // The London mulligan in the start hand: "Nach unten" under a card (Forge's card.tap), then Forge's OK there.
+            const ok = startAnswer("OK")
+            if ((await ok.count()) && (await ok.isEnabled())) {
+              await press(ok, "mulligan-bottom-done")
+              startHandAnswers++
+              return true
+            }
+            const toggle = startView.locator('[data-bottom-toggle][aria-pressed="false"]:not([disabled])').first()
+            if (await toggle.count()) {
+              await press(toggle, "mulligan-bottom-card")
+              startHandAnswers++
+              return true
+            }
+            return false
+          }
           // The player's own choice (a tap on a hand card), then Forge's OK - never Forge's Auto.
           const ok = answerButton((button) => button.name === "OK", view)
           if (ok !== null) {
@@ -871,7 +1043,15 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
   // Prompt 46: a player who played cards played some of them by dragging them onto the battlefield.
   const played = Object.entries(stats.actions).filter(([name]) => name === "land" || name.startsWith("cast:") || name.startsWith("respond:")).reduce((sum, [, n]) => sum + n, 0)
   if (played > 0) check(dragTurns.size > 0 && (stats.actions["drag"] ?? 0) > 0, `${game.id}: played ${played} cards, none of them by dragging`)
-  return { result: ended, turns: maxTurn, ms: Date.now() - started, bootMs, pictures, languages, memoryInGame, ...stats }
+  // Prompts 49-51: the AI's turn was shown on the stage, the start hand opened by itself, the land chip said Forge's count.
+  const flow = await readFlow(page).catch(() => ({ keys: [], kinds: {}, withCards: 0, bands: 0, startHand: 0, landChips: [] }))
+  const observed: ObservedFlow = { steps: flow.keys.length, kinds: flow.kinds, withCards: flow.withCards, stagePresses, interruptions, bands: flow.bands, startHandOpened: flow.startHand, startHandAnswers, landChips: flow.landChips }
+  if (maxTurn >= 2) check(observed.steps > 0 && observed.withCards > 0, `${game.id}: the AI's turn was never shown on the stage (${JSON.stringify(observed.kinds)})`)
+  check(observed.startHandOpened > 0, `${game.id}: the start hand did not open by itself at Forge's start question`)
+  if (useStartView) check(startHandAnswers > 0, `${game.id}: no start question was answered in the start hand`)
+  if (game.stepwise === true && maxTurn >= 2) check(stagePresses > 0, `${game.id}: stepwise, but "Weiter" on the stage was never pressed`)
+  if ((stats.actions["land"] ?? 0) > 0) check(observed.landChips.some((chip) => /^Länder \d+\/\d+/.test(chip)), `${game.id}: the strip never said Forge's land count (${JSON.stringify(observed.landChips)})`)
+  return { result: ended, turns: maxTurn, ms: Date.now() - started, bootMs, pictures, languages, memoryInGame, observed, ...stats }
 }
 
 // ── DE→EN: what the card view says about the catalog's languages ──────────

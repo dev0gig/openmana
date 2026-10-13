@@ -43,6 +43,10 @@
  *     buttons; every other kind of question through its own controls. The
  *     policy is deterministic per game (a seed), not an AI of its own; it
  *     plays to exercise the paths, not to win.
+ *     The AI's turn is shown on the stage (prompt 49) at the game's tempo (Normal
+ *     by default; one game stepwise with the stage's "Weiter", one fast); the
+ *     start questions are answered in the start hand that opens by itself
+ *     (prompt 50; one game closes it and answers at the table).
  *  4. After the game: Forge's history (actors and kinds), the original
  *     recording in IndexedDB (finished header with Forge's result, gap-free
  *     reception order, the message types of a whole game, the player's
@@ -239,6 +243,12 @@ interface GameSpec {
   /** Take one mulligan (London: then cards to the bottom). */
   readonly mulligan: boolean
   readonly maxMinutes: number
+  /** The AI's turn (prompt 49): the tempo set in the settings before the game; Normal by default (the app's default). */
+  readonly tempo?: "Langsam" | "Normal" | "Schnell"
+  /** "Nach jeder Gegneraktion warten": the player presses the stage's "Weiter" for every step. */
+  readonly stepwise?: boolean
+  /** The start questions answered after closing the start hand, in the decision region (prompt 50; default: in the start hand). */
+  readonly startHandInPanel?: boolean
 }
 
 const DESKTOP = { width: 1440, height: 900, touch: false }
@@ -247,12 +257,12 @@ const FOLD_LANDSCAPE = { width: 829, height: 690, touch: true }
 
 const GAMES: readonly GameSpec[] = [
   { id: "rakdos", title: "Rakdos-Ziele gegen Grün-Weiß (Standard)", human: "rakdos", ai: "gw", profile: "Standard", cardLanguage: "Deutsch", viewport: DESKTOP, seed: 1, mulligan: true, maxMinutes: 45 },
-  { id: "control", title: "Blau-Schwarz-Kontrolle gegen Rot-Aggro (Waghalsig)", human: "ub", ai: "redAggro", profile: "Waghalsig", cardLanguage: "Englisch", viewport: DESKTOP, seed: 2, mulligan: false, maxMinutes: 45 },
+  { id: "control", title: "Blau-Schwarz-Kontrolle gegen Rot-Aggro (Waghalsig), Gegnerzug Schritt für Schritt mit „Weiter“", human: "ub", ai: "redAggro", profile: "Waghalsig", cardLanguage: "Englisch", viewport: DESKTOP, seed: 2, mulligan: false, maxMinutes: 45, stepwise: true },
   { id: "commander", title: "Commander Krenko gegen Fynn (Vorsichtig), lange Partie", human: "krenko", ai: "fynn", profile: "Vorsichtig", cardLanguage: "Deutsch", viewport: DESKTOP, seed: 3, mulligan: false, maxMinutes: 90 },
   { id: "phone", title: "Grün Deutsch/Englisch gegen Rot (Experimentell), Handy mit Touch", human: "greenMixed", ai: "red", profile: "Experimentell", cardLanguage: "Deutsch", viewport: PHONE, seed: 4, mulligan: false, maxMinutes: 45 },
   { id: "walkers", title: "Grüne Angreifer gegen Planeswalker (Standard)", human: "greenAttackers", ai: "greenWalkers", profile: "Standard", cardLanguage: "Deutsch", viewport: DESKTOP, seed: 6, mulligan: false, maxMinutes: 45 },
-  { id: "grixis", title: "Grixis gegen Grün-Weiß (Standard): Vorschau, X-Zauber, Kann-Fähigkeiten", human: "grixis", ai: "gw", profile: "Standard", cardLanguage: "Deutsch", viewport: DESKTOP, seed: 8, mulligan: false, maxMinutes: 45 },
-  { id: "fold", title: "Planeswalker gegen Rakdos-Ziele (Zufällig), Foldable quer mit Touch", human: "greenWalkers", ai: "rakdos", profile: "Zufällig", cardLanguage: "Deutsch", viewport: FOLD_LANDSCAPE, seed: 7, mulligan: true, maxMinutes: 45 },
+  { id: "grixis", title: "Grixis gegen Grün-Weiß (Standard): Vorschau, X-Zauber, Kann-Fähigkeiten, Starthand am Tisch beantwortet", human: "grixis", ai: "gw", profile: "Standard", cardLanguage: "Deutsch", viewport: DESKTOP, seed: 8, mulligan: false, maxMinutes: 45, startHandInPanel: true },
+  { id: "fold", title: "Planeswalker gegen Rakdos-Ziele (Zufällig), Foldable quer mit Touch, Gegnerzug schnell", human: "greenWalkers", ai: "rakdos", profile: "Zufällig", cardLanguage: "Deutsch", viewport: FOLD_LANDSCAPE, seed: 7, mulligan: true, maxMinutes: 45, tempo: "Schnell" },
   { id: "live", title: "Live: Rakdos-Ziele gegen Rot (Zufällig)", human: "rakdos", ai: "red", profile: "Zufällig", cardLanguage: "Deutsch", viewport: DESKTOP, seed: 5, mulligan: false, maxMinutes: 45 },
 ]
 
@@ -269,6 +279,8 @@ interface Watch {
   readonly notices: { readonly at: number; readonly text: string }[]
   workers: { created: number; alive: number; max: number }
   readonly scryfall: { ok: number; failed: number }
+  /** What failed (address and status or Chrome's error), for the report. */
+  readonly scryfallFailures: string[]
 }
 
 function watch(page: Page, into: Watch): void {
@@ -288,17 +300,23 @@ function watch(page: Page, into: Watch): void {
   page.on("response", (response) => {
     if (new URL(response.url()).host === "cards.scryfall.io") {
       if (response.ok()) into.scryfall.ok++
-      else into.scryfall.failed++
+      else {
+        into.scryfall.failed++
+        into.scryfallFailures.push(`${response.status()} ${response.url()}`)
+      }
     }
   })
   page.on("requestfailed", (request) => {
     // A picture the browser dropped because the card left the screen (ERR_ABORTED) is no failure of Scryfall's.
-    if (new URL(request.url()).host === "cards.scryfall.io" && !(request.failure()?.errorText ?? "").includes("ERR_ABORTED")) into.scryfall.failed++
+    if (new URL(request.url()).host === "cards.scryfall.io" && !(request.failure()?.errorText ?? "").includes("ERR_ABORTED")) {
+      into.scryfall.failed++
+      into.scryfallFailures.push(`${request.failure()?.errorText ?? "failed"} ${request.url()}`)
+    }
   })
 }
 
 function newWatch(): Watch {
-  return { hosts: new Set(), errors: [], notices: [], workers: { created: 0, alive: 0, max: 0 }, scryfall: { ok: 0, failed: 0 } }
+  return { hosts: new Set(), errors: [], notices: [], workers: { created: 0, alive: 0, max: 0 }, scryfall: { ok: 0, failed: 0 }, scryfallFailures: [] }
 }
 
 async function openProfile(viewport: GameSpec["viewport"], dir = profileDir): Promise<BrowserContext> {
@@ -412,6 +430,17 @@ async function chooseForGame(page: Page, base: string, game: GameSpec): Promise<
   if ((await language.getAttribute("aria-checked")) !== "true") await language.click()
   for (let attempt = 0; attempt < 50 && (await language.getAttribute("aria-checked")) !== "true"; attempt++) await page.waitForTimeout(100)
   check((await language.getAttribute("aria-checked")) === "true", `${game.id}: card language ${game.cardLanguage} not chosen`)
+  // The AI's turn (prompt 49): the tempo and the waiting after every action, device settings - set for every game (the
+  // profile keeps them between games).
+  const opponentTurn = page.getByRole("region", { name: "Gegnerzug" })
+  const tempo = opponentTurn.getByRole("radio", { name: new RegExp(`^${game.tempo ?? "Normal"}`) })
+  if ((await tempo.getAttribute("aria-checked")) !== "true") await tempo.click()
+  for (let attempt = 0; attempt < 50 && (await tempo.getAttribute("aria-checked")) !== "true"; attempt++) await page.waitForTimeout(100)
+  check((await tempo.getAttribute("aria-checked")) === "true", `${game.id}: tempo ${game.tempo ?? "Normal"} not chosen`)
+  const stepwise = opponentTurn.getByRole("switch", { name: "Nach jeder Gegneraktion warten" })
+  if ((await stepwise.getAttribute("aria-checked")) !== String(game.stepwise === true)) await stepwise.click()
+  for (let attempt = 0; attempt < 50 && (await stepwise.getAttribute("aria-checked")) !== String(game.stepwise === true); attempt++) await page.waitForTimeout(100)
+  check((await stepwise.getAttribute("aria-checked")) === String(game.stepwise === true), `${game.id}: waiting after every action not ${game.stepwise === true ? "on" : "off"}`)
 
   await page.goto(new URL("/play", base).href, { waitUntil: "networkidle" })
   for (const [which, deck] of [["Dein Deck wählen", DECKS[game.human]!.name], ["Deck der KI wählen", DECKS[game.ai]!.name]] as const) {
@@ -813,10 +842,10 @@ try {
       const startedAt = Date.now()
       await page.getByRole("button", { name: "Partie starten" }).first().click()
       await page.waitForURL(/\/play\/game$/)
-      // The AI profile Forge confirmed (the table's opponent bar names it).
-      await page.getByRole("heading", { name: "Forge wartet auf deine Entscheidung" }).waitFor({ timeout: 300_000 })
-      const opponent = page.getByRole("region", { name: "Forge-KI", exact: true })
-      const confirmed = ((await opponent.locator('[data-strip-fact="profile"]').first().textContent()) ?? "").trim()
+      // The AI profile Forge confirmed (the table's opponent bar names it). The start hand (prompt 50) may lie over the
+      // table at the first question, which hides the table from the accessibility tree: read the page itself.
+      await page.waitForFunction(() => [...document.querySelectorAll("h2")].some((heading) => (heading.textContent ?? "").trim() === "Forge wartet auf deine Entscheidung"), undefined, { timeout: 300_000 })
+      const confirmed = ((await page.locator('section[aria-label="Forge-KI"] [data-strip-fact="profile"]').first().textContent()) ?? "").trim()
       entry["confirmedProfile"] = confirmed
       check(game.profile === "Zufällig" ? confirmed.endsWith(" (zufällig)") : confirmed === game.profile, `${game.id}: the table names AI profile "${confirmed}", chosen was ${game.profile}`)
       entry["startMs"] = Date.now() - startedAt
@@ -834,6 +863,8 @@ try {
         touch: game.viewport.touch,
         mulligan: game.mulligan,
         maxMinutes: game.maxMinutes,
+        stepwise: game.stepwise === true,
+        startHandView: game.startHandInPanel !== true,
         check,
         // A screenshot is the test's, not the table's: its capture (and the frame after it) is left out of the measurement.
         shot: async (name) => {
@@ -879,10 +910,10 @@ try {
       entry["pageErrors"] = gameWatch.errors
       entry["notices"] = gameWatch.notices.map((notice) => notice.text)
       entry["workers"] = gameWatch.workers
-      entry["scryfall"] = gameWatch.scryfall
+      entry["scryfall"] = { ...gameWatch.scryfall, failures: gameWatch.scryfallFailures }
       check(gameWatch.errors.length === 0, `${game.id}: page errors ${gameWatch.errors.join(" | ")}`)
       check(gameWatch.workers.max <= 1, `${game.id}: ${gameWatch.workers.max} engine workers at once`)
-      check(gameWatch.scryfall.failed === 0, `${game.id}: ${gameWatch.scryfall.failed} Scryfall picture requests failed`)
+      check(gameWatch.scryfall.failed === 0, `${game.id}: ${gameWatch.scryfall.failed} Scryfall picture requests failed ${JSON.stringify(gameWatch.scryfallFailures.slice(0, 5))}`)
       writeReport()
       await context.close().catch(() => undefined)
     }
