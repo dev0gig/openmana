@@ -9,6 +9,7 @@
  *   npm run test:e2e -- --no-build --replay-only  imported recorded snapshots, library/file/retention checks
  *   npm run test:e2e -- --no-build --table-only   complete table checks at all eight sizes, no fresh engine boot
  *   npm run test:e2e -- --no-build --drag-only    playing by dragging in two real games (mouse, touch; prompt 46)
+ *   npm run test:e2e -- --no-build --opponent-only following the AI's turn in two real games (tempo, "Weiter", layouts; prompt 49)
  *   npm run test:e2e -- --no-build --help-only    contextual help on recorded/built scenes, no engine boot
  *   npm run test:e2e -- --no-build --history-only recorded Forge history and current sources only
  *   npm run test:e2e -- --no-build --zones-only   visible zones, piles and DFC inspection only
@@ -150,8 +151,9 @@ const historyOnly = process.argv.includes("--history-only")
 const helpOnly = process.argv.includes("--help-only")
 const tableOnly = process.argv.includes("--table-only")
 const dragOnly = process.argv.includes("--drag-only")
+const opponentOnly = process.argv.includes("--opponent-only")
 const focusedTable = combatOnly || zonesOnly || historyOnly || helpOnly
-const reportDir = path.join(root, "reports", oryxOnly ? "oryx-e2e" : responsiveOnly ? "responsive-e2e" : replayOnly ? "replay-e2e" : tableOnly ? "table-e2e" : dragOnly ? "drag-e2e" : helpOnly ? "help-e2e" : combatOnly ? "combat-e2e" : zonesOnly ? "zones-e2e" : historyOnly ? "history-e2e" : "e2e")
+const reportDir = path.join(root, "reports", oryxOnly ? "oryx-e2e" : responsiveOnly ? "responsive-e2e" : replayOnly ? "replay-e2e" : tableOnly ? "table-e2e" : dragOnly ? "drag-e2e" : opponentOnly ? "opponent-e2e" : helpOnly ? "help-e2e" : combatOnly ? "combat-e2e" : zonesOnly ? "zones-e2e" : historyOnly ? "history-e2e" : "e2e")
 const require = createRequire(import.meta.url)
 
 interface Viewport {
@@ -2994,6 +2996,545 @@ async function dragInRealGame(browser: Browser, base: string, viewport: Viewport
     await concedeGame(page)
     for (const error of pageLog.errors) check(false, `${label}: ${error}`)
     return { cancels, land, unplayable, spell, aiLife, steps: steps.length, ms: Date.now() - started }
+  } finally {
+    await context.close()
+  }
+}
+
+/** Prompt 49: the decks of the opponent's-turn game - the player's lands and Shock (a reaction), the AI's lands, an Elf and Bears to cast and attack with. */
+function opponentDecks(): readonly unknown[] {
+  const now = new Date().toISOString()
+  const deck = (name: string, main: readonly { readonly count: number; readonly name: string }[]) => ({
+    id: randomUUID(),
+    name,
+    format: "constructed",
+    main,
+    sideboard: [],
+    commander: [],
+    source: { kind: "arena", text: `Deck\n${main.map((entry) => `${entry.count} ${entry.name}`).join("\n")}`, importedAt: now },
+    createdAt: now,
+    updatedAt: now,
+  })
+  return [
+    deck("E2E Gegnerzug", [
+      { count: 26, name: "Mountain" },
+      { count: 34, name: "Shock" },
+    ]),
+    deck("E2E Gegnerzug KI", [
+      { count: 24, name: "Forest" },
+      { count: 18, name: "Llanowar Elves" },
+      { count: 18, name: "Grizzly Bears" },
+    ]),
+  ]
+}
+
+/** What the page saw of the stage and the turn band (an init script records every step's appearance with its time). */
+interface StageSeen {
+  readonly key: string
+  readonly kind: string
+  readonly actor: string
+  readonly title: string
+  readonly at: number
+  readonly cards: number
+  readonly status: string
+}
+
+/** Records every step of the opponent's stage and every turn band the page shows, with page time (prompt 49). */
+function stageRecorder(): void {
+  const state = { key: null as string | null, band: null as string | null }
+  const seen: unknown[] = []
+  const bands: unknown[] = []
+  ;(window as unknown as { __stage: unknown[]; __bands: unknown[] }).__stage = seen
+  ;(window as unknown as { __stage: unknown[]; __bands: unknown[] }).__bands = bands
+  const look = () => {
+    const stage = document.querySelector<HTMLElement>('[data-slot="opponent-stage"]')
+    const key = stage?.dataset["step"] ?? null
+    if (key !== state.key) {
+      state.key = key
+      if (stage !== null && key !== null) {
+        seen.push({ key, kind: stage.dataset["kind"], actor: stage.dataset["actor"], title: (stage.querySelector("h2")?.textContent ?? "").trim(), at: performance.now(), cards: Number(stage.dataset["cards"] ?? 0), status: (stage.querySelector("[data-stage-status]")?.textContent ?? "").trim() })
+      }
+    }
+    const band = document.querySelector<HTMLElement>('[data-slot="turn-band"]')
+    const text = band === null ? null : (band.textContent ?? "").trim()
+    if (text !== state.band) {
+      state.band = text
+      if (text !== null) bands.push({ text, seat: band?.dataset["seat"], at: performance.now() })
+    }
+  }
+  const start = () => new MutationObserver(look).observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-step", "data-slot"] })
+  if (document.documentElement) start()
+  else document.addEventListener("DOMContentLoaded", start)
+}
+
+async function stageLog(page: Page): Promise<{ readonly steps: readonly StageSeen[]; readonly bands: readonly { readonly text: string; readonly seat: string; readonly at: number }[] }> {
+  return page.evaluate(() => ({ steps: (window as unknown as { __stage: StageSeen[] }).__stage, bands: (window as unknown as { __bands: { text: string; seat: string; at: number }[] }).__bands }))
+}
+
+/** The stage, its box, its cards' boxes and its "Weiter" (prompt 49): whole, inside the board, never over the hand or the decision. */
+async function stageFacts(page: Page): Promise<Record<string, unknown> | null> {
+  return page.evaluate(() => {
+    const stage = document.querySelector<HTMLElement>('[data-slot="opponent-stage"]')
+    if (stage === null) return null
+    const box = (element: Element | null) => {
+      const r = element?.getBoundingClientRect()
+      return r === undefined ? null : { left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), bottom: Math.round(r.bottom), width: Math.round(r.width), height: Math.round(r.height) }
+    }
+    const inside = (inner: DOMRect, outer: DOMRect) => inner.left >= outer.left - 1 && inner.top >= outer.top - 1 && inner.right <= outer.right + 1 && inner.bottom <= outer.bottom + 1
+    const stageBox = stage.getBoundingClientRect()
+    const board = document.querySelector('[data-slot="game-board"]')!.getBoundingClientRect()
+    const cards = [...stage.querySelectorAll(".table-stage-card")].map((card) => {
+      const r = card.getBoundingClientRect()
+      const picture = card.querySelector('[data-slot="card-picture"], [data-slot="game-card-back"]')?.getBoundingClientRect()
+      return { width: Math.round(r.width), height: Math.round(r.height), inside: inside(r, stageBox), whole: picture !== undefined && Math.abs(picture.width / picture.height - 63 / 88) < 0.02 && inside(picture, stageBox) }
+    })
+    const next = stage.querySelector<HTMLElement>("[data-stage-next]")
+    const overlaps = (name: string) => {
+      const area = document.querySelector(`section[data-area="${name}"]`)?.getBoundingClientRect()
+      return area !== undefined && !(area.bottom <= stageBox.top + 1 || area.top >= stageBox.bottom - 1 || area.right <= stageBox.left + 1 || area.left >= stageBox.right - 1)
+    }
+    const text = stage.querySelector(".table-stage-text")
+    return {
+      key: stage.dataset["step"],
+      kind: stage.dataset["kind"],
+      title: (stage.querySelector("h2")?.textContent ?? "").trim(),
+      lines: [...stage.querySelectorAll("li")].map((li) => (li.textContent ?? "").trim()),
+      stage: box(stage),
+      insideBoard: inside(stageBox, board),
+      cards,
+      next: next === null ? null : box(next),
+      textOverflows: text !== null && text.scrollHeight > text.clientHeight + 1,
+      overHand: overlaps("hand"),
+      overDecision: overlaps("decision"),
+      overHeader: overlaps("header"),
+      animations: stage.getAnimations({ subtree: true }).length,
+      badge: [...document.querySelectorAll('section[aria-label="Spielstand"] [data-slot="badge"]')].map((badge) => (badge.textContent ?? "").trim()),
+    }
+  })
+}
+
+/** The player's inputs of the running game's recording (matchLog), by type. */
+async function recordedInputs(page: Page): Promise<Record<string, number>> {
+  await page.waitForTimeout(150) // the recorder's 100 ms batch
+  const log = ((await dumpDatabase(page, ["matchLog"]))["matchLog"] ?? []) as { from: string; message: { type: string } }[]
+  const counts: Record<string, number> = {}
+  for (const entry of log) if (entry.from === "player") counts[entry.message.type] = (counts[entry.message.type] ?? 0) + 1
+  return counts
+}
+
+/** Opens the table's menu and sets the opponent's tempo and the waiting after every action (prompt 49), as a player does. */
+async function setOpponentTempo(page: Page, tempo: "Langsam" | "Normal" | "Schnell", stepwise: boolean): Promise<void> {
+  const menu = await openTableMenu(page)
+  const section = menu.getByRole("region", { name: "Gegnerzug" }).or(menu.locator('section[aria-labelledby="game-opponent-turn-title"]'))
+  await section.getByRole("radio", { name: new RegExp(`^${tempo}`) }).click()
+  const toggle = section.getByRole("switch", { name: "Nach jeder Gegneraktion warten" })
+  if ((await toggle.getAttribute("aria-checked")) !== String(stepwise)) await toggle.click()
+  await page.waitForFunction(([wanted]) => document.querySelector('[role="switch"]')?.getAttribute("aria-checked") === wanted, [String(stepwise)])
+  await page.keyboard.press("Escape")
+  await page.waitForFunction(() => document.querySelector('[role="dialog"]') === null)
+}
+
+/**
+ * The opponent's turn in a real game with the real engine (prompt 49, `--opponent-only`): the Forge AI plays lands,
+ * casts creatures and attacks while the player plays a land per turn and answers a spell with Shock.
+ *  - Every public action of the AI appears on the stage one after the other, at the tempo (Normal by default; then
+ *    Schnell and Langsam switched in the menu during the game), and the game never runs on unseen: the engine holds
+ *    (the header says "Gegnerzug") until the stage released the action.
+ *  - Stepwise ("Nach jeder Gegneraktion warten"): the stage waits however long the player looks; a double tap or a
+ *    key held down moves on exactly one step; "Weiter" sends only observation.release, never an answer or a pass.
+ *  - A real decision of the player (Forge asks about the AI's spell on the stack) interrupts: the stage is gone, the
+ *    "Unterbrechung" line and Forge's controls are there at once, and Shock is cast in answer.
+ *  - Each of the player's lands lies in its own turn ("Zug N · Dein Zug" different), with the AI's turn shown between.
+ *  - While the stage holds: the table at hoch, quadrat, breit and a small landscape phone (the stage whole inside the
+ *    board, cards whole, never over the hand, the decision or the header; "Weiter" at least 44 px on touch), axe, a tab
+ *    in the background (nothing moves on), less motion (no animation, "Weiter" works).
+ *  - The settings: saved at once, read back after a reload, never in the ORYX cloud's collection (display.*).
+ *  - The recording replays the same public steps, read only.
+ */
+async function opponentTurnInRealGame(browser: Browser, base: string, viewport: Viewport): Promise<Record<string, unknown>> {
+  const label = `opponent's turn (${viewport.name})`
+  const touch = viewport.touch
+  const context = await newContext(browser, viewport)
+  await context.addInitScript(stageRecorder)
+  const page = await context.newPage()
+  const pageLog = watch(page)
+  const started = Date.now()
+  const results: Record<string, unknown> = {}
+  const shots: string[] = []
+  const shot = async (name: string) => {
+    const file = path.join(reportDir, "screens", `opponent-${viewport.name}-${name}.png`)
+    await page.screenshot({ path: file })
+    shots.push(path.relative(reportDir, file))
+  }
+  try {
+    await loadDecks(page, base, opponentDecks())
+    // The desktop game with the card data (the stage's cards as real pictures), the phone's without (Forge's words).
+    if (!touch) results["cardDataInstallMs"] = await installFromSettings(await openCardData(page, base), label)
+    // The settings page: Normal is the default; a choice is saved at once and read back after a reload.
+    await page.goto(new URL("/settings", base).href, { waitUntil: "domcontentloaded" })
+    const card = page.getByRole("region", { name: "Gegnerzug" })
+    await card.waitFor()
+    check((await card.getByRole("radio", { name: /^Normal/ }).getAttribute("aria-checked")) === "true", `${label}: Normal is not the default tempo`)
+    // Once the settings are read (the controls are enabled), each choice is saved at once.
+    await page.waitForFunction(() => document.querySelector('[aria-labelledby="settings-opponent-turn-title"] [role="radio"]:not([disabled])') !== null)
+    await card.getByRole("radio", { name: /^Schnell/ }).click()
+    await page.waitForFunction(() => [...document.querySelectorAll('[aria-labelledby="settings-opponent-turn-title"] [role="radio"]')].some((radio) => radio.getAttribute("aria-checked") === "true" && (radio.getAttribute("aria-labelledby") ?? "") !== "" && document.getElementById(radio.getAttribute("aria-labelledby")!)?.textContent?.startsWith("Schnell")), undefined, { timeout: 10_000 })
+    await card.getByRole("switch", { name: "Nach jeder Gegneraktion warten" }).click()
+    await page.waitForFunction(() => document.querySelector('[aria-labelledby="settings-opponent-turn-title"] [role="switch"]')?.getAttribute("aria-checked") === "true", undefined, { timeout: 10_000 })
+    await page.reload({ waitUntil: "domcontentloaded" })
+    await page.waitForFunction(() => document.querySelector('[aria-labelledby="settings-opponent-turn-title"] [role="radio"]:not([disabled])') !== null)
+    await card.waitFor()
+    const reloaded = {
+      fast: (await card.getByRole("radio", { name: /^Schnell/ }).getAttribute("aria-checked")) === "true",
+      stepwise: (await card.getByRole("switch", { name: "Nach jeder Gegneraktion warten" }).getAttribute("aria-checked")) === "true",
+    }
+    const stored = ((await dumpDatabase(page, ["settings"]))["settings"] ?? []) as { key: string; value: unknown }[]
+    check(reloaded.fast && reloaded.stepwise, `${label}: the tempo settings were not read back after a reload ${JSON.stringify(reloaded)}`)
+    check(stored.some((record) => record.key === "display.opponentTempo" && record.value === "fast") && stored.some((record) => record.key === "display.opponentStepwise" && record.value === true), `${label}: the settings are not stored under display.* ${JSON.stringify(stored.map((record) => record.key))}`)
+    if (viewport.touch) {
+      const radio = await card.getByRole("radio", { name: /^Langsam/ }).boundingBox()
+      const option = await card.locator('label:has([role="radio"])').first().boundingBox()
+      check(option !== null && option.height >= 44, `${label}: a tempo option is smaller than 44 px (${JSON.stringify({ radio, option })})`)
+    }
+    results["settingsAxe"] = await accessibility(page, `${label}: settings`)
+    await card.screenshot({ path: path.join(reportDir, "screens", `opponent-${viewport.name}-settings.png`) })
+    // Back to the default for the game: Normal, without waiting.
+    await card.getByRole("radio", { name: /^Normal/ }).click()
+    await card.getByRole("switch", { name: "Nach jeder Gegneraktion warten" }).click()
+    await page.waitForFunction(() => document.querySelector('[aria-labelledby="settings-opponent-turn-title"] [role="switch"]')?.getAttribute("aria-checked") === "false", undefined, { timeout: 10_000 })
+    await page.waitForTimeout(300)
+    const back = Object.fromEntries((((await dumpDatabase(page, ["settings"]))["settings"] ?? []) as { key: string; value: unknown }[]).map((record) => [record.key, record.value]))
+    check(back["display.opponentTempo"] === "normal" && back["display.opponentStepwise"] === false, `${label}: the settings did not go back to Normal without waiting ${JSON.stringify(back)}`)
+    results["settingsReload"] = { ...reloaded, keys: stored.map((record) => record.key).filter((key) => key.startsWith("display.")) }
+
+    await page.goto(new URL("/play", base).href, { waitUntil: "domcontentloaded" })
+    await chooseDeck(page, "Dein Deck wählen", "E2E Gegnerzug")
+    await chooseDeck(page, "Deck der KI wählen", "E2E Gegnerzug KI")
+    await enginePanel(page).getByText("Bereit", { exact: true }).waitFor({ timeout: 180_000 })
+    results["startMs"] = await startAndWait(page)
+    const decision = page.getByRole("region", { name: "Entscheidung" })
+    const answers = decision.getByRole("group", { name: "Antworten, die Forge anbietet" })
+    const handCard = (id: number) => page.locator(`[data-area="hand"] button[data-slot="game-card"][data-card="${id}"]`)
+    const activate = async (locator: Locator) => (touch ? locator.tap() : locator.click())
+    const press = async (name: string) => {
+      const button = answers.getByRole("button", { name, exact: true })
+      await button.waitFor()
+      await page.waitForTimeout(ARMED_AFTER_MS)
+      await activate(button)
+    }
+    const named = (text: string, names: readonly string[]) => names.some((name) => text.startsWith(name))
+    const stage = page.locator('[data-slot="opponent-stage"]')
+    const lands: { turn: number; owner: string }[] = []
+    let reaction: Record<string, unknown> | null = null
+    let casting = false
+    let phase: "normal" | "fast" | "slow" | "stepwise" | "done" = "normal"
+    let stepwiseFacts: Record<string, unknown> | null = null
+    const layouts: Record<string, unknown> = {}
+    let background: Record<string, unknown> | null = null
+    let lessMotion: Record<string, unknown> | null = null
+    const tempoMarks: Record<string, number> = {}
+    const stackMoments: Record<string, unknown>[] = []
+    let lastTurn = 0
+    for (let step = 0; step < 400 && Date.now() - started < 900_000; step++) {
+      // Forge waits for the player with a question, or the stage shows a held action of the AI.
+      const now = await page
+        .waitForFunction(
+          () => {
+            if (document.querySelector('[data-slot="opponent-stage"] [data-stage-next]') !== null) return "stage"
+            const waiting = [...(document.querySelector('section[aria-label="Spielstand"]')?.querySelectorAll('[data-slot="badge"]') ?? [])].some((badge) => (badge.textContent ?? "").trim() === "Du bist dran")
+            const asked = [...document.querySelectorAll("h2")].some((heading) => (heading.textContent ?? "").trim() === "Forge wartet auf deine Entscheidung")
+            if ([...document.querySelectorAll("h2")].some((heading) => /^(Gewonnen|Verloren|Unentschieden)$/.test((heading.textContent ?? "").trim()))) return "ended"
+            return waiting && asked ? "asked" : false
+          },
+          undefined,
+          { timeout: 180_000, polling: 50 },
+        )
+        .then((handle) => handle.jsonValue() as Promise<string>)
+      if (now === "ended") break
+      if (now === "stage") {
+        if (phase === "stepwise") {
+          // Stepwise: the stage waits for "Weiter" however long the player looks; the engine holds.
+          const facts = await stageFacts(page)
+          const before = await recordedInputs(page)
+          const first = facts?.["key"]
+          await page.waitForTimeout(4000)
+          const still = await stageFacts(page)
+          const held = still?.["key"] === first && ((still?.["badge"] as string[] | undefined) ?? []).includes("Gegnerzug")
+          // The table at every layout while the stage holds: whole, inside the board, nothing of the hand or the decision covered.
+          if (Object.keys(layouts).length === 0) {
+            for (const size of [...RESPONSIVE_VIEWPORTS, ...FOLD_VIEWPORTS]) {
+              await page.setViewportSize({ width: size.width, height: size.height })
+              await page.waitForTimeout(250)
+              const at = await stageFacts(page)
+              const layout = tableLayoutOf(size.width, size.height)
+              layouts[size.name] = { layout, ...at }
+              const cards = (at?.["cards"] as { inside: boolean; whole: boolean; width: number }[] | undefined) ?? []
+              const next = at?.["next"] as { height: number; width: number } | null
+              check(at !== null && at["key"] === first, `${label}: resizing to ${size.name} changed or lost the held step (${String(at?.["key"])} instead of ${String(first)})`)
+              check(at?.["insideBoard"] === true && at["overHand"] === false && at["overDecision"] === false && at["overHeader"] === false, `${label}: the stage at ${size.name} leaves the board or covers the hand, the decision or the header ${JSON.stringify(at)}`)
+              check(cards.every((each) => each.inside && each.whole && each.width >= 44), `${label}: a stage card at ${size.name} is cut or too small ${JSON.stringify(cards)}`)
+              const stageBox = at?.["stage"] as { top: number; bottom: number } | undefined
+              check(next !== null && next.height >= (touch ? 44 : 24) && stageBox !== undefined && (next as unknown as { top: number }).top >= stageBox.top && (next as unknown as { bottom: number }).bottom <= stageBox.bottom, `${label}: "Weiter" at ${size.name} is too small or cut ${JSON.stringify({ next, stageBox })}`)
+              await page.screenshot({ path: path.join(reportDir, "screens", `opponent-${viewport.name}-stage-${size.name}.png`) })
+            }
+            await page.setViewportSize({ width: viewport.width, height: viewport.height })
+            await page.waitForTimeout(250)
+            results["stageAxe"] = await accessibility(page, `${label}: the stage, held`)
+          }
+          const afterLook = await recordedInputs(page)
+          check(held && (afterLook["observation.release"] ?? 0) === (before["observation.release"] ?? 0), `${label}: stepwise, the stage moved on or released by itself ${JSON.stringify({ first, still: still?.["key"], before, afterLook })}`)
+          // A double tap / double click on "Weiter": exactly one step on.
+          const next = stage.locator("[data-stage-next]")
+          await page.waitForTimeout(ARMED_AFTER_MS)
+          const steps = (await stageLog(page)).steps.length
+          // At the button's place twice in quick succession, as a thumb does (the second tap lands on whatever is there then).
+          const at = await next.boundingBox()
+          if (at === null) throw new Error("\"Weiter\" has no box")
+          if (touch) {
+            await page.touchscreen.tap(at.x + at.width / 2, at.y + at.height / 2)
+            await page.waitForTimeout(90)
+            await page.touchscreen.tap(at.x + at.width / 2, at.y + at.height / 2)
+          } else await page.mouse.dblclick(at.x + at.width / 2, at.y + at.height / 2)
+          await page.waitForTimeout(400)
+          // A second tap that landed on a card of the table only looks at it (the card view sends nothing): closed again.
+          const looked = (await page.getByRole("dialog").count()) > 0
+          if (looked) {
+            await page.keyboard.press("Escape")
+            await page.waitForFunction(() => document.querySelector('[role="dialog"]') === null)
+          }
+          const afterDouble = await recordedInputs(page)
+          const movedSteps = (await stageLog(page)).steps.length - steps
+          const releases = (afterDouble["observation.release"] ?? 0) - (afterLook["observation.release"] ?? 0)
+          check(movedSteps + releases === 1, `${label}: a double tap on "Weiter" moved ${movedSteps} steps and released ${releases} observations`)
+          const others = Object.entries(afterDouble).filter(([type]) => type !== "observation.release").map(([type, n]) => n - (afterLook[type] ?? 0))
+          check(others.every((n) => n === 0), `${label}: "Weiter" sent more than a release ${JSON.stringify({ afterLook, afterDouble })}`)
+          stepwiseFacts = { heldMs: 4000, held, first, movedSteps, releases, secondTapLooked: looked, inputsBefore: afterLook, inputsAfter: afterDouble }
+          // A key held down on "Weiter" (keyboard): one step, however often the key repeats.
+          const third = await stage.locator("[data-stage-next]").waitFor({ timeout: 120_000 }).then(() => true, () => false)
+          if (third && !touch) {
+            await page.waitForTimeout(ARMED_AFTER_MS)
+            const before3 = (await stageLog(page)).steps.length
+            const inputs3 = await recordedInputs(page)
+            await stage.locator("[data-stage-next]").focus()
+            await page.keyboard.down("Enter")
+            for (let repeat = 0; repeat < 6; repeat++) await page.keyboard.down("Enter")
+            await page.keyboard.up("Enter")
+            await page.waitForTimeout(400)
+            const moved3 = (await stageLog(page)).steps.length - before3
+            const released3 = ((await recordedInputs(page))["observation.release"] ?? 0) - (inputs3["observation.release"] ?? 0)
+            check(moved3 + released3 === 1, `${label}: a held Enter on "Weiter" moved ${moved3} steps and released ${released3}`)
+            stepwiseFacts["heldKey"] = { moved: moved3, released: released3 }
+          }
+          await shot("stepwise")
+          phase = "done"
+          await setOpponentTempo(page, "Normal", false).catch(() => undefined)
+          continue
+        }
+        if (phase === "normal" && background === null && (await stageLog(page)).steps.length >= 4) {
+          // A tab in the background: the engine keeps holding, nothing moves on; back in front the step runs afresh.
+          const facts = await stageFacts(page)
+          // Headless Chrome keeps every tab visible (another tab in front changes nothing): the page is told it is hidden the
+          // way the browser tells it - visibilityState and the visibilitychange event.
+          const visibility = (hidden: boolean) =>
+            page.evaluate((hide) => {
+              if (hide) {
+                Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" })
+                Object.defineProperty(document, "hidden", { configurable: true, get: () => true })
+              } else {
+                delete (document as unknown as Record<string, unknown>)["visibilityState"]
+                delete (document as unknown as Record<string, unknown>)["hidden"]
+              }
+              document.dispatchEvent(new Event("visibilitychange"))
+              return document.visibilityState
+            }, hidden)
+          const hidden = await visibility(true)
+          const steps = (await stageLog(page)).steps.length
+          const releasesBefore = (await recordedInputs(page))["observation.release"] ?? 0
+          await page.waitForTimeout(5000)
+          const stillSteps = (await stageLog(page)).steps.length
+          const stillKey = (await stageFacts(page))?.["key"]
+          const status = await stage.locator("[data-stage-status]").textContent()
+          const releasesHidden = ((await recordedInputs(page))["observation.release"] ?? 0) - releasesBefore
+          const shown = await visibility(false)
+          await page.waitForFunction((key) => document.querySelector('[data-slot="opponent-stage"]')?.getAttribute("data-step") !== key, facts?.["key"], { timeout: 15_000 }).catch(() => undefined)
+          const movedOn = await page.evaluate((key) => document.querySelector('[data-slot="opponent-stage"]')?.getAttribute("data-step") !== key, facts?.["key"])
+          background = { simulated: "visibilityState + visibilitychange", key: facts?.["key"], hidden, shown, status, stepsBefore: steps, stepsWhileHidden: stillSteps - steps, releasesWhileHidden: releasesHidden, keyAfterHidden: stillKey, movedOnAfterShown: movedOn }
+          check(hidden === "hidden" && stillSteps === steps && releasesHidden === 0 && stillKey === facts?.["key"] && movedOn, `${label}: in the background the stage moved on ${JSON.stringify(background)}`)
+          continue
+        }
+        if (phase === "normal" && lessMotion === null) {
+          await page.emulateMedia({ reducedMotion: "reduce" })
+          const next = await page.waitForFunction(() => document.querySelector('[data-slot="opponent-stage"]')?.getAttribute("data-step"), undefined, { timeout: 60_000 }).then((h) => h.jsonValue())
+          await page.waitForTimeout(100)
+          const facts = await stageFacts(page)
+          lessMotion = { key: next, animations: facts?.["animations"], timer: await page.locator(".table-stage-timer").count() }
+          check(facts?.["animations"] === 0, `${label}: under less motion the stage animates ${JSON.stringify(lessMotion)}`)
+          await shot("less-motion")
+          await page.emulateMedia({ reducedMotion: "no-preference" })
+          continue
+        }
+        // Let the tempo run.
+        await page.waitForTimeout(200)
+        continue
+      }
+      const view = await readTable(page)
+      if (view.turn !== lastTurn) {
+        lastTurn = view.turn
+        // Switch the tempo during the game: Schnell, then Langsam, then stepwise - each from the next turn of the AI on.
+        const seen = (await stageLog(page)).steps.filter((each) => each.actor === "opponent").length
+        if (phase === "normal" && background !== null && lessMotion !== null && seen >= 6) {
+          tempoMarks["fast"] = (await stageLog(page)).steps.length
+          await setOpponentTempo(page, "Schnell", false)
+          phase = "fast"
+        } else if (phase === "fast" && (await stageLog(page)).steps.length - (tempoMarks["fast"] ?? 0) >= 3) {
+          tempoMarks["slow"] = (await stageLog(page)).steps.length
+          await setOpponentTempo(page, "Langsam", false)
+          phase = "slow"
+        } else if (phase === "slow" && (await stageLog(page)).steps.length - (tempoMarks["slow"] ?? 0) >= 3) {
+          tempoMarks["stepwise"] = (await stageLog(page)).steps.length
+          await setOpponentTempo(page, "Normal", true)
+          phase = "stepwise"
+        }
+      }
+      if (view.kind === "Mulligan") {
+        await press("Behalten")
+      } else if (view.kind === "Priorität") {
+        const stackEmpty = view.answers.some((button) => button.meaning === "pass" && button.name === "Weiter")
+        const mine = view.owner === "me" && (view.phase === "MAIN1" || view.phase === "MAIN2") && stackEmpty
+        const playable = view.hand.filter((each) => each.mark === "usable")
+        const shock = playable.find((each) => named(each.label, ["Schock", "Shock"]))
+        const interrupt = page.locator("[data-interrupt]")
+        if (!stackEmpty && stackMoments.length < 30) stackMoments.push({ turn: view.turn, owner: view.owner, phase: view.phase, interrupt: await interrupt.count(), shock: shock !== undefined, casting, text: view.text })
+        if (casting) {
+          await press(stackEmpty ? "Weiter" : "Verrechnen lassen")
+          if (stackEmpty) casting = false
+          continue
+        }
+        if (reaction === null && !stackEmpty && view.owner === "ai" && (await interrupt.count()) > 0 && shock !== undefined) {
+          // A real decision of the player's in the AI's turn: the interruption is shown, Forge's controls are there at once.
+          const words = ((await interrupt.textContent()) ?? "").trim()
+          const stageGone = (await stage.count()) === 0
+          await shot("interrupt")
+          await dragCard(page, handCard(shock.id), await battlefieldPoint(page), touch)
+          await page.waitForFunction((question) => document.querySelector('[data-slot="game-decision"]')?.getAttribute("data-question") !== question, view.question, { timeout: 60_000 })
+          await waitForDecision(page)
+          const target = page.locator('[data-area="opponent"] button[data-slot="game-player"][data-mark="usable"]')
+          if ((await target.count()) === 1) {
+            await page.waitForTimeout(ARMED_AFTER_MS)
+            await activate(target)
+          }
+          reaction = { words, stageGone, turn: view.turn, spellOnStack: view.text }
+          check(stageGone && words.startsWith("Unterbrechung"), `${label}: the interruption is not shown ${JSON.stringify(reaction)}`)
+          casting = true
+          continue
+        }
+        const land = playable.find((each) => named(each.label, ["Gebirge", "Mountain"]))
+        if (mine && land !== undefined && !lands.some((each) => each.turn === view.turn)) {
+          await dragCard(page, handCard(land.id), await battlefieldPoint(page), touch)
+          await page.waitForFunction((id) => document.querySelector(`section[aria-label="Dein Spielfeld"] [data-card="${id}"], section[aria-label="Dein Spielfeld"] [data-pile-cards~="${id}"]`) !== null, String(land.id), { timeout: 60_000 })
+          lands.push({ turn: view.turn, owner: view.owner })
+          continue
+        }
+        await press(stackEmpty ? "Weiter" : "Verrechnen lassen")
+      } else if (view.kind === "Auswahl") {
+        const ok = view.answers.find((button) => button.enabled && button.name === "OK")
+        if (ok !== undefined) await press("OK")
+        else {
+          const target = page.locator('[data-area="opponent"] button[data-slot="game-player"][data-mark="usable"]')
+          await page.waitForTimeout(ARMED_AFTER_MS)
+          if ((await target.count()) > 0) await activate(target.first())
+          else await activate(page.locator('[data-area="hand"] button[data-slot="game-card"][data-mark="usable"]').first())
+        }
+        await page.waitForTimeout(ARMED_AFTER_MS)
+      } else if (view.kind === "Kosten bezahlen") {
+        await press(view.answers.find((button) => button.enabled && button.name !== "Abbrechen")!.name)
+      } else if (view.kind === "Angreifer wählen" || view.kind === "Angriff bestätigen" || view.kind === "Blocker wählen") {
+        await press(view.answers.find((button) => button.enabled)!.name)
+      } else {
+        await press(view.answers.find((button) => button.enabled)!.name)
+      }
+      const log = await stageLog(page)
+      const kinds = new Set(log.steps.filter((each) => each.actor === "opponent").map((each) => each.kind))
+      if (phase === "done" && reaction !== null && lands.length >= 2 && kinds.has("land") && kinds.has("cast") && kinds.has("attack") && log.steps.some((each) => each.kind === "resolve")) break
+    }
+    const log = await stageLog(page)
+    const opponentSteps = log.steps.filter((each) => each.actor === "opponent")
+    const kinds = [...new Set(log.steps.map((each) => each.kind))]
+    // The tempo: the time between consecutive steps of one held run (a step followed by the next within its observation or the next one).
+    const gaps = (from: number, to: number) => log.steps.slice(from, to).map((each, at, all) => (at + 1 < all.length ? all[at + 1]!.at - each.at : null)).filter((gap): gap is number => gap !== null && gap < 8000)
+    const median = (values: readonly number[]) => (values.length === 0 ? null : [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)]!)
+    const tempo = {
+      normal: median(gaps(0, tempoMarks["fast"] ?? log.steps.length)),
+      fast: tempoMarks["fast"] !== undefined ? median(gaps(tempoMarks["fast"], tempoMarks["slow"] ?? log.steps.length)) : null,
+      slow: tempoMarks["slow"] !== undefined ? median(gaps(tempoMarks["slow"], tempoMarks["stepwise"] ?? log.steps.length)) : null,
+    }
+    results["tempoMedianMs"] = tempo
+    check(tempo.normal !== null && tempo.normal >= 1500 && tempo.normal <= 4500, `${label}: Normal does not hold each step for about 1.7 s ${JSON.stringify(tempo)}`)
+    check(tempo.fast === null || (tempo.normal !== null && tempo.fast < tempo.normal), `${label}: Schnell is not faster than Normal ${JSON.stringify(tempo)}`)
+    check(tempo.slow === null || (tempo.normal !== null && tempo.slow > tempo.normal), `${label}: Langsam is not slower than Normal ${JSON.stringify(tempo)}`)
+    check(opponentSteps.some((each) => each.kind === "land") && opponentSteps.some((each) => each.kind === "cast") && log.steps.some((each) => each.kind === "resolve"), `${label}: the AI's land, spell and resolution were not all shown ${JSON.stringify(kinds)}`)
+    check(opponentSteps.some((each) => each.kind === "attack"), `${label}: the AI's attack was not shown ${JSON.stringify(kinds)}`)
+    check(log.steps.some((each) => each.kind === "turn") || log.bands.length > 0, `${label}: no change of turn was shown`)
+    const ownTurns = [...new Set(lands.map((each) => each.turn))]
+    check(lands.length >= 2 && ownTurns.length === lands.length && lands.every((each) => each.owner === "me"), `${label}: the player's lands are not in distinct own turns ${JSON.stringify(lands)}`)
+    // Between two lands of the player the AI's turn was shown (its beginning on the stage or as a band).
+    const aiTurnShown = log.steps.some((each) => each.kind === "turn" && each.actor === "opponent") || log.bands.some((each) => each.seat === "opponent")
+    check(aiTurnShown, `${label}: the AI's turn beginning was never shown`)
+    check(reaction !== null, `${label}: no real decision interrupted the AI's turn`)
+    check(stepwiseFacts !== null, `${label}: the stepwise mode was not reached`)
+    results["lands"] = lands
+    results["reaction"] = reaction
+    results["stackMoments"] = stackMoments
+    results["stepwise"] = stepwiseFacts
+    results["background"] = background
+    results["lessMotion"] = lessMotion
+    results["layouts"] = layouts
+    results["stageSteps"] = log.steps.map((each) => ({ key: each.key, kind: each.kind, actor: each.actor, title: each.title, cards: each.cards, status: each.status, at: Math.round(each.at) }))
+    results["bands"] = log.bands
+    results["inputs"] = await recordedInputs(page)
+    await shot("end")
+
+    // The recording replays the same public steps, read only.
+    const matchId = (((await dumpDatabase(page, ["matches"]))["matches"] ?? []) as { id: string }[])[0]?.id
+    await concedeGame(page)
+    // The recording is complete once nothing more arrives (match.finished follows the result).
+    let logEntries: { seq: number; from: string; message: { type: string; hold?: boolean } }[] = []
+    for (let tries = 0; tries < 20; tries++) {
+      await page.waitForTimeout(500)
+      const read = ((await dumpDatabase(page, ["matchLog"]))["matchLog"] ?? []) as typeof logEntries
+      if (read.length === logEntries.length && tries > 0) break
+      logEntries = read
+    }
+    const before = JSON.stringify(logEntries)
+    if (matchId !== undefined) {
+      await page.goto(new URL(`/matches/${matchId}`, base).href, { waitUntil: "domcontentloaded" })
+      await page.getByRole("button", { name: "Nächster Schritt", exact: true }).waitFor({ timeout: 60_000 })
+      // The frame of the first held observation: entries before the first state make no frame.
+      const firstState = logEntries.findIndex((entry) => entry.from === "engine" && entry.message.type === "state")
+      const held = logEntries.findIndex((entry) => entry.from === "engine" && entry.message.type === "observation" && entry.message.hold === true)
+      const frame = held - firstState + 1
+      await page.getByRole("button", { name: "Wiedergabemenü" }).click()
+      await page.getByLabel(/Schritt wählen/).fill(String(frame))
+      await page.getByRole("button", { name: "Zum Schritt" }).click()
+      await page.keyboard.press("Escape")
+      await page.waitForFunction(() => document.querySelector('[role="dialog"]') === null)
+      const replayStage = page.locator('[data-slot="opponent-stage"]')
+      await replayStage.waitFor({ timeout: 10_000 })
+      const replayFacts = await stageFacts(page)
+      const replayLabel = await replayStage.getAttribute("aria-label")
+      await page.screenshot({ path: path.join(reportDir, "screens", `opponent-${viewport.name}-replay.png`) })
+      const after = JSON.stringify(((await dumpDatabase(page, ["matchLog"]))["matchLog"] ?? []))
+      results["replay"] = { frame, label: replayLabel, step: replayFacts?.["title"], unchanged: after === before, axe: await accessibility(page, `${label}: replay stage`) }
+      check(replayLabel === "Aufgezeichnete Aktion" && after === before, `${label}: the replay's stage is not read only ${JSON.stringify(results["replay"])}`)
+    }
+    for (const error of pageLog.errors) check(false, `${label}: ${error}`)
+    results["ms"] = Date.now() - started
+    results["screens"] = shots
+    return results
+  } catch (error) {
+    await page.screenshot({ path: path.join(reportDir, "screens", `opponent-${viewport.name}-failure.png`) }).catch(() => undefined)
+    check(false, `${label}: ${error instanceof Error ? error.message : String(error)}`)
+    return { ...results, error: String(error) }
   } finally {
     await context.close()
   }
@@ -6676,6 +7217,14 @@ async function main(): Promise<void> {
     } else if (dragOnly) {
       report["scope"] = "Playing by dragging in two real games with the real engine (mouse on a desktop, a thumb on a phone); no complete application suite."
       report["drag"] = { desktop: await dragInRealGame(browser, base, VIEWPORTS[2]!), phone: await dragInRealGame(browser, base, VIEWPORTS[0]!) }
+    } else if (opponentOnly) {
+      report["scope"] = "Following the opponent's turn in two real games with the real engine (a thumb on a phone, mouse and keyboard on a desktop): stage, tempo, stepwise \"Weiter\", interruption, layouts, background, less motion, settings and replay; no complete application suite."
+      // OPENMANA_OPPONENT_ONLY=phone|desktop runs one of the two games (while working on it); both by default.
+      const which = process.env["OPENMANA_OPPONENT_ONLY"]
+      report["opponent"] = {
+        ...(which === "desktop" ? {} : { phone: await opponentTurnInRealGame(browser, base, VIEWPORTS[0]!) }),
+        ...(which === "phone" ? {} : { desktop: await opponentTurnInRealGame(browser, base, VIEWPORTS[2]!) }),
+      }
     } else if (focusedTable || tableOnly) {
       report["scope"] = tableOnly ? `All ${(TABLE_SCENES.length + BUILT_SCENES.length) * TABLE_VIEWPORTS.length} recorded/built scene/viewport checks and every original table/history/decision/combat/zone interaction; no fresh engine boot or complete application suite.` : helpOnly ? "Recorded Forge scenes and explicitly built question families; help, target markings, three viewports; no engine boot or full application suite." : historyOnly ? "Recorded real Forge log entries and current card inspection, three viewports; no engine boot or full application suite." : zonesOnly ? "Recorded Forge zones and explicitly built DFC presentation, three viewports, one page at a time; no engine boot or complete application regression suite." : "Recorded Forge combat scenes and one built order request, three viewports, one page at a time; no engine boot or complete application regression suite."
       await browser.close()

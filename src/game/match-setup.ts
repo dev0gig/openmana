@@ -10,7 +10,7 @@
  * 02-05), which the match recording can keep (prompt 22). Every game still
  * gets its own random seed.
  */
-import type { MatchRequest } from "@openmana/engine-protocol"
+import type { MatchRequest, MatchSettings } from "@openmana/engine-protocol"
 import { drawAiDeck, type PlaySelection } from "@/decks/deck-selection"
 import type { MatchSetup } from "@/engine/engine-session"
 import type { DeckRecord } from "@/storage/generated/records"
@@ -38,6 +38,13 @@ export interface MatchSetupOptions {
   readonly profile?: string
   /** The profile was drawn at random. */
   readonly profileDrawn?: boolean
+  /**
+   * Protocol 10 (prompt 49): the game's settings - the app asks the engine to
+   * hold the opponent's actions for looking (observation "hold") and passes
+   * the player's choice of Forge's auto-pass. Absent: Forge's defaults
+   * (observation off, auto-pass noActions), as before.
+   */
+  readonly settings?: MatchSettings
 }
 
 /** Both decks as Forge gets them, in the player's deck's format (Forge plays both in one). */
@@ -47,6 +54,7 @@ export function matchSetup(human: DeckRecord, ai: DeckRecord, options: MatchSetu
     format: human.format,
     human: { name: HUMAN_NAME, deck: engineDeck(human) },
     ai: { name: AI_NAME, profile: options.profile ?? DEFAULT_AI_PROFILE, deck: engineDeck(ai) },
+    ...(options.settings !== undefined ? { settings: options.settings } : {}),
   }
   return {
     request,
@@ -61,6 +69,8 @@ export interface PlanOptions {
   /** In [0, 1): the random draws of deck and profile (Math.random by default). */
   readonly random?: () => number
   readonly seed?: number
+  /** The game's settings (MatchSetupOptions.settings). */
+  readonly settings?: MatchSettings
 }
 
 /**
@@ -77,5 +87,5 @@ export function planGame(selection: PlaySelection, options: PlanOptions = {}): M
   const deck = ai.status === "ok" ? ai.deck : ai.status === "random" && ai.pool !== null && ai.pool.length > 0 ? drawAiDeck(ai.pool, options.random) : null
   if (deck === null) return null
   const profile = chosen.status === "random" ? drawAiProfile(chosen.pool, options.random).name : chosen.profile.name
-  return matchSetup(human, deck, { seed, drawn: ai.status === "random", profile, profileDrawn: chosen.status === "random" })
+  return matchSetup(human, deck, { seed, drawn: ai.status === "random", profile, profileDrawn: chosen.status === "random", ...(options.settings !== undefined ? { settings: options.settings } : {}) })
 }

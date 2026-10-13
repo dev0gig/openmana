@@ -18,7 +18,9 @@ import { CardCatalogProvider } from "@/cards/card-catalog-context"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { AI_DECK, HUMAN_DECK } from "@/decks/deck-selection"
+import type { VisibleCard } from "@openmana/engine-protocol"
 import { AI_PROFILE, type AiProfileChoice } from "./ai-profiles"
+import { AUTO_PASS, OPPONENT_STEPWISE } from "./opponent-tempo"
 import { AI_PROFILE_TABLE } from "./ai-profile-table"
 import { EngineSessionProvider } from "@/engine/engine-session-context"
 import { PlayPage } from "@/routes/play-page"
@@ -112,6 +114,8 @@ describe("the play page", () => {
     expect(start?.match.human).toEqual({ name: "Spieler", deck: { name: "Rot", main: [{ card: "Mountain", count: 24 }, { card: "Shock", count: 36 }] } })
     expect(start?.match.ai).toEqual({ name: "Forge-KI", profile: "Default", deck: { name: "Grün", main: [{ card: "Forest", count: 24 }, { card: "Grizzly Bears", count: 36 }] } })
     expect(Number.isSafeInteger(start?.match.seed)).toBe(true)
+    // Prompt 49: the engine holds the AI's actions for looking; Forge's auto-pass as the player chose (the default APINA).
+    expect(start?.match.settings).toEqual({ observation: "hold", autoPass: "noActions" })
     expect(await screen.findByRole("region", { name: "Forge baut die Partie auf" })).toBeInTheDocument()
     expect(engine.workers).toHaveLength(1)
   })
@@ -237,6 +241,112 @@ async function runningGame(): Promise<TestEngine> {
   engine.worker().startGame()
   return engine
 }
+
+describe("the game page: the opponent's turn (prompt 49)", () => {
+  const forest: VisibleCard = { id: 40, key: "Forest", name: "Wald", typeLine: "Standardland — Wald", tapped: false, sick: false, faceDown: false, damage: 0, owner: 1, controller: 1 }
+  const bears: VisibleCard = { id: 41, key: "Grizzly Bears", name: "Grizzlybären", typeLine: "Kreatur — Bär", power: 2, toughness: 2, tapped: false, sick: false, faceDown: false, damage: 0, owner: 1, controller: 1 }
+
+  it("Forge's auto-pass as saved reaches the running game; each held action of the AI on the stage, released only by \"Weiter\"; a real decision interrupts", { timeout: 20_000 }, async () => {
+    let clock = 50_000
+    vi.spyOn(performance, "now").mockImplementation(() => clock)
+    const user = userEvent.setup()
+    await store([RED, GREEN])
+    const db = await openTestDatabase()
+    await writeSetting(db, OPPONENT_STEPWISE, true)
+    await writeSetting(db, AUTO_PASS, "never")
+    db.close()
+    const engine = await runningGame()
+    renderAt("/play/game", engine)
+    const decision = await screen.findByRole("region", { name: "Entscheidung" })
+    const header = screen.getByRole("region", { name: "Spielstand" })
+    // Forge confirms the start's settings; the saved auto-pass differs: sent once through settings.change.
+    act(() => engine.worker().send({ type: "settings.applied", seq: null, observation: "hold", autoPass: "noActions" }))
+    await waitFor(() => expect(engine.worker().inputs()).toEqual([{ type: "settings.change", seq: 1, autoPass: "never" }]))
+    act(() => {
+      engine.worker().send({ type: "settings.applied", seq: 1, observation: "hold", autoPass: "never" })
+      engine.worker().send({ type: "engine.waiting", consumed: 1 })
+    })
+    clock += ARMING_MS
+    await user.click(within(decision).getByRole("button", { name: "Behalten" }))
+    expect(engine.worker().inputs()).toEqual([{ type: "answer", seq: 2, question: 1, kind: "buttons", button: 1 }])
+
+    // The AI's turn begins and the engine holds it: the stage says whose turn, the header and the decision that Forge holds.
+    act(() => {
+      engine.worker().send({ type: "question.answered", id: 1, seq: 2 })
+      engine.worker().send(gameState(4, { turn: 2, phase: "UPKEEP", activePlayer: 1 }))
+      engine.worker().send({ type: "observation", id: 1, hold: true, state: 4, actions: [{ n: 1, kind: "turnEnd", player: 1, turn: 1 }, { n: 2, kind: "turn", player: 1, turn: 2 }] })
+      engine.worker().send({ type: "engine.waiting", consumed: 2 })
+    })
+    const stage = await screen.findByRole("region", { name: "Gegnerzug ansehen" })
+    expect(within(stage).getByRole("heading", { level: 2 })).toHaveTextContent("Zug 2Die Forge-KI ist am Zug")
+    expect(within(stage).getByText("Wartet auf „Weiter“ – Forge hält so lange an.")).toBeInTheDocument()
+    expect(within(header).getByText("Gegnerzug")).toBeInTheDocument()
+    expect(within(header).queryByText("Du bist dran")).not.toBeInTheDocument()
+    expect(within(decision).getByText("Forge hält an – sieh dir die Aktion der Forge-KI an.")).toBeInTheDocument()
+    // Looking sends nothing, however long.
+    clock += 60_000
+    expect(engine.worker().inputs()).toEqual([])
+    // "Weiter" right after the step appeared is dropped; armed, it releases exactly this observation - no answer, no pass.
+    const next = within(stage).getByRole("button", { name: "Weiter – nächste Aktion ansehen" })
+    await user.click(next)
+    expect(engine.worker().inputs()).toEqual([{ type: "observation.release", seq: 3, observation: 1 }])
+    await user.click(next)
+    expect(engine.worker().inputs()).toEqual([])
+
+    // The AI plays a land: its card on the stage.
+    act(() => {
+      engine.worker().send({ type: "observation.released", id: 1, seq: 3, by: "release" })
+      const state = gameState(5, { turn: 2, phase: "MAIN1", activePlayer: 1 })
+      engine.worker().send({ ...state, players: [state.players[0]!, { ...state.players[1]!, zones: { ...state.players[1]!.zones, battlefield: [forest] } }] })
+      engine.worker().send({ type: "observation", id: 2, hold: true, state: 5, actions: [{ n: 3, kind: "land", player: 1, card: forest }] })
+      engine.worker().send({ type: "engine.waiting", consumed: 3 })
+    })
+    expect(await screen.findByRole("heading", { level: 2, name: "Die Forge-KI spielt ein Land: Wald" })).toBeInTheDocument()
+    // The card large and whole (here without card data: Forge's words for it, never an empty box).
+    const shown = screen.getByRole("region", { name: "Gegnerzug ansehen" }).querySelector('[data-stage-card="40"]')
+    expect(shown).not.toBeNull()
+    expect(shown).toHaveTextContent("Wald")
+    clock += ARMING_MS
+    await user.click(screen.getByRole("button", { name: "Weiter – nächste Aktion ansehen" }))
+    expect(engine.worker().inputs()).toEqual([{ type: "observation.release", seq: 4, observation: 2 }])
+
+    // The AI casts the Bears (held, seen), then Forge asks the player about the spell on the stack: the stage is gone, the interruption says why, Forge's buttons are there.
+    act(() => {
+      engine.worker().send({ type: "observation.released", id: 2, seq: 4, by: "release" })
+      const state = gameState(6, { turn: 2, phase: "MAIN1", activePlayer: 1 })
+      engine.worker().send({ ...state, stack: [{ id: 9, text: "Grizzlybären", source: 41, card: bears, player: 1, ability: false, trigger: false, targets: [] }] })
+      engine.worker().send({ type: "observation", id: 3, hold: true, state: 6, actions: [{ n: 4, kind: "cast", player: 1, card: bears, targets: [] }] })
+      engine.worker().send({ type: "engine.waiting", consumed: 4 })
+    })
+    expect(await screen.findByRole("heading", { level: 2, name: "Die Forge-KI wirkt Grizzlybären" })).toBeInTheDocument()
+    clock += ARMING_MS
+    await user.click(screen.getByRole("button", { name: "Weiter – nächste Aktion ansehen" }))
+    expect(engine.worker().inputs()).toEqual([{ type: "observation.release", seq: 5, observation: 3 }])
+    // As the worker sends them: the question a moment before Forge reports waiting (two renders - not an answer).
+    act(() => {
+      engine.worker().send({ type: "observation.released", id: 3, seq: 5, by: "release" })
+      engine.worker().send({ type: "question", kind: "buttons", id: 2, blocking: false, text: "", purpose: "priority", buttons: PRIORITY_BUTTONS })
+    })
+    act(() => engine.worker().send({ type: "engine.waiting", consumed: 5 }))
+    expect(await within(decision).findByText("Unterbrechung: Die Forge-KI wirkt Grizzlybären")).toBeInTheDocument()
+    expect(screen.queryByRole("region", { name: "Gegnerzug ansehen" })).not.toBeInTheDocument()
+    expect(within(header).getByText("Du bist dran")).toBeInTheDocument()
+    const pass = await within(decision).findByRole("button", { name: "Verrechnen lassen" })
+    // Answered (passed): the interruption goes, and does not come back for Forge's next question about the same spell.
+    clock += ARMING_MS
+    await user.click(pass)
+    expect(engine.worker().inputs()).toEqual([{ type: "answer", seq: 6, question: 2, kind: "buttons", button: 1 }])
+    await waitFor(() => expect(within(decision).queryByText("Unterbrechung: Die Forge-KI wirkt Grizzlybären")).not.toBeInTheDocument())
+    act(() => {
+      engine.worker().send({ type: "question.answered", id: 2, seq: 6 })
+      engine.worker().send({ type: "question", kind: "buttons", id: 3, blocking: false, text: "", purpose: "priority", buttons: PRIORITY_BUTTONS })
+      engine.worker().send({ type: "engine.waiting", consumed: 6 })
+    })
+    await within(decision).findByRole("button", { name: "Verrechnen lassen" })
+    expect(within(decision).queryByText("Unterbrechung: Die Forge-KI wirkt Grizzlybären")).not.toBeInTheDocument()
+    vi.restoreAllMocks()
+  })
+})
 
 describe("the game page: cards (prompt 14)", () => {
   it("looking at a card sends nothing; its view's button - armed a moment after it appears - sends Forge's card.tap; the table then shows Forge computing", { timeout: 20_000 }, async () => {

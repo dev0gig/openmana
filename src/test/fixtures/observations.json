@@ -1,0 +1,4130 @@
+{
+ "comment": "Real observations of the Forge engine (protocol 10) for the tests of the opponent's turn - written by scripts/record-observations.ts, never edited.",
+ "engineManifestSha256": "f25d52a52720f6499eb5b5015006e2aeba59e78e0333c714f34b4e6041e6b2fe",
+ "observations": [
+  {
+   "name": "held-turn-opponent",
+   "fixture": "priority-respond-observe",
+   "observation": {
+    "type": "observation",
+    "id": 3,
+    "hold": true,
+    "state": 21,
+    "actions": [
+     {
+      "n": 3,
+      "kind": "turnEnd",
+      "player": 1,
+      "turn": 1
+     },
+     {
+      "n": 4,
+      "kind": "turn",
+      "player": 1,
+      "turn": 2
+     }
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 21,
+    "running": true,
+    "turn": 2,
+    "phase": "UPKEEP",
+    "activePlayer": 1,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 20,
+      "hasPriority": false,
+      "canAct": true,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 16,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "hand": [
+        {
+         "id": 8,
+         "key": "Lightning Strike",
+         "name": "Blitzeinschlag",
+         "typeLine": "Spontanzauber",
+         "cost": "{1}{R}",
+         "set": "MSH",
+         "text": "Der Blitzeinschlag fügt einem Ziel deiner Wahl 3 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 24,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "landRefusal": "notYourTurn"
+        },
+        {
+         "id": 28,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "text": "Bonus {4} (Du kannst zusätzlich {4} bezahlen, sowie du diesen Zauberspruch wirkst.)\r\n\r\nDer Geborstene Blitz fügt einem Ziel deiner Wahl 2 Schadenspunkte zu. Falls die Bonuskosten dieses Zauberspruchs bezahlt wurden, fügt er stattdessen 4 Schadenspunkte zu.",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 29,
+         "key": "Shock",
+         "name": "Schock",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "MSC",
+         "text": "Der Schock fügt einem Ziel deiner Wahl 2 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 26,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "text": "Bonus {4} (Du kannst zusätzlich {4} bezahlen, sowie du diesen Zauberspruch wirkst.)\r\n\r\nDer Geborstene Blitz fügt einem Ziel deiner Wahl 2 Schadenspunkte zu. Falls die Bonuskosten dieses Zauberspruchs bezahlt wurden, fügt er stattdessen 4 Schadenspunkte zu.",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "graveyard": [],
+       "exile": [],
+       "command": []
+      },
+      "library": 34,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 20,
+      "hasPriority": true,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [],
+       "hand": [
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [],
+       "exile": [],
+       "command": []
+      },
+      "library": 53,
+      "commanders": []
+     }
+    ],
+    "stack": [],
+    "combat": []
+   },
+   "questions": []
+  },
+  {
+   "name": "held-turn-me",
+   "fixture": "priority-respond-observe",
+   "observation": {
+    "type": "observation",
+    "id": 1,
+    "hold": true,
+    "state": 10,
+    "actions": [
+     {
+      "n": 1,
+      "kind": "turn",
+      "player": 0,
+      "turn": 1
+     }
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 10,
+    "running": true,
+    "turn": 1,
+    "phase": "UPKEEP",
+    "activePlayer": 0,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 20,
+      "hasPriority": false,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [],
+       "hand": [
+        {
+         "id": 8,
+         "key": "Lightning Strike",
+         "name": "Blitzeinschlag",
+         "typeLine": "Spontanzauber",
+         "cost": "{1}{R}",
+         "set": "MSH",
+         "text": "Der Blitzeinschlag fügt einem Ziel deiner Wahl 3 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 16,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "landRefusal": "timing"
+        },
+        {
+         "id": 24,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "landRefusal": "timing"
+        },
+        {
+         "id": 28,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "text": "Bonus {4} (Du kannst zusätzlich {4} bezahlen, sowie du diesen Zauberspruch wirkst.)\r\n\r\nDer Geborstene Blitz fügt einem Ziel deiner Wahl 2 Schadenspunkte zu. Falls die Bonuskosten dieses Zauberspruchs bezahlt wurden, fügt er stattdessen 4 Schadenspunkte zu.",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 29,
+         "key": "Shock",
+         "name": "Schock",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "MSC",
+         "text": "Der Schock fügt einem Ziel deiner Wahl 2 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 26,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "text": "Bonus {4} (Du kannst zusätzlich {4} bezahlen, sowie du diesen Zauberspruch wirkst.)\r\n\r\nDer Geborstene Blitz fügt einem Ziel deiner Wahl 2 Schadenspunkte zu. Falls die Bonuskosten dieses Zauberspruchs bezahlt wurden, fügt er stattdessen 4 Schadenspunkte zu.",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "graveyard": [],
+       "exile": [],
+       "command": []
+      },
+      "library": 34,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 20,
+      "hasPriority": true,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [],
+       "hand": [
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [],
+       "exile": [],
+       "command": []
+      },
+      "library": 53,
+      "commanders": []
+     }
+    ],
+    "stack": [],
+    "combat": []
+   },
+   "questions": []
+  },
+  {
+   "name": "unheld-turn-me",
+   "fixture": "priority-respond-observe",
+   "observation": {
+    "type": "observation",
+    "id": 9,
+    "hold": false,
+    "state": 42,
+    "actions": [
+     {
+      "n": 10,
+      "kind": "turnEnd",
+      "player": 0,
+      "turn": 2
+     },
+     {
+      "n": 11,
+      "kind": "turn",
+      "player": 0,
+      "turn": 3
+     }
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 42,
+    "running": true,
+    "turn": 3,
+    "phase": "UPKEEP",
+    "activePlayer": 0,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 20,
+      "hasPriority": true,
+      "canAct": true,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 16,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "action": "Aktiviere Fähigkeit"
+        }
+       ],
+       "hand": [
+        {
+         "id": 8,
+         "key": "Lightning Strike",
+         "name": "Blitzeinschlag",
+         "typeLine": "Spontanzauber",
+         "cost": "{1}{R}",
+         "set": "MSH",
+         "text": "Der Blitzeinschlag fügt einem Ziel deiner Wahl 3 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "action": "Einen Zauberspruch sprechen"
+        },
+        {
+         "id": 24,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "landRefusal": "timing"
+        },
+        {
+         "id": 29,
+         "key": "Shock",
+         "name": "Schock",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "MSC",
+         "text": "Der Schock fügt einem Ziel deiner Wahl 2 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "playable": true,
+         "action": "Einen Zauberspruch sprechen"
+        },
+        {
+         "id": 26,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "text": "Bonus {4} (Du kannst zusätzlich {4} bezahlen, sowie du diesen Zauberspruch wirkst.)\r\n\r\nDer Geborstene Blitz fügt einem Ziel deiner Wahl 2 Schadenspunkte zu. Falls die Bonuskosten dieses Zauberspruchs bezahlt wurden, fügt er stattdessen 4 Schadenspunkte zu.",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "playable": true,
+         "action": "Einen Zauberspruch sprechen"
+        }
+       ],
+       "graveyard": [
+        {
+         "id": 28,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 34,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 18,
+      "hasPriority": false,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 95,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 72,
+         "key": "Llanowar Elves",
+         "name": "Llanowarelfen",
+         "typeLine": "Beschwörung von Elfen",
+         "cost": "{G}",
+         "set": "SLZ",
+         "power": 1,
+         "toughness": 1,
+         "text": "{T}: Erhöhe Deinen Manavorrat um G. Spiele diese Eigenschaft wie einen Unterbrechungszauber.",
+         "tapped": false,
+         "sick": true,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "hand": [
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [],
+       "exile": [],
+       "command": []
+      },
+      "library": 52,
+      "commanders": []
+     }
+    ],
+    "stack": [],
+    "combat": []
+   },
+   "questions": []
+  },
+  {
+   "name": "held-land",
+   "fixture": "priority-respond-observe",
+   "observation": {
+    "type": "observation",
+    "id": 4,
+    "hold": true,
+    "state": 24,
+    "actions": [
+     {
+      "n": 5,
+      "kind": "land",
+      "player": 1,
+      "card": {
+       "id": 95,
+       "key": "Forest",
+       "name": "Forest",
+       "typeLine": "Basic Land — Forest",
+       "set": "TRK",
+       "text": "({T}: Add {G}.)",
+       "tapped": false,
+       "sick": false,
+       "faceDown": false,
+       "damage": 0,
+       "owner": 1,
+       "controller": 1
+      }
+     }
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 24,
+    "running": true,
+    "turn": 2,
+    "phase": "MAIN1",
+    "activePlayer": 1,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 20,
+      "hasPriority": false,
+      "canAct": true,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 16,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "hand": [
+        {
+         "id": 8,
+         "key": "Lightning Strike",
+         "name": "Blitzeinschlag",
+         "typeLine": "Spontanzauber",
+         "cost": "{1}{R}",
+         "set": "MSH",
+         "text": "Der Blitzeinschlag fügt einem Ziel deiner Wahl 3 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 24,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "landRefusal": "notYourTurn"
+        },
+        {
+         "id": 28,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "text": "Bonus {4} (Du kannst zusätzlich {4} bezahlen, sowie du diesen Zauberspruch wirkst.)\r\n\r\nDer Geborstene Blitz fügt einem Ziel deiner Wahl 2 Schadenspunkte zu. Falls die Bonuskosten dieses Zauberspruchs bezahlt wurden, fügt er stattdessen 4 Schadenspunkte zu.",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 29,
+         "key": "Shock",
+         "name": "Schock",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "MSC",
+         "text": "Der Schock fügt einem Ziel deiner Wahl 2 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 26,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "text": "Bonus {4} (Du kannst zusätzlich {4} bezahlen, sowie du diesen Zauberspruch wirkst.)\r\n\r\nDer Geborstene Blitz fügt einem Ziel deiner Wahl 2 Schadenspunkte zu. Falls die Bonuskosten dieses Zauberspruchs bezahlt wurden, fügt er stattdessen 4 Schadenspunkte zu.",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "graveyard": [],
+       "exile": [],
+       "command": []
+      },
+      "library": 34,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 20,
+      "hasPriority": true,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 1,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 95,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "hand": [
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [],
+       "exile": [],
+       "command": []
+      },
+      "library": 52,
+      "commanders": []
+     }
+    ],
+    "stack": [],
+    "combat": []
+   },
+   "questions": []
+  },
+  {
+   "name": "held-cast",
+   "fixture": "priority-respond-observe",
+   "observation": {
+    "type": "observation",
+    "id": 5,
+    "hold": true,
+    "state": 29,
+    "actions": [
+     {
+      "n": 6,
+      "kind": "cast",
+      "player": 1,
+      "card": {
+       "id": 72,
+       "key": "Llanowar Elves",
+       "name": "Llanowarelfen",
+       "typeLine": "Beschwörung von Elfen",
+       "cost": "{G}",
+       "set": "SLZ",
+       "power": 1,
+       "toughness": 1,
+       "text": "{T}: Erhöhe Deinen Manavorrat um G. Spiele diese Eigenschaft wie einen Unterbrechungszauber.",
+       "tapped": false,
+       "sick": false,
+       "faceDown": false,
+       "damage": 0,
+       "owner": 1,
+       "controller": 1
+      },
+      "targets": []
+     }
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 29,
+    "running": true,
+    "turn": 2,
+    "phase": "MAIN2",
+    "activePlayer": 1,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 20,
+      "hasPriority": false,
+      "canAct": true,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 16,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "hand": [
+        {
+         "id": 8,
+         "key": "Lightning Strike",
+         "name": "Blitzeinschlag",
+         "typeLine": "Spontanzauber",
+         "cost": "{1}{R}",
+         "set": "MSH",
+         "text": "Der Blitzeinschlag fügt einem Ziel deiner Wahl 3 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 24,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "landRefusal": "notYourTurn"
+        },
+        {
+         "id": 28,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "text": "Bonus {4} (Du kannst zusätzlich {4} bezahlen, sowie du diesen Zauberspruch wirkst.)\r\n\r\nDer Geborstene Blitz fügt einem Ziel deiner Wahl 2 Schadenspunkte zu. Falls die Bonuskosten dieses Zauberspruchs bezahlt wurden, fügt er stattdessen 4 Schadenspunkte zu.",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 29,
+         "key": "Shock",
+         "name": "Schock",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "MSC",
+         "text": "Der Schock fügt einem Ziel deiner Wahl 2 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 26,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "text": "Bonus {4} (Du kannst zusätzlich {4} bezahlen, sowie du diesen Zauberspruch wirkst.)\r\n\r\nDer Geborstene Blitz fügt einem Ziel deiner Wahl 2 Schadenspunkte zu. Falls die Bonuskosten dieses Zauberspruchs bezahlt wurden, fügt er stattdessen 4 Schadenspunkte zu.",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "graveyard": [],
+       "exile": [],
+       "command": []
+      },
+      "library": 34,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 20,
+      "hasPriority": true,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 1,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 95,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "hand": [
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [],
+       "exile": [],
+       "command": []
+      },
+      "library": 52,
+      "commanders": []
+     }
+    ],
+    "stack": [
+     {
+      "id": 2,
+      "text": "Llanowarelfen - Kreatur 1 / 1",
+      "source": 72,
+      "card": {
+       "id": 72,
+       "key": "Llanowar Elves",
+       "name": "Llanowarelfen",
+       "typeLine": "Beschwörung von Elfen",
+       "cost": "{G}",
+       "set": "SLZ",
+       "power": 1,
+       "toughness": 1,
+       "text": "{T}: Erhöhe Deinen Manavorrat um G. Spiele diese Eigenschaft wie einen Unterbrechungszauber.",
+       "tapped": false,
+       "sick": false,
+       "faceDown": false,
+       "damage": 0,
+       "owner": 1,
+       "controller": 1
+      },
+      "player": 1,
+      "ability": false,
+      "trigger": false,
+      "targets": []
+     }
+    ],
+    "combat": []
+   },
+   "questions": []
+  },
+  {
+   "name": "cast-targets",
+   "fixture": "priority-respond-observe",
+   "observation": {
+    "type": "observation",
+    "id": 6,
+    "hold": false,
+    "state": 38,
+    "actions": [
+     {
+      "n": 7,
+      "kind": "cast",
+      "player": 0,
+      "card": {
+       "id": 28,
+       "key": "Burst Lightning",
+       "name": "Geborstener Blitz",
+       "typeLine": "Spontanzauber",
+       "cost": "{R}",
+       "set": "SOA",
+       "text": "Bonus {4} (Du kannst zusätzlich {4} bezahlen, sowie du diesen Zauberspruch wirkst.)\r\n\r\nDer Geborstene Blitz fügt einem Ziel deiner Wahl 2 Schadenspunkte zu. Falls die Bonuskosten dieses Zauberspruchs bezahlt wurden, fügt er stattdessen 4 Schadenspunkte zu.",
+       "keywords": [
+        {
+         "keyword": "KICKER",
+         "title": "Kicker {4}",
+         "reminder": "You may pay an additional {4} as you cast this spell.",
+         "cost": "{4}"
+        }
+       ],
+       "tapped": false,
+       "sick": false,
+       "faceDown": false,
+       "damage": 0,
+       "owner": 0,
+       "controller": 0
+      },
+      "targets": [
+       {
+        "kind": "player",
+        "id": 1
+       }
+      ]
+     }
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 38,
+    "running": true,
+    "turn": 2,
+    "phase": "MAIN2",
+    "activePlayer": 1,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 20,
+      "hasPriority": false,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 16,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "hand": [
+        {
+         "id": 8,
+         "key": "Lightning Strike",
+         "name": "Blitzeinschlag",
+         "typeLine": "Spontanzauber",
+         "cost": "{1}{R}",
+         "set": "MSH",
+         "text": "Der Blitzeinschlag fügt einem Ziel deiner Wahl 3 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 24,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "landRefusal": "notYourTurn"
+        },
+        {
+         "id": 29,
+         "key": "Shock",
+         "name": "Schock",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "MSC",
+         "text": "Der Schock fügt einem Ziel deiner Wahl 2 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 26,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "text": "Bonus {4} (Du kannst zusätzlich {4} bezahlen, sowie du diesen Zauberspruch wirkst.)\r\n\r\nDer Geborstene Blitz fügt einem Ziel deiner Wahl 2 Schadenspunkte zu. Falls die Bonuskosten dieses Zauberspruchs bezahlt wurden, fügt er stattdessen 4 Schadenspunkte zu.",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "graveyard": [],
+       "exile": [],
+       "command": []
+      },
+      "library": 34,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 20,
+      "hasPriority": true,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 1,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 95,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "hand": [
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [],
+       "exile": [],
+       "command": []
+      },
+      "library": 52,
+      "commanders": []
+     }
+    ],
+    "stack": [
+     {
+      "id": 4,
+      "text": "Geborstener Blitz (28) - Geborstener Blitz (28) deals 2 damage to Forge AI.",
+      "source": 28,
+      "card": {
+       "id": 28,
+       "key": "Burst Lightning",
+       "name": "Geborstener Blitz",
+       "typeLine": "Spontanzauber",
+       "cost": "{R}",
+       "set": "SOA",
+       "text": "Bonus {4} (Du kannst zusätzlich {4} bezahlen, sowie du diesen Zauberspruch wirkst.)\r\n\r\nDer Geborstene Blitz fügt einem Ziel deiner Wahl 2 Schadenspunkte zu. Falls die Bonuskosten dieses Zauberspruchs bezahlt wurden, fügt er stattdessen 4 Schadenspunkte zu.",
+       "keywords": [
+        {
+         "keyword": "KICKER",
+         "title": "Kicker {4}",
+         "reminder": "You may pay an additional {4} as you cast this spell.",
+         "cost": "{4}"
+        }
+       ],
+       "tapped": false,
+       "sick": false,
+       "faceDown": false,
+       "damage": 0,
+       "owner": 0,
+       "controller": 0
+      },
+      "player": 0,
+      "ability": false,
+      "trigger": false,
+      "targets": [
+       {
+        "kind": "player",
+        "id": 1
+       }
+      ]
+     },
+     {
+      "id": 2,
+      "text": "Llanowarelfen - Kreatur 1 / 1",
+      "source": 72,
+      "card": {
+       "id": 72,
+       "key": "Llanowar Elves",
+       "name": "Llanowarelfen",
+       "typeLine": "Beschwörung von Elfen",
+       "cost": "{G}",
+       "set": "SLZ",
+       "power": 1,
+       "toughness": 1,
+       "text": "{T}: Erhöhe Deinen Manavorrat um G. Spiele diese Eigenschaft wie einen Unterbrechungszauber.",
+       "tapped": false,
+       "sick": false,
+       "faceDown": false,
+       "damage": 0,
+       "owner": 1,
+       "controller": 1
+      },
+      "player": 1,
+      "ability": false,
+      "trigger": false,
+      "targets": []
+     }
+    ],
+    "combat": []
+   },
+   "questions": []
+  },
+  {
+   "name": "held-resolve-moves",
+   "fixture": "priority-respond-observe",
+   "observation": {
+    "type": "observation",
+    "id": 8,
+    "hold": true,
+    "state": 40,
+    "actions": [
+     {
+      "n": 9,
+      "kind": "resolve",
+      "player": 1,
+      "card": {
+       "id": 72,
+       "key": "Llanowar Elves",
+       "name": "Llanowarelfen",
+       "typeLine": "Beschwörung von Elfen",
+       "cost": "{G}",
+       "set": "SLZ",
+       "power": 1,
+       "toughness": 1,
+       "text": "{T}: Erhöhe Deinen Manavorrat um G. Spiele diese Eigenschaft wie einen Unterbrechungszauber.",
+       "tapped": false,
+       "sick": true,
+       "faceDown": false,
+       "damage": 0,
+       "owner": 1,
+       "controller": 1
+      },
+      "stack": "spell",
+      "fizzled": false,
+      "results": {
+       "moves": [
+        {
+         "card": {
+          "id": 72,
+          "key": "Llanowar Elves",
+          "name": "Llanowarelfen",
+          "typeLine": "Beschwörung von Elfen",
+          "cost": "{G}",
+          "set": "SLZ",
+          "power": 1,
+          "toughness": 1,
+          "text": "{T}: Erhöhe Deinen Manavorrat um G. Spiele diese Eigenschaft wie einen Unterbrechungszauber.",
+          "tapped": false,
+          "sick": true,
+          "faceDown": false,
+          "damage": 0,
+          "owner": 1,
+          "controller": 1
+         },
+         "from": {
+          "zone": "stack",
+          "player": null
+         },
+         "to": {
+          "zone": "battlefield",
+          "player": 1
+         }
+        }
+       ],
+       "damage": [],
+       "life": []
+      }
+     }
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 40,
+    "running": true,
+    "turn": 2,
+    "phase": "MAIN2",
+    "activePlayer": 1,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 20,
+      "hasPriority": false,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 16,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "hand": [
+        {
+         "id": 8,
+         "key": "Lightning Strike",
+         "name": "Blitzeinschlag",
+         "typeLine": "Spontanzauber",
+         "cost": "{1}{R}",
+         "set": "MSH",
+         "text": "Der Blitzeinschlag fügt einem Ziel deiner Wahl 3 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 24,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "landRefusal": "notYourTurn"
+        },
+        {
+         "id": 29,
+         "key": "Shock",
+         "name": "Schock",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "MSC",
+         "text": "Der Schock fügt einem Ziel deiner Wahl 2 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 26,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "text": "Bonus {4} (Du kannst zusätzlich {4} bezahlen, sowie du diesen Zauberspruch wirkst.)\r\n\r\nDer Geborstene Blitz fügt einem Ziel deiner Wahl 2 Schadenspunkte zu. Falls die Bonuskosten dieses Zauberspruchs bezahlt wurden, fügt er stattdessen 4 Schadenspunkte zu.",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "graveyard": [
+        {
+         "id": 28,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 34,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 18,
+      "hasPriority": true,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 1,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 95,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 72,
+         "key": "Llanowar Elves",
+         "name": "Llanowarelfen",
+         "typeLine": "Beschwörung von Elfen",
+         "cost": "{G}",
+         "set": "SLZ",
+         "power": 1,
+         "toughness": 1,
+         "text": "{T}: Erhöhe Deinen Manavorrat um G. Spiele diese Eigenschaft wie einen Unterbrechungszauber.",
+         "tapped": false,
+         "sick": true,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "hand": [
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [],
+       "exile": [],
+       "command": []
+      },
+      "library": 52,
+      "commanders": []
+     }
+    ],
+    "stack": [],
+    "combat": []
+   },
+   "questions": []
+  },
+  {
+   "name": "resolve-damage",
+   "fixture": "priority-respond-observe",
+   "observation": {
+    "type": "observation",
+    "id": 7,
+    "hold": false,
+    "state": 39,
+    "actions": [
+     {
+      "n": 8,
+      "kind": "resolve",
+      "player": 0,
+      "card": {
+       "id": 28,
+       "key": "Burst Lightning",
+       "name": "Geborstener Blitz",
+       "typeLine": "Spontanzauber",
+       "cost": "{R}",
+       "set": "SOA",
+       "text": "Bonus {4} (Du kannst zusätzlich {4} bezahlen, sowie du diesen Zauberspruch wirkst.)\r\n\r\nDer Geborstene Blitz fügt einem Ziel deiner Wahl 2 Schadenspunkte zu. Falls die Bonuskosten dieses Zauberspruchs bezahlt wurden, fügt er stattdessen 4 Schadenspunkte zu.",
+       "keywords": [
+        {
+         "keyword": "KICKER",
+         "title": "Kicker {4}",
+         "reminder": "You may pay an additional {4} as you cast this spell.",
+         "cost": "{4}"
+        }
+       ],
+       "tapped": false,
+       "sick": false,
+       "faceDown": false,
+       "damage": 0,
+       "owner": 0,
+       "controller": 0
+      },
+      "stack": "spell",
+      "fizzled": false,
+      "results": {
+       "moves": [
+        {
+         "card": {
+          "id": 28,
+          "key": "Burst Lightning",
+          "name": "Geborstener Blitz",
+          "typeLine": "Spontanzauber",
+          "cost": "{R}",
+          "set": "SOA",
+          "text": "Bonus {4} (Du kannst zusätzlich {4} bezahlen, sowie du diesen Zauberspruch wirkst.)\r\n\r\nDer Geborstene Blitz fügt einem Ziel deiner Wahl 2 Schadenspunkte zu. Falls die Bonuskosten dieses Zauberspruchs bezahlt wurden, fügt er stattdessen 4 Schadenspunkte zu.",
+          "keywords": [
+           {
+            "keyword": "KICKER",
+            "title": "Kicker {4}",
+            "reminder": "You may pay an additional {4} as you cast this spell.",
+            "cost": "{4}"
+           }
+          ],
+          "tapped": false,
+          "sick": false,
+          "faceDown": false,
+          "damage": 0,
+          "owner": 0,
+          "controller": 0
+         },
+         "from": {
+          "zone": "stack",
+          "player": null
+         },
+         "to": {
+          "zone": "graveyard",
+          "player": 0
+         }
+        }
+       ],
+       "damage": [
+        {
+         "target": {
+          "kind": "player",
+          "id": 1
+         },
+         "amount": 2,
+         "source": 28
+        }
+       ],
+       "life": [
+        {
+         "player": 1,
+         "from": 20,
+         "to": 18
+        }
+       ]
+      }
+     }
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 39,
+    "running": true,
+    "turn": 2,
+    "phase": "MAIN2",
+    "activePlayer": 1,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 20,
+      "hasPriority": false,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 16,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "hand": [
+        {
+         "id": 8,
+         "key": "Lightning Strike",
+         "name": "Blitzeinschlag",
+         "typeLine": "Spontanzauber",
+         "cost": "{1}{R}",
+         "set": "MSH",
+         "text": "Der Blitzeinschlag fügt einem Ziel deiner Wahl 3 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 24,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "landRefusal": "notYourTurn"
+        },
+        {
+         "id": 29,
+         "key": "Shock",
+         "name": "Schock",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "MSC",
+         "text": "Der Schock fügt einem Ziel deiner Wahl 2 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 26,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "text": "Bonus {4} (Du kannst zusätzlich {4} bezahlen, sowie du diesen Zauberspruch wirkst.)\r\n\r\nDer Geborstene Blitz fügt einem Ziel deiner Wahl 2 Schadenspunkte zu. Falls die Bonuskosten dieses Zauberspruchs bezahlt wurden, fügt er stattdessen 4 Schadenspunkte zu.",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "graveyard": [
+        {
+         "id": 28,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 34,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 18,
+      "hasPriority": true,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 1,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 95,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "hand": [
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [],
+       "exile": [],
+       "command": []
+      },
+      "library": 52,
+      "commanders": []
+     }
+    ],
+    "stack": [
+     {
+      "id": 2,
+      "text": "Llanowarelfen - Kreatur 1 / 1",
+      "source": 72,
+      "card": {
+       "id": 72,
+       "key": "Llanowar Elves",
+       "name": "Llanowarelfen",
+       "typeLine": "Beschwörung von Elfen",
+       "cost": "{G}",
+       "set": "SLZ",
+       "power": 1,
+       "toughness": 1,
+       "text": "{T}: Erhöhe Deinen Manavorrat um G. Spiele diese Eigenschaft wie einen Unterbrechungszauber.",
+       "tapped": false,
+       "sick": false,
+       "faceDown": false,
+       "damage": 0,
+       "owner": 1,
+       "controller": 1
+      },
+      "player": 1,
+      "ability": false,
+      "trigger": false,
+      "targets": []
+     }
+    ],
+    "combat": []
+   },
+   "questions": []
+  },
+  {
+   "name": "held-attack",
+   "fixture": "priority-respond-observe",
+   "observation": {
+    "type": "observation",
+    "id": 30,
+    "hold": true,
+    "state": 121,
+    "actions": [
+     {
+      "n": 37,
+      "kind": "attack",
+      "player": 1,
+      "attacks": [
+       {
+        "attacker": {
+         "id": 47,
+         "key": "Kalonian Tusker",
+         "name": "Kalonischer Keiler",
+         "typeLine": "Kreatur — Bestie",
+         "cost": "{G}{G}",
+         "set": "M14",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "attacking": true
+        },
+        "defender": {
+         "kind": "player",
+         "id": 0
+        }
+       },
+       {
+        "attacker": {
+         "id": 71,
+         "key": "Llanowar Elves",
+         "name": "Llanowarelfen",
+         "typeLine": "Beschwörung von Elfen",
+         "cost": "{G}",
+         "set": "SLZ",
+         "power": 1,
+         "toughness": 1,
+         "text": "{T}: Erhöhe Deinen Manavorrat um G. Spiele diese Eigenschaft wie einen Unterbrechungszauber.",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "attacking": true
+        },
+        "defender": {
+         "kind": "player",
+         "id": 0
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 121,
+    "running": true,
+    "turn": 8,
+    "phase": "COMBAT_DECLARE_ATTACKERS",
+    "activePlayer": 1,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 20,
+      "hasPriority": false,
+      "canAct": true,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 16,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 24,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 13,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "hand": [
+        {
+         "id": 33,
+         "key": "Searing Spear",
+         "name": "Sengender Speer",
+         "typeLine": "Spontanzauber",
+         "cost": "{1}{R}",
+         "set": "J22",
+         "text": "Der Sengende Speer fügt einem Ziel deiner Wahl 3 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 6,
+         "key": "Lightning Strike",
+         "name": "Blitzeinschlag",
+         "typeLine": "Spontanzauber",
+         "cost": "{1}{R}",
+         "set": "MSH",
+         "text": "Der Blitzeinschlag fügt einem Ziel deiner Wahl 3 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "graveyard": [
+        {
+         "id": 28,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 8,
+         "key": "Lightning Strike",
+         "name": "Blitzeinschlag",
+         "typeLine": "Spontanzauber",
+         "cost": "{1}{R}",
+         "set": "MSH",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 26,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 29,
+         "key": "Shock",
+         "name": "Schock",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "MSC",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 31,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 14,
+      "hasPriority": true,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 95,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 81,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 80,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 47,
+         "key": "Kalonian Tusker",
+         "name": "Kalonischer Keiler",
+         "typeLine": "Kreatur — Bestie",
+         "cost": "{G}{G}",
+         "set": "M14",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "attacking": true
+        },
+        {
+         "id": 71,
+         "key": "Llanowar Elves",
+         "name": "Llanowarelfen",
+         "typeLine": "Beschwörung von Elfen",
+         "cost": "{G}",
+         "set": "SLZ",
+         "power": 1,
+         "toughness": 1,
+         "text": "{T}: Erhöhe Deinen Manavorrat um G. Spiele diese Eigenschaft wie einen Unterbrechungszauber.",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "attacking": true
+        }
+       ],
+       "hand": [
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [
+        {
+         "id": 72,
+         "key": "Llanowar Elves",
+         "name": "Llanowarelfen",
+         "typeLine": "Beschwörung von Elfen",
+         "cost": "{G}",
+         "set": "SLZ",
+         "power": 1,
+         "toughness": 1,
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 68,
+         "key": "Rampant Growth",
+         "name": "Wucherndes Wachstum",
+         "typeLine": "Hexerei",
+         "cost": "{1}{G}",
+         "set": "FIC",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 48,
+      "commanders": []
+     }
+    ],
+    "stack": [],
+    "combat": [
+     {
+      "attacker": 71,
+      "defender": 0,
+      "defenderKind": "player",
+      "blockers": []
+     },
+     {
+      "attacker": 47,
+      "defender": 0,
+      "defenderKind": "player",
+      "blockers": []
+     }
+    ]
+   },
+   "questions": []
+  },
+  {
+   "name": "block",
+   "fixture": "priority-respond-observe",
+   "observation": {
+    "type": "observation",
+    "id": 31,
+    "hold": false,
+    "state": 123,
+    "actions": [
+     {
+      "n": 38,
+      "kind": "block",
+      "player": 0,
+      "blocks": [
+       {
+        "attacker": 47,
+        "blockers": []
+       },
+       {
+        "attacker": 71,
+        "blockers": []
+       }
+      ]
+     }
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 123,
+    "running": true,
+    "turn": 8,
+    "phase": "COMBAT_DECLARE_BLOCKERS",
+    "activePlayer": 1,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 20,
+      "hasPriority": false,
+      "canAct": true,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 16,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 24,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 13,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "hand": [
+        {
+         "id": 33,
+         "key": "Searing Spear",
+         "name": "Sengender Speer",
+         "typeLine": "Spontanzauber",
+         "cost": "{1}{R}",
+         "set": "J22",
+         "text": "Der Sengende Speer fügt einem Ziel deiner Wahl 3 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 6,
+         "key": "Lightning Strike",
+         "name": "Blitzeinschlag",
+         "typeLine": "Spontanzauber",
+         "cost": "{1}{R}",
+         "set": "MSH",
+         "text": "Der Blitzeinschlag fügt einem Ziel deiner Wahl 3 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "graveyard": [
+        {
+         "id": 28,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 8,
+         "key": "Lightning Strike",
+         "name": "Blitzeinschlag",
+         "typeLine": "Spontanzauber",
+         "cost": "{1}{R}",
+         "set": "MSH",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 26,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 29,
+         "key": "Shock",
+         "name": "Schock",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "MSC",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 31,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 14,
+      "hasPriority": true,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 95,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 81,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 80,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 47,
+         "key": "Kalonian Tusker",
+         "name": "Kalonischer Keiler",
+         "typeLine": "Kreatur — Bestie",
+         "cost": "{G}{G}",
+         "set": "M14",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "attacking": true
+        },
+        {
+         "id": 71,
+         "key": "Llanowar Elves",
+         "name": "Llanowarelfen",
+         "typeLine": "Beschwörung von Elfen",
+         "cost": "{G}",
+         "set": "SLZ",
+         "power": 1,
+         "toughness": 1,
+         "text": "{T}: Erhöhe Deinen Manavorrat um G. Spiele diese Eigenschaft wie einen Unterbrechungszauber.",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "attacking": true
+        }
+       ],
+       "hand": [
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [
+        {
+         "id": 72,
+         "key": "Llanowar Elves",
+         "name": "Llanowarelfen",
+         "typeLine": "Beschwörung von Elfen",
+         "cost": "{G}",
+         "set": "SLZ",
+         "power": 1,
+         "toughness": 1,
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 68,
+         "key": "Rampant Growth",
+         "name": "Wucherndes Wachstum",
+         "typeLine": "Hexerei",
+         "cost": "{1}{G}",
+         "set": "FIC",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 48,
+      "commanders": []
+     }
+    ],
+    "stack": [],
+    "combat": [
+     {
+      "attacker": 71,
+      "defender": 0,
+      "defenderKind": "player",
+      "blockers": []
+     },
+     {
+      "attacker": 47,
+      "defender": 0,
+      "defenderKind": "player",
+      "blockers": []
+     }
+    ]
+   },
+   "questions": []
+  },
+  {
+   "name": "combat-damage",
+   "fixture": "priority-respond-observe",
+   "observation": {
+    "type": "observation",
+    "id": 32,
+    "hold": true,
+    "state": 125,
+    "actions": [
+     {
+      "n": 39,
+      "kind": "combatDamage",
+      "player": 1,
+      "results": {
+       "moves": [],
+       "damage": [
+        {
+         "target": {
+          "kind": "player",
+          "id": 0
+         },
+         "amount": 3,
+         "source": 47
+        },
+        {
+         "target": {
+          "kind": "player",
+          "id": 0
+         },
+         "amount": 1,
+         "source": 71
+        }
+       ],
+       "life": [
+        {
+         "player": 0,
+         "from": 20,
+         "to": 16
+        }
+       ]
+      }
+     }
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 125,
+    "running": true,
+    "turn": 8,
+    "phase": "COMBAT_DAMAGE",
+    "activePlayer": 1,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 16,
+      "hasPriority": false,
+      "canAct": true,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 16,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 24,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 13,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "hand": [
+        {
+         "id": 33,
+         "key": "Searing Spear",
+         "name": "Sengender Speer",
+         "typeLine": "Spontanzauber",
+         "cost": "{1}{R}",
+         "set": "J22",
+         "text": "Der Sengende Speer fügt einem Ziel deiner Wahl 3 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 6,
+         "key": "Lightning Strike",
+         "name": "Blitzeinschlag",
+         "typeLine": "Spontanzauber",
+         "cost": "{1}{R}",
+         "set": "MSH",
+         "text": "Der Blitzeinschlag fügt einem Ziel deiner Wahl 3 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "graveyard": [
+        {
+         "id": 28,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 8,
+         "key": "Lightning Strike",
+         "name": "Blitzeinschlag",
+         "typeLine": "Spontanzauber",
+         "cost": "{1}{R}",
+         "set": "MSH",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 26,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 29,
+         "key": "Shock",
+         "name": "Schock",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "MSC",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 31,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 14,
+      "hasPriority": true,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 95,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 81,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 80,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land — Forest",
+         "set": "TRK",
+         "text": "({T}: Add {G}.)",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 47,
+         "key": "Kalonian Tusker",
+         "name": "Kalonischer Keiler",
+         "typeLine": "Kreatur — Bestie",
+         "cost": "{G}{G}",
+         "set": "M14",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "attacking": true
+        },
+        {
+         "id": 71,
+         "key": "Llanowar Elves",
+         "name": "Llanowarelfen",
+         "typeLine": "Beschwörung von Elfen",
+         "cost": "{G}",
+         "set": "SLZ",
+         "power": 1,
+         "toughness": 1,
+         "text": "{T}: Erhöhe Deinen Manavorrat um G. Spiele diese Eigenschaft wie einen Unterbrechungszauber.",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "attacking": true
+        }
+       ],
+       "hand": [
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [
+        {
+         "id": 72,
+         "key": "Llanowar Elves",
+         "name": "Llanowarelfen",
+         "typeLine": "Beschwörung von Elfen",
+         "cost": "{G}",
+         "set": "SLZ",
+         "power": 1,
+         "toughness": 1,
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 68,
+         "key": "Rampant Growth",
+         "name": "Wucherndes Wachstum",
+         "typeLine": "Hexerei",
+         "cost": "{1}{G}",
+         "set": "FIC",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 48,
+      "commanders": []
+     }
+    ],
+    "stack": [],
+    "combat": [
+     {
+      "attacker": 71,
+      "defender": 0,
+      "defenderKind": "player",
+      "blockers": []
+     },
+     {
+      "attacker": 47,
+      "defender": 0,
+      "defenderKind": "player",
+      "blockers": []
+     }
+    ]
+   },
+   "questions": []
+  },
+  {
+   "name": "own-land",
+   "fixture": "priority-respond-observe",
+   "observation": {
+    "type": "observation",
+    "id": 2,
+    "hold": false,
+    "state": 14,
+    "actions": [
+     {
+      "n": 2,
+      "kind": "land",
+      "player": 0,
+      "card": {
+       "id": 16,
+       "key": "Mountain",
+       "name": "Gebirge",
+       "typeLine": "Land",
+       "set": "TRK",
+       "text": "",
+       "tapped": false,
+       "sick": false,
+       "faceDown": false,
+       "damage": 0,
+       "owner": 0,
+       "controller": 0
+      }
+     }
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 14,
+    "running": true,
+    "turn": 1,
+    "phase": "MAIN1",
+    "activePlayer": 0,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 20,
+      "hasPriority": true,
+      "canAct": true,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 1,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 16,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "action": "Aktiviere Fähigkeit"
+        }
+       ],
+       "hand": [
+        {
+         "id": 8,
+         "key": "Lightning Strike",
+         "name": "Blitzeinschlag",
+         "typeLine": "Spontanzauber",
+         "cost": "{1}{R}",
+         "set": "MSH",
+         "text": "Der Blitzeinschlag fügt einem Ziel deiner Wahl 3 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "action": "Einen Zauberspruch sprechen"
+        },
+        {
+         "id": 24,
+         "key": "Mountain",
+         "name": "Gebirge",
+         "typeLine": "Land",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "landRefusal": "limit"
+        },
+        {
+         "id": 28,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "text": "Bonus {4} (Du kannst zusätzlich {4} bezahlen, sowie du diesen Zauberspruch wirkst.)\r\n\r\nDer Geborstene Blitz fügt einem Ziel deiner Wahl 2 Schadenspunkte zu. Falls die Bonuskosten dieses Zauberspruchs bezahlt wurden, fügt er stattdessen 4 Schadenspunkte zu.",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "playable": true,
+         "action": "Einen Zauberspruch sprechen"
+        },
+        {
+         "id": 29,
+         "key": "Shock",
+         "name": "Schock",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "MSC",
+         "text": "Der Schock fügt einem Ziel deiner Wahl 2 Schadenspunkte zu.",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "playable": true,
+         "action": "Einen Zauberspruch sprechen"
+        },
+        {
+         "id": 26,
+         "key": "Burst Lightning",
+         "name": "Geborstener Blitz",
+         "typeLine": "Spontanzauber",
+         "cost": "{R}",
+         "set": "SOA",
+         "text": "Bonus {4} (Du kannst zusätzlich {4} bezahlen, sowie du diesen Zauberspruch wirkst.)\r\n\r\nDer Geborstene Blitz fügt einem Ziel deiner Wahl 2 Schadenspunkte zu. Falls die Bonuskosten dieses Zauberspruchs bezahlt wurden, fügt er stattdessen 4 Schadenspunkte zu.",
+         "keywords": [
+          {
+           "keyword": "KICKER",
+           "title": "Kicker {4}",
+           "reminder": "You may pay an additional {4} as you cast this spell.",
+           "cost": "{4}"
+          }
+         ],
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0,
+         "playable": true,
+         "action": "Einen Zauberspruch sprechen"
+        }
+       ],
+       "graveyard": [],
+       "exile": [],
+       "command": []
+      },
+      "library": 34,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 20,
+      "hasPriority": false,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [],
+       "hand": [
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [],
+       "exile": [],
+       "command": []
+      },
+      "library": 53,
+      "commanders": []
+     }
+    ],
+    "stack": [],
+    "combat": []
+   },
+   "questions": []
+  },
+  {
+   "name": "unheld-attack",
+   "fixture": "lands",
+   "observation": {
+    "type": "observation",
+    "id": 41,
+    "hold": false,
+    "state": 88,
+    "actions": [
+     {
+      "n": 49,
+      "kind": "attack",
+      "player": 1,
+      "attacks": [
+       {
+        "attacker": {
+         "id": 94,
+         "key": "Gray Ogre",
+         "name": "Gray Ogre",
+         "typeLine": "Creature - Ogre",
+         "cost": "{2}{R}",
+         "set": "30A",
+         "power": 2,
+         "toughness": 2,
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "attacking": true
+        },
+        "defender": {
+         "kind": "player",
+         "id": 0
+        }
+       },
+       {
+        "attacker": {
+         "id": 107,
+         "key": "Hill Giant",
+         "name": "Hill Giant",
+         "typeLine": "Creature - Giant",
+         "cost": "{3}{R}",
+         "set": "30A",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "attacking": true
+        },
+        "defender": {
+         "kind": "player",
+         "id": 0
+        }
+       }
+      ]
+     }
+    ]
+   },
+   "state": {
+    "type": "state",
+    "seq": 88,
+    "running": true,
+    "turn": 9,
+    "phase": "COMBAT_DECLARE_ATTACKERS",
+    "activePlayer": 1,
+    "me": 0,
+    "players": [
+     {
+      "id": 0,
+      "name": "Player",
+      "ai": false,
+      "me": true,
+      "life": 20,
+      "hasPriority": false,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 0,
+      "landsAllowed": 2,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 38,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land - Forest",
+         "set": "TRK",
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 45,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land - Forest",
+         "set": "TRK",
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 48,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land - Forest",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 58,
+         "key": "Exploration",
+         "name": "Exploration",
+         "typeLine": "Enchantment",
+         "cost": "{G}",
+         "set": "AA3",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 42,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land - Forest",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 31,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land - Forest",
+         "set": "TRK",
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 44,
+         "key": "Forest",
+         "name": "Forest",
+         "typeLine": "Basic Land - Forest",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "hand": [],
+       "graveyard": [
+        {
+         "id": 22,
+         "key": "Llanowar Elves",
+         "name": "Llanowar Elves",
+         "typeLine": "Creature - Elf Druid",
+         "cost": "{G}",
+         "set": "SLZ",
+         "power": 1,
+         "toughness": 1,
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 5,
+         "key": "Grizzly Bears",
+         "name": "Grizzly Bears",
+         "typeLine": "Creature - Bear",
+         "cost": "{1}{G}",
+         "set": "SLZ",
+         "power": 2,
+         "toughness": 2,
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 13,
+         "key": "Rampant Growth",
+         "name": "Rampant Growth",
+         "typeLine": "Sorcery",
+         "cost": "{1}{G}",
+         "set": "FIC",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        },
+        {
+         "id": 6,
+         "key": "Grizzly Bears",
+         "name": "Grizzly Bears",
+         "typeLine": "Creature - Bear",
+         "cost": "{1}{G}",
+         "set": "SLZ",
+         "power": 2,
+         "toughness": 2,
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 0,
+         "controller": 0
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 49,
+      "commanders": []
+     },
+     {
+      "id": 1,
+      "name": "Forge AI",
+      "ai": true,
+      "me": false,
+      "life": 20,
+      "hasPriority": true,
+      "canAct": false,
+      "lost": false,
+      "maxHandSize": 7,
+      "landsPlayed": 1,
+      "landsAllowed": 1,
+      "counters": {},
+      "mana": {
+       "W": 0,
+       "U": 0,
+       "B": 0,
+       "R": 0,
+       "G": 0,
+       "C": 0
+      },
+      "zones": {
+       "battlefield": [
+        {
+         "id": 78,
+         "key": "Mountain",
+         "name": "Mountain",
+         "typeLine": "Basic Land - Mountain",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 80,
+         "key": "Mountain",
+         "name": "Mountain",
+         "typeLine": "Basic Land - Mountain",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 86,
+         "key": "Mountain",
+         "name": "Mountain",
+         "typeLine": "Basic Land - Mountain",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 94,
+         "key": "Gray Ogre",
+         "name": "Gray Ogre",
+         "typeLine": "Creature - Ogre",
+         "cost": "{2}{R}",
+         "set": "30A",
+         "power": 2,
+         "toughness": 2,
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "attacking": true
+        },
+        {
+         "id": 67,
+         "key": "Mountain",
+         "name": "Mountain",
+         "typeLine": "Basic Land - Mountain",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 107,
+         "key": "Hill Giant",
+         "name": "Hill Giant",
+         "typeLine": "Creature - Giant",
+         "cost": "{3}{R}",
+         "set": "30A",
+         "power": 3,
+         "toughness": 3,
+         "text": "",
+         "tapped": true,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1,
+         "attacking": true
+        },
+        {
+         "id": 73,
+         "key": "Mountain",
+         "name": "Mountain",
+         "typeLine": "Basic Land - Mountain",
+         "set": "TRK",
+         "text": "",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "hand": [
+        {
+         "hidden": true
+        },
+        {
+         "hidden": true
+        }
+       ],
+       "graveyard": [
+        {
+         "id": 64,
+         "key": "Lightning Bolt",
+         "name": "Lightning Bolt",
+         "typeLine": "Instant",
+         "cost": "{R}",
+         "set": "SLZ",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        },
+        {
+         "id": 100,
+         "key": "Shock",
+         "name": "Shock",
+         "typeLine": "Instant",
+         "cost": "{R}",
+         "set": "MSC",
+         "tapped": false,
+         "sick": false,
+         "faceDown": false,
+         "damage": 0,
+         "owner": 1,
+         "controller": 1
+        }
+       ],
+       "exile": [],
+       "command": []
+      },
+      "library": 49,
+      "commanders": []
+     }
+    ],
+    "stack": [],
+    "combat": [
+     {
+      "attacker": 107,
+      "defender": 0,
+      "defenderKind": "player",
+      "blockers": []
+     },
+     {
+      "attacker": 94,
+      "defender": 0,
+      "defenderKind": "player",
+      "blockers": []
+     }
+    ]
+   },
+   "questions": []
+  }
+ ]
+}

@@ -84,7 +84,7 @@ export function useGameStart(input: StartInput): { readonly state: StartState; r
   const start = () => {
     if (!state.enabled) return
     if (state.action === "start") {
-      const setup = input.selection === null || profile === null ? null : planGame(input.selection, { profile })
+      const setup = input.selection === null || profile === null ? null : planGame(input.selection, { profile, settings: { observation: "hold", autoPass: preferences.autoPass } })
       if (setup === null || !session.startMatch(setup)) return
     }
     void navigate(GAME_PATH)

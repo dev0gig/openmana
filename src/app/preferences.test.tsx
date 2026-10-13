@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it } from "vitest"
 import { CARD_LANGUAGE } from "@/cards/card-language"
 import { EngineSessionProvider } from "@/engine/engine-session-context"
 import { AI_PROFILE } from "@/game/ai-profiles"
+import { AUTO_PASS, OPPONENT_STEPWISE, OPPONENT_TEMPO } from "@/game/opponent-tempo"
 import { writeSetting } from "@/storage/settings"
 import { StorageProvider } from "@/storage/storage-context"
 import { useSaveSetting } from "@/storage/use-save-setting"
@@ -30,6 +31,7 @@ function Values() {
       <p>Profil: {preferences.aiProfile.kind === "random" ? "zufällig" : preferences.aiProfile.name}</p>
       <p>Karten: {preferences.cardLanguage}</p>
       <p>Bewegung: {preferences.motion}</p>
+      <p>Gegnerzug: {preferences.opponentTempo}/{String(preferences.opponentStepwise)}/{preferences.autoPass}</p>
       <p>Ungültig: {preferences.invalid.join(",") || "–"}</p>
     </div>
   )
@@ -114,11 +116,34 @@ describe("PreferencesProvider", () => {
     expect(engine.session.bootOptions).toEqual({ cardLanguage: "de-DE" })
   })
 
+  it("the opponent's turn (prompt 49): tempo, waiting and Forge's auto-pass read back after a reload; damaged values named, defaults used", async () => {
+    const db = await openTestDatabase()
+    await writeSetting(db, OPPONENT_TEMPO, "slow")
+    await writeSetting(db, OPPONENT_STEPWISE, true)
+    await writeSetting(db, AUTO_PASS, "never")
+    db.close()
+    const engine = testEngine()
+    renderProbe(engine)
+    expect(await screen.findByText("Gegnerzug: slow/true/never")).toBeInTheDocument()
+    expect(screen.getByText("Ungültig: –")).toBeInTheDocument()
+  })
+
+  it("damaged opponent's-turn values: the defaults Normal, no waiting, Forge's APINA - and named", async () => {
+    ;(await openTestDatabase()).close()
+    await putRaw("settings", setting("display.opponentTempo", "turbo"), setting("display.opponentStepwise", "ja"), setting("display.autoPass", "always"))
+    const engine = testEngine()
+    renderProbe(engine)
+    expect(await screen.findByText("Status: ready")).toBeInTheDocument()
+    expect(screen.getByText("Gegnerzug: normal/false/noActions")).toBeInTheDocument()
+    expect(screen.getByText("Ungültig: display.opponentTempo,display.opponentStepwise,display.autoPass")).toBeInTheDocument()
+  })
+
   it("outside the provider every preference is its default", () => {
     render(<Values />)
     expect(screen.getByText("Status: ready")).toBeInTheDocument()
     expect(screen.getByText("Profil: Default")).toBeInTheDocument()
     expect(screen.getByText("Karten: de")).toBeInTheDocument()
     expect(screen.getByText("Bewegung: system")).toBeInTheDocument()
+    expect(screen.getByText("Gegnerzug: normal/false/noActions")).toBeInTheDocument()
   })
 })

@@ -82,6 +82,9 @@ import { tableView } from "./table-model"
 import { GameTable } from "./game-table"
 import { useTableCards } from "./table-cards"
 import { visibleCards } from "./table-model"
+import { observationCards, turnSummaryText } from "./observation-model"
+import { AutoPassOptions, OpponentTempoOptions } from "./opponent-tempo-options"
+import { useOpponentTurn } from "./opponent-turn"
 
 const SELECTION_STORES: readonly StoreName[] = ["settings", "decks"]
 
@@ -488,6 +491,7 @@ function TableMenu({ match, onConcede }: { match: Of<"playing">; onConcede: () =
         </SheetHeader>
         <div className="flex flex-col gap-6 px-4">
           <Matchup setup={match.setup} confirmedProfile={match.game.aiProfile} />
+          <OpponentTurnMenu match={match} />
           <TableCardData />
           <Notices notices={match.notices} />
           <nav aria-label="OpenMana" className="flex flex-col gap-1">
@@ -521,6 +525,28 @@ function TableMenu({ match, onConcede }: { match: Of<"playing">; onConcede: () =
   )
 }
 
+/**
+ * The opponent's turn in the menu (prompt 49): what the Forge AI did in its
+ * latest turn (the details are Forge's own log, "Spielverlauf ansehen"), the
+ * tempo and waiting after every action, and Forge's auto-pass - each saved at
+ * once and applied to this game.
+ */
+function OpponentTurnMenu({ match }: { match: Of<"playing"> }) {
+  const summary = turnSummaryText(match.opponentTurn)
+  return (
+    <section className="flex flex-col gap-4" aria-labelledby="game-opponent-turn-title">
+      <h2 id="game-opponent-turn-title" className="text-sm font-medium">
+        Gegnerzug
+      </h2>
+      <p className="text-sm text-muted-foreground" data-opponent-summary="">
+        {summary ?? "Die Forge-KI war noch nicht am Zug."} Alles im Einzelnen steht im Spielverlauf.
+      </p>
+      <OpponentTempoOptions game />
+      <AutoPassOptions game />
+    </section>
+  )
+}
+
 /** The running game: the table on the whole screen, its menu, the confirmation before conceding. */
 function Playing({ match }: { match: Of<"playing"> }) {
   useImmersive(true)
@@ -528,8 +554,13 @@ function Playing({ match }: { match: Of<"playing"> }) {
   const { cardLanguage } = usePreferences()
   const [confirming, setConfirming] = useState(false)
   // The table's cards and those of Forge's questions (the library's top while scrying …): their pictures are looked up together.
-  const cards = useMemo(() => [...(match.state === null ? [] : visibleCards(match.state).values()), ...questionCards(match.questions)], [match.state, match.questions])
+  const cards = useMemo(
+    () => [...(match.state === null ? [] : visibleCards(match.state).values()), ...questionCards(match.questions), ...observationCards(match.observation)],
+    [match.state, match.questions, match.observation],
+  )
   const pictures = useTableCards(cards, cardLanguage)
+  // The opponent's turn (prompt 49): the stage of a held action, the band of a change of turn, an interruption, Forge's auto-pass.
+  const opponent = useOpponentTurn(match, pictures)
   useNoticeToasts(match.notices, match.noticeCount)
   const giveUp = () => {
     const result = concede()
@@ -567,7 +598,13 @@ function Playing({ match }: { match: Of<"playing"> }) {
     [answer],
   )
   const menu = <TableMenu match={match} onConcede={() => setConfirming(true)} />
-  const alerts = match.stalledMs !== null ? <Stalled silentMs={match.stalledMs} /> : null
+  const alerts =
+    match.stalledMs !== null || opponent.interrupt !== null ? (
+      <>
+        {match.stalledMs !== null ? <Stalled silentMs={match.stalledMs} /> : null}
+        {opponent.interrupt}
+      </>
+    ) : null
   return (
     <>
       {match.state === null ? (
@@ -603,6 +640,10 @@ function Playing({ match }: { match: Of<"playing"> }) {
           onAnswer={reply}
           onTapPlayer={tapSeat}
           onUseMana={payFromPool}
+          stage={opponent.stage}
+          turnBand={opponent.turnBand}
+          observing={opponent.observing}
+          autoPass={opponent.autoPass}
         />
       )}
       <AlertDialog open={confirming} onOpenChange={setConfirming}>

@@ -88,7 +88,7 @@
  * so in a chip above its picture ("Quelle"). The decision region shows the payment:
  * what is still to pay, floating mana to pay with (onUseMana).
  */
-import { CircleSlash, Crosshair, Crown, Hourglass, Layers, ScrollText, Shield, Swords } from "lucide-react"
+import { CircleSlash, Crosshair, Crown, Hourglass, Layers, Pause, ScrollText, Shield, Swords } from "lucide-react"
 import { cn } from "cn"
 import { toast } from "sonner"
 import { createContext, use, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react"
@@ -191,6 +191,22 @@ export interface GameTableProps {
   readonly onTapPlayer?: (player: number) => void
   /** Pays with floating mana of a colour during Forge's payment (mana.use - the page sends it, prompt 17). Absent: only looked at. */
   readonly onUseMana?: (color: ManaColor) => void
+  /**
+   * Prompt 49: the opponent's action the engine holds for looking (the page's
+   * OpponentStage, table/opponent-stage.tsx) - over the player's half, after
+   * the hand and before the decision in the focus order. Absent: none.
+   */
+  readonly stage?: ReactNode
+  /** Prompt 49: a change of turn that came without holding (TurnBand) - decoration, every touch passes through. */
+  readonly turnBand?: ReactNode
+  /**
+   * Prompt 49: the engine holds an observation (it waits for the player to
+   * look, not for a decision): the header and the decision region say so in
+   * these words instead of "Du bist dran". Null: it holds nothing.
+   */
+  readonly observing?: string | null
+  /** Prompt 49: what Forge's auto-pass does, said while Forge plays on by itself (null: the general words). */
+  readonly autoPass?: string | null
 }
 
 /** What a card of the table needs to be operated: the moment's questions and Forge's state of waiting, and the two ways to use it. */
@@ -236,6 +252,10 @@ export function GameTable({ replay = false,
   onAnswer,
   onTapPlayer,
   onUseMana,
+  stage = null,
+  turnBand = null,
+  observing = null,
+  autoPass = null,
 }: GameTableProps) {
   const view = useMemo(() => tableView(state, questions), [state, questions])
   const profile = profileDrawn ? `${aiProfileLabel(aiProfile)} (zufällig)` : aiProfileLabel(aiProfile)
@@ -375,6 +395,11 @@ export function GameTable({ replay = false,
               <Spinner data-icon="inline-start" aria-hidden />
               Gibt auf …
             </Badge>
+          ) : observing !== null ? (
+            <Badge variant="secondary" data-observing="">
+              <Pause data-icon="inline-start" aria-hidden />
+              Gegnerzug
+            </Badge>
           ) : waiting ? (
             <Badge>Du bist dran</Badge>
           ) : (
@@ -414,6 +439,9 @@ export function GameTable({ replay = false,
           <Hand cards={view.me?.hand ?? []} pictures={pictures} />
         </GameBoardArea>
 
+        {/* The opponent's action the engine holds (prompt 49): over the player's half, reached after the hand. */}
+        {stage}
+        {turnBand}
         {/* The decision last: the order of hoch (its action bar at the very bottom) is the reading and focus order of every layout. */}
         {/* Beside the battlefields the Phasen-Tafel stands in its column: at the end in quadrat, in the middle in breit (the mockup's). */}
         <GameBoardArea ref={decisionArea} area="decision" aria-label="Entscheidung" tabIndex={0} className="quadrat:flex quadrat:flex-col breit:flex breit:flex-col">
@@ -427,6 +455,8 @@ export function GameTable({ replay = false,
             conceding={conceding}
             pictures={pictures}
             alerts={alerts}
+            observing={observing}
+            autoPass={autoPass}
             onLook={lookAtQuestionCard}
             {...(onAnswer !== undefined ? { onAnswer } : {})}
             {...(onTapPlayer !== undefined ? { onTapPlayer: tapPlayer } : {})}

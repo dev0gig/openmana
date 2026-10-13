@@ -53,6 +53,7 @@ import type {
   MatchSettings,
   MatchSummary,
   Observation,
+  ObservedAction,
   Question,
   SettingsApplied,
 } from "@openmana/engine-protocol"
@@ -194,6 +195,14 @@ export type MatchSnapshot =
       readonly observationHeld: boolean
       /** The match settings Forge confirmed last (observation mode, Forge's auto-pass), null until the game confirms them. */
       readonly settings: SettingsApplied | null
+      /**
+       * Prompt 49: the opponent's public actions of their latest turn (lands,
+       * spells, abilities, attacks), from the observations, for the short
+       * summary "what the AI did last" - replaced when the opponent's next
+       * turn begins, never recorded or stored. Not a history: Forge's log is
+       * `history`. Null until the opponent's first turn began.
+       */
+      readonly opponentTurn: OpponentTurn | null
     })
   | (MatchBase & {
       readonly status: "over"
@@ -217,6 +226,34 @@ export type MatchSnapshot =
     })
 
 export type MatchStatus = MatchSnapshot["status"]
+
+/** What the opponent did in one turn (MatchSnapshot playing.opponentTurn). */
+export interface OpponentTurn {
+  readonly turn: number
+  readonly actions: readonly ObservedAction[]
+}
+
+/** The actions of the opponent the summary keeps (a turn has few; more are not summed up). */
+const SUMMED_UP: ReadonlySet<ObservedAction["kind"]> = new Set(["land", "cast", "activate", "attack"])
+const OPPONENT_TURN_LIMIT = 40
+
+/**
+ * The opponent's latest turn after `observation`: a turn of the opponent
+ * beginning starts it afresh, the opponent's lands, spells, abilities and
+ * attacks are added. Who is who by the state's `me`; actions of nobody known
+ * are left out.
+ */
+export function foldOpponentTurn(current: OpponentTurn | null, observation: Observation, state: GameState | null): OpponentTurn | null {
+  const me = state?.players.find((player) => player.me)?.id
+  if (me === undefined) return current
+  let turn = current
+  for (const action of observation.actions) {
+    if (action.player === null || action.player === me) continue
+    if (action.kind === "turn") turn = { turn: action.turn, actions: [] }
+    else if (turn !== null && SUMMED_UP.has(action.kind) && turn.actions.length < OPPONENT_TURN_LIMIT) turn = { turn: turn.turn, actions: [...turn.actions, action] }
+  }
+  return turn
+}
 
 export interface EngineSessionSnapshot {
   readonly engine: EngineSnapshot
@@ -740,6 +777,7 @@ export class EngineSession {
             observationCount: 0,
             observationHeld: false,
             settings: null,
+            opponentTurn: null,
           },
         })
         return
@@ -789,7 +827,10 @@ export class EngineSession {
         })
         return
       case "observation":
-        this.#set({ engine, match: { ...match, observation: message, observationCount: match.observationCount + 1, observationHeld: message.hold, waiting } })
+        this.#set({
+          engine,
+          match: { ...match, observation: message, observationCount: match.observationCount + 1, observationHeld: message.hold, opponentTurn: foldOpponentTurn(match.opponentTurn, message, match.state), waiting },
+        })
         return
       case "observation.released":
         this.#set({ engine, match: { ...match, observationHeld: false, waiting } })

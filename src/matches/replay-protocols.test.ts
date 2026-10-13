@@ -59,5 +59,12 @@ describe("replay of recordings of earlier protocols", () => {
     const i = frames.findIndex((frame) => frame.type === "observation")
     expect(frames[i]?.state).toBe(frames[i - 2]?.state)
     expect(frames[i - 2]?.type).toBe("state")
+    // Prompt 49: the observation's frame carries it (shown read-only like the live stage) until the next state or question.
+    expect(frames[i]?.observation).toEqual(observation)
+    expect(frames[i - 1]?.observation).toBeNull()
+    const next = frames.findIndex((frame, at) => at > i && (frame.type === "state" || frame.type === "question"))
+    expect(frames.slice(i, next).every((frame) => frame.observation !== null)).toBe(true)
+    expect(frames[next]?.observation).toBeNull()
+    expect(plain.every((frame) => frame.observation === null)).toBe(true)
   })
 })

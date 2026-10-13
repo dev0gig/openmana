@@ -5,6 +5,7 @@ import {
   checkMatchRequest,
   type GameEvent,
   type GameState,
+  type Observation,
   type Question,
 } from "@openmana/engine-protocol"
 import { PROTOCOL_VERSION } from "@openmana/engine-protocol/generated/constants"
@@ -180,6 +181,12 @@ export interface ReplayFrame {
   readonly questions: readonly Question[]
   readonly history: readonly GameEvent[]
   readonly prompt: string | null
+  /**
+   * Prompt 49: Forge's observation explaining this frame's state (protocol 10) -
+   * from its own entry until the next state or question; null otherwise and
+   * in older recordings. Shown read-only, like the live stage.
+   */
+  readonly observation: Observation | null
   readonly seq: number
   readonly at: number
   readonly type: string
@@ -202,6 +209,7 @@ export function replayFrames(stored: StoredMatch): ReplayFrame[] {
   let questions: Question[] = []
   let history: GameEvent[] = []
   let prompt: string | null = null
+  let observation: Observation | null = null
   const frames: ReplayFrame[] = []
   for (const entry of stored.log) {
     if (entry.from === "engine") {
@@ -209,9 +217,14 @@ export function replayFrames(stored: StoredMatch): ReplayFrame[] {
       switch (message.type) {
         case "state":
           state = message
+          observation = null
           break
         case "question":
           questions = [...questions.filter((q) => q.id !== message.id), message]
+          observation = null
+          break
+        case "observation":
+          observation = message
           break
         case "question.answered":
         case "question.withdrawn":
@@ -227,13 +240,14 @@ export function replayFrames(stored: StoredMatch): ReplayFrame[] {
         case "engine.abort":
           questions = []
           prompt = null
+          observation = null
           break
         default:
           break
       }
     }
     if (state !== null)
-      frames.push({ state, questions, history, prompt, seq: entry.seq, at: entry.at, type: entry.message.type })
+      frames.push({ state, questions, history, prompt, observation, seq: entry.seq, at: entry.at, type: entry.message.type })
   }
   return frames
 }

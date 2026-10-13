@@ -12,7 +12,7 @@ import { toast } from "sonner"
 import { RecordingProvider } from "@/matches/recording-status"
 import { engineAssets } from "./engine-assets"
 import { abortTitle } from "./engine-labels"
-import type { AnswerBody, ManaColor } from "@openmana/engine-protocol"
+import type { AnswerBody, ManaColor, MatchSettings } from "@openmana/engine-protocol"
 import { EngineSession, matchInProgress, type ConcedeResult, type EngineBootOptions, type EngineSessionSnapshot, type InputResult, type MatchSetup } from "./engine-session"
 
 const EngineSessionContext = createContext<EngineSession | null>(null)
@@ -43,6 +43,10 @@ export interface EngineSessionHandle {
   readonly useMana: (color: ManaColor) => InputResult
   /** Answers one of Forge's questions for the player (prompt 15: src/game/decision-panel.tsx builds the answer). */
   readonly answer: (question: number, body: AnswerBody) => InputResult
+  /** Releases the observation the engine holds (protocol 10, prompt 49): passes no priority, answers nothing. */
+  readonly releaseObservation: (observation: number) => InputResult
+  /** Changes the running game's settings (observation mode, Forge's auto-pass); Forge confirms with settings.applied. */
+  readonly changeSettings: (settings: MatchSettings) => InputResult
   readonly abortMatch: () => void
 }
 
@@ -63,6 +67,8 @@ export function useEngineSession(): EngineSessionHandle {
       tapPlayer: (player: number) => session.tapPlayer(player),
       useMana: (color: ManaColor) => session.useMana(color),
       answer: (question: number, body: AnswerBody) => session.answer(question, body),
+      releaseObservation: (observation: number) => session.releaseObservation(observation),
+      changeSettings: (settings: MatchSettings) => session.changeSettings(settings),
       abortMatch: () => session.abortMatch(),
     }),
     [session],

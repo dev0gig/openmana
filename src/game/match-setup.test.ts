@@ -81,6 +81,11 @@ describe("matchSetup", () => {
     expect(setup.human).toEqual({ deckId: izzet.id, deckName: "Izzet Tempo" })
     expect(setup.ai).toEqual({ deckId: other.id, deckName: "Gruul", drawn: true, profileDrawn: false })
     expect(DEFAULT_AI_PROFILE).toBe("Default")
+    // Prompt 49: the game's settings - the engine holds the AI's actions for looking, Forge's auto-pass as chosen.
+    const watched = matchSetup(izzet, other, { seed: 42, drawn: true, settings: { observation: "hold", autoPass: "noActionsRespectInterrupts" } })
+    expect(() => checkMatchRequest(watched.request)).not.toThrow()
+    expect(watched.request.settings).toEqual({ observation: "hold", autoPass: "noActionsRespectInterrupts" })
+    expect(setup.request).not.toHaveProperty("settings")
     expect(matchSetup(izzet, other, { seed: 1, drawn: false, profile: "Reckless", profileDrawn: true })).toMatchObject({
       request: { ai: { profile: "Reckless" } },
       ai: { drawn: false, profileDrawn: true },
@@ -112,6 +117,7 @@ describe("planGame", () => {
     expect(setup?.ai).toEqual({ deckId: mono.id, deckName: "Mono Rot", drawn: false, profileDrawn: false })
     expect(setup?.request.seed).toBe(7)
     expect(setup?.request.ai.profile).toBe("Default")
+    expect(planGame(resolveSelection(value(izzet.id), value<AiDeckChoice>({ kind: "deck", deckId: mono.id }), all), { seed: 7, settings: { observation: "hold", autoPass: "never" } })?.request.settings).toEqual({ observation: "hold", autoPass: "never" })
   })
 
   it("random: drawn anew for every game from the other decks of the format, never the player's own", () => {

@@ -1980,6 +1980,188 @@
   box-shadow: 0 0 1rem 0.3rem color-mix(in oklch, var(--table-heal) 80%, transparent), inset 0 0 0.6rem color-mix(in oklch, var(--table-heal) 60%, transparent);
 }
 
+/* ---------- The opponent's turn (prompt 49, SPIELTISCH.md §4.17): the stage and the turn band ---------- */
+
+/*
+ * The stage lies over the player's own half - the stack bar and the player's
+ * battlefield in hoch, the centre line and the battlefield beside the side
+ * columns, the battlefield in a low window -, placed by the grid's area
+ * lines, so the opponent's battlefield, the strips, the hand, the header and
+ * the decision stay in view. It is a size container: its cards take what
+ * its height leaves (whole, never cropped), the text the rest.
+ */
+[data-slot="game-board"] > .table-stage {
+  grid-column: field;
+  grid-row: center-start / field-end;
+  position: relative;
+  z-index: 44;
+  container-type: size;
+  display: flex;
+  align-items: stretch;
+  gap: 0.75rem;
+  min-width: 0;
+  min-height: 0;
+  margin: 0.25rem 0.375rem;
+  padding: 0.5rem 0.625rem;
+  overflow: hidden;
+  border: 1px solid var(--table-gold-line);
+  border-radius: 0.75rem;
+  background: linear-gradient(180deg, color-mix(in oklch, var(--table-panel) 97%, transparent), color-mix(in oklch, var(--table-panel), black 25%));
+  box-shadow: 0 0.6rem 1.8rem oklch(0 0 0 / 0.55), inset 0 1px 0 oklch(1 0 0 / 0.06);
+  animation: table-stage-in 180ms ease-out;
+}
+
+@media (3/4 <= aspect-ratio <= 13/10) {
+  [data-slot="game-board"] > .table-stage {
+    grid-row: opponent-field-end / field-end;
+  }
+}
+
+@media (aspect-ratio > 13/10) {
+  [data-slot="game-board"] > .table-stage {
+    grid-row: opponent-field-end / field-end;
+  }
+}
+
+@media (aspect-ratio > 13/10) and (max-height: 32rem) {
+  [data-slot="game-board"] > .table-stage {
+    grid-row: field;
+    margin: 0.125rem 0.25rem;
+    padding: 0.375rem 0.5rem;
+  }
+}
+
+[data-slot="game-board"] .table-stage-cards {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 0;
+}
+
+/* Each card: as tall as the stage allows, all of them together at most 55 % of its width - whole, never cropped. */
+[data-slot="game-board"] .table-stage-card {
+  display: block;
+  flex: none;
+  width: min(calc((100cqh - 0.25rem) * 63 / 88), calc(55cqw / var(--stage-cards, 1) - 0.375rem), 17rem);
+  border-radius: 0.75rem;
+}
+
+[data-slot="game-board"] .table-stage-text {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 8.5rem;
+  min-height: 0;
+  padding-bottom: 0.375rem;
+}
+
+/* The words scroll inside when they need more room than the stage has; "Weiter" below them always stays in view. */
+[data-slot="game-board"] .table-stage-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+[data-slot="game-board"] .table-stage-actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem 0.625rem;
+  padding-top: 0.25rem;
+}
+
+/* A low stage (a phone turned sideways): the turn's words a size smaller, so the step and "Weiter" fit together. */
+@container (max-height: 11rem) {
+  [data-slot="game-board"] .table-stage-body h2 {
+    font-size: 1rem;
+    line-height: 1.25rem;
+  }
+
+  [data-slot="game-board"] .table-stage-body [data-stage-seat] {
+    display: inline;
+    font-size: inherit;
+  }
+
+  [data-slot="game-board"] .table-stage-body [data-stage-seat]::before {
+    content: " · ";
+  }
+}
+
+/* How long the step stays by itself: a thin gold line running down (scaled, never resized); still under less motion. */
+[data-slot="game-board"] .table-stage-timer {
+  position: absolute;
+  inset: auto 0 0;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--primary);
+  transform-origin: left center;
+  animation: table-stage-timer var(--stage-ms, 1700ms) linear forwards;
+}
+
+/* A change of turn without holding: a band across the centre line - decoration over the board, every touch passes through. */
+[data-slot="game-board"] > .table-turn-band {
+  grid-column: field;
+  grid-row: field-start;
+  align-self: start;
+  justify-self: center;
+  position: relative;
+  z-index: 44;
+  max-width: min(28rem, calc(100% - 1rem));
+  margin-top: -1.25rem;
+  padding: 0.375rem 1rem;
+  border: 1px solid var(--table-gold-line);
+  border-radius: 9999px;
+  background: color-mix(in oklch, var(--table-panel) 94%, transparent);
+  box-shadow: 0 0.4rem 1.2rem oklch(0 0 0 / 0.5);
+  text-align: center;
+  pointer-events: none;
+  animation: table-turn-band var(--band-ms, 1900ms) ease-in-out forwards;
+}
+
+@media (aspect-ratio > 13/10) and (max-height: 32rem) {
+  [data-slot="game-board"] > .table-turn-band {
+    margin-top: 0.25rem;
+  }
+}
+
+@keyframes table-stage-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
+
+@keyframes table-stage-timer {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes table-turn-band {
+  0% {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+  12%,
+  80% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 /* ---------- Less motion (keep both blocks; nothing else sets motion !important) ---------- */
 
 @media (prefers-reduced-motion: reduce) {

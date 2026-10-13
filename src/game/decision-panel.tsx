@@ -198,6 +198,17 @@ export interface DecisionPanelProps {
   readonly pictures: TableCardLookup
   /** Shown at the top of the region (a silent engine, a concession on its way). */
   readonly alerts?: ReactNode
+  /**
+   * Prompt 49: the engine holds an action of the opponent for looking (no
+   * question can be open meanwhile): these words say so instead of "Forge
+   * wartet auf dich". Null: it holds nothing.
+   */
+  readonly observing?: string | null
+  /**
+   * Prompt 49: what Forge's auto-pass does (autoPassNote of opponent-tempo.ts):
+   * said while Forge plays on by itself. Null: the general words.
+   */
+  readonly autoPass?: string | null
   /** Sends an answer (the page does it). Absent: the table is only looked at - nothing can be answered. */
   readonly onAnswer?: (question: number, body: AnswerBody) => void
   /** Opens the card view for a card of a question (with the question's view of it, for a card in no zone of the state). */
@@ -269,7 +280,7 @@ export function decisionNeedsRoom(decision: Decision, state: GameState | null): 
   return false
 }
 
-export function DecisionPanel({ state, questions, prompt, waiting, conceding, pictures, alerts, onAnswer, onLook, onTapPlayer, onTapCard, onUseMana, form = "bar", phases = null }: DecisionPanelProps) {
+export function DecisionPanel({ state, questions, prompt, waiting, conceding, pictures, alerts, observing = null, autoPass = null, onAnswer, onLook, onTapPlayer, onTapCard, onUseMana, form = "bar", phases = null }: DecisionPanelProps) {
   const decision = currentDecision(questions)
   const blocked = answerBlocked({ live: onAnswer !== undefined, conceding, waiting })
   const blockedId = useId()
@@ -302,10 +313,15 @@ export function DecisionPanel({ state, questions, prompt, waiting, conceding, pi
         {form === "panel" ? phases : null}
         {decision.kind === "none" ? (
           <>
-            {onAnswer === undefined ? <p className="text-sm">{prompt ?? "Gespeicherter Zustand – keine offene Frage."}</p> : waiting ? (
+            {onAnswer === undefined ? <p className="text-sm">{prompt ?? "Gespeicherter Zustand – keine offene Frage."}</p> : observing !== null ? (
+              <div className="flex flex-col gap-1">
+                <p className="text-sm">Forge hält an – sieh dir die Aktion der Forge-KI an.</p>
+                <GameDecisionNote>{observing}</GameDecisionNote>
+              </div>
+            ) : waiting ? (
               <p className="text-sm">{prompt ?? "Forge wartet auf dich."}</p>
             ) : (
-              <ForgeWorking state={state} />
+              <ForgeWorking state={state} autoPass={autoPass} />
             )}
             <LeadBar />
           </>
@@ -343,7 +359,7 @@ function announcement(question: Question | null, state: GameState): string {
  * at it, and that the game runs on by itself only where the player has
  * nothing to do (Forge's own auto-pass, APINA - prompt 16).
  */
-function ForgeWorking({ state }: { state: GameState }) {
+function ForgeWorking({ state, autoPass }: { state: GameState; autoPass: string | null }) {
   const holder = priorityHolder(state)
   return (
     <div className="flex flex-col gap-1">
@@ -351,7 +367,11 @@ function ForgeWorking({ state }: { state: GameState }) {
         <Spinner aria-hidden />
         {holder !== null && !holder.me ? "Die Forge-KI ist dran …" : "Forge rechnet …"}
       </p>
-      <GameDecisionNote>Forge spielt von selbst weiter, bis du etwas tun oder entscheiden kannst – dann hält Forge an.</GameDecisionNote>
+      <GameDecisionNote>
+        {autoPass === null
+          ? "Forge spielt von selbst weiter, bis du etwas tun oder entscheiden kannst – dann hält Forge an."
+          : `${autoPass} Ändern: Menü → Gegnerzug.`}
+      </GameDecisionNote>
     </div>
   )
 }

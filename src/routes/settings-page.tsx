@@ -24,6 +24,7 @@ import { FeatureChecklist, useDeviceFeatures } from "@/engine/device-support"
 import { engineAssets } from "@/engine/engine-assets"
 import { formatMegabytes, shortCommit } from "@/engine/engine-labels"
 import { AiProfileOptions } from "@/game/ai-profile-options"
+import { AutoPassOptions, OpponentTempoOptions } from "@/game/opponent-tempo-options"
 import { TableBackgroundOptions } from "@/game/table/table-background-options"
 import { LocalDataCard } from "@/storage/local-data-card"
 import { PwaCard } from "@/pwa/pwa-card"
@@ -64,6 +65,9 @@ const SETTING_NAMES: Readonly<Record<string, string>> = {
   "display.motion": "Bewegungen reduzieren",
   "display.tableBackground": "Spieltisch-Hintergrund",
   "display.tableBackgroundImage": "Eigenes Spieltisch-Bild",
+  "display.opponentTempo": "Tempo des Gegnerzugs",
+  "display.opponentStepwise": "Nach jeder Gegneraktion warten",
+  "display.autoPass": "Automatisch weitergeben",
 }
 
 function InvalidPreferences() {
@@ -95,15 +99,30 @@ export function SettingsPage() {
     <Page title="Einstellungen" description="Dein Gegner, die Anzeige, diese Version und die Daten auf diesem Gerät.">
       <InvalidPreferences />
       <div className="grid items-start gap-4 md:grid-cols-2">
-        <Card id="ai-profile" role="region" aria-labelledby="settings-ai-title">
-          <CardHeader>
-            <CardTitle id="settings-ai-title">Gegner</CardTitle>
-            <CardDescription>Wie die Forge-KI spielt – ihr Profil gilt ab der nächsten Partie.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AiProfileOptions />
-          </CardContent>
-        </Card>
+        <div className="flex flex-col gap-4">
+          <Card id="ai-profile" role="region" aria-labelledby="settings-ai-title">
+            <CardHeader>
+              <CardTitle id="settings-ai-title">Gegner</CardTitle>
+              <CardDescription>Wie die Forge-KI spielt – ihr Profil gilt ab der nächsten Partie.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AiProfileOptions />
+            </CardContent>
+          </Card>
+          <Card id="opponent-turn" role="region" aria-labelledby="settings-opponent-turn-title">
+            <CardHeader>
+              <CardTitle id="settings-opponent-turn-title">Gegnerzug</CardTitle>
+              <CardDescription>
+                Wie du den Zug der Forge-KI verfolgst: Jede Aktion – Land, Zauber, Fähigkeit, Angriff, Block, Verrechnung – erscheint nacheinander mit ihrer
+                Karte. Gilt nur auf diesem Gerät.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-6">
+              <OpponentTempoOptions />
+              <AutoPassOptions />
+            </CardContent>
+          </Card>
+        </div>
         <div className="flex flex-col gap-4">
           <Card role="region" aria-labelledby="settings-cards-title">
             <CardHeader>

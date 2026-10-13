@@ -1065,6 +1065,54 @@ only the keywords on this card.
   Forge's Kicker {4}, Schock without keywords) and a built card with several
   of Forge's real keyword forms (`presentation=keywords`).
 
+### 4.17 The opponent's turn: stage, tempo, turn band (prompt 49)
+
+The project owner (2026-10-12): "ich möchte Züge vom Gegner auch sehen, was
+er setzt und so" - with a tempo and an optional "Weiter". Built on the
+engine's observations (prompt 48, protocol 10;
+`docs/implementation/49-gegnerzug-und-spieltempo.md`).
+
+- **Stage** (`OpponentStage`, `src/game/table/opponent-stage.tsx`, slot
+  `opponent-stage`): while the engine holds an observation, a panel over the
+  player's own half - `hoch`: the stack bar and the player's battlefield;
+  `quadrat`/`breit`: the centre line and the player's battlefield; `breit` +
+  `short`: the player's battlefield - placed by the grid's area lines
+  (`grid-column: field`, `grid-row` per layout in `table.css`), z-index 44
+  (over cards and arrows, under the motion's ghosts). The opponent's
+  battlefield, both strips, the hand, the header and the decision stay free.
+  Left the action's cards (`TablePicture`, whole: as tall as the stage
+  allows, together at most 55 % of its width, at most 17 rem each; a hidden
+  card is the back), right the words: the step's place, the action in one
+  sentence (a change of turn: "Zug N" in gold and whose turn), the results
+  in short lines, at the player's turn the summary of the AI's last turn;
+  below "Weiter" (the large gold button) and what happens next; a thin gold
+  line running down the step's time. The words scroll inside, "Weiter" always
+  stays in view; a stage lower than 11 rem sets the turn in one line.
+- **Tempo** Langsam / Normal / Schnell (3.2 / 1.7 / 0.8 s per step, a bit more
+  for several result lines), **stepwise** "Nach jeder Gegneraktion warten":
+  Settings → Gegnerzug and the table's menu. "Weiter" moves one step (armed
+  `ARMING_MS` after a step appeared, repeated keys dropped); after the last
+  step the observation is released - no priority passed, nothing answered.
+- **Header and decision while held:** the badge "Gegnerzug" (pause symbol)
+  instead of "Du bist dran"; the decision region "Forge hält an – sieh dir die
+  Aktion der Forge-KI an." with the mode's note. While Forge plays on by
+  itself the decision region names Forge's auto-pass setting.
+- **Turn band** (`TurnBand`, slot `turn-band`, `data-seat`): a change of turn
+  that came without holding - a pill across the centre line, "Zug 5 · Du bist
+  am Zug" and the AI's last turn, for one step's time, `aria-hidden`, every
+  touch passes through.
+- **Interruption:** a real decision about the AI's spell, ability, trigger or
+  attack removes the stage at once; a shadcn `Alert` above the decision says
+  "Unterbrechung: …" until the player has answered.
+- **Motion:** the stage fades and rises in (`table-stage-in`, opacity and
+  transform), the line scales down (`table-stage-timer`), the band fades in
+  and out (`table-turn-band`); under less motion nothing moves, the band
+  still goes after its time (a timer, not the animation).
+- **Replay:** the same stage read-only for recorded observations
+  ("Aufgezeichnete Aktion", stepped by hand).
+- **Checked** in Chrome with the real engine at the eight sizes and the
+  foldable's three while the stage holds (end-to-end `--opponent-only`).
+
 ## 5. Tokens
 
 Defined once in `:root` of `src/index.css` (prompt 36), mapped for Tailwind
@@ -1297,6 +1345,10 @@ only (`MOTION_PROPERTIES`, checked by `motion-plan.test.ts` and
 - The card view (prompt 47): `src/game/card-view.tsx` on
   `src/components/ui/card-lightbox.tsx`; the German keyword texts
   `src/game/keyword-texts.ts`.
+- The opponent's turn (prompt 49): `src/game/table/opponent-stage.tsx`
+  (stage, band), the steps' words `src/game/observation-model.ts`, the
+  stepping `src/game/observation-playback.ts`, the page's hook
+  `src/game/opponent-turn.tsx`, the settings `src/game/opponent-tempo.ts`.
 
 ## 11. Verification per prompt
 
@@ -1361,6 +1413,12 @@ From the shared rules of the series - end-to-end section 12,
   the button "Umdrehen" and the regions "Was Forge anbietet" and "Auf dem
   Stapel" inside the dialog's description (end-to-end `cardViewer`,
   `lookInRealGame`, `tableInteractions`, `zoneInteractions`);
+- since prompt 49 the stage `opponent-stage` (with `data-step`, `data-kind`,
+  `data-actor`, `data-cards`; `data-stage-card`, `data-stage-next`,
+  `data-stage-status`, the timer `.table-stage-timer`), the band `turn-band`
+  (`data-seat`), the header badge's `data-observing`, the decision's
+  `data-interrupt` and the regions "Gegnerzug ansehen" / "Aufgezeichnete
+  Aktion" (end-to-end `opponentTurnInRealGame`);
 - the toolbars' names.
 
 The regression evidence stays complete (8 sizes × 38 scenes, at least 600
@@ -1382,6 +1440,7 @@ axe checks).
 | 45 | review in every layout, polish, deviations, documentation, handover to the project owner | all |
 | 46 | after the series: drag and drop of hand cards onto the battlefield | §4.10 |
 | 47 | after the series: the card view in full screen with its keywords explained | §3.4, §4.16 |
+| 49 | series *openmana-spielfluss*: the opponent's turn on a stage, tempo, "Weiter", turn band | §4.17 |
 
 After the series (not part of it): the project owner checks the table on the
 Fold (closed, open upright, open turned) and inside ORYX once he has allowed
@@ -1466,6 +1525,11 @@ a push.
   boxes explaining Forge's keywords for it in German beside or below it,
   Forge's one button under it; protocol 9 carries the keywords; a new engine
   and catalog release; pushed together with prompt 46.
+- 2026-10-13, series *openmana-spielfluss* (prompt 49): the opponent's turn
+  (§4.17) - every held action of the AI on the stage over the player's half,
+  at the chosen tempo or stepwise with "Weiter"; changes of turn as a stage
+  step or a band; the interruption line; Forge's auto-pass in the settings;
+  the replay's read-only stage. Local only; published with prompt 52.
 
 ## 14. Deviations from the mockup (prompt 45)
 

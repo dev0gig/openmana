@@ -3,7 +3,9 @@
  * kept current (useStorageQuery on the settings store, also after a change in
  * another tab): the AI profile, the card language, less motion and the
  * table's background (src/game/table/table-background.ts, read by
- * TableSurface). They are
+ * TableSurface), and how the player follows the opponent's turn
+ * (src/game/opponent-tempo.ts, prompt 49: tempo, waiting after every action,
+ * Forge's auto-pass). They are
  * chosen once - in Settings, the AI profile also on the play page - and never
  * asked when a game starts (Anvil lesson: one-time preferences stay out of
  * the repeated path).
@@ -21,7 +23,9 @@
 import { createContext, use, useEffect, useMemo, type ReactNode } from "react"
 import { CARD_LANGUAGE, engineCardLanguage, type CardLanguagePreference } from "@/cards/card-language"
 import { useEngineBootOptions } from "@/engine/engine-session-context"
+import type { AutoPass } from "@openmana/engine-protocol"
 import { AI_PROFILE, type AiProfileChoice } from "@/game/ai-profiles"
+import { AUTO_PASS, OPPONENT_STEPWISE, OPPONENT_TEMPO, type OpponentTempo } from "@/game/opponent-tempo"
 import { TABLE_BACKGROUND, TABLE_BACKGROUND_IMAGE, type TableBackgroundChoice } from "@/game/table/table-background"
 import type { LocalDatabase } from "@/storage/database"
 import { readSetting } from "@/storage/settings"
@@ -37,6 +41,12 @@ export interface Preferences {
   readonly tableBackground: TableBackgroundChoice
   /** The player's own table picture (a data: URL), or null. */
   readonly tableBackgroundImage: string | null
+  /** How long each action of the opponent stays on the table (prompt 49). */
+  readonly opponentTempo: OpponentTempo
+  /** Wait after every action of the opponent until the player presses "Weiter". */
+  readonly opponentStepwise: boolean
+  /** Forge's own auto-pass of the player's priority (MatchSettings.autoPass). */
+  readonly autoPass: AutoPass
   /** Keys of settings whose stored value failed its check (their default is in use). */
   readonly invalid: readonly string[]
 }
@@ -49,16 +59,22 @@ export const DEFAULT_PREFERENCES: Preferences = {
   motion: MOTION.fallback,
   tableBackground: TABLE_BACKGROUND.fallback,
   tableBackgroundImage: TABLE_BACKGROUND_IMAGE.fallback,
+  opponentTempo: OPPONENT_TEMPO.fallback,
+  opponentStepwise: OPPONENT_STEPWISE.fallback,
+  autoPass: AUTO_PASS.fallback,
   invalid: [],
 }
 
 export async function readPreferences(db: LocalDatabase): Promise<Omit<Preferences, "status">> {
-  const [aiProfile, cardLanguage, motion, tableBackground, tableBackgroundImage] = await Promise.all([
+  const [aiProfile, cardLanguage, motion, tableBackground, tableBackgroundImage, opponentTempo, opponentStepwise, autoPass] = await Promise.all([
     readSetting(db, AI_PROFILE),
     readSetting(db, CARD_LANGUAGE),
     readSetting(db, MOTION),
     readSetting(db, TABLE_BACKGROUND),
     readSetting(db, TABLE_BACKGROUND_IMAGE),
+    readSetting(db, OPPONENT_TEMPO),
+    readSetting(db, OPPONENT_STEPWISE),
+    readSetting(db, AUTO_PASS),
   ])
   const invalid = [
     ...(aiProfile.invalid ? [AI_PROFILE.key] : []),
@@ -66,6 +82,9 @@ export async function readPreferences(db: LocalDatabase): Promise<Omit<Preferenc
     ...(motion.invalid ? [MOTION.key] : []),
     ...(tableBackground.invalid ? [TABLE_BACKGROUND.key] : []),
     ...(tableBackgroundImage.invalid ? [TABLE_BACKGROUND_IMAGE.key] : []),
+    ...(opponentTempo.invalid ? [OPPONENT_TEMPO.key] : []),
+    ...(opponentStepwise.invalid ? [OPPONENT_STEPWISE.key] : []),
+    ...(autoPass.invalid ? [AUTO_PASS.key] : []),
   ]
   return {
     aiProfile: aiProfile.value,
@@ -73,6 +92,9 @@ export async function readPreferences(db: LocalDatabase): Promise<Omit<Preferenc
     motion: motion.value,
     tableBackground: tableBackground.value,
     tableBackgroundImage: tableBackgroundImage.value,
+    opponentTempo: opponentTempo.value,
+    opponentStepwise: opponentStepwise.value,
+    autoPass: autoPass.value,
     invalid,
   }
 }

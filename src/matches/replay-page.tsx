@@ -15,6 +15,8 @@ import { GameTable } from "@/game/game-table"
 import { visibleCards } from "@/game/table-model"
 import { questionCards } from "@/game/decision-model"
 import { useTableCards } from "@/game/table-cards"
+import { observationCards, observationSteps } from "@/game/observation-model"
+import { OpponentStage } from "@/game/table/opponent-stage"
 import { readMatch } from "@/storage/matches"
 import type { LocalDatabase } from "@/storage/database"
 import { downloadFile } from "@/storage/download"
@@ -48,10 +50,16 @@ function ReplayView({ matchId }: { matchId: string }) {
   useImmersive(frame !== undefined)
   const { cardLanguage } = usePreferences()
   const cards = useMemo(
-    () => (frame ? [...visibleCards(frame.state).values(), ...questionCards(frame.questions)] : []),
+    () => (frame ? [...visibleCards(frame.state).values(), ...questionCards(frame.questions), ...observationCards(frame.observation)] : []),
     [frame],
   )
   const pictures = useTableCards(cards, cardLanguage)
+  // A recorded observation (prompt 49): its steps read-only, stepped by hand - nothing is released, nothing waits.
+  const observation = frame?.observation ?? null
+  const steps = useMemo(() => (observation === null || frame === undefined ? [] : observationSteps(observation, frame.state)), [observation, frame])
+  const [stepAt, setStepAt] = useState<{ readonly id: number | null; readonly index: number }>({ id: null, index: 0 })
+  const stepIndex = stepAt.id === (observation?.id ?? null) ? Math.min(stepAt.index, Math.max(0, steps.length - 1)) : 0
+  const recordedStep = steps[stepIndex] ?? null
   const [fileError, setFileError] = useState<string | null>(null)
   const save = () => {
     if (stored.status !== "ready" || stored.data === null) return
@@ -195,6 +203,27 @@ function ReplayView({ matchId }: { matchId: string }) {
         pictures={pictures}
         menu={menu}
         alerts={navigation}
+        stage={
+          recordedStep !== null && observation !== null ? (
+            <OpponentStage
+              replay
+              step={recordedStep}
+              index={stepIndex}
+              count={steps.length}
+              pictures={pictures}
+              summary={null}
+              status={observation.hold ? "Forge hielt hier zum Ansehen an." : "Forge hielt hier nicht an."}
+              durationMs={null}
+              timerKey={recordedStep.key}
+              {...(steps.length > 1
+                ? {
+                    onNext: () => setStepAt({ id: observation.id, index: stepIndex + 1 }),
+                    onPrevious: () => setStepAt({ id: observation.id, index: stepIndex - 1 }),
+                  }
+                : {})}
+            />
+          ) : null
+        }
       />
     </>
   )
