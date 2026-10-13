@@ -321,6 +321,12 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Assumptions (changeable): "Fliegend" (with a note on the older "Flugfähigkeit"), "Verursacht Trampelschaden"; boxes in Forge's enum order; the aside 36 % of the screen (16–24 rem); the PNG as the card view's largest picture.
 - Evidence: `docs/implementation/47-vollbild-kartenansicht.md`.
 
+### Observable engine steps (Prompt 48, series openmana-spielfluss 1/5)
+- Protocol 10: Forge's public actions (turn begin/end, land, cast, activate, trigger, attack, block, resolve and combat damage with their public results) as numbered observations from Forge's own events (`ObservationLog`), each right after the state it explains; only what the player may see. In the mode `hold` the engine waits at a stable point - before Forge asks the AI what it plays (`ObservedAiPlayer`) - until the player releases exactly that observation; a release decides nothing (the same engine trace with and without holds). Forge's own auto-pass per game (`noActions`, `noActionsRespectInterrupts`, `never`), `settings.change`/`settings.applied`. Land facts for prompt 51: `landsUnlimited`, `VisibleCard.landRefusal` from Forge's shared check (Forge patch 0010, read only).
+- The app does not ask for holds yet (prompt 49 builds tempo and "Weiter"); `EngineSession` keeps the latest observation and the confirmed settings; replay reads protocol-10 and, unchanged, protocol-9 recordings.
+- Local development engine candidate `engine/build/candidate-48` (not locked, not released; check with `node scripts/engine-candidate.mjs engine/build/candidate-48`, use with `OPENMANA_ENGINE_DIR=engine/build/candidate-48/dist OPENMANA_CARDS_DIR=engine/build/candidate-48/catalog`); its hashes: `docs/implementation/48-observation-contract.md`. The complete acceptance of 48-51 and the lock/release follow in prompt 52 (`AGENTS.md`, test split of the series).
+- Evidence: `docs/implementation/48-observation-contract.md`.
+
 ### ORYX Cloud Sync (outside the queue, 2026-09-25)
 - The project owner's direct assignment, not a queue prompt (outside the numbered program): the player's collection syncs through their ORYX account (the launcher's Supabase cloud) with the vendored ORYX SDK 1.0.0 (`src/cloud/oryx-sdk.js` and `.d.ts`, byte-identical copies of `oryx-games/shared`, checksum-tested, excluded from lint only themselves). Active only on `https://openmana.vercel.app/`; locally, in tests and previews inactive (no request, nothing stored). Local stays the source of truth.
 - One slot `collection` = one document (`src/storage/collection.ts`, schema `CollectionDocument`, version = `SCHEMA_VERSION`): valid decks, deletion marks (90 days) and every setting except `display.*`; never caches, recorded matches or `meta`.
@@ -333,6 +339,8 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 
 ## Currently In Progress
 Prompts 46 (drag and drop) and 47 (the full-screen card view, protocol 9) are implemented and locally verified: the final engine update pipeline, complete regression and seven readiness games passed. The deployment manifest selects `engine-p9-fba5601117ff`; its authorized publication and production acceptance are tracked in the central Dropzone completion report. The table redesign 36–45 remains complete; transferring its style to the rest of the app is a separate series.
+
+Series *openmana-spielfluss* (48–52): prompt 48 (protocol 10, observable engine steps, local engine candidate) is implemented with its targeted checks; 49–51 build the table's part on that candidate, 52 runs the complete acceptance, promotes the lock and publishes. Until 52 the locked/deployed engine stays `engine-p9-fba5601117ff` (protocol 9), which today's app (protocol 10) no longer accepts locally - build with the candidate.
 
 Any agent entering the repository must first reconcile this statement with the central Dropzone task state and Git state.
 

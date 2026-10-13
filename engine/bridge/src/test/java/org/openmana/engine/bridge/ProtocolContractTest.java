@@ -89,6 +89,10 @@ public class ProtocolContractTest {
         assertEquals(constants("MEANING_"), enumOf("ButtonMeaning"));
         assertEquals(constants("ATTACK_REFUSAL_"), enumOf("AttackRefusal"));
         assertEquals(constants("REJECT_"), enumOf("RejectReason"));
+        // Protocol 10.
+        assertEquals(constants("LAND_REFUSAL_"), enumOf("LandRefusal"));
+        assertEquals(constants("AUTO_PASS_"), enumOf("AutoPass"));
+        assertEquals(new TreeSet<>(Set.of(Protocol.OBSERVATION_OFF, Protocol.OBSERVATION_HOLD)), enumOf("ObservationMode"));
         assertEquals(constants("MESSAGE_"), enumOf("MessageKind"), "MESSAGE is the message type, MESSAGE_* are its kinds");
     }
 
@@ -97,11 +101,12 @@ public class ProtocolContractTest {
         final Set<String> engineTypes = branchConsts("EngineMessage", "type");
         for (final String type : new String[]{Protocol.GAME_STARTED, Protocol.STATE, Protocol.EVENTS, Protocol.MESSAGE,
                 Protocol.QUESTION, Protocol.QUESTION_WITHDRAWN, Protocol.QUESTION_ANSWERED, Protocol.INPUT_REJECTED, Protocol.GAME_END,
-                Protocol.DIAGNOSTICS_TRACE}) {
+                Protocol.DIAGNOSTICS_TRACE, Protocol.OBSERVATION, Protocol.OBSERVATION_RELEASED, Protocol.SETTINGS_APPLIED}) {
             assertTrue(engineTypes.contains(type), type + " is missing in EngineMessage");
         }
         assertEquals(branchConsts("EngineInput", "type"),
-                new TreeSet<>(Set.of(Protocol.ANSWER, Protocol.CARD_TAP, Protocol.PLAYER_TAP, Protocol.MANA_USE, Protocol.STATE_REQUEST, Protocol.CONCEDE)));
+                new TreeSet<>(Set.of(Protocol.ANSWER, Protocol.CARD_TAP, Protocol.PLAYER_TAP, Protocol.MANA_USE, Protocol.STATE_REQUEST, Protocol.CONCEDE,
+                        Protocol.OBSERVATION_RELEASE, Protocol.SETTINGS_CHANGE)));
     }
 
     /** The bridge sends Forge's phase names; the schema must know every one this Forge has. */

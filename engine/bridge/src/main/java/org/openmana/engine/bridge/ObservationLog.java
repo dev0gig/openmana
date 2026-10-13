@@ -184,6 +184,10 @@ final class ObservationLog {
         }
         final MagicStack stack = game.getStack();
         if (stack.isResolving()) {
+            if (stack.isEmpty()) {
+                // Forge took the item off the stack and finishes its resolution: still the open one.
+                return openKey != null && openKey.startsWith("resolve:") ? openKey : null;
+            }
             final SpellAbility sa = stack.peekAbility();
             return sa == null ? null : "resolve:" + sa.getId();
         }
@@ -237,7 +241,8 @@ final class ObservationLog {
             }
             continued = true;
         }
-        final JsonObject a = key.startsWith("resolve:") ? resolveAction(game.getStack().peekAbility()) : combatDamageAction();
+        final JsonObject a = key.startsWith("resolve:")
+                ? resolveAction(game.getStack().isEmpty() ? null : game.getStack().peekAbility()) : combatDamageAction();
         if (continued) {
             a.addProperty("continued", true);
         }
