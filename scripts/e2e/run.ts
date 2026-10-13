@@ -2509,9 +2509,12 @@ async function lookInRealGame(page: Page, label: string, touch = false): Promise
   // Prompt 47: the view in full screen - Forge's offer is a button under the card (none here), turning a double-faced card one more.
   const offerButtons = await view.locator('[data-slot="card-view-offer"]').getByRole("button").count()
   const turnButtons = await view.getByRole("button", { name: /^Umdrehen/ }).count()
+  // Prompt 50: a card of the hand browses the hand - "Vorige Karte" and "Nächste Karte" only look, too.
+  const fromHand = (await card.evaluate((element) => element.closest('section[aria-label="Deine Hand"]') !== null))
+  const browseButtons = await view.getByRole("button", { name: /^(Vorige|Nächste) Karte$/ }).count()
   const picture = await view.locator('[data-slot="card-picture"]').getAttribute("data-state")
   check(name.startsWith(title) && title.length > 0, `${label}: the card view's title "${title}" for "${name}"`)
-  check(offer === "Mit dieser Karte bietet Forge gerade nichts an." && offerButtons === 0 && buttons.length === 1 + turnButtons, `${label}: in the first decision only close and inspection controls are offered ("${offer}", buttons ${buttons.join("|")})`)
+  check(offer === "Mit dieser Karte bietet Forge gerade nichts an." && offerButtons === 0 && browseButtons === (fromHand ? 2 : 0) && buttons.length === 1 + turnButtons + browseButtons, `${label}: in the first decision only close and inspection controls are offered ("${offer}", buttons ${buttons.join("|")})`)
   check(picture === "loaded" || picture === "missing", `${label}: the card view's picture ${picture}`)
   const focused = await page.evaluate(() => document.activeElement?.getAttribute("role"))
   check(focused === "dialog", `${label}: the card view does not hold the focus itself (${focused})`)
@@ -3990,9 +3993,12 @@ async function preferencesPhone(browser: Browser, base: string): Promise<Record<
     const rows = page.locator('[data-slot="field-label"]:has([role="radio"], [role="switch"])')
     const heights: number[] = []
     for (let i = 0; i < (await rows.count()); i++) heights.push(await layoutHeight(rows.nth(i)))
-    // The eight rows of prompt 12, plus the table's background (2026-10-12: the drawn table, the built-in pictures, the player's own).
+    // The eight rows of prompt 12, plus the table's background (2026-10-12: the drawn table, the built-in pictures, the player's own),
+    // plus the opponent's turn (prompt 49: three tempos, waiting after every action, Forge's three auto-pass settings).
     const backgrounds = await page.getByRole("radiogroup", { name: "Spieltisch-Hintergrund" }).getByRole("radio").count()
-    check(backgrounds >= 2 && heights.length === 8 + backgrounds && heights.every((height) => height >= 44), `preferences (phone): option rows ${JSON.stringify(heights)} (${backgrounds} table backgrounds)`)
+    const opponentTurn = page.getByRole("region", { name: "Gegnerzug" })
+    const opponentRows = (await opponentTurn.getByRole("radio").count()) + (await opponentTurn.getByRole("switch").count())
+    check(backgrounds >= 2 && opponentRows === 7 && heights.length === 8 + backgrounds + opponentRows && heights.every((height) => height >= 44), `preferences (phone): option rows ${JSON.stringify(heights)} (${backgrounds} table backgrounds, ${opponentRows} for the opponent's turn)`)
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
     check(overflow <= 0, `preferences (phone): overflow ${overflow}px`)
     const axe = await accessibility(page, "preferences (phone): settings")
@@ -4686,6 +4692,9 @@ async function openScene(page: Page, base: string, scene: string, query = ""): P
   try {
     await page.goto(new URL(`/scripts/e2e/table-harness.html?scene=${scene}${query}`, base).href, { waitUntil: "domcontentloaded" })
     await page.locator('[data-harness="table"]').waitFor({ timeout: 300_000 })
+    // The harness's own notice (prompt 51 gave it the app's toasts): the card data set up on a context's first scene goes
+    // first - it lies over the table's lower right (the hand) for a few seconds and is no part of the scene.
+    await page.waitForFunction(() => document.querySelector("[data-sonner-toast]") === null, undefined, { timeout: 15_000 }).catch(() => undefined)
   } catch (error) {
     const state = await Promise.race([
       page.evaluate(() => ({ title: document.title, harness: [...document.querySelectorAll("[data-harness]")].map((node) => ({ kind: node.getAttribute("data-harness"), status: node.getAttribute("data-status"), text: node.textContent?.slice(0, 900) })), body: document.body.textContent?.slice(0, 900) })).catch(() => "Page unavailable"),

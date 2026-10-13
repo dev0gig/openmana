@@ -272,6 +272,14 @@ async function main() {
     // Closing just one tab cannot replace the controller of the live game.
     assert.equal((await swStatus(page)).version, oldStatus.version)
     assert.deepEqual(await userData(page), liveBefore)
+    // Prompt 50: the start hand opens by itself in full screen at Forge's mulligan question and keeps the table out of
+    // reach; closing it answers nothing - the question and the original transcript stay as they are.
+    if (await page.locator('[data-slot="hand-spread"]').count()) {
+      await page.keyboard.press("Escape")
+      await page.locator('[data-slot="hand-spread"]').waitFor({ state: "detached" })
+      assert.equal(await page.locator('[data-slot="game-decision"]').getAttribute("data-question"), question)
+      assert.deepEqual(await userData(page), liveBefore)
+    }
     // End the real game via the app's existing confirmed action.
     await page.getByRole("button", { name: /^Menü/ }).click()
     const menu = page.getByRole("dialog", { name: "Partie" })
