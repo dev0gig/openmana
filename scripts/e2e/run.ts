@@ -2845,7 +2845,7 @@ async function gameSession(browser: Browser, page: Page, pageLog: PageLog, base:
   check(dialogType === "beforeunload", `game: reloading during a game did not ask first (${dialogType})`)
   check(workers.max() <= 1, `game: ${workers.max()} engines at the same time`)
   results["workers"] = { created: workers.created(), maxAtOnce: workers.max(), trace: workers.trace() }
-  for (const error of pageLog.errors.slice(errorsBefore)) check(false, `game: ${error}`)
+  for (const error of pageLog.errors.slice(errorsBefore)) if (!droppedPicture(error)) check(false, `game: ${error}`)
 
   // 7.-8. Failures in a fresh profile: a boot that fails, and a deck Forge refuses.
   results["failures"] = await gameFailures(browser, base, id, decks)
@@ -3028,7 +3028,7 @@ async function dragInRealGame(browser: Browser, base: string, viewport: Viewport
     check(cancels !== null && land !== null && unplayable !== null && spell !== null && aiLife !== null, `${label}: not everything was dragged ${JSON.stringify({ cancels, land, unplayable, spell, aiLife, steps })}`)
     await page.screenshot({ path: path.join(reportDir, "screens", `${viewport.name}-game-dragged.png`) })
     await concedeGame(page)
-    for (const error of pageLog.errors) check(false, `${label}: ${error}`)
+    for (const error of pageLog.errors) if (!droppedPicture(error)) check(false, `${label}: ${error}`)
     return { cancels, land, unplayable, spell, aiLife, steps: steps.length, ms: Date.now() - started }
   } finally {
     await context.close()
@@ -3619,7 +3619,7 @@ async function opponentTurnInRealGame(browser: Browser, base: string, viewport: 
       results["replay"] = { frame, label: replayLabel, step: replayFacts?.["title"], unchanged: after === before, axe: await accessibility(page, `${label}: replay stage`) }
       check(replayLabel === "Aufgezeichnete Aktion" && after === before, `${label}: the replay's stage is not read only ${JSON.stringify(results["replay"])}`)
     }
-    for (const error of pageLog.errors) check(false, `${label}: ${error}`)
+    for (const error of pageLog.errors) if (!droppedPicture(error)) check(false, `${label}: ${error}`)
     results["ms"] = Date.now() - started
     results["screens"] = shots
     return results
@@ -3774,7 +3774,7 @@ async function gamePhone(browser: Browser, base: string, decks: readonly SavedDe
     await screenshots(page, "phone-game-result")
     results["finishedRecording"] = await finishedRecordingCheck(page, "game phone")
     results["sizes"] = { menu: menuHeight, again: againHeight, bar: barBox, tabBar: tabBox }
-    for (const error of pageLog.errors) check(false, `game (phone): ${error}`)
+    for (const error of pageLog.errors) if (!droppedPicture(error)) check(false, `game (phone): ${error}`)
   } finally {
     await context.close()
   }
@@ -8476,6 +8476,15 @@ async function main(): Promise<void> {
   fs.writeFileSync(path.join(reportDir, "report.json"), `${JSON.stringify(report, null, 2)}\n`)
   log(`\n${responsiveOnly ? "Responsive " : tableOnly ? "Table " : helpOnly ? "Help " : combatOnly ? "Combat " : zonesOnly ? "Zones " : historyOnly ? "History " : ""}${failures.length === 0 ? "E2E OK" : `E2E FAILED (${failures.length})`} – report: ${path.relative(root, path.join(reportDir, "report.json"))}`)
   process.exitCode = failures.length === 0 ? 0 : 1
+}
+
+/**
+ * A card picture Chrome dropped because its card left the screen before it loaded (ERR_ABORTED) - in a real game the
+ * stage's cards come and go with the AI's actions (prompt 49), as the table's cards do in its sections above: no failure
+ * of the page or of Scryfall's (the readiness games and the live check count the same way). Any other failed request counts.
+ */
+function droppedPicture(error: string): boolean {
+  return /^\[requestfailed\] https:\/\/cards\.scryfall\.io\/.* net::ERR_ABORTED$/.test(error)
 }
 
 /** Same browser configuration for application checks and each bounded table run. */
