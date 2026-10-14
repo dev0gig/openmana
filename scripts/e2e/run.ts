@@ -3291,6 +3291,7 @@ async function opponentTurnInRealGame(browser: Browser, base: string, viewport: 
     let casting = false
     let phase: "normal" | "fast" | "slow" | "stepwise" | "done" = "normal"
     let stepwiseFacts: Record<string, unknown> | null = null
+    let heldKeyFacts: Record<string, unknown> | null = null
     const layouts: Record<string, unknown> = {}
     let background: Record<string, unknown> | null = null
     let lessMotion: Record<string, unknown> | null = null
@@ -3316,9 +3317,12 @@ async function opponentTurnInRealGame(browser: Browser, base: string, viewport: 
       if (now === "stage") {
         if (phase === "stepwise") {
           // Stepwise: the stage waits for "Weiter" however long the player looks; the engine holds. Checked at a step with a
-          // card (a land, a spell, an attack); a change of turn before it is passed with one "Weiter".
+          // card (a land, a spell, an attack); a change of turn before it is passed with one "Weiter" - on a desktop with the
+          // held key (prompt 52: the first held step that comes, so a game that ends right after the next card step still
+          // gets both checks).
           const facts = await stageFacts(page)
-          if (stepwiseFacts !== null && !touch) {
+          const noCards = ((facts?.["cards"] as unknown[] | undefined) ?? []).length === 0
+          if (!touch && heldKeyFacts === null && (stepwiseFacts !== null || noCards)) {
             // A key held down on "Weiter" (keyboard): one step, however often the key repeats.
             await page.waitForTimeout(ARMED_AFTER_MS)
             const before3 = (await stageLog(page)).steps.length
@@ -3331,12 +3335,15 @@ async function opponentTurnInRealGame(browser: Browser, base: string, viewport: 
             const moved3 = (await stageLog(page)).steps.length - before3
             const released3 = ((await recordedInputs(page))["observation.release"] ?? 0) - (inputs3["observation.release"] ?? 0)
             check(moved3 + released3 === 1, `${label}: a held Enter on "Weiter" moved ${moved3} steps and released ${released3}`)
-            stepwiseFacts["heldKey"] = { moved: moved3, released: released3, step: facts?.["key"] }
-            phase = "done"
-            await setOpponentTempo(page, "Normal", false).catch(() => undefined)
+            heldKeyFacts = { moved: moved3, released: released3, step: facts?.["key"] }
+            if (stepwiseFacts !== null) {
+              stepwiseFacts["heldKey"] = heldKeyFacts
+              phase = "done"
+              await setOpponentTempo(page, "Normal", false).catch(() => undefined)
+            }
             continue
           }
-          if (((facts?.["cards"] as unknown[] | undefined) ?? []).length === 0) {
+          if (noCards) {
             await page.waitForTimeout(ARMED_AFTER_MS)
             await activate(stage.locator("[data-stage-next]"))
             await page.waitForTimeout(300)
@@ -3395,10 +3402,10 @@ async function opponentTurnInRealGame(browser: Browser, base: string, viewport: 
           check(movedSteps + releases === 1, `${label}: a double tap on "Weiter" moved ${movedSteps} steps and released ${releases} observations`)
           const others = Object.entries(afterDouble).filter(([type]) => type !== "observation.release").map(([type, n]) => n - (afterLook[type] ?? 0))
           check(others.every((n) => n === 0), `${label}: "Weiter" sent more than a release ${JSON.stringify({ afterLook, afterDouble })}`)
-          stepwiseFacts = { heldMs: 4000, held, first, movedSteps, releases, secondTapLooked: looked, inputsBefore: afterLook, inputsAfter: afterDouble }
+          stepwiseFacts = { heldMs: 4000, held, first, movedSteps, releases, secondTapLooked: looked, inputsBefore: afterLook, inputsAfter: afterDouble, ...(heldKeyFacts !== null ? { heldKey: heldKeyFacts } : {}) }
           await shot("stepwise")
-          // The keyboard (desktop) at the next held step; a thumb is done.
-          if (touch) {
+          // The keyboard (desktop) at the next held step, if no change of turn came first; a thumb is done.
+          if (touch || heldKeyFacts !== null) {
             phase = "done"
             await setOpponentTempo(page, "Normal", false).catch(() => undefined)
           }
