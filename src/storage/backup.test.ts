@@ -245,6 +245,21 @@ describe("reading a backup", () => {
   })
 })
 
+describe("retired settings (prompt 56)", () => {
+  it("a backup of an older app brings display.tableBackground and the own picture: both are read past, every other setting is taken", async () => {
+    const kept = [setting("ai.profile", { kind: "random" }), setting("display.cardLanguage", "en")]
+    const retired = [setting("display.tableBackground", "planeswalker"), setting("display.tableBackgroundImage", "data:image/webp;base64,UklGRhIAAABXRUJQVlA4TAYAAAAvAAAAAAfQ//73v/+BiOh/AAA=")]
+    const body = [...kept, ...retired].map((record) => ({ type: "record", store: "settings", record }))
+    const file = await backupFile([backupHeader({ schemaVersion: 5 }), ...body, backupEnd({ settings: 4 })])
+    const contents = await readBackup(file)
+    expect(contents.records.settings.map((record) => record.key)).toEqual(kept.map((record) => record.key))
+    expect(contents.skipped).toEqual([])
+    // The same with a backup of this app's own version: the records simply never come in.
+    const now = await readBackup(await backupFile([backupHeader({}), ...body, backupEnd({ settings: 4 })]))
+    expect(now.records.settings.map((record) => record.key)).toEqual(kept.map((record) => record.key))
+  })
+})
+
 async function contentsOf(records: { decks?: DeckRecord[]; settings?: ReturnType<typeof setting>[]; matches?: ReturnType<typeof match>[]; log?: ReturnType<typeof logEntry>[] }, stores?: string[]): Promise<BackupContents> {
   const body = [
     ...(records.decks ?? []).map((record) => ({ type: "record", store: "decks", record })),

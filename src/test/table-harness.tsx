@@ -41,23 +41,18 @@
  * The toasts (prompt 51): the app shell's Toaster, so a refused drop's reason
  * shows as in the app.
  *
- * The table's background (prompt 53): the app's own provider chain
- * (StorageProvider → EngineSessionProvider → PreferencesProvider, as in
- * src/app/app-shell.tsx; the engine is never started) reads the setting
- * display.tableBackground from this browser's IndexedDB, as the app does -
- * so without a stored choice the table shows the arena, the default.
- * `background=<choice>` stores that choice first (arena, table, colors,
- * planeswalker, grid; custom with a tiny picture of its own) and the table
- * shows it; window.__openmanaChooseBackground(choice) stores another one
- * while the page stays - the test compares the same scene over the arena
- * and over the drawn table.
+ * The preferences (prompt 53): the app's own provider chain (StorageProvider →
+ * EngineSessionProvider → PreferencesProvider, as in src/app/app-shell.tsx; the
+ * engine is never started) reads the settings from this browser's IndexedDB,
+ * as the app does. The table's surface is the arena (prompt 56; nothing to
+ * choose).
  *
  * Not part of the app: only the test's dev server serves it,
- * /scripts/e2e/table-harness.html?scene=<name>[&built=<question>][&presentation=dfc|fallback|keywords][&hand=<cards>][&starthand=1|bottom][&language=en][&waiting=0][&background=<choice>]
+ * /scripts/e2e/table-harness.html?scene=<name>[&built=<question>][&presentation=dfc|fallback|keywords][&hand=<cards>][&starthand=1|bottom][&language=en][&waiting=0]
  * or ?sequence=first-attack[&step=<n>].
  */
 import { Menu } from "lucide-react"
-import { StrictMode, useEffect, useMemo, useState, type ReactNode } from "react"
+import { StrictMode, useEffect, useMemo, useState } from "react"
 import { createRoot } from "react-dom/client"
 import "@/index.css"
 import { PreferencesProvider } from "@/app/preferences"
@@ -69,10 +64,8 @@ import { EngineSessionProvider } from "@/engine/engine-session-context"
 import { GameTable } from "@/game/game-table"
 import { useTableCards } from "@/game/table-cards"
 import { questionCards } from "@/game/decision-model"
-import { TABLE_BACKGROUND, TABLE_BACKGROUND_IMAGE, type TableBackgroundChoice } from "@/game/table/table-background"
 import { visibleCards } from "@/game/table-model"
-import { StorageProvider, useStorage } from "@/storage/storage-context"
-import { useSaveSetting } from "@/storage/use-save-setting"
+import { StorageProvider } from "@/storage/storage-context"
 import type { AnswerBody, CardKeyword, ManaColor, Question, VisibleCard } from "@openmana/engine-protocol"
 import keywordForms from "./fixtures/keyword-forms.json"
 import { BUILT_QUESTIONS, builtQuestion, type BuiltQuestionName } from "./built-questions"
@@ -94,49 +87,7 @@ declare global {
     __openmanaShowScene?: (name: TableSceneName) => void
     /** Shows step n of the recorded sequence as the next state (prompt 44: the motion). */
     __openmanaShowStep?: (step: number) => void
-    /** Stores another table background (prompt 53); the table follows through the app's own preferences. */
-    __openmanaChooseBackground?: (choice: TableBackgroundChoice) => Promise<boolean>
   }
-}
-
-const BACKGROUNDS: readonly TableBackgroundChoice[] = ["arena", "table", "colors", "planeswalker", "grid", "custom"]
-
-/** A tiny picture of the player's own (one WebP pixel) for background=custom. */
-const OWN_PICTURE = "data:image/webp;base64,UklGRhIAAABXRUJQVlA4TAYAAAAvAAAAAAfQ//73v/+BiOh/AAA="
-
-/**
- * The table's background as the test asks for it (background=<choice>): stored
- * in this browser's database before the table shows, through the same write
- * the Settings page uses; without the query nothing is stored and the app's
- * default applies.
- */
-function BackgroundChoice({ choice, children }: { choice: TableBackgroundChoice | null; children: ReactNode }) {
-  const { snapshot } = useStorage()
-  const save = useSaveSetting()
-  const [stored, setStored] = useState(choice === null)
-  const ready = snapshot.status === "ready"
-  useEffect(() => {
-    if (!ready) return
-    window.__openmanaChooseBackground = async (next) => {
-      if (next === "custom" && !(await save(TABLE_BACKGROUND_IMAGE, OWN_PICTURE))) return false
-      return save(TABLE_BACKGROUND, next)
-    }
-    return () => {
-      delete window.__openmanaChooseBackground
-    }
-  }, [ready, save])
-  useEffect(() => {
-    if (stored || !ready || choice === null) return
-    let active = true
-    void window.__openmanaChooseBackground?.(choice).then((done) => {
-      if (active && done) setStored(true)
-    })
-    return () => {
-      active = false
-    }
-  }, [stored, ready, choice])
-  if (!stored) return <p data-harness="background" data-status={ready ? "storing" : "waiting"}>Spieltisch-Hintergrund: {choice}</p>
-  return children
 }
 
 function recordTap(id: number): void {
@@ -346,22 +297,19 @@ function SequenceHarness({ first, language }: { first: number; language: "de" | 
 
 const container = document.getElementById("root")
 if (!container) throw new Error("the harness page has no #root element")
-const background = new URLSearchParams(window.location.search).get("background")
 createRoot(container).render(
   <StrictMode>
     <StorageProvider>
       {/* The app's own chain for the preferences (prompt 53, as src/app/app-shell.tsx): the engine session only exists, nothing boots. */}
       <EngineSessionProvider>
         <PreferencesProvider>
-          <BackgroundChoice choice={BACKGROUNDS.find((choice) => choice === background) ?? null}>
-            <CardCatalogProvider>
-              <TooltipProvider>
-                <Harness />
-                {/* The app's toasts (prompt 51: a refused drop says why), as the app shell shows them. */}
-                <Toaster />
-              </TooltipProvider>
-            </CardCatalogProvider>
-          </BackgroundChoice>
+          <CardCatalogProvider>
+            <TooltipProvider>
+              <Harness />
+              {/* The app's toasts (prompt 51: a refused drop says why), as the app shell shows them. */}
+              <Toaster />
+            </TooltipProvider>
+          </CardCatalogProvider>
         </PreferencesProvider>
       </EngineSessionProvider>
     </StorageProvider>

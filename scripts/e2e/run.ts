@@ -4061,12 +4061,12 @@ async function preferencesPhone(browser: Browser, base: string): Promise<Record<
     const rows = page.locator('[data-slot="field-label"]:has([role="radio"], [role="switch"])')
     const heights: number[] = []
     for (let i = 0; i < (await rows.count()); i++) heights.push(await layoutHeight(rows.nth(i)))
-    // The eight rows of prompt 12, plus the table's background (2026-10-12: the drawn table, the built-in pictures, the player's own),
-    // plus the opponent's turn (prompt 49: three tempos, waiting after every action, Forge's three auto-pass settings).
-    const backgrounds = await page.getByRole("radiogroup", { name: "Spieltisch-Hintergrund" }).getByRole("radio").count()
+    // The eight rows of prompt 12 plus the opponent's turn (prompt 49: three tempos, waiting after every action, Forge's three
+    // auto-pass settings). The table's background (2026-10-12 to prompt 56) is gone with the arena: no such group any more.
+    const backgrounds = await page.getByRole("radiogroup", { name: "Spieltisch-Hintergrund" }).count()
     const opponentTurn = page.getByRole("region", { name: "Gegnerzug" })
     const opponentRows = (await opponentTurn.getByRole("radio").count()) + (await opponentTurn.getByRole("switch").count())
-    check(backgrounds >= 2 && opponentRows === 7 && heights.length === 8 + backgrounds + opponentRows && heights.every((height) => height >= 44), `preferences (phone): option rows ${JSON.stringify(heights)} (${backgrounds} table backgrounds, ${opponentRows} for the opponent's turn)`)
+    check(backgrounds === 0 && opponentRows === 7 && heights.length === 8 + opponentRows && heights.every((height) => height >= 44), `preferences (phone): option rows ${JSON.stringify(heights)} (${backgrounds} table background groups, ${opponentRows} for the opponent's turn)`)
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
     check(overflow <= 0, `preferences (phone): overflow ${overflow}px`)
     const axe = await accessibility(page, "preferences (phone): settings")
@@ -5887,13 +5887,13 @@ async function tableHarness(executablePath: string): Promise<Record<string, unkn
   const base = server.resolvedUrls?.local[0]
   if (!base) throw new Error("the dev server did not report its URL")
   const results: Record<string, unknown> = {}
-  // OPENMANA_TABLE_ONLY=layouts|surface|arena|arrows|motion|folds|scenes runs one part of this section (while working on it); all by default.
+  // OPENMANA_TABLE_ONLY=layouts|arena|cost|arrows|motion|folds|scenes runs one part of this section (while working on it); all by default.
   const part = process.env["OPENMANA_TABLE_ONLY"]
   const wanted = (name: string) => part === undefined || part === name
   try {
     if (wanted("layouts")) results["layouts"] = await tableLayoutClasses(executablePath, base)
-    if (!focusedTable && wanted("surface")) results["surface"] = await tableSurface(executablePath, base)
     if (!focusedTable && wanted("arena")) results["arena"] = await arenaSurface(executablePath, base)
+    if (!focusedTable && wanted("cost")) results["cost"] = await arenaCost(executablePath, base)
     if (!focusedTable && wanted("arrows")) results["arrows"] = await tableArrows(executablePath, base)
     if (!focusedTable && wanted("motion")) results["motion"] = await tableMotion(executablePath, base)
     if (!focusedTable && wanted("folds")) results["folds"] = await tableFoldSizes(executablePath, base)
@@ -5975,7 +5975,7 @@ async function tableHarness(executablePath: string): Promise<Record<string, unkn
             }, targetRefs)
             check(targetCheck.length === 0, `${label}: exact stack target markings differ ${JSON.stringify(targetCheck)}`)
           }
-          const surface = await surfaceFacts(page, label)
+          const surface = await arenaFacts(page, label)
           const strips = await stripFacts(page, label, viewport.touch)
           const panels = await panelFacts(page, label, built === null ? scene : null, built === null ? recordedStackIds(scene) : null)
           const decision = await decisionFits(page, label, viewport)
@@ -6067,193 +6067,97 @@ async function tableLayoutClasses(executablePath: string, base: string): Promise
   return results
 }
 
-/**
- * The table surface (prompt 37, docs/design/SPIELTISCH.md §4.1) as the page shows it: first in the board behind the
- * regions, hidden from screen readers, no pointer events (what a pointer hits on the board is never the surface), the
- * desk drawn 1:1 over the board, the board inside the window, its circle round and the rune ring a square around it.
- */
-async function surfaceFacts(page: Page, label: string): Promise<Record<string, unknown>> {
-  // The arena (prompt 53, the default): its own facts; what follows is the drawn table's.
-  const background = await page.evaluate(() => document.querySelector<HTMLElement>('[data-slot="game-board"] > [data-slot="table-surface"]')?.dataset["background"] ?? null)
-  if (background === "arena") return arenaFacts(page, label)
-  const facts = await page.evaluate(() => {
-    const surface = document.querySelector<HTMLElement>('[data-slot="game-board"] > [data-slot="table-surface"]')
-    if (surface === null) return null
-    const board = surface.parentElement!
-    const area = board.getBoundingClientRect()
-    const desk = surface.querySelector<SVGSVGElement>('[data-surface="desk"]')!.getBoundingClientRect()
-    const ring = surface.querySelector<HTMLElement>('[data-surface="ring"]')!
-    const circle = surface.querySelector('[data-surface="circle"]')?.getBoundingClientRect() ?? null
-    const key = (surface.dataset["board"] ?? "").split(" ").map(Number)
-    const drawn = key.length >= 6 ? { left: area.left + key[2]!, top: area.top + key[3]!, width: key[4]!, height: key[5]! } : null
-    const points = drawn === null ? [] : [[0.5, 0.5], [0.08, 0.08], [0.92, 0.92], [0.5, 0.25], [0.5, 0.75], [0.15, 0.5]].map(([x, y]) => document.elementFromPoint(drawn.left + drawn.width * x!, drawn.top + drawn.height * y!))
-    const style = getComputedStyle(surface)
-    return {
-      first: [...board.children].find((child) => child.tagName !== "TITLE") === surface,
-      ariaHidden: surface.getAttribute("aria-hidden"),
-      pointerEvents: style.pointerEvents,
-      window: [window.innerWidth, window.innerHeight],
-      boardSize: [Math.round(area.width), Math.round(area.height)],
-      viewBox: surface.querySelector('[data-surface="desk"]')!.getAttribute("viewBox"),
-      desk: [desk.width, desk.height],
-      drawn,
-      circle: circle === null ? null : { width: circle.width, height: circle.height, x: circle.left + circle.width / 2, y: circle.top + circle.height / 2 },
-      ring: ring.hidden ? null : { width: ring.offsetWidth, height: ring.offsetHeight, x: area.left + ring.offsetLeft + ring.offsetWidth / 2, y: area.top + ring.offsetTop + ring.offsetHeight / 2 },
-      surfaceHit: points.filter((element) => element !== null && surface.contains(element)).length,
-      points: points.length,
-    }
-  })
-  check(facts !== null, `${label}: no table surface in the board`)
-  if (facts === null) return {}
-  const [width, height] = facts.window as [number, number]
-  check(facts.first && facts.ariaHidden === "true" && facts.pointerEvents === "none" && facts.surfaceHit === 0, `${label}: the surface is not decoration behind the regions ${JSON.stringify(facts)}`)
-  check(facts.viewBox === `0 0 ${facts.boardSize[0]} ${facts.boardSize[1]}` && Math.abs(facts.desk[0]! - facts.boardSize[0]!) <= 1 && Math.abs(facts.desk[1]! - facts.boardSize[1]!) <= 1, `${label}: the desk is not drawn 1:1 over the board ${JSON.stringify(facts)}`)
-  check(facts.drawn !== null, `${label}: no board drawn`)
-  if (facts.drawn !== null) {
-    const { left, top, width: w, height: h } = facts.drawn
-    check(left >= 0 && top >= 0 && left + w <= width && top + h <= height, `${label}: the board leaves the window ${JSON.stringify(facts.drawn)}`)
-  }
-  if (facts.circle !== null) {
-    check(Math.abs(facts.circle.width - facts.circle.height) <= 1, `${label}: the circle is not round ${JSON.stringify(facts.circle)}`)
-    check(facts.ring !== null && facts.ring.width === facts.ring.height && Math.abs(facts.ring.x - facts.circle.x) <= 1 && Math.abs(facts.ring.y - facts.circle.y) <= 1, `${label}: the rune ring is not a square around the circle ${JSON.stringify(facts)}`)
-  }
-  return facts
-}
-
 /** The recorded game human-3-de in its order: the moments the surface measurement switches between (prompt 37). */
 const SURFACE_GAME = ["opening", "target-player", "target-both", "stack", "scry", "yes-no", "choose-mode", "main-phase"] as const
 
 /**
- * The table surface beyond single scenes (prompt 37): round and inside the window at every test size including the
- * foldable's (11 sizes), the ring standing still (since 2026-10-12 also without less motion), and the cost of 20 state changes in Chrome with 4x CPU throttling at 412 x 915: no new drawing of the
- * surface while its sizes stay, each drawing far below 200 ms, and the long tasks with and without the surface (paint
- * included) side by side as the measurement.
+ * The arena's cost (prompt 56, after the drawn table's measurement of prompt 37): twenty state changes of one recorded
+ * game in Chrome with 4x CPU throttling at 412 x 915, the long tasks and long animation frames with the arena and with it
+ * hidden side by side (nothing of the arena is drawn again - it has no drawing; the arrows keep their own measure), the
+ * arena untouched by the changes, and the main button's gloss that stops under less motion.
  */
-async function tableSurface(executablePath: string, base: string): Promise<Record<string, unknown>> {
-  log("  table surface: the drawn table (sizes, motion, cost of state changes)")
-  const surfaceBrowser = await launchBrowser(executablePath)
+async function arenaCost(executablePath: string, base: string): Promise<Record<string, unknown>> {
+  log("  arena cost (20 state changes at 4x CPU, with and without the arena)")
+  const costBrowser = await launchBrowser(executablePath)
   const results: Record<string, unknown> = {}
   try {
-    const context = await newContext(surfaceBrowser, VIEWPORTS[0]!)
+    const context = await newContext(costBrowser, VIEWPORTS[0]!)
     const page = await context.newPage()
     const pageLog = watch(page)
-    // The drawn wooden table is chosen as the player chooses it (prompt 53: the arena is the default; arenaSurface checks it).
-    await page.goto(new URL("/scripts/e2e/table-harness.html?scene=main-phase&background=table", base).href, { waitUntil: "domcontentloaded", timeout: 300_000 })
-    await page.locator('[data-harness="table"]').waitFor({ timeout: 300_000 })
-    const sizes: Record<string, unknown> = {}
-    for (const [name, width, height] of TABLE_LAYOUT_SIZES.filter(([size]) => !size.startsWith("border"))) {
-      await page.setViewportSize({ width, height })
-      await page.waitForFunction((prefix) => document.querySelector<HTMLElement>('[data-slot="table-surface"]')?.dataset["board"]?.startsWith(prefix) === true, `${width} ${height} `, { timeout: 10_000 }).catch(() => undefined)
-      sizes[name] = await surfaceFacts(page, `table surface (${name} ${width}x${height})`)
-    }
-    results["sizes"] = sizes
-    check(Object.keys(sizes).length === 11, `table surface: ${Object.keys(sizes).length} sizes checked, expected 11`)
-    await page.setViewportSize({ width: VIEWPORTS[0]!.width, height: VIEWPORTS[0]!.height })
-
-    // Motion: the ring stands still (project owner, 2026-10-12: its turning and glimmering made the table restless) - nothing of the surface moves, with or without less motion.
-    const motion = () => page.evaluate(() => document.getAnimations().filter((animation) => (animation.effect as KeyframeEffect | null)?.target?.closest('[data-slot="table-surface"]')).map((animation) => ({ name: (animation as CSSAnimation).animationName, duration: animation.effect?.getTiming().duration, state: animation.playState })))
-    const moving = await motion()
-    check(moving.length === 0, `table surface: something of the surface moves ${JSON.stringify(moving)}`)
-    await page.emulateMedia({ reducedMotion: "reduce" })
-    const reducedDevice = await motion()
-    await page.emulateMedia({ reducedMotion: "no-preference" })
-    await page.evaluate(() => document.documentElement.setAttribute("data-reduced-motion", ""))
-    const reducedSetting = await motion()
-    await page.evaluate(() => document.documentElement.removeAttribute("data-reduced-motion"))
-    check(reducedDevice.length === 0 && reducedSetting.length === 0, `table surface: the ring moves under less motion ${JSON.stringify({ reducedDevice, reducedSetting })}`)
+    await openScene(page, base, "main-phase")
     // Prompt 41: the main button's gloss sweeps across ("Weiter" in main-phase) and stops under less motion, the device's and the player's.
     const gloss = () => page.evaluate(() => document.getAnimations().filter((animation) => (animation.effect as KeyframeEffect | null)?.target?.closest(".table-main-button")).map((animation) => ({ name: (animation as CSSAnimation).animationName, pseudo: (animation.effect as KeyframeEffect).pseudoElement, state: animation.playState })))
     const glossing = await gloss()
-    check(glossing.some((animation) => animation.name === "table-gloss" && animation.pseudo === "::after" && animation.state === "running"), `table surface: the main button has no gloss ${JSON.stringify(glossing)}`)
+    check(glossing.some((animation) => animation.name === "table-gloss" && animation.pseudo === "::after" && animation.state === "running"), `arena cost: the main button has no gloss ${JSON.stringify(glossing)}`)
     await page.emulateMedia({ reducedMotion: "reduce" })
     const glossDevice = await gloss()
     await page.emulateMedia({ reducedMotion: "no-preference" })
     await page.evaluate(() => document.documentElement.setAttribute("data-reduced-motion", ""))
     const glossSetting = await gloss()
     await page.evaluate(() => document.documentElement.removeAttribute("data-reduced-motion"))
-    check(glossDevice.length === 0 && glossSetting.length === 0, `table surface: the main button's gloss moves under less motion ${JSON.stringify({ glossDevice, glossSetting })}`)
-    results["motion"] = { moving, reducedDevice, reducedSetting, gloss: { glossing, glossDevice, glossSetting } }
+    check(glossDevice.length === 0 && glossSetting.length === 0, `arena cost: the main button's gloss moves under less motion ${JSON.stringify({ glossDevice, glossSetting })}`)
+    results["gloss"] = { glossing, glossDevice, glossSetting }
 
-    // Cost: 20 state changes of one recorded game, 4x CPU throttling, the phone's size.
-    const step = (name: string) => page.evaluate((scene) => new Promise<string>((resolve) => {
+    const step = (name: string) => page.evaluate((scene) => new Promise<void>((resolve) => {
       (window as unknown as { __openmanaShowScene: (name: string) => void }).__openmanaShowScene(scene)
-      requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => resolve(document.querySelector<HTMLElement>('[data-slot="table-surface"]')?.dataset["board"] ?? ""), 50)))
+      requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 50)))
     }), name)
     for (const name of SURFACE_GAME) await step(name)
     const cdp = await context.newCDPSession(page)
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 })
-    const run = async (surface: boolean) => {
+    const run = async (arena: boolean) => {
       await page.evaluate((shown) => {
         document.querySelector<HTMLElement>('[data-slot="table-surface"]')!.style.display = shown ? "" : "none"
-        const w = window as unknown as { __longTasks: number[]; __frames: number[][]; __surfaceDraws: number[]; __arrowDraws: number[]; __observer?: PerformanceObserver; __deskDrawing: Element | null }
-        // The desk's drawing before the changes: the screen keeps its size, so the very same drawing must stay.
-        w.__deskDrawing = document.querySelector('[data-slot="table-surface"] [data-surface="desk"]')!.firstElementChild
+        const w = window as unknown as { __longTasks: number[]; __frames: number[][]; __arrowDraws: number[]; __arenaMutations: number; __observer?: PerformanceObserver; __watcher?: MutationObserver }
         w.__observer?.disconnect()
+        w.__watcher?.disconnect()
         w.__longTasks = []
         w.__frames = []
-        w.__surfaceDraws = []
         w.__arrowDraws = []
+        w.__arenaMutations = 0
         w.__observer = new PerformanceObserver((list) => {
           for (const entry of list.getEntries()) {
             if (entry.entryType === "longtask") w.__longTasks.push(entry.duration)
-            // A long animation frame: its whole length and its rendering part (style, layout, paint).
             else if (entry.entryType === "long-animation-frame") {
-              const frame = entry as PerformanceEntry & { renderStart: number; styleAndLayoutStart: number }
+              const frame = entry as PerformanceEntry & { renderStart: number }
               w.__frames.push([entry.duration, frame.renderStart > 0 ? entry.startTime + entry.duration - frame.renderStart : 0])
-            } else if (entry.name === "openmana:table-surface") w.__surfaceDraws.push(entry.duration)
-            // Prompt 43: each drawing of the arrows (scenes with a stack target among the 20 changes).
-            else if (entry.name === "openmana:table-arrows") w.__arrowDraws.push(entry.duration)
+            } else if (entry.name === "openmana:table-arrows") w.__arrowDraws.push(entry.duration)
           }
         })
         w.__observer.observe({ entryTypes: ["longtask", "long-animation-frame", "measure"] })
-      }, surface)
-      const keys: string[] = []
-      for (let i = 0; i < 20; i++) keys.push(await step(SURFACE_GAME[i % SURFACE_GAME.length]!))
+        w.__watcher = new MutationObserver((records) => (w.__arenaMutations += records.length))
+        w.__watcher.observe(document.querySelector('[data-slot="table-surface"]')!, { subtree: true, childList: true, attributes: true, characterData: true })
+      }, arena)
+      for (let i = 0; i < 20; i++) await step(SURFACE_GAME[i % SURFACE_GAME.length]!)
       await page.waitForTimeout(500)
       const measured = await page.evaluate(() => {
-        const w = window as unknown as { __longTasks: number[]; __frames: number[][]; __surfaceDraws: number[]; __arrowDraws: number[]; __deskDrawing: Element | null }
-        const deskKept = w.__deskDrawing !== null && document.querySelector('[data-slot="table-surface"] [data-surface="desk"]')!.firstElementChild === w.__deskDrawing
-        return { longTasks: w.__longTasks.map(Math.round), frames: w.__frames.map(([duration, render]) => [Math.round(duration!), Math.round(render!)]), surfaceDraws: w.__surfaceDraws.map((duration) => Math.round(duration * 10) / 10), arrowDraws: w.__arrowDraws.map((duration) => Math.round(duration * 10) / 10), deskKept }
+        const w = window as unknown as { __longTasks: number[]; __frames: number[][]; __arrowDraws: number[]; __arenaMutations: number; __watcher?: MutationObserver }
+        const mutations = w.__arenaMutations + (w.__watcher?.takeRecords().length ?? 0)
+        return { longTasks: w.__longTasks.map(Math.round), frames: w.__frames.map(([duration, render]) => [Math.round(duration!), Math.round(render!)]), arrowDraws: w.__arrowDraws.map((duration) => Math.round(duration * 10) / 10), mutations }
       })
-      const sizeChanges = keys.filter((key, i) => key !== (i === 0 ? keys[keys.length - 1] : keys[i - 1])).length
       return {
         ...measured,
         longest: Math.max(0, ...measured.longTasks),
         over200: measured.longTasks.filter((duration) => duration > 200).length,
         longestFrame: Math.max(0, ...measured.frames.map(([duration]) => duration!)),
         longestRender: Math.max(0, ...measured.frames.map(([, render]) => render!)),
-        boards: [...new Set(keys)],
-        sizeChanges,
       }
     }
-    const withSurface = await run(true)
-    const withoutSurface = await run(false)
-    // A new state of the same moment (a fresh copy, as Forge sends one) five times: the sizes stay, nothing is drawn.
-    await page.evaluate(() => { document.querySelector<HTMLElement>('[data-slot="table-surface"]')!.style.display = "" })
-    await step("main-phase")
-    const before = await page.evaluate(() => (window as unknown as { __surfaceDraws: number[] }).__surfaceDraws.length)
-    const repeatedKeys: string[] = []
-    for (let i = 0; i < 5; i++) repeatedKeys.push(await step("main-phase"))
-    await page.waitForTimeout(300)
-    const repeatedDraws = (await page.evaluate(() => (window as unknown as { __surfaceDraws: number[] }).__surfaceDraws.length)) - before
-    check(new Set(repeatedKeys).size === 1 && repeatedDraws === 0, `table surface: drawn ${repeatedDraws} times for five new states of the same size ${JSON.stringify(repeatedKeys)}`)
+    const withArena = await run(true)
+    const withoutArena = await run(false)
     await page.evaluate(() => { document.querySelector<HTMLElement>('[data-slot="table-surface"]')!.style.display = "" })
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 })
     await cdp.detach()
-    // Drawn again only for a new board size (the 20 changes return to their start), each drawing well below a long task.
-    check(withSurface.surfaceDraws.length <= withSurface.sizeChanges, `table surface: drawn ${withSurface.surfaceDraws.length} times for ${withSurface.sizeChanges} size changes`)
-    check(withSurface.surfaceDraws.every((duration) => duration < 200), `table surface: a drawing took ${Math.max(...withSurface.surfaceDraws)} ms`)
+    check(withArena.mutations === 0, `arena cost: twenty state changes touched the arena ${withArena.mutations} times`)
     // Prompt 43: the arrows are measured and drawn once per state that has some, each drawing far below a long task.
-    check(withSurface.arrowDraws.length > 0 && withSurface.arrowDraws.every((duration) => duration < 50), `table arrows: drawings ${JSON.stringify(withSurface.arrowDraws)} ms (none, or one of 50 ms or more)`)
-    // The board follows the playing area; the desk's full-screen grain is never recomputed while the screen keeps its size.
-    check(withSurface.deskKept, "table surface: the desk was drawn again although the screen kept its size")
-    log(`    20 state changes, 4x CPU, 412x915: long tasks with surface ${JSON.stringify(withSurface.longTasks)} (longest ${withSurface.longest} ms, longest frame ${withSurface.longestFrame} ms, rendering ${withSurface.longestRender} ms), without ${JSON.stringify(withoutSurface.longTasks)} (longest ${withoutSurface.longest} ms, frame ${withoutSurface.longestFrame} ms, rendering ${withoutSurface.longestRender} ms); surface drawn ${withSurface.surfaceDraws.length}x ${JSON.stringify(withSurface.surfaceDraws)} ms for ${withSurface.sizeChanges} size changes (${withSurface.boards.length} board sizes, desk kept: ${withSurface.deskKept}); 5 new states of one size: drawn ${repeatedDraws}x; arrows drawn ${withSurface.arrowDraws.length}x ${JSON.stringify(withSurface.arrowDraws)} ms`)
-    results["performance"] = { viewport: "412x915", throttling: 4, changes: 20, scenes: SURFACE_GAME, withSurface, withoutSurface, repeated: { states: 5, draws: repeatedDraws } }
+    check(withArena.arrowDraws.length > 0 && withArena.arrowDraws.every((duration) => duration < 50), `arena cost: arrow drawings ${JSON.stringify(withArena.arrowDraws)} ms (none, or one of 50 ms or more)`)
+    log(`    20 state changes, 4x CPU, 412x915: long tasks with the arena ${JSON.stringify(withArena.longTasks)} (longest ${withArena.longest} ms, longest frame ${withArena.longestFrame} ms, rendering ${withArena.longestRender} ms), without ${JSON.stringify(withoutArena.longTasks)} (longest ${withoutArena.longest} ms, frame ${withoutArena.longestFrame} ms, rendering ${withoutArena.longestRender} ms); arena untouched (${withArena.mutations} mutations); arrows drawn ${withArena.arrowDraws.length}x ${JSON.stringify(withArena.arrowDraws)} ms`)
+    results["performance"] = { viewport: "412x915", throttling: 4, changes: 20, scenes: SURFACE_GAME, withArena, withoutArena }
     // Pictures a state change took off the table stop loading (aborted); every other request failure counts.
-    for (const error of pageLog.errors) if (!/^\[requestfailed\] https:\/\/cards\.scryfall\.io\/.* net::ERR_ABORTED$/.test(error)) check(false, `table surface: ${error}`)
+    for (const error of pageLog.errors) if (!/^\[requestfailed\] https:\/\/cards\.scryfall\.io\/.* net::ERR_ABORTED$/.test(error)) check(false, `arena cost: ${error}`)
     await context.close()
   } finally {
-    await surfaceBrowser.close()
+    await costBrowser.close()
   }
   return results
 }
@@ -6327,19 +6231,6 @@ function geometryDifference(a: TableGeometry, b: TableGeometry): { readonly max:
   return { max: Math.round(max * 100) / 100, where: where.slice(0, 10) }
 }
 
-/** The table's background as the harness stores it through the app's own preferences (src/test/table-harness.tsx). */
-async function chooseBackground(page: Page, choice: string): Promise<void> {
-  // The harness offers the function once its database is open (an effect after the table's first paint may still be due).
-  await page.waitForFunction(() => typeof (window as unknown as { __openmanaChooseBackground?: unknown }).__openmanaChooseBackground === "function", undefined, { timeout: 10_000 }).catch(async () => {
-    const state = await page.evaluate(() => ({ url: location.href, harness: [...document.querySelectorAll("[data-harness]")].map((node) => `${node.getAttribute("data-harness")}:${node.getAttribute("data-status")}`), background: document.querySelector<HTMLElement>('[data-slot="table-surface"]')?.dataset["background"] ?? null })).catch(() => "page unavailable")
-    throw new Error(`table background: the harness offers no __openmanaChooseBackground ${JSON.stringify(state)}`)
-  })
-  const done = await page.evaluate((next) => (window as unknown as { __openmanaChooseBackground: (choice: string) => Promise<boolean> }).__openmanaChooseBackground(next), choice)
-  check(done, `table background: ${choice} could not be stored`)
-  await page.waitForFunction((next) => (document.querySelector<HTMLElement>('[data-slot="table-surface"]')?.dataset["background"] ?? "table") === next, choice, { timeout: 10_000 })
-  await page.waitForTimeout(150)
-}
-
 /**
  * The arena (prompt 53, docs/design/SPIELTISCH.md §4.1b) as the page shows it: the table's background without a stored
  * choice - first in the board, hidden from screen readers, no pointer events, nothing of the drawn table or a picture -,
@@ -6406,11 +6297,10 @@ async function arenaFacts(page: Page, label: string): Promise<Record<string, unk
 }
 
 /**
- * The arena beyond single scenes (prompt 53): the default without a stored choice and after a reload, a stored choice
- * kept (the drawn table, a picture of the player's own), the geometry contract - the same scene over the arena, over the
- * drawn table and with the arena hidden lays every region and card at the same place (within 1 CSS px) and decides the
- * same room at the five sizes of the visual acceptance (M5) -, and twenty new states of the game that leave the arena
- * untouched (no mutation, the same element).
+ * The arena beyond single scenes (prompt 53; since prompt 56 the only surface): there without anything stored and after
+ * a reload, the geometry contract - the same scene over the arena and with the arena hidden lays every region and card
+ * at the same place (within 1 CSS px) and decides the same room at the five sizes of the visual acceptance (M5) -, and
+ * twenty new states of the game that leave the arena untouched (no mutation, the same element).
  */
 async function arenaSurface(executablePath: string, base: string): Promise<Record<string, unknown>> {
   log("  table surface: the arena (default, sizes, geometry against the drawn table, state changes)")
@@ -6420,7 +6310,7 @@ async function arenaSurface(executablePath: string, base: string): Promise<Recor
     const context = await newContext(arenaBrowser, VIEWPORTS[0]!)
     const page = await context.newPage()
     const pageLog = watch(page)
-    // A fresh profile stores no choice: the arena, also after a reload.
+    // A fresh profile: the arena, also after a reload.
     await openScene(page, base, "main-phase")
     const sizes: Record<string, unknown> = {}
     for (const [name, width, height] of TABLE_LAYOUT_SIZES.filter(([size]) => !size.startsWith("border"))) {
@@ -6466,7 +6356,7 @@ async function arenaSurface(executablePath: string, base: string): Promise<Recor
     await page.reload({ waitUntil: "domcontentloaded" })
     await page.locator('[data-harness="table"]').waitFor({ timeout: 300_000 })
     const afterReload = await page.evaluate(() => document.querySelector<HTMLElement>('[data-slot="table-surface"]')?.dataset["background"] ?? null)
-    check(afterReload === "arena", `arena: after a reload without a stored choice the table shows ${afterReload}`)
+    check(afterReload === "arena", `arena: after a reload the table shows ${afterReload}`)
 
     // Twenty new states of the game: the arena is never touched.
     const changed = await page.evaluate(() => {
@@ -6500,46 +6390,28 @@ async function arenaSurface(executablePath: string, base: string): Promise<Recor
       for (const built of [null, "choose-many"]) {
         const label = `arena geometry (${viewport.name}, ${built === null ? "main-phase" : `built:${built}`})`
         await openScene(page, base, "main-phase", built === null ? "" : `&built=${built}`)
-        await chooseBackground(page, "arena")
         const arena = await tableGeometry(page)
         check(arena.scroll[0] <= viewport.width && arena.scroll[1] <= viewport.height, `${label}: the page scrolls ${JSON.stringify(arena.scroll)}`)
-        await chooseBackground(page, "table")
-        await page.waitForFunction(() => document.querySelector('[data-surface="desk"]') !== null, undefined, { timeout: 10_000 })
-        const table = await tableGeometry(page)
-        await chooseBackground(page, "arena")
+        // The same scene with the arena hidden: the board laid out by its regions alone (prompt 53 also compared the drawn table; gone in 56).
         await page.evaluate(() => { document.querySelector<HTMLElement>('[data-slot="table-surface"]')!.style.display = "none" })
         await page.waitForTimeout(100)
         const hidden = await tableGeometry(page)
         await page.evaluate(() => { document.querySelector<HTMLElement>('[data-slot="table-surface"]')!.style.display = "" })
-        const vsTable = geometryDifference(arena, table)
         const vsHidden = geometryDifference(arena, hidden)
-        check(vsTable.max <= 1 && vsTable.where.length === 0, `${label}: the arena moves the table against the drawn table ${JSON.stringify(vsTable)}`)
         check(vsHidden.max <= 1 && vsHidden.where.length === 0, `${label}: the arena moves the table against no surface ${JSON.stringify(vsHidden)}`)
         check(built === null || arena.decision === "expanded", `${label}: the decision has no room (${arena.decision})`)
-        geometry[`${viewport.name} ${built ?? "main-phase"}`] = { decision: arena.decision, regions: Object.keys(arena.areas).length, cards: arena.cards.length, focusable: arena.focusable, vsTable, vsHidden }
+        geometry[`${viewport.name} ${built ?? "main-phase"}`] = { decision: arena.decision, regions: Object.keys(arena.areas).length, cards: arena.cards.length, focusable: arena.focusable, vsHidden }
       }
     }
     results["geometry"] = geometry
-    log(`    geometry against the drawn table and no surface at ${ARENA_VIEWPORTS.length} sizes x 2 scenes: largest difference ${Math.max(...Object.values(geometry).map((entry) => Math.max((entry as { vsTable: { max: number } }).vsTable.max, (entry as { vsHidden: { max: number } }).vsHidden.max)))} px`)
+    log(`    geometry against no surface at ${ARENA_VIEWPORTS.length} sizes x 2 scenes: largest difference ${Math.max(...Object.values(geometry).map((entry) => (entry as { vsHidden: { max: number } }).vsHidden.max))} px`)
 
-    // A stored choice is kept across a reload: the drawn table, and a picture of the player's own; the arena again on request.
+    // The arena is the table (prompt 56): nothing to choose, nothing stored - a fresh profile and a reload show it.
     await page.setViewportSize({ width: VIEWPORTS[0]!.width, height: VIEWPORTS[0]!.height })
-    await openScene(page, base, "main-phase", "&background=table")
-    const stored = async () => page.evaluate(() => ({ background: document.querySelector<HTMLElement>('[data-slot="table-surface"]')?.dataset["background"] ?? "table", desk: document.querySelector('[data-surface="desk"]') !== null, picture: document.querySelector('[data-surface="picture"]') !== null, arena: document.querySelectorAll("[data-arena]").length }))
-    const drawn = await stored()
-    await page.reload({ waitUntil: "domcontentloaded" })
-    await page.locator('[data-harness="table"]').waitFor({ timeout: 300_000 })
-    const drawnAgain = await stored()
-    check(drawn.background === "table" && drawn.desk && drawn.arena === 0 && drawnAgain.background === "table" && drawnAgain.desk && drawnAgain.arena === 0, `arena: the drawn table chosen is not kept ${JSON.stringify({ drawn, drawnAgain })}`)
-    await openScene(page, base, "main-phase", "&background=custom")
-    const own = await stored()
-    check(own.background === "custom" && own.picture && !own.desk && own.arena === 0, `arena: the player's own picture is not shown ${JSON.stringify(own)}`)
-    await chooseBackground(page, "arena")
-    // Without the query the page shows the stored choice (a reload with background=custom would store it again).
     await openScene(page, base, "main-phase")
-    const back = await stored()
-    check(back.background === "arena" && back.arena === 5 && !back.desk && !back.picture, `arena: not back after choosing it ${JSON.stringify(back)}`)
-    results["stored"] = { drawn, drawnAgain, own, back }
+    const shown = await page.evaluate(() => ({ background: document.querySelector<HTMLElement>('[data-slot="table-surface"]')?.dataset["background"] ?? null, arena: document.querySelectorAll("[data-arena]").length, other: document.querySelectorAll("[data-surface], [data-slot='table-surface'] img").length }))
+    check(shown.background === "arena" && shown.arena === 5 && shown.other === 0, `arena: not the table ${JSON.stringify(shown)}`)
+    results["shown"] = shown
     // Nothing of the engine is loaded by the preferences' provider chain in the harness.
     for (const error of pageLog.errors) if (!/^\[requestfailed\] https:\/\/cards\.scryfall\.io\/.* net::ERR_ABORTED$/.test(error)) check(false, `arena: ${error}`)
     await context.close()

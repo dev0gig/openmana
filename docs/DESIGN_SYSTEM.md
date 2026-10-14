@@ -36,7 +36,7 @@ copying one (Bible §13): no Arena assets, layouts or typefaces.
 | Body | **Inter** (variable, SIL OFL), `--font-sans` | legible at small sizes, tabular digits for numbers |
 | Radius | `--radius` 0.625rem; Maia scales it (cards `rounded-2xl`, buttons pill-shaped) | soft, familiar from Material 3 on Android |
 | App icon | the Anvil icon, unchanged and temporary ([provenance](../assets/app-icon/PROVENANCE.md)) | prompt 06: no redesign yet |
-| Game table | a dark wooden desk with a board set into it - carved frame, brass corners, dark blue leather, a gold rune circle -, gold medallions and panels (`--table-*` tokens, §9) | the project owner's concept (2026-10-10), [design/SPIELTISCH.md](design/SPIELTISCH.md) |
+| Game table | the arena - a quiet stone surface laid under the board as a subgrid of its grid, warm light above, cool blue below, golden swings, runes, tendrils, light dust (series *stoneboard* 53-56, after the binding template; until prompt 56 a drawn wooden desk) -, gold medallions and panels (`--table-*` tokens, §9) | the project owner's concept (2026-10-10), [design/SPIELTISCH.md](design/SPIELTISCH.md) |
 
 Fonts are bundled (Fontsource), never loaded from a font CDN: same-origin
 files work under COEP and nothing leaks to third parties (Bible §15).
@@ -260,10 +260,10 @@ with a visible focus ring and a name (prompt 45, end-to-end
 | `GameCardButton`, `GameCardRow`, `GameCardRowItem`, `GameCardRowButton`; the `mark` of `GameCard`/`GameCardButton` | `src/components/ui/game-card.tsx`, built the shadcn way (prompt 14) on Radix `Toolbar` (from `radix-ui`) | a card as a control: a button with shadcn's focus ring around the whole card, no image menu or text selection on a long press; Forge's state as a frame and glow around the picture in the room every card keeps (`mark`, look since prompt 40: usable a gold frame with a glow, chosen a thicker light frame, target red pulsing - §9); a row of such cards as a toolbar (roving focus), else a focusable list |
 | `useTableLayout()`, `tableLayoutOf()`; variants `hoch:`, `quadrat:`, `breit:` | `src/game/table/use-table-layout.ts`, `table-layout.ts`, `src/index.css` (prompt 36) | the game table's layout by aspect ratio (§4, §9): `GameBoard`'s plans, the Sheets' side (prompt 38) and the card view's arrangement (prompt 47) |
 | `CardLightboxContent`, `CardLightboxStage`, `CardLightboxPicture`, `CardLightboxAside`, `CardLightboxBoxes`, `CardLightboxActions`; `cardFit()`, `useCloseWatcher()` | `src/components/ui/card-lightbox.tsx`, built the shadcn way on Radix `Dialog` with shadcn's `DialogOverlay` (prompt 47) | the card view in full screen: the darkened table, the card as large as the room allows (`cardFit`: stacked within width and height less its button rows, beside within height and width less the aside of 16–24 rem), the aside with the keyword boxes and the buttons, presses on the darkening falling through to the overlay (they close it), the back gesture (`CloseWatcher`) |
-| `src/game/table/table.css`, `--table-*` tokens | prompt 36 (§9) | the game table's own stylesheet (imported by `TableSurface`) and colours |
+| `src/game/table/table.css`, `--table-*` tokens | prompt 36 (§9) | the game table's own stylesheet (imported by `ArenaSurface`) and colours |
 | `TableArt`, `TableCardBack`, `TableEmblem` | `src/game/table/table-art.tsx` (prompt 39, §9) | the table's drawn pieces as SVG symbols defined once per table - the OpenMana emblem, the life medallion's ring, OpenMana's own card back (never Wizards'); `TableCardBack` (slot `game-card-back`) for every card Forge hides on the table (the opponent's hand, face-down permanents, hidden cards of questions, the library pile), decoration only |
 | `MedallionFace`, `ZonePile`, `ZoneCounter`, `ZoneCount`, `StripChip` | `src/game/table/strip-parts.tsx` (prompt 39, §9) | a player's strip: the life medallion's face (inside `GamePlayer`/`GamePlayerButton`), the library and graveyard as piles, exile and command zone as counters (both open the zone view - looking only), counts with the zone's title, facts as chips on the panel tone |
-| `TableSurface` | `src/game/table/table-surface.tsx`, `surface-drawing.ts` (prompt 37, §9) | the wooden desk with the board set into it behind the table's regions: SVG drawn only when a size changes, the rune ring standing still (since 2026-10-12) - or, chosen in Settings, a picture over the whole board instead (`table-background.ts`, SPIELTISCH §4.1a) -, decoration only (`aria-hidden`, no pointer events); text regions on the panel tone (`--table-panel` 90 %) |
+| `ArenaSurface` | `src/game/table/arena-surface.tsx` (prompts 53-56, §9; [design/SPIELTISCH.md](design/SPIELTISCH.md) §4.1b) | the arena under the table's regions: a child of the board's grid with `subgrid` on both axes, every piece in the cell of its region, nothing measured by JavaScript; the only surface since prompt 56 (the drawn wooden table, the pictures and the setting `display.tableBackground` are gone) |
 | `Checkbox` | shadcn/ui registry (`radix-maia`, prompt 15; `motion-reduce` added) | several choices of one of Forge's questions, inside a `FieldLabel` choice card (the whole card is the touch target) |
 | `GameDecision`, `GameDecisionHeader`, `GameDecisionSource`, `GameDecisionRow`, `GameDecisionNote`, `GameDecisionActions`; `GameBoard`'s `decision` (`compact`/`tall`/`expanded`) | `src/components/ui/game-decision.tsx`, `game-board.tsx`, built the shadcn way (prompt 15) | the decision region's content: what Forge asks (the asking card as a small `GameCardButton`), a row of a question's cards at a hand's height, short lines (how many, why a button is off), the answer buttons sticking to the region's bottom; the region's growth (§4) |
 | `GameHelpButton` | built the shadcn way (prompt 23) | header turn/phase area as a 44 px contextual-help trigger; phase and turn owner are its accessible description, no extra wide icon on small phones |
@@ -362,8 +362,9 @@ reference.
 - **Tokens** (`:root` in `src/index.css`, mapped as `--color-table-*`):
   `--table-gold-light`, `--table-gold-dark`, `--table-gold-line`,
   `--table-mana`, `--table-danger`, `--table-attack`, `--table-heal`,
-  `--table-sick` (summoning sickness's chip), `--table-wood`,
-  `--table-wood-frame`, `--table-leather`, `--table-panel`, `--table-plaque`;
+  `--table-sick` (summoning sickness's chip), `--table-leather`,
+  `--table-panel`, `--table-plaque` (`--table-wood` and `--table-wood-frame`
+  went with the drawn desk in prompt 56);
   gold itself stays `--primary`, text on gold `--primary-foreground`. Surface
   tokens are their lightest tone. `design-tokens.test.ts` checks text (4.5:1)
   and marks (3:1) on every table surface; values and uses:

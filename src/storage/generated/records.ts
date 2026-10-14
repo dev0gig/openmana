@@ -7,7 +7,7 @@
 /**
  * Version of the record schemas below = version of the IndexedDB database. Every change to a record shape or to the stores raises it and adds a migration (src/storage/migrations.ts) that upgrades the database and older backups alike. It is also the version of the collection the ORYX cloud keeps (CollectionDocument).
  */
-export type SchemaVersion = 5;
+export type SchemaVersion = 6;
 /**
  * Version of the backup container (header, record and end lines). Independent of the record schemas, which the header names by SchemaVersion.
  */

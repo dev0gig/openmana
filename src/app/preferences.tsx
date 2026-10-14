@@ -1,9 +1,8 @@
 /*
  * The player's preferences (prompt 12), read from the local database and
  * kept current (useStorageQuery on the settings store, also after a change in
- * another tab): the AI profile, the card language, less motion and the
- * table's background (src/game/table/table-background.ts, read by
- * TableSurface), and how the player follows the opponent's turn
+ * another tab): the AI profile, the card language, less motion, and how
+ * the player follows the opponent's turn
  * (src/game/opponent-tempo.ts, prompt 49: tempo, waiting after every action,
  * Forge's auto-pass). They are
  * chosen once - in Settings, the AI profile also on the play page - and never
@@ -26,7 +25,6 @@ import { useEngineBootOptions } from "@/engine/engine-session-context"
 import type { AutoPass } from "@openmana/engine-protocol"
 import { AI_PROFILE, type AiProfileChoice } from "@/game/ai-profiles"
 import { AUTO_PASS, OPPONENT_STEPWISE, OPPONENT_TEMPO, type OpponentTempo } from "@/game/opponent-tempo"
-import { TABLE_BACKGROUND, TABLE_BACKGROUND_IMAGE, type TableBackgroundChoice } from "@/game/table/table-background"
 import type { LocalDatabase } from "@/storage/database"
 import { readSetting } from "@/storage/settings"
 import { useStorageQuery } from "@/storage/storage-context"
@@ -38,9 +36,6 @@ export interface Preferences {
   readonly aiProfile: AiProfileChoice
   readonly cardLanguage: CardLanguagePreference
   readonly motion: MotionPreference
-  readonly tableBackground: TableBackgroundChoice
-  /** The player's own table picture (a data: URL), or null. */
-  readonly tableBackgroundImage: string | null
   /** How long each action of the opponent stays on the table (prompt 49). */
   readonly opponentTempo: OpponentTempo
   /** Wait after every action of the opponent until the player presses "Weiter". */
@@ -57,8 +52,6 @@ export const DEFAULT_PREFERENCES: Preferences = {
   aiProfile: AI_PROFILE.fallback,
   cardLanguage: CARD_LANGUAGE.fallback,
   motion: MOTION.fallback,
-  tableBackground: TABLE_BACKGROUND.fallback,
-  tableBackgroundImage: TABLE_BACKGROUND_IMAGE.fallback,
   opponentTempo: OPPONENT_TEMPO.fallback,
   opponentStepwise: OPPONENT_STEPWISE.fallback,
   autoPass: AUTO_PASS.fallback,
@@ -66,12 +59,10 @@ export const DEFAULT_PREFERENCES: Preferences = {
 }
 
 export async function readPreferences(db: LocalDatabase): Promise<Omit<Preferences, "status">> {
-  const [aiProfile, cardLanguage, motion, tableBackground, tableBackgroundImage, opponentTempo, opponentStepwise, autoPass] = await Promise.all([
+  const [aiProfile, cardLanguage, motion, opponentTempo, opponentStepwise, autoPass] = await Promise.all([
     readSetting(db, AI_PROFILE),
     readSetting(db, CARD_LANGUAGE),
     readSetting(db, MOTION),
-    readSetting(db, TABLE_BACKGROUND),
-    readSetting(db, TABLE_BACKGROUND_IMAGE),
     readSetting(db, OPPONENT_TEMPO),
     readSetting(db, OPPONENT_STEPWISE),
     readSetting(db, AUTO_PASS),
@@ -80,8 +71,6 @@ export async function readPreferences(db: LocalDatabase): Promise<Omit<Preferenc
     ...(aiProfile.invalid ? [AI_PROFILE.key] : []),
     ...(cardLanguage.invalid ? [CARD_LANGUAGE.key] : []),
     ...(motion.invalid ? [MOTION.key] : []),
-    ...(tableBackground.invalid ? [TABLE_BACKGROUND.key] : []),
-    ...(tableBackgroundImage.invalid ? [TABLE_BACKGROUND_IMAGE.key] : []),
     ...(opponentTempo.invalid ? [OPPONENT_TEMPO.key] : []),
     ...(opponentStepwise.invalid ? [OPPONENT_STEPWISE.key] : []),
     ...(autoPass.invalid ? [AUTO_PASS.key] : []),
@@ -90,8 +79,6 @@ export async function readPreferences(db: LocalDatabase): Promise<Omit<Preferenc
     aiProfile: aiProfile.value,
     cardLanguage: cardLanguage.value,
     motion: motion.value,
-    tableBackground: tableBackground.value,
-    tableBackgroundImage: tableBackgroundImage.value,
     opponentTempo: opponentTempo.value,
     opponentStepwise: opponentStepwise.value,
     autoPass: autoPass.value,

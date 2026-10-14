@@ -143,7 +143,7 @@ import { TableArrows } from "./table/table-arrows"
 import { HandDrag, TableMotion } from "./table/table-motion"
 import { TableArt, TableCardBack, TableEmblem } from "./table/table-art"
 import { MedallionFace, StripChip, ZoneCount, ZoneCounter, ZonePile } from "./table/strip-parts"
-import { TableSurface } from "./table/table-surface"
+import { ArenaSurface } from "./table/arena-surface"
 import { useTableLayout } from "./table/use-table-layout"
 
 /** Below this height a battlefield shows its cards in one row instead of two (px, measured). */
@@ -401,7 +401,7 @@ export function GameTable({ replay = false,
     <CardControlsContext value={controls}>
       <GameBoard decision={room}>
         <title>Partie · OpenMana</title>
-        <TableSurface />
+        <ArenaSurface />
         <TableArt />
         {/*
           The header bar (prompt 39): the emblem and wordmark, the zones and the history as symbol buttons (with words in

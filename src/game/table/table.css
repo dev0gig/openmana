@@ -3,7 +3,7 @@
  * docs/design/SPIELTISCH.md, docs/DESIGN_SYSTEM.md §9).
  *
  * The approved exception to the shadcn-only rule, and only for the game
- * table (a running game and its replay): the wooden desk, the board, the
+ * table (a running game and its replay): the arena under the board, the
  * medallions, the card backs, the plaque on a card's printed value box, the
  * fanned hand, the panels, the main button and the arrows are drawn here and
  * as SVG in the components of src/game/table/. Everything else - pages,
@@ -12,12 +12,12 @@
  * Rules for this file:
  *  - Every rule sits under [data-slot="game-board"]; nothing here reaches
  *    outside the table.
- *  - What a colour means (gold, mana, danger/target, attack, wood, leather,
+ *  - What a colour means (gold, mana, danger/target, attack, leather,
  *    panel, plaque, text) comes from the --table-* tokens and the app's
  *    tokens in src/index.css (contrast checked by
  *    src/app/design-tokens.test.ts). Depth (shadows, grain, highlights) uses
  *    black or white with transparency or tones mixed from those tokens. The
- *    arena (prompt 53) keeps the values of its binding template (Dropzone
+ *    arena (prompts 53-55) keeps the values of its binding template (Dropzone
  *    workflow/OPENMANA-ARENA-VORLAGE.html) as they are.
  *  - Nothing on a card picture except the plaque on its printed value box; no
  *    filter (colour, brightness, blur) on a card picture.
@@ -28,7 +28,7 @@
  *    (<html data-reduced-motion>, src/app/motion.ts). src/app/motion.test.ts
  *    checks all of that (scope, the two blocks, the animated properties).
  *
- * Imported by the table's components (TableSurface, prompt 37).
+ * Imported by the table's components (ArenaSurface).
  *
  * Sizes that differ per layout use the same media queries as the variants
  * hoch:, quadrat:, breit: and short: of src/index.css (kept identical by
@@ -39,60 +39,6 @@
  * needs (backgrounds, lines, layers), never display or size of a region.
  */
 
-/* ---------- The surface (prompt 37): the desk and the board behind the regions ---------- */
-
-/* Behind every region (first in the board, z-index 0); the desk's tone until the drawing is there. */
-[data-slot="game-board"] > [data-slot="table-surface"] {
-  z-index: 0;
-  background: var(--table-wood);
-  contain: strict;
-}
-
-/*
- * What stands still: the desk (drawn once per screen size) and the board
- * (once per size of the playing area), each in a layer of its own, so nothing
- * above them and neither of them repaints the other.
- */
-[data-slot="game-board"] .table-surface-desk {
-  position: absolute;
-  top: 0;
-  left: 0;
-  display: block;
-  will-change: transform;
-}
-
-/* Placed at the board's corner by TableSurface; its shadow reaches out of it. */
-[data-slot="game-board"] .table-surface-board {
-  position: absolute;
-  display: block;
-  overflow: visible;
-  will-change: transform;
-}
-
-/* The rune ring: stands still at a steady 0.85 (project owner, 2026-10-12: its turning and glimmering made the table restless) - a layer of its own, drawn once per size. */
-[data-slot="game-board"] .table-surface-ring {
-  position: absolute;
-}
-
-[data-slot="game-board"] .table-surface-ring > svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  opacity: 0.85;
-}
-
-/* A picture instead of the drawn table (table-background.ts, 2026-10-12): over the whole board, cut to fill it, centred. */
-[data-slot="game-board"] .table-surface-picture {
-  position: absolute;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-}
-
 /* ---------- The arena (prompt 53, docs/design/SPIELTISCH.md §4.1b): the stone surface under the board ---------- */
 
 /*
@@ -102,8 +48,8 @@
  * placed by the board's named lines, measured by nobody. Under every region
  * (z-index 0), no pointer, no size of its own. No containment at all: any
  * `contain` (paint, layout, strict - measured in Chrome 153) makes the
- * browser drop the subgrid and lay the cells out in a grid of their own; the
- * general surface rule above sets `contain: strict`, so this one undoes it.
+ * browser drop the subgrid and lay the cells out in a grid of their own -
+ * `contain: none` is set on purpose so nobody adds one.
  */
 [data-slot="game-board"] > [data-slot="table-surface"][data-background="arena"] {
   grid-column: 1 / -1;
@@ -116,7 +62,6 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  background: none;
   pointer-events: none;
   contain: none;
 }
@@ -1871,7 +1816,7 @@
   border: 1px solid var(--table-gold-light);
   border-radius: 0.8rem;
   background: linear-gradient(180deg, var(--table-gold-light) 0%, var(--primary) 46%, color-mix(in oklch, var(--primary) 70%, var(--table-gold-dark)) 54%, color-mix(in oklch, var(--primary) 55%, var(--table-gold-dark)) 100%);
-  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.65), inset 0 -0.2rem 0.4rem color-mix(in oklch, var(--table-gold-dark), black 30%), 0 0 0 2px color-mix(in oklch, var(--table-wood), black 40%), 0 0 0 3px color-mix(in oklch, var(--primary) 55%, transparent), 0 0 1.6rem color-mix(in oklch, var(--primary) 35%, transparent);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.65), inset 0 -0.2rem 0.4rem color-mix(in oklch, var(--table-gold-dark), black 30%), 0 0 0 2px color-mix(in oklch, var(--table-panel), black 40%), 0 0 0 3px color-mix(in oklch, var(--primary) 55%, transparent), 0 0 1.6rem color-mix(in oklch, var(--primary) 35%, transparent);
   color: var(--primary-foreground);
   font-family: var(--font-heading);
   font-size: 1.2rem;

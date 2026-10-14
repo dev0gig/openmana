@@ -10,6 +10,7 @@ import { StorageError } from "./errors"
 import { SCHEMA_VERSION } from "./generated/constants"
 import type { DatabaseMeta } from "./generated/records"
 import { createStores, LAYOUT_V1, latestVersion, MIGRATIONS, upgradeRecord, type Migration } from "./migrations"
+import { RETIRED_SETTINGS } from "./settings"
 import { compareLayout, openWithMigrations } from "./open"
 import { DATABASE_NAME, RECORD_CHECKS, STORE_LAYOUT, type StoreLayout } from "./schema"
 
@@ -251,7 +252,7 @@ describe("the app's schema versions", () => {
     expect(RECORD_CHECKS.decks(saved)).toBeNull()
     expect(await raw.getAll("scryfallCards")).toEqual([cardRecord])
     const meta = (await raw.get("meta", "database")) as DatabaseMeta
-    expect(meta.migrations.map((entry) => entry.version)).toEqual([1, 2, 3, 4, 5])
+    expect(meta.migrations.map((entry) => entry.version)).toEqual([1, 2, 3, 4, 5, 6])
     raw.close()
     // A deck that names its companion is a valid record of version 3.
     expect(RECORD_CHECKS.decks({ ...saved, companion: [{ count: 1, name: "Lurrus of the Dream-Den" }] })).toBeNull()
@@ -273,7 +274,7 @@ describe("the app's schema versions", () => {
     const db = await openTestDatabase()
     db.close()
     const raw = await openDB(DATABASE_NAME)
-    expect(raw.version).toBe(5)
+    expect(raw.version).toBe(SCHEMA_VERSION)
     expect(await compareLayout(raw, STORE_LAYOUT)).toEqual([])
     expect(await raw.count("deckTombstones")).toBe(0)
     expect(await raw.getAll("decks")).toEqual([saved])
@@ -283,10 +284,43 @@ describe("the app's schema versions", () => {
     // The card data are not touched: no catalog download after the update.
     expect(await raw.getAll("scryfallCards")).toEqual([cardRecord])
     const meta = (await raw.get("meta", "database")) as DatabaseMeta
-    expect(meta.migrations.map((entry) => entry.version)).toEqual([1, 2, 3, 4, 5])
+    expect(meta.migrations.map((entry) => entry.version)).toEqual([1, 2, 3, 4, 5, 6])
     raw.close()
     // Records of an older backup need no upgrade.
     expect(upgradeRecord("decks", saved, 3, 4, MIGRATIONS)).toBe(saved)
     expect(RECORD_CHECKS.deckTombstones({ id: saved.id, deletedAt: "2026-09-25T03:00:00.000Z" })).toBeNull()
+  })
+})
+
+describe("version 6: the table's background is retired (prompt 56)", () => {
+  it("deletes display.tableBackground and display.tableBackgroundImage on upgrade and keeps every other setting", async () => {
+    // A database as the app of prompts 53-55 left it: the two settings next to the others.
+    const v5 = await openWithMigrations({ name: DATABASE_NAME, migrations: MIGRATIONS.slice(0, 5), layout: STORE_LAYOUT, app: APP, now: at("2026-10-14T01:00:00.000Z") })
+    expect(v5.version).toBe(5)
+    const kept = [setting("ai.profile", { kind: "random" }), setting("display.motion", "reduce"), setting("display.opponentTempo", "fast")]
+    for (const record of kept) await v5.put("settings", record)
+    await v5.put("settings", setting("display.tableBackground", "colors"))
+    await v5.put("settings", setting("display.tableBackgroundImage", "data:image/webp;base64,UklGRhIAAABXRUJQVlA4TAYAAAAvAAAAAAfQ//73v/+BiOh/AAA="))
+    await v5.put("decks", deck())
+    expect(await v5.count("settings")).toBe(5)
+    v5.close()
+
+    const current = await openWithMigrations({ name: DATABASE_NAME, migrations: MIGRATIONS, layout: STORE_LAYOUT, app: APP, now: at("2026-10-14T02:00:00.000Z") })
+    expect(current.version).toBe(SCHEMA_VERSION)
+    const settings = (await current.getAll("settings")) as { key: string }[]
+    expect(settings.map((record) => record.key).sort()).toEqual(kept.map((record) => record.key).sort())
+    for (const key of RETIRED_SETTINGS) expect(await current.get("settings", key)).toBeUndefined()
+    expect(await current.count("decks")).toBe(1)
+    current.close()
+    const raw = await openDB(DATABASE_NAME)
+    const meta = (await raw.get("meta", "database")) as DatabaseMeta
+    raw.close()
+    expect(meta.migrations.map((m) => m.version)).toEqual([1, 2, 3, 4, 5, 6])
+  })
+
+  it("names exactly the two settings and no other", () => {
+    expect([...RETIRED_SETTINGS].sort()).toEqual(["display.tableBackground", "display.tableBackgroundImage"])
+    expect(MIGRATIONS[5]!.version).toBe(6)
+    expect(MIGRATIONS[5]!.records).toBeUndefined()
   })
 })

@@ -28,6 +28,15 @@ export interface SettingValue<T> {
   readonly invalid: boolean
 }
 
+/**
+ * Settings this app no longer has (prompt 56: the table's background and the
+ * player's own table picture went with the drawn table and the pictures; the
+ * arena is the table). A stored value is deleted when the database upgrades
+ * (migrations.ts, version 6) and left out when a backup is read, so neither a
+ * device nor a backup brings them back; every other setting stays.
+ */
+export const RETIRED_SETTINGS: ReadonlySet<string> = new Set(["display.tableBackground", "display.tableBackgroundImage"])
+
 export function defineSetting<T>(key: string, fallback: T, check: (value: unknown) => value is T): SettingDefinition<T> {
   return { key, fallback, check }
 }

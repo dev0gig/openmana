@@ -1,8 +1,9 @@
 /*
- * The arena (prompts 53-54, docs/design/SPIELTISCH.md §4.1b): the table's
- * background since prompt 53 - a quiet, continuous stone surface with warm
- * light above the opponent's strip and cool blue below the hand, after the
- * binding template (Dropzone workflow/OPENMANA-ARENA-VORLAGE.html, "G+").
+ * The arena (prompts 53-56, docs/design/SPIELTISCH.md §4.1b): the table's
+ * surface - a quiet, continuous stone surface with warm light above the
+ * opponent's strip and cool blue below the hand, after the binding template
+ * (Dropzone workflow/OPENMANA-ARENA-VORLAGE.html, "G+"). Since prompt 56 the
+ * only surface there is (the drawn wooden table and the pictures are gone).
  *
  * It is a shadow grid: a child of the GameBoard's grid that spans every track
  * and is itself a grid with `subgrid` on both axes (table.css), so each piece

@@ -14,7 +14,6 @@ import { routes } from "@/app/router"
 import { MOTION, REDUCED_MOTION_ATTRIBUTE } from "@/app/motion"
 import { CARD_LANGUAGE } from "@/cards/card-language"
 import { AI_PROFILE } from "@/game/ai-profiles"
-import { TABLE_BACKGROUND, TABLE_BACKGROUND_IMAGE } from "@/game/table/table-background"
 import { readSetting, type SettingDefinition } from "@/storage/settings"
 import { openTestDatabase, putRaw, setting } from "@/test/storage-fixtures"
 
@@ -116,42 +115,13 @@ describe("settings: less motion", () => {
 })
 
 describe("settings: the table's background", () => {
-  const PICTURE = "data:image/webp;base64,UklGRhIAAABXRUJQVlA4TAYAAAAvAAAAAAfQ//73v/+BiOh/AAA="
 
-  it("offers the arena (chosen by default, prompt 53), the drawn table, the three pictures and the player's own - not choosable before a picture is picked", async () => {
+  it("has no table background to choose any more (prompt 56: the arena is the table)", async () => {
     renderAt("/settings")
-    await waitFor(() => expect(radio("Spieltisch-Hintergrund", /Arena/)).toBeEnabled())
-    const group = screen.getByRole("radiogroup", { name: "Spieltisch-Hintergrund" })
-    expect(within(group).getAllByRole("radio").map((r) => document.getElementById(r.getAttribute("aria-labelledby")!)?.textContent)).toEqual(["Arena (Vorgabe)", "Holztisch", "Farbenrad", "Planeswalker", "Chip-Raster", "Eigenes Bild"])
-    expect(radio("Spieltisch-Hintergrund", /Arena/)).toBeChecked()
-    expect(radio("Spieltisch-Hintergrund", /Holztisch/)).not.toBeChecked()
-    expect(radio("Spieltisch-Hintergrund", /Eigenes Bild/)).toBeDisabled()
-    expect(screen.getByRole("button", { name: "Eigenes Bild auswählen" })).toBeEnabled()
-    expect(screen.queryByRole("button", { name: "Eigenes Bild entfernen" })).toBeNull()
-  })
-
-  it("saves a picture at once and keeps it; the drawn table too, and the arena again", async () => {
-    renderAt("/settings")
-    await waitFor(() => expect(radio("Spieltisch-Hintergrund", /Farbenrad/)).toBeEnabled())
-    await userEvent.click(radio("Spieltisch-Hintergrund", /Farbenrad/))
-    await waitFor(async () => expect(await stored(TABLE_BACKGROUND)).toBe("colors"))
-    await waitFor(() => expect(radio("Spieltisch-Hintergrund", /Farbenrad/)).toBeChecked())
-    await userEvent.click(radio("Spieltisch-Hintergrund", /Holztisch/))
-    await waitFor(async () => expect(await stored(TABLE_BACKGROUND)).toBe("table"))
-    await userEvent.click(radio("Spieltisch-Hintergrund", /Arena/))
-    await waitFor(async () => expect(await stored(TABLE_BACKGROUND)).toBe("arena"))
-    await waitFor(() => expect(radio("Spieltisch-Hintergrund", /Arena/)).toBeChecked())
-  })
-
-  it("with a picture of the player's own: it can be chosen and removed - removing it goes back to the drawn table", async () => {
-    ;(await openTestDatabase()).close()
-    await putRaw("settings", setting("display.tableBackground", "custom"), setting("display.tableBackgroundImage", PICTURE))
-    renderAt("/settings")
-    await waitFor(() => expect(radio("Spieltisch-Hintergrund", /Eigenes Bild/)).toBeChecked())
-    await userEvent.click(screen.getByRole("button", { name: "Eigenes Bild entfernen" }))
-    await waitFor(async () => expect(await stored(TABLE_BACKGROUND_IMAGE)).toBeNull())
-    await waitFor(async () => expect(await stored(TABLE_BACKGROUND)).toBe("table"))
-    await waitFor(() => expect(radio("Spieltisch-Hintergrund", /Holztisch/)).toBeChecked())
+    await waitFor(() => expect(screen.getByRole("region", { name: "Kartensprache" })).toBeInTheDocument())
+    expect(screen.queryByRole("region", { name: "Spieltisch" })).toBeNull()
+    expect(screen.queryByRole("radiogroup", { name: "Spieltisch-Hintergrund" })).toBeNull()
+    expect(screen.queryByText(/Holztisch|Eigenes Bild/)).toBeNull()
   })
 })
 

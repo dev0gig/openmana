@@ -20,6 +20,7 @@
  * $defs.SchemaVersion in the schema file together with it.
  */
 import type { IDBPTransaction } from "idb"
+import { RETIRED_SETTINGS } from "./settings"
 import type { AppVersion, DatabaseMeta } from "./generated/records"
 import { RECORD_CHECKS, type StoreLayout } from "./schema"
 
@@ -141,6 +142,16 @@ export const MIGRATIONS: readonly Migration[] = [
     structure: (db) => createStores(db, DECK_TOMBSTONES_V4),
   },
   { version: 5, summary: "Recorded matches may keep the exact engine manifest SHA-256; older records stay valid unchanged." },
+  {
+    version: 6,
+    // The table's background and the player's own picture went with the drawn table and the pictures (prompt 56): the
+    // two settings are deleted; every other record stays as it is. A backup leaves them out when it is read (backup.ts).
+    summary: "The settings display.tableBackground and display.tableBackgroundImage are retired and deleted; no other record changes.",
+    structure: (_db, transaction) => {
+      const settings = transaction.objectStore("settings")
+      for (const key of RETIRED_SETTINGS) settings.delete(key)
+    },
+  },
 ]
 
 /** The version the migrations lead to; throws if they are not 1, 2, 3 … in order. */

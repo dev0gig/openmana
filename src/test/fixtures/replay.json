@@ -3,7 +3,7 @@
  "replay": {
   "format": "openmana-replay",
   "version": 1,
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "match": {
    "id": "00000000-0000-4000-8000-000000000022",
    "status": "finished",

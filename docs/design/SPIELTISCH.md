@@ -310,87 +310,25 @@ prompt 47; it is a full-screen `Dialog` now, arranged by the same layout
 Each block names its mockup source, where its data comes from today, the
 anchors it keeps and the prompt that builds it.
 
-### 4.1 Table surface (prompt 37)
-- Mockup: `arkan.js` - `arkan()` (desk: wood grain, plank joints, vignette),
-  `brett()` (board: shadow, carved frame, brass inlay line, leather with fine
-  grain, inner gold line, circle light, grooved circles, 16 spokes, 16-point
-  star, centre line with diamonds, rune ring with own glyphs - no real
-  script -, brass corner plates with rivets), `DEFS` (filters, gradients).
-- Component `TableSurface` in `src/game/table/`: behind the regions,
-  `aria-hidden`, `pointer-events: none`; one SVG drawn for the measured
-  playing area (from the opponent's strip to yours, in the battlefields'
-  column; circles stay circles) and the screen, **redrawn only when a size
-  changes** (`ResizeObserver`), never per game state. The board stays inside
-  the screen (margins as in the mockup).
-- Colours: `--table-wood`, `--table-wood-frame`, `--table-leather`,
-  `--primary`/`--table-gold-*` (§5). Expensive filters (`feTurbulence`)
-  never recomputed per state: a static tile as CSS background or one drawing
-  per size.
-- Motion: none on the rune ring - it stands still (project owner,
-  2026-10-12: its turning and glimmering made the table restless).
-- Region backgrounds become transparent or subtle so the board shows; text
-  stays readable (panel tokens where needed).
-- **Built (prompt 37):** `src/game/table/table-surface.tsx` (`TableSurface`,
-  first child of `GameBoard` in `game-table.tsx`, so also in the replay) and
-  `src/game/table/surface-drawing.ts` (pure geometry and markup after
-  `arkan.js`). The playing area is the battlefields' column; a strip counts
-  only where it stands in that column (it overlaps at least half its width) -
-  since prompt 38 only `breit` in a low window has its strips beside the
-  battlefields, so there the board spans the battlefields alone. The board:
-  6 px from the screen's sides, 2 px inside the area's ends; frame
-  `clamp(10, 2.2 % of the shorter side, 18)` px; circle radius
-  `min(46 % of the width, 44 % of the height)` - since prompt 38 centred on
-  the middle between the battlefields and limited to 88 % of the distance to
-  the nearer end (the same on a symmetric board); no circle below a radius of
-  48 px. Three layers, each its own compositor layer (`will-change`): the
-  desk (`data-surface="desk"`, one SVG 1:1 over the game board: wood grain,
-  plank joints, vignette), drawn only when the **screen's** size changes - a
-  region that grows with a question never recomputes its full-screen grain;
-  the board (`data-surface="board"`, an SVG at the board's corner: frame,
-  brass, leather, circle, centre line, emblem, corner plates; its shadow
-  reaches out of it), drawn only when the **playing area's** size or place
-  changes (layout key `data-board`); and the rune ring
-  (`data-surface="ring"`, a square around the circle, drawn with the board)
-  at a steady opacity of 0.85 - since 2026-10-12 it stands still (it turned
-  in 360 s and glimmered until then; the project owner found it restless).
-  Desk and board have their own ids
-  (the frame repeats the desk's grain filter). Each drawing is one User
-  Timing measure
-  `openmana:table-surface`. Colours from tokens only: grain via `feFlood` with
-  a token (the mockup's colour matrices work in linear light, so their grain
-  is lighter than its numbers read: wood grain = `--table-wood-frame` mixed
-  half with `--table-gold-light`, leather grain = `--foreground` at 14 %),
-  depth mixed with black. Regions: header a panel band with a gold hairline,
-  strips, stack/combat and the decision on `--table-panel` at 90 %, region
-  lines `--table-gold-line`; on the board the caption strips (when not empty)
-  and the battlefields' words ("Keine Kreaturen" …) on the same panel tone.
-- **Deliberate deviations from the mockup (prompt 37):** the strips covered the
-  board's top and bottom frame with their panel tone until prompt 39 (now they
-  lie on the board, their words on chips); the centre line's emblem lies under the
-  stack bar in `hoch` while the stack has items (as §3.1 intends); the emblem
-  does not glimmer (only the ring moves); the row separators of the
-  battlefields stayed visible across the board until prompt 40 (gone since).
+### 4.1 Table surface (prompt 37) - removed in prompt 56
 
-### 4.1a A picture instead of the drawn table (2026-10-12)
+The drawn wooden table of prompt 37 (desk, board with carved frame, brass
+corner plates, leather, the golden rune circle, centre line with diamonds and
+emblem, drawn as SVG only when a size changed - `TableSurface`,
+`surface-drawing.ts`, the tokens `--table-wood` and `--table-wood-frame`) was
+the table's surface from prompt 37 to prompt 56 and is gone: the arena of
+§4.1b is the only surface. Its history: `docs/implementation/37-table-surface.md`,
+`38-table-layouts.md`; the mockup `docs/design/spieltisch-vorlage/` stays as
+a reference for the pieces that remain (medallions, panels, card back).
 
-The project owner wanted to be able to replace the whole drawn table - desk,
-board, rune ring - by a picture. Settings → "Spieltisch" offers:
-"Holztisch (Vorgabe)" (the drawing of §4.1), **Farbenrad**,
-**Planeswalker** and **Chip-Raster** (the owner's own "Die" wallpapers
-without their text, the last one also without a symbol,
-`assets/table-backgrounds/PROVENANCE.md`; one picture for windows taller than
-wide, one for the others, `<picture>` with `(max-aspect-ratio: 1/1)`) and
-**Eigenes Bild** - a picture file from the device ("Eigenes Bild auswählen"),
-scaled to at most 2560 px on its longer side, stored as a WebP data: URL in
-the setting `display.tableBackgroundImage` (this device only, in backups,
-never in the ORYX cloud), removable ("Eigenes Bild entfernen", back to the
-drawn table). Built: `src/game/table/table-background.ts`,
-`table-background-options.tsx`, `TableSurface` (`PictureSurface`: an `img`
-with `data-surface="picture"`, class `table-surface-picture`, cover and
-centred; the surface keeps `data-slot="table-surface"`, `aria-hidden`, no
-pointer events and gets `data-background`). With a picture nothing of §4.1
-is drawn. The tests and the end-to-end harness keep the drawn table (the
-default).
+### 4.1a A picture instead of the drawn table (2026-10-12) - removed in prompt 56
+
+From 2026-10-12 to prompt 56 Settings → "Spieltisch" offered the drawn table,
+three built-in pictures (Farbenrad, Planeswalker, Chip-Raster) and a picture
+of the player's own (`display.tableBackground`, `display.tableBackgroundImage`).
+All of it went with prompt 56; the two settings are retired (deleted by
+migration 6, left out of a backup that is read; `RETIRED_SETTINGS` in
+`src/storage/settings.ts`).
 
 ### 4.1b The arena: the stone surface as a shadow grid (prompt 53, series *stoneboard*)
 
@@ -409,8 +347,8 @@ brighter playing area (prompt 54); reduced where room is short and still
 frames or corner plates.
 
 **Technique - the shadow grid.** `ArenaSurface` (`src/game/table/arena-surface.tsx`)
-is `TableSurface`'s branch for the choice `arena` (the default since prompt
-53): a child of the `GameBoard` grid that spans every track
+was `TableSurface`'s branch for the choice `arena` (the default since prompt
+53) and is the table's one surface since prompt 56: a child of the `GameBoard` grid that spans every track
 (`grid-column: 1 / -1; grid-row: 1 / -1`) and is itself a grid with
 `grid-template-columns: subgrid; grid-template-rows: subgrid` (table.css under
 `[data-slot="table-surface"][data-background="arena"]`). Its pieces lie in the
@@ -492,23 +430,18 @@ template). No breathing of the light: the arena is still by decision, and
 the end-to-end test proves 0 animations plain, under the device's less motion
 and under the player's.
 
-**Setting and harness:** `display.tableBackground` gains the value `arena`
-and its default becomes `arena` (a stored choice stays; "custom" without a
-picture still falls back to the drawn table until prompt 56). Settings →
-"Spieltisch" lists "Arena (Vorgabe)" first, then "Holztisch", the pictures
-and the player's own. The end-to-end harness (`src/test/table-harness.tsx`)
-reads the background through the app's own provider chain (StorageProvider →
-EngineSessionProvider → PreferencesProvider; nothing boots):
-`background=<choice>` stores a choice before the table shows,
-`window.__openmanaChooseBackground(choice)` stores another while the page
-stays. The drawn table's tests choose it explicitly.
+**Setting and harness (prompts 53-56):** prompt 53 made the arena the default
+of `display.tableBackground`; prompt 56 removed the setting with the old
+backgrounds. The end-to-end harness (`src/test/table-harness.tsx`) keeps the
+app's provider chain (StorageProvider → EngineSessionProvider →
+PreferencesProvider; nothing boots); the arena is simply there.
 
-**Removal (prompt 56):** the drawn table (`surface-drawing.ts`, `DrawnSurface`,
-its tests and end-to-end checks), the pictures (`src/game/table/backgrounds/`,
-`assets/table-backgrounds/`, `vite/notices.ts`, `THIRD-PARTY-NOTICES.md`, the
-credits), the player's own picture and both settings, the Settings card's
-options, `§4.1`/`§4.1a` of this document as history - the list with paths is
-in `docs/implementation/53-arena-grundlage-und-integration.md`.
+**Removed (prompt 56):** the drawn table, the pictures, the player's own
+picture and the setting - the arena is the only surface (`game-table.tsx`
+renders `ArenaSurface` first in the board, `data-slot="table-surface"`,
+`data-background="arena"` as the tests' marker); the list with paths is in
+`docs/implementation/53-arena-grundlage-und-integration.md` ("Inventory"),
+what went in `56-altbestand-entfernen-und-gesamtpruefung.md`.
 
 ### 4.2 Header bar (prompt 39)
 - Mockup: `.kopf`, `.marke` (emblem + Cinzel wordmark in gold), `.kopf-nav`,
@@ -1449,8 +1382,6 @@ and marks; the table darkens them towards the edges.
 | `--table-attack` | `oklch(0.75 0.17 50)` | attack amber: attacking cards and attack arrows |
 | `--table-heal` | `oklch(0.78 0.16 150)` | life gained: the medallion's green ring of light (prompt 44) |
 | `--table-sick` | `oklch(0.8 0.12 310)` | Forge's summoning sickness: the hourglass chip's rim, icon and word (2026-10-14; 6.4:1 on the wood frame, 6.9:1 on the chip's panel tone over brass, the weakest cases) |
-| `--table-wood` | `oklch(0.19 0.022 56)` | the desk |
-| `--table-wood-frame` | `oklch(0.33 0.052 58)` | the carved frame (lightest tone) |
 | `--table-leather` | `oklch(0.28 0.045 261)` | the board's leather (its lit centre; darker towards the frame) |
 | `--table-panel` | `oklch(0.22 0.025 262)` | panels: chronicle, Phasen-Tafel, action bar (top tone; darker downwards) |
 | `--table-plaque` | `oklch(0.28 0.027 81)` | the value plaque (top tone) |
@@ -1460,7 +1391,7 @@ Checked by `src/app/design-tokens.test.ts` (WCAG 2.2): text 4.5:1 - e.g.
 `--table-leather` 6.6:1, `--foreground` on `--table-plaque` 12.8:1,
 `--primary-foreground` on `--table-gold-light` 14.4:1; marks 3:1 on leather,
 wood frame, panel and plaque - the weakest is `--table-danger` on
-`--table-wood-frame` with 3.95:1. Depth (shadows, grain, highlights) uses
+`--table-wood-frame` with 3.95:1 (that token went with the desk in prompt 56). Depth (shadows, grain, highlights) uses
 black or white with transparency or tones mixed from these tokens; a new
 colour **meaning** gets a token and a contrast test. Fonts: Cinzel
 (headings, numbers on the table) and Inter, already bundled (Fontsource) -
@@ -1646,7 +1577,7 @@ only (`MOTION_PROPERTIES`, checked by `motion-plan.test.ts` and
 - `src/game/table/arena-surface.tsx` - the arena (prompt 53, §4.1b): the
   stone surface as a subgrid of the board; its rules in `table.css` under
   `[data-background="arena"]`.
-- `src/game/table/` - the table's components (surface, medallion, piles,
+- `src/game/table/` - the table's components (medallion, piles,
   chronicle, panel, arrows …), `table-layout.ts`, `use-table-layout.ts`,
   the hand's geometry `hand-fan.ts` (prompt 42), the arrows' relations and
   geometry `arrows.ts` and their layers `table-arrows.tsx` (prompt 43), the
@@ -1786,6 +1717,7 @@ axe checks).
 | 53 | series *stoneboard* 1/4: the arena as a shadow grid (subgrid), its ground, the new default | §4.1b |
 | 54 | series *stoneboard* 2/4: swings, centre line, runes, tendrils, light dust, island of light after the template | §4.1b |
 | 55 | series *stoneboard* 3/4: the matrix of sizes and scenes, reduction where room is short, nothing moves | §4.1b, §8 |
+| 56 | series *stoneboard* 4/4: the drawn table, the pictures and the setting removed; the complete check | §4.1, §4.1a, §4.1b, §5 |
 
 After the series (not part of it): the project owner checks the table on the
 Fold (closed, open upright, open turned) and inside ORYX once he has allowed
@@ -1906,6 +1838,13 @@ a push.
   points moved off the hand at 480 px; 18 sizes × 5 scenes and hands of
   0/1/7/20 measured at 0 px; no motion, proven under both less-motion
   settings.
+- 2026-10-14, series *stoneboard* (prompt 56): the drawn wooden table
+  (§4.1), the three pictures, the player's own picture and the setting
+  "Spieltisch-Hintergrund" (§4.1a) removed; the arena is the only surface;
+  migration 6 retires `display.tableBackground` and
+  `display.tableBackgroundImage` (deleted on upgrade, left out of backups);
+  the tokens `--table-wood` and `--table-wood-frame` gone; the complete
+  check and the readiness games run on the whole.
 
 ## 14. Deviations from the mockup (prompt 45)
 

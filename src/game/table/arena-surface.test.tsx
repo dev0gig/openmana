@@ -1,10 +1,10 @@
 /*
- * The arena (arena-surface.tsx, prompt 53): the table's background by default -
+ * The arena (arena-surface.tsx, prompts 53-56): the table's one surface -
  * a shadow grid under the board (first in it, hidden from screen readers, no
  * pointer events, nothing focusable) with the ground and the three cells the
  * board's lines place; it measures nothing (no ResizeObserver), renders once
  * and never again for a new game state, and leaves nothing behind when the
- * table goes or the player chooses another background. jsdom has no layout:
+ * table goes. jsdom has no layout:
  * where the cells lie, that no region moves and how it looks is checked by the
  * end-to-end test in Chrome (scripts/e2e/run.ts, arenaSurface).
  */
@@ -12,18 +12,10 @@ import fs from "node:fs"
 import path from "node:path"
 import { render } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { DEFAULT_PREFERENCES, type Preferences } from "@/app/preferences"
 import { tableScene, type TableSceneName } from "@/test/table-scenes"
 import { GameTable } from "../game-table"
 import { NO_PICTURES } from "../table-cards"
 import { ARENA_PIECES, ARENA_RUNES, ARENA_STYLE, ArenaSurface } from "./arena-surface"
-
-let preferences: Preferences = DEFAULT_PREFERENCES
-
-vi.mock("@/app/preferences", async (original) => ({
-  ...(await original<typeof import("@/app/preferences")>()),
-  usePreferences: () => preferences,
-}))
 
 /** What any ResizeObserver of the table watches (the arrows and the decision keep theirs; the arena asks for none). */
 let watched: Element[] = []
@@ -54,14 +46,13 @@ function arenaRule(): string {
 describe("the arena in the game table", () => {
   beforeEach(() => {
     watched = []
-    preferences = DEFAULT_PREFERENCES
     vi.stubGlobal("ResizeObserver", WatchingResizeObserver)
   })
   afterEach(() => {
     vi.unstubAllGlobals()
   })
 
-  it("is the table's background by default: first in the board, hidden, no pointer, nothing to reach, nothing measured", () => {
+  it("is the table's surface: first in the board, hidden, no pointer, nothing to reach, nothing measured", () => {
     const { container } = render(table())
     const surface = surfaceOf(container)
     const board = container.querySelector('[data-slot="game-board"]')!
@@ -102,28 +93,12 @@ describe("the arena in the game table", () => {
     watcher.disconnect()
   })
 
-  it("leaves nothing behind: another background has no arena, the arena no desk; the table gone, the arena too", () => {
-    // TableSurface is memoised and reads the preferences from context: a new choice reaches it through the app's
-    // provider; here each choice is a fresh table, as the picture test does.
-    const first = render(table())
-    expect(first.container.querySelectorAll("[data-arena]")).toHaveLength(ARENA_PIECES.length)
-    first.unmount()
-    expect(document.querySelector("[data-arena], [data-slot='table-surface']")).toBeNull()
-    preferences = { ...DEFAULT_PREFERENCES, tableBackground: "table" }
-    const drawn = render(table())
-    expect(drawn.container.querySelector("[data-arena], [data-background]")).toBeNull()
-    expect(drawn.container.querySelector('[data-surface="desk"]')).not.toBeNull()
-    drawn.unmount()
-    preferences = { ...DEFAULT_PREFERENCES, tableBackground: "planeswalker" }
-    const picture = render(table())
-    expect(picture.container.querySelector("[data-arena]")).toBeNull()
-    expect(surfaceOf(picture.container).dataset["background"]).toBe("planeswalker")
-    picture.unmount()
-    preferences = DEFAULT_PREFERENCES
-    const again = render(table())
-    expect(again.container.querySelector("[data-surface], img")).toBeNull()
-    expect(again.container.querySelectorAll("[data-arena]")).toHaveLength(ARENA_PIECES.length)
-    again.unmount()
+  it("is the table's only surface (prompt 56) and leaves nothing behind when the table goes", () => {
+    const { container, unmount } = render(table())
+    expect(container.querySelectorAll('[data-slot="table-surface"]')).toHaveLength(1)
+    expect(container.querySelectorAll("[data-arena]")).toHaveLength(ARENA_PIECES.length)
+    expect(container.querySelector("[data-surface], [data-slot='table-surface'] img")).toBeNull()
+    unmount()
     expect(document.querySelector("[data-arena], [data-slot='table-surface']")).toBeNull()
   })
 

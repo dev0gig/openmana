@@ -25,7 +25,6 @@ import { engineAssets } from "@/engine/engine-assets"
 import { formatMegabytes, shortCommit } from "@/engine/engine-labels"
 import { AiProfileOptions } from "@/game/ai-profile-options"
 import { AutoPassOptions, OpponentTempoOptions } from "@/game/opponent-tempo-options"
-import { TableBackgroundOptions } from "@/game/table/table-background-options"
 import { LocalDataCard } from "@/storage/local-data-card"
 import { PwaCard } from "@/pwa/pwa-card"
 
@@ -63,8 +62,6 @@ const SETTING_NAMES: Readonly<Record<string, string>> = {
   "ai.profile": "KI-Profil",
   "display.cardLanguage": "Kartensprache",
   "display.motion": "Bewegungen reduzieren",
-  "display.tableBackground": "Spieltisch-Hintergrund",
-  "display.tableBackgroundImage": "Eigenes Spieltisch-Bild",
   "display.opponentTempo": "Tempo des Gegnerzugs",
   "display.opponentStepwise": "Nach jeder Gegneraktion warten",
   "display.autoPass": "Automatisch weitergeben",
@@ -131,15 +128,6 @@ export function SettingsPage() {
             </CardHeader>
             <CardContent>
               <CardLanguageOptions />
-            </CardContent>
-          </Card>
-          <Card role="region" aria-labelledby="settings-table-title">
-            <CardHeader>
-              <CardTitle id="settings-table-title">Spieltisch</CardTitle>
-              <CardDescription>Was hinter den Karten liegt: der gezeichnete Holztisch oder ein Bild über das ganze Spielfeld.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <TableBackgroundOptions />
             </CardContent>
           </Card>
           <Card role="region" aria-labelledby="settings-a11y-title">

@@ -117,9 +117,6 @@ describe("design tokens", () => {
     ["foreground", "table-leather"],
     ["muted-foreground", "table-leather"],
     ["table-gold-light", "table-leather"],
-    ["foreground", "table-wood"],
-    ["foreground", "table-wood-frame"],
-    ["table-gold-light", "table-wood-frame"],
     // Text on gold (the main button, the current step): its lightest and its middle tone.
     ["primary-foreground", "table-gold-light"],
     ["primary-foreground", "primary"],
@@ -141,7 +138,7 @@ describe("design tokens", () => {
   // since 2026-10-14 also the opponent's compact stage and the "Zuletzt" line); below them may lie the board's brightest decoration - brass and rune gold - or the desk.
   it.each(
     ["foreground", "muted-foreground", "primary", "table-gold-light"].flatMap((text) =>
-      ["table-gold-light", "table-wood-frame", "table-leather", "table-wood"].map((under) => [text, under] as const),
+      ["table-gold-light", "table-leather"].map((under) => [text, under] as const),
     ),
   )("table text %s on the panel tone (90 %%) over %s reaches 4.5:1", (text, under) => {
     expect(ratio(token(text), over("table-panel", 0.9, under))).toBeGreaterThanOrEqual(4.5)
@@ -150,35 +147,33 @@ describe("design tokens", () => {
   // The summoning-sickness chip (table.css [data-tone="sick"], project owner 2026-10-14: clearer, no frame on the card):
   // its hourglass and word in --table-sick on the chip's panel tone (90 %) over every surface a chip line lies on - text,
   // so 4.5:1 - and on the plain surfaces.
-  it.each(["table-gold-light", "table-wood-frame", "table-leather", "table-wood"])("the sick chip's violet on the panel tone (90 %%) over %s reaches 4.5:1", (under) => {
+  it.each(["table-gold-light", "table-leather"])("the sick chip's violet on the panel tone (90 %%) over %s reaches 4.5:1", (under) => {
     expect(ratio(token("table-sick"), over("table-panel", 0.9, under))).toBeGreaterThanOrEqual(4.5)
   })
 
-  it.each(["table-panel", "table-leather", "table-wood", "table-wood-frame"])("the sick chip's violet on %s reaches 4.5:1", (surface) => {
+  it.each(["table-panel", "table-leather"])("the sick chip's violet on %s reaches 4.5:1", (surface) => {
     expect(contrast("table-sick", surface)).toBeGreaterThanOrEqual(4.5)
   })
 
   // Text straight on the desk (the hand's row) and the board's leather.
   it.each([
-    ["muted-foreground", "table-wood"],
-    ["muted-foreground", "table-wood-frame"],
   ])("table text %s on %s reaches 4.5:1", (text, surface) => {
     expect(contrast(text, surface)).toBeGreaterThanOrEqual(4.5)
   })
 
   // The table's marks, plaque rims and arrows (WCAG 1.4.11, 3:1): usable/chosen gold, target and danger red, attack
-  // amber, loyalty's mana blue, a life gain's green (prompt 44), the sick chip's violet rim - on the board (leather), on the desk (wood frame) and on the panels. The marks differ by
+  // amber, loyalty's mana blue, a life gain's green (prompt 44), the sick chip's violet rim - on the board (leather), on the former desk (wood - gone with the arena, prompt 56) frame) and on the panels. The marks differ by
   // more than colour (glow against frame, an arrow, the chips' words), as WCAG 1.4.1 asks.
   it.each(
     ["primary", "foreground", "table-gold-light", "table-danger", "table-attack", "table-mana", "table-heal", "table-sick"].flatMap((mark) =>
-      ["table-leather", "table-wood-frame", "table-panel", "table-plaque"].map((surface) => [mark, surface] as const),
+      ["table-leather", "table-panel", "table-plaque"].map((surface) => [mark, surface] as const),
     ),
   )("the table mark %s on %s reaches 3:1", (mark, surface) => {
     expect(contrast(mark, surface)).toBeGreaterThanOrEqual(3)
   })
 
   it("the table's tokens are all there and mapped for Tailwind", () => {
-    const names = ["gold-light", "gold-dark", "gold-line", "mana", "danger", "attack", "heal", "sick", "wood", "wood-frame", "leather", "panel", "plaque"]
+    const names = ["gold-light", "gold-dark", "gold-line", "mana", "danger", "attack", "heal", "sick", "leather", "panel", "plaque"]
     for (const name of names) {
       expect(rootBlock).toMatch(new RegExp(`--table-${name}:\\s*oklch\\(`))
       expect(css).toContain(`--color-table-${name}: var(--table-${name});`)

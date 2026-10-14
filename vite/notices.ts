@@ -203,7 +203,7 @@ export async function generateNotices(root: string, moduleIds: readonly string[]
   }
   // Vendor copies and own-source provenance: preserved headers and source
   // pointers, not invented npm dependencies or copied ManaBrew AGPL code.
-  const vendor = ["src/cloud/oryx-sdk.js", "assets/app-icon/PROVENANCE.md", "assets/table-backgrounds/PROVENANCE.md", "engine/patches/README.md", "TRANSPARENCY.md"]
+  const vendor = ["src/cloud/oryx-sdk.js", "assets/app-icon/PROVENANCE.md", "engine/patches/README.md", "TRANSPARENCY.md"]
   for (const file of vendor) {
     const content = await fs.readFile(path.join(root, file), "utf8")
     texts.set(file, { source: file, content: file.endsWith(".js") ? content.slice(0, content.indexOf("*/") + 2) : content })
@@ -226,7 +226,7 @@ export async function generateNotices(root: string, moduleIds: readonly string[]
     "| Komponente | Version | Lizenz | Herkunft |", "|---|---|---|---|",
     ...components.map((c) => `| ${c.name} | ${c.version} | ${c.license} | ${c.origin}${c.types ? ` (${c.types} Typen)` : ""} |`), "",
     "## Credits und Herkunft", "", "Forge/Card-Forge: Regeln, Kartenskripte, KI (GPL-3.0-or-later). ManaBrew: technische Referenz; drei GPL-Patches aus seinem Forge-Fork (khaliostr, JacopoMadaluni). Kein ManaBrew-Hauptrepo-/AGPL-Code übernommen.",
-    "Scryfall: Kartendaten und -bilder. Wizards of the Coast: Kartenrechte/Marken, inoffizieller Fan-Inhalt. Entwickelt mit umfassender generativer KI (OpenAI ChatGPT/Codex, Anthropic Claude), siehe TRANSPARENCY.md. ORYX-SDK: Quelle des Projektbesitzers. App-Icon: vom Projektbesitzer mit ChatGPT erzeugt. Spieltisch-Bilder Farbenrad, Planeswalker und Chip-Raster: Wallpaper des Projektbesitzers (mit Claude gebaut), Symbole aus der Schrift Mana von Andrew Gioia (SIL OFL 1.1), Zeichen von Wizards of the Coast.", "", "## Quellen und Freigabegate", "", source,
+    "Scryfall: Kartendaten und -bilder. Wizards of the Coast: Kartenrechte/Marken, inoffizieller Fan-Inhalt. Entwickelt mit umfassender generativer KI (OpenAI ChatGPT/Codex, Anthropic Claude), siehe TRANSPARENCY.md. ORYX-SDK: Quelle des Projektbesitzers. App-Icon: vom Projektbesitzer mit ChatGPT erzeugt.", "", "## Quellen und Freigabegate", "", source,
     "## Lizenztexte und erhaltene Originalhinweise", ""]
   for (const [id, item] of [...texts].sort(([a], [b]) => a.localeCompare(b))) {
     lines.push(`### ${id}`, "", `Quelle: ${item.source}`, `SHA-256: ${digest(item.content)}`, "", "````", item.content, "````", "")

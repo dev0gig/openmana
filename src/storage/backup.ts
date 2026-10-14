@@ -41,6 +41,7 @@ import { BACKUP_FORMAT_VERSION, BACKUP_STORES, SCHEMA_VERSION } from "./generate
 import type { AppVersion, BackupEnd, BackupHeader, BackupMeta, BackupStore, ImportMode } from "./generated/records"
 import { validateBackupEnd, validateBackupHeader, validateBackupRecordLine } from "./generated/validators.js"
 import { MIGRATIONS, upgradeRecord, type Migration } from "./migrations"
+import { RETIRED_SETTINGS } from "./settings"
 import { ensureSpace, type StorageEstimator } from "./quota"
 import { formatKey, formatProblems, problemsOf, RECORD_CHECKS, type StoreRecord } from "./schema"
 import { PendingRequests, type LocalDatabase, type ReadTransaction } from "./database"
@@ -292,6 +293,8 @@ export async function readBackup(file: Blob, options: ReadBackupOptions = {}): P
     const store = line.store
     if (!header.stores.includes(store)) throw invalid(`line ${lineNumber} holds a ${store} record, which the header does not announce`)
     found[store]++
+    // A setting this app retired (prompt 56): counted as read, never taken over.
+    if (store === "settings" && RETIRED_SETTINGS.has(String(keyOf(store, line.record)))) continue
     let record: unknown
     try {
       record = header.schemaVersion < currentVersion ? upgradeRecord(store, line.record, header.schemaVersion, currentVersion, migrations) : line.record
