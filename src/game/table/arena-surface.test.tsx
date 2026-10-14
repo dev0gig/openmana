@@ -16,7 +16,7 @@ import { DEFAULT_PREFERENCES, type Preferences } from "@/app/preferences"
 import { tableScene, type TableSceneName } from "@/test/table-scenes"
 import { GameTable } from "../game-table"
 import { NO_PICTURES } from "../table-cards"
-import { ARENA_PIECES, ARENA_STYLE, ArenaSurface } from "./arena-surface"
+import { ARENA_PIECES, ARENA_RUNES, ARENA_STYLE, ArenaSurface } from "./arena-surface"
 
 let preferences: Preferences = DEFAULT_PREFERENCES
 
@@ -70,11 +70,18 @@ describe("the arena in the game table", () => {
     expect(surface.dataset["background"]).toBe("arena")
     expect(surface).toHaveAttribute("aria-hidden", "true")
     expect(surface).toHaveClass("table-arena")
-    // Its pieces, in order: the ground, then the cells of the opponent's strip, the playing area and the hand - empty, nothing of their own.
+    // Its pieces, in order: the ground, the cells of the opponent's strip, the playing area and the hand, the dust - no words,
+    // nothing of their own: only the runes and the tendrils as absolutely positioned drawings (prompt 54).
     expect([...surface.children].map((child) => child.getAttribute("data-arena"))).toEqual([...ARENA_PIECES])
-    for (const piece of surface.children) expect(piece.childElementCount + piece.textContent!.length).toBe(0)
+    expect(surface.textContent).toBe("")
+    for (const piece of surface.children) for (const child of piece.children) expect(child.matches("svg[data-arena-rune], svg[data-arena-tendril]")).toBe(true)
+    // The template's ten runes (four at the opponent's swing, six at the hand's) and two tendrils; every drawing unfocusable, nothing readable.
+    expect(surface.querySelectorAll('[data-arena="opponent"] > svg[data-arena-rune]')).toHaveLength(4)
+    expect(surface.querySelectorAll('[data-arena="hand"] > svg[data-arena-rune]')).toHaveLength(6)
+    expect([...surface.querySelectorAll("[data-arena-tendril]")].map((tendril) => tendril.getAttribute("data-arena-tendril"))).toEqual(["left", "right"])
+    for (const svg of surface.querySelectorAll("svg")) expect(svg).toHaveAttribute("focusable", "false")
     // Nothing in it can be reached or read; nothing of the drawn table or a picture.
-    expect(surface.querySelectorAll("a, button, input, [tabindex], text, title, img, svg")).toHaveLength(0)
+    expect(surface.querySelectorAll("a, button, input, [tabindex], text, title, img, image, animate")).toHaveLength(0)
     expect(surface.querySelector('[data-surface]')).toBeNull()
     // The arrows and the decision keep their observers; nothing watches the arena or anything in it.
     expect(watched.filter((element) => element === surface || surface.contains(element))).toHaveLength(0)
@@ -120,8 +127,16 @@ describe("the arena in the game table", () => {
     expect(document.querySelector("[data-arena], [data-slot='table-surface']")).toBeNull()
   })
 
-  it("draws the ground from two tiles of SVG data (grain and cracks) that never move", () => {
+  it("draws the ground, the swings and the dust from SVG data that never moves; the runes are the rune ring's glyphs", () => {
     const style = ARENA_STYLE as Record<string, string>
+    // The swings stretch with their cell; the dust covers the board; seventy points, mostly at the edges.
+    expect(style["--table-arena-hand-swing"]).toContain("preserveAspectRatio='none'")
+    expect(style["--table-arena-hand-swing"]!.match(/<path /g)).toHaveLength(2)
+    expect(style["--table-arena-opponent-swing"]!.match(/<path /g)).toHaveLength(1)
+    expect(style["--table-arena-dust"]).toContain("preserveAspectRatio='xMidYMid slice'")
+    expect(style["--table-arena-dust"]!.match(/<circle /g)).toHaveLength(70)
+    expect(ARENA_RUNES).toHaveLength(12)
+    for (const glyph of ARENA_RUNES) expect(glyph).toMatch(/^M[\d .VHZML]+$/)
     expect(style["--table-arena-grain"]).toMatch(/^url\("data:image\/svg\+xml;utf8,<svg /)
     expect(style["--table-arena-grain"]).toContain("feTurbulence")
     expect(style["--table-arena-grain"]).toContain("stitchTiles='stitch'")

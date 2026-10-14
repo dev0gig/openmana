@@ -450,6 +450,30 @@ while the first approved preview "G" did; the plan names the cracks as part
 of the ground, so they are built as their own layer - at 0.35 over dark stone
 they are barely there.
 
+**Built (prompt 54) - the six other parts:** the hand's swing (two curves in a
+1000 × 120 box, `preserveAspectRatio='none'`, gold `#e2bd62` at 0.75 and a
+twin `#c9a24a` at 0.35) as the hand cell's `::before` over a warm glow from
+below (`radial-gradient(ellipse 60% 120% at 50% 110%, #d9913a33, transparent 60%)`);
+the opponent's swing bending down (0.65) over the same glow from above; the
+centre line as the playing-area cell's `::before` (`left/right 4%`, `top 50%`,
+1 px gold fading to the sides, a 6 px glow, opacity 0.55 - on the row between
+the battlefields in every layout); the island of light as that cell's
+background (`radial-gradient(ellipse 62% 58% at 50% 50%, #ffffff07, transparent 72%)`,
+no edge); ten runes (`ARENA_RUNES`, the rune ring's twelve glyphs, 10 px at
+the hand, 9 px at the opponent, gold at 0.55 with a 2 px `drop-shadow` - the
+arena's only runtime filter, `--table-arena-glow: none` takes it away) - the
+hand's six at the template's places (9/14/19 % and 79/84/89 %, climbing
+towards the middle), the opponent's four **not** at the template's ends but
+at 34/39 % and 61/66 % between its chips, the medallion and its piles (the
+real strip is full at both ends; measured at M5) and only on strips of 36 rem
+or more (container query on the cell); two tendrils (`svg[data-arena-tendril]`,
+the template's stem with two leaves, 0.5, `clamp(70px, 9vw, 120px)`, mirrored
+on the right) at the hand's ends; the light dust as a fifth piece `dust` over
+the whole board (the template's 70 points in a 1600 × 1000 box, `cover`,
+0.9). Budget: 36 elements, 10 filters, no raster, no motion. With a fanned
+hand of seven or more the outer cards lie over the hand's runes and tendrils
+(as in the template's own picture); prompt 55 decides the reduction.
+
 **Setting and harness:** `display.tableBackground` gains the value `arena`
 and its default becomes `arena` (a stored choice stays; "custom" without a
 picture still falls back to the drawn table until prompt 56). Settings →
@@ -1742,6 +1766,7 @@ axe checks).
 | 47 | after the series: the card view in full screen with its keywords explained | §3.4, §4.16 |
 | 49 | series *openmana-spielfluss*: the opponent's turn on a stage, tempo, "Weiter", turn band | §4.17 |
 | 53 | series *stoneboard* 1/4: the arena as a shadow grid (subgrid), its ground, the new default | §4.1b |
+| 54 | series *stoneboard* 2/4: swings, centre line, runes, tendrils, light dust, island of light after the template | §4.1b |
 
 After the series (not part of it): the project owner checks the table on the
 Fold (closed, open upright, open turned) and inside ORYX once he has allowed
@@ -1850,6 +1875,12 @@ a push.
   table, the pictures and the player's own picture stay choosable until
   prompt 56. Measured in Chrome: every region and card at the same place as
   over the drawn table (0 px at M5), no containment allowed on the subgrid.
+- 2026-10-14, series *stoneboard* (prompt 54): the arena dressed after the
+  template - golden swings at the hand and the opponent's strip, the centre
+  line, ten runes, two tendrils, light dust, the island of light; the
+  opponent's runes moved between chips, medallion and piles and hidden on
+  narrow strips (0 collisions with cards, chips or buttons at M5 in three
+  scenes); null-filter version proven; still 0 px against the drawn table.
 
 ## 14. Deviations from the mockup (prompt 45)
 

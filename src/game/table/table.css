@@ -161,18 +161,118 @@
   background-size: var(--table-arena-cracks-size);
 }
 
-/* The cells of the opponent's strip, the playing area (both battlefields and the centre line) and the hand: placed by the board's lines, dressed in prompt 54. */
+/*
+ * The opponent's strip (prompt 54): a warm glow from above and the golden
+ * swing bending down (one drawing stretched to the cell, arena-surface.tsx),
+ * four runes at its ends.
+ */
 [data-slot="game-board"] .table-arena-opponent {
   grid-area: opponent;
+  container-type: inline-size;
+  background: radial-gradient(ellipse 60% 120% at 50% -10%, #d9913a33, transparent 60%);
 }
 
+/* A narrow strip (a phone upright or turned) has no gap between its chips, the medallion and the piles: no runes there (the swing stays). */
+@container (width < 36rem) {
+  [data-slot="game-board"] .table-arena-opponent > .table-arena-rune {
+    display: none;
+  }
+}
+
+[data-slot="game-board"] .table-arena-opponent::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--table-arena-opponent-swing) center / 100% 100% no-repeat;
+}
+
+/*
+ * The playing area (both battlefields with the centre line between them): the
+ * island of light - a shade brighter towards the middle, without an edge -
+ * and the centre line, 1 px of gold fading to the sides with a faint glow.
+ * No circle, no diamond, no emblem.
+ */
 [data-slot="game-board"] .table-arena-field {
   grid-row: opponent-field-start / field-end;
   grid-column: field-start / field-end;
+  background: radial-gradient(ellipse 62% 58% at 50% 50%, #ffffff07, transparent 72%);
 }
 
+[data-slot="game-board"] .table-arena-field::before {
+  content: "";
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  top: 50%;
+  height: 1px;
+  opacity: 0.55;
+  background: linear-gradient(90deg, transparent, #c9a24a99 15%, #e8c877 50%, #c9a24a99 85%, transparent);
+  box-shadow: 0 0 6px #c9a24a66;
+}
+
+/*
+ * The hand: a warm glow from below and the golden swing rising from the
+ * edges to the middle with its fainter twin (one drawing stretched to the
+ * cell), two tendrils and six runes at its ends.
+ */
 [data-slot="game-board"] .table-arena-hand {
   grid-area: hand;
+  background: radial-gradient(ellipse 60% 120% at 50% 110%, #d9913a33, transparent 60%);
+}
+
+[data-slot="game-board"] .table-arena-hand::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--table-arena-hand-swing) center / 100% 100% no-repeat;
+}
+
+/* The light dust over the whole board (one drawing, cut to cover it, centred): mostly at the edges, the middle free. */
+[data-slot="game-board"] .table-arena-dust {
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  opacity: 0.9;
+  background: var(--table-arena-dust) center / cover no-repeat;
+}
+
+/*
+ * A rune: a small glyph placed in percent of its cell (left and top set by
+ * the component), gold at 0.55 with the faintest glow - the arena's only
+ * filter at runtime; --table-arena-glow: none takes it away and the arena
+ * must still stand (the null-filter version of prompt 54).
+ */
+[data-slot="game-board"] .table-arena-rune {
+  position: absolute;
+  height: auto;
+  fill: none;
+  stroke: #e2bd62;
+  stroke-opacity: 0.55;
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: var(--table-arena-glow, drop-shadow(0 0 2px #c9a24a66));
+}
+
+/* A tendril at an end of the hand's swing: a stem and two leaves, mirrored on the right. */
+[data-slot="game-board"] .table-arena-tendril {
+  position: absolute;
+  bottom: 6%;
+  width: clamp(70px, 9vw, 120px);
+  height: auto;
+  fill: none;
+  stroke: #e2bd62;
+  stroke-opacity: 0.5;
+  stroke-width: 1.1;
+  stroke-linecap: round;
+}
+
+[data-slot="game-board"] .table-arena-tendril[data-arena-tendril="left"] {
+  left: 1.5%;
+}
+
+[data-slot="game-board"] .table-arena-tendril[data-arena-tendril="right"] {
+  right: 1.5%;
+  transform: scaleX(-1);
 }
 
 /* ---------- The regions over the surface: the board shows, text stays readable ---------- */

@@ -6361,7 +6361,10 @@ async function arenaFacts(page: Page, label: string): Promise<Record<string, unk
       subgrid: style.gridTemplateColumns.startsWith("subgrid") && style.gridTemplateRows.startsWith("subgrid"),
       contain: style.contain,
       pieces: [...surface.children].map((child) => child.getAttribute("data-arena")),
-      drawn: surface.querySelectorAll("[data-surface], img, svg").length,
+      drawn: surface.querySelectorAll("[data-surface], img").length,
+      runes: surface.querySelectorAll("svg[data-arena-rune]").length,
+      tendrils: surface.querySelectorAll("svg[data-arena-tendril]").length,
+      unfocusable: [...surface.querySelectorAll("svg")].every((svg) => svg.getAttribute("focusable") === "false"),
       reachable: surface.querySelectorAll("a, button, input, [tabindex], text, title").length,
       surfaceHit: points.filter((element) => element !== null && surface.contains(element)).length,
       board: rect(board),
@@ -6379,7 +6382,9 @@ async function arenaFacts(page: Page, label: string): Promise<Record<string, unk
   const near = (a: number | undefined, b: number | undefined) => a !== undefined && b !== undefined && Math.abs(a - b) <= 1
   const same = (a: { left: number; top: number; width: number; height: number } | null, b: { left: number; top: number; width: number; height: number } | null) => a !== null && b !== null && near(a.left, b.left) && near(a.top, b.top) && near(a.width, b.width) && near(a.height, b.height)
   check(facts.first && facts.background === "arena" && facts.ariaHidden === "true" && facts.pointerEvents === "none" && facts.surfaceHit === 0 && facts.reachable === 0 && facts.drawn === 0, `${label}: the arena is not decoration under the regions ${JSON.stringify(facts)}`)
-  check(facts.display === "grid" && facts.subgrid && facts.contain === "none" && facts.pieces.join() === "ground,opponent,field,hand", `${label}: the arena is not a subgrid of the board ${JSON.stringify({ display: facts.display, subgrid: facts.subgrid, contain: facts.contain, pieces: facts.pieces })}`)
+  check(facts.display === "grid" && facts.subgrid && facts.contain === "none" && facts.pieces.join() === "ground,opponent,field,hand,dust", `${label}: the arena is not a subgrid of the board ${JSON.stringify({ display: facts.display, subgrid: facts.subgrid, contain: facts.contain, pieces: facts.pieces })}`)
+  // Prompt 54: the template's ten runes and two tendrils, nothing focusable among them.
+  check(facts.runes === 10 && facts.tendrils === 2 && facts.unfocusable, `${label}: runes and tendrils ${JSON.stringify({ runes: facts.runes, tendrils: facts.tendrils, unfocusable: facts.unfocusable })}`)
   check(same(facts.ground, facts.board), `${label}: the ground does not cover the board ${JSON.stringify({ ground: facts.ground, board: facts.board })}`)
   check(same(facts.opponent.piece, facts.opponent.region), `${label}: the opponent's cell is not on the opponent's strip ${JSON.stringify(facts.opponent)}`)
   check(same(facts.hand.piece, facts.hand.region), `${label}: the hand's cell is not on the hand ${JSON.stringify(facts.hand)}`)
@@ -6491,7 +6496,7 @@ async function arenaSurface(executablePath: string, base: string): Promise<Recor
     // Without the query the page shows the stored choice (a reload with background=custom would store it again).
     await openScene(page, base, "main-phase")
     const back = await stored()
-    check(back.background === "arena" && back.arena === 4 && !back.desk && !back.picture, `arena: not back after choosing it ${JSON.stringify(back)}`)
+    check(back.background === "arena" && back.arena === 5 && !back.desk && !back.picture, `arena: not back after choosing it ${JSON.stringify(back)}`)
     results["stored"] = { drawn, drawnAgain, own, back }
     // Nothing of the engine is loaded by the preferences' provider chain in the harness.
     for (const error of pageLog.errors) if (!/^\[requestfailed\] https:\/\/cards\.scryfall\.io\/.* net::ERR_ABORTED$/.test(error)) check(false, `arena: ${error}`)
