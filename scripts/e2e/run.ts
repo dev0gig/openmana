@@ -5027,6 +5027,9 @@ async function touch(page: Page, element: Locator, gesture: { readonly holdMs?: 
   await cdp.detach()
 }
 
+/** The same touch where a local `touch` flag (the viewport's) hides the function: a long press in the start hand. */
+const touchHold = touch
+
 /** The card view's arrangement on a screen of this size (prompt 47): the card on top in hoch, beside its boxes in quadrat and breit. */
 function cardViewArrangement(width: number, height: number): "stacked" | "beside" {
   return tableLayoutOf(width, height) === "hoch" ? "stacked" : "beside"
@@ -7752,7 +7755,8 @@ async function startHandInRealGame(browser: Browser, base: string, viewport: Vie
       page.waitForFunction((last) => {
         const answer = document.querySelector('[data-start-answer="1"]') as HTMLButtonElement | null
         const question = document.querySelector("[data-start-question]")?.getAttribute("data-start-question") ?? null
-        if (answer === null || question === null || question === last || document.querySelector('[data-slot="card-view"]') !== null) return false
+        // The held choice in Forge's gap between two questions (data-start-pending) is no new question.
+        if (answer === null || question === null || question === last || document.querySelector('[data-slot="card-view"]') !== null || document.querySelector("[data-start-pending]") !== null) return false
         const bottom = document.querySelectorAll("[data-bottom-toggle]").length > 0
         if (!bottom && answer.disabled) return false
         return { bottom, question, ids: [...document.querySelectorAll("[data-start-hand-card]")].map((card) => card.getAttribute("data-start-hand-card")).join(","), title: document.querySelector('[data-slot="hand-spread"] h2')?.textContent ?? "" }
@@ -7799,8 +7803,11 @@ async function startHandInRealGame(browser: Browser, base: string, viewport: Vie
       }
       await choose(0, 1)
       if (bottomFacts === null) {
-        // A card looked at in between (its view, the hand to browse), one taken back and chosen again.
-        await activate(page.locator("[data-start-hand-card]").nth(1))
+        // A card looked at in between (its view, the hand to browse), one taken back and chosen again. In the choice a
+        // tap on the picture chooses (the project owner, 2026-10-14): looking is the long press, or the right click.
+        const look = page.locator("[data-start-hand-card]").nth(1)
+        if (touch) await touchHold(page, look, { holdMs: 750 })
+        else await look.click({ button: "right" })
         await cardViewSettled(page)
         const midLook = await viewedCard(page)
         await startHandPictures(page)

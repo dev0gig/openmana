@@ -1141,12 +1141,23 @@ next or previous one (`docs/implementation/50-starthand-und-handkarten-blaettern
   each other, never overlapping, as large as the room allows
   (`handSpreadFit`: the columns that give the widest card, 88 px to 22 rem,
   scrolling inside only below 88 px); at the bottom Forge's buttons (armed,
-  Forge's enabled state). During the London mulligan's choice a button under
-  each card ("Nach unten" / "Doch behalten": Forge's `card.tap`), the marked
-  cards in the "chosen" frame, the count; Forge's OK confirms once. A tap on a
-  card opens the card view over the panel. Closing (X, Escape, back) answers
-  nothing; after an answer it waits ("Forge rechnet …") for Forge's next
-  start question and closes when the game begins.
+  Forge's enabled state). Keep or mulligan: a tap on a card opens the card
+  view over the panel. During the London mulligan's choice (the project
+  owner, 2026-10-14: as on the table) a tap on a card's picture chooses it
+  for the bottom or takes it back (Forge's `card.tap`); a long press, a right
+  click or the context-menu key opens the card view; under each card the same
+  choice as a button ("Nach unten" / "Doch behalten", `aria-pressed`) for the
+  keyboard and without the picture. The marked cards in the "chosen" frame
+  around the picture (never on it), "N ausgewählt" (Forge's data carry no
+  number for the step - never "N von M"); Forge's OK confirms once. Steady
+  through Forge's gap after each tap (withdrawn, state, new question): title,
+  count, frames, the buttons under the cards and their room, Forge's buttons
+  and one status line ("Forge rechnet …", always its own room) stay - the
+  controls only wait (`holdBottom`). The choice is armed once per step and
+  hand, a second press on the same card before Forge answered counts once, a
+  press while Forge computes says why in a toast. Closing (X, Escape, back)
+  answers nothing; after an answer it waits ("Forge rechnet …") for Forge's
+  next start question and closes when the game begins.
 - **Browsing the hand** in the card view: every card opened from the
   player's own hand browses the hand of the current state - a swipe of one
   finger on the card (left = next, right = previous; `touch-action: pan-y

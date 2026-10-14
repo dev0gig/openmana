@@ -102,3 +102,47 @@ export function startHandOpen(memory: StartHandMemory, key: string | null, auto:
   if (key !== null) return memory.requested === key || memory.awaiting === key || (auto && memory.dismissed !== key)
   return (memory.awaiting !== null || memory.shown !== null) && !past
 }
+
+/**
+ * The choice for the bottom through Forge's gap (the project owner,
+ * 2026-10-14: "Mulligan: Auswahl klar, kein Flackern"). After every tap during
+ * the choice Forge withdraws its question, sends the state with the card's
+ * mark and asks anew (a new id) - each its own message, so for a moment there
+ * is no start question. The overview holds the last choice for the bottom
+ * over that moment while the hand is the same (`startHandKey`): its title,
+ * count, marks, controls and the room under the cards stay, the controls only
+ * wait (`pending`). Held only the choice that was not answered from the
+ * overview: after its OK or Auto Forge computes the next step, and the
+ * overview says so.
+ */
+export interface HeldBottom {
+  /** Forge's last choice for the bottom. */
+  readonly question: StartQuestion
+  /** Its hand (`startHandKey`) when Forge asked it: another hand ends the hold. */
+  readonly key: string
+  /** An answer to it went from the overview: nothing is held in the gap after it. */
+  readonly answered: boolean
+}
+
+/** The hold after this state (the same object while nothing changed). */
+export function holdBottom(held: HeldBottom | null, question: StartQuestion | null, state: GameState): HeldBottom | null {
+  if (question !== null) {
+    if (question.purpose !== "mulliganBottom") return null
+    if (held !== null && held.question.id === question.id) return held.question === question ? held : { ...held, question }
+    return { question, key: startHandKey(question, state), answered: false }
+  }
+  if (held === null || held.answered) return held
+  return startHandKey(held.question, state) === held.key ? held : null
+}
+
+/** The hold once an answer to Forge's question `id` went from the overview. */
+export function answeredBottom(held: HeldBottom | null, id: number): HeldBottom | null {
+  return held !== null && held.question.id === id && !held.answered ? { ...held, answered: true } : held
+}
+
+/** What the overview shows: Forge's start question - or, in the gap, the held choice for the bottom (`pending`: nothing can be sent). */
+export function shownStartQuestion(held: HeldBottom | null, question: StartQuestion | null): { readonly question: StartQuestion | null; readonly pending: boolean } {
+  if (question !== null) return { question, pending: false }
+  if (held !== null && !held.answered) return { question: held.question, pending: true }
+  return { question: null, pending: false }
+}

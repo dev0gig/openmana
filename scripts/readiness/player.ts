@@ -708,7 +708,8 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
               startHandAnswers++
               return true
             }
-            const toggle = startView.locator('[data-bottom-toggle][aria-pressed="false"]:not([disabled])').first()
+            // Not while Forge computes (the buttons keep their look then and are only aria-disabled).
+            const toggle = startView.locator('[data-bottom-toggle][aria-pressed="false"]:not([disabled]):not([aria-disabled="true"])').first()
             if (await toggle.count()) {
               await press(toggle, "mulligan-bottom-card")
               startHandAnswers++

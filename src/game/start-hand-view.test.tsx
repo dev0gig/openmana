@@ -4,11 +4,15 @@
  * (a new hand after a mulligan, the London mulligan's choice for the bottom,
  * the game's first priority). The panel shows the current hand, answers only
  * with Forge's buttons when pressed (armed), looks at a card in the card view
- * with the hand to browse, and closing it answers nothing.
+ * with the hand to browse, and closing it answers nothing. In the choice for
+ * the bottom a tap on a picture chooses (Forge's card.tap, once), a long press
+ * looks, and Forge's gap between two questions moves nothing.
  */
 import type { GameState, Question, VisibleCard } from "@openmana/engine-protocol"
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { toast } from "sonner"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { LONG_PRESS_MS } from "@/hooks/use-card-press"
 import { tableScene } from "@/test/table-scenes"
 import { ARMING_MS } from "./card-view"
 import { GameTable, type GameTableProps } from "./game-table"
@@ -211,36 +215,126 @@ describe("mulligans, the London mulligan's choice and back to the table (built f
     expect(within(panel()).getByText("0 ausgewählt")).toBeInTheDocument()
     expect(answerButton("OK")).toBeDisabled()
     expect(answerButton("Auto")).toBeEnabled()
-    // Looking is still a tap on the card; choosing is the button under it - Forge's card.tap, a double press once.
-    const toggle = within(panel()).getByRole("button", { name: `${fresh[1]!.name}: Unter die Bibliothek legen` })
-    fireEvent.click(toggle)
+    // Choosing is a tap on the picture (as on the table) - Forge's card.tap, a double tap once. Only right after the
+    // step appeared is a press dropped (the stray press of the answer before).
+    const picture = (id: number) => document.querySelector<HTMLButtonElement>(`[data-start-hand-card="${id}"]`)!
+    fireEvent.click(picture(201))
     expect(onTapCard).not.toHaveBeenCalled()
     wait()
-    fireEvent.click(toggle)
-    fireEvent.click(toggle)
+    fireEvent.click(picture(201))
+    fireEvent.click(picture(201))
     expect(onTapCard).toHaveBeenCalledExactlyOnceWith(201)
-    // A card looked at meanwhile; Forge withdraws its question and asks anew (a new id): for a moment no question - the
-    // panel and the card view over it stay; then the mark shows, OK is on.
-    fireEvent.click(document.querySelector('[data-start-hand-card="203"]')!)
+    expect(screen.queryByRole("dialog", { name: fresh[1]!.name! })).toBeNull()
+    // Forge computes and withdraws its question: no question for a moment - everything stays, only waiting.
+    rerender({ waiting: false })
+    rerender({ questions: [], waiting: false })
+    const marked = fresh.map((card) => (card.id === 201 ? { ...card, highlighted: true as const } : card))
+    rerender({ state: withHand(marked) })
+    expect(panel()).toHaveAccessibleName("Karten unter die Bibliothek legen")
+    expect(within(panel()).getByText("1 ausgewählt")).toBeInTheDocument()
+    expect(within(panel()).getByText("Lege 1 Karte unter deine Bibliothek.")).toBeInTheDocument()
+    expect(picture(201)).toHaveAttribute("data-mark", "selected")
+    expect(document.querySelectorAll("[data-bottom-toggle]")).toHaveLength(7)
+    expect(document.querySelector("[data-start-hand-status]")).toHaveAttribute("data-start-hand-status", "computing")
+    expect(answerButton("OK")).toBeDisabled()
+    // A press meanwhile is not sent - and says so.
+    fireEvent.click(picture(202))
+    expect(onTapCard).toHaveBeenCalledTimes(1)
+    expect(toast.getToasts().map((shown) => ("title" in shown ? shown.title : null))).toEqual(["Die Karte wurde nicht gewählt"])
+    // Forge asks anew (a new id): the mark shows, OK is on - and the next press counts at once (no re-arming).
+    rerender({ questions: [bottom(4, true)], waiting: true })
+    expect(within(panel()).getByRole("button", { name: `${fresh[1]!.name}: Doch behalten` })).toHaveAttribute("aria-pressed", "true")
+    expect(picture(201)).toHaveAttribute("aria-pressed", "true")
+    fireEvent.click(within(panel()).getByRole("button", { name: `${fresh[1]!.name}: Doch behalten` }))
+    expect(onTapCard).toHaveBeenLastCalledWith(201)
+    expect(onTapCard).toHaveBeenCalledTimes(2)
+    // Forge takes it back, then the button under another card chooses it - the same card.tap.
+    rerender({ state: withHand(fresh), questions: [bottom(5, false)] })
+    fireEvent.click(within(panel()).getByRole("button", { name: `${fresh[1]!.name}: Unter die Bibliothek legen` }))
+    expect(onTapCard).toHaveBeenCalledTimes(3)
+    rerender({ state: withHand(marked), questions: [bottom(6, true)] })
+    // A card looked at meanwhile (the context menu: a right click, the long press's event); Forge withdraws its
+    // question and asks anew: the panel and the card view over it stay; then OK confirms.
+    expect(fireEvent.contextMenu(picture(203))).toBe(false)
     expect(screen.getByRole("dialog", { name: fresh[3]!.name! })).toBeInTheDocument()
     rerender({ questions: [] })
     // Under the card view the panel is hidden from the accessibility tree (a modal over it), but there.
     expect(document.querySelector('[data-slot="hand-spread"]')).not.toBeNull()
     expect(screen.getByRole("dialog", { name: fresh[3]!.name! })).toBeInTheDocument()
-    const marked = fresh.map((card) => (card.id === 201 ? { ...card, highlighted: true as const } : card))
-    rerender({ state: withHand(marked), questions: [bottom(4, true)] })
+    rerender({ questions: [bottom(7, true)] })
     escape(screen.getByRole("dialog", { name: fresh[3]!.name! }))
     expect(panel()).toBeInTheDocument()
     expect(within(panel()).getByText("1 ausgewählt")).toBeInTheDocument()
-    expect(within(panel()).getByRole("button", { name: `${fresh[1]!.name}: Doch behalten` })).toHaveAttribute("aria-pressed", "true")
     expect(document.querySelector('[data-start-hand-card="201"]')).toHaveAttribute("data-mark", "selected")
+    // The press that closed the card view never chooses (re-armed when it closed).
+    fireEvent.click(picture(204))
+    expect(onTapCard).toHaveBeenCalledTimes(3)
     wait()
     fireEvent.click(answerButton("OK"))
-    expect(onAnswer).toHaveBeenLastCalledWith(4, { kind: "buttons", button: 1 })
+    expect(onAnswer).toHaveBeenLastCalledWith(7, { kind: "buttons", button: 1 })
     expect(onAnswer).toHaveBeenCalledTimes(3)
+    // Answered from here: in Forge's gap after it nothing is held - Forge computes the next step, the panel says so.
+    rerender({ questions: [], waiting: false })
+    expect(within(panel()).getByRole("status")).toHaveTextContent("Forge rechnet")
+    expect(document.querySelectorAll("[data-bottom-toggle]")).toHaveLength(0)
     // The game begins: turn 1, Forge's priority - back to the table.
     rerender({ state: withHand(fresh.slice(0, 6), 1), questions: tableScene("main-phase").questions, prompt: null })
     expect(panelGone()).toBe(true)
+  })
+
+  it("in the choice for the bottom a touch's tap on a picture sends exactly one card.tap; a long press opens the card view and sends nothing", () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] })
+    const { onTapCard, onAnswer } = table({ questions: [bottom(3, false)] })
+    wait()
+    const card = document.querySelector<HTMLButtonElement>('[data-start-hand-card="45"]')!
+    expect(card).toHaveAccessibleName(/antippen legt sie unter die Bibliothek, lange drücken zeigt sie groß$/)
+    // A tap: pressed and released at once, the browser's click.
+    fireEvent.pointerDown(card, { pointerType: "touch", clientX: 10, clientY: 10 })
+    fireEvent.pointerUp(card, { pointerType: "touch" })
+    fireEvent.click(card)
+    expect(onTapCard).toHaveBeenCalledExactlyOnceWith(45)
+    expect(screen.queryByRole("dialog", { name: "Gebirge" })).toBeNull()
+    // A long press on another card: its view, the click after it swallowed - nothing sent.
+    const other = document.querySelector<HTMLButtonElement>('[data-start-hand-card="33"]')!
+    fireEvent.pointerDown(other, { pointerType: "touch", clientX: 10, clientY: 10 })
+    act(() => vi.advanceTimersByTime(LONG_PRESS_MS))
+    expect(screen.getByRole("dialog", { name: "Gebirge" })).toBeInTheDocument()
+    fireEvent.pointerUp(other, { pointerType: "touch" })
+    fireEvent.click(other)
+    expect(onTapCard).toHaveBeenCalledTimes(1)
+    expect(onAnswer).not.toHaveBeenCalled()
+    vi.useRealTimers()
+  })
+
+  it("the gap between Forge's questions keeps title, count, marks, the buttons under the cards and Forge's buttons - only waiting, one status line", () => {
+    const marked = original.map((card) => (card.id === 45 ? { ...card, highlighted: true as const } : card))
+    const { rerender } = table({ state: withHand(marked), questions: [bottom(3, true)], prompt: "Lege 1 Karte unter deine Bibliothek." })
+    const before = {
+      toggles: [...document.querySelectorAll("[data-bottom-toggle]")].map((toggle) => toggle.textContent),
+      marks: [...document.querySelectorAll('[data-start-hand-card][data-mark="selected"]')].map((card) => card.getAttribute("data-start-hand-card")),
+      answers: [...document.querySelectorAll("[data-start-answer]")].map((button) => button.textContent),
+      status: document.querySelectorAll("[data-start-hand-status]").length,
+    }
+    rerender({ questions: [], waiting: false })
+    expect(panel()).toHaveAccessibleName("Karten unter die Bibliothek legen")
+    expect(within(panel()).getByText("1 ausgewählt")).toBeInTheDocument()
+    expect(within(panel()).getByText("Lege 1 Karte unter deine Bibliothek.")).toBeInTheDocument()
+    expect([...document.querySelectorAll("[data-bottom-toggle]")].map((toggle) => toggle.textContent)).toEqual(before.toggles)
+    expect([...document.querySelectorAll('[data-start-hand-card][data-mark="selected"]')].map((card) => card.getAttribute("data-start-hand-card"))).toEqual(before.marks)
+    expect([...document.querySelectorAll("[data-start-answer]")].map((button) => button.textContent)).toEqual(before.answers)
+    expect(document.querySelectorAll("[data-start-hand-status]")).toHaveLength(before.status)
+    // Waiting: the buttons under the cards keep their look (aria-disabled), Forge's buttons are off, the line says why.
+    for (const toggle of document.querySelectorAll("[data-bottom-toggle]")) {
+      expect(toggle).toHaveAttribute("aria-disabled", "true")
+      expect(toggle).not.toHaveAttribute("disabled")
+    }
+    expect(answerButton("OK")).toBeDisabled()
+    expect(answerButton("OK")).toHaveAccessibleDescription("Forge rechnet … gleich geht es weiter.")
+    expect(document.querySelector("[data-start-pending]")).not.toBeNull()
+    // Another hand ends the hold (a mulligan's new draw): no stale choice.
+    rerender({ state: withHand(original.slice(0, 6)) })
+    expect(document.querySelectorAll("[data-bottom-toggle]")).toHaveLength(0)
+    expect(within(panel()).getByRole("status")).toHaveTextContent("Forge rechnet")
   })
 
   it("a choice made on the table (the hand's direct taps) does not open the panel again once closed", () => {
@@ -265,6 +359,17 @@ describe("a replay", () => {
     expect(handCards()).toEqual(HAND)
     expect(answerButton("Behalten")).toBeDisabled()
     expect(within(panel()).getByText("Nur ansehen – hier wird nichts beantwortet.")).toBeInTheDocument()
+  })
+})
+
+describe("a replay of the choice for the bottom", () => {
+  it("a tap on a picture only looks; the buttons under the cards are off", () => {
+    render(<GameTable state={opening.state} questions={[bottom(3, false)]} prompt={null} waiting aiProfile={opening.game.aiProfile} pictures={NO_PICTURES} menu={<button type="button">Menü</button>} replay />)
+    fireEvent.click(screen.getByRole("button", { name: "Starthand ansehen" }))
+    expect(document.querySelector('[data-bottom-toggle="45"]')).toBeDisabled()
+    wait()
+    fireEvent.click(document.querySelector('[data-start-hand-card="45"]')!)
+    expect(screen.getByRole("dialog", { name: "Gebirge" })).toBeInTheDocument()
   })
 })
 

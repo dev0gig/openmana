@@ -516,7 +516,8 @@ export function GameTable({ replay = false,
           onLook={(id) => openCard(id, ownHand ?? undefined)}
           onAnswer={onAnswer}
           onAnswered={() => setStartMemory((previous) => ({ ...previous, requested: null, awaiting: startKey }))}
-          onTapCard={onTapCard === undefined ? undefined : tapCardNow}
+          // Forge's card.tap as sent; the panel's own guard counts a double tap once only until Forge answered the first.
+          onTapCard={onTapCard}
         />
         <CardView
           look={look}

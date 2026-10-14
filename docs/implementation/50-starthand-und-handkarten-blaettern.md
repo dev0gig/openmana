@@ -47,8 +47,9 @@ items, footer - no registry component; shadcn's overlay, popover tokens):
   pictures are `TablePicture`s with a fixed `sizes` of the grid's width -
   never `auto`, which gives its size up when the whole hand leaves at once
   (Chrome then starts and aborts a request per card).
-- **A card:** a tap, Enter, a long press or right click opens it in the card
-  view with the hand to browse (below); nothing else.
+- **A card:** keep or mulligan - a tap, Enter, a long press or right click
+  opens it in the card view with the hand to browse (below); nothing else.
+  The choice for the bottom: see "Auswahl klar, kein Flackern" below.
 - **Answers:** exactly Forge's buttons (button 1 primary, button 2
   outline), Forge's enabled state with the reason ("„OK“ hat Forge gerade
   abgeschaltet."), the decision region's guards through the shared
@@ -57,13 +58,13 @@ items, footer - no registry component; shadcn's overlay, popover tokens):
   that closes such a view may land on a button here), a held key repeats
   nothing; nothing while Forge computes, during a concession or in a replay
   (`answerBlocked`'s words).
-- **The London mulligan's choice:** under each card a button "Nach unten" /
-  "Doch behalten" (`aria-pressed`; the full words "<Karte>: Unter die
-  Bibliothek legen" from `cardUse`) - Forge's `card.tap`, the same tap as on
-  the table, through the table's double-tap guard and armed like the
-  answers; Forge's highlight is the card's "chosen" frame and the count; OK
-  (once Forge enables it) confirms - one explicit press. The hand's own
-  direct taps on the table are unchanged.
+- **The London mulligan's choice:** a tap on the picture or the button
+  under each card "Nach unten" / "Doch behalten" (`aria-pressed`; the full
+  words "<Karte>: Unter die Bibliothek legen" from `cardUse`) - Forge's
+  `card.tap`, the same tap as on the table; Forge's highlight is the card's
+  "chosen" frame and the count; OK (once Forge enables it) confirms - one
+  explicit press. The hand's own direct taps on the table are unchanged.
+  Details and guards since 2026-10-14: below.
 - **Closing** (X, Escape, the system's back through `CloseWatcher`) answers
   nothing: Forge's question stays in the decision region, where
   **"Starthand ansehen"** (beside the start questions only) opens the panel
@@ -86,6 +87,78 @@ items, footer - no registry component; shadcn's overlay, popover tokens):
   to the normal table.
 - A replay (and the tests' recorded scenes) opens it only through "Starthand
   ansehen", read only.
+
+## Auswahl klar, kein Flackern (2026-10-14)
+
+The project owner's decision after an analysis of the London choice: a tap
+on the card's picture chooses it (like the table's direct step
+`mulliganBottom`), a long press looks; the choice must not flicker and no
+press may vanish silently.
+
+- **What flickered.** After every tap Forge sends `question.withdrawn`, the
+  state with the mark, a new question (new id) and the prompt line - each its
+  own message and render (`engine-session.ts`; the recorded
+  `src/test/fixtures/replay.json`, seq 11-14). In the gap without a start
+  question the panel showed "Deine Starthand", dropped the count, the frames,
+  every button and the 48 px under the cards (so `handSpreadFit` chose other
+  cards and columns) and put a spinner in the footer; the footer's extra
+  lines for "Forge rechnet gerade …" and a switched-off button changed its
+  height too.
+- **Held through the gap** (`holdBottom`, `answeredBottom`,
+  `shownStartQuestion` in `src/game/start-hand.ts`): the last choice for the
+  bottom stays shown while the hand's key (`startHandKey`) is the same - the
+  title, count, Forge's words, frames, the buttons under the cards and their
+  room, Forge's buttons (disabled) - marked `pending` (`data-start-pending` on
+  the answers' group). Not after an answer from the panel (OK, Auto: Forge
+  computes the next step, the panel says so) and not across another hand.
+- **One status line** above Forge's buttons (`data-start-hand-status`,
+  `role="status"`), always its own room (`min-h-4`, short words that fit one
+  line on a small phone): "Forge rechnet … gleich geht es weiter." while
+  Forge computes or in the gap, else the replay's or a concession's reason,
+  else Forge's switched-off button; the buttons it concerns are described by
+  it. No line comes or goes, so the footer keeps its height.
+- **The buttons under the cards** keep their look while Forge computes
+  (`aria-disabled`, no fading after every tap) - off for good (`disabled`)
+  only in a replay. Forge's own buttons stay `disabled` while it computes
+  (as in the decision region).
+- **Arming.** The choice (picture and button) is armed once per step and
+  hand and after a card view over the panel closed (`chooseKey`), never for
+  each new question Forge asks after a tap: arming guards against the stray
+  press of a *new* decision, and the next card's press is meant. The first
+  press right after the step appeared is still dropped (the answer before
+  could have been a double press). Forge's buttons keep re-arming for every
+  question id (Decision Rules, unchanged).
+- **Double tap.** A second press on the same card counts once only while
+  Forge has not answered the first (same question id) and at most
+  `ARMING_MS`: once Forge's new question shows the mark, taking the card back
+  is a deliberate press and is sent at once. The panel therefore gets Forge's
+  `onTapCard` directly (`game-table.tsx`), not the table's `tapCardNow`,
+  whose fixed 500 ms per card would also drop a quick deliberate take-back.
+- **Never silently.** A press while Forge computes (or in the gap) sends
+  nothing and says why in one toast ("Die Karte wurde nicht gewählt", id
+  `start-hand-choice`, the next replaces it); the page's own toast stays for
+  a tap the session refuses.
+- **"N von M".** Forge's `ButtonsQuestion` has no number for the step (no
+  min/max; only the prompt line's words "Lege 1 Karte …"), so the count stays
+  "N ausgewählt" - never a number read out of Forge's text.
+- **Accessibility.** The picture is a toggle (`aria-pressed`, its name says
+  what a tap and a long press do); Enter and Space choose, the context-menu
+  key and Shift+F10 look (the `contextmenu` event, as on the table). The
+  button under the card is the same choice with words. No gesture needs a
+  path or a second finger (WCAG 2.5.1) and nothing is dragged (2.5.7). Open:
+  looking needs a long press or right click on touch in this step (as at the
+  table's direct steps); the card view can browse the whole hand once open.
+- **Scripts.** The end-to-end real game looks at a card during the choice by
+  a long press (touch) or a right click (mouse) and ignores the held choice
+  (`data-start-pending`) when waiting for Forge's next question; the readiness
+  player skips `aria-disabled` buttons. Not run here (the owner's order: only
+  `tsc -b`, `oxlint`, `vitest run`).
+- **Tests.** `start-hand.test.ts` (the hold), `start-hand-view.test.tsx` (a
+  tap on the picture sends exactly one `card.tap`, a double tap once, the first
+  press of the step dropped, no re-arming for Forge's next question, a quick
+  deliberate take-back sent, a press in the gap gives a toast, the gap keeps
+  title, count, frames, buttons and status line, another hand ends it, a long
+  press and the context menu look and send nothing, a replay only looks).
 
 ## Browsing the hand in the card view (`card-view.tsx`, `card-view-model.ts`)
 

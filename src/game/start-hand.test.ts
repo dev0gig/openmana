@@ -2,7 +2,7 @@
 import type { GameState, Question } from "@openmana/engine-protocol"
 import { describe, expect, it } from "vitest"
 import { tableScene } from "@/test/table-scenes"
-import { awaitingOver, nextStartHandMemory, pastStart, playerHand, START_HAND_MEMORY, startHandKey, startHandOpen, startQuestion, type StartQuestion } from "./start-hand"
+import { answeredBottom, awaitingOver, holdBottom, nextStartHandMemory, pastStart, playerHand, shownStartQuestion, START_HAND_MEMORY, startHandKey, startHandOpen, startQuestion, type StartQuestion } from "./start-hand"
 
 const opening = tableScene("opening")
 const bottom = (id: number, ok = false): Question => ({ type: "question", kind: "buttons", id, blocking: false, text: "", purpose: "mulliganBottom", buttons: [{ nr: 1, label: "OK", enabled: ok }, { nr: 2, label: "Auto", enabled: true }] })
@@ -92,3 +92,39 @@ describe("between two of Forge's questions", () => {
   })
 })
 
+
+describe("the choice for the bottom through Forge's gap (holdBottom)", () => {
+  const first = () => startQuestion([bottom(3)])!
+  it("held while the hand is the same; the same object while nothing changed; shown waiting", () => {
+    const question = first()
+    const held = holdBottom(null, question, opening.state)!
+    expect(held).toMatchObject({ question, answered: false })
+    expect(holdBottom(held, question, opening.state)).toBe(held)
+    // The gap: no question - the hold stays (also with the state's new mark), shown as pending.
+    const marked: GameState = structuredClone(opening.state)
+    Object.assign(marked.players.find((player) => player.me)!.zones.hand[0]!, { highlighted: true })
+    expect(holdBottom(held, null, marked)).toBe(held)
+    expect(shownStartQuestion(held, null)).toEqual({ question, pending: true })
+    // Forge asks anew: the new question, not pending.
+    const again = startQuestion([bottom(4, true)])!
+    const next = holdBottom(held, again, marked)!
+    expect(next.question).toBe(again)
+    expect(shownStartQuestion(next, again)).toEqual({ question: again, pending: false })
+  })
+
+  it("not across another hand, not at keep or mulligan, not after an answer from the overview", () => {
+    const held = holdBottom(null, first(), opening.state)!
+    const smaller: GameState = structuredClone(opening.state)
+    const me = smaller.players.find((player) => player.me)!
+    me.zones.hand = me.zones.hand.slice(0, 6)
+    expect(holdBottom(held, null, smaller)).toBeNull()
+    expect(holdBottom(held, startQuestion(opening.questions)!, opening.state)).toBeNull()
+    const answered = answeredBottom(held, 3)!
+    expect(answered.answered).toBe(true)
+    expect(answeredBottom(held, 9)).toBe(held)
+    // The answered question still open (its answer on its way): still answered.
+    expect(holdBottom(answered, answered.question, opening.state)).toBe(answered)
+    expect(holdBottom(answered, first(), opening.state)?.answered).toBe(true)
+    expect(shownStartQuestion(answered, null)).toEqual({ question: null, pending: false })
+  })
+})
