@@ -1,6 +1,6 @@
 # OpenMana — Current Status
 
-Last repository review: 2026-10-08 (after Prompt 32)
+Last repository review: 2026-10-08 (after Prompt 32); last update 2026-10-14 (prompt 53)
 
 Compact implementation map. This file deliberately does **not** replace the active queue ledger in `dev0gig/dropzone/workflow/tasks/INDEX.md`.
 
@@ -353,6 +353,12 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - The temporary test split of the series is fulfilled. Physical Fold 7/ORYX play is the project owner's check.
 - Evidence: `docs/implementation/52-spielfluss-gesamtabnahme.md`; the push and the live acceptance are in the central Dropzone completion report.
 
+### The arena: shadow grid, ground and new default (Prompt 53, series stoneboard 1/4)
+- The table's background is the **arena** (`src/game/table/arena-surface.tsx`, `docs/design/SPIELTISCH.md` §4.1b): a child of the `GameBoard` grid with `subgrid` on both axes, every piece in the cell of its region by the board's named lines (ground over the whole board; opponent's strip, both battlefields with the centre line, hand) - nothing measured by JavaScript, no props, never rendered again for a state. Its ground follows the binding template (Dropzone `workflow/OPENMANA-ARENA-VORLAGE.html`, "G+"): dark stone, vignette, warm light above, cool blue below, one grain tile and one cracks tile as SVG data: URLs. The swings, centre line, runes, tendrils, light dust and the brighter playing area come with prompt 54, the responsive reduction with 55.
+- `display.tableBackground` knows `arena` and defaults to it; a stored choice stays. Settings → "Spieltisch": "Arena (Vorgabe)" first. The drawn wooden table, the three pictures, the player's own picture and the setting itself stay choosable until prompt 56 removes them.
+- Found and kept: any `contain` on the arena makes Chrome drop the subgrid (the general surface rule's `contain: strict` is undone with `contain: none`). Found, not changed (predates this prompt, pixel-identical on `f9f12d5` without it): in the recorded scene `target-both` the decision's action row lies below the window at 360×740, 690×829 and 829×690 (`--table-only`, 3 red of 45×8 scene checks); from the commits after prompt 52, most likely `267174a`.
+- Evidence: `docs/implementation/53-arena-grundlage-und-integration.md`; unit tests (arena, background, surface with the drawn table chosen, settings), end-to-end `--table-only` with the new section `arenaSurface` (11 sizes, geometry against the drawn table and no surface at M5 within 0 px, twenty state changes, stored choices across reloads); pictures in Seafile `/repo/openmana/design/svg-arena/53/`. Targeted checks only (series rule); `npm run check` and the readiness games run once in prompt 56.
+
 ### ORYX Cloud Sync (outside the queue, 2026-09-25)
 - The project owner's direct assignment, not a queue prompt (outside the numbered program): the player's collection syncs through their ORYX account (the launcher's Supabase cloud) with the vendored ORYX SDK 1.0.0 (`src/cloud/oryx-sdk.js` and `.d.ts`, byte-identical copies of `oryx-games/shared`, checksum-tested, excluded from lint only themselves). Active only on `https://openmana.vercel.app/`; locally, in tests and previews inactive (no request, nothing stored). Local stays the source of truth.
 - One slot `collection` = one document (`src/storage/collection.ts`, schema `CollectionDocument`, version = `SCHEMA_VERSION`): valid decks, deletion marks (90 days) and every setting except `display.*`; never caches, recorded matches or `meta`.
@@ -366,7 +372,7 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 ## Currently In Progress
 Prompts 46 (drag and drop) and 47 (the full-screen card view, protocol 9) were published on 2026-10-12 (`engine-p9-fba5601117ff`, superseded by `engine-p10-908fbcabd35e` in prompt 52). The table redesign 36–45 remains complete; transferring its style to the rest of the app is a separate series.
 
-Series *openmana-spielfluss* (48–52) is complete: protocol 10 (observable engine steps), the opponent's turn on the table with tempo and "Weiter", the start hand in full screen with browsing, land plays and refusal hints - accepted together and published by prompt 52 with the locked engine `engine-p10-908fbcabd35e` (`docs/implementation/52-spielfluss-gesamtabnahme.md`). Next in the central queue: the series *stoneboard* (53–58).
+Series *openmana-spielfluss* (48–52) is complete: protocol 10 (observable engine steps), the opponent's turn on the table with tempo and "Weiter", the start hand in full screen with browsing, land plays and refusal hints - accepted together and published by prompt 52 with the locked engine `engine-p10-908fbcabd35e` (`docs/implementation/52-spielfluss-gesamtabnahme.md`). The series *stoneboard* (53–56, Claude Fable 5.1, only through `dmm stoneboard`) is running: prompt 53 laid the arena as a shadow grid with its ground and made it the default (above); 54 dresses it after the template, 55 makes it responsive and still, 56 removes the drawn table, the pictures and the setting and runs the complete check.
 
 Any agent entering the repository must first reconcile this statement with the central Dropzone task state and Git state.
 

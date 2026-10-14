@@ -1,11 +1,13 @@
 /*
- * The table's background (project owner, 2026-10-12): the drawn table
- * (TableSurface's desk, board and rune ring - the default), one of two
+ * The table's background (project owner, 2026-10-12): the arena - a quiet
+ * stone surface laid under the board as a subgrid of its grid (ArenaSurface,
+ * prompt 53; the default since then), the drawn wooden table (TableSurface's
+ * desk, board and rune ring - the default until prompt 53), one of three
  * pictures that come with OpenMana, or a picture of the player's own. Two
  * settings under display.* (this device only, never in the ORYX cloud; both
  * travel in backups like every setting):
- *  - display.tableBackground: which one ("table", "colors", "planeswalker",
- *    "grid", "custom");
+ *  - display.tableBackground: which one ("arena", "table", "colors",
+ *    "planeswalker", "grid", "custom");
  *  - display.tableBackgroundImage: the player's own picture as a data: URL
  *    (WebP, at most MAX_SIDE px on its longer side), or null. It stays when
  *    another background is chosen, so choosing it again needs no new upload.
@@ -21,11 +23,12 @@ import planeswalkerQuer from "./backgrounds/planeswalker-quer.webp"
 import gridHoch from "./backgrounds/raster-hoch.webp"
 import gridQuer from "./backgrounds/raster-quer.webp"
 
-export type TableBackgroundChoice = "table" | "colors" | "planeswalker" | "grid" | "custom"
+export type TableBackgroundChoice = "arena" | "table" | "colors" | "planeswalker" | "grid" | "custom"
 
-const CHOICES: readonly TableBackgroundChoice[] = ["table", "colors", "planeswalker", "grid", "custom"]
+const CHOICES: readonly TableBackgroundChoice[] = ["arena", "table", "colors", "planeswalker", "grid", "custom"]
 
-export const TABLE_BACKGROUND = defineSetting<TableBackgroundChoice>("display.tableBackground", "table", (value): value is TableBackgroundChoice =>
+/** The arena is the table's background for everyone who never chose one (prompt 53); a stored choice stays as it is. */
+export const TABLE_BACKGROUND = defineSetting<TableBackgroundChoice>("display.tableBackground", "arena", (value): value is TableBackgroundChoice =>
   CHOICES.includes(value as TableBackgroundChoice),
 )
 
@@ -55,14 +58,16 @@ export const BUILT_IN_BACKGROUNDS: readonly BuiltInBackground[] = [
   { choice: "grid", label: "Chip-Raster", wide: gridQuer, tall: gridHoch },
 ]
 
-/** What the table shows: the drawing, or a picture (a built-in one in two orientations, or the player's own). */
+/** What the table shows: the arena, the drawn wooden table, or a picture (a built-in one in two orientations, or the player's own). */
 export type TableBackground =
+  | { readonly kind: "arena" }
   | { readonly kind: "table" }
   | { readonly kind: "picture"; readonly choice: BuiltInBackground["choice"]; readonly wide: string; readonly tall: string }
   | { readonly kind: "custom"; readonly src: string }
 
-/** The background for the stored choice; "custom" without a stored picture is the drawn table. */
+/** The background for the stored choice; "custom" without a stored picture is the drawn table (as before prompt 53). */
 export function tableBackground(choice: TableBackgroundChoice, image: string | null): TableBackground {
+  if (choice === "arena") return { kind: "arena" }
   if (choice === "custom") return image === null ? { kind: "table" } : { kind: "custom", src: image }
   const builtIn = BUILT_IN_BACKGROUNDS.find((background) => background.choice === choice)
   return builtIn === undefined ? { kind: "table" } : { kind: "picture", choice: builtIn.choice, wide: builtIn.wide, tall: builtIn.tall }

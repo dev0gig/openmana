@@ -1,9 +1,14 @@
 /*
- * The table surface (prompt 37, docs/design/SPIELTISCH.md §4.1): a dark
- * wooden desk over the whole screen with the board set into it - carved
- * frame, brass corner plates, leather, the golden rune circle across both
- * halves, the centre line with its diamonds and the emblem. After the
- * mockup's "Holztisch" (docs/design/spieltisch-vorlage/arkan.js).
+ * The table surface: since prompt 53 the arena by default (arena-surface.tsx,
+ * docs/design/SPIELTISCH.md §4.1b: a stone surface laid as a subgrid under
+ * the board, nothing measured), or - chosen in Settings - the drawn wooden
+ * table of prompt 37 (§4.1): a dark wooden desk over the whole screen with
+ * the board set into it - carved frame, brass corner plates, leather, the
+ * golden rune circle across both halves, the centre line with its diamonds
+ * and the emblem, after the mockup's "Holztisch"
+ * (docs/design/spieltisch-vorlage/arkan.js) - or a picture.
+ *
+ * What follows describes the drawn wooden table (DrawnSurface):
  *
  * Decoration only: it lies behind the regions of the GameBoard, is hidden
  * from screen readers and takes no pointer events. It knows nothing of the
@@ -20,6 +25,7 @@
  */
 import { memo, useId, useLayoutEffect, useRef } from "react"
 import { usePreferences } from "@/app/preferences"
+import { ArenaSurface } from "./arena-surface"
 import { boardMarkup, deskKey, deskMarkup, layoutKey, playingArea, ringMarkup, surfaceLayout, type Box, type PlayingRegions } from "./surface-drawing"
 import { tableBackground, type TableBackground } from "./table-background"
 import "./table.css"
@@ -38,18 +44,20 @@ function regionBox(board: HTMLElement, origin: DOMRect, area: string): Box | nul
 const REGIONS = { opponent: "opponent", opponentField: "opponent-field", field: "field", me: "me" } as const satisfies Record<keyof PlayingRegions, string>
 
 /**
- * The surface: the drawn table, or - when the player chose one in Settings
- * (table-background.ts, 2026-10-12) - a picture over the whole board instead
- * of desk, board and ring. Only a change of that choice renders it again.
+ * The surface: the arena (the default since prompt 53), or - when the player
+ * chose one in Settings (table-background.ts, 2026-10-12) - the drawn wooden
+ * table, or a picture over the whole board instead of desk, board and ring.
+ * Only a change of that choice renders it again.
  */
 const TableSurface = memo(function TableSurface() {
   const { tableBackground: choice, tableBackgroundImage: image } = usePreferences()
   const background = tableBackground(choice, image)
+  if (background.kind === "arena") return <ArenaSurface />
   return background.kind === "table" ? <DrawnSurface /> : <PictureSurface background={background} />
 })
 
 /** A picture over the whole board (cover, centred): a built-in one per orientation, or the player's own. */
-function PictureSurface({ background }: { background: Exclude<TableBackground, { kind: "table" }> }) {
+function PictureSurface({ background }: { background: Exclude<TableBackground, { kind: "table" } | { kind: "arena" }> }) {
   return (
     <div data-slot="table-surface" data-background={background.kind === "custom" ? "custom" : background.choice} aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
       {background.kind === "custom" ? (

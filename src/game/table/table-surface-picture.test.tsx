@@ -41,12 +41,17 @@ describe("TableSurface with a picture", () => {
 
   const surfaceOf = (container: HTMLElement) => container.querySelector<HTMLElement>('[data-slot="table-surface"]')!
 
-  it("by default draws the table: desk, board and ring", () => {
-    const { container } = render(table())
-    const surface = surfaceOf(container)
+  it("by default (prompt 53) the arena, no desk and no picture; the drawn table when chosen: desk, board and ring", () => {
+    const { container, unmount } = render(table())
+    expect(surfaceOf(container).dataset["background"]).toBe("arena")
+    expect(surfaceOf(container).querySelector('[data-surface="desk"], [data-surface="picture"]')).toBeNull()
+    unmount()
+    preferences = { ...DEFAULT_PREFERENCES, tableBackground: "table" }
+    const drawn = render(table())
+    const surface = surfaceOf(drawn.container)
     expect(surface.dataset["background"]).toBeUndefined()
     expect(surface.querySelector('[data-surface="desk"]')).not.toBeNull()
-    expect(surface.querySelector('[data-surface="picture"]')).toBeNull()
+    expect(surface.querySelector('[data-surface="picture"], [data-arena]')).toBeNull()
   })
 
   it("a built-in picture: one for windows taller than wide, one for the others; nothing drawn", () => {

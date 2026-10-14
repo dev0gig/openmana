@@ -5887,12 +5887,17 @@ async function tableHarness(executablePath: string): Promise<Record<string, unkn
   const base = server.resolvedUrls?.local[0]
   if (!base) throw new Error("the dev server did not report its URL")
   const results: Record<string, unknown> = {}
+  // OPENMANA_TABLE_ONLY=layouts|surface|arena|arrows|motion|folds|scenes runs one part of this section (while working on it); all by default.
+  const part = process.env["OPENMANA_TABLE_ONLY"]
+  const wanted = (name: string) => part === undefined || part === name
   try {
-    results["layouts"] = await tableLayoutClasses(executablePath, base)
-    if (!focusedTable) results["surface"] = await tableSurface(executablePath, base)
-    if (!focusedTable) results["arrows"] = await tableArrows(executablePath, base)
-    if (!focusedTable) results["motion"] = await tableMotion(executablePath, base)
-    if (!focusedTable) results["folds"] = await tableFoldSizes(executablePath, base)
+    if (wanted("layouts")) results["layouts"] = await tableLayoutClasses(executablePath, base)
+    if (!focusedTable && wanted("surface")) results["surface"] = await tableSurface(executablePath, base)
+    if (!focusedTable && wanted("arena")) results["arena"] = await arenaSurface(executablePath, base)
+    if (!focusedTable && wanted("arrows")) results["arrows"] = await tableArrows(executablePath, base)
+    if (!focusedTable && wanted("motion")) results["motion"] = await tableMotion(executablePath, base)
+    if (!focusedTable && wanted("folds")) results["folds"] = await tableFoldSizes(executablePath, base)
+    if (!wanted("scenes")) return results
     for (const viewport of focusedTable ? TABLE_VIEWPORTS.filter((v) => DECISION_VIEWPORTS.includes(v.name)) : TABLE_VIEWPORTS) {
       log(`  ${viewport.name} (${viewport.width}x${viewport.height}${viewport.touch ? ", touch" : ""})`)
       // Bound Chromium's lifetime per viewport: closing pages/contexts alone did
@@ -6068,6 +6073,9 @@ async function tableLayoutClasses(executablePath: string, base: string): Promise
  * desk drawn 1:1 over the board, the board inside the window, its circle round and the rune ring a square around it.
  */
 async function surfaceFacts(page: Page, label: string): Promise<Record<string, unknown>> {
+  // The arena (prompt 53, the default): its own facts; what follows is the drawn table's.
+  const background = await page.evaluate(() => document.querySelector<HTMLElement>('[data-slot="game-board"] > [data-slot="table-surface"]')?.dataset["background"] ?? null)
+  if (background === "arena") return arenaFacts(page, label)
   const facts = await page.evaluate(() => {
     const surface = document.querySelector<HTMLElement>('[data-slot="game-board"] > [data-slot="table-surface"]')
     if (surface === null) return null
@@ -6122,14 +6130,15 @@ const SURFACE_GAME = ["opening", "target-player", "target-both", "stack", "scry"
  * included) side by side as the measurement.
  */
 async function tableSurface(executablePath: string, base: string): Promise<Record<string, unknown>> {
-  log("  table surface (sizes, motion, cost of state changes)")
+  log("  table surface: the drawn table (sizes, motion, cost of state changes)")
   const surfaceBrowser = await launchBrowser(executablePath)
   const results: Record<string, unknown> = {}
   try {
     const context = await newContext(surfaceBrowser, VIEWPORTS[0]!)
     const page = await context.newPage()
     const pageLog = watch(page)
-    await page.goto(new URL("/scripts/e2e/table-harness.html?scene=main-phase", base).href, { waitUntil: "domcontentloaded", timeout: 300_000 })
+    // The drawn wooden table is chosen as the player chooses it (prompt 53: the arena is the default; arenaSurface checks it).
+    await page.goto(new URL("/scripts/e2e/table-harness.html?scene=main-phase&background=table", base).href, { waitUntil: "domcontentloaded", timeout: 300_000 })
     await page.locator('[data-harness="table"]').waitFor({ timeout: 300_000 })
     const sizes: Record<string, unknown> = {}
     for (const [name, width, height] of TABLE_LAYOUT_SIZES.filter(([size]) => !size.startsWith("border"))) {
@@ -6245,6 +6254,250 @@ async function tableSurface(executablePath: string, base: string): Promise<Recor
     await context.close()
   } finally {
     await surfaceBrowser.close()
+  }
+  return results
+}
+
+/** The five sizes of the arena's visual acceptance (prompt 53, Dropzone OPENMANA-STONEBOARD-MASTERPLAN.md §7: M5). */
+const ARENA_VIEWPORTS: readonly Viewport[] = [
+  FOLD_VIEWPORTS[0]!,
+  { name: "fold-closed-turned", width: 1040, height: 480, touch: true, scale: 2.25 },
+  FOLD_VIEWPORTS[1]!,
+  FOLD_VIEWPORTS[2]!,
+  VIEWPORTS[2]!,
+]
+
+type Quad = readonly [number, number, number, number]
+
+/** Every region's and every card's rectangle, what the board decides, and what can be focused: the geometry of a scene. */
+interface TableGeometry {
+  readonly decision: string | null
+  readonly scroll: readonly [number, number]
+  readonly areas: Record<string, Quad>
+  readonly cards: readonly Quad[]
+  readonly focusable: number
+}
+
+function tableGeometry(page: Page): Promise<TableGeometry> {
+  return page.evaluate(() => {
+    const rect = (element: Element): readonly [number, number, number, number] => {
+      const box = element.getBoundingClientRect()
+      return [box.left, box.top, box.width, box.height] as const
+    }
+    return {
+      decision: document.querySelector('[data-slot="game-board"]')?.getAttribute("data-decision") ?? null,
+      scroll: [document.documentElement.scrollWidth, document.documentElement.scrollHeight] as [number, number],
+      areas: Object.fromEntries([...document.querySelectorAll<HTMLElement>('[data-slot="game-board-area"]')].map((area) => [area.dataset["area"] ?? "?", rect(area)])) as Record<string, readonly [number, number, number, number]>,
+      cards: [...document.querySelectorAll('[data-slot="game-card"]')].map(rect),
+      focusable: document.querySelectorAll("a, button, input, select, textarea, [tabindex]").length,
+    }
+  })
+}
+
+/** The largest difference (CSS px) between two geometries of the same scene, and where it lies. */
+function geometryDifference(a: TableGeometry, b: TableGeometry): { readonly max: number; readonly where: string[] } {
+  let max = 0
+  const where: string[] = []
+  const compare = (name: string, x: Quad | undefined, y: Quad | undefined) => {
+    if (x === undefined || y === undefined) {
+      where.push(`${name} missing`)
+      return
+    }
+    for (let i = 0; i < 4; i++) {
+      const d = Math.abs(x[i]! - y[i]!)
+      max = Math.max(max, d)
+      if (d > 1) where.push(`${name}[${i}] ${x[i]} → ${y[i]}`)
+    }
+  }
+  for (const name of new Set([...Object.keys(a.areas), ...Object.keys(b.areas)])) compare(name, a.areas[name], b.areas[name])
+  if (a.cards.length !== b.cards.length) where.push(`cards ${a.cards.length} → ${b.cards.length}`)
+  for (let i = 0; i < Math.min(a.cards.length, b.cards.length); i++) compare(`card ${i}`, a.cards[i], b.cards[i])
+  if (a.decision !== b.decision) where.push(`decision ${a.decision} → ${b.decision}`)
+  if (a.focusable !== b.focusable) where.push(`focusable ${a.focusable} → ${b.focusable}`)
+  return { max: Math.round(max * 100) / 100, where: where.slice(0, 10) }
+}
+
+/** The table's background as the harness stores it through the app's own preferences (src/test/table-harness.tsx). */
+async function chooseBackground(page: Page, choice: string): Promise<void> {
+  // The harness offers the function once its database is open (an effect after the table's first paint may still be due).
+  await page.waitForFunction(() => typeof (window as unknown as { __openmanaChooseBackground?: unknown }).__openmanaChooseBackground === "function", undefined, { timeout: 10_000 }).catch(async () => {
+    const state = await page.evaluate(() => ({ url: location.href, harness: [...document.querySelectorAll("[data-harness]")].map((node) => `${node.getAttribute("data-harness")}:${node.getAttribute("data-status")}`), background: document.querySelector<HTMLElement>('[data-slot="table-surface"]')?.dataset["background"] ?? null })).catch(() => "page unavailable")
+    throw new Error(`table background: the harness offers no __openmanaChooseBackground ${JSON.stringify(state)}`)
+  })
+  const done = await page.evaluate((next) => (window as unknown as { __openmanaChooseBackground: (choice: string) => Promise<boolean> }).__openmanaChooseBackground(next), choice)
+  check(done, `table background: ${choice} could not be stored`)
+  await page.waitForFunction((next) => (document.querySelector<HTMLElement>('[data-slot="table-surface"]')?.dataset["background"] ?? "table") === next, choice, { timeout: 10_000 })
+  await page.waitForTimeout(150)
+}
+
+/**
+ * The arena (prompt 53, docs/design/SPIELTISCH.md §4.1b) as the page shows it: the table's background without a stored
+ * choice - first in the board, hidden from screen readers, no pointer events, nothing of the drawn table or a picture -,
+ * laid out as a subgrid of the board: its ground over the whole board, its cells on the opponent's strip, the playing
+ * area (both battlefields with the centre line) and the hand, within a pixel, at every test size including the
+ * foldable's.
+ */
+async function arenaFacts(page: Page, label: string): Promise<Record<string, unknown>> {
+  const facts = await page.evaluate(() => {
+    const surface = document.querySelector<HTMLElement>('[data-slot="game-board"] > [data-slot="table-surface"]')
+    if (surface === null) return null
+    const board = surface.parentElement!
+    const area = board.getBoundingClientRect()
+    const rect = (element: Element | null) => {
+      if (element === null) return null
+      const box = element.getBoundingClientRect()
+      return { left: box.left, top: box.top, width: box.width, height: box.height, right: box.right, bottom: box.bottom }
+    }
+    const region = (name: string) => rect(board.querySelector(`:scope > [data-slot="game-board-area"][data-area="${name}"]`))
+    const piece = (name: string) => rect(surface.querySelector(`[data-arena="${name}"]`))
+    const points = [[0.5, 0.5], [0.08, 0.08], [0.92, 0.92], [0.5, 0.25], [0.5, 0.75], [0.15, 0.5], [0.5, 0.03], [0.5, 0.97]].map(([x, y]) => document.elementFromPoint(area.left + area.width * x!, area.top + area.height * y!))
+    const style = getComputedStyle(surface)
+    return {
+      first: [...board.children].find((child) => child.tagName !== "TITLE") === surface,
+      background: surface.dataset["background"] ?? null,
+      ariaHidden: surface.getAttribute("aria-hidden"),
+      pointerEvents: style.pointerEvents,
+      display: style.display,
+      subgrid: style.gridTemplateColumns.startsWith("subgrid") && style.gridTemplateRows.startsWith("subgrid"),
+      contain: style.contain,
+      pieces: [...surface.children].map((child) => child.getAttribute("data-arena")),
+      drawn: surface.querySelectorAll("[data-surface], img, svg").length,
+      reachable: surface.querySelectorAll("a, button, input, [tabindex], text, title").length,
+      surfaceHit: points.filter((element) => element !== null && surface.contains(element)).length,
+      board: rect(board),
+      ground: piece("ground"),
+      opponent: { piece: piece("opponent"), region: region("opponent") },
+      hand: { piece: piece("hand"), region: region("hand") },
+      field: { piece: piece("field"), top: region("opponent-field"), bottom: region("field") },
+      scroll: [document.documentElement.scrollWidth, document.documentElement.scrollHeight],
+      window: [window.innerWidth, window.innerHeight],
+      animations: document.getAnimations().filter((animation) => (animation.effect as KeyframeEffect | null)?.target?.closest('[data-slot="table-surface"]')).length,
+    }
+  })
+  check(facts !== null, `${label}: no table surface in the board`)
+  if (facts === null) return {}
+  const near = (a: number | undefined, b: number | undefined) => a !== undefined && b !== undefined && Math.abs(a - b) <= 1
+  const same = (a: { left: number; top: number; width: number; height: number } | null, b: { left: number; top: number; width: number; height: number } | null) => a !== null && b !== null && near(a.left, b.left) && near(a.top, b.top) && near(a.width, b.width) && near(a.height, b.height)
+  check(facts.first && facts.background === "arena" && facts.ariaHidden === "true" && facts.pointerEvents === "none" && facts.surfaceHit === 0 && facts.reachable === 0 && facts.drawn === 0, `${label}: the arena is not decoration under the regions ${JSON.stringify(facts)}`)
+  check(facts.display === "grid" && facts.subgrid && facts.contain === "none" && facts.pieces.join() === "ground,opponent,field,hand", `${label}: the arena is not a subgrid of the board ${JSON.stringify({ display: facts.display, subgrid: facts.subgrid, contain: facts.contain, pieces: facts.pieces })}`)
+  check(same(facts.ground, facts.board), `${label}: the ground does not cover the board ${JSON.stringify({ ground: facts.ground, board: facts.board })}`)
+  check(same(facts.opponent.piece, facts.opponent.region), `${label}: the opponent's cell is not on the opponent's strip ${JSON.stringify(facts.opponent)}`)
+  check(same(facts.hand.piece, facts.hand.region), `${label}: the hand's cell is not on the hand ${JSON.stringify(facts.hand)}`)
+  const { piece, top, bottom } = facts.field
+  check(piece !== null && top !== null && bottom !== null && near(piece.left, top.left) && near(piece.width, top.width) && near(piece.top, top.top) && near(piece.bottom, bottom.bottom), `${label}: the playing area's cell is not on the battlefields ${JSON.stringify(facts.field)}`)
+  check(facts.scroll[0]! <= facts.window[0]! && facts.scroll[1]! <= facts.window[1]!, `${label}: the page scrolls with the arena ${JSON.stringify(facts.scroll)}`)
+  check(facts.animations === 0, `${label}: something of the arena moves`)
+  return facts
+}
+
+/**
+ * The arena beyond single scenes (prompt 53): the default without a stored choice and after a reload, a stored choice
+ * kept (the drawn table, a picture of the player's own), the geometry contract - the same scene over the arena, over the
+ * drawn table and with the arena hidden lays every region and card at the same place (within 1 CSS px) and decides the
+ * same room at the five sizes of the visual acceptance (M5) -, and twenty new states of the game that leave the arena
+ * untouched (no mutation, the same element).
+ */
+async function arenaSurface(executablePath: string, base: string): Promise<Record<string, unknown>> {
+  log("  table surface: the arena (default, sizes, geometry against the drawn table, state changes)")
+  const arenaBrowser = await launchBrowser(executablePath)
+  const results: Record<string, unknown> = {}
+  try {
+    const context = await newContext(arenaBrowser, VIEWPORTS[0]!)
+    const page = await context.newPage()
+    const pageLog = watch(page)
+    // A fresh profile stores no choice: the arena, also after a reload.
+    await openScene(page, base, "main-phase")
+    const sizes: Record<string, unknown> = {}
+    for (const [name, width, height] of TABLE_LAYOUT_SIZES.filter(([size]) => !size.startsWith("border"))) {
+      await page.setViewportSize({ width, height })
+      await page.waitForTimeout(150)
+      sizes[name] = await arenaFacts(page, `arena (${name} ${width}x${height})`)
+    }
+    results["sizes"] = sizes
+    check(Object.keys(sizes).length === 11, `arena: ${Object.keys(sizes).length} sizes checked, expected 11`)
+    await page.setViewportSize({ width: VIEWPORTS[0]!.width, height: VIEWPORTS[0]!.height })
+    await page.reload({ waitUntil: "domcontentloaded" })
+    await page.locator('[data-harness="table"]').waitFor({ timeout: 300_000 })
+    const afterReload = await page.evaluate(() => document.querySelector<HTMLElement>('[data-slot="table-surface"]')?.dataset["background"] ?? null)
+    check(afterReload === "arena", `arena: after a reload without a stored choice the table shows ${afterReload}`)
+
+    // Twenty new states of the game: the arena is never touched.
+    const changed = await page.evaluate(() => {
+      const surface = document.querySelector<HTMLElement>('[data-slot="table-surface"]')!
+      const w = window as unknown as { __arenaWatcher: MutationObserver; __arenaMutations: number; __arenaElement: Element }
+      w.__arenaMutations = 0
+      w.__arenaElement = surface
+      w.__arenaWatcher = new MutationObserver((records) => (w.__arenaMutations += records.length))
+      w.__arenaWatcher.observe(surface, { subtree: true, childList: true, attributes: true, characterData: true })
+      return surface.dataset["background"]
+    })
+    check(changed === "arena", "arena: not on the table before the state changes")
+    for (let i = 0; i < 20; i++) {
+      await page.evaluate((scene) => (window as unknown as { __openmanaShowScene: (name: string) => void }).__openmanaShowScene(scene), SURFACE_GAME[i % SURFACE_GAME.length]!)
+      await page.waitForTimeout(40)
+    }
+    await page.waitForTimeout(300)
+    const untouched = await page.evaluate(() => {
+      const w = window as unknown as { __arenaWatcher: MutationObserver; __arenaMutations: number; __arenaElement: Element }
+      const mutations = w.__arenaMutations + w.__arenaWatcher.takeRecords().length
+      w.__arenaWatcher.disconnect()
+      return { mutations, same: document.querySelector('[data-slot="table-surface"]') === w.__arenaElement }
+    })
+    check(untouched.mutations === 0 && untouched.same, `arena: twenty state changes touched it ${JSON.stringify(untouched)}`)
+    results["stateChanges"] = { changes: 20, ...untouched }
+
+    // The geometry contract at the five sizes of the visual acceptance, in the main phase and with a decision that needs room.
+    const geometry: Record<string, unknown> = {}
+    for (const viewport of ARENA_VIEWPORTS) {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height })
+      for (const built of [null, "choose-many"]) {
+        const label = `arena geometry (${viewport.name}, ${built === null ? "main-phase" : `built:${built}`})`
+        await openScene(page, base, "main-phase", built === null ? "" : `&built=${built}`)
+        await chooseBackground(page, "arena")
+        const arena = await tableGeometry(page)
+        check(arena.scroll[0] <= viewport.width && arena.scroll[1] <= viewport.height, `${label}: the page scrolls ${JSON.stringify(arena.scroll)}`)
+        await chooseBackground(page, "table")
+        await page.waitForFunction(() => document.querySelector('[data-surface="desk"]') !== null, undefined, { timeout: 10_000 })
+        const table = await tableGeometry(page)
+        await chooseBackground(page, "arena")
+        await page.evaluate(() => { document.querySelector<HTMLElement>('[data-slot="table-surface"]')!.style.display = "none" })
+        await page.waitForTimeout(100)
+        const hidden = await tableGeometry(page)
+        await page.evaluate(() => { document.querySelector<HTMLElement>('[data-slot="table-surface"]')!.style.display = "" })
+        const vsTable = geometryDifference(arena, table)
+        const vsHidden = geometryDifference(arena, hidden)
+        check(vsTable.max <= 1 && vsTable.where.length === 0, `${label}: the arena moves the table against the drawn table ${JSON.stringify(vsTable)}`)
+        check(vsHidden.max <= 1 && vsHidden.where.length === 0, `${label}: the arena moves the table against no surface ${JSON.stringify(vsHidden)}`)
+        check(built === null || arena.decision === "expanded", `${label}: the decision has no room (${arena.decision})`)
+        geometry[`${viewport.name} ${built ?? "main-phase"}`] = { decision: arena.decision, regions: Object.keys(arena.areas).length, cards: arena.cards.length, focusable: arena.focusable, vsTable, vsHidden }
+      }
+    }
+    results["geometry"] = geometry
+    log(`    geometry against the drawn table and no surface at ${ARENA_VIEWPORTS.length} sizes x 2 scenes: largest difference ${Math.max(...Object.values(geometry).map((entry) => Math.max((entry as { vsTable: { max: number } }).vsTable.max, (entry as { vsHidden: { max: number } }).vsHidden.max)))} px`)
+
+    // A stored choice is kept across a reload: the drawn table, and a picture of the player's own; the arena again on request.
+    await page.setViewportSize({ width: VIEWPORTS[0]!.width, height: VIEWPORTS[0]!.height })
+    await openScene(page, base, "main-phase", "&background=table")
+    const stored = async () => page.evaluate(() => ({ background: document.querySelector<HTMLElement>('[data-slot="table-surface"]')?.dataset["background"] ?? "table", desk: document.querySelector('[data-surface="desk"]') !== null, picture: document.querySelector('[data-surface="picture"]') !== null, arena: document.querySelectorAll("[data-arena]").length }))
+    const drawn = await stored()
+    await page.reload({ waitUntil: "domcontentloaded" })
+    await page.locator('[data-harness="table"]').waitFor({ timeout: 300_000 })
+    const drawnAgain = await stored()
+    check(drawn.background === "table" && drawn.desk && drawn.arena === 0 && drawnAgain.background === "table" && drawnAgain.desk && drawnAgain.arena === 0, `arena: the drawn table chosen is not kept ${JSON.stringify({ drawn, drawnAgain })}`)
+    await openScene(page, base, "main-phase", "&background=custom")
+    const own = await stored()
+    check(own.background === "custom" && own.picture && !own.desk && own.arena === 0, `arena: the player's own picture is not shown ${JSON.stringify(own)}`)
+    await chooseBackground(page, "arena")
+    // Without the query the page shows the stored choice (a reload with background=custom would store it again).
+    await openScene(page, base, "main-phase")
+    const back = await stored()
+    check(back.background === "arena" && back.arena === 4 && !back.desk && !back.picture, `arena: not back after choosing it ${JSON.stringify(back)}`)
+    results["stored"] = { drawn, drawnAgain, own, back }
+    // Nothing of the engine is loaded by the preferences' provider chain in the harness.
+    for (const error of pageLog.errors) if (!/^\[requestfailed\] https:\/\/cards\.scryfall\.io\/.* net::ERR_ABORTED$/.test(error)) check(false, `arena: ${error}`)
+    await context.close()
+  } finally {
+    await arenaBrowser.close()
   }
   return results
 }

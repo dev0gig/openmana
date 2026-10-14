@@ -5,14 +5,22 @@
  * a size changes - never because the game's state changed. jsdom has no
  * layout: the sizes are given, the ResizeObserver is driven by the test. The
  * real browser (sizes, roundness, motion, cost) is checked by the end-to-end
- * test, section 12.
+ * test, section 12. Since prompt 53 the arena is the default background: the
+ * drawn table is chosen here as the player would choose it in Settings
+ * (arena-surface.test.tsx covers the arena).
  */
 import { render } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { DEFAULT_PREFERENCES } from "@/app/preferences"
 import { tableScene, type TableSceneName } from "@/test/table-scenes"
 import { GameTable } from "../game-table"
 import { NO_PICTURES } from "../table-cards"
 import { boardMarkup, deskKey, deskMarkup, layoutKey, MIN_CIRCLE_RADIUS, playingArea, ringMarkup, surfaceLayout, type Box } from "./surface-drawing"
+
+vi.mock("@/app/preferences", async (original) => ({
+  ...(await original<typeof import("@/app/preferences")>()),
+  usePreferences: () => ({ ...DEFAULT_PREFERENCES, tableBackground: "table" }),
+}))
 
 const box = (x: number, y: number, width: number, height: number): Box => ({ x, y, width, height })
 

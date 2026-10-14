@@ -392,6 +392,82 @@ pointer events and gets `data-background`). With a picture nothing of §4.1
 is drawn. The tests and the end-to-end harness keep the drawn table (the
 default).
 
+### 4.1b The arena: the stone surface as a shadow grid (prompt 53, series *stoneboard*)
+
+The project owner wanted the table on a single, quiet surface instead of the
+wooden desk with its carved board and rune circle (2026-10-12, replanned on
+2026-10-14 after a preview round: Dropzone
+`workflow/OPENMANA-STONEBOARD-MASTERPLAN.md`). The **binding template** is
+`workflow/OPENMANA-ARENA-VORLAGE.html` in Dropzone (fassung "G+"; its
+screenshots in Seafile `/repo/openmana/design/svg-arena/vorlage/`): a dark
+blue-grey stone with a soft vignette, warm amber light above the opponent's
+strip, cool blue below the hand, a fine grain and a few cracks (prompt 53);
+golden swings along the hand and the opponent's strip, a centre line without
+circle or emblem, ten small runes, two tendrils, light dust and a slightly
+brighter playing area (prompt 54); reduced where room is short and still
+(prompt 55). Nothing else: no sprites, no raster pictures, no rune circle, no
+frames or corner plates.
+
+**Technique - the shadow grid.** `ArenaSurface` (`src/game/table/arena-surface.tsx`)
+is `TableSurface`'s branch for the choice `arena` (the default since prompt
+53): a child of the `GameBoard` grid that spans every track
+(`grid-column: 1 / -1; grid-row: 1 / -1`) and is itself a grid with
+`grid-template-columns: subgrid; grid-template-rows: subgrid` (table.css under
+`[data-slot="table-surface"][data-background="arena"]`). Its pieces lie in the
+cells of the regions they belong to, placed by the board's own named lines in
+every layout and with an expanded decision: `ground` over the whole board,
+`opponent` (`grid-area: opponent`), `field`
+(`opponent-field-start / field-end` × `field-start / field-end`: both
+battlefields with the centre line) and `hand` (`grid-area: hand`). **Nothing
+measures anything**: no ResizeObserver, no `getBoundingClientRect`, no frames -
+the browser lays the arena out with the board. Contract: no `contain` on the
+arena (any containment - paint, layout, strict - makes Chrome 153 drop the
+subgrid and lay the cells out in a grid of their own; measured in prompt 53);
+every piece `min-width: 0; min-height: 0`, empty, with backgrounds or
+absolutely positioned children only, so no `auto` track of the board is ever
+widened - the end-to-end test lays the same scene over the arena, over the
+drawn table and with the arena hidden and allows 1 CSS px (prompt 53: 0 px at
+the five sizes ZH 480×1040, ZQ 1040×480, OH 870×960, OQ 960×870, D 1440×900,
+main phase and an expanded decision). Decoration only: first in the board,
+`z-index: 0`, `aria-hidden`, `pointer-events: none`, nothing focusable, no
+props (memo: twenty new states leave it untouched).
+
+**Built (prompt 53) - the ground:** the template's values as they are:
+`linear-gradient(180deg, #1c2330, #161c27 45%, #131a26 55%, #0f1520)`, a
+vignette `radial-gradient(ellipse 120% 90% at 50% 50%, transparent 55%, #05070c)`,
+warm light `radial-gradient(ellipse 70% 38% at 50% -4%, #d9913a55, #a86a2a22 35%, transparent 70%)`,
+cool blue `radial-gradient(ellipse 80% 45% at 50% 104%, #3f7fd455, #2a579a22 40%, transparent 72%)`;
+the grain one 260 px tile of SVG `feTurbulence` (fractal noise, tinted
+`.55/.6/.7`) as a data: URL, `mix-blend-mode: soft-light` at 0.4; the cracks
+one 900×700 tile (five dark lines, three with a light edge) at 0.35 - both
+tiles rendered once by the browser as backgrounds (`--table-arena-grain`,
+`--table-arena-cracks` set by the component). The arena keeps the template's
+colour literals rather than tokens (`docs/DESIGN_SYSTEM.md` §9 allows the
+table its own CSS). The other three cells are placed and empty until prompt
+54. Note on the template: its light dust rule overrides its cracks rule
+(`.ground::after` twice), so the approved screenshots of "G+" show no cracks
+while the first approved preview "G" did; the plan names the cracks as part
+of the ground, so they are built as their own layer - at 0.35 over dark stone
+they are barely there.
+
+**Setting and harness:** `display.tableBackground` gains the value `arena`
+and its default becomes `arena` (a stored choice stays; "custom" without a
+picture still falls back to the drawn table until prompt 56). Settings →
+"Spieltisch" lists "Arena (Vorgabe)" first, then "Holztisch", the pictures
+and the player's own. The end-to-end harness (`src/test/table-harness.tsx`)
+reads the background through the app's own provider chain (StorageProvider →
+EngineSessionProvider → PreferencesProvider; nothing boots):
+`background=<choice>` stores a choice before the table shows,
+`window.__openmanaChooseBackground(choice)` stores another while the page
+stays. The drawn table's tests choose it explicitly.
+
+**Removal (prompt 56):** the drawn table (`surface-drawing.ts`, `DrawnSurface`,
+its tests and end-to-end checks), the pictures (`src/game/table/backgrounds/`,
+`assets/table-backgrounds/`, `vite/notices.ts`, `THIRD-PARTY-NOTICES.md`, the
+credits), the player's own picture and both settings, the Settings card's
+options, `§4.1`/`§4.1a` of this document as history - the list with paths is
+in `docs/implementation/53-arena-grundlage-und-integration.md`.
+
 ### 4.2 Header bar (prompt 39)
 - Mockup: `.kopf`, `.marke` (emblem + Cinzel wordmark in gold), `.kopf-nav`,
   `.zug-info`.
@@ -1525,6 +1601,9 @@ only (`MOTION_PROPERTIES`, checked by `motion-plan.test.ts` and
 
 ## 10. Where the code lives
 
+- `src/game/table/arena-surface.tsx` - the arena (prompt 53, §4.1b): the
+  stone surface as a subgrid of the board; its rules in `table.css` under
+  `[data-background="arena"]`.
 - `src/game/table/` - the table's components (surface, medallion, piles,
   chronicle, panel, arrows …), `table-layout.ts`, `use-table-layout.ts`,
   the hand's geometry `hand-fan.ts` (prompt 42), the arrows' relations and
@@ -1662,6 +1741,7 @@ axe checks).
 | 46 | after the series: drag and drop of hand cards onto the battlefield | §4.10 |
 | 47 | after the series: the card view in full screen with its keywords explained | §3.4, §4.16 |
 | 49 | series *openmana-spielfluss*: the opponent's turn on a stage, tempo, "Weiter", turn band | §4.17 |
+| 53 | series *stoneboard* 1/4: the arena as a shadow grid (subgrid), its ground, the new default | §4.1b |
 
 After the series (not part of it): the project owner checks the table on the
 Fold (closed, open upright, open turned) and inside ORYX once he has allowed
@@ -1761,6 +1841,15 @@ a push.
   pictures grouped "×N" like the table's piles, graveyard and exile newest
   first with a "zuletzt" badge, Forge's usable frame and offer, the shadcn
   `Empty`; the card view browses the zone in that order.
+- 2026-10-14, series *stoneboard* (prompt 53, Claude Fable 5.1): the arena
+  (§4.1b) as a shadow grid under the board - `ArenaSurface`, a subgrid of
+  the `GameBoard` grid, its ground after the binding template (stone,
+  vignette, warm light above, cool blue below, grain, cracks), the cells of
+  the opponent's strip, the playing area and the hand placed and empty;
+  `display.tableBackground` knows `arena` and defaults to it; the drawn
+  table, the pictures and the player's own picture stay choosable until
+  prompt 56. Measured in Chrome: every region and card at the same place as
+  over the drawn table (0 px at M5), no containment allowed on the subgrid.
 
 ## 14. Deviations from the mockup (prompt 45)
 

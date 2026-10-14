@@ -1,7 +1,8 @@
 /*
  * Choosing the table's background in Settings (table-background.ts,
- * 2026-10-12): the drawn table, the three pictures that come with OpenMana, or
- * a picture of the player's own - each with a small preview, saved at once.
+ * 2026-10-12): the arena (the default since prompt 53), the drawn wooden
+ * table, the three pictures that come with OpenMana, or a picture of the
+ * player's own - the pictures with a small preview, saved at once.
  * "Eigenes Bild auswählen" takes a picture file from the device, stores it
  * (scaled down, as WebP) and chooses it; "Eigenes Bild entfernen" deletes it
  * and goes back to the drawn table if it was in use.
@@ -17,7 +18,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useSaveSetting } from "@/storage/use-save-setting"
 import { BackgroundImageError, BUILT_IN_BACKGROUNDS, prepareBackgroundImage, TABLE_BACKGROUND, TABLE_BACKGROUND_IMAGE, type TableBackgroundChoice } from "./table-background"
 
-const CHOICES: Readonly<Record<string, TableBackgroundChoice>> = { table: "table", colors: "colors", planeswalker: "planeswalker", grid: "grid", custom: "custom" }
+const CHOICES: Readonly<Record<string, TableBackgroundChoice>> = { arena: "arena", table: "table", colors: "colors", planeswalker: "planeswalker", grid: "grid", custom: "custom" }
 
 function Option({ value, title, summary, preview, disabled = false }: { value: TableBackgroundChoice; title: string; summary: string; preview: string | null; disabled?: boolean }) {
   const id = useId()
@@ -80,7 +81,8 @@ export function TableBackgroundOptions() {
         disabled={status === "loading" || busy}
         aria-label="Spieltisch-Hintergrund"
       >
-        <Option value="table" title="Holztisch (Vorgabe)" summary="Der gezeichnete Holztisch mit Spielbrett und Runenkreis." preview={null} />
+        <Option value="arena" title="Arena (Vorgabe)" summary="Die ruhige Steinfläche: warmes Licht oben, kühles Blau unten." preview={null} />
+        <Option value="table" title="Holztisch" summary="Der gezeichnete Holztisch mit Spielbrett und Runenkreis." preview={null} />
         {BUILT_IN_BACKGROUNDS.map((background) => (
           <Option key={background.choice} value={background.choice} title={background.label} summary="Ein Bild über das ganze Spielfeld." preview={background.wide} />
         ))}

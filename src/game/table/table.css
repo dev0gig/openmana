@@ -16,7 +16,9 @@
  *    panel, plaque, text) comes from the --table-* tokens and the app's
  *    tokens in src/index.css (contrast checked by
  *    src/app/design-tokens.test.ts). Depth (shadows, grain, highlights) uses
- *    black or white with transparency or tones mixed from those tokens.
+ *    black or white with transparency or tones mixed from those tokens. The
+ *    arena (prompt 53) keeps the values of its binding template (Dropzone
+ *    workflow/OPENMANA-ARENA-VORLAGE.html) as they are.
  *  - Nothing on a card picture except the plaque on its printed value box; no
  *    filter (colour, brightness, blur) on a card picture.
  *  - Motion only with transform and opacity, never delaying an input, and it
@@ -89,6 +91,88 @@
   height: 100%;
   object-fit: cover;
   object-position: center;
+}
+
+/* ---------- The arena (prompt 53, docs/design/SPIELTISCH.md §4.1b): the stone surface under the board ---------- */
+
+/*
+ * A shadow grid: a child of the board that spans all of its tracks and is
+ * itself a grid with the board's own tracks (subgrid on both axes), so each
+ * piece lies in the cell of the region it belongs to - in every layout,
+ * placed by the board's named lines, measured by nobody. Under every region
+ * (z-index 0), no pointer, no size of its own. No containment at all: any
+ * `contain` (paint, layout, strict - measured in Chrome 153) makes the
+ * browser drop the subgrid and lay the cells out in a grid of their own; the
+ * general surface rule above sets `contain: strict`, so this one undoes it.
+ */
+[data-slot="game-board"] > [data-slot="table-surface"][data-background="arena"] {
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-template-rows: subgrid;
+  position: relative;
+  z-index: 0;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: none;
+  pointer-events: none;
+  contain: none;
+}
+
+/* Nothing in the arena has a size of its own: it must never widen an auto track of the board (the geometry contract). */
+[data-slot="game-board"] > [data-slot="table-surface"][data-background="arena"] > * {
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* The ground over the whole board: dark blue-grey stone, a soft vignette to the edges, warm light above the opponent's strip, cool blue below the hand. */
+[data-slot="game-board"] .table-arena-ground {
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  background:
+    radial-gradient(ellipse 70% 38% at 50% -4%, #d9913a55 0%, #a86a2a22 35%, transparent 70%),
+    radial-gradient(ellipse 80% 45% at 50% 104%, #3f7fd455 0%, #2a579a22 40%, transparent 72%),
+    radial-gradient(ellipse 120% 90% at 50% 50%, transparent 55%, #05070c 100%),
+    linear-gradient(180deg, #1c2330 0%, #161c27 45%, #131a26 55%, #0f1520 100%);
+}
+
+/* The stone's grain: one noise tile (arena-surface.tsx), repeated, blended with soft light. */
+[data-slot="game-board"] .table-arena-ground::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.4;
+  mix-blend-mode: soft-light;
+  background-image: var(--table-arena-grain);
+  background-size: var(--table-arena-grain-size);
+}
+
+/* A few fine cracks in the stone: one tile (arena-surface.tsx), repeated. */
+[data-slot="game-board"] .table-arena-ground::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
+  background-image: var(--table-arena-cracks);
+  background-size: var(--table-arena-cracks-size);
+}
+
+/* The cells of the opponent's strip, the playing area (both battlefields and the centre line) and the hand: placed by the board's lines, dressed in prompt 54. */
+[data-slot="game-board"] .table-arena-opponent {
+  grid-area: opponent;
+}
+
+[data-slot="game-board"] .table-arena-field {
+  grid-row: opponent-field-start / field-end;
+  grid-column: field-start / field-end;
+}
+
+[data-slot="game-board"] .table-arena-hand {
+  grid-area: hand;
 }
 
 /* ---------- The regions over the surface: the board shows, text stays readable ---------- */

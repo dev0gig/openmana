@@ -1,9 +1,9 @@
 // @vitest-environment node
 /*
- * The table's background (table-background.ts, 2026-10-12): which stored
- * values count, what the table shows for each choice - a "custom" choice
- * without a stored picture is the drawn table - and how large the player's
- * own picture is stored.
+ * The table's background (table-background.ts, 2026-10-12; the arena since
+ * prompt 53): which stored values count, what the table shows for each
+ * choice - the arena by default, a "custom" choice without a stored picture
+ * is the drawn table - and how large the player's own picture is stored.
  */
 import { describe, expect, it } from "vitest"
 import { BUILT_IN_BACKGROUNDS, MAX_SIDE, storedSize, TABLE_BACKGROUND, TABLE_BACKGROUND_IMAGE, tableBackground } from "./table-background"
@@ -11,10 +11,10 @@ import { BUILT_IN_BACKGROUNDS, MAX_SIDE, storedSize, TABLE_BACKGROUND, TABLE_BAC
 const PICTURE = "data:image/webp;base64,UklGRhIAAABXRUJQVlA4TAYAAAAvAAAAAAfQ//73v/+BiOh/AAA="
 
 describe("the stored choice", () => {
-  it("is one of the drawn table, the two pictures and the player's own; the drawn table by default", () => {
+  it("is one of the arena, the drawn table, the three pictures and the player's own; the arena by default (prompt 53)", () => {
     expect(TABLE_BACKGROUND.key).toBe("display.tableBackground")
-    expect(TABLE_BACKGROUND.fallback).toBe("table")
-    for (const value of ["table", "colors", "planeswalker", "grid", "custom"]) expect(TABLE_BACKGROUND.check(value)).toBe(true)
+    expect(TABLE_BACKGROUND.fallback).toBe("arena")
+    for (const value of ["arena", "table", "colors", "planeswalker", "grid", "custom"]) expect(TABLE_BACKGROUND.check(value)).toBe(true)
     for (const value of ["wood", "", null, 1, { kind: "table" }]) expect(TABLE_BACKGROUND.check(value)).toBe(false)
   })
 
@@ -34,7 +34,8 @@ describe("the stored choice", () => {
 })
 
 describe("what the table shows", () => {
-  it("the drawing for the drawn table; a built-in picture in both orientations; the player's own picture", () => {
+  it("the arena; the drawing for the drawn table; a built-in picture in both orientations; the player's own picture", () => {
+    expect(tableBackground("arena", PICTURE)).toEqual({ kind: "arena" })
     expect(tableBackground("table", PICTURE)).toEqual({ kind: "table" })
     const colors = tableBackground("colors", null)
     expect(colors).toMatchObject({ kind: "picture", choice: "colors" })
