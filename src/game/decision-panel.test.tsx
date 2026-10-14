@@ -375,6 +375,82 @@ describe("paying a cost (prompt 17)", () => {
     expect(board()).toHaveAttribute("data-decision", "expanded")
   })
 
+  /** The decision region's asking card: its slot (data-size), the spotlight around it (data-orientation) or null for the heading's thumbnail. */
+  const askingCard = () => {
+    const slot = decision().querySelector<HTMLElement>('[data-slot="game-decision-source"]')!
+    return { slot, size: slot.dataset["size"], spotlight: slot.closest<HTMLElement>('[data-slot="game-decision-spotlight"]')?.dataset["orientation"] ?? null, button: within(slot).getByRole("button") }
+  }
+
+  /** A stand-in matchMedia answering quadrat (the Phasen-Tafel beside the battlefields); returns the restore. */
+  function asQuadrat() {
+    const original = window.matchMedia
+    window.matchMedia = ((query: string) =>
+      ({
+        media: query,
+        matches: query === "(3/4 <= aspect-ratio <= 13/10)",
+        onchange: null,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+        addListener: () => undefined,
+        removeListener: () => undefined,
+        dispatchEvent: () => false,
+      }) as unknown as MediaQueryList) as typeof window.matchMedia
+    return () => {
+      window.matchMedia = original
+    }
+  }
+
+  it("the spell being paid for lies in no zone of the state (recorded): in the action bar (hoch) its card of the hand's height stands at the left, the cost beside it, a tap opens the card view", async () => {
+    const user = userEvent.setup()
+    const { scene, onAnswer } = table("payment")
+    const payment = scene.questions.find((question) => question.kind === "buttons" && question.purpose === "payment")!
+    expect("card" in payment && payment.card !== undefined).toBe(true)
+    const { slot, size, spotlight, button } = askingCard()
+    expect([size, spotlight]).toEqual(["hand", "horizontal"])
+    expect(button).toHaveAccessibleName("Schock ansehen")
+    expect(button).toHaveAttribute("aria-haspopup", "dialog")
+    // One picture of it only (no second thumbnail in the heading); its name stays in the heading, the cost beside the card.
+    expect(decision().querySelectorAll('[data-slot="game-decision-source"]')).toHaveLength(1)
+    const content = slot.closest('[data-slot="game-decision-spotlight"]')!.querySelector<HTMLElement>('[data-slot="game-decision-spotlight-content"]')!
+    expect(within(content).getByText("Kosten bezahlen · Schock")).toBeInTheDocument()
+    expect(within(content).getByText(/^Noch zu zahlen:/)).toBeInTheDocument()
+    // Forge's buttons stay in the bar at the bottom, outside the spotlight.
+    const bar = decision().querySelector('[data-slot="game-decision-bar"]')!
+    expect(content.contains(bar)).toBe(false)
+    expect(within(bar as HTMLElement).getAllByRole("button").length).toBeGreaterThan(0)
+    await user.click(button)
+    const view = screen.getByRole("dialog")
+    expect(view).toHaveAccessibleName("Schock")
+    expect(within(view).getByText("Aus Forges Frage – diese Karte liegt nicht sichtbar auf dem Tisch.")).toBeInTheDocument()
+    expect(onAnswer).not.toHaveBeenCalled()
+  })
+
+  it("the spell whose target is chosen (recorded: Zergliedern) is shown large too", () => {
+    table("target")
+    const { size, spotlight, button } = askingCard()
+    expect([size, spotlight]).toEqual(["hand", "horizontal"])
+    expect(button).toHaveAccessibleName("Zergliedern ansehen")
+    // The selection's words beside it, Forge's buttons below.
+    expect(within(decision().querySelector<HTMLElement>('[data-slot="game-decision-spotlight-content"]')!).getByText(/^Wähle genau 1/)).toBeInTheDocument()
+  })
+
+  it("beside the battlefields (quadrat) the whole card stands on top of the Phasen-Tafel, the cost below it", () => {
+    const restore = asQuadrat()
+    try {
+      table("payment")
+      const { slot, size, spotlight } = askingCard()
+      expect([size, spotlight]).toEqual(["card", "vertical"])
+      // Sized by its height (the width follows the card's 63 × 88); a low window falls back to the thumbnail (short:).
+      expect(slot.className).toMatch(/\bh-\[clamp\(11rem,28dvh,15rem\)\]/)
+      expect(slot.className).toMatch(/\bshort:h-14\b/)
+      const content = decision().querySelector<HTMLElement>('[data-slot="game-decision-spotlight-content"]')!
+      expect(slot.compareDocumentPosition(content) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      expect(within(content).getByText(/^Noch zu zahlen:/)).toBeInTheDocument()
+    } finally {
+      restore()
+    }
+  })
+
   it("the card a step is about is its source: 'Quelle' below its picture on the table (an ability's source; built on a recorded state)", () => {
     const scene = tableScene("main-phase")
     const me = scene.state.players.find((player) => player.me)!
@@ -385,6 +461,10 @@ describe("paying a cost (prompt 17)", () => {
     const card = document.querySelector<HTMLButtonElement>(`[data-card="${id}"]`)!
     expect(card.getAttribute("aria-label")).toMatch(/, Quelle/)
     expect(within(card).getByText("Quelle")).toBeInTheDocument()
+    // The table shows it: the heading keeps the small thumbnail, no spotlight.
+    const { size, spotlight, button } = askingCard()
+    expect([size, spotlight]).toEqual(["sm", null])
+    expect(button.closest('[data-slot="game-decision-header"]')).not.toBeNull()
   })
 })
 

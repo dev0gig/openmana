@@ -48,7 +48,9 @@ Forges Daten – und nichts davon ist eine Regel der App:
   angetippt. §3.
 - **Die Quelle:** Die Karte, um die es im laufenden Schritt geht (der Spruch,
   die Quelle einer Fähigkeit), steht im Kopf des Bereichs und – liegt sie auf
-  dem Tisch – mit „Quelle“ unter ihrem Bild. §5.
+  dem Tisch – mit „Quelle“ unter ihrem Bild. Ein Spruch, der gerade gewirkt
+  wird, liegt in keiner Zone; seit 2026-10-14 steht er deshalb groß im
+  Bereich (Variante A des Projektinhabers). §5.
 - **Verschachtelte Eingaben:** Modus, X, Kicker, Opfer während des Wirkens
   kommen als Forges Fragen der Reihe nach; eine blockierende Frage steht allein
   (die Knöpfe darunter warten), dann Ziele, dann Bezahlen. In echten Partien
@@ -164,6 +166,38 @@ genau diese Karte; der Kopf des Bereichs zeigt sie mit Bild, und liegt sie auf
 dem Tisch (die Quelle einer aktivierten Fähigkeit), steht „Quelle“ unter ihrem
 Bild und in ihrem Namen für Screenreader. Die Priorität nennt keine Quelle.
 
+**Groß beim Zielen und Bezahlen (2026-10-14, „Karte beim Bezahlen groß
+zeigen“, Variante A):** Forge legt einen Spruch vor X, Zielen und Bezahlen in
+seine Stapelzone; die Bridge schickt keine Stapelzone (`StateBuilder`: nur die
+Einträge des Stapels, erst nach dem Wirken). Während der Zielauswahl und des
+Bezahlens liegt die Karte also in keiner Zone des Zustands, und der Stapel ist
+leer – die Frage (`SelectQuestion.card`/`ButtonsQuestion.card` mit `purpose`
+„payment“) ist der einzige Ort, an dem der Spieler sie sieht. Bisher war das
+die 56 px hohe Miniatur im Kopf. Jetzt gilt (`spotlightOf` in
+`decision-panel.tsx`): findet `locateCard` die Quelle des laufenden Schritts
+nicht, steht sie groß – als Größenvariante von `GameDecisionSource`
+(`data-size`, cva in `src/components/ui/game-decision.tsx`) in einem
+`GameDecisionSpotlight`:
+
+| Layout | Größe (`data-size`) | Anordnung |
+|---|---|---|
+| `quadrat`, `breit` (Phasen-Tafel) | `card`: ganze Karte, `clamp(11rem,28dvh,15rem)` hoch, also etwa 8–11 rem breit (die Spalte ist mindestens 15 rem breit) | oben in der Tafel (`vertical`), darunter Überschrift, „Noch zu zahlen“, Vorrat, Leben, Ziele |
+| `hoch` (Aktionsleiste) | `hand`: so hoch wie die Hand (`clamp(6rem,14dvh,9rem)`) | links (`horizontal`), daneben Überschrift und Kosten; Forges Knöpfe mit den Phasen darunter in der Leiste |
+| niedriges Fenster (`short:`, etwa `breit` + `short`) | wieder die Miniatur (`short:h-14`) | Miniatur neben den Worten (`short:flex-row`) |
+
+Die Karte wird nach ihrer Höhe bemessen, die Breite folgt dem Kartenformat:
+ganz, nie beschnitten, ohne Filter (`CardPicture` über `TablePicture`,
+`sizes="auto"`). Ein Tipp öffnet weiter die Kartenansicht („Aus Forges Frage –
+diese Karte liegt nicht sichtbar auf dem Tisch.“), Name `„<Karte> ansehen“`,
+`aria-haspopup="dialog"`, `data-question-card`; der Kartenname bleibt in der
+Überschrift. Die Höhengrenzen des Bereichs bleiben unverändert: Eine große
+Karte passt nicht in die kompakte Aktionsleiste, die bestehende Messung macht
+den Bereich `tall` bzw. bei ruhiger Mitte `expanded` (≤ 28 % bzw. ≤ 36 % der
+Höhe; die Spielfelder behalten 80 bzw. 64 px). Fähigkeiten von Karten auf dem
+Tisch bleiben wie bisher: „Quelle“-Chip am Tisch, Miniatur im Kopf.
+Blockierende Fragen (X, Modus) bleiben, wie sie sind – `ChooseQuestion` trägt
+keine Karte. Eine Bewegung von der Hand in den Bereich gibt es nicht.
+
 ## 6. Verschachtelte Eingaben
 
 Forge baut beim Wirken seine Eingaben aufeinander (`PlaySpellAbility`:
@@ -222,7 +256,8 @@ aus. Unverändert und jetzt mit Tests belegt:
 | Differenztests | die neue Partie in JVM, Node und Chrome gleich; Abdeckung aller Partien vollständig |
 | `card-use.test.ts` | `playerUse` (wählbar, gewählt, zurücknehmen, Leben, Angriff, Gründe), `stepSource`, `source` |
 | `decision-model.test.ts` | `selectView` mit Spielern (aufgenommen: `target`, `target-player`, `target-both`), `paymentView` (`payment`, `payment-pool`, `payment-life`) |
-| `decision-panel.test.tsx` | Spieler-Knöpfe im Bereich und am Sitz, Doppeltipp einmal, Hervorhebung, Bezahlen von Hand, aus dem Vorrat, mit Leben, gesperrt während Forge rechnet, nur ansehen, X beim Wirken, „Quelle“ |
+| `decision-panel.test.tsx` | Spieler-Knöpfe im Bereich und am Sitz, Doppeltipp einmal, Hervorhebung, Bezahlen von Hand, aus dem Vorrat, mit Leben, gesperrt während Forge rechnet, nur ansehen, X beim Wirken, „Quelle“; seit 2026-10-14 der gewirkte Spruch groß (`payment`, `target`: `hand` links in der Aktionsleiste, `quadrat`: `card` oben in der Tafel, Tipp öffnet die Kartenansicht), die Quelle auf dem Tisch weiter als Miniatur |
+| `src/components/ui/game-decision.test.tsx` | `GameDecisionSource` (`sm`, `card` mit Rückfall `short:`, `hand`), `GameDecisionSpotlight` (`vertical`/`horizontal`), Aktionen und Kartenreihen in seiner Spalte |
 | `engine-session.test.ts`, `game-page.test.tsx` | `tapPlayer`/`useMana` nur solange Forge wartet, Gründe auf Deutsch; ein Spieler als Ziel über den echten Client, Forges Ablehnung als Hinweis |
 | `table-labels.test.ts` | `manaSymbolsText`, `playerButtonLabel` |
 | E2E Abschnitt 12 | die neuen Szenen in sechs Größen (Platz, axe, Markierungen von Karten und Spielern), Spieler im Bereich und am Sitz antippen, Mana aus dem Vorrat, Leben für Mana – in drei Größen |

@@ -52,7 +52,11 @@
  * is still to pay (Forge's mana symbols, from its payment), floating mana
  * Forge would take from the pool (mana.use) and - for Phyrexian mana - life
  * (the player's own seat). All of it taps at once, like the mana sources on
- * the table; Forge's Cancel takes the whole payment back.
+ * the table; Forge's Cancel takes the whole payment back. The spell being
+ * cast lies in no zone of the state meanwhile, so the region shows its card
+ * large (2026-10-14, spotlightOf): whole on top of the Phasen-Tafel, a card of
+ * the hand's height at the left of the action bar; an ability's source the
+ * table shows keeps the thumbnail beside the words.
  *
  * Declaring attackers (prompt 18) has words of its own like the priority:
  * Forge's prompt line there repeats a fixed sentence with the defender's
@@ -113,7 +117,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Field, FieldContent, FieldDescription, FieldLabel, FieldTitle } from "@/components/ui/field"
 import { GameCardButton, GameCardRow, GameCardRowButton, GameCardRowItem, type GameCardMark } from "@/components/ui/game-card"
-import { GameDecision, GameDecisionActions, GameDecisionBar, GameDecisionHeader, GameDecisionNote, GameDecisionRow, GameDecisionSource } from "@/components/ui/game-decision"
+import { GameDecision, GameDecisionActions, GameDecisionBar, GameDecisionHeader, GameDecisionNote, GameDecisionRow, GameDecisionSource, GameDecisionSpotlight, GameDecisionSpotlightContent } from "@/components/ui/game-decision"
 import { GamePlayer, GamePlayerButton } from "@/components/ui/game-player"
 import { Input } from "@/components/ui/input"
 import { Item as ItemRow, ItemActions, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item"
@@ -176,6 +180,7 @@ import { questionLabel } from "./game-labels"
 import { endTurnText, PASS_LABELS, PASS_NOTES, priorityText } from "./priority-labels"
 import type { TableCardLookup } from "./table-cards"
 import { cardName, MANA_LABELS, manaSymbolsText, playerButtonLabel, seatName } from "./table-labels"
+import { locateCard } from "./table-model"
 import { TablePicture } from "./table-picture"
 import { TableCardBack } from "./table/table-art"
 import { priorityHolder, priorityMoment, type PriorityMoment } from "./turn-model"
@@ -393,31 +398,40 @@ function sourceOf(question: Question | null): { readonly id: number; readonly ca
   return { id: question.card, card: question.cardView }
 }
 
-/** What Forge asks: the asking card (its picture opens the card view), the kind of decision, Forge's words. */
-function DecisionHeading({ label, text, source, action = null }: { label: string; text: string | null; source: { readonly id: number; readonly card: VisibleCard } | null; action?: ReactNode }) {
-  const { pictures, look, moment } = useDecision()
+/** The asking card as a control: its picture opens the card view (Forge's question's view of it - a spell being cast lies in no zone). */
+function SourceCard({ source, size }: { source: { readonly id: number; readonly card: VisibleCard }; size: "sm" | "card" | "hand" }) {
+  const { pictures, look } = useDecision()
+  return (
+    <GameDecisionSource size={size}>
+      <GameCardButton
+        data-question-card={source.id}
+        aria-label={`${cardName(source.card)} ansehen`}
+        aria-haspopup="dialog"
+        title={cardName(source.card)}
+        onClick={() => look(source.id)}
+        onContextMenu={(event) => {
+          event.preventDefault()
+          look(source.id)
+        }}
+      >
+        <TablePicture card={source.card} pictures={pictures} />
+      </GameCardButton>
+    </GameDecisionSource>
+  )
+}
+
+/**
+ * What Forge asks: the asking card (its picture opens the card view), the kind of decision, Forge's words.
+ * `sourceApart`: the card's picture stands large beside the heading (GameDecisionSpotlight) - the heading keeps its name.
+ */
+function DecisionHeading({ label, text, source, action = null, sourceApart = false }: { label: string; text: string | null; source: { readonly id: number; readonly card: VisibleCard } | null; action?: ReactNode; sourceApart?: boolean }) {
+  const { moment } = useDecision()
   const current = currentDecision(moment.questions)
   const active = current.kind === "blocking" ? current.question : current.kind === "step" ? current.select ?? current.buttons : null
   const clarity = active === null ? null : choiceClarity(active)
   return (
     <GameDecisionHeader>
-      {source !== null ? (
-        <GameDecisionSource>
-          <GameCardButton
-            data-question-card={source.id}
-            aria-label={`${cardName(source.card)} ansehen`}
-            aria-haspopup="dialog"
-            title={cardName(source.card)}
-            onClick={() => look(source.id)}
-            onContextMenu={(event) => {
-              event.preventDefault()
-              look(source.id)
-            }}
-          >
-            <TablePicture card={source.card} pictures={pictures} />
-          </GameCardButton>
-        </GameDecisionSource>
-      ) : null}
+      {source !== null && !sourceApart ? <SourceCard source={source} size="sm" /> : null}
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <p className="text-xs text-muted-foreground">
           {label}{clarity !== null ? ` · ${clarity}` : ""}
@@ -428,6 +442,17 @@ function DecisionHeading({ label, text, source, action = null }: { label: string
       {action}
     </GameDecisionHeader>
   )
+}
+
+/**
+ * The card a running step is about, shown large (project owner, 2026-10-14), or null: Forge moves a spell being cast
+ * to its stack zone before its X, targets and payment, which the bridge does not send (StateBuilder: the stack's items
+ * only, once cast) - so while its targets are chosen and its cost is paid the card lies in no zone of the state
+ * (`locateCard`) and the question's card is the only place the player sees it. A card the table shows (an ability's
+ * source, its "Quelle" chip on the table) keeps the thumbnail.
+ */
+function spotlightOf(source: { readonly id: number; readonly card: VisibleCard } | null, state: GameState): { readonly id: number; readonly card: VisibleCard } | null {
+  return source !== null && locateCard(state, source.id) === null ? source : null
 }
 
 /**
@@ -658,7 +683,7 @@ function useSearch(items: readonly Item[], labelOf: (item: Item) => string): { r
 // ── A running step: Forge's buttons and its selection ──────────────────────
 
 function StepDecision({ buttons, select, prompt }: { buttons: ButtonsQuestion | null; select: SelectQuestion | null; prompt: string | null }) {
-  const { state, showStartHand } = useDecision()
+  const { state, showStartHand, form } = useDecision()
   if (buttons?.purpose === "priority" && select === null) return <PriorityDecision moment={priorityMoment(state, buttons)} />
   if (buttons?.purpose === "block" && select === null) return <BlockDecision view={blockView(state, buttons)} />
   if ((buttons?.purpose === "attack" || buttons?.purpose === "attackDeclared") && select === null) {
@@ -678,14 +703,29 @@ function StepDecision({ buttons, select, prompt }: { buttons: ButtonsQuestion | 
       Starthand ansehen
     </Button>
   ) : null
-  return (
+  const source = sourceOf(buttons) ?? sourceOf(select)
+  // A spell being cast (its targets, its payment): the card large - on top of the panel, at the left of the action bar.
+  const spotlight = spotlightOf(source, state)
+  const parts = (
     <>
-      <DecisionHeading label={label} text={text} source={sourceOf(buttons) ?? sourceOf(select)} action={startHand} />
+      <DecisionHeading label={label} text={text} source={source} action={startHand} sourceApart={spotlight !== null} />
       {select !== null && selection !== null ? <SelectPart question={select} view={selection} /> : null}
       {buttons?.purpose === "payment" && select === null ? <PaymentPart /> : null}
       {buttons?.purpose === "mulliganBottom" ? <MulliganChosen /> : null}
       {directTaps(open) ? <GameDecisionNote>Karten antippen wirkt hier sofort, ein zweiter Tipp nimmt es zurück. Lange drücken oder Rechtsklick zeigt eine Karte groß.</GameDecisionNote> : null}
       <BlockedNote />
+    </>
+  )
+  return (
+    <>
+      {spotlight !== null ? (
+        <GameDecisionSpotlight orientation={form === "panel" ? "vertical" : "horizontal"}>
+          <SourceCard source={spotlight} size={form === "panel" ? "card" : "hand"} />
+          <GameDecisionSpotlightContent>{parts}</GameDecisionSpotlightContent>
+        </GameDecisionSpotlight>
+      ) : (
+        parts
+      )}
       {buttons !== null ? <ForgeButtons question={buttons} /> : <LeadBar />}
     </>
   )

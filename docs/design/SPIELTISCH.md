@@ -239,6 +239,23 @@ do not fit, by `GameTable` once per set of open questions):
   question it grows **upwards** - `tall` up to ≈ 28 %, `expanded` up to ≈
   36 % of the height, as today - and the battlefields keep at least one row
   of cards (end-to-end: 80 px, 64 px while `expanded`).
+- **The spell being cast, large (2026-10-14, "Karte beim Bezahlen groß
+  zeigen", variant A):** while its targets are chosen and its cost is paid a
+  spell lies in no zone of the state (Forge's stack zone is not sent, the
+  stack is still empty), so the step's source card - the question's `card` -
+  stands large when `locateCard` does not find it (`GameDecisionSource`
+  `data-size`, `GameDecisionSpotlight`, `src/components/ui/game-decision.tsx`):
+  in the Phasen-Tafel (`quadrat`, `breit`) the whole card on top
+  (`card`: `clamp(11rem,28dvh,15rem)` high, about 8-11 rem wide inside the
+  15-20 rem column), Forge's words, "Noch zu zahlen" and the pool below; in
+  the action bar (`hoch`) a card of the hand's height (`hand`:
+  `clamp(6rem,14dvh,9rem)`) on the left, the words and the cost beside it,
+  Forge's buttons in the bar below; in a low window (`short:`, i.e. `breit` +
+  `short`) the thumbnail beside the words as before. Sized by its height, the
+  card is always whole; a tap opens the card view. It does not fit the compact
+  action bar, so the measurement makes the region `tall` (`expanded` while the
+  centre is quiet) - the limits above are unchanged. An ability's source the
+  table shows keeps its "Quelle" chip there and the thumbnail.
 - Two rows per battlefield stay a measured threshold (`TWO_ROWS_MIN_HEIGHT`,
   176 px; checked in prompt 38 for the new grid and kept). Creatures lie next to
   the middle.
