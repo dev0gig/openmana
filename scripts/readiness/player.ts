@@ -248,6 +248,17 @@ function watchFlow(): void {
     const chip = (document.querySelector('section[aria-label="Du"] [data-strip-fact="lands"]')?.textContent ?? "").trim()
     if (chip !== "" && !flow.landChips.includes(chip) && flow.landChips.length < 40) flow.landChips.push(chip)
   }
+  // The last pointer events and clicks on the hand and the table (diagnostics for a card view that did not open).
+  const events: string[] = []
+  ;(window as unknown as { __playerEvents: string[] }).__playerEvents = events
+  for (const type of ["pointerdown", "pointerup", "pointercancel", "click", "contextmenu", "lostpointercapture"]) {
+    document.addEventListener(type, (event) => {
+      const target = event.target instanceof Element ? event.target : null
+      const pointer = event as PointerEvent
+      events.push(`${Math.round(performance.now())} ${type}${"pointerType" in pointer ? `:${pointer.pointerType}#${pointer.pointerId}` : ""} card=${target?.closest("[data-card]")?.getAttribute("data-card") ?? "-"} hand=${target?.closest('section[aria-label="Deine Hand"]') !== null} prevented=${event.defaultPrevented}`)
+      if (events.length > 40) events.shift()
+    }, true)
+  }
   new MutationObserver(look).observe(document.documentElement, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["data-step", "data-slot", "data-start-question"] })
   look()
 }
@@ -409,13 +420,44 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
   const interruptionsSeen = new Set<string>()
 
   /**
+   * Waits for the card view a tap opened (10 s); if none opens, the failure says what lay where the card was pressed,
+   * the card's mark and name, the open dialogs and the decision (prompt 52: a single such stop needed its cause).
+   */
+  const viewOpened = async (id: number) => {
+    const opened = await page.getByRole("dialog").waitFor({ timeout: 10_000 }).then(() => true, () => false)
+    if (opened) return
+    const card = cardButton(id)
+    const point = await cardPoint(card).catch(() => undefined)
+    const facts = await card.evaluate((element, at) => {
+      const box = element.getBoundingClientRect()
+      const x = at === undefined ? box.left + box.width / 2 : box.left + at.x
+      const y = at === undefined ? box.top + box.height / 2 : box.top + at.y
+      const hit = document.elementFromPoint(x, y)
+      return {
+        label: element.getAttribute("aria-label"),
+        mark: element.getAttribute("data-mark"),
+        box: [Math.round(box.left), Math.round(box.top), Math.round(box.width), Math.round(box.height)],
+        point: [Math.round(x), Math.round(y)],
+        hit: hit === null ? null : `${hit.tagName.toLowerCase()} slot=${hit.closest("[data-slot]")?.getAttribute("data-slot")} card=${hit.closest("[data-card]")?.getAttribute("data-card")}`,
+        dialogs: document.querySelectorAll('[role="dialog"],[role="alertdialog"]').length,
+        decision: (document.querySelector('section[aria-label="Entscheidung"] [data-slot="game-decision-header"]')?.textContent ?? "").trim().slice(0, 120),
+        badges: [...(document.querySelector('section[aria-label="Spielstand"]')?.querySelectorAll('[data-slot="badge"]') ?? [])].map((badge) => (badge.textContent ?? "").trim()),
+        lifted: [...document.querySelectorAll("[data-hand-card][data-lifted]")].map((item) => item.getAttribute("data-hand-card")),
+        events: ((window as unknown as { __playerEvents?: string[] }).__playerEvents ?? []).slice(-14),
+        now: Math.round(performance.now()),
+      }
+    }, point).catch((error: Error) => ({ error: error.message }))
+    throw new Error(`${game.id}: the card view of card ${id} did not open within 10 s after a ${touch ? "tap" : "click"} ${JSON.stringify(facts)}`)
+  }
+
+  /**
    * Plays a card by dragging it onto the battlefield (prompt 46) if Forge's words for it pass `want`: its view is only
    * read (looking is safe) and closed again, then the card is dragged. Returns the words, or null (nothing sent).
    */
   const byDragging = async (id: number, want: (words: string) => boolean): Promise<string | null> => {
     await tapCard(id)
     const view = page.getByRole("dialog")
-    await view.waitFor({ timeout: 10_000 })
+    await viewOpened(id)
     // Forge's offer: the one button under the card or its keyword boxes (prompt 47); none without an offer.
     const main = view.locator('[data-slot="card-view-offer"] button').first()
     const offered = (await main.count()) > 0
@@ -444,7 +486,7 @@ export async function playGame(page: Page, game: PlayOptions): Promise<PlayResul
     if (hand && dragNow(lastTurn) && (await cardButton(id).getAttribute("data-mark")) === "usable") return byDragging(id, want)
     await tapCard(id)
     const view = page.getByRole("dialog")
-    await view.waitFor({ timeout: 10_000 })
+    await viewOpened(id)
     const buttons = view.locator('[data-slot="card-view-offer"] button')
     let chosen: Locator | null = null
     let words: string | null = null

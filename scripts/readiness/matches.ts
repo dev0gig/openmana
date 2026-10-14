@@ -718,6 +718,9 @@ interface TableSample {
 /** One sample of the table per turn (--table-memory): after the motion ended (at most 3 s) and a full garbage collection. */
 async function sampleTable(page: Page, cdp: CDPSession, turn: number): Promise<TableSample> {
   await page.waitForFunction(() => document.querySelector('[data-slot="table-motion"][data-moving]') === null, undefined, { timeout: 3000 }).catch(() => undefined)
+  // The band of a change of turn (prompt 49) shows for one step's time at the turn's first priority: it is no motion of
+  // the table's and ends by itself - waited for (at most 5 s), so it does not count as a motion left running.
+  await page.waitForFunction(() => document.getAnimations().every((animation) => !(animation instanceof CSSAnimation && animation.animationName === "table-turn-band" && animation.playState === "running")), undefined, { timeout: 5000 }).catch(() => undefined)
   await page.waitForTimeout(400)
   await cdp.send("HeapProfiler.collectGarbage")
   const { metrics } = await cdp.send("Performance.getMetrics")
