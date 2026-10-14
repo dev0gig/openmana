@@ -2011,115 +2011,120 @@
   box-shadow: 0 0 1rem 0.3rem color-mix(in oklch, var(--table-heal) 80%, transparent), inset 0 0 0.6rem color-mix(in oklch, var(--table-heal) 60%, transparent);
 }
 
-/* ---------- The opponent's turn (prompt 49, SPIELTISCH.md §4.17): the stage and the turn band ---------- */
+/* ---------- The opponent's turn (prompt 49, SPIELTISCH.md §4.17): the stage, the "Zuletzt" line, the turn band ---------- */
 
 /*
- * The stage lies over the player's own half - the stack bar and the player's
- * battlefield in hoch, the centre line and the battlefield beside the side
- * columns, the battlefield in a low window -, placed by the grid's area
- * lines, so the opponent's battlefield, the strips, the hand, the header and
- * the decision stay in view. It is a size container: its cards take what
- * its height leaves (whole, never cropped), the text the rest.
+ * The stage - since 2026-10-14 a compact announcement (the project owner: the
+ * large panel over the player's half was too prominent): only as tall as its
+ * content, centred, the flat panel tone (90 %, the words keep 4.5:1 over
+ * every surface) with a hairline and only a hint of shadow. Positioned
+ * absolutely in grid areas (the board is the containing block, its rows
+ * never change):
+ *  - hoch: in the opponent's battlefield at its lower edge, right above the
+ *    stack bar - the player's battlefield, the stack bar, the hand and the
+ *    decision stay free; it never crops (no maximum height: its card is
+ *    46 px wide, its words scroll inside above 4.75 rem);
+ *  - quadrat, breit and a low breit window: over both battlefields, centred
+ *    on the line between them (the 1.5 rem centre line; in a low window the
+ *    battlefields' border).
  */
 [data-slot="game-board"] > .table-stage {
+  position: absolute;
   grid-column: field;
-  grid-row: center-start / field-end;
-  position: relative;
+  grid-row: opponent-field;
+  inset: auto 0.5rem 0.375rem;
   z-index: 44;
-  container-type: size;
   display: flex;
-  align-items: stretch;
-  gap: 0.75rem;
-  min-width: 0;
-  min-height: 0;
-  margin: 0.25rem 0.375rem;
-  padding: 0.5rem 0.625rem;
+  align-items: center;
+  gap: 0.5rem;
+  width: fit-content;
+  max-width: calc(100% - 1rem);
+  margin-inline: auto;
+  padding: 0.3125rem 0.5rem 0.3125rem 0.3125rem;
   overflow: hidden;
-  border: 1px solid var(--table-gold-line);
-  border-radius: 0.75rem;
-  background: linear-gradient(180deg, color-mix(in oklch, var(--table-panel) 97%, transparent), color-mix(in oklch, var(--table-panel), black 25%));
-  box-shadow: 0 0.6rem 1.8rem oklch(0 0 0 / 0.55), inset 0 1px 0 oklch(1 0 0 / 0.06);
-  animation: table-stage-in 180ms ease-out;
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+  background: color-mix(in oklch, var(--table-panel) 90%, transparent);
+  box-shadow: 0 0.125rem 0.5rem oklch(0 0 0 / 0.22);
+  animation: table-stage-in 160ms ease-out;
 }
 
-@media (3/4 <= aspect-ratio <= 13/10) {
-  [data-slot="game-board"] > .table-stage {
-    grid-row: opponent-field-end / field-end;
-  }
-}
-
-@media (aspect-ratio > 13/10) {
-  [data-slot="game-board"] > .table-stage {
-    grid-row: opponent-field-end / field-end;
-  }
-}
-
-@media (aspect-ratio > 13/10) and (max-height: 32rem) {
-  [data-slot="game-board"] > .table-stage {
-    grid-row: field;
-    margin: 0.125rem 0.25rem;
-    padding: 0.375rem 0.5rem;
-  }
-}
-
-/* A step without a card (a change of turn, combat damage) takes only the height its words need, centred on the player's half. */
+/* A step without a card (a change of turn, combat damage): only its words, a little more room around them. */
 [data-slot="game-board"] > .table-stage[data-cards="0"] {
-  align-self: center;
-  container-type: inline-size;
-  max-height: 100%;
+  padding-inline-start: 0.625rem;
 }
 
+@media (aspect-ratio >= 3/4) {
+  [data-slot="game-board"] > .table-stage {
+    grid-row: opponent-field-start / field-end;
+    inset: 50% 0.75rem auto;
+    translate: 0 -50%;
+    gap: 0.625rem;
+    max-width: min(36rem, calc(100% - 1.5rem));
+    padding: 0.375rem 0.625rem 0.375rem 0.375rem;
+  }
+}
+
+/* The cards: small previews, whole and never cropped (at least 44 px wide) - in hoch only the first, the lines name all. */
 [data-slot="game-board"] .table-stage-cards {
   display: flex;
   flex: none;
   align-items: center;
-  gap: 0.375rem;
-  min-height: 0;
+  gap: 0.25rem;
 }
 
-/* Each card: as tall as the stage allows, all of them together at most 55 % of its width - whole, never cropped. */
 [data-slot="game-board"] .table-stage-card {
   display: block;
   flex: none;
-  width: min(calc((100cqh - 0.25rem) * 63 / 88), calc(55cqw / var(--stage-cards, 1) - 0.375rem), 17rem);
-  border-radius: 0.75rem;
+  width: 2.875rem;
+  border-radius: 0.3125rem;
 }
 
-/* A narrow stage (a phone upright): one card large rather than several small ones - all of them are named in the lines. */
-@container (max-width: 30rem) {
-  [data-slot="game-board"] .table-stage-cards {
-    --stage-cards: 1;
+[data-slot="game-board"] .table-stage-card:nth-child(n + 2) {
+  display: none;
+}
+
+@media (aspect-ratio >= 3/4) {
+  [data-slot="game-board"] .table-stage-card {
+    width: 4.5rem;
+    border-radius: 0.4375rem;
   }
 
   [data-slot="game-board"] .table-stage-card:nth-child(n + 2) {
-    display: none;
+    display: block;
   }
+}
 
+@media (aspect-ratio > 13/10) {
   [data-slot="game-board"] .table-stage-card {
-    width: min(calc((100cqh - 0.25rem) * 63 / 88), 42cqw);
+    width: 5rem;
   }
 }
 
-[data-slot="game-board"] .table-stage-text {
-  position: relative;
-  display: flex;
-  flex: 1 1 0;
-  flex-direction: column;
-  gap: 0.25rem;
-  min-width: 8.5rem;
-  min-height: 0;
-  padding-bottom: 0.375rem;
+@media (aspect-ratio > 13/10) and (max-height: 32rem) {
+  [data-slot="game-board"] .table-stage-card {
+    width: 3.25rem;
+    border-radius: 0.3125rem;
+  }
 }
 
-/* The words scroll inside when they need more room than the stage has; "Weiter" below them always stays in view. */
+/* The words: as wide as they need up to a line's measure; above their height they scroll inside, "Weiter" beside them always stays in view. */
 [data-slot="game-board"] .table-stage-body {
   display: flex;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   flex-direction: column;
-  gap: 0.25rem;
-  min-height: 0;
+  gap: 0.125rem;
+  min-width: 0;
+  max-width: 24rem;
+  max-height: 4.75rem;
   overflow-y: auto;
   border-radius: 0.25rem;
+}
+
+@media (aspect-ratio >= 3/4) {
+  [data-slot="game-board"] .table-stage-body {
+    max-height: 9rem;
+  }
 }
 
 [data-slot="game-board"] .table-stage-body:focus-visible {
@@ -2130,26 +2135,69 @@
 [data-slot="game-board"] .table-stage-actions {
   display: flex;
   flex: none;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 0.375rem 0.625rem;
-  padding-top: 0.25rem;
+  gap: 0.375rem;
 }
 
-/* A low stage (a phone turned sideways): the turn's words a size smaller, so the step and "Weiter" fit together. */
-@container (max-height: 11rem) {
-  [data-slot="game-board"] .table-stage-body h2 {
-    font-size: 1rem;
-    line-height: 1.25rem;
+/*
+ * The "Zuletzt" line (2026-10-14): after the release the latest move of
+ * either player, quiet - the muted words on the panel tone (90 %, 4.5:1 over
+ * every surface), a hairline, no shadow, nothing to tap (every touch passes
+ * through). hoch: in the stack bar's row in place of the empty bar's gold
+ * line; it steps aside while the bar shows something (`data-rests` - the bar
+ * has the spell). quadrat, breit: on the centre line between the
+ * battlefields, always. A low breit window (no centre line): at the foot of
+ * the side column's stack panel, aside likewise. It lies on no card.
+ */
+[data-slot="game-board"] > .table-last-move {
+  grid-column: field;
+  grid-row: center;
+  justify-self: center;
+  align-self: center;
+  position: relative;
+  z-index: 3;
+  display: flex;
+  min-width: 0;
+  max-width: calc(100% - 1rem);
+  margin: 0.0625rem 0.5rem;
+  padding: 0.0625rem 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: color-mix(in oklch, var(--table-panel) 90%, transparent);
+  line-height: 1rem;
+  pointer-events: none;
+}
+
+[data-slot="game-board"] > .table-last-move[data-rests] {
+  display: none;
+}
+
+@media (aspect-ratio < 3/4) {
+  [data-slot="game-board"]:has(> .table-last-move:not([data-rests])) .table-chronicle[data-chronicle="empty"] {
+    background: transparent;
+  }
+}
+
+@media (aspect-ratio >= 3/4) {
+  [data-slot="game-board"] > .table-last-move,
+  [data-slot="game-board"] > .table-last-move[data-rests] {
+    display: flex;
+    grid-row: opponent-field-end / field-start;
+    max-width: min(36rem, calc(100% - 1.5rem));
+    margin: 0;
+  }
+}
+
+@media (aspect-ratio > 13/10) and (max-height: 32rem) {
+  [data-slot="game-board"] > .table-last-move {
+    grid-area: center;
+    align-self: end;
+    max-width: calc(100% - 0.75rem);
+    margin: 0.375rem;
   }
 
-  [data-slot="game-board"] .table-stage-body [data-stage-seat] {
-    display: inline;
-    font-size: inherit;
-  }
-
-  [data-slot="game-board"] .table-stage-body [data-stage-seat]::before {
-    content: " · ";
+  [data-slot="game-board"] > .table-last-move[data-rests] {
+    display: none;
   }
 }
 
@@ -2193,7 +2241,7 @@
 @keyframes table-stage-in {
   from {
     opacity: 0;
-    transform: translateY(0.5rem);
+    transform: translateY(0.25rem);
   }
 }
 

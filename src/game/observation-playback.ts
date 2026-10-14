@@ -50,7 +50,7 @@ export interface Playback {
   /** Its place among the observation's steps (0-based) and their number. */
   readonly index: number
   readonly count: number
-  /** The last step was released: Forge goes on (the stage may stay until Forge's next message). */
+  /** The last step was released: Forge goes on (the table's stage is gone then, the "Zuletzt" line follows). */
   readonly released: boolean
   /** Waiting for "Weiter" (stepwise mode, or the tab in the background). */
   readonly waitingForPlayer: boolean

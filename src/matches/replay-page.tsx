@@ -212,7 +212,6 @@ function ReplayView({ matchId }: { matchId: string }) {
               count={steps.length}
               pictures={pictures}
               summary={null}
-              status={observation.hold ? "Forge hielt hier zum Ansehen an." : "Forge hielt hier nicht an."}
               durationMs={null}
               timerKey={recordedStep.key}
               {...(steps.length > 1

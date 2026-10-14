@@ -1,9 +1,10 @@
 /*
  * The stage of the opponent's turn and the turn band (prompt 49,
  * opponent-stage.tsx) on real observations (src/test/fixtures/observations.json):
- * the words, the cards whole (a hidden one as OpenMana's back), "Weiter" that
- * drops a held key's repeats, the replay's read-only stepping, the band that
- * every touch passes through.
+ * the compact announcement's quiet words, the cards whole (a hidden one as
+ * OpenMana's back), "Weiter" quiet while the tempo runs and gold stepwise,
+ * dropping a held key's repeats, the replay's read-only stepping, the
+ * "Zuletzt" line (2026-10-14), the band that every touch passes through.
  */
 import { fireEvent, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
@@ -12,7 +13,7 @@ import type { GameState, Observation } from "@openmana/engine-protocol"
 import fixture from "@/test/fixtures/observations.json"
 import { observationSteps } from "../observation-model"
 import type { TableCardLookup } from "../table-cards"
-import { OpponentStage, TurnBand } from "./opponent-stage"
+import { LastMoveLine, OpponentStage, TurnBand } from "./opponent-stage"
 
 interface Recorded {
   readonly name: string
@@ -29,23 +30,41 @@ function stepOf(name: string, index = 0) {
 }
 
 describe("OpponentStage", () => {
-  it("a land of the AI: the card whole beside the sentence, the step's number, what happens next, Weiter", async () => {
+  it("a land of the AI: a compact announcement - the card whole as a small preview beside the sentence, a quiet Weiter while the tempo runs", async () => {
     const onNext = vi.fn()
-    render(<OpponentStage step={stepOf("held-land")} index={0} count={1} pictures={NO_PICTURES} summary={null} status="Geht von selbst weiter (Normal)." durationMs={1700} timerKey="a" onNext={onNext} />)
+    render(<OpponentStage step={stepOf("held-land")} index={0} count={1} pictures={NO_PICTURES} summary={null} mode="tempo" durationMs={1700} timerKey="a" onNext={onNext} />)
     const stage = screen.getByRole("region", { name: "Gegnerzug ansehen" })
-    expect(within(stage).getByRole("heading", { level: 2 })).toHaveTextContent("Die Forge-KI spielt ein Land: Forest")
-    expect(within(stage).getByText("Aktion")).toBeInTheDocument()
-    expect(within(stage).getByText("Geht von selbst weiter (Normal).")).toBeInTheDocument()
+    const title = within(stage).getByRole("heading", { level: 2 })
+    expect(title).toHaveTextContent("Die Forge-KI spielt ein Land: Forest")
+    // Quiet words (2026-10-14): the title small, no "Aktion" above it, no line of what happens next (the decision says it).
+    expect(title).toHaveClass("text-sm", "font-medium")
+    expect(title).toHaveAttribute("aria-live", "polite")
+    expect(within(stage).queryByText("Aktion")).toBeNull()
+    expect(stage.querySelector("[data-stage-count]")).toBeNull()
+    expect(stage.querySelector("[data-stage-status]")).toBeNull()
+    expect(stage).toHaveAttribute("data-stage-mode", "tempo")
     // Without card data Forge's words stand for the card - never an empty box, never anything over a picture.
     expect(stage.querySelector('[data-stage-card] [data-slot="card-picture"]')).not.toBeNull()
     expect(stage.querySelector(".table-stage-timer")).not.toBeNull()
-    await userEvent.click(within(stage).getByRole("button", { name: "Weiter – nächste Aktion ansehen" }))
+    const next = within(stage).getByRole("button", { name: "Weiter – nächste Aktion ansehen" })
+    // While the tempo runs "Weiter" only goes on sooner: a quiet button, not the gold one.
+    expect(next).toHaveAttribute("data-variant", "secondary")
+    await userEvent.click(next)
     expect(onNext).toHaveBeenCalledTimes(1)
+  })
+
+  it("stepwise: Weiter is the way on - the gold button; several steps show their count compactly", () => {
+    render(<OpponentStage step={stepOf("held-attack")} index={1} count={3} pictures={NO_PICTURES} summary={null} mode="stepwise" durationMs={null} timerKey="s" onNext={() => undefined} />)
+    const stage = screen.getByRole("region", { name: "Gegnerzug ansehen" })
+    expect(stage).toHaveAttribute("data-stage-mode", "stepwise")
+    expect(within(stage).getByRole("button", { name: "Weiter – nächste Aktion ansehen" })).toHaveAttribute("data-variant", "default")
+    expect(stage.querySelector("[data-stage-count]")).toHaveTextContent("2 von 3")
+    expect(within(stage).queryByText(/^Aktion/)).toBeNull()
   })
 
   it("a key held down on Weiter: its repeats are dropped (only the first keydown can move on)", () => {
     const onNext = vi.fn()
-    render(<OpponentStage step={stepOf("held-cast")} index={0} count={1} pictures={NO_PICTURES} summary={null} status="…" durationMs={null} timerKey="b" onNext={onNext} />)
+    render(<OpponentStage step={stepOf("held-cast")} index={0} count={1} pictures={NO_PICTURES} summary={null} durationMs={null} timerKey="b" onNext={onNext} />)
     const next = screen.getByRole("button", { name: "Weiter – nächste Aktion ansehen" })
     const repeat = new KeyboardEvent("keydown", { key: "Enter", repeat: true, bubbles: true, cancelable: true })
     next.dispatchEvent(repeat)
@@ -57,32 +76,56 @@ describe("OpponentStage", () => {
     expect(document.querySelector(".table-stage-timer")).toBeNull()
   })
 
-  it("a change of turn: its number and whose turn, with what the AI did when it is the player's", () => {
-    render(<OpponentStage step={stepOf("held-turn-me")} index={0} count={1} pictures={NO_PICTURES} summary="Die Forge-KI in Zug 2: Wald gespielt." status="…" durationMs={1700} timerKey="c" />)
+  it("a change of turn: its number and whose turn in one quiet line, with what the AI did when it is the player's", () => {
+    render(<OpponentStage step={stepOf("held-turn-me")} index={0} count={1} pictures={NO_PICTURES} summary="Die Forge-KI in Zug 2: Wald gespielt." durationMs={1700} timerKey="c" />)
     const stage = screen.getByRole("region", { name: "Gegnerzug ansehen" })
-    expect(within(stage).getByText("Zugwechsel")).toBeInTheDocument()
-    expect(within(stage).getByRole("heading", { level: 2 })).toHaveTextContent("Zug 1Du bist am Zug")
+    const title = within(stage).getByRole("heading", { level: 2 })
+    expect(title).toHaveTextContent("Zug 1 · Du bist am Zug")
+    expect(title).toHaveClass("text-sm")
+    expect(title.className).not.toMatch(/text-(x|2x)l/)
+    expect(within(stage).queryByText("Zugwechsel")).toBeNull()
     expect(within(stage).getByText("Die Forge-KI in Zug 2: Wald gespielt.")).toBeInTheDocument()
-    // Released already: no Weiter.
+    // Without onNext: no Weiter.
     expect(within(stage).queryByRole("button")).toBeNull()
   })
 
   it("a hidden card stays OpenMana's back", () => {
     const step = { ...stepOf("held-land"), cards: [{ hidden: true as const }] }
-    render(<OpponentStage step={step} index={0} count={1} pictures={NO_PICTURES} summary={null} status="…" durationMs={null} timerKey="d" />)
+    render(<OpponentStage step={step} index={0} count={1} pictures={NO_PICTURES} summary={null} durationMs={null} timerKey="d" />)
     expect(screen.getByRole("img", { name: "Eine verdeckte Karte" }).querySelector('[data-slot="game-card-back"]')).not.toBeNull()
   })
 
   it("the replay: read only, its steps by hand", () => {
     const onNext = vi.fn()
     const onPrevious = vi.fn()
-    render(<OpponentStage replay step={stepOf("held-attack")} index={0} count={2} pictures={NO_PICTURES} summary={null} status="Forge hielt hier zum Ansehen an." durationMs={null} timerKey="e" onNext={onNext} onPrevious={onPrevious} />)
+    render(<OpponentStage replay step={stepOf("held-attack")} index={0} count={2} pictures={NO_PICTURES} summary={null} durationMs={null} timerKey="e" onNext={onNext} onPrevious={onPrevious} />)
     const stage = screen.getByRole("region", { name: "Aufgezeichnete Aktion" })
-    expect(within(stage).getByText("Aktion 1 von 2 · Aufzeichnung")).toBeInTheDocument()
+    expect(stage).toHaveAttribute("data-stage-mode", "replay")
+    expect(within(stage).getByText("1 von 2 · Aufzeichnung")).toBeInTheDocument()
     expect(within(stage).getByRole("button", { name: "Vorherige Aktion" })).toBeDisabled()
     fireEvent.click(within(stage).getByRole("button", { name: "Nächste Aktion" }))
     expect(onNext).toHaveBeenCalledTimes(1)
     expect(onPrevious).not.toHaveBeenCalled()
+  })
+})
+
+describe("LastMoveLine", () => {
+  it("one quiet line - no picture, no button, no timer, not announced, distinct from the stage's anchors", () => {
+    const { container } = render(<LastMoveLine text="Die Forge-KI hat Grizzlybären gewirkt" rests={false} />)
+    const line = container.querySelector('[data-slot="last-move"]')!
+    expect(line).toHaveTextContent("Zuletzt: Die Forge-KI hat Grizzlybären gewirkt")
+    expect(line).toHaveClass("text-muted-foreground")
+    expect(line).not.toHaveAttribute("aria-live")
+    expect(line.querySelector("[aria-live]")).toBeNull()
+    expect(line).not.toHaveAttribute("data-rests")
+    expect(within(line as HTMLElement).queryByRole("button")).toBeNull()
+    expect(line.querySelector('img, [data-slot="card-picture"], .table-stage-timer, [data-stage-next]')).toBeNull()
+    expect(container.querySelector('[data-slot="opponent-stage"]')).toBeNull()
+  })
+
+  it("rests while the stack bar shows something (hoch steps it aside there)", () => {
+    const { container } = render(<LastMoveLine text="Du hast Wald gespielt" rests />)
+    expect(container.querySelector('[data-slot="last-move"]')).toHaveAttribute("data-rests", "")
   })
 })
 

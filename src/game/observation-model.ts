@@ -23,7 +23,7 @@
  * player's own actions are their own inputs and are not shown again.
  */
 import type { ActionResults, ActionZone, Card, EntityRef, GameState, Observation, ObservedAction, VisibleCard } from "@openmana/engine-protocol"
-import type { OpponentTurn } from "@/engine/engine-session"
+import type { LastMove, OpponentTurn } from "@/engine/engine-session"
 import { cardName } from "./table-labels"
 import { isVisible, visibleCards } from "./table-model"
 
@@ -337,4 +337,35 @@ export function turnSummaryText(turn: OpponentTurn | null): string | null {
   if (turn === null) return null
   const parts = turnSummary(turn)
   return parts.length === 0 ? `Die Forge-KI hat in Zug ${turn.turn} nichts gespielt und nicht angegriffen.` : `Die Forge-KI in Zug ${turn.turn}: ${parts.join(" · ")}.`
+}
+
+/**
+ * The "Zuletzt" line (2026-10-14): the latest move of either player in past
+ * words - "Die Forge-KI hat Grizzlybären gewirkt", "Du hast Wald gespielt" -,
+ * from the action's kind and Forge's structured fields as captured
+ * (EngineSession.lastMove), never from Forge's prose or a state difference.
+ * Null before the first move.
+ */
+export function lastMoveText(move: LastMove | null): string | null {
+  if (move === null) return null
+  const { action, me } = move
+  const actor = actorOf(action.player, me)
+  const who = actor === "me" ? "Du hast" : actor === "opponent" ? "Die Forge-KI hat" : "Ein Spieler hat"
+  const creatures = (count: number) => (count === 1 ? "einer Kreatur" : `${count} Kreaturen`)
+  switch (action.kind) {
+    case "land":
+      return `${who} ${name(action.card)} gespielt`
+    case "cast":
+      return `${who} ${name(action.card)} gewirkt`
+    case "activate":
+      return `${who} eine Fähigkeit von ${name(action.card)} aktiviert`
+    case "attack":
+      return `${who} mit ${creatures(action.attacks.length)} angegriffen`
+    case "block": {
+      const blockers = action.blocks.reduce((sum, each) => sum + each.blockers.length, 0)
+      return blockers === 0 ? `${who} nicht geblockt` : `${who} mit ${creatures(blockers)} geblockt`
+    }
+    default:
+      return null
+  }
 }

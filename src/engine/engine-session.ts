@@ -203,6 +203,16 @@ export type MatchSnapshot =
        * `history`. Null until the opponent's first turn began.
        */
       readonly opponentTurn: OpponentTurn | null
+      /**
+       * The table's "Zuletzt" line (2026-10-14): the latest move of either
+       * player - a land, a spell, an ability, an attack or a block - from the
+       * observations, captured when its observation arrives with the state's
+       * `me`. One action only: the next observation with a move replaces it,
+       * one without (a change of turn, a resolution, combat damage) keeps it;
+       * never recorded or stored - not a second history. Null before the
+       * game's first move.
+       */
+      readonly lastMove: LastMove | null
     })
   | (MatchBase & {
       readonly status: "over"
@@ -253,6 +263,28 @@ export function foldOpponentTurn(current: OpponentTurn | null, observation: Obse
     else if (turn !== null && SUMMED_UP.has(action.kind) && turn.actions.length < OPPONENT_TURN_LIMIT) turn = { turn: turn.turn, actions: [...turn.actions, action] }
   }
   return turn
+}
+
+/** The latest move of either player (MatchSnapshot playing.lastMove): one action as Forge sent it, and who the player was then. */
+export interface LastMove {
+  readonly action: ObservedAction
+  /** The player's id in the state the action's observation followed. */
+  readonly me: number
+}
+
+/** The actions that are a move of a player (the "Zuletzt" line); a change of turn, a trigger, a resolution and combat damage are not. */
+const MOVES: ReadonlySet<ObservedAction["kind"]> = new Set(["land", "cast", "activate", "attack", "block"])
+
+/**
+ * The latest move after `observation`: its last action that is a move of a
+ * named player, else the current one unchanged. Who is who by the state's
+ * `me`; without a state that names the player nothing changes.
+ */
+export function foldLastMove(current: LastMove | null, observation: Observation, state: GameState | null): LastMove | null {
+  const me = state?.players.find((player) => player.me)?.id
+  if (me === undefined) return current
+  const move = observation.actions.findLast((action) => action.player !== null && MOVES.has(action.kind))
+  return move === undefined ? current : { action: move, me }
 }
 
 export interface EngineSessionSnapshot {
@@ -778,6 +810,7 @@ export class EngineSession {
             observationHeld: false,
             settings: null,
             opponentTurn: null,
+            lastMove: null,
           },
         })
         return
@@ -829,7 +862,7 @@ export class EngineSession {
       case "observation":
         this.#set({
           engine,
-          match: { ...match, observation: message, observationCount: match.observationCount + 1, observationHeld: message.hold, opponentTurn: foldOpponentTurn(match.opponentTurn, message, match.state), waiting },
+          match: { ...match, observation: message, observationCount: match.observationCount + 1, observationHeld: message.hold, opponentTurn: foldOpponentTurn(match.opponentTurn, message, match.state), lastMove: foldLastMove(match.lastMove, message, match.state), waiting },
         })
         return
       case "observation.released":

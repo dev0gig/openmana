@@ -6,10 +6,10 @@
  * one and marked so (a turn's end alone).
  */
 import { describe, expect, it } from "vitest"
-import type { GameState, Observation } from "@openmana/engine-protocol"
-import { foldOpponentTurn } from "@/engine/engine-session"
+import type { GameState, Observation, StackAction, VisibleCard } from "@openmana/engine-protocol"
+import { foldLastMove, foldOpponentTurn, type LastMove } from "@/engine/engine-session"
 import fixture from "@/test/fixtures/observations.json"
-import { observationCards, observationSteps, presentation, turnSummary, turnSummaryText } from "./observation-model"
+import { lastMoveText, observationCards, observationSteps, presentation, turnSummary, turnSummaryText } from "./observation-model"
 
 interface Recorded {
   readonly name: string
@@ -148,5 +148,50 @@ describe("what the AI did last (EngineSession.opponentTurn)", () => {
     expect(foldOpponentTurn(turn, next, recorded("held-turn-opponent").state)).toEqual({ turn: 4, actions: [] })
     // Without a state that names the player, nothing changes.
     expect(foldOpponentTurn(turn, next, null)).toBe(turn)
+  })
+})
+
+describe("the latest move (EngineSession.lastMove, the table's \"Zuletzt\" line)", () => {
+  const fold = (current: LastMove | null, name: string) => foldLastMove(current, recorded(name).observation, recorded(name).state)
+
+  it("nothing before the first move; a change of turn alone is none", () => {
+    expect(lastMoveText(null)).toBeNull()
+    expect(fold(null, "held-turn-opponent")).toBeNull()
+    expect(fold(null, "unheld-turn-me")).toBeNull()
+  })
+
+  it("the AI's moves and the player's own in past words, from the actions' kinds and Forge's fields", () => {
+    expect(lastMoveText(fold(null, "held-land"))).toBe("Die Forge-KI hat Forest gespielt")
+    expect(lastMoveText(fold(null, "held-cast"))).toBe("Die Forge-KI hat Llanowarelfen gewirkt")
+    expect(lastMoveText(fold(null, "held-attack"))).toMatch(/^Die Forge-KI hat mit (einer Kreatur|\d+ Kreaturen) angegriffen$/)
+    expect(lastMoveText(fold(null, "own-land"))).toBe("Du hast Gebirge gespielt")
+    expect(lastMoveText(fold(null, "cast-targets"))).toBe("Du hast Geborstener Blitz gewirkt")
+    // The player's block without blockers (recorded): "nicht geblockt".
+    expect(lastMoveText(fold(null, "block"))).toBe("Du hast nicht geblockt")
+    // Built from the recorded attack: an ability, a block with blockers, a hidden card.
+    const { observation, state } = recorded("held-cast")
+    const elves = (observation.actions[0] as StackAction).card as VisibleCard
+    const me = state.players.find((player) => player.me)!.id
+    expect(lastMoveText({ me, action: { n: 90, kind: "activate", player: 1, card: elves, targets: [] } })).toBe("Die Forge-KI hat eine Fähigkeit von Llanowarelfen aktiviert")
+    expect(lastMoveText({ me, action: { n: 91, kind: "block", player: 1, blocks: [{ attacker: 28, blockers: [elves, elves] }] } })).toBe("Die Forge-KI hat mit 2 Kreaturen geblockt")
+    expect(lastMoveText({ me, action: { n: 92, kind: "cast", player: 1, card: { hidden: true }, targets: [] } })).toBe("Die Forge-KI hat eine verdeckte Karte gewirkt")
+  })
+
+  it("the next observation with a move replaces it; a change of turn, a resolution and combat damage keep it; without a state nothing changes", () => {
+    let last = fold(null, "held-land")
+    for (const name of ["held-turn-opponent", "held-resolve-moves", "combat-damage", "unheld-turn-me"]) {
+      const kept = fold(last, name)
+      expect(kept).toBe(last)
+    }
+    last = fold(last, "held-cast")
+    expect(lastMoveText(last)).toBe("Die Forge-KI hat Llanowarelfen gewirkt")
+    last = fold(last, "own-land")
+    expect(lastMoveText(last)).toBe("Du hast Gebirge gespielt")
+    // One entry only, never a list.
+    expect(Object.keys(last!).sort()).toEqual(["action", "me"])
+    expect(foldLastMove(last, recorded("held-attack").observation, null)).toBe(last)
+    // Of several moves in one observation the last one.
+    const both = { ...recorded("held-land").observation, actions: [...recorded("held-land").observation.actions, ...recorded("held-cast").observation.actions] } as Observation
+    expect(lastMoveText(foldLastMove(null, both, recorded("held-cast").state))).toBe("Die Forge-KI hat Llanowarelfen gewirkt")
   })
 })

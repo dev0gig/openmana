@@ -288,8 +288,13 @@ describe("the game page: the opponent's turn (prompt 49)", () => {
       engine.worker().send({ type: "engine.waiting", consumed: 2 })
     })
     const stage = await screen.findByRole("region", { name: "Gegnerzug ansehen" })
-    expect(within(stage).getByRole("heading", { level: 2 })).toHaveTextContent("Zug 2Die Forge-KI ist am Zug")
-    expect(within(stage).getByText("Wartet auf „Weiter“ – Forge hält so lange an.")).toBeInTheDocument()
+    expect(within(stage).getByRole("heading", { level: 2 })).toHaveTextContent("Zug 2 · Die Forge-KI ist am Zug")
+    // Stepwise: "Weiter" is the gold button; what happens next is the decision region's to say, not repeated on the stage.
+    expect(stage).toHaveAttribute("data-stage-mode", "stepwise")
+    expect(within(stage).getByRole("button", { name: "Weiter – nächste Aktion ansehen" })).toHaveAttribute("data-variant", "default")
+    expect(within(stage).queryByText("Wartet auf „Weiter“ – Forge hält so lange an.")).not.toBeInTheDocument()
+    // No move yet in this game: no "Zuletzt" line.
+    expect(document.querySelector('[data-slot="last-move"]')).toBeNull()
     expect(within(header).getByText("Gegnerzug")).toBeInTheDocument()
     expect(within(header).queryByText("Du bist dran")).not.toBeInTheDocument()
     expect(within(decision).getByText("Forge hält an – sieh dir die Aktion der Forge-KI an.")).toBeInTheDocument()
@@ -300,7 +305,9 @@ describe("the game page: the opponent's turn (prompt 49)", () => {
     const next = within(stage).getByRole("button", { name: "Weiter – nächste Aktion ansehen" })
     await user.click(next)
     expect(engine.worker().inputs()).toEqual([{ type: "observation.release", seq: 3, observation: 1 }])
-    await user.click(next)
+    // Released: the stage is gone at once; a change of turn is no move - still no "Zuletzt" line.
+    expect(screen.queryByRole("region", { name: "Gegnerzug ansehen" })).not.toBeInTheDocument()
+    expect(document.querySelector('[data-slot="last-move"]')).toBeNull()
     expect(engine.worker().inputs()).toEqual([])
 
     // The AI plays a land: its card on the stage.
@@ -316,9 +323,21 @@ describe("the game page: the opponent's turn (prompt 49)", () => {
     const shown = screen.getByRole("region", { name: "Gegnerzug ansehen" }).querySelector('[data-stage-card="40"]')
     expect(shown).not.toBeNull()
     expect(shown).toHaveTextContent("Wald")
+    // While the stage holds, the "Zuletzt" line waits (the stage says it).
+    expect(document.querySelector('[data-slot="last-move"]')).toBeNull()
     clock += ARMING_MS
     await user.click(screen.getByRole("button", { name: "Weiter – nächste Aktion ansehen" }))
     expect(engine.worker().inputs()).toEqual([{ type: "observation.release", seq: 4, observation: 2 }])
+    // After the release one quiet line stays: the latest move in past words - no picture, no button, not the stage's anchors.
+    const line = await waitFor(() => {
+      const found = document.querySelector<HTMLElement>('[data-slot="last-move"]')
+      expect(found).not.toBeNull()
+      return found!
+    })
+    expect(line).toHaveTextContent("Zuletzt: Die Forge-KI hat Wald gespielt")
+    expect(line.querySelector("button, img, [data-stage-next]")).toBeNull()
+    expect(line.closest('[data-slot="opponent-stage"]')).toBeNull()
+    expect(screen.queryByRole("region", { name: "Gegnerzug ansehen" })).not.toBeInTheDocument()
 
     // The AI casts the Bears (held, seen), then Forge asks the player about the spell on the stack: the stage is gone, the interruption says why, Forge's buttons are there.
     act(() => {
@@ -341,6 +360,9 @@ describe("the game page: the opponent's turn (prompt 49)", () => {
     expect(await within(decision).findByText("Unterbrechung: Die Forge-KI wirkt Grizzlybären")).toBeInTheDocument()
     expect(screen.queryByRole("region", { name: "Gegnerzug ansehen" })).not.toBeInTheDocument()
     expect(within(header).getByText("Du bist dran")).toBeInTheDocument()
+    // The spell is the latest move; the stack shows it, so the line rests there (hoch steps it aside).
+    expect(document.querySelector('[data-slot="last-move"]')).toHaveTextContent("Zuletzt: Die Forge-KI hat Grizzlybären gewirkt")
+    expect(document.querySelector('[data-slot="last-move"]')).toHaveAttribute("data-rests", "")
     const pass = await within(decision).findByRole("button", { name: "Verrechnen lassen" })
     // Answered (passed): the interruption goes, and does not come back for Forge's next question about the same spell.
     clock += ARMING_MS

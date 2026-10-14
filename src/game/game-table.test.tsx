@@ -6,6 +6,7 @@
  * decision in Forge's words. Layout itself (fitting the screen at every
  * size) is checked in Chrome by the end-to-end test.
  */
+import type * as React from "react"
 import type { VisibleCard } from "@openmana/engine-protocol"
 import { fireEvent, render, screen, within } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
@@ -75,6 +76,36 @@ describe("the regions", () => {
     expect(within(header).getByText("Vor dem ersten Zug")).toBeInTheDocument()
     expect(within(header).getByText("Die Starthände werden gezogen")).toBeInTheDocument()
     expect(within(header).getByText("Forge rechnet")).toBeInTheDocument()
+  })
+})
+
+describe("the \"Zuletzt\" line (2026-10-14)", () => {
+  const table = (name: TableSceneName, extra: { lastMove?: string | null; stage?: React.ReactNode }) => {
+    const scene = tableScene(name)
+    return render(<GameTable state={scene.state} questions={scene.questions} prompt={scene.prompt} waiting aiProfile={scene.game.aiProfile} pictures={NO_PICTURES} menu={null} {...extra} />)
+  }
+
+  it("the latest move as one line on the board - outside every region, after the hand and before the decision; nothing before the first move", () => {
+    const { unmount } = table("main-phase", {})
+    expect(document.querySelector('[data-slot="last-move"]')).toBeNull()
+    unmount()
+    table("main-phase", { lastMove: "Die Forge-KI hat Grizzlybären gewirkt" })
+    const line = document.querySelector('[data-slot="last-move"]')!
+    expect(line).toHaveTextContent("Zuletzt: Die Forge-KI hat Grizzlybären gewirkt")
+    expect(line.parentElement).toHaveAttribute("data-slot", "game-board")
+    expect(line.closest('[data-slot="game-board-area"]')).toBeNull()
+    expect(line.compareDocumentPosition(region("Deine Hand")) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
+    expect(line.compareDocumentPosition(region("Entscheidung")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // An empty stack: the line stands (in hoch in place of the empty bar's gold line).
+    expect(line).not.toHaveAttribute("data-rests")
+  })
+
+  it("rests while the stack shows something, and waits while the stage holds", () => {
+    const { unmount } = table("stack", { lastMove: "Du hast Schock gewirkt" })
+    expect(document.querySelector('[data-slot="last-move"]')).toHaveAttribute("data-rests", "")
+    unmount()
+    table("main-phase", { lastMove: "Du hast Schock gewirkt", stage: <section data-slot="opponent-stage" aria-label="Gegnerzug ansehen" /> })
+    expect(document.querySelector('[data-slot="last-move"]')).toBeNull()
   })
 })
 

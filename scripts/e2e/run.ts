@@ -3070,33 +3070,37 @@ interface StageSeen {
   readonly title: string
   readonly at: number
   readonly cards: number
+  /** How it went on (`data-stage-mode`, 2026-10-14): tempo, stepwise, paused, replay. */
   readonly status: string
   /** When the step stopped being shown by itself (released or gone). */
   readonly end?: number
 }
 
-/** Records every step of the opponent's stage and every turn band the page shows, with page time (prompt 49). */
+/** Records every step of the opponent's stage, every turn band and every "Zuletzt" line the page shows, with page time (prompt 49; the line since 2026-10-14). */
 function stageRecorder(): void {
-  const state = { key: null as string | null, band: null as string | null }
+  const state = { key: null as string | null, band: null as string | null, line: null as string | null }
   const seen: unknown[] = []
   const again: unknown[] = []
   const bands: unknown[] = []
+  const lines: unknown[] = []
+  const together: unknown[] = []
   ;(window as unknown as { __again: unknown[] }).__again = again
+  ;(window as unknown as { __lines: unknown[]; __together: unknown[] }).__lines = lines
+  ;(window as unknown as { __lines: unknown[]; __together: unknown[] }).__together = together
   ;(window as unknown as { __stage: unknown[]; __bands: unknown[] }).__stage = seen
   ;(window as unknown as { __stage: unknown[]; __bands: unknown[] }).__bands = bands
   const look = () => {
     const stage = document.querySelector<HTMLElement>('[data-slot="opponent-stage"]')
     const key = stage?.dataset["step"] ?? null
-    // How long a step was shown before the game went on: from its appearance until its status says Forge plays on or it is gone.
-    const status = (stage?.querySelector("[data-stage-status]")?.textContent ?? "").trim()
+    // How long a step was shown before the game went on: from its appearance until it is gone (since 2026-10-14 the stage goes with the release).
     const open = seen.at(-1) as { key: string; end?: number } | undefined
-    if (open !== undefined && open.end === undefined && (open.key !== key || status === "Forge spielt weiter …")) open.end = performance.now()
+    if (open !== undefined && open.end === undefined && open.key !== key) open.end = performance.now()
     if (key !== state.key) {
       state.key = key
       // A step counts once, at its first appearance (a step shown again would be a step played back over a newer moment: flagged).
       if (stage !== null && key !== null && seen.some((each) => (each as { key: string }).key === key)) again.push({ key, at: performance.now() })
       else if (stage !== null && key !== null) {
-        seen.push({ key, kind: stage.dataset["kind"], actor: stage.dataset["actor"], title: (stage.querySelector("h2")?.textContent ?? "").trim(), at: performance.now(), cards: Number(stage.dataset["cards"] ?? 0), status: (stage.querySelector("[data-stage-status]")?.textContent ?? "").trim() })
+        seen.push({ key, kind: stage.dataset["kind"], actor: stage.dataset["actor"], title: (stage.querySelector("h2")?.textContent ?? "").trim(), at: performance.now(), cards: Number(stage.dataset["cards"] ?? 0), status: stage.dataset["stageMode"] ?? "" })
       }
     }
     const band = document.querySelector<HTMLElement>('[data-slot="turn-band"]')
@@ -3105,14 +3109,56 @@ function stageRecorder(): void {
       state.band = text
       if (text !== null) bands.push({ text, seat: band?.dataset["seat"], at: performance.now() })
     }
+    // The "Zuletzt" line: every text it showed, and whether it ever stood beside a held stage (it must not).
+    const line = document.querySelector<HTMLElement>('[data-slot="last-move"]')
+    const lineText = line === null ? null : (line.textContent ?? "").trim()
+    if (lineText !== state.line) {
+      state.line = lineText
+      if (lineText !== null) lines.push({ text: lineText, rests: line?.hasAttribute("data-rests") ?? false, at: performance.now() })
+    }
+    if (line !== null && stage !== null) together.push({ key, line: lineText, at: performance.now() })
   }
   const start = () => new MutationObserver(look).observe(document.documentElement, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["data-step", "data-slot"] })
   if (document.documentElement) start()
   else document.addEventListener("DOMContentLoaded", start)
 }
 
-async function stageLog(page: Page): Promise<{ readonly steps: readonly StageSeen[]; readonly again: readonly { readonly key: string }[]; readonly bands: readonly { readonly text: string; readonly seat: string; readonly at: number }[] }> {
-  return page.evaluate(() => ({ steps: (window as unknown as { __stage: StageSeen[] }).__stage, again: (window as unknown as { __again: { key: string }[] }).__again, bands: (window as unknown as { __bands: { text: string; seat: string; at: number }[] }).__bands }))
+async function stageLog(page: Page): Promise<{
+  readonly steps: readonly StageSeen[]
+  readonly again: readonly { readonly key: string }[]
+  readonly bands: readonly { readonly text: string; readonly seat: string; readonly at: number }[]
+  readonly lines: readonly { readonly text: string; readonly rests: boolean; readonly at: number }[]
+  readonly together: readonly { readonly key: string; readonly line: string }[]
+}> {
+  return page.evaluate(() => {
+    const w = window as unknown as { __stage: StageSeen[]; __again: { key: string }[]; __bands: { text: string; seat: string; at: number }[]; __lines: { text: string; rests: boolean; at: number }[]; __together: { key: string; line: string }[] }
+    return { steps: w.__stage, again: w.__again, bands: w.__bands, lines: w.__lines, together: w.__together }
+  })
+}
+
+/** The "Zuletzt" line (2026-10-14) where it stands: one line inside the board, never over the hand, the decision or the header, no control in it. Null: none shown. */
+async function lastMoveFacts(page: Page): Promise<Record<string, unknown> | null> {
+  return page.evaluate(() => {
+    const line = document.querySelector<HTMLElement>('[data-slot="last-move"]')
+    if (line === null || line.getClientRects().length === 0) return null
+    const r = line.getBoundingClientRect()
+    const board = document.querySelector('[data-slot="game-board"]')!.getBoundingClientRect()
+    const overlaps = (name: string) => {
+      const area = document.querySelector(`section[data-area="${name}"]`)?.getBoundingClientRect()
+      return area !== undefined && !(area.bottom <= r.top + 1 || area.top >= r.bottom - 1 || area.right <= r.left + 1 || area.left >= r.right - 1)
+    }
+    return {
+      text: (line.textContent ?? "").trim(),
+      box: { left: Math.round(r.left), top: Math.round(r.top), width: Math.round(r.width), height: Math.round(r.height) },
+      insideBoard: r.left >= board.left - 1 && r.top >= board.top - 1 && r.right <= board.right + 1 && r.bottom <= board.bottom + 1,
+      oneLine: r.height <= 28,
+      controls: line.querySelectorAll("button, a, input, [tabindex], [data-stage-next]").length,
+      insideStage: line.closest('[data-slot="opponent-stage"]') !== null,
+      overHand: overlaps("hand"),
+      overDecision: overlaps("decision"),
+      overHeader: overlaps("header"),
+    }
+  })
 }
 
 /** The stage, its box, its cards' boxes and its "Weiter" (prompt 49): whole, inside the board, never over the hand or the decision. */
@@ -3137,7 +3183,7 @@ async function stageFacts(page: Page): Promise<Record<string, unknown> | null> {
       const area = document.querySelector(`section[data-area="${name}"]`)?.getBoundingClientRect()
       return area !== undefined && !(area.bottom <= stageBox.top + 1 || area.top >= stageBox.bottom - 1 || area.right <= stageBox.left + 1 || area.left >= stageBox.right - 1)
     }
-    const text = stage.querySelector(".table-stage-text")
+    const text = stage.querySelector(".table-stage-body")
     return {
       key: stage.dataset["step"],
       kind: stage.dataset["kind"],
@@ -3151,6 +3197,10 @@ async function stageFacts(page: Page): Promise<Record<string, unknown> | null> {
       overHand: overlaps("hand"),
       overDecision: overlaps("decision"),
       overHeader: overlaps("header"),
+      // Since 2026-10-14 (compact): in hoch never over the player's battlefield or the stack bar.
+      overField: overlaps("field"),
+      overCenter: overlaps("center"),
+      mode: stage.dataset["stageMode"],
       animations: stage.getAnimations({ subtree: true }).length,
       badge: [...document.querySelectorAll('section[aria-label="Spielstand"] [data-slot="badge"]')].map((badge) => (badge.textContent ?? "").trim()),
     }
@@ -3366,8 +3416,12 @@ async function opponentTurnInRealGame(browser: Browser, base: string, viewport: 
               const next = at?.["next"] as { height: number; width: number } | null
               check(at !== null && at["key"] === first, `${label}: resizing to ${size.name} changed or lost the held step (${String(at?.["key"])} instead of ${String(first)})`)
               check(at?.["insideBoard"] === true && at["overHand"] === false && at["overDecision"] === false && at["overHeader"] === false, `${label}: the stage at ${size.name} leaves the board or covers the hand, the decision or the header ${JSON.stringify(at)}`)
-              check(cards.length > 0 && cards.every((each) => each.inside && each.whole && each.width >= 44), `${label}: a stage card at ${size.name} is cut, too small or missing ${JSON.stringify(cards)}`)
-              const stageBox = at?.["stage"] as { top: number; bottom: number } | undefined
+              // A small preview (2026-10-14): whole, at least 44 px, at most 6 rem wide.
+              check(cards.length > 0 && cards.every((each) => each.inside && each.whole && each.width >= 44 && each.width <= 96), `${label}: a stage card at ${size.name} is cut, too small, too large or missing ${JSON.stringify(cards)}`)
+              const stageBox = at?.["stage"] as { top: number; bottom: number; height: number } | undefined
+              // Compact: only as tall as its content - in hoch a bar above the stack bar, never over the player's battlefield or that bar.
+              check(stageBox !== undefined && stageBox.height <= (layout === "hoch" ? 100 : 200), `${label}: the stage at ${size.name} is not compact ${JSON.stringify(stageBox)}`)
+              check(layout !== "hoch" || (at?.["overField"] === false && at["overCenter"] === false), `${label}: the stage at ${size.name} (hoch) covers the player's battlefield or the stack bar ${JSON.stringify(at)}`)
               check(next !== null && next.height >= (touch ? 44 : 24) && stageBox !== undefined && (next as unknown as { top: number }).top >= stageBox.top && (next as unknown as { bottom: number }).bottom <= stageBox.bottom, `${label}: "Weiter" at ${size.name} is too small or cut ${JSON.stringify({ next, stageBox })}`)
               await page.screenshot({ path: path.join(reportDir, "screens", `opponent-${viewport.name}-stage-${size.name}.png`) })
             }
@@ -3434,13 +3488,13 @@ async function opponentTurnInRealGame(browser: Browser, base: string, viewport: 
           await page.waitForTimeout(5000)
           const stillSteps = (await stageLog(page)).steps.length
           const stillKey = (await stageFacts(page))?.["key"]
-          const status = await stage.locator("[data-stage-status]").textContent()
+          const status = await stage.getAttribute("data-stage-mode")
           const releasesHidden = ((await recordedInputs(page))["observation.release"] ?? 0) - releasesBefore
           const shown = await visibility(false)
           await page.waitForFunction((key) => document.querySelector('[data-slot="opponent-stage"]')?.getAttribute("data-step") !== key, facts?.["key"], { timeout: 15_000 }).catch(() => undefined)
           const movedOn = await page.evaluate((key) => document.querySelector('[data-slot="opponent-stage"]')?.getAttribute("data-step") !== key, facts?.["key"])
           background = { simulated: "visibilityState + visibilitychange", key: facts?.["key"], hidden, shown, status, stepsBefore: steps, stepsWhileHidden: stillSteps - steps, releasesWhileHidden: releasesHidden, keyAfterHidden: stillKey, movedOnAfterShown: movedOn }
-          check(hidden === "hidden" && stillSteps === steps && releasesHidden === 0 && stillKey === facts?.["key"] && movedOn, `${label}: in the background the stage moved on ${JSON.stringify(background)}`)
+          check(hidden === "hidden" && status === "paused" && stillSteps === steps && releasesHidden === 0 && stillKey === facts?.["key"] && movedOn, `${label}: in the background the stage moved on ${JSON.stringify(background)}`)
           continue
         }
         if (phase === "normal" && lessMotion === null) {
@@ -3543,11 +3597,11 @@ async function opponentTurnInRealGame(browser: Browser, base: string, viewport: 
     const opponentSteps = log.steps.filter((each) => each.actor === "opponent")
     const kinds = [...new Set(log.steps.map((each) => each.kind))]
     // The tempo: how long each step stood by itself (its appearance until it was released or replaced), for the steps
-    // that went on by the tempo ("Geht von selbst weiter").
+    // that went on by the tempo (data-stage-mode "tempo").
     const gaps = (from: number, to: number) =>
       log.steps
         .slice(from, to)
-        .filter((each) => each.status.startsWith("Geht von selbst weiter") && each.end !== undefined)
+        .filter((each) => each.status === "tempo" && each.end !== undefined)
         .map((each) => each.end! - each.at)
     const median = (values: readonly number[]) => (values.length === 0 ? null : [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)]!)
     const tempo = {
@@ -3565,6 +3619,11 @@ async function opponentTurnInRealGame(browser: Browser, base: string, viewport: 
     check(opponentSteps.some((each) => each.kind === "attack"), `${label}: the AI's attack was not shown ${JSON.stringify(kinds)}`)
     check(log.steps.some((each) => each.kind === "turn") || log.bands.length > 0, `${label}: no change of turn was shown`)
     check(log.again.length === 0, `${label}: a step was shown again after it was gone ${JSON.stringify(log.again.slice(0, 5))}`)
+    // The "Zuletzt" line (2026-10-14): the AI's moves and the player's own in past words, never beside a held stage, no control, one line.
+    check(log.lines.some((each) => each.text.startsWith("Zuletzt: Die Forge-KI hat ")) && log.lines.some((each) => each.text.startsWith("Zuletzt: Du hast ")), `${label}: the "Zuletzt" line never named the AI's and the player's moves ${JSON.stringify(log.lines.slice(-8))}`)
+    check(log.together.length === 0, `${label}: the "Zuletzt" line stood beside a held stage ${JSON.stringify(log.together.slice(0, 5))}`)
+    const lastMove = await lastMoveFacts(page)
+    check(lastMove === null || (lastMove["insideBoard"] === true && lastMove["oneLine"] === true && lastMove["controls"] === 0 && lastMove["insideStage"] === false && lastMove["overHand"] === false && lastMove["overDecision"] === false && lastMove["overHeader"] === false), `${label}: the "Zuletzt" line is out of place ${JSON.stringify(lastMove)}`)
     const ownTurns = [...new Set(lands.map((each) => each.turn))]
     check(lands.length >= 2 && ownTurns.length === lands.length && lands.every((each) => each.owner === "me"), `${label}: the player's lands are not in distinct own turns ${JSON.stringify(lands)}`)
     // Between two lands of the player the AI's turn was shown (its beginning on the stage or as a band).
@@ -3581,6 +3640,8 @@ async function opponentTurnInRealGame(browser: Browser, base: string, viewport: 
     results["layouts"] = layouts
     results["stageSteps"] = log.steps.map((each) => ({ key: each.key, kind: each.kind, actor: each.actor, title: each.title, cards: each.cards, status: each.status, at: Math.round(each.at), shownMs: each.end === undefined ? null : Math.round(each.end - each.at) }))
     results["bands"] = log.bands
+    results["lastMoveLines"] = log.lines
+    results["lastMove"] = lastMove
     results["inputs"] = await recordedInputs(page)
     await shot("end")
 

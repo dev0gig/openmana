@@ -137,6 +137,7 @@ import { HAND_PICTURE_SIZES, TablePicture } from "./table-picture"
 import { CardChip, rowSize, SickChip, ValuePlaque } from "./table/card-parts"
 import { Chronicle } from "./table/chronicle"
 import { handFan, restingCardAt } from "./table/hand-fan"
+import { LastMoveLine } from "./table/opponent-stage"
 import { PhasePanel } from "./table/phase-panel"
 import { TableArrows } from "./table/table-arrows"
 import { HandDrag, TableMotion } from "./table/table-motion"
@@ -196,10 +197,17 @@ export interface GameTableProps {
   readonly onUseMana?: (color: ManaColor) => void
   /**
    * Prompt 49: the opponent's action the engine holds for looking (the page's
-   * OpponentStage, table/opponent-stage.tsx) - over the player's half, after
+   * OpponentStage, table/opponent-stage.tsx) - a compact announcement between the battlefields, after
    * the hand and before the decision in the focus order. Absent: none.
    */
   readonly stage?: ReactNode
+  /**
+   * 2026-10-14: the latest move of either player in words (lastMoveText) for
+   * the quiet "Zuletzt" line - on the centre line beside the side columns,
+   * in place of the empty stack bar's gold line in hoch. Not while the stage
+   * holds; null before the first move.
+   */
+  readonly lastMove?: string | null
   /** Prompt 49: a change of turn that came without holding (TurnBand) - decoration, every touch passes through. */
   readonly turnBand?: ReactNode
   /**
@@ -266,6 +274,7 @@ export function GameTable({ replay = false,
   onTapPlayer,
   onUseMana,
   stage = null,
+  lastMove = null,
   turnBand = null,
   observing = null,
   autoPass = null,
@@ -470,8 +479,10 @@ export function GameTable({ replay = false,
           <Hand cards={view.me?.hand ?? []} pictures={pictures} />
         </GameBoardArea>
 
-        {/* The opponent's action the engine holds (prompt 49): over the player's half, reached after the hand. */}
+        {/* The opponent's action the engine holds (prompt 49): a compact announcement between the battlefields, reached after the hand. */}
         {stage}
+        {/* After it the latest move, one quiet line (not while the stage holds); in hoch and a low window it steps aside while the stack bar shows something. */}
+        {lastMove !== null && stage === null ? <LastMoveLine text={lastMove} rests={view.stack.length > 0 || view.combat.length > 0} /> : null}
         {turnBand}
         {/* The decision last: the order of hoch (its action bar at the very bottom) is the reading and focus order of every layout. */}
         {/* Beside the battlefields the Phasen-Tafel stands in its column: at the end in quadrat, in the middle in breit (the mockup's). */}

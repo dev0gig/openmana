@@ -137,8 +137,8 @@ describe("design tokens", () => {
     expect(ratio(token("primary-foreground"), mixed)).toBeGreaterThanOrEqual(4.5)
   })
 
-  // Prompt 37: regions full of text and the words on the board lie on --table-panel at 90 % (table.css, BOARD_TEXT in
-  // game-table.tsx); below them may lie the board's brightest decoration - brass and rune gold - or the desk.
+  // Prompt 37: regions full of text and the words on the board lie on --table-panel at 90 % (table.css, BOARD_TEXT in game-table.tsx;
+  // since 2026-10-14 also the opponent's compact stage and the "Zuletzt" line); below them may lie the board's brightest decoration - brass and rune gold - or the desk.
   it.each(
     ["foreground", "muted-foreground", "primary", "table-gold-light"].flatMap((text) =>
       ["table-gold-light", "table-wood-frame", "table-leather", "table-wood"].map((under) => [text, under] as const),

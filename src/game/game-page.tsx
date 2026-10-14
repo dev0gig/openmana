@@ -642,6 +642,7 @@ function Playing({ match }: { match: Of<"playing"> }) {
           onTapPlayer={tapSeat}
           onUseMana={payFromPool}
           stage={opponent.stage}
+          lastMove={opponent.lastMove}
           turnBand={opponent.turnBand}
           observing={opponent.observing}
           autoPass={opponent.autoPass}

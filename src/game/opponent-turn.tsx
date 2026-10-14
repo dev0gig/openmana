@@ -3,7 +3,9 @@
  * latest observation (protocol 10, prompt 48) to what the table shows -
  *
  *  - the stage of an action the engine holds, stepped by the tempo or
- *    "Weiter" and released after its last step (useObservationPlayback);
+ *    "Weiter" and released after its last step (useObservationPlayback) -
+ *    gone with the release; then the "Zuletzt" line names the latest move
+ *    of either player (EngineSession.lastMove);
  *  - the band of a change of turn that came without holding (Forge asks the
  *    player right away): shown for one step's time, every touch passes through;
  *  - "Unterbrechung": an action of the opponent that came right before a
@@ -23,17 +25,19 @@ import { usePreferences } from "@/app/preferences"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import type { MatchSnapshot } from "@/engine/engine-session"
 import { useEngineSession } from "@/engine/engine-session-context"
-import { actorOf, myId, observationSteps, presentation, turnSummaryText, type ObservationStep } from "./observation-model"
+import { actorOf, lastMoveText, myId, observationSteps, presentation, turnSummaryText, type ObservationStep } from "./observation-model"
 import { useDocumentVisible, useObservationPlayback } from "./observation-playback"
 import { autoPassNote, stepDuration, TEMPO_LABELS } from "./opponent-tempo"
 import type { TableCardLookup } from "./table-cards"
-import { OpponentStage, TurnBand } from "./table/opponent-stage"
+import { OpponentStage, TurnBand, type StageMode } from "./table/opponent-stage"
 
 type Playing = Extract<MatchSnapshot, { status: "playing" }>
 
 export interface OpponentTurnView {
-  /** The stage over the player's half (GameTable stage), or null. */
+  /** The stage of a held action (GameTable stage), or null. */
   readonly stage: ReactNode
+  /** The latest move in words for the "Zuletzt" line (GameTable lastMove), or null before the first. */
+  readonly lastMove: string | null
   /** The band of a change of turn (GameTable turnBand), or null. */
   readonly turnBand: ReactNode
   /** The words while the engine holds (GameTable observing), or null. */
@@ -123,22 +127,10 @@ export function useOpponentTurn(match: Playing, pictures: TableCardLookup): Oppo
   const me = myId(match.state)
   const summary = turnSummaryText(match.opponentTurn)
   const step = playback.step
-  // After its release the step stays on screen only until Forge says anything new (a state, a question, waiting) - then
-  // it is gone for good, never shown again over a newer moment.
-  const [gone, setGone] = useState<number | null>(null)
-  const releasedId = playback.released && observation !== null ? observation.id : null
-  const lingering = releasedId !== null && gone !== releasedId && !match.waiting && match.questions.length === 0 && match.state?.seq === observation?.state
-  useEffect(() => {
-    if (releasedId !== null && !lingering) setGone(releasedId)
-  }, [releasedId, lingering])
-  const stageShown = step !== null && (match.observationHeld || lingering)
-  const status = playback.released
-    ? "Forge spielt weiter …"
-    : stepwise
-      ? "Wartet auf „Weiter“ – Forge hält so lange an."
-      : !visible
-        ? "Angehalten, solange OpenMana im Hintergrund ist."
-        : `Geht von selbst weiter (${TEMPO_LABELS[tempo]}).`
+  // Only while the engine holds and the last step is not released yet: then the stage is gone at once, and the table's
+  // "Zuletzt" line (lastMove) keeps the latest move - a released step never comes back over a newer moment.
+  const stageShown = step !== null && match.observationHeld && !playback.released
+  const mode: StageMode = stepwise ? "stepwise" : !visible ? "paused" : "tempo"
   const stage =
     stageShown && step !== null ? (
       <OpponentStage
@@ -147,12 +139,13 @@ export function useOpponentTurn(match: Playing, pictures: TableCardLookup): Oppo
         count={playback.count}
         pictures={pictures}
         summary={step.turn?.seat === "me" ? summary : null}
-        status={status}
-        durationMs={match.observationHeld && visible ? playback.durationMs : null}
+        mode={mode}
+        durationMs={visible ? playback.durationMs : null}
         timerKey={`${step.key}:${tempo}:${String(visible)}`}
-        {...(playback.released ? {} : { onNext: playback.next })}
+        onNext={playback.next}
       />
     ) : null
+  const lastMove = lastMoveText(match.lastMove)
 
   const turnAction = observation?.actions.find((action) => action.kind === "turn")
   const turnBand =
@@ -181,5 +174,5 @@ export function useOpponentTurn(match: Playing, pictures: TableCardLookup): Oppo
       : `Geht von selbst weiter (${TEMPO_LABELS[tempo]}); „Weiter“ geht sofort weiter.`
     : null
 
-  return { stage, turnBand, observing, interrupt, autoPass: autoPassNote(confirmed ?? preferences.autoPass) }
+  return { stage, lastMove, turnBand, observing, interrupt, autoPass: autoPassNote(confirmed ?? preferences.autoPass) }
 }
