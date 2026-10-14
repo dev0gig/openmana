@@ -5239,7 +5239,19 @@ async function closeCardView(page: Page): Promise<void> {
 /** Prompt 23: actual help Sheet, scroll/footer, focus and no accepted game input. */
 async function helpInteractions(page: Page, label: string, viewport: Viewport, live = false): Promise<Record<string, unknown>> {
   const beforeQuestion = await page.locator('[data-slot="game-decision"]').getAttribute("data-question")
-  const before = live ? (await dumpDatabase(page))["matchLog"] : null
+  // The recording writes in batches (every 100 ms) and Forge's first messages of a game (settings.applied since protocol
+  // 10) may still be on their way: the live game's recording is read once it stands still - three equal reads 300 ms apart.
+  const quietLog = async () => {
+    let last = JSON.stringify((await dumpDatabase(page))["matchLog"])
+    for (let same = 0, round = 0; same < 2 && round < 40; round++) {
+      await page.waitForTimeout(300)
+      const now = JSON.stringify((await dumpDatabase(page))["matchLog"])
+      same = now === last ? same + 1 : 0
+      last = now
+    }
+    return JSON.parse(last) as unknown[] | undefined
+  }
+  const before = live ? await quietLog() : null
   const trigger = page.getByRole("button", { name: "Hilfe am Spieltisch", exact: true })
   await trigger.click()
   const sheet = page.getByRole("dialog", { name: "Hilfe am Spieltisch", exact: true })
@@ -5264,16 +5276,18 @@ async function helpInteractions(page: Page, label: string, viewport: Viewport, l
   const touchTarget = await layoutHeight(trigger)
   if (viewport.touch) check(touchTarget >= 44, `${label}: help trigger only ${touchTarget}px`)
   let noInput: boolean
+  let added: unknown[] = []
   if (live) {
-    const after = (await dumpDatabase(page))["matchLog"]
+    const after = await quietLog()
     noInput = JSON.stringify(before) === JSON.stringify(after)
+    if (!noInput) added = (after ?? []).slice((before ?? []).length).map((entry) => { const { from, message } = entry as { from: string; message: { type: string } }; return `${from}:${message.type}` })
   } else {
     noInput = await page.evaluate(() => {
       const recorder = window as unknown as { __openmanaTaps?: unknown[]; __openmanaAnswers?: unknown[]; __openmanaPlayerTaps?: unknown[]; __openmanaMana?: unknown[] }
       return [recorder.__openmanaTaps, recorder.__openmanaAnswers, recorder.__openmanaPlayerTaps, recorder.__openmanaMana].every((values) => values === undefined || values.length === 0)
     })
   }
-  check(noInput, `${label}: help sent game input`)
+  check(noInput, `${label}: help sent game input ${JSON.stringify(added)}`)
   return { context: text, beforeQuestion, noInput, live, axe, scroll, touchTarget, footer: box }
 }
 
