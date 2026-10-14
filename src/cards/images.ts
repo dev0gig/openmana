@@ -51,6 +51,11 @@ const VERSION_EXTENSIONS: Readonly<Record<string, string>> = {
   crop: "webp",
 }
 
+/** Whether Scryfall's image_uris key names one of its picture versions (an extra key, like "jpeg" since 2026-10, does not). */
+export function isImageVersion(key: string): boolean {
+  return Object.hasOwn(VERSION_EXTENSIONS, key)
+}
+
 /** The part of a printing the URL is made of. */
 export interface ImageSource {
   readonly id: string

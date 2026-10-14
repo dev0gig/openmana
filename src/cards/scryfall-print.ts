@@ -6,7 +6,7 @@
  * Imports carry their .ts extension: Node runs this file directly.
  */
 import type { ScryfallCard, ScryfallCardFace } from "./scryfall/generated/records.ts"
-import { MISSING_IMAGE_URL, parseImageUrl } from "./images.ts"
+import { isImageVersion, MISSING_IMAGE_URL, parseImageUrl } from "./images.ts"
 
 /** Scryfall data that does not fit what OpenMana relies on. */
 export class ScryfallDataError extends Error {
@@ -50,7 +50,9 @@ export function imageFacts(card: ScryfallCard): ImageFacts {
         continue
       }
       const parsed = parseImageUrl(url)
-      if (parsed === null || parsed.id !== card.id || parsed.side !== source.side || parsed.version !== version) {
+      // Every URL must follow the rule, for this card and side. A version's own key must hold that version; an extra key
+      // Scryfall adds (2026-10-14: "jpeg", the "normal" JPEG again) may name any version (prompt 52).
+      if (parsed === null || parsed.id !== card.id || parsed.side !== source.side || (isImageVersion(version) && parsed.version !== version)) {
         throw new ScryfallDataError(`card ${card.id} (${card.name}, ${card.set} ${card.collector_number}): picture URL ${url} does not follow src/cards/images.ts`)
       }
       timestamps.add(parsed.timestamp)
