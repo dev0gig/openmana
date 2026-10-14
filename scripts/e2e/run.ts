@@ -6267,6 +6267,16 @@ const ARENA_VIEWPORTS: readonly Viewport[] = [
   VIEWPORTS[2]!,
 ]
 
+/** Four more desktop sizes and the short grid's border (prompt 55, Dropzone OPENMANA-STONEBOARD-MASTERPLAN.md §7: E). */
+const ARENA_MORE_SIZES: readonly (readonly [string, number, number])[] = [
+  ["1024x768", 1024, 768],
+  ["1280x720", 1280, 720],
+  ["1920x1080", 1920, 1080],
+  ["2560x1080", 2560, 1080],
+  ["short-border", 1301, 512],
+  ["short-border-plus", 1301, 513],
+]
+
 type Quad = readonly [number, number, number, number]
 
 /** Every region's and every card's rectangle, what the board decides, and what can be focused: the geometry of a scene. */
@@ -6418,9 +6428,41 @@ async function arenaSurface(executablePath: string, base: string): Promise<Recor
       await page.waitForTimeout(150)
       sizes[name] = await arenaFacts(page, `arena (${name} ${width}x${height})`)
     }
+    // Prompt 55: the borders of the layouts, four more desktop sizes and the short grid's border (32 rem ± 1 px).
+    for (const [name, width, height] of [...TABLE_LAYOUT_SIZES.filter(([size]) => size.startsWith("border")), ...ARENA_MORE_SIZES]) {
+      await page.setViewportSize({ width, height })
+      await page.waitForTimeout(150)
+      sizes[name] = await arenaFacts(page, `arena (${name} ${width}x${height})`)
+    }
     results["sizes"] = sizes
-    check(Object.keys(sizes).length === 11, `arena: ${Object.keys(sizes).length} sizes checked, expected 11`)
+    check(Object.keys(sizes).length === 21, `arena: ${Object.keys(sizes).length} sizes checked, expected 21`)
+    // Prompt 55: less room, less decoration - the hand's runes and tendrils only where the hand cell is at least 30 rem wide and 7 rem high, the opponent's runes only on a strip of 48 rem; the swings stay.
+    const reduction: Record<string, unknown> = {}
+    for (const [name, width, height, expected] of [["small-phone", 360, 740, { hand: false, opponent: false }], ["phone-landscape", 915, 412, { hand: false, opponent: false }], ["fold-closed", 480, 1040, { hand: true, opponent: false }], ["fold-closed-turned", 1040, 480, { hand: false, opponent: false }], ["fold-open", 870, 960, { hand: true, opponent: false }], ["tablet-landscape", 1104, 884, { hand: true, opponent: true }], ["desktop", 1440, 900, { hand: true, opponent: true }]] as const) {
+      await page.setViewportSize({ width, height })
+      await page.waitForTimeout(150)
+      const seen = await page.evaluate(() => {
+        const shown = (selector: string) => [...document.querySelectorAll<SVGElement>(selector)].filter((element) => getComputedStyle(element).display !== "none").length
+        const swing = (cell: string) => getComputedStyle(document.querySelector(`[data-arena="${cell}"]`)!, "::before").backgroundImage !== "none"
+        const hand = document.querySelector('[data-area="hand"]')!.getBoundingClientRect()
+        return { handRunes: shown('[data-arena="hand"] > [data-arena-rune]'), tendrils: shown("[data-arena-tendril]"), opponentRunes: shown('[data-arena="opponent"] > [data-arena-rune]'), swings: swing("hand") && swing("opponent"), hand: [Math.round(hand.width), Math.round(hand.height)] }
+      })
+      check(seen.handRunes === (expected.hand ? 6 : 0) && seen.tendrils === (expected.hand ? 2 : 0) && seen.opponentRunes === (expected.opponent ? 4 : 0) && seen.swings, `arena reduction (${name} ${width}x${height}): ${JSON.stringify({ seen, expected })}`)
+      reduction[name] = seen
+    }
+    results["reduction"] = reduction
     await page.setViewportSize({ width: VIEWPORTS[0]!.width, height: VIEWPORTS[0]!.height })
+    // Prompt 55: nothing of the arena moves - not by itself, not under the device's less motion, not under the player's.
+    const moving = () => page.evaluate(() => document.getAnimations().filter((animation) => (animation.effect as KeyframeEffect | null)?.target?.closest('[data-slot="table-surface"]')).length)
+    const still = await moving()
+    await page.emulateMedia({ reducedMotion: "reduce" })
+    const stillDevice = await moving()
+    await page.emulateMedia({ reducedMotion: "no-preference" })
+    await page.evaluate(() => document.documentElement.setAttribute("data-reduced-motion", ""))
+    const stillSetting = await moving()
+    await page.evaluate(() => document.documentElement.removeAttribute("data-reduced-motion"))
+    check(still === 0 && stillDevice === 0 && stillSetting === 0, `arena: something moves ${JSON.stringify({ still, stillDevice, stillSetting })}`)
+    results["motion"] = { still, stillDevice, stillSetting }
     await page.reload({ waitUntil: "domcontentloaded" })
     await page.locator('[data-harness="table"]').waitFor({ timeout: 300_000 })
     const afterReload = await page.evaluate(() => document.querySelector<HTMLElement>('[data-slot="table-surface"]')?.dataset["background"] ?? null)

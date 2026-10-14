@@ -474,6 +474,24 @@ the whole board (the template's 70 points in a 1600 × 1000 box, `cover`,
 hand of seven or more the outer cards lie over the hand's runes and tendrils
 (as in the template's own picture); prompt 55 decides the reduction.
 
+**Built (prompt 55) - less room, less decoration; nothing moves:** the hand
+cell is a size container: narrower than 30 rem or lower than 7 rem (a small
+phone upright, a phone turned, the foldable closed and turned - the short
+grid) it keeps its swing and glow but shows no runes and no tendrils; a hand
+too full to fan (`.table-hand[data-fan="row"]`, through `:has()` on the
+board) hides them too. The opponent's strip shows its runes only from 48 rem
+(tablets turned, desktops): below that its chips reach them in some states of
+the game. Six dust points moved to the edges so that at 480 px (and 360-412)
+none lies behind a hand card. Measured at the five sizes of the acceptance
+and the twelve more of the matrix with the borders (18 sizes × 5 scenes,
+hands of 0/1/7/20, DPR 1 and the devices'): regions and cards 0 px against
+the drawn table and no surface, cells on their regions, no scroll, no
+animation, no visible decoration on chips, piles or buttons; a fanned hand of
+seven or more lies over the hand's runes and tendrils (by design, as in the
+template). No breathing of the light: the arena is still by decision, and
+the end-to-end test proves 0 animations plain, under the device's less motion
+and under the player's.
+
 **Setting and harness:** `display.tableBackground` gains the value `arena`
 and its default becomes `arena` (a stored choice stays; "custom" without a
 picture still falls back to the drawn table until prompt 56). Settings →
@@ -1767,6 +1785,7 @@ axe checks).
 | 49 | series *openmana-spielfluss*: the opponent's turn on a stage, tempo, "Weiter", turn band | §4.17 |
 | 53 | series *stoneboard* 1/4: the arena as a shadow grid (subgrid), its ground, the new default | §4.1b |
 | 54 | series *stoneboard* 2/4: swings, centre line, runes, tendrils, light dust, island of light after the template | §4.1b |
+| 55 | series *stoneboard* 3/4: the matrix of sizes and scenes, reduction where room is short, nothing moves | §4.1b, §8 |
 
 After the series (not part of it): the project owner checks the table on the
 Fold (closed, open upright, open turned) and inside ORYX once he has allowed
@@ -1881,6 +1900,12 @@ a push.
   opponent's runes moved between chips, medallion and piles and hidden on
   narrow strips (0 collisions with cards, chips or buttons at M5 in three
   scenes); null-filter version proven; still 0 px against the drawn table.
+- 2026-10-14, series *stoneboard* (prompt 55): the arena responsive and
+  still - reduction by room (hand cell under 30 rem/7 rem, opponent's strip
+  under 48 rem, a scrolling hand) on the decoration pieces only; six dust
+  points moved off the hand at 480 px; 18 sizes × 5 scenes and hands of
+  0/1/7/20 measured at 0 px; no motion, proven under both less-motion
+  settings.
 
 ## 14. Deviations from the mockup (prompt 45)
 

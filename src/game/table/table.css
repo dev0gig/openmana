@@ -172,8 +172,14 @@
   background: radial-gradient(ellipse 60% 120% at 50% -10%, #d9913a33, transparent 60%);
 }
 
-/* A narrow strip (a phone upright or turned) has no gap between its chips, the medallion and the piles: no runes there (the swing stays). */
-@container (width < 36rem) {
+/*
+ * A strip narrower than 48 rem (phones, the foldable, a tablet upright) has
+ * no safe gap between its chips, the medallion and the piles - the chip
+ * group grows with the game's state (prompt 55: at 609-672 px the chips of
+ * "opening", "respond" and "attack-declared" reach the runes): no runes
+ * there, the swing and the glow stay.
+ */
+@container (width < 48rem) {
   [data-slot="game-board"] .table-arena-opponent > .table-arena-rune {
     display: none;
   }
@@ -217,7 +223,28 @@
  */
 [data-slot="game-board"] .table-arena-hand {
   grid-area: hand;
+  container-type: size;
   background: radial-gradient(ellipse 60% 120% at 50% 110%, #d9913a33, transparent 60%);
+}
+
+/*
+ * Less room, less decoration (prompt 55): a hand cell narrower than 30 rem (a
+ * small phone upright) or lower than 7 rem (a phone turned, the foldable
+ * closed and turned: the short grid) keeps its swing and glow but no runes
+ * and no tendrils - they would sit under the cards. Only the decoration
+ * piece is queried, never the board's grid.
+ */
+@container (width < 30rem) or (height < 7rem) {
+  [data-slot="game-board"] .table-arena-hand > .table-arena-rune,
+  [data-slot="game-board"] .table-arena-hand > .table-arena-tendril {
+    display: none;
+  }
+}
+
+/* A hand too full to fan (the row that scrolls sideways, hand-fan.ts "row"): the cards cover the ends - no runes, no tendrils. */
+[data-slot="game-board"]:has(.table-hand[data-fan="row"]) .table-arena-hand > .table-arena-rune,
+[data-slot="game-board"]:has(.table-hand[data-fan="row"]) .table-arena-hand > .table-arena-tendril {
+  display: none;
 }
 
 [data-slot="game-board"] .table-arena-hand::before {

@@ -148,6 +148,23 @@ describe("the arena in the game table", () => {
     for (const value of Object.values(style)) expect(value).not.toMatch(/<animate|<set\b|<image|data:image\/(png|webp|jpeg)/)
   })
 
+  it("less room, less decoration (table.css, prompt 55): the hand's runes and tendrils go where the hand cell is narrow or low or the hand scrolls, the opponent's runes where its strip is narrow", () => {
+    const css = fs.readFileSync(path.join(__dirname, "table.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "")
+    // The queries sit on the decoration pieces (container-type on the cells), never on the board's grid.
+    expect(css).toMatch(/\.table-arena-hand \{[^}]*container-type:\s*size/)
+    expect(css).toMatch(/\.table-arena-opponent \{[^}]*container-type:\s*inline-size/)
+    expect(css).not.toMatch(/\[data-slot="game-board"\] \{[^}]*container-type/)
+    const hand = /@container \(width < 30rem\) or \(height < 7rem\) \{([^}]*\{[^}]*\})+\s*\}/.exec(css)?.[0] ?? ""
+    expect(hand).toContain(".table-arena-hand > .table-arena-rune")
+    expect(hand).toContain(".table-arena-hand > .table-arena-tendril")
+    expect(hand).toMatch(/display:\s*none/)
+    const opponent = /@container \(width < 48rem\) \{([^}]*\{[^}]*\})+\s*\}/.exec(css)?.[0] ?? ""
+    expect(opponent).toContain(".table-arena-opponent > .table-arena-rune")
+    expect(css).toMatch(/:has\(\.table-hand\[data-fan="row"\]\) \.table-arena-hand > \.table-arena-rune/)
+    // The swings and the glow stay in every case: no rule hides a cell or its ::before.
+    expect(css).not.toMatch(/\.table-arena-(hand|opponent)(::before)?\s*\{[^}]*display:\s*none/)
+  })
+
   it("is a subgrid of the board without containment, under every region and taking no pointer (table.css)", () => {
     const rule = arenaRule()
     expect(rule).toMatch(/grid-column:\s*1 \/ -1/)
