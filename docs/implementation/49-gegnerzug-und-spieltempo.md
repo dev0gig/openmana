@@ -75,6 +75,12 @@ badge says "Gegnerzug" instead of "Du bist dran" (the engine waits, but for
 looking), the decision region "Forge hält an – sieh dir die Aktion der Forge-KI
 an." with the mode's note.
 
+> **Since 2026-10-14** the stage is a compact announcement and a "Zuletzt"
+> line follows it - see "The quiet stage and the Zuletzt line" below; where
+> the paragraphs above say otherwise (the panel over the player's half, the
+> large cards, the line of what happens next, the step staying until Forge's
+> next message), that section applies.
+
 ### Tempo and "Weiter" (`useObservationPlayback`, `src/game/observation-playback.ts`)
 
 - **Langsam / Normal / Schnell** (`display.opponentTempo`, default Normal):
@@ -167,6 +173,86 @@ zum Ansehen an."), stepped by hand ("Vorherige/Nächste Aktion"), never
 releasing anything. Protocol-9 recordings have no observations and replay
 unchanged.
 
+### The quiet stage and the Zuletzt line (2026-10-14)
+
+The project owner after playing: (3) "das Panel, wenn der Gegner etwas
+spielt, muss dezenter werden – zu prominent, sieht nicht schön aus"; (4)
+"immer den zuletzt gespielten Zug permanent anzeigen, damit ich mich
+orientieren kann".
+
+**The stage** (`OpponentStage`, `table.css`) is a compact announcement:
+only as tall as its content, centred and positioned absolutely in grid
+areas, so no row of the board changes. In `hoch` it stands at the lower
+edge of the opponent's battlefield, right above the stack bar - the
+player's battlefield, the stack bar, the hand, the header and the decision
+stay free (before, it covered the stack bar and the whole own
+battlefield). In `quadrat`, `breit` and a low `breit` window it is centred
+on the line between the battlefields (where the turn band lies), at most
+36 rem wide. The shell: the panel tone at 90 % (the contrast test's panel
+tone, 4.5:1 for all its words), a hairline in `--border`, only a hint of
+shadow - no gold frame, no heavy shadow, no near-opaque gradient. The cards
+are small previews, whole and never cropped (2.875 rem in `hoch`, only the
+first; 4.5 rem `quadrat`; 5 rem `breit`; 3.25 rem in a low window - always
+at least 44 px; `sizes="6rem"`). The words are quieter: the title `text-sm`
+`font-medium` (a change of turn "Zug 2 · Die Forge-KI ist am Zug" in the same
+line, the number in gold, instead of `text-xl`/`2xl`), the result lines and
+the summary `text-xs`; no "Aktion" label, only "2 von 3" when the
+observation has several steps (the replay: "1 von 2 · Aufzeichnung"). The
+status line ("Geht von selbst weiter (Normal).", "Wartet auf „Weiter“ …")
+is gone - the header badge "Gegnerzug" and the decision region already say
+it; the mode is `data-stage-mode` (`tempo`, `stepwise`, `paused`, `replay`)
+for the end-to-end test. "Weiter" is a quiet `secondary` button while the
+tempo runs (it only goes on sooner) and the gold `default` one stepwise and
+in the replay - `size="default"`, 44 px on coarse pointers; `ARMING_MS`, the
+dropped key repeats and the release by timer or "Weiter" alone are
+unchanged, the progress line too (still under less motion), and the title
+keeps `aria-live`. With the release the stage is gone at once (it no longer
+lingers until Forge's next message) and never comes back.
+
+**The "Zuletzt" line** (`LastMoveLine`, slot `last-move`): whenever no stage
+holds, one quiet line names the latest move of either player - "Zuletzt:
+Die Forge-KI hat Grizzlybären gewirkt", "Zuletzt: Du hast Gebirge
+gespielt", "… hat eine Fähigkeit von X aktiviert", "… hat mit 2 Kreaturen
+angegriffen", "… hat nicht geblockt" / "… mit einer Kreatur geblockt".
+
+- Kept like `opponentTurn`: `EngineSession.lastMove` (`foldLastMove`,
+  `src/engine/engine-session.ts`) holds exactly one entry - the last action
+  of an observation that is a move (`land`, `cast`, `activate`, `attack`,
+  `block`) of a named player, together with the state's `me` at that moment
+  (captured when the observation arrives). The next observation with a move
+  replaces it; one with only a change of turn, a trigger, a resolution or
+  combat damage keeps it; without a state that names the player nothing
+  changes; null before the game's first move. Never recorded or stored -
+  not a second history (Forge's log stays `history`); the chronicle stays
+  Forge's stack and keeps no resolved entries.
+- The words (`lastMoveText`, `observation-model.ts`) come from the action's
+  kind and Forge's structured fields only - past tense, players by `me`,
+  cards by Forge's names, a hidden card "eine verdeckte Karte" - never from
+  Forge's prose or a difference between two states.
+- Shown by `GameTable` (`lastMove`, from `useOpponentTurn`): not while the
+  stage holds; in `quadrat`/`breit` in the 1.5 rem centre line between the
+  battlefields, always; in `hoch` in the stack bar's row in place of the
+  empty bar's gold line, stepping aside (`data-rests`) while the bar shows a
+  spell or combat (it has the spell then); in a low `breit` window (no centre
+  line) at the foot of the side column's stack panel, aside likewise. It
+  lies on no card. `--muted-foreground` `text-xs` on the panel tone with a
+  hairline, one line cut with an ellipsis, no picture, no button, no timer,
+  not `aria-live`, every touch passes through. Its anchors are its own -
+  never `opponent-stage` or `[data-stage-next]`, so the readiness player and
+  the end-to-end test never take it for the stage. The replay shows none.
+- Tests: `observation-model.test.ts` (forms, replacement, own and the AI's
+  moves, nothing before the first move, a change of turn keeps it),
+  `table/opponent-stage.test.tsx` (the quiet stage, "Weiter"'s variants, the
+  line's markup), `game-table.test.tsx` (place in the reading order, rests,
+  not beside the stage), `game-page.test.tsx` (the real client: none before
+  the first move, none after a change of turn, the land after its release,
+  the spell resting while it is on the stack). The end-to-end
+  `--opponent-only` check is adjusted (cards 44-96 px, the stage compact and
+  in `hoch` never over the player's battlefield or the stack bar,
+  `data-stage-mode` instead of the status words, the line recorded and
+  checked) but was not run for this change (the project owner's rule: no
+  long runs).
+
 ## Code
 
 - `src/game/opponent-tempo.ts` (settings, durations, words),
@@ -227,4 +313,6 @@ engine suite, lock promotion, release, push.
   this default; their time limits may need to allow it.
 - The stage covers the player's battlefield while it holds; the engine takes
   no tap then anyway (`observing`). Its cards are pictures, not controls (the
-  same cards lie on the table to be looked at).
+  same cards lie on the table to be looked at). Since 2026-10-14 it covers
+  only a strip: in `hoch` the lower edge of the opponent's battlefield, beside
+  the side columns the edges of both battlefields at the centre line.

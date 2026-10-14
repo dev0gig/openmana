@@ -845,7 +845,9 @@ details in `docs/implementation/46-drag-and-drop.md`:
   whole line in its title) - and an empty chronicle a gold line (its words for
   screen readers), so the battlefields keep their room (small phone,
   `commander-late`: 82 px each). `quadrat` beside an expanded decision: a slim
-  panel in its strip.
+  panel in its strip. Since 2026-10-14 the empty bar's gold line in `hoch`
+  gives way to the "Zuletzt" line (§4.17) once the game had a move - the
+  chronicle stays Forge's stack alone, it keeps no resolved entries.
 
 ### 4.12 Panel (prompt 41)
 - Mockup: `.tafel` - `--table-panel` surface (darkening downwards), a gold
@@ -1099,24 +1101,55 @@ engine's observations (prompt 48, protocol 10;
 `docs/implementation/49-gegnerzug-und-spieltempo.md`).
 
 - **Stage** (`OpponentStage`, `src/game/table/opponent-stage.tsx`, slot
-  `opponent-stage`): while the engine holds an observation, a panel over the
-  player's own half - `hoch`: the stack bar and the player's battlefield;
-  `quadrat`/`breit`: the centre line and the player's battlefield; `breit` +
-  `short`: the player's battlefield - placed by the grid's area lines
-  (`grid-column: field`, `grid-row` per layout in `table.css`), z-index 44
-  (over cards and arrows, under the motion's ghosts). The opponent's
-  battlefield, both strips, the hand, the header and the decision stay free.
-  Left the action's cards (`TablePicture`, whole: as tall as the stage
-  allows, together at most 55 % of its width, at most 17 rem each; on a stage
-  narrower than 30 rem only the first card, large; a hidden card is the back), right the words: the step's place, the action in one
-  sentence (a change of turn: "Zug N" in gold and whose turn), the results
-  in short lines, at the player's turn the summary of the AI's last turn;
-  below "Weiter" (the large gold button) and what happens next; a thin gold
-  line running down the step's time. The words scroll inside (then a focus
-  stop), "Weiter" always stays in view; a stage lower than 11 rem sets the
-  turn in one line; a step without a card takes only its words' height,
-  centred. A released step goes with Forge's next message and never comes
-  back.
+  `opponent-stage`): while the engine holds an observation, a **compact
+  announcement** - since 2026-10-14 (the project owner: "das Panel, wenn
+  der Gegner etwas spielt, muss dezenter werden - zu prominent") no longer a
+  panel over the player's half. Only as tall as its content, centred,
+  positioned absolutely in grid areas (the rows never change), z-index 44
+  (over cards and arrows, under the motion's ghosts): `hoch` at the lower
+  edge of the opponent's battlefield, right above the stack bar - the
+  player's battlefield, the stack bar, the hand, the header and the decision
+  stay free; `quadrat`, `breit` and `breit` + `short` over both
+  battlefields, centred on the line between them (the 1.5 rem centre line;
+  in a low window the battlefields' border), at most 36 rem wide. Its shell
+  is quiet: the panel tone at 90 % (4.5:1 for its words over every
+  surface), a hairline in `--border`, only a hint of shadow, no gold frame.
+  Left the action's cards as small previews (`TablePicture`, whole, never
+  cropped: 2.875 rem in `hoch` - only the first, the lines name all -,
+  4.5 rem in `quadrat`, 5 rem in `breit`, 3.25 rem in a low window; at least
+  44 px); then the words: "2 von 3" when the observation has several steps
+  (no "Aktion" label), the action in one sentence (`h2`, `text-sm`
+  `font-medium`, `aria-live`; a change of turn "Zug N · whose turn" in the
+  same quiet line, the number in gold), the results in short lines
+  (`text-xs`), at the player's turn the summary of the AI's last turn; the
+  words scroll inside above 4.75 rem (`hoch`) / 9 rem (then a focus stop).
+  Right "Weiter": while the tempo runs a quiet `secondary` button (it only
+  goes on sooner), stepwise and in the replay the gold `default` one - at
+  least 44 px on touch either way. No line of what happens next (the header
+  badge and the decision region say it; `data-stage-mode` = `tempo` /
+  `stepwise` / `paused` / `replay` for the checks). A thin gold line runs
+  down the step's time. A step without a card takes only its words. With the
+  release the stage is gone at once and never comes back; the "Zuletzt"
+  line takes over.
+- **"Zuletzt" line** (`LastMoveLine`, slot `last-move`, since 2026-10-14; the
+  project owner: "immer den zuletzt gespielten Zug permanent anzeigen, damit
+  ich mich orientieren kann"): after the release, and whenever no stage
+  holds, one quiet line "Zuletzt: Die Forge-KI hat Grizzlybären gewirkt" /
+  "Zuletzt: Du hast Gebirge gespielt" - the latest move of either player
+  (`EngineSession.lastMove`, words from `lastMoveText`: land, spell,
+  ability, attack, block, from the action's kind and Forge's structured
+  fields as captured with the observation - never Forge's prose or a state
+  difference). One entry only, replaced by the next observation with a move;
+  a change of turn, a trigger, a resolution or combat damage keep it;
+  nothing before the game's first move. `--muted-foreground` `text-xs` on
+  the panel tone (90 %) with a hairline, one line (cut with an ellipsis), no
+  picture, no button, no timer, not `aria-live`, every touch passes through,
+  on no card. `quadrat`/`breit`: in the centre line between the battlefields,
+  always; `hoch`: in the stack bar's row in place of the empty bar's gold
+  line, stepping aside (`data-rests`) while the bar shows a spell or combat;
+  `breit` + `short` (no centre line): at the foot of the side column's stack
+  panel, aside likewise. Hidden while the stage holds. Not a second history:
+  never recorded or stored; the details stay Forge's log.
 - **Tempo** Langsam / Normal / Schnell (3.2 / 1.7 / 0.8 s per step, a bit more
   for several result lines), **stepwise** "Nach jeder Gegneraktion warten":
   Settings → Gegnerzug and the table's menu. "Weiter" moves one step (armed
@@ -1124,7 +1157,8 @@ engine's observations (prompt 48, protocol 10;
   step the observation is released - no priority passed, nothing answered.
 - **Header and decision while held:** the badge "Gegnerzug" (pause symbol)
   instead of "Du bist dran"; the decision region "Forge hält an – sieh dir die
-  Aktion der Forge-KI an." with the mode's note. While Forge plays on by
+  Aktion der Forge-KI an." with the mode's note - said there only, the stage
+  no longer repeats it (2026-10-14). While Forge plays on by
   itself the decision region names Forge's auto-pass setting.
 - **Turn band** (`TurnBand`, slot `turn-band`, `data-seat`): a change of turn
   that came without holding - a pill across the centre line, "Zug 5 · Du bist
@@ -1133,14 +1167,20 @@ engine's observations (prompt 48, protocol 10;
 - **Interruption:** a real decision about the AI's spell, ability, trigger or
   attack removes the stage at once; a shadcn `Alert` above the decision says
   "Unterbrechung: …" until the player has answered.
-- **Motion:** the stage fades and rises in (`table-stage-in`, opacity and
-  transform), the line scales down (`table-stage-timer`), the band fades in
+- **Motion:** the stage fades and rises in a little (`table-stage-in`,
+  160 ms, opacity and transform; the "Zuletzt" line does not move), the line scales down (`table-stage-timer`), the band fades in
   and out (`table-turn-band`); under less motion nothing moves, the band
   still goes after its time (a timer, not the animation).
 - **Replay:** the same stage read-only for recorded observations
-  ("Aufgezeichnete Aktion", stepped by hand).
+  ("Aufgezeichnete Aktion", "1 von 2 · Aufzeichnung", stepped by hand); no
+  "Zuletzt" line.
 - **Checked** in Chrome with the real engine at the eight sizes and the
-  foldable's three while the stage holds (end-to-end `--opponent-only`).
+  foldable's three while the stage holds (end-to-end `--opponent-only`;
+  since 2026-10-14 also: cards 44-96 px, the stage compact - at most 100 px
+  high in `hoch`, 200 px otherwise -, in `hoch` never over the player's
+  battlefield or the stack bar; the "Zuletzt" line named the AI's and the
+  player's moves, never stood beside a held stage, one line inside the board
+  without controls - adjusted, not yet run).
 
 ### 4.18 The start hand and browsing the hand (prompt 50)
 
@@ -1445,7 +1485,8 @@ only (`MOTION_PROPERTIES`, checked by `motion-plan.test.ts` and
   the swipe `src/hooks/use-swipe.ts`, the browse position
   `src/game/card-view-model.ts`.
 - The opponent's turn (prompt 49): `src/game/table/opponent-stage.tsx`
-  (stage, band), the steps' words `src/game/observation-model.ts`, the
+  (stage, "Zuletzt" line, band), the steps' and the latest move's words
+  `src/game/observation-model.ts` (the move itself: `EngineSession.lastMove`), the
   stepping `src/game/observation-playback.ts`, the page's hook
   `src/game/opponent-turn.tsx`, the settings `src/game/opponent-tempo.ts`.
 
@@ -1513,8 +1554,11 @@ From the shared rules of the series - end-to-end section 12,
   Stapel" inside the dialog's description (end-to-end `cardViewer`,
   `lookInRealGame`, `tableInteractions`, `zoneInteractions`);
 - since prompt 49 the stage `opponent-stage` (with `data-step`, `data-kind`,
-  `data-actor`, `data-cards`; `data-stage-card`, `data-stage-next`,
-  `data-stage-status`, the timer `.table-stage-timer`), the band `turn-band`
+  `data-actor`, `data-cards`, since 2026-10-14 `data-stage-mode` instead of
+  the status line's `data-stage-status`; `data-stage-card`, `data-stage-next`,
+  `data-stage-count`, the timer `.table-stage-timer`), since 2026-10-14 the
+  "Zuletzt" line `last-move` (`data-rests`; never inside the stage, never
+  with `data-stage-next`), the band `turn-band`
   (`data-seat`), the header badge's `data-observing`, the decision's
   `data-interrupt` and the regions "Gegnerzug ansehen" / "Aufgezeichnete
   Aktion" (end-to-end `opponentTurnInRealGame`);
@@ -1640,6 +1684,11 @@ a push.
   at the chosen tempo or stepwise with "Weiter"; changes of turn as a stage
   step or a band; the interruption line; Forge's auto-pass in the settings;
   the replay's read-only stage. Local only; published with prompt 52.
+- 2026-10-14, the project owner's wishes (3) and (4): the stage a compact,
+  quiet announcement between the battlefields (small card previews, quiet
+  words, "Weiter" gold only stepwise, no repeated status line), and the
+  "Zuletzt" line with the latest move of either player (§4.17, §4.11).
+  Local only.
 
 ## 14. Deviations from the mockup (prompt 45)
 
