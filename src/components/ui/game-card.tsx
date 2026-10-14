@@ -57,7 +57,8 @@ const CAPTION = "h-[calc(100%-1rem)]"
 
 export type GameCardMark = "usable" | "selected" | "target"
 
-const MARKS: Readonly<Record<GameCardMark, string>> = {
+/** The marks' frames around a picture - also the zone view's cards (card-tile.tsx), so a mark looks the same everywhere. */
+const GAME_CARD_MARKS: Readonly<Record<GameCardMark, string>> = {
   usable: "outline-2 outline-primary",
   selected: "outline-3 outline-foreground",
   target: "outline-2 outline-table-danger",
@@ -76,7 +77,7 @@ function GameCardFace({ tapped, mark, caption, plaque, pile, children }: { tappe
     <span
       data-slot="game-card-face"
       data-mark={mark ?? undefined}
-      className={cn("relative block rounded-xl", caption ? CAPTION : "h-full", tapped ? "aspect-square" : "aspect-63/88", mark ? MARKS[mark] : null)}
+      className={cn("relative block rounded-xl", caption ? CAPTION : "h-full", tapped ? "aspect-square" : "aspect-63/88", mark ? GAME_CARD_MARKS[mark] : null)}
     >
       <span data-slot="game-card-picture" className={cn("block", tapped ? "absolute top-1/2 left-1/2 aspect-63/88 h-full -translate-x-1/2 -translate-y-1/2 rotate-90" : "size-full")}>
         {children}
@@ -209,4 +210,4 @@ function GameCardRowButton(props: React.ComponentProps<typeof ToolbarPrimitive.B
   return <ToolbarPrimitive.Button asChild {...props} />
 }
 
-export { GameCard, GameCardButton, GameCardCaption, GameCardGroup, GameCardRow, GameCardRowButton, GameCardRowItem }
+export { GAME_CARD_MARKS, GameCard, GameCardButton, GameCardCaption, GameCardGroup, GameCardRow, GameCardRowButton, GameCardRowItem }

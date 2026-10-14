@@ -1,6 +1,7 @@
 /* Viewer identity and browsing: IDs/source references only, resolved from today's Forge snapshot. */
 import type { GameState, Question, VisibleCard } from "@openmana/engine-protocol"
 import { isVisible, locateCard } from "./table-model"
+import { zoneBrowseIds } from "./zone-model"
 
 export type BrowseZone = "graveyard" | "exile" | "command" | "hand"
 export type CardBrowse = { readonly kind: "ids"; readonly ids: readonly number[] } | { readonly kind: "zone"; readonly player: number; readonly zone: BrowseZone } | { readonly kind: "stack" }
@@ -16,13 +17,21 @@ export function questionCard(questions: readonly Question[], id: number, source?
   return null
 }
 
-/** Hidden cards are counted elsewhere, never candidates for the viewer. */
-export function browseIds(state: GameState, source: CardBrowse | undefined): readonly number[] {
+/**
+ * Hidden cards are counted elsewhere, never candidates for the viewer. A
+ * graveyard, exile, the command zone and the stack are browsed in the zone
+ * view's order (zone-model.ts: graveyard and exile newest first, a group of
+ * identical cards one after another - `questions` decide, as on the table,
+ * which cards are never grouped); the hand in Forge's order.
+ */
+export function browseIds(state: GameState, source: CardBrowse | undefined, questions: readonly Question[] = []): readonly number[] {
   if (source === undefined) return []
   if (source.kind === "ids") return source.ids.filter((id) => locateCard(state, id) !== null)
-  if (source.kind === "stack") return [...new Set(state.stack.flatMap((item) => item.card !== null && isVisible(item.card) ? [item.card.id] : []))]
+  if (source.kind === "stack") return zoneBrowseIds(state, source, questions)
+  const { zone } = source
+  if (zone !== "hand") return zoneBrowseIds(state, { kind: "zone", player: source.player, zone }, questions)
   const player = state.players.find((p) => p.id === source.player)
-  return (player?.zones[source.zone] ?? []).filter(isVisible).map((c) => c.id)
+  return (player?.zones.hand ?? []).filter(isVisible).map((c) => c.id)
 }
 
 /** The player's own hand as a browse source (prompt 50): resolved from each state like a zone. */

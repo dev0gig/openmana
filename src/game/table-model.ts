@@ -243,8 +243,12 @@ function canonical(value: unknown): string {
   return JSON.stringify(value) ?? "null"
 }
 
-/** Everything Forge says about a card except its id: equal signatures = the same card in the same state. */
-function signature(card: VisibleCard): string {
+/**
+ * Everything Forge says about a card except its id: equal signatures = the
+ * same card in the same state. The battlefield's piles and the zone view's
+ * "×N" (zone-model.ts) group by it.
+ */
+export function cardSignature(card: VisibleCard): string {
   const { id: _id, ...rest } = card
   return canonical(rest)
 }
@@ -270,7 +274,7 @@ function rows(battlefield: readonly Card[], named: ReadonlySet<number>, hosted: 
     const row = hasStats(card) ? creatures : others
     const attachments = attachmentsOf.get(card.id) ?? []
     if (!named.has(card.id) && attachments.length === 0) {
-      const key = signature(card)
+      const key = cardSignature(card)
       const pile = piles.get(key)
       if (pile) {
         const grown = { ...pile.entry, ids: [...pile.entry.ids, card.id] }

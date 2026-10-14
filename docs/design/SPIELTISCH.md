@@ -460,8 +460,8 @@ default).
   `.zone-karte.friedhof` (top card), `.zone-zahl`, `.zone-name`.
 - Library: OpenMana's back, Forge's count. Graveyard: its top card where
   Forge shows it, else an empty place; the count. Exile and command zone:
-  compact counters. Tapping a pile opens the existing `ZoneSheet` for that
-  player and zone - looking only, nothing sent.
+  compact counters. Tapping a pile opens the zone view (`ZoneSheet`, §4.20)
+  for that player and zone - looking only, nothing sent.
 - Anchors: the zone titles "Hand", "Bibliothek", "Friedhof", "Exil",
   "Kommandozone".
 - **Built (prompt 39):** a strip (`PlayerBar` in `game-table.tsx`, class
@@ -1247,6 +1247,71 @@ understand why an action is not possible
 - **Checked** in Chrome at the eight sizes and the foldable's three on recorded
   scenes and in two real games (end-to-end `--lands-only`).
 
+### 4.20 The zone view (2026-10-14)
+
+The project owner (2026-10-14): a calmer, more compact zone view with the
+cards as pictures (`docs/implementation/zone-sheet-redesign.md`). A Sheet
+outside the table's CSS exception - shadcn only (`src/game/zone-sheet.tsx`,
+`src/components/ui/card-tile.tsx`, the model `src/game/zone-model.ts`).
+
+- **Header:** the place as title ("Dein Friedhof", "Exil der Forge-KI",
+  "Karten auf dem Stapel") and the count ("6 Karten", "1 Eintrag") - nothing
+  else.
+- **Switcher:** two shadcn `ToggleGroup`s (single: radios with
+  `aria-checked`). "Wessen Zonen": "Du", "Forge-KI". "Welche Zone":
+  "Friedhof", "Exil", "Kommando" with the selected player's counts and
+  "Stapel" with Forge's number of entries, each count a `Badge`. Names say
+  player, zone and count ("Dein Friedhof: 6 Karten", "Exil der Forge-KI:
+  0 Karten", "Stapel, gemeinsam: 1 Eintrag"). An empty zone is muted
+  (`data-empty`, outline badge) but stays selectable - its emptiness is
+  readable and every zone reachable by keyboard. The stack is both players':
+  while it is shown no player is pressed; a player's button then returns to
+  that player's zone shown last. Pressing the pressed button again changes
+  nothing.
+- **Grid:** whole card pictures (`CardTile` with `TablePicture`,
+  `sizes="auto"` - the picture the column's width needs; without a picture
+  the card's name and type line in card form), the name below (two lines at
+  most); columns by the Sheet's width through container queries: 2 below
+  24 rem (phones from the bottom), 3 from 24 rem (the foldable's cover screen
+  from the bottom, its inner screen from the side), 4 from 36 rem and 5 from
+  42 rem (the side Sheet is widened to `max-w-xl`/`2xl`/`3xl` by screen
+  width). Every tile is a button of at least 44 px (`data-card`).
+- **Groups:** identical cards are one tile with "×N" (a `Badge` beside the
+  name, never on the picture; `data-count`; "N Karten" in the name) exactly
+  as the table's piles: every value Forge sends equal (`cardSignature`) and
+  no card named by an open question, the stack or combat
+  (`namedCardIds`). The stack is never grouped: each card once, top first.
+- **Order:** graveyard and exile newest first - Forge appends every card it
+  moves there (`Zone.add` without a position; cards moving together in the
+  order their player chose), the bridge sends Forge's list in that order -,
+  the newest tile with a quiet "zuletzt" badge (`data-latest`, "zuletzt
+  hinzugekommen" in its name; only with more than one visible card, never
+  for a hidden newest card). Only Fossil Find and Search for Survivors
+  reorder a graveyard (Forge's `ReorderZone`); the badge then names the
+  graveyard's top card. The command zone keeps Forge's order (Forge puts a
+  commander first) and the stack Forge's (top first); neither gets the badge.
+- **Forge's mark:** `cardUse` decides as on the table: usable is the gold
+  frame (`--primary`), chosen the strong light frame (`--foreground`) -
+  `GAME_CARD_MARKS` of `game-card.tsx`, an outline around the picture with a
+  small offset, never on it (`data-mark`). Forge's offer ("Forge bietet an:
+  Rückblende") is in the tile's name and `title`, no line of its own. The
+  zone view never taps.
+- **Empty and hidden:** an empty zone is the shadcn `Empty` (`Layers` icon,
+  "Keine Karten", "Hier liegt gerade nichts." / "Der Stapel ist leer.",
+  `data-slot="zone-empty"`); hidden cards stay a note ("2 verdeckte Karten –
+  Forge gibt ihre Identität nicht frei."), never a tile; the stack's note
+  "Oben zuerst, in Forges Reihenfolge; jede Karte einmal."
+- **Card view:** a tile opens the card view with the zone as its source; it
+  browses the zone in the grid's order (`browseIds` through
+  `zoneBrowseIds`: a group's cards one after another) by "Vorige
+  Karte"/"Nächste Karte", ArrowLeft/ArrowRight and a swipe, "N von M", no
+  wrapping - as the hand (§4.18), whose order stays Forge's.
+- Focus: the Sheet gives the focus back to its opener; the footer's
+  "Schließen" sticks to its bottom.
+- **Checked** by `src/game/zone-sheet.test.tsx`, `zone-model.test.ts` and
+  `card-view.test.tsx`; the end-to-end `--zones-only` uses the switcher's
+  radios.
+
 ## 5. Tokens
 
 Defined once in `:root` of `src/index.css` (prompt 36), mapped for Tailwind
@@ -1477,6 +1542,8 @@ only (`MOTION_PROPERTIES`, checked by `motion-plan.test.ts` and
   anchors stay. `PhaseTrack` (`src/components/ui/phase-track.tsx`) was
   replaced by `PhasePanel` in prompt 41, which carries its slots.
 - Tokens and variants: `src/index.css`.
+- The zone view (2026-10-14, §4.20): `src/game/zone-sheet.tsx` with its
+  model `src/game/zone-model.ts` and the tile `src/components/ui/card-tile.tsx`.
 - The card view (prompt 47): `src/game/card-view.tsx` on
   `src/components/ui/card-lightbox.tsx`; the German keyword texts
   `src/game/keyword-texts.ts`.
@@ -1689,6 +1756,11 @@ a push.
   words, "Weiter" gold only stepwise, no repeated status line), and the
   "Zuletzt" line with the latest move of either player (§4.17, §4.11).
   Local only.
+- 2026-10-14, the project owner: the zone view redesigned (§4.20) - a
+  compact switcher of two toggle groups, the cards as a grid of whole
+  pictures grouped "×N" like the table's piles, graveyard and exile newest
+  first with a "zuletzt" badge, Forge's usable frame and offer, the shadcn
+  `Empty`; the card view browses the zone in that order.
 
 ## 14. Deviations from the mockup (prompt 45)
 

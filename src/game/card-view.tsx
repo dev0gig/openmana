@@ -97,7 +97,7 @@ export function CardView({ look, onOpenChange, onBrowse, state, view, moment, pi
   const id = look?.id ?? null
   const open = look?.open ?? false
   // Browsing (prompt 50): the list from this state; the card's place in it as last seen (for a card that left the list).
-  const ids = look === null ? [] : browseIds(state, look.browse)
+  const ids = look === null ? [] : browseIds(state, look.browse, moment.questions)
   const index = look === null ? -1 : ids.indexOf(look.id)
   const [known, setKnown] = useState<{ readonly serial: number; readonly id: number; readonly index: number } | null>(null)
   if (look !== null && index >= 0 && (known?.serial !== look.serial || known.id !== look.id || known.index !== index)) setKnown({ serial: look.serial, id: look.id, index })

@@ -6817,10 +6817,16 @@ async function zoneInteractions(parent: Page, base: string, viewport: Viewport):
   const activate = async (locator: Locator) => viewport.touch ? locator.tap() : locator.click()
   let view = page.getByRole("dialog")
   const safe = async () => check((await harnessTaps(page)).length === 0 && (await harnessAnswers(page)).length === 0, `${label}: inspection sent an input`)
-  const inspect = async (zone: string) => {
+  // The zone view's switcher (2026-10-14): whose zones and which zone are radios of two toggle groups.
+  const inspect = async (zone: string, player?: "Du" | "Forge-KI") => {
     await activate(page.getByRole("button", { name: "Zonen ansehen", exact: true }))
-    await activate(view.getByRole("button", { name: zone, exact: true }))
     await view.waitFor()
+    if (player !== undefined) {
+      const seat = view.getByRole("radio", { name: player, exact: true })
+      if (await seat.getAttribute("aria-checked") !== "true") await activate(seat)
+    }
+    const choice = view.getByRole("radio", { name: zone, exact: true })
+    if (await choice.getAttribute("aria-checked") !== "true") await activate(choice)
     await accessibility(page, `${label}: ${zone}`)
     const card = view.locator("button[data-card]").first()
     if (await card.count() > 0) {
@@ -6852,16 +6858,16 @@ async function zoneInteractions(parent: Page, base: string, viewport: Viewport):
   }
   try {
     await scene("main-phase")
-    await inspect("Dein Friedhof: 6 Karten ansehen")
-    await inspect("Friedhof der Forge-KI: 2 Karten ansehen")
-    await inspect("Dein Exil: 0 Karten ansehen")
+    await inspect("Dein Friedhof: 6 Karten")
+    await inspect("Friedhof der Forge-KI: 2 Karten", "Forge-KI")
+    await inspect("Dein Exil: 0 Karten", "Du")
     results["graveyards/empty"] = true
     await scene("command-effects")
-    await inspect("Dein Exil: 1 Karten ansehen")
-    await inspect("Deine Kommandozone: 2 Karten ansehen")
+    await inspect("Dein Exil: 1 Karte", "Du")
+    await inspect("Deine Kommandozone: 2 Karten", "Du")
     results["exile/command"] = true
     await scene("stack")
-    await inspect("Karten auf dem Stapel: 1 Einträge ansehen")
+    await inspect("Stapel, gemeinsam: 1 Eintrag")
     results["stack"] = true
     await scene("commander-late")
     // Forge's real battlefield piles: choose one whose caption counts at least two.

@@ -20,7 +20,7 @@ Katalogangaben werden als Betrachtungsinformationen beschriftet; Forges aktuelle
 
 ## Umsetzung und Grenzen
 
-- `src/game/zone-sheet.tsx`: aktuelle Zonenlisten, verschachtelte Kartenansicht, Rückkehr zur Liste.
+- `src/game/zone-sheet.tsx`: aktuelle Zonenlisten, verschachtelte Kartenansicht, Rückkehr zur Liste (seit 14.10.2026 Umschalter und Bildraster: `zone-sheet-redesign.md`).
 - `src/game/card-view-model.ts`: aktuelle Fragenquellen und sichtbare Browse-IDs.
 - `src/game/card-sheet.tsx`: aktuelle Auflösung, Navigation, Kartenseiten, feste Aktionsleiste, Fokus und Arming.
 - `src/game/table-cards.ts`: statische Katalogseiten, kein Spielzustand im Cache.

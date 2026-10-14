@@ -512,7 +512,7 @@ export function GameTable({ replay = false,
         {/* The motion over the board (prompt 44): cards travelling and turning, damage, life, stack and phases - never holding a state or an input up. */}
         <TableMotion state={state} history={history} animate={animate} priority={priorityQuestion(questions)} />
         <HelpSheet open={helpOpen} onOpenChange={setHelpOpen} state={state} questions={questions} replay={replay} waiting={waiting} conceding={conceding} />
-        <ZoneSheet onSourceChange={setZone} source={zone} state={state} pictures={pictures} onClose={() => setZone(null)} onLook={openCard} />
+        <ZoneSheet onSourceChange={setZone} source={zone} state={state} moment={moment} pictures={pictures} onClose={() => setZone(null)} onLook={openCard} />
         <HistorySheet open={historyOpen} onOpenChange={setHistoryOpen} history={history} state={state} questions={questions} onLook={(id) => { lookAtQuestionCard(id); setInspectingHistory(true) }} />
         {/* The start hand in full screen (prompt 50): over the table, under a card view opened from it. */}
         <StartHandView

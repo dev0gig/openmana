@@ -19,9 +19,12 @@ function table(name: TableSceneName, overrides: Partial<GameTableProps> = {}) {
   const r = render(<GameTable {...props} />)
   return { ...r, props, tap }
 }
-function openZone(name: string) {
+/** Opens the zone view (on the player's graveyard) and chooses whose zones and which zone (its switcher's radios). */
+function openZone(name: string, player?: "Du" | "Forge-KI") {
   if (screen.queryByRole("dialog") === null) fireEvent.click(screen.getByRole("button", { name: "Zonen ansehen" }))
-  fireEvent.click(within(dialog()).getByRole("button", { name }))
+  if (player !== undefined) fireEvent.click(within(dialog()).getByRole("radio", { name: player }))
+  const zone = within(dialog()).getByRole("radio", { name })
+  if (zone.getAttribute("aria-checked") !== "true") fireEvent.click(zone)
 }
 const dialog = () => screen.getByRole("dialog")
 const card = (id: number) => document.querySelector<HTMLButtonElement>(`button[data-card="${id}"]`)!
@@ -30,10 +33,11 @@ describe("visible zones and current card identities", () => {
   it("opens the real graveyard, browses its current cards and returns focus without tapping", async () => {
     const { tap } = table("main-phase")
     const trigger = screen.getByRole("button", { name: "Zonen ansehen" })
-    trigger.focus(); openZone("Dein Friedhof: 6 Karten ansehen")
-    const cards = tableScene("main-phase").state.players.find((p) => p.me)!.zones.graveyard.filter(isVisible)
+    trigger.focus(); openZone("Dein Friedhof: 6 Karten")
+    // Newest first (zone-model.ts): Forge appends to a graveyard.
+    const cards = tableScene("main-phase").state.players.find((p) => p.me)!.zones.graveyard.filter(isVisible).reverse()
     expect(within(dialog()).getAllByRole("listitem")).toHaveLength(cards.length)
-    fireEvent.click(within(dialog()).getByRole("button", { name: new RegExp(cards[0]!.name!) }))
+    fireEvent.click(within(dialog()).getByRole("button", { name: new RegExp(`^${cards[0]!.name!}`) }))
     expect(dialog()).toHaveTextContent(cards[0]!.name!)
     fireEvent.click(within(dialog()).getByRole("button", { name: "Nächste Karte" }))
     expect(dialog()).toHaveTextContent(cards[1]!.name!)
@@ -44,28 +48,28 @@ describe("visible zones and current card identities", () => {
 
   it("empty exile stays empty; it opens even while Forge computes", () => {
     table("opening", { waiting: false })
-    openZone("Dein Exil: 0 Karten ansehen")
-    expect(dialog()).toHaveTextContent("Hier liegen gerade keine Karten.")
+    openZone("Dein Exil: 0 Karten")
+    expect(dialog()).toHaveTextContent("Hier liegt gerade nichts.")
     expect(within(dialog()).queryAllByRole("listitem")).toHaveLength(0)
   })
 
   it("shows actual exile and command/effect cards from the recording", () => {
     const { tap } = table("command-effects")
-    openZone("Dein Exil: 1 Karten ansehen")
+    openZone("Dein Exil: 1 Karte")
     expect(within(dialog()).getAllByRole("listitem")).toHaveLength(1)
     fireEvent.click(within(dialog()).getByRole("button", { name: "Schließen" }))
-    openZone("Deine Kommandozone: 2 Karten ansehen")
+    openZone("Deine Kommandozone: 2 Karten")
     expect(within(dialog()).getAllByRole("listitem")).toHaveLength(2)
     expect(tap).not.toHaveBeenCalled()
   })
 
   it("zone lists follow changes and count hidden cards without names or candidate IDs (built)", () => {
     const { props, rerender } = table("main-phase")
-    openZone("Dein Friedhof: 6 Karten ansehen")
+    openZone("Dein Friedhof: 6 Karten")
     const state = structuredClone(props.state)
     state.players.find((p) => p.me)!.zones.graveyard = [{ hidden: true }]
     rerender(<GameTable {...props} state={state} />)
-    expect(dialog()).toHaveTextContent("1 verdeckte Karten")
+    expect(dialog()).toHaveTextContent("1 verdeckte Karte – Forge gibt ihre Identität nicht frei.")
     expect(within(dialog()).queryAllByRole("listitem")).toHaveLength(0)
     expect(browseIds(state, { kind: "zone", player: 0, zone: "graveyard" })).toEqual([])
   })
@@ -123,7 +127,7 @@ describe("visible zones and current card identities", () => {
 
   it("the real stack can be inspected but never activated", () => {
     const { tap } = table("stack")
-    openZone("Karten auf dem Stapel: 1 Einträge ansehen")
+    openZone("Stapel, gemeinsam: 1 Eintrag")
     expect(dialog()).toHaveAccessibleName("Karten auf dem Stapel")
     fireEvent.click(within(dialog()).getAllByRole("button").find((b) => b.dataset["card"] !== undefined)!)
     expect(dialog()).toHaveTextContent("Auf dem Stapel")
