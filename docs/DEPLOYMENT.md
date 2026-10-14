@@ -83,6 +83,7 @@ node scripts/deploy/budgets.ts
 |---|---|---|---|
 | `engine-p8-a9b4c26b1244` | 8 | 2026-10-10 | Prompt 35: Engine aus GraalVM Community Edition |
 | `engine-p9-fba5601117ff` | 9 | 2026-10-12 | Prompt 47: Schlüsselwörter einer Karte (`VisibleCard.keywords`) für die Kartenansicht im Vollbild |
+| `engine-p10-908fbcabd35e` | 10 | 2026-10-14 | Prompt 52 (Serie *openmana-spielfluss* 48–51): Beobachtungen der Gegneraktionen mit sicheren Haltepunkten, Forges Auto-Pass je Partie, Länderauskünfte (Patch 0010) |
 
 Eine neue Protokollversion braucht immer ein neues Release: Die App nimmt nur
 eine Engine mit genau ihrer Protokollversion an.

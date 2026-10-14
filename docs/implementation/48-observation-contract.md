@@ -224,6 +224,12 @@ missing protocol-10 names in the contract test - both fixed),
 `candidate-48-superseded-1` (before a state is sent with an observation only
 when Forge changed something).
 
+**Superseded (prompt 52, 2026-10-14):** the complete pipeline built the same
+engine sources again and locked them (`engine/build/publish-52h`, manifest
+`908fbcab…`, release `engine-p10-908fbcabd35e`,
+`docs/implementation/52-spielfluss-gesamtabnahme.md`); build with the locked
+engine.
+
 ## Verification
 
 Targeted checks of what this prompt changed (series rule of 2026-10-12), all

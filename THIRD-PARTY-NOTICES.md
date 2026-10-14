@@ -4,8 +4,8 @@ Erzeugt aus den tatsächlich enthaltenen App-Modulen, CSS/Fonts, Generatorcode u
 Fassung ohne Build-Commit (lokaler Build oder Repository-Kopie); jede öffentliche Version nennt ihren genauen Quelltext-Commit. Quelltext und Engine-Toolchain: SOURCE.md.
 Originaltexte bleiben unverändert und in ihrer Originalsprache erhalten.
 
-Engine-Manifest SHA-256: fba5601117ff684c6ac460495ee47bd9c3f1c0fe8f71c58a55a704337895fa3c
-WASM-Typen: 8259
+Engine-Manifest SHA-256: 908fbcabd35ef7acc7c2c978704f0e1b5cb5ca5d90ce17f34e2bb924fe69f483
+WASM-Typen: 8267
 
 ## Enthaltene Komponenten
 
@@ -86,7 +86,7 @@ WASM-Typen: 8259
 | com.google.guava:failureaccess | 1.0.2 | Apache-2.0 | WASM types / original dependency bytes (1 Typen) |
 | com.google.guava:guava | 33.3.1-android | Apache-2.0 | WASM types / original dependency bytes (523 Typen) |
 | com.thoughtworks.xstream:xstream | 1.4.21 | BSD-3-Clause | WASM types / original dependency bytes (209 Typen) |
-| forge:forge | ed0333fecb1fea0671b3e50cadc1da4f71db5798 | GPL-3.0-or-later | WASM types / original dependency bytes (2043 Typen) |
+| forge:forge | ed0333fecb1fea0671b3e50cadc1da4f71db5798 | GPL-3.0-or-later | WASM types / original dependency bytes (2044 Typen) |
 | io.github.x-stream:mxparser | 1.2.2 | Indiana University Extreme! Lab 1.2 | WASM types / original dependency bytes (1 Typen) |
 | io.sentry:sentry | 8.21.1 | MIT | WASM types / original dependency bytes (254 Typen) |
 | open:graalvm-ce-compiler | 95ce1499c8c96ab7d5a6697c5b4bf42160f3b68b | GPL-2.0-only WITH Classpath-exception-2.0 | WASM types / original dependency bytes (89 Typen) |
@@ -100,7 +100,7 @@ WASM-Typen: 8259
 | org.apache.commons:commons-math3 | 3.6.1 | Apache-2.0 | WASM types / original dependency bytes (19 Typen) |
 | org.checkerframework:checker-qual | 3.43.0 | MIT | WASM types / original dependency bytes (7 Typen) |
 | org.jgrapht:jgrapht-core | 1.5.2 | LGPL-2.1-or-later | WASM types / original dependency bytes (44 Typen) |
-| org.openmana:openmana-engine | 0.1.0 | GPL-3.0-or-later | WASM types / original dependency bytes (37 Typen) |
+| org.openmana:openmana-engine | 0.1.0 | GPL-3.0-or-later | WASM types / original dependency bytes (44 Typen) |
 | org.tinylog:tinylog-api | 2.7.0 | Apache-2.0 | WASM types / original dependency bytes (39 Typen) |
 | org.tinylog:tinylog-impl | 2.7.0 | Apache-2.0 | WASM types / original dependency bytes (89 Typen) |
 | xmlpull:xmlpull | 1.1.3.4a | Public Domain | WASM types / original dependency bytes (3 Typen) |
@@ -2942,7 +2942,7 @@ Copyright 2010-2012 CS Systèmes d'Information
 ### engine/patches/README.md
 
 Quelle: engine/patches/README.md
-SHA-256: 467d6a3b638f0a30dc34a3e9ad79e9992e2bb5226469d0af79197cd88f01ccbc
+SHA-256: cee35765354060d90bfe5284c935388b33669c2fdc5c80e96f5e6025b69064d2
 
 ````
 # Forge-Patch-Queue
@@ -2964,10 +2964,11 @@ selbst bleibt unverändert.
 | 0007 | `0007-gui-read-only-answers.patch` | **Nur lesende Auskünfte für die Oberfläche:** `InputSelectTargets.isSelectablePlayer` (würde ein Klick diesen Spieler als Ziel nehmen oder zurücknehmen?), `InputPayMana.getRemainingManaCost` (was noch zu zahlen ist, wie Forges Anweisung es zeigt), `InputPayMana.canUseManaFromPool` + `ManaPool.canPayCostWithColor` (würde Mana dieser Farbe aus dem Vorrat bezahlen?), `InputPayMana.isSelectablePlayer` (in `InputPayManaOfCostPayment`: Leben für Phyrexia-Mana). Die bisherigen Prüfungen sind unverändert in gemeinsame Methoden verschoben (`playerRefusal`, `manaToPayWithColor`), die der Klick und die neue Auskunft beide nutzen | OpenMana, Prompt 17 |
 | 0008 | `0008-gui-attack-answers.patch` | **Nur lesende Auskünfte zum Angreifen:** `CombatUtil.attackRefusal` (warum `canAttack` eine Kreatur ablehnt – getappt, Einsatzverzögerung, ausgephast, aufgestachelt, ein Effekt, zu spät; `canAttack` ist jetzt `attackRefusal == null`, die Prüfungen unverändert in derselben Reihenfolge verschoben, die zusammengefasste Grundprüfung in Einzelprüfungen zerlegt), `InputAttack.getCurrentDefender` (wen eine jetzt deklarierte Kreatur angreift), `InputAttack.isSelectablePlayer` (würde ein Klick diesen Spieler zum Ziel machen; die Prüfung aus `onPlayerSelected`/`onCardSelected` in `isDefender` verschoben) | OpenMana, Prompt 18 |
 | 0009 | `0009-shared-combat-damage-policy.patch` | **Gemeinsame Grenzen der Schadenszuweisung:** `CombatDamageAssignment` übernimmt aus `VAssignCombatDamage` die Zulässigkeit des Verteidigers und Forges Voraussetzungen für weitere Ziele. Desktopdialog und Bridge fragen dieselbe Implementierung; nur Zahlen gelangen in die UI. Tödlicher Schaden, Todesberührung, freie Verteilung und ungeordnete Blocker bleiben Forge-Aufgaben. Die Desktopdatei wird gepatcht, aber nicht in WASM gebaut. | OpenMana, Prompt 30; upstream `VAssignCombatDamage` am gepinnten Stand |
+| 0010 | `0010-land-play-answers.patch` | **Nur lesende Auskunft zum Landspiel:** `Player.landPlayRefusal` (warum `canPlayLand` ein Land ablehnt – nicht der eigene Zug, nicht zur Hexereigeschwindigkeit, fremde Karte ohne Erlaubnis, falsche Zone, ein Effekt verbietet es, das Landspiel des Zuges ist verbraucht; `canPlayLand` ist jetzt `landPlayRefusal == null`, die Prüfungen unverändert in derselben Reihenfolge verschoben) | OpenMana, Prompt 48 |
 
 0001–0003 stammen aus ManaBrews Forge-Fork (GPL-3.0-or-later wie Forge selbst,
 siehe `docs/research/LICENSES.md`) und sind auf `Card-Forge/forge@ed0333f`
-angepasst. 0004–0009 sind für OpenMana neu geschrieben (Begründung in der
+angepasst. 0004–0010 sind für OpenMana neu geschrieben (Begründung in der
 jeweiligen Patch-Beschreibung, Nachweise in
 [`docs/implementation/02-anvil-bridge.md`](../../docs/implementation/02-anvil-bridge.md)).
 Die Änderungen tragen im Quelltext einen Vermerk `OpenMana patch NNNN` mit
@@ -2989,7 +2990,8 @@ beide Laufzeiten dieselben Pfade nehmen (Voraussetzung für den JVM/Wasm-Verglei
   eine **nur lesende Auskunft**, die die Oberfläche braucht, um Forges eigene
   Entscheidung vorher zu zeigen statt nachher zu raten (0007: welche Spieler
   ein Klick nähme, was noch zu zahlen ist; 0008: warum eine Kreatur nicht
-  angreifen kann; 0009: welche Schadenszuweisung der Desktopdialog erlaubt). Solch eine Auskunft stellt dieselbe
+  angreifen kann; 0009: welche Schadenszuweisung der Desktopdialog erlaubt;
+  0010: warum ein Land gerade nicht gespielt werden kann). Solch eine Auskunft stellt dieselbe
   Prüfung wie Forges Klick – die Prüfung wird dafür in eine gemeinsame Methode
   verschoben, nie abgeschrieben – und verändert nichts. Keine Regel-, Karten-
   oder KI-Änderungen „nebenbei“ (Bible §2). ManaBrews verhaltensändernde Patches

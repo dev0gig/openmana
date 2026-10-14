@@ -7,12 +7,12 @@
   },
   "sources": {
     "format": "openmana-engine-inputs/1",
-    "sha256": "c59dc9702f3e03f31dbd762d7ab1f7030d1de95fb610272b4e30dcca00e5e1e3",
-    "files": 173
+    "sha256": "f3af74fe328f94a5a743676de4b69209f9da399e73d9dec0b4385f1683e7be25",
+    "files": 183
   },
   "patches": {
-    "count": 9,
-    "sha256": "9049fca28aa4ca99fca9da1a47dddec830df32b3aee0a1ee964520d2bc06104a",
+    "count": 10,
+    "sha256": "3b4c51ccd20c153b9076e5c8805f90e4c834fbd003342ffd4f8dbe637968aed7",
     "files": [
       "0001-forge-synchronous-mode.patch",
       "0002-ai-cooperative-deadline.patch",
@@ -22,13 +22,14 @@
       "0006-local-games-without-server-manager.patch",
       "0007-gui-read-only-answers.patch",
       "0008-gui-attack-answers.patch",
-      "0009-shared-combat-damage-policy.patch"
+      "0009-shared-combat-damage-policy.patch",
+      "0010-land-play-answers.patch"
     ]
   },
   "protocol": {
-    "version": 9,
+    "version": 10,
     "schema": "engine/protocol/schema/protocol.schema.json",
-    "sha256": "0500a44da6d29d2b4189b59b5464d27afecb0ccbfac2d141f6566d8661d8a13e"
+    "sha256": "487d01d25c3ebdf7afae8cbab865264ad0504677bc608cbcb2c6cb3ee901f9d2"
   },
   "toolchain": {
     "graalvm": "GraalVM CE 25.4.4.1.1 (oracle/graal@95ce1499c8c9)",
@@ -55,21 +56,21 @@
   },
   "manifest": {
     "file": "engine-manifest.json",
-    "bytes": 6047,
-    "sha256": "fba5601117ff684c6ac460495ee47bd9c3f1c0fe8f71c58a55a704337895fa3c"
+    "bytes": 6087,
+    "sha256": "908fbcabd35ef7acc7c2c978704f0e1b5cb5ca5d90ce17f34e2bb924fe69f483"
   },
   "artefacts": {
     "engine-worker.js": {
-      "bytes": 436334,
-      "sha256": "21c728b11dc12ac13dff7b69cbb31db5ebb7038eaa629ffc807e57a3d17e53ce"
+      "bytes": 508939,
+      "sha256": "bd33dbbd1aa0103a23d4159780e1156c334d94623a3e58d4e4117acad57b538c"
     },
     "openmana-engine.js": {
       "bytes": 112916,
       "sha256": "edf456327b91601ab3ded0f35c6b1429adca8141a9fdd7d67849065185d72b42"
     },
     "openmana-engine.js.wasm": {
-      "bytes": 78969211,
-      "sha256": "70801cb0b6d86f5db8369b481b504b04e012aab7ebd8e6a9d3c26333742f4903"
+      "bytes": 79173028,
+      "sha256": "21c20f637aa2770d52e79f6344e1d5180bf76c27cd02fa5387f7317cabb128a1"
     },
     "forge-res.inventory.json": {
       "bytes": 4278015,
@@ -77,85 +78,127 @@
     }
   },
   "verification": {
-    "base": "b467bef53dfcbc31c4a839259fd691ca8f87d8e1",
+    "base": "b3cf8cd9bc7f5850f48d7c6cf6c91ddc66d1af0e",
     "protocol": {
-      "before": 8,
-      "after": 9,
+      "before": 9,
+      "after": 10,
       "changed": true,
-      "reason": "Prompt 47: VisibleCard.keywords - Forge's keyword abilities of a visible card (printed and given by effects) with their concrete form, reminder text and parts, for the full-screen card view's German keyword explanations",
+      "reason": "Prompts 48-51 (series openmana-spielfluss): Forge's public actions as observations with safe hold points (observation, observation.release/released, engine.waiting), Forge's own auto-pass per game (MatchSettings.observation/autoPass, settings.change/applied) and Forge's land facts (landsUnlimited, VisibleCard.landRefusal from the shared land check, patch 0010) for the visible opponent's turn, its tempo and the land hints",
       "adaptationPaths": [
         "AGENTS.md",
         "STATUS.md",
-        "docs/DEPLOYMENT.md",
-        "docs/DESIGN_SYSTEM.md",
+        "docs/BIBLE.md",
+        "docs/QUALITY.md",
         "docs/design/SPIELTISCH.md",
-        "docs/implementation/47-vollbild-kartenansicht.md",
+        "docs/implementation/48-observation-contract.md",
+        "docs/implementation/49-gegnerzug-und-spieltempo.md",
+        "docs/implementation/50-starthand-und-handkarten-blaettern.md",
+        "docs/implementation/51-laender-und-aktionshinweise.md",
+        "scripts/deploy/live-check.ts",
+        "scripts/e2e/pwa.ts",
         "scripts/e2e/run.ts",
-        "scripts/keyword-texts.test.ts",
+        "scripts/engine-candidate.mjs",
+        "scripts/readiness/matches.ts",
         "scripts/readiness/player.ts",
-        "scripts/record-keyword-forms.ts",
+        "scripts/record-land-plays.ts",
+        "scripts/record-observations.ts",
+        "scripts/record-table-sequence.ts",
         "scripts/regression/evidence.test.ts",
         "scripts/regression/evidence.ts",
-        "src/cards/images.test.ts",
-        "src/cards/images.ts",
+        "src/app/preferences.test.tsx",
+        "src/app/preferences.tsx",
         "src/components/ui/card-lightbox.tsx",
+        "src/components/ui/hand-spread.test.ts",
+        "src/components/ui/hand-spread.tsx",
+        "src/engine/engine-session-context.tsx",
+        "src/engine/engine-session.test.ts",
+        "src/engine/engine-session.ts",
         "src/game/attack.test.tsx",
-        "src/game/beginner-help.test.tsx",
-        "src/game/block.test.tsx",
         "src/game/card-interaction.test.tsx",
-        "src/game/card-sheet.tsx",
+        "src/game/card-use.test.ts",
+        "src/game/card-use.ts",
+        "src/game/card-view-model.test.ts",
+        "src/game/card-view-model.ts",
         "src/game/card-view.test.tsx",
         "src/game/card-view.tsx",
-        "src/game/decision-panel.test.tsx",
+        "src/game/decision-model.test.ts",
         "src/game/decision-panel.tsx",
+        "src/game/game-labels.ts",
         "src/game/game-page.test.tsx",
         "src/game/game-page.tsx",
+        "src/game/game-start.ts",
+        "src/game/game-table.test.tsx",
         "src/game/game-table.tsx",
-        "src/game/keyword-texts.test.ts",
-        "src/game/keyword-texts.ts",
-        "src/game/priority.test.tsx",
-        "src/game/table-cards.ts",
+        "src/game/land-hints.test.tsx",
+        "src/game/land-labels.test.ts",
+        "src/game/land-labels.ts",
+        "src/game/match-setup.test.ts",
+        "src/game/match-setup.ts",
+        "src/game/observation-model.test.ts",
+        "src/game/observation-model.ts",
+        "src/game/observation-playback.test.tsx",
+        "src/game/observation-playback.ts",
+        "src/game/opponent-tempo-options.test.tsx",
+        "src/game/opponent-tempo-options.tsx",
+        "src/game/opponent-tempo.test.ts",
+        "src/game/opponent-tempo.ts",
+        "src/game/opponent-turn.tsx",
+        "src/game/start-hand-view.test.tsx",
+        "src/game/start-hand-view.tsx",
+        "src/game/start-hand.test.ts",
+        "src/game/start-hand.ts",
         "src/game/table/motion-plan.test.ts",
+        "src/game/table/opponent-stage.test.tsx",
+        "src/game/table/opponent-stage.tsx",
         "src/game/table/table-motion.test.tsx",
-        "src/test/fixtures/keyword-forms.json",
-        "src/test/fixtures/replay.json",
+        "src/game/table/table.css",
+        "src/hooks/use-swipe.test.tsx",
+        "src/hooks/use-swipe.ts",
+        "src/matches/replay-page.tsx",
+        "src/matches/replay-protocols.test.ts",
+        "src/matches/replay.ts",
+        "src/routes/settings-page.test.tsx",
+        "src/routes/settings-page.tsx",
+        "src/test/fixtures/land-plays.json",
+        "src/test/fixtures/observations.json",
         "src/test/fixtures/table-scenes.json",
         "src/test/fixtures/table-sequence.json",
+        "src/test/land-plays.ts",
         "src/test/table-harness.tsx",
         "src/test/table-sequence.ts"
       ]
     },
-    "engineRuns": 82,
-    "browserRuns": 23,
+    "engineRuns": 91,
+    "browserRuns": 26,
     "browserSkipped": false,
     "reports": {
       "pipeline.json": {
-        "bytes": 7337,
-        "sha256": "d919c3a03a903ce15e39fa68d4a80a94615277a22c67be9e557e048a04ef26fa"
+        "bytes": 13022,
+        "sha256": "946a7c311fc97b51d91aa81e68c964474f04495fa4e22ae29d666dd65199142f"
       },
       "report/build-report.json": {
-        "bytes": 7730,
-        "sha256": "d376ecd81dbb79422c8734e42a1076a436078a8598d6debdc495cde1e8ca0ecc"
+        "bytes": 7774,
+        "sha256": "64349af174e077ce40a0409343571e4bb74300294c12b7d66dd7b024df77c6ee"
       },
       "report/jvm-tests.json": {
-        "bytes": 261,
-        "sha256": "297c04e15c0646c3c137fccafdc902891ac8737fe721fa3d66f356f6acebd8f4"
+        "bytes": 262,
+        "sha256": "8389da60cca8589bf28c99341994383d4ed0f54215b9b2351b36b369d29e0912"
       },
       "report/test-report.json": {
-        "bytes": 1135674,
-        "sha256": "b686de638c9ff14919e0153c0bf0cbeb2698578778b3a4e9c30268b9f194e824"
+        "bytes": 1226965,
+        "sha256": "f01deda38a83d378557ff02bd750e822cd24569fe58a67cf53a60f200a53ee08"
       },
       "report/source-inputs.json": {
-        "bytes": 36174,
-        "sha256": "bed0c32f05571b315f493e870ccdeb2dc06685001a2582d5e77bbd1876c1d59c"
+        "bytes": 38362,
+        "sha256": "99dc77bbf25b7bcf7649d034145381022ec2e0e24322c374988cf4773010c326"
       },
       "report/unit-tests.xml": {
-        "bytes": 14671,
-        "sha256": "4c25be4af8db727ee35cf2a59f4edc4aea7e9522f5367bff3ac6e28ac159ca0b"
+        "bytes": 16143,
+        "sha256": "3b54cb2642058583d6e23d6ed676d4b83867fff1c46f470928d9a07365d74796"
       },
       "catalog/card-catalog-manifest.json": {
         "bytes": 1302,
-        "sha256": "a26b1acaa53af2575700739d945a2da4a25fc07b500348bca2d3599e5c48ffd0"
+        "sha256": "f23c1f19488f6e112f78a92ed07c646a4258c4278b48265223595b24a4d4fa65"
       }
     }
   }

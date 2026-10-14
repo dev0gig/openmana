@@ -105,8 +105,12 @@ and the long look at a held observation in Chrome. Its report carries
 refuse it as acceptance. Without the variable the complete suite runs as
 always. Prompts 48-51 of the series *openmana-spielfluss* use such targeted
 checks by the project owner's decision of 2026-10-12 (`AGENTS.md`, "Test split
-of the series openmana-spielfluss"); prompt 52 runs the complete regression,
-`npm run check` and the readiness games once on the finished whole.
+of the series openmana-spielfluss"); prompt 52 ran the complete acceptance once
+on the finished whole - the engine update pipeline with `npm run check`
+(`engine/build/publish-52h`), the focused flows `--opponent-only`,
+`--starthand-only`, `--lands-only` and the readiness games
+(`docs/implementation/52-spielfluss-gesamtabnahme.md`). The exception is
+fulfilled; the general rules apply again from prompt 53 on.
 
 ## Focused developer checks
 
