@@ -126,8 +126,10 @@ press may vanish silently.
   each new question Forge asks after a tap: arming guards against the stray
   press of a *new* decision, and the next card's press is meant. The first
   press right after the step appeared is still dropped (the answer before
-  could have been a double press). Forge's buttons keep re-arming for every
-  question id (Decision Rules, unchanged).
+  could have been a double press). In this step Forge's OK and Auto arm the
+  same way, once per step and hand (project owner, 2026-10-14): an OK right
+  after the last chosen card is no longer swallowed. In the keep/mulligan
+  step Forge's buttons keep re-arming for every question id (Decision Rules).
 - **Double tap.** A second press on the same card counts once only while
   Forge has not answered the first (same question id) and at most
   `ARMING_MS`: once Forge's new question shows the mark, taking the card back

@@ -102,10 +102,11 @@ export function StartHandView({ open, onClose, question, state, prompt, moment, 
   const hold = holdBottom(held, question, state)
   if (hold !== held) setHeld(hold)
   const shown = shownStartQuestion(hold, question)
-  // Forge's answers re-arm for every question of Forge's (keep or mulligan; OK and Auto); the choice for the bottom
-  // once per step and hand - never for the new question Forge asks after each tap.
-  const armKey = `${shown.question?.id ?? 0}:${arming.serial}`
+  // Keep or mulligan re-arms for every question of Forge's. The choice for the bottom - the cards and its OK and
+  // Auto alike (project owner, 2026-10-14) - arms once per step and hand, never for the new question Forge asks
+  // after each tap: an OK right after the last card is not swallowed.
   const chooseKey = `${shown.question === null ? "" : startHandKey(shown.question, state)}:${arming.serial}`
+  const armKey = shown.question?.purpose === "mulliganBottom" ? chooseKey : `${shown.question?.id ?? 0}:${arming.serial}`
   // The system's back gesture: the newest watcher (a card view opened over the panel) closes first.
   useCloseWatcher(open, onClose)
   const content = useRef<HTMLDivElement>(null)

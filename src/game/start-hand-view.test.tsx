@@ -248,6 +248,12 @@ describe("mulligans, the London mulligan's choice and back to the table (built f
     fireEvent.click(within(panel()).getByRole("button", { name: `${fresh[1]!.name}: Doch behalten` }))
     expect(onTapCard).toHaveBeenLastCalledWith(201)
     expect(onTapCard).toHaveBeenCalledTimes(2)
+    // OK and Auto are not re-armed by Forge's new question either: an OK right after the last card counts.
+    const answered = onAnswer.mock.calls.length
+    fireEvent.click(answerButton("OK"))
+    expect(onAnswer).toHaveBeenLastCalledWith(4, { kind: "buttons", button: 1 })
+    expect(onAnswer).toHaveBeenCalledTimes(answered + 1)
+    onAnswer.mockClear()
     // Forge takes it back, then the button under another card chooses it - the same card.tap.
     rerender({ state: withHand(fresh), questions: [bottom(5, false)] })
     fireEvent.click(within(panel()).getByRole("button", { name: `${fresh[1]!.name}: Unter die Bibliothek legen` }))
@@ -272,7 +278,7 @@ describe("mulligans, the London mulligan's choice and back to the table (built f
     wait()
     fireEvent.click(answerButton("OK"))
     expect(onAnswer).toHaveBeenLastCalledWith(7, { kind: "buttons", button: 1 })
-    expect(onAnswer).toHaveBeenCalledTimes(3)
+    expect(onAnswer).toHaveBeenCalledTimes(1)
     // Answered from here: in Forge's gap after it nothing is held - Forge computes the next step, the panel says so.
     rerender({ questions: [], waiting: false })
     expect(within(panel()).getByRole("status")).toHaveTextContent("Forge rechnet")
