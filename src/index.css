@@ -87,6 +87,7 @@
   --color-table-danger: var(--table-danger);
   --color-table-attack: var(--table-attack);
   --color-table-heal: var(--table-heal);
+  --color-table-sick: var(--table-sick);
   --color-table-wood: var(--table-wood);
   --color-table-wood-frame: var(--table-wood-frame);
   --color-table-leather: var(--table-leather);
@@ -157,6 +158,8 @@
   --table-attack: oklch(0.75 0.17 50);
   /* Prompt 44: a life total that grows (the medallion's green ring of light). */
   --table-heal: oklch(0.78 0.16 150);
+  /* Forge's summoning sickness (the hourglass chip above a card): a violet of its own, unlike the marks' colours. */
+  --table-sick: oklch(0.8 0.12 310);
   --table-wood: oklch(0.19 0.022 56);
   --table-wood-frame: oklch(0.33 0.052 58);
   --table-leather: oklch(0.28 0.045 261);

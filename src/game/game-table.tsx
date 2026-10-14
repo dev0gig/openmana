@@ -88,7 +88,7 @@
  * so in a chip above its picture ("Quelle"). The decision region shows the payment:
  * what is still to pay, floating mana to pay with (onUseMana).
  */
-import { CircleSlash, Crosshair, Crown, Hourglass, Layers, Pause, ScrollText, Shield, Swords } from "lucide-react"
+import { CircleSlash, Crosshair, Crown, Layers, Pause, ScrollText, Shield, Swords } from "lucide-react"
 import { cn } from "cn"
 import { toast } from "sonner"
 import { createContext, use, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react"
@@ -134,7 +134,7 @@ import {
 } from "./table-labels"
 import { pileOf, isVisible, tableView, type BoardEntry, type Seat, type TableSide } from "./table-model"
 import { HAND_PICTURE_SIZES, TablePicture } from "./table-picture"
-import { CardChip, rowSize, ValuePlaque } from "./table/card-parts"
+import { CardChip, rowSize, SickChip, ValuePlaque } from "./table/card-parts"
 import { Chronicle } from "./table/chronicle"
 import { handFan, restingCardAt } from "./table/hand-fan"
 import { PhasePanel } from "./table/phase-panel"
@@ -850,11 +850,14 @@ function TargetChip() {
 /**
  * A card on the battlefield (prompt 40, docs/design/SPIELTISCH.md §4.7):
  * Forge's power/toughness or loyalty as the plaque on its printed value box,
- * every other fact as a chip above the picture - the pile's size, "Ziel",
+ * every other fact as a chip above the picture - the pile's size, summoning
+ * sickness (the hourglass, right after the pile's count: it has no other sign
+ * on the table, while "Ziel" also has the arrows and the Zauberchronik and
+ * "Quelle" the decision's heading, so the line - cut at its end - cuts those
+ * first), "Ziel",
  * "Quelle", Forge's reason it would not attack, the block step's words,
- * combat and summoning sickness as signs, damage, counters and the rest in
- * words -, the whole of it in the chip line's title and the card's name for
- * screen readers.
+ * combat as signs, damage, counters and the rest in words -, the whole of it
+ * in the chip line's title and the card's name for screen readers.
  */
 function FieldCard({ card, count, pictures, seat, note, pile }: { card: VisibleCard; count: number; pictures: TableCardLookup; seat: Seat; note?: string; pile?: readonly number[] }) {
   const controls = use(CardControlsContext)
@@ -880,6 +883,7 @@ function FieldCard({ card, count, pictures, seat, note, pile }: { card: VisibleC
       caption={
         <GameCardCaption title={title}>
           {count > 1 ? <CardChip tone="pile">×{count}</CardChip> : null}
+          {card.sick ? <SickChip /> : null}
           {target ? <TargetChip /> : null}
           {source ? <CardChip tone="strong">{SOURCE_LABEL}</CardChip> : null}
           {unavailable !== null ? (
@@ -901,11 +905,6 @@ function FieldCard({ card, count, pictures, seat, note, pile }: { card: VisibleC
           {card.attacking === true ? (
             <CardChip tone="attack">
               <Swords aria-hidden />
-            </CardChip>
-          ) : null}
-          {card.sick ? (
-            <CardChip>
-              <Hourglass aria-hidden />
             </CardChip>
           ) : null}
           {chipFacts(card).map((fact) => (

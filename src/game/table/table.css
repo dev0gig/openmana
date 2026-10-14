@@ -194,6 +194,37 @@
 }
 
 /*
+ * Forge's summoning sickness (SickChip; project owner, 2026-10-14: clearer,
+ * but no frame around the card and nothing greyed): the hourglass, its rim
+ * and its word in their own violet, the icon drawn bolder. The word
+ * ("verzögert") shows only where the chip line is wide enough for it; the
+ * chip line of a battlefield card is a container for that (table-chips).
+ */
+[data-slot="game-board"] .table-card-chip[data-tone="sick"] {
+  border-color: var(--table-sick);
+  color: var(--table-sick);
+  font-weight: 600;
+}
+
+[data-slot="game-board"] .table-card-chip[data-tone="sick"] > svg {
+  stroke-width: 2.75;
+}
+
+[data-slot="game-board"] .table-card-chip-word {
+  display: none;
+}
+
+[data-slot="game-board"] .table-field-row [data-slot="game-card-caption"] {
+  container: table-chips / inline-size;
+}
+
+@container table-chips (width >= 6.5rem) {
+  [data-slot="game-board"] .table-card-chip-word {
+    display: inline;
+  }
+}
+
+/*
  * The value plaque (the mockup's .werte): Forge's power/toughness or loyalty
  * on the card's own printed value box at the bottom right - right 3 % of the
  * card's width, bottom 4.3 % of its height, inside CardPicture's 1 px border,

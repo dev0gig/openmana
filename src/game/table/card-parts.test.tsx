@@ -8,7 +8,7 @@ import type { VisibleCard } from "@openmana/engine-protocol"
 import { render } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import type { BoardEntry } from "../table-model"
-import { CardChip, cardUnits, PILE_STEP, pileLayers, rowSize, TAPPED_WIDTH, ValuePlaque } from "./card-parts"
+import { CardChip, cardUnits, PILE_STEP, pileLayers, rowSize, SickChip, TAPPED_WIDTH, ValuePlaque } from "./card-parts"
 
 function card(id: number, overrides: Partial<VisibleCard> = {}): VisibleCard {
   return { id, key: `Card ${id}`, name: `Card ${id}`, tapped: false, sick: false, faceDown: false, damage: 0, owner: 0, controller: 0, ...overrides }
@@ -34,6 +34,16 @@ describe("the value plaque and the chips", () => {
     const { container } = render(<CardChip tone="pile">×3</CardChip>)
     expect(container.firstElementChild).toHaveClass("table-card-chip")
     expect(container.firstElementChild).toHaveAttribute("data-tone", "pile")
+  })
+
+  it("summoning sickness: the hourglass in its own tone, its short word for wide cards, titled Einsatzverzögerung", () => {
+    const { container } = render(<SickChip />)
+    const chip = container.firstElementChild!
+    expect(chip).toHaveClass("table-card-chip")
+    expect(chip).toHaveAttribute("data-tone", "sick")
+    expect(chip).toHaveAttribute("title", "Einsatzverzögerung")
+    expect(chip.querySelector("svg")).toHaveAttribute("aria-hidden", "true")
+    expect(chip.querySelector(".table-card-chip-word")).toHaveTextContent(/^verzögert$/)
   })
 })
 

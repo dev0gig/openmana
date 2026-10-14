@@ -361,7 +361,8 @@ reference.
   (`motion.test.ts`).
 - **Tokens** (`:root` in `src/index.css`, mapped as `--color-table-*`):
   `--table-gold-light`, `--table-gold-dark`, `--table-gold-line`,
-  `--table-mana`, `--table-danger`, `--table-attack`, `--table-wood`,
+  `--table-mana`, `--table-danger`, `--table-attack`, `--table-heal`,
+  `--table-sick` (summoning sickness's chip), `--table-wood`,
   `--table-wood-frame`, `--table-leather`, `--table-panel`, `--table-plaque`;
   gold itself stays `--primary`, text on gold `--primary-foreground`. Surface
   tokens are their lightest tone. `design-tokens.test.ts` checks text (4.5:1)

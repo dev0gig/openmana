@@ -520,7 +520,10 @@ default).
 - **Fact chips:** damage ("N Schaden"), counters (German names), summoning
   sickness (hourglass, "Einsatzverzögerung"), attacking, blocking, Forge's
   refusal reason, "Quelle", "Ziel", the block target - small chips at the
-  card's top edge **outside the picture** (in the row's gap). Only short
+  card's top edge **outside the picture** (in the row's gap). Summoning
+  sickness is the one made to stand out (project owner, 2026-10-14): its own
+  violet (`--table-sick`), right after a pile's count, "verzögert" beside the
+  hourglass on wide cards - never a frame around the card, never greyed. Only short
   words and numbers from Forge, no computed values. The chip area keeps
   `data-slot="game-card-caption"`. The full facts stay in the card's `title`,
   its screen-reader name and the card view.
@@ -552,13 +555,19 @@ default).
     slot `game-card-caption`, whose `title` keeps every fact as before): the
     chip line is the first part of the card (0.875 rem, `h-3.5`), above the
     picture, chips 13 px high with 10 px words on the panel tone and a gold
-    hairline; in this order: the pile ("×N", gold Cinzel), "Ziel" (crosshair,
-    danger rim), "Quelle", Forge's refusal (circle-slash and the short
-    reason), the block step's words (with the shield when blocking) or the
-    blocking shield, the attacking swords (amber), the hourglass, then
+    hairline; in this order: the pile ("×N", gold Cinzel), the hourglass
+    (`SickChip`, `data-tone="sick"`: rim, bolder icon and word in
+    `--table-sick`; the word "verzögert" from a chip line of 6.5 rem - the
+    caption is the container `table-chips` -, title "Einsatzverzögerung"),
+    "Ziel" (crosshair, danger rim), "Quelle", Forge's refusal (circle-slash
+    and the short reason), the block step's words (with the shield when
+    blocking) or the blocking shield, the attacking swords (amber), then
     `chipFacts()` - damage (danger rim), counters, a changed colour,
     "verdeckt", "ausgephast". The line never widens the card and is cut at
-    its end. Hidden cards say "verdeckt", the command zone's cards
+    its end. The hourglass comes this early (2026-10-14; before: after the
+    swords, so the first to be cut on a narrow card) because nothing else on
+    the table shows it, while "Ziel" also has the arrows and the
+    Zauberchronik, "Quelle" the decision's heading, and combat its frame. Hidden cards say "verdeckt", the command zone's cards
     "Kommandozone" (crown) as chips too.
   - **Rows** (class `table-field-row` on `Field`'s rows, inline `--u` and
     `--c` from `rowSize()`): `--kw = min((row height - chip line - 2 px - the
@@ -1188,6 +1197,7 @@ and marks; the table darkens them towards the edges.
 | `--table-danger` | `oklch(0.68 0.2 35)` | danger/target red: target marks and arrows, the opponent's entries |
 | `--table-attack` | `oklch(0.75 0.17 50)` | attack amber: attacking cards and attack arrows |
 | `--table-heal` | `oklch(0.78 0.16 150)` | life gained: the medallion's green ring of light (prompt 44) |
+| `--table-sick` | `oklch(0.8 0.12 310)` | Forge's summoning sickness: the hourglass chip's rim, icon and word (2026-10-14; 6.4:1 on the wood frame, 6.9:1 on the chip's panel tone over brass, the weakest cases) |
 | `--table-wood` | `oklch(0.19 0.022 56)` | the desk |
 | `--table-wood-frame` | `oklch(0.33 0.052 58)` | the carved frame (lightest tone) |
 | `--table-leather` | `oklch(0.28 0.045 261)` | the board's leather (its lit centre; darker towards the frame) |

@@ -281,6 +281,19 @@ describe("the battlefields", () => {
     expect(arsonist).toHaveAccessibleName(/1\/1, 2 Schaden/)
   })
 
+  it("the hourglass comes before Forge's target and the damage, so the chip line - cut at its end - never cuts it", () => {
+    const scene = tableScene("stack")
+    // The same scene, with Forge saying the target is summoning sick (VisibleCard.sick).
+    const players = scene.state.players.map((player) => ({
+      ...player,
+      zones: { ...player.zones, battlefield: player.zones.battlefield.map((card) => ("id" in card && card.id === 55 ? { ...card, sick: true } : card)) },
+    })) as typeof scene.state.players
+    render(<GameTable state={{ ...scene.state, players }} questions={scene.questions} prompt={scene.prompt} waiting aiProfile={scene.game.aiProfile} pictures={NO_PICTURES} menu={null} />)
+    const caption = region("Dein Spielfeld").querySelector('[data-card="55"] [data-slot="game-card-caption"]')!
+    expect([...caption.querySelectorAll(".table-card-chip")].map((chip) => chip.getAttribute("data-tone"))).toEqual(["sick", "danger", "danger"])
+    expect([...caption.querySelectorAll(".table-card-chip")].map((chip) => chip.textContent)).toEqual(["verzögert", "Ziel", "2 Schaden"])
+  })
+
   it("a planeswalker's loyalty on the plaque, with the shield; its counters are not repeated as chips", () => {
     renderScene("attack-planeswalker")
     const garruk = region("Spielfeld der Forge-KI").querySelector('[data-card="68"]')!
@@ -309,6 +322,11 @@ describe("the battlefields", () => {
     // Blocking and Forge's summoning sickness (prompt 18): two signs, both in the name.
     expect(blocker.querySelectorAll('[data-slot="game-card-caption"] svg')).toHaveLength(2)
     expect(blocker).toHaveAccessibleName(/^Goblin Arsonist, Einsatzverzögerung, blockt, 1\/1/)
+    // The hourglass in its own tone, first in the chip line (no pile here), so the line - cut at its end - never cuts it.
+    const chips = [...blocker.querySelectorAll('[data-slot="game-card-caption"] .table-card-chip')]
+    expect(chips.map((chip) => chip.getAttribute("data-tone"))).toEqual(["sick", "block"])
+    expect(chips[0]).toHaveAttribute("title", "Einsatzverzögerung")
+    expect(chips[0]).toHaveTextContent(/^verzögert$/)
     const attacker = region("Spielfeld der Forge-KI").querySelector('[data-card="80"]')!
     expect(attacker).toHaveAttribute("data-tapped", "true")
     expect(attacker).toHaveAccessibleName(/^Giant Spider, getappt, greift an, 2\/4, Blockziel/)

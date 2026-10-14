@@ -24,7 +24,7 @@ export const TERMS = [
   { title: "Stapel", text: "Zaubersprüche und Fähigkeiten warten hier auf ihre Verrechnung. Oben liegt der nächste Eintrag. Andere Spieler können vorher noch antworten; Forge bestimmt den Ablauf." },
   { title: "Ziel und Quelle", text: "Die Quelle ist die Karte, von der eine Aktion ausgeht. Ein Ziel wird von dieser Aktion angesprochen. Forge nennt und markiert die Auswahl; ein bereits benanntes Stapelziel ist dadurch nicht automatisch wählbar." },
   { title: "Getappt", text: "Eine getappte Karte liegt quer. Das ist ein Zustand, keine allgemeine Aussage darüber, was du mit ihr tun kannst. Forges Aktionsangebot entscheidet." },
-  { title: "Einsatzverzögerung", text: "Die Sanduhr zeigt Forges Einsatzverzögerung an. Forge berücksichtigt Ausnahmen wie Eile. " + SICK_NOTE },
+  { title: "Einsatzverzögerung", text: "Die violette Sanduhr über der Karte zeigt Forges Einsatzverzögerung an, auf breiten Karten mit dem Wort „verzögert“. Forge berücksichtigt Ausnahmen wie Eile. " + SICK_NOTE },
   { title: "Mulligan", text: "Vor dem ersten Zug kannst du deine Starthand behalten oder einen Mulligan nehmen. Forge führt das neue Ziehen und die danach nötige Auswahl aus." },
   { title: "Mana und Kosten", text: "Mana wird zum Bezahlen genutzt. Forge zeigt die noch offenen Kosten und mögliche Quellen. „Automatisch bezahlen“ überlässt nur diese Zahlung Forge; die Entscheidung, eine Karte zu spielen, triffst du selbst." },
 ] as const

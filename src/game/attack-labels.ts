@@ -31,6 +31,9 @@ export const ATTACK_REFUSAL_WORDS: Readonly<Record<AttackRefusal, RefusalWords>>
 /** The summoning-sickness mark of a creature (VisibleCard.sick: Forge's own, haste already considered). */
 export const SICK_LABEL = "Einsatzverzögerung"
 
+/** The hourglass chip's word on a card wide enough for it (table.css); its title and the card's name keep SICK_LABEL. */
+export const SICK_SHORT = "verzögert"
+
 /**
  * What a sick creature's mark means (the card view), on any creature at any
  * time (comprehensive rules 302.6; Forge ends it when its player's next turn

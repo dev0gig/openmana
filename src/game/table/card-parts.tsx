@@ -5,9 +5,10 @@
  * battlefield row sizes its cards by. Only presentation of Forge's values -
  * GameTable decides what each card shows.
  */
-import { Shield } from "lucide-react"
+import { Hourglass, Shield } from "lucide-react"
 import { cn } from "cn"
 import type { ComponentProps } from "react"
+import { SICK_LABEL, SICK_SHORT } from "../attack-labels"
 import type { PlaqueValue } from "../table-labels"
 import type { BoardEntry } from "../table-model"
 
@@ -26,12 +27,28 @@ export function ValuePlaque({ value }: { value: PlaqueValue }) {
   )
 }
 
-/** How a chip stands out: a pile's count, a word that matters (Quelle), danger (Ziel, damage), combat. */
-export type CardChipTone = "pile" | "strong" | "danger" | "attack" | "block"
+/** How a chip stands out: a pile's count, a word that matters (Quelle), danger (Ziel, damage), combat, summoning sickness. */
+export type CardChipTone = "pile" | "strong" | "danger" | "attack" | "block" | "sick"
 
 /** A fact as a small chip in the card's chip line above its picture (GameCardCaption). */
 export function CardChip({ tone, className, ...props }: ComponentProps<"span"> & { tone?: CardChipTone }) {
   return <span data-tone={tone} className={cn("table-card-chip", className)} {...props} />
+}
+
+/**
+ * Forge's summoning sickness (`VisibleCard.sick`): the hourglass in its own
+ * violet (--table-sick), with the word "verzögert" where the card is wide
+ * enough (table.css, container table-chips) - its title and the card's name
+ * say "Einsatzverzögerung". GameTable puts it right after a pile's count, so
+ * the chip line, cut at its end, never cuts it.
+ */
+export function SickChip() {
+  return (
+    <CardChip tone="sick" title={SICK_LABEL}>
+      <Hourglass aria-hidden />
+      <span className="table-card-chip-word">{SICK_SHORT}</span>
+    </CardChip>
+  )
 }
 
 /** Cards a pile draws: the front and up to two behind it; the chip says how many there are. */
