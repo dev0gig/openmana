@@ -5829,6 +5829,8 @@ async function tableHarness(executablePath: string): Promise<Record<string, unkn
           await page.goto(new URL(`/scripts/e2e/table-harness.html?scene=${scene}${built === null ? "" : `&built=${built}`}`, base).href, { waitUntil: "domcontentloaded" })
           // The first scene of a browser profile installs the card catalog, as the app does.
           await page.locator('[data-harness="table"]').waitFor({ timeout: 300_000 })
+          // Its notice ("Kartendaten eingerichtet") goes first (as in openScene): it is no part of the scene.
+          await page.waitForFunction(() => document.querySelector("[data-sonner-toast]") === null, undefined, { timeout: 15_000 }).catch(() => undefined)
           const layout = await checkTableFits(page, label)
           const pictures = await tablePictures(page, label)
           // Every card keeps to its row's height; a row with more cards than room scrolls sideways. The fanned hand's cards
@@ -6329,9 +6331,13 @@ async function tableMotion(executablePath: string, base: string): Promise<Record
       (n) =>
         new Promise<{ last: string; states: number; moving: boolean; animations: { properties: string[]; target: string }[] }>((resolve) => {
           const layer = () => document.querySelector<HTMLElement>('[data-slot="table-motion"]')!
+          const before = Number(layer().dataset["states"] ?? 0)
           ;(window as unknown as { __openmanaShowStep: (n: number) => void }).__openmanaShowStep(n)
+          // The motion reads the new layout in the frame after the state (two frames); on a busy machine that frame may
+          // come later - wait until the layer counted the new state (at most 120 frames), then read what it started.
+          const settled = (frames: number, done: () => void) => (Number(layer().dataset["states"] ?? 0) > before || frames >= 120 ? done() : requestAnimationFrame(() => settled(frames + 1, done)))
           requestAnimationFrame(() =>
-            requestAnimationFrame(() => {
+            requestAnimationFrame(() => settled(0, () => {
               const own = document.getAnimations().filter((animation) => !(animation instanceof CSSAnimation) && !(animation instanceof CSSTransition))
               resolve({
                 last: layer().dataset["last"] ?? "",
@@ -6344,7 +6350,7 @@ async function tableMotion(executablePath: string, base: string): Promise<Record
                   return { properties, target: `${target?.className ?? ""}${effect.pseudoElement ?? ""}`.slice(0, 60) }
                 }),
               })
-            }),
+            })),
           )
         }),
       step,
@@ -6588,6 +6594,8 @@ async function tableFoldSizes(executablePath: string, base: string): Promise<Rec
         const pageLog = watch(page)
         await page.goto(new URL(`/scripts/e2e/table-harness.html?scene=${scene}${built === null ? "" : `&built=${built}`}`, base).href, { waitUntil: "domcontentloaded", timeout: 300_000 })
         await page.locator('[data-harness="table"]').waitFor({ timeout: 300_000 })
+        // The harness's notice of the card data set up goes first (as in openScene): it is no part of the scene.
+        await page.waitForFunction(() => document.querySelector("[data-sonner-toast]") === null, undefined, { timeout: 15_000 }).catch(() => undefined)
         const layout = await checkTableFits(page, label)
         const pictures = await tablePictures(page, label)
         const cards = await cardTargets(page, label)
