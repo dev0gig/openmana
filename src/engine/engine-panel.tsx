@@ -17,6 +17,7 @@ import { aiProfileLabel } from "@/game/game-labels"
 import { useNow } from "@/hooks/use-now"
 import { engineAssets } from "./engine-assets"
 import { abortAdvice, abortTitle, BOOT_PHASE_LABELS, ENGINE_LANGUAGE_LABELS, formatMegabytes, formatSeconds, shortCommit } from "./engine-labels"
+import { useEngineRelease } from "./engine-release"
 import type { BootStep, EngineSnapshot } from "./engine-session"
 import { useEngineSession } from "./engine-session-context"
 
@@ -69,6 +70,7 @@ function StatusBadge({ snapshot }: { snapshot: EngineSnapshot }) {
 }
 
 function PanelBody({ snapshot, now }: { snapshot: EngineSnapshot; now: number }): ReactNode {
+  const release = useEngineRelease()
   switch (snapshot.status) {
     case "unavailable":
       return (
@@ -143,7 +145,7 @@ function PanelBody({ snapshot, now }: { snapshot: EngineSnapshot; now: number })
             <OctagonAlert aria-hidden />
             <AlertTitle>{abortTitle(snapshot.abort)}</AlertTitle>
             <AlertDescription>
-              <span>{abortAdvice(snapshot.abort)}</span>
+              <span>{abortAdvice(snapshot.abort, release)}</span>
               <code className="mt-2 block text-xs break-words">{snapshot.abort.message}</code>
               {snapshot.abort.detail ? <code className="mt-2 block text-xs break-words">{snapshot.abort.detail}</code> : null}
             </AlertDescription>

@@ -17,3 +17,20 @@ describe("understandable engine failures", () => {
     expect(abortAdvice({ ...abort, reason: "terminated" })).toContain("nicht fortsetzen")
   })
 })
+
+describe("an app version whose engine left the server", () => {
+  const abort: EngineAbort = { type: "engine.abort", reason: "boot-failed", origin: "client", message: "Failed to load data at …: 404" }
+  it("names closing every tab as the cure, not the connection", () => {
+    expect(abortAdvice(abort, "gone")).toContain("veraltet")
+    expect(abortAdvice(abort, "gone")).toContain("alle OpenMana-Tabs")
+    expect(abortAdvice(abort, "gone")).not.toContain("Internetverbindung")
+  })
+  it("keeps the usual advice while the server's answer is open or the engine is there", () => {
+    expect(abortAdvice(abort, "unknown")).toBe(abortAdvice(abort))
+    expect(abortAdvice(abort, "served")).toBe(abortAdvice(abort))
+  })
+  it("explains a missing worker script too, but not a browser that cannot run Forge", () => {
+    expect(abortAdvice({ ...abort, reason: "worker-error" }, "gone")).toBe(abortAdvice(abort, "gone"))
+    expect(abortAdvice({ ...abort, reason: "unsupported-browser" }, "gone")).toBe(abortAdvice({ ...abort, reason: "unsupported-browser" }))
+  })
+})

@@ -55,6 +55,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { readSelection, resolveSelection } from "@/decks/deck-selection"
 import { BootSteps } from "@/engine/engine-panel"
 import { abortAdvice, abortTitle, formatSeconds } from "@/engine/engine-labels"
+import { useEngineRelease } from "@/engine/engine-release"
 import type { EngineSnapshot, GameNotice, MatchSetup, MatchSnapshot } from "@/engine/engine-session"
 import { useEngineSession } from "@/engine/engine-session-context"
 import { useIsMobile } from "@/hooks/use-mobile"
@@ -706,6 +707,7 @@ function Over({ match, again, note }: { match: Of<"over">; again: ReactNode; not
 
 function Aborted({ match, again, note }: { match: Of<"aborted">; again: ReactNode; note: string | null }) {
   const { abort, setup } = match
+  const release = useEngineRelease()
   return (
     <GameCard
       title={match.game === null ? "Die Partie konnte nicht starten" : "Partie abgebrochen"}
@@ -726,7 +728,7 @@ function Aborted({ match, again, note }: { match: Of<"aborted">; again: ReactNod
         <OctagonAlert aria-hidden />
         <AlertTitle>{abortTitle(abort)}</AlertTitle>
         <AlertDescription>
-          <span>{abortAdvice(abort)}</span>
+          <span>{abortAdvice(abort, release)}</span>
           <code className="mt-2 block text-xs break-words">{abort.message}</code>
           {abort.detail ? <code className="mt-2 block text-xs break-words">{abort.detail}</code> : null}
         </AlertDescription>

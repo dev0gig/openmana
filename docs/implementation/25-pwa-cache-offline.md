@@ -72,6 +72,22 @@ Hintergrundverwerfung können sie beenden. Die vorhandene beforeunload-Warnung
 bleibt, aber Browser müssen sie bei Hintergrundverwerfung nicht zeigen.
 Aufzeichnung/Wiedergabe ist keine Fortsetzung. Es wird keine Recovery behauptet.
 
+**Veraltete App, Engine nicht mehr auf dem Server (2026-10-14).** Ein
+Deployment liefert nur seine eigene Engine unter `engine/<id>/` aus. Eine alte
+App-Version, die der Service Worker bis zum Schließen aller Tabs behält und
+deren Engine nicht offline gespeichert ist, bricht beim Start deshalb mit
+HTTP 404 ab (fehlt der Worker: `worker-error`, fehlt nur die WebAssembly:
+`boot-failed`). Nach jedem Engine-Abbruch außer `unsupported-browser` fragt
+`src/engine/engine-release.ts` den Server einmal per `HEAD` (am Service Worker
+vorbei, `cache: "no-store"`) nach dem eigenen Engine-Manifest. Nur 404/410
+gilt als „gone“; andere Antworten und fehlendes Netz bleiben „unknown“, damit
+offline niemand fälschlich „veraltet“ liest. Bei „gone“ nennt `abortAdvice`
+die eigentliche Abhilfe – alle OpenMana-Tabs und App-Fenster schließen und neu
+öffnen – statt der Internetverbindung, und die App stößt eine Updateprüfung
+an. Erzwungen wird weiterhin nichts. Geprüft mit `engine-release.test.ts`,
+`engine-labels.test.ts` und im echten Chromium gegen einen Build, dessen
+Engine-Ordner fehlte bzw. nur noch Worker und Starter enthielt.
+
 ## Installation, Speicher und Offlinegrenzen
 
 Das vorhandene Manifest und die Icons bleiben erhalten. Ein tatsächliches

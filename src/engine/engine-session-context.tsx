@@ -10,8 +10,10 @@
 import { createContext, use, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react"
 import { toast } from "sonner"
 import { RecordingProvider } from "@/matches/recording-status"
+import { checkPwaUpdate } from "@/pwa/lifecycle"
 import { engineAssets } from "./engine-assets"
 import { abortTitle } from "./engine-labels"
+import { checkEngineRelease } from "./engine-release"
 import type { AnswerBody, ManaColor, MatchSettings } from "@openmana/engine-protocol"
 import { EngineSession, matchInProgress, type ConcedeResult, type EngineBootOptions, type EngineSessionSnapshot, type InputResult, type MatchSetup } from "./engine-session"
 
@@ -103,6 +105,8 @@ function useAbortToast(session: EngineSession): void {
         const { engine } = session.getSnapshot()
         if (engine.status === "aborted" && last.current?.engine.status !== "aborted") {
           toast.error(abortTitle(engine.abort), { id: "engine-abort", description: engine.abort.message })
+          // An engine gone from the server means a newer version is out: let the service worker fetch it now.
+          if (engine.abort.reason !== "unsupported-browser") void checkEngineRelease().then((release) => { if (release === "gone") void checkPwaUpdate() })
         }
         last.current = session.getSnapshot()
       }),

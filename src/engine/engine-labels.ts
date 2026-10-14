@@ -4,6 +4,7 @@
  * abort message) are shown verbatim below the German headline.
  */
 import type { AbortReason, BootPhase, EngineAbort, EngineLanguage } from "@openmana/engine-protocol"
+import type { EngineRelease } from "./engine-release"
 
 export const BOOT_PHASE_LABELS: Readonly<Record<BootPhase, string>> = {
   "worker-features": "Browser prüfen",
@@ -28,8 +29,17 @@ export function abortTitle(abort: EngineAbort): string {
   return ABORT_TITLES[abort.reason]
 }
 
-/** Practical next steps keyed only by the structured technical failure, never its prose. */
-export function abortAdvice(abort: EngineAbort): string {
+/**
+ * Practical next steps keyed only by the structured technical failure, never
+ * its prose - and by whether the server still serves this app version's
+ * engine (engine-release.ts): an engine gone from the server explains every
+ * failure but a browser that cannot run it (a missing worker script aborts as
+ * worker-error, a missing WebAssembly file as boot-failed).
+ */
+export function abortAdvice(abort: EngineAbort, release: EngineRelease = "unknown"): string {
+  if (release === "gone" && abort.reason !== "unsupported-browser") {
+    return "Diese App-Version ist veraltet: Inzwischen ist eine neue Version erschienen, und die Engine der alten liegt nicht mehr auf dem Server. Schließe alle OpenMana-Tabs und App-Fenster (auf Android die App ganz beenden) und öffne OpenMana erneut – dann startet die neue Version mit ihrer Engine. „Erneut versuchen“ hilft hier nicht."
+  }
   switch (abort.reason) {
     case "unsupported-browser": return "Öffne OpenMana in einem aktuellen Browser. Die Browserprüfung zeigt, welche Voraussetzung fehlt."
     case "protocol-mismatch": return "Lade die App neu, damit App und Engine aus derselben Version kommen. Eine laufende Partie endet beim Neuladen."
