@@ -454,7 +454,9 @@ what went in `56-altbestand-entfernen-und-gesamtpruefung.md`.
   "Exil" buttons are not taken over as such: zones open through the zone
   piles and "Zonen ansehen".
 - Region `header` "Spielstand".
-- **Built (prompt 39):** emblem (`TableEmblem`, the symbol of `TableArt`) and
+- **Built (prompt 39):** emblem (`TableEmblem`, the symbol of `TableArt`;
+  since prompt 57 the app's shared `Emblem`, `src/components/ui/emblem.tsx`,
+  the same drawing and gold - the app's bars and start page show it too) and
   the gold Cinzel wordmark "OpenMana" (`.table-wordmark`, a logotype:
   `aria-hidden`; the page's `h1` names the game) - the wordmark from
   `quadrat` up (not in a low `breit` window), the emblem everywhere except a

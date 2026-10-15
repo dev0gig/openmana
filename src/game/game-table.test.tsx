@@ -256,7 +256,8 @@ describe("the strips and the header (prompt 39)", () => {
     renderScene("main-phase")
     const header = region("Spielstand")
     expect(header.querySelector(".table-brand")).toHaveAttribute("aria-hidden", "true")
-    expect(header.querySelector('.table-brand use[href="#table-art-emblem"]')).not.toBeNull()
+    // The app's shared emblem (prompt 57, src/components/ui/emblem.tsx) - the same drawing the card back uses.
+    expect(header.querySelector('.table-brand > svg[data-slot="emblem"]')).not.toBeNull()
     expect(within(header).getByRole("button", { name: "Zonen ansehen" })).toHaveTextContent("Zonen")
     expect(within(header).getByRole("button", { name: "Spielverlauf ansehen" })).toHaveTextContent("Spielverlauf")
     expect(within(header).getByRole("button", { name: "Hilfe am Spieltisch" })).toHaveTextContent(/Hilfe$/)

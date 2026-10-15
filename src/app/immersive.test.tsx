@@ -41,13 +41,15 @@ const frame = () => ({
   tabBar: screen.queryAllByRole("navigation", { name: "Hauptnavigation" }).length,
   brandLinks: screen.queryAllByRole("link", { name: "OpenMana – Start" }).length,
   sidebar: document.querySelectorAll('[data-slot="sidebar"]').length,
+  // The background shimmer (prompt 57): once behind a page, never under the table (it has its arena).
+  surface: document.querySelectorAll('[data-slot="app-surface"]').length,
 })
 
 describe("immersive pages", () => {
   it("a page that asks for the whole screen gets it: no sidebar, no top bar, no tab bar", async () => {
     renderAt("/table")
     const heading = await screen.findByRole("heading", { level: 1, name: "Spieltisch" })
-    expect(frame()).toEqual({ tabBar: 0, brandLinks: 0, sidebar: 0 })
+    expect(frame()).toEqual({ tabBar: 0, brandLinks: 0, sidebar: 0, surface: 0 })
     expect(heading.parentElement).toHaveClass("h-dvh", "overflow-hidden")
   })
 
@@ -58,6 +60,7 @@ describe("immersive pages", () => {
     await screen.findByRole("heading", { level: 1, name: "Seite" })
     await waitFor(() => expect(frame().tabBar).toBe(1))
     expect(frame().brandLinks).toBeGreaterThan(0)
+    expect(frame().surface).toBe(1)
     expect(frame().sidebar).toBeGreaterThan(0)
   })
 

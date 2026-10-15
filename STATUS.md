@@ -1,6 +1,6 @@
 # OpenMana — Current Status
 
-Last repository review: 2026-10-08 (after Prompt 32); last update 2026-10-14 (prompt 56)
+Last repository review: 2026-10-08 (after Prompt 32); last update 2026-10-15 (prompt 57)
 
 Compact implementation map. This file deliberately does **not** replace the active queue ledger in `dev0gig/dropzone/workflow/tasks/INDEX.md`.
 
@@ -370,6 +370,10 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - Gone: the drawn wooden table (`surface-drawing.ts`, `TableSurface`, its desk/board/ring rules, the tokens `--table-wood` and `--table-wood-frame`), the three pictures (`src/game/table/backgrounds/`, `assets/table-backgrounds/`, their notice and credit), the player's own picture, the setting "Spieltisch-Hintergrund" with its Settings card, and the harness's `background=` choice. The arena is the table's only surface (`game-table.tsx` renders `ArenaSurface`).
 - Stored data: schema version **6** retires `display.tableBackground` and `display.tableBackgroundImage` (`RETIRED_SETTINGS` in `src/storage/settings.ts`) - deleted when a database upgrades, read past when a backup is read; every other setting stays (tests in `migrations.test.ts`, `backup.test.ts`). Old backups stay importable.
 - Evidence: `docs/implementation/56-altbestand-entfernen-und-gesamtpruefung.md` (the proof search, the before/after sizes, `npm run check`, the readiness games, the performance comparison with the drawn table's baseline of prompt 53).
+
+### Menu style: foundation and app frame (Prompt 57, series openmana-menuestil 1/4)
+- The project owner's menu style **"Reich"** (2026-10-15): everything outside a game takes the table's look (`docs/DESIGN_SYSTEM.md` §10). Built: derived tokens (`--gold-*`, `--panel*`, `--bar-*`, `--rail-*`, `--dock-*`, `--gold-glow`, `--surface-cool`; no new hue), the shared emblem and gold wordmark (`src/components/ui/emblem.tsx`; the table's header and card back use it, the table pixel-identical), `AppHeader`, tab bar and sidebar in the panel tone with gold lines and a glowing gold mark keyed to `aria-current`, and the one background shimmer `AppSurface` (Design System rule 1's exception; not during a game or replay). App icon unchanged.
+- Evidence: `docs/implementation/57-menuestil-grundlage.md`; targeted checks (tsc, oxlint, 232 unit tests incl. new contrast cases on every bar), browser checks at four sizes against `4c64434`; pictures in Seafile `/repo/openmana/design/menue-stil/57/`. Complete check in prompt 60. Assumptions (changeable): sidebar head continues the top bar instead of a full-width header; no "Menü" label; wordmark `text-xl`.
 
 ### ORYX Cloud Sync (outside the queue, 2026-09-25)
 - The project owner's direct assignment, not a queue prompt (outside the numbered program): the player's collection syncs through their ORYX account (the launcher's Supabase cloud) with the vendored ORYX SDK 1.0.0 (`src/cloud/oryx-sdk.js` and `.d.ts`, byte-identical copies of `oryx-games/shared`, checksum-tested, excluded from lint only themselves). Active only on `https://openmana.vercel.app/`; locally, in tests and previews inactive (no request, nothing stored). Local stays the source of truth.

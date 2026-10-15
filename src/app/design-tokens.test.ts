@@ -59,6 +59,45 @@ function over(color: string, alpha: number, under: string): [number, number, num
   return top.map((v, i) => v * alpha + bottom[i]! * (1 - alpha)) as [number, number, number]
 }
 
+/*
+ * The menu style's tokens (prompt 57) are derived in index.css: aliases (`--gold-light: var(--table-gold-light)`) and
+ * mixes with black in oklch (`color-mix(in oklch, var(--panel), black 25%)`: black's hue is powerless, so lightness and
+ * chroma shrink by the share and the hue stays).
+ */
+const aliases = new Map<string, string>()
+for (const match of rootBlock.matchAll(/--([a-z-]+):\s*var\(--([a-z-]+)\);/g)) aliases.set(match[1]!, match[2]!)
+const blacks = new Map<string, [string, number]>()
+for (const match of rootBlock.matchAll(/--([a-z-]+):\s*color-mix\(in oklch, var\(--([a-z-]+)\), black (\d+)%\);/g)) {
+  blacks.set(match[1]!, [match[2]!, Number(match[3]) / 100])
+}
+
+/** A token's oklch, following aliases and mixes with black; the share of black (0 for a plain token). */
+function shade(name: string): [[number, number, number], number] {
+  const alias = aliases.get(name)
+  if (alias !== undefined) return shade(alias)
+  const mix = blacks.get(name)
+  if (mix !== undefined) {
+    const [[l, c, h]] = shade(mix[0])
+    return [[l * (1 - mix[1]), c * (1 - mix[1]), h], mix[1]]
+  }
+  const value = tokens.get(name)
+  if (!value) throw new Error(`token ${name} missing in :root`)
+  return [value, 0]
+}
+
+const shell = (name: string) => srgb(shade(name)[0])
+
+/** `top` at `alpha` over `under`, in sRGB as the browser composites it. */
+const blend = (top: [number, number, number], alpha: number, under: [number, number, number]) =>
+  top.map((v, i) => v * alpha + under[i]! * (1 - alpha)) as [number, number, number]
+
+/** The gold shimmer's share of --primary (`--gold-glow: color-mix(in oklch, var(--primary) 16%, transparent)`). */
+function glowShare(): number {
+  const match = /--gold-glow:\s*color-mix\(in oklch, var\(--primary\) (\d+)%, transparent\);/.exec(rootBlock)
+  if (!match) throw new Error("--gold-glow is not a share of --primary")
+  return Number(match[1]) / 100
+}
+
 const hex = (rgb: [number, number, number]) => `#${rgb.map((v) => Math.round(v * 255).toString(16).padStart(2, "0")).join("")}`
 
 describe("design tokens", () => {
@@ -178,6 +217,42 @@ describe("design tokens", () => {
       expect(rootBlock).toMatch(new RegExp(`--table-${name}:\\s*oklch\\(`))
       expect(css).toContain(`--color-table-${name}: var(--table-${name});`)
     }
+  })
+
+  // The menu style (series openmana-menuestil, prompt 57): the app's bars in the table's panel tone falling darker, the
+  // navigation's gold mark. Text on both ends of each bar's gradient - the words of the tab bar and the sidebar (inactive
+  // muted, active --gold-light), the wordmark's gold, the bars' symbols - reaches 4.5:1; the gold line of the active
+  // destination and the focus ring 3:1. The mixes are read from index.css, so the check follows the tokens.
+  describe("the menu style's bars", () => {
+    const BARS = ["bar-top", "bar-bottom", "rail-top", "rail-bottom", "dock-top", "dock-bottom"] as const
+
+    it("its tokens are all there, only derived from existing ones (no new hue), and mapped for Tailwind", () => {
+      const names = ["gold-light", "gold-dark", "gold-line", "gold-glow", "panel", "panel-shade", ...BARS]
+      for (const name of [...names, "surface-cool"]) {
+        expect(rootBlock).toMatch(new RegExp(`--${name}:\\s*(var|color-mix)\\(`))
+        expect(tokens.has(name)).toBe(false)
+      }
+      for (const name of names) expect(css).toContain(`--color-${name}: var(--${name});`)
+      for (const name of BARS) expect(shade(name)[1]).toBeGreaterThan(0)
+    })
+
+    it.each(
+      ["foreground", "muted-foreground", "gold-light", "primary"].flatMap((text) => BARS.map((bar) => [text, bar] as const)),
+    )("%s on %s reaches 4.5:1", (text, bar) => {
+      expect(ratio(shell(text), shell(bar))).toBeGreaterThanOrEqual(4.5)
+    })
+
+    it.each(["rail-top", "rail-bottom"])("the active sidebar entry (--gold-light on the gold shimmer over %s) reaches 4.5:1", (rail) => {
+      expect(ratio(shell("gold-light"), blend(shell("primary"), glowShare(), shell(rail)))).toBeGreaterThanOrEqual(4.5)
+    })
+
+    it("the bar's round symbol button: --gold-light on --panel-shade reaches 4.5:1", () => {
+      expect(ratio(shell("gold-light"), shell("panel-shade"))).toBeGreaterThanOrEqual(4.5)
+    })
+
+    it.each(BARS.flatMap((bar) => ["primary", "ring"].map((mark) => [mark, bar] as const)))("the mark %s on %s reaches 3:1", (mark, bar) => {
+      expect(ratio(shell(mark), shell(bar))).toBeGreaterThanOrEqual(3)
+    })
   })
 
   it("the manifest's theme colour is the background token", () => {

@@ -91,6 +91,22 @@
   --color-table-leather: var(--table-leather);
   --color-table-panel: var(--table-panel);
   --color-table-plaque: var(--table-plaque);
+  /* The menu style (prompt 57): see the :root block below. */
+  --color-gold-light: var(--gold-light);
+  --color-gold-dark: var(--gold-dark);
+  --color-gold-line: var(--gold-line);
+  --color-gold-glow: var(--gold-glow);
+  --color-panel: var(--panel);
+  --color-panel-shade: var(--panel-shade);
+  --color-bar-top: var(--bar-top);
+  --color-bar-bottom: var(--bar-bottom);
+  --color-rail-top: var(--rail-top);
+  --color-rail-bottom: var(--rail-bottom);
+  --color-dock-top: var(--dock-top);
+  --color-dock-bottom: var(--dock-bottom);
+  /* The navigation's active mark: a gold line that glows (shadow-gold-glow), its symbol a soft gold halo (drop-shadow-gold-glow). */
+  --shadow-gold-glow: 0 0 10px var(--primary);
+  --drop-shadow-gold-glow: 0 0 6px color-mix(in oklch, var(--primary) 60%, transparent);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -161,6 +177,35 @@
   --table-leather: oklch(0.28 0.045 261);
   --table-panel: oklch(0.22 0.025 262);
   --table-plaque: oklch(0.28 0.027 81);
+
+  /*
+   * The menu style (series openmana-menuestil, prompt 57; the project owner's
+   * choice "Reich", 2026-10-15; docs/DESIGN_SYSTEM.md §2-§3): the app's bars,
+   * the navigation's gold mark, the background shimmer and - from prompt 58 -
+   * the shadcn components take the game table's look. Only derived from the
+   * tokens above (aliases, mixes with black, a gold tint) - no new hue.
+   * Bars are given top and bottom of their gradient; the contrasts on both
+   * ends are checked in src/app/design-tokens.test.ts.
+   */
+  --gold-light: var(--table-gold-light);
+  --gold-dark: var(--table-gold-dark);
+  --gold-line: var(--table-gold-line);
+  --panel: var(--table-panel);
+  /* A round control or a number ring on a panel (the table's .table-panel-count tone, lighter). */
+  --panel-shade: color-mix(in oklch, var(--panel), black 30%);
+  /* The top bar (phones; from md the bar above the content). */
+  --bar-top: color-mix(in oklch, var(--panel), black 25%);
+  --bar-bottom: color-mix(in oklch, var(--panel), black 45%);
+  /* The sidebar (from md). */
+  --rail-top: color-mix(in oklch, var(--panel), black 20%);
+  --rail-bottom: color-mix(in oklch, var(--panel), black 40%);
+  /* The tab bar (phones) - the tone of the table's action bar. */
+  --dock-top: color-mix(in oklch, var(--panel), black 35%);
+  --dock-bottom: color-mix(in oklch, var(--panel), black 60%);
+  /* The active sidebar entry's gold shimmer (fading to the right). */
+  --gold-glow: color-mix(in oklch, var(--primary) 16%, transparent);
+  /* The background's cool light from below (AppSurface): the table's mana blue sunk into the night blue. */
+  --surface-cool: color-mix(in oklch, var(--table-mana), var(--background));
 }
 
 @layer base {

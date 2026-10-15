@@ -37,7 +37,7 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" role="navigation" aria-label="Navigation">
       <SidebarHeader>
-        <NavLink to="/" aria-label="OpenMana – Start" className="rounded-lg p-2 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 group-data-[collapsible=icon]:p-0">
+        <NavLink to="/" aria-label="OpenMana – Start" className="rounded-lg p-1.5 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 group-data-[collapsible=icon]:p-0">
           <Brand />
         </NavLink>
       </SidebarHeader>

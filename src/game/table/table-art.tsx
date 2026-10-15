@@ -3,6 +3,9 @@
  * the OpenMana emblem, the life medallion's ring and OpenMana's own card back
  * - after the mockup's SVG symbols `#emblem`, `#medaillon` and `#rueckseite`
  * (docs/design/spieltisch-vorlage/index.html), coloured from the tokens.
+ * Since prompt 57 (series openmana-menuestil) the emblem and its gold are the
+ * app's shared ones (src/components/ui/emblem.tsx): the header draws `Emblem`,
+ * the card back the same shapes; the app's bars and start page show it too.
  *
  * `TableArt` holds them once per table as SVG symbols (fixed ids, like the
  * surface's: one table per page); the pieces below draw them with <use>, so
@@ -19,6 +22,7 @@
  */
 import { cn } from "cn"
 import type { ComponentProps } from "react"
+import { Emblem, EmblemGold, EmblemShapes } from "@/components/ui/emblem"
 
 /** The symbols' ids. */
 export const TABLE_ART = { emblem: "table-art-emblem", medallion: "table-art-medallion", back: "table-art-back" } as const
@@ -32,11 +36,7 @@ export function TableArt() {
   return (
     <svg data-slot="table-art" aria-hidden="true" focusable="false" width="0" height="0" className="pointer-events-none absolute size-0 overflow-hidden">
       <defs>
-        <linearGradient id="table-art-gold" x1="0" y1="0" x2="0" y2="1">
-          {stop(0, "var(--table-gold-light)")}
-          {stop(0.45, "var(--primary)")}
-          {stop(1, "var(--table-gold-dark)")}
-        </linearGradient>
+        <EmblemGold id="table-art-gold" />
         <linearGradient id="table-art-back-ground" x1="0" y1="0" x2="1" y2="1">
           {stop(0, darker("--table-leather", 8))}
           {stop(0.55, darker("--table-panel", 40))}
@@ -48,13 +48,9 @@ export function TableArt() {
           {stop(1, darker("--table-panel", 80))}
         </radialGradient>
 
-        {/* The emblem: an eight-pointed star in a ring (header, card back; the board's centre draws it too). */}
+        {/* The emblem inside the card back: the app's one drawing of it (src/components/ui/emblem.tsx), in the table's gold. */}
         <symbol id={TABLE_ART.emblem} viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="44" fill="none" stroke={GOLD} strokeWidth="3" />
-          <circle cx="50" cy="50" r="38" fill="none" stroke={GOLD} strokeWidth="1" strokeDasharray="1.5 3.2" />
-          <path d="M50 4 57 43 96 50 57 57 50 96 43 57 4 50 43 43Z" fill={GOLD} />
-          <path d="M50 22 54 46 78 50 54 54 50 78 46 54 22 50 46 46Z" style={{ fill: "var(--background)" }} opacity=".55" transform="rotate(45 50 50)" />
-          <circle cx="50" cy="50" r="6" style={{ fill: "var(--background)" }} stroke={GOLD} strokeWidth="2" />
+          <EmblemShapes gold={GOLD} />
         </symbol>
 
         {/* The life medallion: a gold ring with ticks, four gems and a dark inner disc; the number is HTML on top. */}
@@ -93,9 +89,13 @@ export function TableArtPiece({ piece, viewBox, className }: { piece: keyof type
   )
 }
 
-/** The emblem (the header's mark). */
+/**
+ * The emblem (the header's mark): the app's shared `Emblem` (series
+ * openmana-menuestil, prompt 57) - the same drawing and gold as before, so
+ * the table looks as it did.
+ */
 export function TableEmblem({ className }: { className?: string | undefined }) {
-  return <TableArtPiece piece="emblem" viewBox="0 0 100 100" className={className} />
+  return <Emblem className={className} />
 }
 
 /**

@@ -55,6 +55,49 @@ describe("surfaces", () => {
     expect(within(tabBar).getByRole("link", { name: "Start" })).not.toHaveAttribute("aria-current")
   })
 
+  // Series openmana-menuestil, prompt 57: aria-current is the truth, the gold mark follows it - in the tab bar
+  // (phones) and the sidebar (from md), also on a sub-path of a surface.
+  it.each([
+    ["/decks", "Decks"],
+    ["/decks/does-not-exist", "Decks"],
+    ["/", "Start"],
+  ])("at %s the current surface carries aria-current and the gold mark in both navigations", async (path, label) => {
+    renderAt(path)
+    const tabBar = await screen.findByRole("navigation", { name: "Hauptnavigation" })
+    const sidebar = screen.getByRole("navigation", { name: "Navigation" })
+    for (const [nav, slot, count] of [[tabBar, "bottom-nav-item", MAIN_DESTINATIONS.length], [sidebar, "sidebar-menu-button", DESTINATIONS.length]] as const) {
+      // The destinations (the sidebar's brand link above them is no destination).
+      const links = within(nav).getAllByRole("link").filter((link) => link.getAttribute("data-slot") === slot)
+      expect(links).toHaveLength(count)
+      const current = links.filter((link) => link.getAttribute("aria-current") === "page")
+      expect(current.map((link) => link.textContent)).toEqual([label])
+      for (const link of links) {
+        // The mark (gold words, the glowing gold line) is keyed to aria-current, nothing else.
+        expect(link.className).toMatch(/aria-\[current=page\]:text-gold-light/)
+        expect(link.className).toMatch(/aria-\[current=page\]:before:bg-primary/)
+        expect(link.className).toMatch(/aria-\[current=page\]:before:shadow-gold-glow/)
+        expect(link.className).not.toMatch(/data-\[?active/)
+      }
+    }
+  })
+
+  it("shows the table's emblem and the gold wordmark instead of the app icon in the bars", async () => {
+    renderAt("/decks")
+    await screen.findByRole("heading", { level: 1, name: "Decks" })
+    const brandLinks = screen.getAllByRole("link", { name: "OpenMana – Start" })
+    expect(brandLinks).toHaveLength(2) // top bar (phones) and sidebar (from md)
+    for (const link of brandLinks) {
+      expect(link.querySelector('svg[data-slot="emblem"]')).not.toBeNull()
+      expect(link.querySelector('[data-slot="wordmark"]')).toHaveTextContent("OpenMana")
+      expect(link.querySelector("img")).toBeNull()
+    }
+    expect(document.querySelector('img[src*="/icons/"]')).toBeNull()
+    // The top bar: the table's panel tone with a gold line; its symbol buttons round with a gold line.
+    const header = document.querySelector('[data-slot="app-header"]')!
+    expect(header).toHaveClass("border-gold-line", "from-bar-top", "to-bar-bottom")
+    expect(within(header as HTMLElement).getByRole("link", { name: "Einstellungen" })).toHaveClass("rounded-full", "border-gold-line")
+  })
+
   it("navigates between surfaces", async () => {
     const router = renderAt("/")
     await userEvent.click(within(screen.getByRole("navigation", { name: "Hauptnavigation" })).getByRole("link", { name: "Partien" }))

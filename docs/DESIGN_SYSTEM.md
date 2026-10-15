@@ -12,6 +12,13 @@
   spacing – touch-friendly), Radix primitives, Tailwind CSS 4, icons from
   Lucide. Components live in `src/components/ui/` and are added with the
   shadcn CLI (`components.json`). Pages compose them; they do not restyle them.
+- **The menu style "Reich"** (the project owner's choice of 2026-10-15, series
+  *openmana-menuestil*, prompts 57-60; §10): the whole app outside a running
+  game looks like the game table - bars and panels in the table's panel tone
+  with gold lines, the table's emblem and a gold wordmark, a glowing gold mark
+  for the current page, a still background shimmer. It comes only through
+  tokens, building blocks in `src/components/ui/` and deliberate central
+  changes of the shadcn components (rule 3); pages stay shadcn-only.
 - **Tokens: `src/index.css`.** Every colour, radius and font of the app is a
   shadcn token (`--background`, `--card`, `--primary`, `--muted-foreground`,
   `--sidebar-*` …) mapped into Tailwind by `@theme inline`. Pages use the
@@ -35,7 +42,9 @@ copying one (Bible §13): no Arena assets, layouts or typefaces.
 | Headings | **Cinzel** (variable, SIL OFL), as shadcn's `--font-heading` | engraved capitals, card-game character; titles and the wordmark only |
 | Body | **Inter** (variable, SIL OFL), `--font-sans` | legible at small sizes, tabular digits for numbers |
 | Radius | `--radius` 0.625rem; Maia scales it (cards `rounded-2xl`, buttons pill-shaped) | soft, familiar from Material 3 on Android |
-| App icon | the Anvil icon, unchanged and temporary ([provenance](../assets/app-icon/PROVENANCE.md)) | prompt 06: no redesign yet |
+| App icon | the Anvil icon, unchanged and temporary ([provenance](../assets/app-icon/PROVENANCE.md)) - only the icon of the installed app (`public/icons/`, manifest, PWA, ORYX) | prompt 06: no redesign yet; a later decision of its own |
+| Mark in the app | the game table's **emblem** (a compass: eight-pointed star in a ring, the table's gold gradient) and the wordmark "OpenMana" in Cinzel with a gold gradient - top bar, sidebar, start page (`Emblem`, `Wordmark`, `Brand`; prompt 57) | one mark with the table, "wie aus einem Guss" (2026-10-15) |
+| Menu style | **"Reich"** (2026-10-15): bars in the panel tone falling darker with a gold hairline (`--bar-*`, `--rail-*`, `--dock-*`), the current page in `--gold-light` with a glowing gold line (`--primary`, `shadow-gold-glow`), behind the pages a still shimmer - warm gold light above, cool blue below, two pairs of golden swings (`AppSurface`); from prompt 58 panels with corner ornaments, golden main buttons, gold-lined inputs, ornament under page titles (§10) | the project owner's choice from the preview "Heute / Dezent / Reich" (Dropzone `workflow/OPENMANA-MENUESTIL-VORLAGE.html`) |
 | Game table | the arena - a quiet stone surface laid under the board as a subgrid of its grid, warm light above, cool blue below, golden swings, runes, tendrils, light dust (series *stoneboard* 53-56, after the binding template; until prompt 56 a drawn wooden desk) -, gold medallions and panels (`--table-*` tokens, §9) | the project owner's concept (2026-10-10), [design/SPIELTISCH.md](design/SPIELTISCH.md) |
 
 Fonts are bundled (Fontsource), never loaded from a font CDN: same-origin
@@ -48,6 +57,15 @@ files work under COEP and nothing leaks to third parties (Bible §15).
    components; colours, shadows, gradients, arbitrary values (`bg-[#…]`,
    `w-[…]`) and page-level visual effects do not appear in pages. The one
    exception is the game table (§9); it does not extend to anything else.
+   **One page-level effect is allowed** (the project owner, 2026-10-15, with
+   the menu style "Reich", §10): the background shimmer `AppSurface`
+   (`src/components/ui/app-surface.tsx`) - exactly one building block, placed
+   once by the app shell behind the content (`aria-hidden`, no pointer events,
+   fixed to the window: no room, no scrolling, no motion), never inside a page
+   and never while a game or a replay takes the screen. Ornaments (emblem,
+   gold marks, from prompt 58 corners and dividers) are building blocks in
+   `src/components/ui/` or central changes of shadcn components (rule 3);
+   their colours and gradients live there and in tokens, never in a page.
 2. **A missing component is added as a shadcn component** – from the shadcn
    registry if it exists there, otherwise built the shadcn way in
    `src/components/ui/`: `data-slot`, `cn()`, `asChild` via Radix `Slot`,
@@ -63,7 +81,13 @@ files work under COEP and nothing leaks to third parties (Bible §15).
    `motion-reduce:animate-none!` / `motion-reduce:transition-none!` on every
    animation and transition (rule 8), and since prompt 13 `CardPicture`'s
    `compact` (little padding in the text box that stands in for a missing
-   picture on the small cards of the game table).
+   picture on the small cards of the game table). Since prompt 57 (menu style,
+   §10): the sidebar in the bars' tone (`--rail-*`) with a gold hairline, its
+   header continuing the top bar (same height, tone and hairline), and
+   `SidebarMenuButton` and `BottomNavItem` marking the current page by
+   `aria-current="page"` (gold words, a gold shimmer or halo, a glowing gold
+   line - set from `isActive` unless a `NavLink` sets it itself), no longer
+   by `data-active`.
 4. **Honest states.** No sample data, no simulated engine, no pretend
    features. Empty states use `Empty`; an action that is not possible yet
    stays visible but disabled and says why (`aria-describedby`); failures
@@ -143,7 +167,7 @@ files work under COEP and nothing leaks to third parties (Bible §15).
 
 | Width | Navigation | Notes |
 |---|---|---|
-| below 768 px (phones, folded foldables) | top bar (logo, settings gear) + bottom **tab bar** with Start, Decks, Spielen, Partien | settings behind the gear, credits behind settings: rare things stay out of the repeated path (Anvil lesson) |
+| below 768 px (phones, folded foldables) | top bar (emblem and wordmark, settings gear) + bottom **tab bar** with Start, Decks, Spielen, Partien | settings behind the gear, credits behind settings: rare things stay out of the repeated path (Anvil lesson) |
 | from 768 px (tablets, unfolded foldables, desktop) | shadcn **Sidebar**, collapsible to icons (`Ctrl/⌘+B`), all six surfaces | the lower group holds Einstellungen and Credits |
 
 Content sits in one column, `max-w-5xl`, with cards in a one- or two-column
@@ -261,7 +285,7 @@ with a visible focus ring and a name (prompt 45, end-to-end
 | `useTableLayout()`, `tableLayoutOf()`; variants `hoch:`, `quadrat:`, `breit:` | `src/game/table/use-table-layout.ts`, `table-layout.ts`, `src/index.css` (prompt 36) | the game table's layout by aspect ratio (§4, §9): `GameBoard`'s plans, the Sheets' side (prompt 38) and the card view's arrangement (prompt 47) |
 | `CardLightboxContent`, `CardLightboxStage`, `CardLightboxPicture`, `CardLightboxAside`, `CardLightboxBoxes`, `CardLightboxActions`; `cardFit()`, `useCloseWatcher()` | `src/components/ui/card-lightbox.tsx`, built the shadcn way on Radix `Dialog` with shadcn's `DialogOverlay` (prompt 47) | the card view in full screen: the darkened table, the card as large as the room allows (`cardFit`: stacked within width and height less its button rows, beside within height and width less the aside of 16–24 rem), the aside with the keyword boxes and the buttons, presses on the darkening falling through to the overlay (they close it), the back gesture (`CloseWatcher`) |
 | `src/game/table/table.css`, `--table-*` tokens | prompt 36 (§9) | the game table's own stylesheet (imported by `ArenaSurface`) and colours |
-| `TableArt`, `TableCardBack`, `TableEmblem` | `src/game/table/table-art.tsx` (prompt 39, §9) | the table's drawn pieces as SVG symbols defined once per table - the OpenMana emblem, the life medallion's ring, OpenMana's own card back (never Wizards'); `TableCardBack` (slot `game-card-back`) for every card Forge hides on the table (the opponent's hand, face-down permanents, hidden cards of questions, the library pile), decoration only |
+| `TableArt`, `TableCardBack`, `TableEmblem` | `src/game/table/table-art.tsx` (prompt 39, §9) | the table's drawn pieces as SVG symbols defined once per table - the OpenMana emblem (since prompt 57 the app's `Emblem`: `TableEmblem` draws it, the card back's symbol uses its shapes and gold), the life medallion's ring, OpenMana's own card back (never Wizards'); `TableCardBack` (slot `game-card-back`) for every card Forge hides on the table (the opponent's hand, face-down permanents, hidden cards of questions, the library pile), decoration only |
 | `MedallionFace`, `ZonePile`, `ZoneCounter`, `ZoneCount`, `StripChip` | `src/game/table/strip-parts.tsx` (prompt 39, §9) | a player's strip: the life medallion's face (inside `GamePlayer`/`GamePlayerButton`), the library and graveyard as piles, exile and command zone as counters (both open the zone view - looking only), counts with the zone's title, facts as chips on the panel tone |
 | `ArenaSurface` | `src/game/table/arena-surface.tsx` (prompts 53-56, §9; [design/SPIELTISCH.md](design/SPIELTISCH.md) §4.1b) | the arena under the table's regions: a child of the board's grid with `subgrid` on both axes, every piece in the cell of its region, nothing measured by JavaScript; the only surface since prompt 56 (the drawn wooden table, the pictures and the setting `display.tableBackground` are gone) |
 | `Checkbox` | shadcn/ui registry (`radix-maia`, prompt 15; `motion-reduce` added) | several choices of one of Forge's questions, inside a `FieldLabel` choice card (the whole card is the touch target) |
@@ -277,8 +301,11 @@ with a visible focus ring and a name (prompt 45, end-to-end
 | `GamePlayer`, `GamePlayerButton` | `src/components/ui/game-player.tsx`, built the shadcn way (prompt 17) | a player's name and life total on their seat and in the decision region; as a button where Forge's running input takes the player (a target, a choice, life for Phyrexian mana), with the cards' marks drawn as an outline inside the box, so a mark takes no room; shadcn's focus ring, 44 px on touch screens as a button. On the table's strips it is the life medallion (prompt 39, `table-medallion`: a ring with a glow per mark, a stack target red) |
 | `ActionBar` | `src/components/ui/action-bar.tsx`, built the shadcn way (prompt 10) | a page's primary action on phones: sticky right above the tab bar (`bottom-16`), at the end of the content column – on a short page too (since prompt 11 the `Page` column fills the screen and the bar is pushed to its end, `mt-auto`); pages render it only below `md` (`useIsMobile`) and put the same actions into the header above |
 | `CardPicture` | `src/components/ui/card-picture.tsx`, built the shadcn way (prompt 08) | every picture of a Magic card: `AspectRatio` 63 × 88, `Skeleton` while loading, the card's text in place of a missing or failed picture (`data-state` loading/loaded/failed/missing); loads Scryfall's pictures in CORS mode without referrer and never crops them (`object-contain`: Scryfall forbids cutting off artist or copyright); a lazily sized picture (`sizes="auto"`, the table's) gives up `sizes` before it leaves the page - Chrome kept it and its surroundings alive otherwise (prompt 45) |
-| `BottomNav`, `BottomNavItem` | `src/components/ui/bottom-nav.tsx`, built the shadcn way | phone tab bar |
-| `Brand` | `src/components/brand.tsx` | icon + Cinzel wordmark |
+| `BottomNav`, `BottomNavItem` | `src/components/ui/bottom-nav.tsx`, built the shadcn way | phone tab bar; since prompt 57 in the dock tone with a gold hairline, the current destination (`aria-current`) gold with a glowing line above its symbol (§10) |
+| `Emblem`, `Wordmark` (+ `EmblemShapes`, `EmblemGold`) | `src/components/ui/emblem.tsx`, built the shadcn way (prompt 57, §10) | the OpenMana emblem (the table's compass, one drawing for the app and the table - `TableEmblem` and the card back use it) and the gold Cinzel wordmark; decoration (`aria-hidden`) |
+| `AppHeader`, `appHeaderButtonVariants()` | `src/components/ui/app-header.tsx`, built the shadcn way (prompt 57, §10) | the app's top bar (sticky, bar tone, gold hairline); a shadcn `Button` (ghost, icon size) as its round, gold-lined symbol button |
+| `AppSurface` | `src/components/ui/app-surface.tsx`, built the shadcn way (prompt 57, rule 1, §10) | the one background shimmer behind every page outside the table, placed once by the app shell |
+| `Brand` | `src/components/brand.tsx` | emblem + gold Cinzel wordmark (since prompt 57; the app icon before) |
 | `Page`, `PageHeader` | `src/components/page-header.tsx` | every surface: `<title>`, `h1`, description, content column |
 | `PageLoading` | `src/routes/page-loading.tsx` | a page that loads on demand (React Router `lazy`, e.g. the deck import) while its code arrives: `Skeleton`s in the content column, the frame stays usable |
 | `FactList` | `src/components/fact-list.tsx` | label/value facts (versions, sizes, timings) |
@@ -443,3 +470,55 @@ reference.
   open the zone view, every fact in words is a chip on the panel tone. The
   table's drawn pieces (emblem, medallion ring, card back) are SVG symbols
   defined once (`TableArt`).
+
+## 10. The menu style "Reich" (series openmana-menuestil, prompts 57-60)
+
+The project owner wanted the menus, the navigation and every page outside a
+running game to look like the finished game table, "wie aus einem Guss", and
+chose the version **"Reich"** of the preview on 2026-10-15. Binding template
+(a picture of the style, not a plan of the pages - texts, content and flows
+stay the app's): Dropzone `workflow/OPENMANA-MENUESTIL-VORLAGE.html` with its
+plan `workflow/OPENMANA-MENUESTIL-MASTERPLAN.md`; pictures in Seafile
+`/repo/openmana/design/menue-stil/`. The game table itself does not change.
+
+**Tokens** (`:root` in `src/index.css`, only derived from the existing ones -
+no new hue; mapped as `--color-*` where Tailwind needs them):
+`--gold-light`, `--gold-dark`, `--gold-line`, `--panel` (aliases of the
+`--table-*` tokens), `--panel-shade` (a round control on a panel), the bars'
+gradients `--bar-top`/`--bar-bottom` (top bar), `--rail-top`/`--rail-bottom`
+(sidebar), `--dock-top`/`--dock-bottom` (tab bar - the tone of the table's
+action bar), all `--panel` mixed with black; `--gold-glow` (`--primary` at
+16 %, the active sidebar entry's shimmer), `--surface-cool` (the table's mana
+blue sunk into the night blue, the shimmer's cool light); `shadow-gold-glow`
+and `drop-shadow-gold-glow` in `@theme`. `design-tokens.test.ts` reads the
+mixes from the CSS and checks text (4.5:1: the navigation's words inactive and
+active, the wordmark's gold, the symbols) on both ends of every bar and the
+marks and focus ring (3:1).
+
+**Built in prompt 57 - the frame:**
+
+- `Emblem` and `Wordmark` (`src/components/ui/emblem.tsx`): the table's compass
+  as the app's one drawing of the emblem (`TableEmblem` and the card back use
+  it; the table looks as before - checked pixel by pixel in its recorded
+  scenes) and "OpenMana" in Cinzel with a gold gradient. `Brand` shows both in
+  the top bar, the sidebar and on the start page; the app icon stays the
+  installed app's icon only.
+- `AppHeader`: the top bar in the bar tone with a gold hairline; its symbol
+  buttons (settings, the sidebar's trigger) round with a gold hairline
+  (`appHeaderButtonVariants()`). From `md` the sidebar's header continues it,
+  so the bar runs across the window.
+- Tab bar and sidebar: their tones with a gold hairline towards the content;
+  the current page - by `aria-current="page"`, the truth for screen readers and
+  the mark alike - in `--gold-light`, with a glowing gold line (above the
+  symbol in the tab bar, on the left of the entry in the sidebar, there with a
+  gold shimmer fading to the right), the others muted. Touch sizes and focus
+  rings unchanged.
+- `AppSurface`: the background shimmer (rule 1's one exception) - warm gold
+  light from above, cool blue from below and two pairs of fine golden swings,
+  still; behind the content (the content column is positioned above it), not
+  while a game or a replay takes the screen.
+
+**From prompt 58:** the shadcn components as the table's panels and buttons
+(`Card` with corner ornaments, golden main `Button`, gold-lined inputs and
+second buttons, `PageHeader` with the ornament), prompt 59 the pages, prompt
+60 the acceptance of the whole.
