@@ -11,13 +11,15 @@ import path from "node:path"
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import { PageHeader } from "@/components/page-header"
+import { Alert, AlertTitle } from "./alert"
 import { Badge } from "./badge"
 import { Button } from "./button"
 import { Card, CardContent, CardHeader, CardTitle } from "./card"
 import { Checkbox } from "./checkbox"
 import { Empty, EmptyMedia, EmptyTitle } from "./empty"
 import { Input } from "./input"
-import { Item, ItemMedia } from "./item"
+import { Emblem } from "./emblem"
+import { Item, ItemDescription, ItemMedia } from "./item"
 import { OrnamentCorner, OrnamentDivider } from "./ornament"
 import { RadioGroup, RadioGroupItem } from "./radio-group"
 import { Switch } from "./switch"
@@ -94,6 +96,63 @@ describe("Card as the table's panel", () => {
   })
 })
 
+describe("prompt 59: what the pages needed, built into the components", () => {
+  it("Card asChild: the panel is its child (a deck's link) with the corners inside, focus ring and gold hover line", () => {
+    const { container } = render(
+      <Card asChild size="sm">
+        <a href="/decks/1" aria-label="Blau-Rot Starter">
+          <CardHeader>
+            <CardTitle>Blau-Rot Starter</CardTitle>
+          </CardHeader>
+        </a>
+      </Card>,
+    )
+    const link = screen.getByRole("link", { name: "Blau-Rot Starter" })
+    expect(link).toHaveAttribute("data-slot", "card")
+    expect(container.firstElementChild).toBe(link)
+    expect([...link.children].map((child) => child.getAttribute("data-slot"))).toEqual(["card-header", "ornament-corner", "ornament-corner"])
+    expect(link).toHaveClass("[a]:focus-visible:ring-[3px]", "menu:[a]:focus-visible:ring-ring/50", "menu:[a]:hover:ring-gold-edge", "motion-reduce:transition-none!")
+  })
+
+  it("ItemMedia number: a step's number in a gold ring (Cinzel gold) outside the board", () => {
+    render(<ItemMedia variant="number">2</ItemMedia>)
+    expect(screen.getByText("2")).toHaveClass("rounded-full", "menu:border-gold-line", "menu:font-heading", "menu:text-gold-light")
+  })
+
+  it("ItemDescription is never cut off after two lines outside the board", () => {
+    render(<ItemDescription>Lang</ItemDescription>)
+    expect(screen.getByText("Lang")).toHaveClass("line-clamp-2", "menu:line-clamp-none")
+  })
+
+  it("Badge wraps inside its pill instead of being cut off outside the board", () => {
+    render(<Badge variant="secondary">Kommandeur: Valki, Gott der Lügen</Badge>)
+    expect(screen.getByText(/Kommandeur/)).toHaveClass("whitespace-nowrap", "menu:whitespace-normal", "menu:max-w-full", "menu:min-h-5")
+  })
+
+  it("Alert lies on the well (the plain one inside the gold hairline) outside the board", () => {
+    render(
+      <Alert>
+        <AlertTitle>Hinweis</AlertTitle>
+      </Alert>,
+    )
+    expect(screen.getByRole("alert")).toHaveClass("menu:bg-panel-well", "menu:border-gold-line", "bg-card")
+  })
+
+  it("Emblem glow: the hero's gold glow only where asked for (the table's emblem stays without)", () => {
+    const { container } = render(
+      <>
+        <Emblem glow />
+        <Emblem />
+      </>,
+    )
+    const [hero, plain] = [...container.querySelectorAll("svg")]
+    expect(hero).toHaveClass("drop-shadow-gold-halo")
+    expect(hero).toHaveAttribute("data-glow", "true")
+    expect(plain).not.toHaveClass("drop-shadow-gold-halo")
+    expect(plain).not.toHaveAttribute("data-glow")
+  })
+})
+
 describe("Button in the menu style", () => {
   it("default is the golden main button (gradient, gold rim, gloss, Cinzel capitals) outside the board", () => {
     render(<Button>Spielen</Button>)
@@ -157,6 +216,10 @@ describe("the menu style stays off the game table's board", () => {
     ["Input", <Input key="i" aria-label="x" />],
     ["Textarea", <Textarea key="t" aria-label="x" />],
     ["Card", <Card key="c">x</Card>],
+    ["Card asChild", <Card key="c" asChild><a href="/x">x</a></Card>],
+    ["ItemMedia number", <Item key="i" variant="muted"><ItemMedia variant="number">1</ItemMedia></Item>],
+    ["Alert", <Alert key="a">x</Alert>],
+    ["Alert destructive", <Alert key="a" variant="destructive">x</Alert>],
     ["Item outline", <Item key="i" variant="outline"><ItemMedia variant="icon">x</ItemMedia></Item>],
     ["Item muted", <Item key="i" variant="muted">x</Item>],
     ["Toggle outline", <Toggle key="t" variant="outline" aria-label="x" />],

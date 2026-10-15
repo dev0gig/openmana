@@ -5,8 +5,13 @@
  * German its cards are; a deck opens its details (/decks/:id: rename,
  * duplicate, export, import again, delete, play). The query is in the
  * address. A damaged record is listed as damaged, never hidden.
+ *
+ * Menu style "Reich" (prompt 59, the template's deck page): the library is a
+ * grid of panels (Card as the deck's link), each with its title card as a whole
+ * picture (CardPicture: never cropped), the name in the card title's Cinzel
+ * gold and the facts below it.
  */
-import { ChevronRight, Layers, SearchX, Upload } from "lucide-react"
+import { Layers, SearchX, Upload } from "lucide-react"
 import { useMemo } from "react"
 import { Link, useSearchParams } from "react-router"
 import { usePreferences } from "@/app/preferences"
@@ -16,11 +21,12 @@ import { Page } from "@/components/page-header"
 import { TextLink } from "@/components/text-link"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { CardPicture } from "@/components/ui/card-picture"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@/components/ui/item"
+import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@/components/ui/item"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
@@ -43,41 +49,42 @@ function ImportButton() {
   )
 }
 
-/** The card standing for the deck, or the deck icon where there is no picture. */
+/** The card standing for the deck as a whole picture, or the deck icon where there is no picture. */
 function Cover({ view }: { view: DeckView }) {
   const { cardLanguage } = usePreferences()
   const cover = view.cover
-  const url = cover?.card ? (cardDisplay(cover.card, { ...(cover.match ? { match: cover.match } : {}), language: cardLanguage }).picture?.urls.thumb ?? null) : null
-  if (url === null) {
-    return (
-      <ItemMedia variant="icon">
-        <Layers aria-hidden />
-      </ItemMedia>
-    )
-  }
+  const url = cover?.card ? (cardDisplay(cover.card, { ...(cover.match ? { match: cover.match } : {}), language: cardLanguage }).picture?.urls.grid ?? null) : null
   return (
-    <ItemMedia>
-      <div className="w-12">
-        <CardPicture src={url} alt="" fallback={null} />
-      </div>
-    </ItemMedia>
+    <CardPicture
+      src={url}
+      alt=""
+      fallback={
+        <span className="flex size-full items-center justify-center">
+          <ItemMedia variant="icon">
+            <Layers aria-hidden />
+          </ItemMedia>
+        </span>
+      }
+    />
   )
 }
 
-function DeckRow({ view, catalogUsable }: { view: DeckView; catalogUsable: boolean }) {
+function DeckTile({ view, catalogUsable }: { view: DeckView; catalogUsable: boolean }) {
   const { cardLanguage } = usePreferences()
   // With English cards "not German" is no news (prompt 12).
   const notGerman = cardLanguage === "de" ? view.language.notGerman.length : 0
   const companion = view.parts.companion[0]
   return (
-    <div role="listitem">
-      <Item asChild variant="outline">
+    <div role="listitem" className="flex min-w-0">
+      <Card asChild size="sm" className="min-w-0 flex-1">
         <Link to={`/decks/${view.deck.id}`}>
-          <Cover view={view} />
-          <ItemContent>
-            <ItemTitle>{view.deck.name}</ItemTitle>
-            <ItemDescription>{describeDeck(view, DECK_FORMAT_LABELS)}</ItemDescription>
-            <div className="flex flex-wrap gap-2">
+          <CardContent>
+            <Cover view={view} />
+          </CardContent>
+          <CardHeader className="gap-1.5">
+            <CardTitle className="wrap-anywhere">{view.deck.name}</CardTitle>
+            <CardDescription>{describeDeck(view, DECK_FORMAT_LABELS)}</CardDescription>
+            <div className="flex flex-wrap gap-1.5">
               {view.parts.commander.map((commander) => (
                 <Badge key={commander.entry.name} variant="secondary">
                   Kommandeur: {commander.name.text}
@@ -88,20 +95,17 @@ function DeckRow({ view, catalogUsable }: { view: DeckView; catalogUsable: boole
                 <Badge variant="outline">{notGerman === 1 ? "1 Karte nicht ganz deutsch" : `${notGerman} Karten nicht ganz deutsch`}</Badge>
               ) : null}
             </div>
-            <p className="text-xs text-muted-foreground">Geändert am {formatDateTime(view.deck.updatedAt)}</p>
-          </ItemContent>
-          <ItemActions>
-            <ChevronRight aria-hidden className="size-5 text-muted-foreground" />
-          </ItemActions>
+            <CardDescription className="text-xs">Geändert am {formatDateTime(view.deck.updatedAt)}</CardDescription>
+          </CardHeader>
         </Link>
-      </Item>
+      </Card>
     </div>
   )
 }
 
-function DamagedRow() {
+function DamagedTile() {
   return (
-    <Item variant="outline" role="listitem">
+    <Item variant="outline" role="listitem" className="items-start">
       <ItemContent>
         <ItemTitle>
           Beschädigter Eintrag <Badge variant="destructive">beschädigt</Badge>
@@ -234,14 +238,14 @@ export function DecksPage() {
               </EmptyContent>
             </Empty>
           ) : (
-            <ItemGroup aria-label="Gespeicherte Decks">
+            <div role="list" aria-label="Gespeicherte Decks" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 md:gap-4">
               {shown.map((view) => (
-                <DeckRow key={view.deck.id} view={view} catalogUsable={catalog.usable} />
+                <DeckTile key={view.deck.id} view={view} catalogUsable={catalog.usable} />
               ))}
               {library.data.decks.invalid.map((record) => (
-                <DamagedRow key={record.key} />
+                <DamagedTile key={record.key} />
               ))}
-            </ItemGroup>
+            </div>
           )}
         </>
       )}

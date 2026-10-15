@@ -104,7 +104,7 @@ async function listed() {
   const list = await screen.findByRole("list", { name: "Gespeicherte Decks" })
   return within(list)
     .getAllByRole("link")
-    .map((link) => link.querySelector("[data-slot=item-title]")?.textContent)
+    .map((link) => link.querySelector("[data-slot=card-title]")?.textContent)
 }
 
 async function openMenuItem(user: ReturnType<typeof userEvent.setup>, name: string) {
@@ -120,6 +120,9 @@ describe("the list", () => {
     const list = screen.getByRole("list", { name: "Gespeicherte Decks" })
     const [first, second] = within(list).getAllByRole("link")
     expect(first).toHaveAttribute("href", `/decks/${IZZET_ID}`)
+    // Prompt 59: every deck is a tile - a panel (Card) that is the link, its name as the card's title.
+    expect(first).toHaveAttribute("data-slot", "card")
+    expect(within(first!).getByText("Izzet Delver")).toHaveAttribute("data-slot", "card-title")
     expect(within(first!).getByText("Constructed · 38 Karten · Sideboard 3")).toBeInTheDocument()
     expect(within(first!).getByText("5 Karten nicht ganz deutsch")).toBeInTheDocument()
     expect(within(second!).getByText("Commander · 30 Karten · Kommandeur 1")).toBeInTheDocument()

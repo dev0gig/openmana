@@ -9,6 +9,10 @@
  * the screen between top bar and tab bar), right above the tab bar (-mb-6
  * against the column's py-6), so the action is always in the same place.
  * Pages show it on phones only; from md their actions sit in the page header.
+ * Menu style "Reich" (prompt 59): it continues the tab bar below it - the
+ * dock's tone falling darker (--dock-top to --dock-bottom) with the gold
+ * hairline towards the content, like the template's bars. Never on the game
+ * table's board (pages only), so no menu: scope is needed.
  */
 import * as React from "react"
 import { cn } from "cn"
@@ -18,7 +22,7 @@ function ActionBar({ className, ...props }: React.ComponentProps<"div">) {
     <div
       role="region"
       data-slot="action-bar"
-      className={cn("sticky bottom-16 z-10 -mx-4 mt-auto -mb-6 flex flex-wrap items-center gap-3 border-t bg-background px-4 py-3", className)}
+      className={cn("sticky bottom-16 z-10 -mx-4 mt-auto -mb-6 flex flex-wrap items-center gap-3 border-t border-gold-line bg-linear-to-b from-dock-top to-dock-bottom px-4 py-3", className)}
       {...props}
     />
   )

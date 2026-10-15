@@ -115,7 +115,7 @@ describe("settings: data on this device", () => {
       await router.navigate("/decks")
     })
     const list = await screen.findByRole("list", { name: "Gespeicherte Decks" })
-    expect(within(list).getAllByRole("listitem").map((item) => item.querySelector("[data-slot=item-title]")?.textContent)).toEqual([
+    expect(within(list).getAllByRole("listitem").map((item) => item.querySelector("[data-slot=card-title]")?.textContent)).toEqual([
       "Aus der Sicherung",
       "Noch eins",
     ])

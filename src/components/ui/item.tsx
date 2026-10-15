@@ -40,7 +40,8 @@ function ItemSeparator({
 // table's board (menu:) rows ("outline", "muted") lie on a panel's darker well
 // (--panel-well) with a fine line (the template's .step), and an icon in front
 // of a row sits in a small gold ring (the template's numbered .num, the table's
-// .table-panel-count).
+// .table-panel-count). ItemMedia "number" (prompt 59) holds a step's number in
+// that ring, in Cinzel gold (the template's numbered .step on the start page).
 const itemVariants = cva(
   "group/item flex w-full flex-wrap items-center rounded-2xl border text-sm transition-colors duration-100 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 [a]:transition-colors [a]:hover:bg-muted motion-reduce:transition-none!",
   {
@@ -90,6 +91,8 @@ const itemMediaVariants = cva(
       variant: {
         default: "bg-transparent",
         icon: "[&_svg:not([class*='size-'])]:size-4 menu:size-8 menu:rounded-full menu:border menu:border-gold-line menu:bg-panel-shade menu:text-gold-light",
+        number:
+          "size-7 rounded-full border text-sm font-semibold tabular-nums menu:border-gold-line menu:bg-panel-shade menu:font-heading menu:font-bold menu:text-gold-light",
         image:
           "size-10 overflow-hidden rounded-lg group-data-[size=sm]/item:size-8 group-data-[size=xs]/item:size-6 group-data-[size=xs]/item:rounded-md [&_img]:size-full [&_img]:object-cover",
       },
@@ -142,12 +145,16 @@ function ItemTitle({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
+// OpenMana (prompt 59): outside the game table's board (menu:) a description is
+// never cut off after two lines - a long one (a step on the start page, a deck's
+// facts, a match's summary) wraps in full; the rows stay calm by their well and
+// line, not by hiding words.
 function ItemDescription({ className, ...props }: React.ComponentProps<"p">) {
   return (
     <p
       data-slot="item-description"
       className={cn(
-        "line-clamp-2 text-left text-sm font-normal text-muted-foreground [&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:text-primary",
+        "line-clamp-2 text-left text-sm font-normal text-muted-foreground menu:line-clamp-none [&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:text-primary",
         className
       )}
       {...props}

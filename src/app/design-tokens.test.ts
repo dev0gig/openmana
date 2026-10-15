@@ -349,6 +349,19 @@ describe("design tokens", () => {
       const under = { ...WELLS, ...PANEL }[surface]!
       for (const text of ["foreground", "muted-foreground"]) expect(ratio(shell(text), blend(shell("primary"), glowShare(), under))).toBeGreaterThanOrEqual(4.5)
     })
+
+    // Prompt 59: a notice (Alert) lies on the well - on a panel or on the page -, its words plain or destructive.
+    it.each(["foreground", "muted-foreground", "destructive"].flatMap((text) => Object.keys(WELLS).map((surface) => [text, surface] as const)))(
+      "a notice's words (%s) on the %s reach 4.5:1",
+      (text, surface) => {
+        expect(ratio(shell(text), WELLS[surface]!)).toBeGreaterThanOrEqual(4.5)
+      },
+    )
+
+    // Prompt 59: a deck tile (a Card that is a link) shows the stronger gold line on hover: 3:1 against the page.
+    it("a deck tile's hover line (--gold-edge) reaches 3:1 against the page", () => {
+      expect(ratio(blend(shell("primary"), edge, background), background)).toBeGreaterThanOrEqual(3)
+    })
   })
 
   it("the manifest's theme colour is the background token", () => {

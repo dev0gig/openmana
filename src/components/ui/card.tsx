@@ -1,5 +1,6 @@
 import * as React from "react"
 import { cn } from "cn"
+import { Slot } from "radix-ui"
 import { OrnamentCorner } from "@/components/ui/ornament"
 
 /*
@@ -15,34 +16,42 @@ import { OrnamentCorner } from "@/components/ui/ornament"
  *                      small boxes such as the card view's keyword boxes).
  * The corners are decoration (OrnamentCorner: aria-hidden, no room, no
  * pointer); they come last, so the registry's first-child rules still hold.
+ *
+ * asChild (prompt 59, the deck library's tiles - the template's .deck): the
+ * panel is its child, e.g. a link, with the corners inside it. A card that is
+ * a link shows the focus ring around the whole panel and, outside the board,
+ * the stronger gold line (--gold-edge) on hover.
  */
 function Card({
   className,
   size = "default",
   variant = "default",
+  asChild = false,
   children,
   ...props
-}: React.ComponentProps<"div"> & { size?: "default" | "sm"; variant?: "default" | "plain" }) {
+}: React.ComponentProps<"div"> & { size?: "default" | "sm"; variant?: "default" | "plain"; asChild?: boolean }) {
+  const Comp = asChild ? Slot.Root : "div"
   return (
-    <div
+    <Comp
       data-slot="card"
       data-size={size}
       data-variant={variant}
       className={cn(
         "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-2xl bg-card py-(--card-spacing) text-sm text-card-foreground ring-1 ring-foreground/10 [--card-spacing:--spacing(6)] has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(4)] *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
         "menu:relative menu:bg-transparent menu:bg-linear-to-b menu:from-panel/94 menu:to-panel-shade/94 menu:shadow-panel menu:ring-gold-line menu:data-[variant=plain]:shadow-panel-flat",
+        "[a]:outline-none [a]:transition-shadow [a]:focus-visible:ring-[3px] [a]:focus-visible:ring-ring/50 motion-reduce:transition-none! menu:[a]:hover:ring-gold-edge menu:[a]:focus-visible:ring-ring/50",
         className
       )}
       {...props}
     >
-      {children}
+      {asChild ? <Slot.Slottable>{children}</Slot.Slottable> : children}
       {variant === "default" ? (
         <>
           <OrnamentCorner corner="start" className="hidden menu:block" />
           <OrnamentCorner corner="end" className="hidden menu:block" />
         </>
       ) : null}
-    </div>
+    </Comp>
   )
 }
 

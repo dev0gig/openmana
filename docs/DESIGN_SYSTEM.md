@@ -100,7 +100,10 @@ files work under COEP and nothing leaks to third parties (Bible §15).
    game table's board) -, and the overlays (`DialogContent`,
    `AlertDialogContent`, `SheetContent`, `DropdownMenuContent`, `SelectContent`,
    `TooltipContent`, the toaster's tokens) on the panel tone with the gold
-   hairline and gold titles.
+   hairline and gold titles. Since prompt 59 (§10): `Card` `asChild` (a deck
+   tile as a link), `ItemMedia` variant `number`, `ItemDescription` and
+   `Badge` wrapping instead of cutting words off, `Alert` on the well - under
+   `menu:` -, the `ActionBar` in the dock's tone, and the emblem's `glow`.
 4. **Honest states.** No sample data, no simulated engine, no pretend
    features. Empty states use `Empty`; an action that is not possible yet
    stays visible but disabled and says why (`aria-describedby`); failures
@@ -583,5 +586,34 @@ never per page; the pages take the look without a change):
 | `DropdownMenuContent`, `SelectContent`, `TooltipContent`, toasts | - | `--panel` with the gold hairline (the tooltip no longer inverted) | menus, lists, tooltips, notices |
 | `PageHeader` | - | title Cinzel `--gold-light`, `OrnamentDivider` under it | every page's title |
 
-**From prompt 59:** the pages (start page hero, decks as tiles, nested cards
-as `plain`, dense lists, long names), prompt 60 the acceptance of the whole.
+**Built in prompt 59 - the pages** (only from the building blocks; what a page
+missed became a variant of a component, never page styling):
+
+| Component | Change | Where it applies |
+|---|---|---|
+| `Emblem` | `glow`: the hero's gold glow (`drop-shadow-gold-halo`, the template's `.hero svg`); the table's emblem stays without | `Brand size="hero"` on the start page |
+| `Card` | `asChild`: the panel is its child (a link) with the corners inside it; a link card shows the focus ring around the whole panel and, outside the board, `--gold-edge` on hover | the deck library's tiles |
+| `ItemMedia` | variant `number`: a step's number in the gold ring, Cinzel `--gold-light` (the template's `.step .num`; `aria-hidden`, the list's order says it) | the start page's steps |
+| `ItemDescription` | outside the board never cut off after two lines (`menu:line-clamp-none`) | every row - steps, decks, matches, sheets |
+| `Badge` | outside the board a badge too long for its place wraps inside its pill (one line keeps 20 px) | a commander's name on a narrow deck tile |
+| `Alert` | outside the board on `--panel-well`, the plain one inside the gold hairline; the destructive one keeps its tone | notices on pages and in panels |
+| `ActionBar` | the dock's tone falling darker with the gold hairline (it continues the tab bar) | a phone page's primary action |
+
+- **Start:** `Brand size="hero"` (emblem `size-20`, from `md` `size-24`, with its
+  glow, the wordmark beside it) and `OrnamentDivider` under it (the start page
+  has no `PageHeader`); the main button golden, the steps numbered in gold rings;
+  "Dieses Gerät" as a row on the well with its check in a gold ring. The two
+  panels keep their own height (`items-start`).
+- **Decks:** a grid of panels - two columns on a phone, three from `sm`, four from
+  `lg` - each a `Card asChild` around the deck's link: the title card as a whole
+  picture (`CardPicture`, Scryfall's `grid` size, never cropped; the deck symbol
+  in a gold ring without one), the name as `CardTitle` (Cinzel gold, long names
+  wrap), format and counts, the badges, the date. The search is the gold-lined
+  pill, import the golden button; empty and "nothing fits" in the gold `Empty`.
+- **Nested cards:** no page puts a `Card` inside a `Card`; long lists (matches,
+  AI profiles, a deck's cards) are rows (`Item`) on the well inside one panel,
+  so `plain` stays for the card view's keyword boxes.
+- **Loading:** `PageLoading` keeps a page's shape - the title's place with the
+  ornament line, then a panel's place.
+
+Prompt 60: the acceptance of the whole.

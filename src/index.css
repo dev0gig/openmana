@@ -131,6 +131,8 @@
   --shadow-panel-flat: inset 0 1px 0 oklch(1 0 0 / 0.06);
   /* The golden main button: a faint gold ring, a gold glow below, a gloss at its top edge (the template's .btn.main). */
   --shadow-gold-button: 0 0 0 3px color-mix(in oklch, var(--primary) 18%, transparent), 0 0.4rem 1.2rem color-mix(in oklch, var(--primary) 25%, transparent), inset 0 1px 0 oklch(1 0 0 / 0.5);
+  /* Prompt 59: the start page's large emblem in its gold glow (the template's .hero svg). */
+  --drop-shadow-gold-halo: 0 0 14px color-mix(in oklch, var(--primary) 35%, transparent);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);

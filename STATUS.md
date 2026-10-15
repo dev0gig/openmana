@@ -1,6 +1,6 @@
 # OpenMana — Current Status
 
-Last repository review: 2026-10-08 (after Prompt 32); last update 2026-10-15 (prompt 58)
+Last repository review: 2026-10-08 (after Prompt 32); last update 2026-10-15 (prompt 59)
 
 Compact implementation map. This file deliberately does **not** replace the active queue ledger in `dev0gig/dropzone/workflow/tasks/INDEX.md`.
 
@@ -378,6 +378,10 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 ### Menu style: building blocks as panels (Prompt 58, series openmana-menuestil 2/4)
 - The shadcn components take the table's look centrally (`docs/DESIGN_SYSTEM.md` §10 with the table of variants): `Card` a panel with two gold corner ornaments (variant `plain` without, for dense/nested use), `Button` `default` the golden main button and `outline`/`secondary` gold-lined pills, gold-lined fields (`--gold-edge`, 3:1) on a darker well, gold choices and toggles, rows on a well with icons in gold rings, gold empty states, overlays (dialogs, sheets, menus, tooltips, toasts) on the panel tone with the gold hairline and gold titles, `PageHeader` with the ornament line (`OrnamentCorner`, `OrnamentDivider`). Inline components carry it under the variant `menu:` (outside the game table's board): the table is unchanged (28 recorded scene shots within run noise).
 - Evidence: `docs/implementation/58-menuestil-bausteine.md`; tsc, oxlint, targeted unit tests (new contrast cases, ornament/scope guard, motion); browser checks at four sizes (no overflow, axe serious/critical 0, focus visible); pictures in Seafile `/repo/openmana/design/menue-stil/58/`. Complete check in prompt 60. Assumptions (changeable): form controls use the stronger `--gold-edge` instead of the template's hairline (3:1); dialogs without corner ornaments; tooltips no longer inverted.
+
+### Menu style: every page (Prompt 59, series openmana-menuestil 3/4)
+- The pages take the template's look only from the building blocks (`docs/DESIGN_SYSTEM.md` §10 "Built in prompt 59"): the start page's hero with the large glowing emblem and the ornament line, steps numbered in gold rings; the deck library as a grid of panels (`Card asChild` around each deck's link, the whole title card, the name in Cinzel gold); the other pages already composed the 58 components (no nested cards; long lists are rows inside one panel). New variants: `Card asChild`, `ItemMedia` `number`, `Emblem` `glow`; outside the board descriptions and badges wrap instead of being cut off, alerts lie on the well, the phone's `ActionBar` takes the dock's tone. Page code has no own colours, gradients, shadows or arbitrary values.
+- Evidence: `docs/implementation/59-menuestil-seiten.md`; tsc, oxlint, targeted unit tests; browser checks of eleven pages at six sizes with and without data (no overflow, no cut-off text, axe serious/critical 0, focus visible), the table within run noise; pictures in Seafile `/repo/openmana/design/menue-stil/59/`. Complete check in prompt 60. Assumptions (changeable): step numbers decorative; deck tiles keep every fact of the former rows; descriptions and badges wrap also in sheets.
 
 ### ORYX Cloud Sync (outside the queue, 2026-09-25)
 - The project owner's direct assignment, not a queue prompt (outside the numbered program): the player's collection syncs through their ORYX account (the launcher's Supabase cloud) with the vendored ORYX SDK 1.0.0 (`src/cloud/oryx-sdk.js` and `.d.ts`, byte-identical copies of `oryx-games/shared`, checksum-tested, excluded from lint only themselves). Active only on `https://openmana.vercel.app/`; locally, in tests and previews inactive (no request, nothing stored). Local stays the source of truth.

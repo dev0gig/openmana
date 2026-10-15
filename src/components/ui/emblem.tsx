@@ -47,8 +47,12 @@ function EmblemShapes({ gold }: { gold: string }) {
   )
 }
 
-/** The emblem, drawn to fill its box (give it a size: `size-8`). Decoration. */
-function Emblem({ className, ...props }: Omit<React.ComponentProps<"svg">, "children">) {
+/**
+ * The emblem, drawn to fill its box (give it a size: `size-8`). Decoration.
+ * `glow` (prompt 59, the start page's hero - the template's .hero svg): a
+ * soft gold glow around it (drop-shadow-gold-halo); still, no room taken.
+ */
+function Emblem({ className, glow = false, ...props }: Omit<React.ComponentProps<"svg">, "children"> & { glow?: boolean }) {
   // useId's characters are not all welcome in url(#…): keep letters, digits, - and _.
   const gold = `emblem-gold-${React.useId().replace(/[^\w-]/g, "")}`
   return (
@@ -57,7 +61,8 @@ function Emblem({ className, ...props }: Omit<React.ComponentProps<"svg">, "chil
       aria-hidden="true"
       focusable="false"
       viewBox="0 0 100 100"
-      className={cn("pointer-events-none shrink-0", className)}
+      data-glow={glow || undefined}
+      className={cn("pointer-events-none shrink-0", glow && "drop-shadow-gold-halo", className)}
       {...props}
     >
       <defs>

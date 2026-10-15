@@ -1,5 +1,10 @@
-/* Start: what OpenMana is, whether this device can run Forge, where to go next. */
-import { Bot, CircleCheck, Layers, OctagonAlert, Swords, Upload } from "lucide-react"
+/*
+ * Start: what OpenMana is, whether this device can run Forge, where to go next.
+ * Menu style "Reich" (prompt 59, the template's start page): the large emblem
+ * in its glow beside the wordmark, the ornament line under it, the steps
+ * numbered in gold rings.
+ */
+import { CircleCheck, Layers, OctagonAlert, Swords } from "lucide-react"
 import { Link } from "react-router"
 import { Brand } from "@/components/brand"
 import { TextLink } from "@/components/text-link"
@@ -8,12 +13,13 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@/components/ui/item"
+import { OrnamentDivider } from "@/components/ui/ornament"
 import { useDeviceFeatures } from "@/engine/device-support"
 
 const STEPS = [
-  { icon: Upload, title: "Deck importieren", description: "Eine Arena-Deckliste einfügen – sie bleibt auf diesem Gerät.", ready: true },
-  { icon: Bot, title: "Gegner wählen", description: "Die Forge-KI spielt eines deiner Decks – von dir gewählt oder zufällig –, im Stil eines ihrer Profile.", ready: true },
-  { icon: Swords, title: "Spielen", description: "Forge entscheidet jede Regel; OpenMana zeigt dir, was möglich ist.", ready: true },
+  { title: "Deck importieren", description: "Eine Arena-Deckliste einfügen – sie bleibt auf diesem Gerät.", ready: true },
+  { title: "Gegner wählen", description: "Die Forge-KI spielt eines deiner Decks – von dir gewählt oder zufällig –, im Stil eines ihrer Profile.", ready: true },
+  { title: "Spielen", description: "Forge entscheidet jede Regel; OpenMana zeigt dir, was möglich ist.", ready: true },
 ] as const
 
 export function HomePage() {
@@ -25,7 +31,10 @@ export function HomePage() {
         <h1 id="home-title" className="sr-only">
           OpenMana
         </h1>
-        <Brand size="hero" />
+        <div className="flex flex-col gap-3">
+          <Brand size="hero" />
+          <OrnamentDivider />
+        </div>
         <p className="max-w-prose text-lg text-muted-foreground">
           Magic: The Gathering gegen die Forge-KI – direkt in deinem Browser, ohne Server und ohne Konto.
         </p>
@@ -48,7 +57,7 @@ export function HomePage() {
         </div>
       </section>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid items-start gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>So geht es los</CardTitle>
@@ -56,10 +65,10 @@ export function HomePage() {
           </CardHeader>
           <CardContent>
             <ItemGroup>
-              {STEPS.map((step) => (
+              {STEPS.map((step, index) => (
                 <Item key={step.title} variant="muted" size="sm" role="listitem">
-                  <ItemMedia variant="icon">
-                    <step.icon aria-hidden />
+                  <ItemMedia variant="number" aria-hidden>
+                    {index + 1}
                   </ItemMedia>
                   <ItemContent>
                     <ItemTitle>
@@ -81,10 +90,14 @@ export function HomePage() {
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             {features.supported ? (
-              <p className="flex items-center gap-2 text-sm">
-                <CircleCheck aria-hidden className="size-4 shrink-0 text-primary" />
-                Dieser Browser kann die Forge-Engine ausführen.
-              </p>
+              <Item variant="muted" size="sm">
+                <ItemMedia variant="icon">
+                  <CircleCheck aria-hidden />
+                </ItemMedia>
+                <ItemContent>
+                  <ItemTitle>Dieser Browser kann die Forge-Engine ausführen.</ItemTitle>
+                </ItemContent>
+              </Item>
             ) : (
               <Alert variant="destructive">
                 <OctagonAlert aria-hidden />
