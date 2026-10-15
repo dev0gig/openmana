@@ -202,6 +202,19 @@ component's design nor weakens the test: the decision - a smaller card or a
 sticky group beside it - belongs to its author or the project owner. Until
 then the complete check stays red at these three checks.
 
+## After the push (2026-10-15): the released catalog
+
+The project owner released the push; Vercel's first production build of
+`cdef0f8` failed: its build fetches the card catalog from the release
+`engine-p10-908fbcabd35e`, and that catalog still carried schema version 5
+(`CardAssetsError: … records of local data schema 5, the app uses schema 6`,
+reproduced locally with the same commands as `vercel.json`). With the owner's
+go the catalog built above (`4ca084bf5aa3bdfc`, the same Scryfall bulk and
+Forge revision) replaced the three `card-catalog*` assets of that release
+(`gh release upload --clobber`), `deploy/artifacts.json` names its bytes and
+SHA-256, and the Vercel build command ran clean locally (fetch, build,
+budgets; `vite/deployment.test.ts` green). The engine assets are untouched.
+
 ## Physical device
 
 Not performed: no Fold 7 or ORYX access in this run. Emulation in Chrome 153

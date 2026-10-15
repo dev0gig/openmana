@@ -28,12 +28,12 @@
   },
   "cards": {
     "card-catalog.jsonl.gz": {
-      "bytes": 10948455,
-      "sha256": "0c2afda8fc8bd1fd37a04804fcb9268e9836095e12a2ff79ece36100bb5be2ce"
+      "bytes": 10948463,
+      "sha256": "4ca084bf5aa3bdfc696cacb62674609546127b3892be0b5dae0889a2fdf6f7b5"
     },
     "card-catalog-manifest.json": {
       "bytes": 1302,
-      "sha256": "f23c1f19488f6e112f78a92ed07c646a4258c4278b48265223595b24a4d4fa65"
+      "sha256": "4eb6456ed482dc6ae87446beb76bbbd0a5215e90d83888dd5d6a3a34e4bed0ae"
     }
   }
 }
