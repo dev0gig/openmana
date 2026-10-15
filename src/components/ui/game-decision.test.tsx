@@ -8,7 +8,7 @@
  */
 import { render } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
-import { GameDecisionActions, GameDecisionRow, GameDecisionSource, GameDecisionSpotlight, GameDecisionSpotlightContent } from "./game-decision"
+import { GameDecisionActions, GameDecisionBar, GameDecisionBarChoices, GameDecisionRow, GameDecisionSource, GameDecisionSpotlight, GameDecisionSpotlightContent } from "./game-decision"
 
 const classesOf = (element: Element) => element.className.split(/\s+/)
 
@@ -64,5 +64,22 @@ describe("GameDecisionSpotlight", () => {
     expect(classesOf(actions)).toEqual(expect.arrayContaining(["in-data-[slot=game-decision-spotlight-content]:static", "in-data-[slot=game-decision-spotlight-content]:mx-0", "in-data-[slot=game-decision-spotlight-content]:border-t-0"]))
     expect(classesOf(container.querySelector('[data-slot="game-decision-row"]')!)).toContain("in-data-[slot=game-decision-spotlight-content]:mx-0")
     expect(classesOf(container.querySelector('[data-slot="game-decision-spotlight-content"]')!)).toContain("min-w-0")
+  })
+})
+
+describe("GameDecisionBarChoices", () => {
+  it("the step's choices are a full row on top of the bar, their actions lined up in it instead of sticking on their own", () => {
+    const { container } = render(
+      <GameDecisionBar>
+        <GameDecisionBarChoices>
+          <GameDecisionActions />
+        </GameDecisionBarChoices>
+        <GameDecisionActions />
+      </GameDecisionBar>,
+    )
+    const choices = container.querySelector('[data-slot="game-decision-bar-choices"]')!
+    expect(choices.parentElement).toHaveAttribute("data-slot", "game-decision-bar")
+    expect(classesOf(choices)).toEqual(expect.arrayContaining(["basis-full", "flex-col"]))
+    expect(classesOf(choices.querySelector('[data-slot="game-decision-actions"]')!)).toEqual(expect.arrayContaining(["in-data-[slot=game-decision-bar]:static", "in-data-[slot=game-decision-bar]:bg-transparent"]))
   })
 })

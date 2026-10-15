@@ -18,7 +18,8 @@
  *   in the panel (`vertical`: the card above the words; a row again in a low
  *   window, beside the thumbnail), a row in the action bar (`horizontal`: the
  *   card on the left). GameDecisionSpotlightContent holds the heading and the
- *   step's parts; actions and rows inside it keep to its column.
+ *   step's parts; actions and rows inside it keep to its column (the step's
+ *   choices ride on the bar, GameDecisionBarChoices).
  * - GameDecisionRow: a row of cards (a GameCardRow) of a fixed height - the
  *   cards of a question that the table does not show (the library's top
  *   while scrying, cards to choose from a pile), sized like a hand's.
@@ -33,6 +34,9 @@
  *   what belongs beside them: on the game table the compact phases next to
  *   the main button (the action bar of a phone), or the hint below them.
  *   Actions inside a bar keep to their place in it (`in-data-[slot=...]`).
+ * - GameDecisionBarChoices: the step's own choices (players as targets, the
+ *   pool's colours, life instead of mana) as a row on top of the bar, so they
+ *   stick with Forge's answers instead of scrolling away under a long text.
  */
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -108,7 +112,7 @@ function GameDecisionActions({ className, ...props }: React.ComponentProps<"div"
         "sticky bottom-0 z-10 -mx-3 mt-auto flex flex-wrap items-center gap-2 border-t bg-background px-3 pt-2 pb-2",
         // Inside a GameDecisionBar the bar sticks and draws the line; the actions only line up their buttons.
         "in-data-[slot=game-decision-bar]:static in-data-[slot=game-decision-bar]:mx-0 in-data-[slot=game-decision-bar]:mt-0 in-data-[slot=game-decision-bar]:border-t-0 in-data-[slot=game-decision-bar]:bg-transparent in-data-[slot=game-decision-bar]:p-0",
-        // Beside a large card (a group of the step's choices, the pool's colours): in the content's column, the bar sticks below.
+        // Beside a large card: in the content's column (no sticky bleed over the card); the step's choices ride on the bar.
         "in-data-[slot=game-decision-spotlight-content]:static in-data-[slot=game-decision-spotlight-content]:mx-0 in-data-[slot=game-decision-spotlight-content]:mt-0 in-data-[slot=game-decision-spotlight-content]:border-t-0 in-data-[slot=game-decision-spotlight-content]:bg-transparent in-data-[slot=game-decision-spotlight-content]:p-0",
         className,
       )}
@@ -127,4 +131,12 @@ function GameDecisionBar({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-export { GameDecision, GameDecisionActions, GameDecisionBar, GameDecisionHeader, GameDecisionNote, GameDecisionRow, GameDecisionSource, GameDecisionSpotlight, GameDecisionSpotlightContent }
+/**
+ * The step's own choices on top of the bar (2026-10-15): the players Forge would take, the pool's colours, life instead of
+ * mana - a full row above the bar's answers, so they stick with them and stay in the window however long Forge's words are.
+ */
+function GameDecisionBarChoices({ className, ...props }: React.ComponentProps<"div">) {
+  return <div data-slot="game-decision-bar-choices" className={cn("flex basis-full flex-col gap-2", className)} {...props} />
+}
+
+export { GameDecision, GameDecisionActions, GameDecisionBar, GameDecisionBarChoices, GameDecisionHeader, GameDecisionNote, GameDecisionRow, GameDecisionSource, GameDecisionSpotlight, GameDecisionSpotlightContent }

@@ -258,7 +258,11 @@ describe("select (Forge's selectable cards)", () => {
   it("any target (recorded): the creatures on the table and the players, counted together in Forge's numbers", () => {
     const { scene } = table("target-both")
     expect(within(decision()).getByText("Wähle genau 1 · 0 gewählt · 2 Karten davon liegen auf dem Tisch (gold umrandet).")).toBeInTheDocument()
-    expect(within(within(decision()).getByRole("group", { name: "Spieler, die Forge hier nimmt" })).getAllByRole("button")).toHaveLength(2)
+    const players = within(decision()).getByRole("group", { name: "Spieler, die Forge hier nimmt" })
+    expect(within(players).getAllByRole("button")).toHaveLength(2)
+    // The players ride on top of the answers' bar (2026-10-15): beside the large card and Forge's long words they stay in the window.
+    expect(players.closest('[data-slot="game-decision-bar-choices"]')?.parentElement).toHaveAttribute("data-slot", "game-decision-bar")
+    expect(players.closest('[data-slot="game-decision-spotlight"]')).toBeNull()
     expect(document.querySelectorAll('button[data-slot="game-player"][data-player][data-mark="usable"]')).toHaveLength(scene.state.players.length)
   })
 
@@ -344,6 +348,7 @@ describe("paying a cost (prompt 17)", () => {
     for (const symbol of words.querySelectorAll("svg")) symbol.remove()
     expect(words.textContent).toMatch(/^Noch zu zahlen: 1 beliebig, Rot\.$/)
     const pool = within(decision()).getByRole("group", { name: "Aus deinem Manavorrat bezahlen" })
+    expect(pool.closest('[data-slot="game-decision-bar-choices"]')).not.toBeNull()
     expect(within(pool).getAllByRole("button").map((button) => button.textContent)).toEqual(["Schwarz aus dem Vorrat (3)", "Rot aus dem Vorrat (1)"])
     await user.dblClick(within(pool).getByRole("button", { name: "Rot aus dem Vorrat (1)" }))
     expect(onUseMana.mock.calls).toEqual([["R"]])

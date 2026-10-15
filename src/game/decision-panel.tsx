@@ -118,7 +118,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Field, FieldContent, FieldDescription, FieldLabel, FieldTitle } from "@/components/ui/field"
 import { GameCardButton, GameCardRow, GameCardRowButton, GameCardRowItem, type GameCardMark } from "@/components/ui/game-card"
-import { GameDecision, GameDecisionActions, GameDecisionBar, GameDecisionHeader, GameDecisionNote, GameDecisionRow, GameDecisionSource, GameDecisionSpotlight, GameDecisionSpotlightContent } from "@/components/ui/game-decision"
+import { GameDecision, GameDecisionActions, GameDecisionBar, GameDecisionBarChoices, GameDecisionHeader, GameDecisionNote, GameDecisionRow, GameDecisionSource, GameDecisionSpotlight, GameDecisionSpotlightContent } from "@/components/ui/game-decision"
 import { GamePlayer, GamePlayerButton } from "@/components/ui/game-player"
 import { Input } from "@/components/ui/input"
 import { Item as ItemRow, ItemActions, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item"
@@ -509,13 +509,16 @@ export function useArming(armKey: number | string): { readonly armed: () => bool
  * the button is described by): above the bar in the action bar and in a low
  * window, below the buttons on the Phasen-Tafel (table.css moves it there).
  * The group's own attributes (role, name) are the caller's, unchanged.
+ * `choices`: the step's own choices (players, the pool, life), a row on top of
+ * the bar - they stick with the answers (2026-10-15, see StepDecision).
  */
-function AnswerActions({ hint = null, children, ...props }: ComponentProps<typeof GameDecisionActions> & { hint?: ReactNode }) {
+function AnswerActions({ hint = null, choices = null, children, ...props }: ComponentProps<typeof GameDecisionActions> & { hint?: ReactNode; choices?: ReactNode }) {
   const { form, lead } = useDecision()
   return (
     <>
       {hint !== null ? <div className="table-main-hint">{hint}</div> : null}
       <GameDecisionBar data-form={form}>
+        {choices !== null ? <GameDecisionBarChoices>{choices}</GameDecisionBarChoices> : null}
         {lead}
         <GameDecisionActions {...props}>{children}</GameDecisionActions>
       </GameDecisionBar>
@@ -523,11 +526,16 @@ function AnswerActions({ hint = null, children, ...props }: ComponentProps<typeo
   )
 }
 
-/** The action bar without answers (Forge computes, nothing is asked, a selection without buttons): the compact phases alone. */
-function LeadBar() {
-  const { lead } = useDecision()
-  if (lead === null) return null
-  return <GameDecisionBar data-form="bar">{lead}</GameDecisionBar>
+/** The action bar without answers (Forge computes, nothing is asked, a selection without buttons): the compact phases alone, the step's choices on top. */
+function LeadBar({ choices = null }: { choices?: ReactNode }) {
+  const { form, lead } = useDecision()
+  if (lead === null && choices === null) return null
+  return (
+    <GameDecisionBar data-form={lead === null ? form : "bar"}>
+      {choices !== null ? <GameDecisionBarChoices>{choices}</GameDecisionBarChoices> : null}
+      {lead}
+    </GameDecisionBar>
+  )
 }
 
 /** Why nothing can be sent now (the line the sending buttons point to). */
@@ -707,11 +715,22 @@ function StepDecision({ buttons, select, prompt }: { buttons: ButtonsQuestion | 
   const source = sourceOf(buttons) ?? sourceOf(select)
   // A spell being cast (its targets, its payment): the card large - on top of the panel, at the left of the action bar.
   const spotlight = spotlightOf(source, state)
+  const payment = buttons?.purpose === "payment" && select === null ? paymentView(state) : null
+  // The step's own choices ride on top of the answers' bar (2026-10-15): beside a large card and Forge's long words they
+  // scrolled out of the window before (end-to-end target-both on a phone and a foldable).
+  const choices =
+    (select !== null && selection !== null && selection.rule !== null && selection.players.length > 0) || (payment !== null && (payment.pool.length > 0 || payment.life !== null)) ? (
+      <>
+        {select !== null && selection !== null && selection.rule !== null && selection.players.length > 0 ? <PlayerChoices players={selection.players} label="Spieler, die Forge hier nimmt" /> : null}
+        {payment !== null && payment.pool.length > 0 ? <PoolChoices view={payment} /> : null}
+        {payment !== null && payment.life !== null ? <PlayerChoices players={[payment.life]} label="Mit Leben statt Mana bezahlen" /> : null}
+      </>
+    ) : null
   const parts = (
     <>
       <DecisionHeading label={label} text={text} source={source} action={startHand} sourceApart={spotlight !== null} />
       {select !== null && selection !== null ? <SelectPart question={select} view={selection} /> : null}
-      {buttons?.purpose === "payment" && select === null ? <PaymentPart /> : null}
+      {payment !== null ? <PaymentPart view={payment} /> : null}
       {buttons?.purpose === "mulliganBottom" ? <MulliganChosen /> : null}
       {directTaps(open) ? <GameDecisionNote>Karten antippen wirkt hier sofort, ein zweiter Tipp nimmt es zurück. Lange drücken oder Rechtsklick zeigt eine Karte groß.</GameDecisionNote> : null}
       <BlockedNote />
@@ -727,7 +746,7 @@ function StepDecision({ buttons, select, prompt }: { buttons: ButtonsQuestion | 
       ) : (
         parts
       )}
-      {buttons !== null ? <ForgeButtons question={buttons} /> : <LeadBar />}
+      {buttons !== null ? <ForgeButtons question={buttons} choices={choices} /> : <LeadBar choices={choices} />}
     </>
   )
 }
@@ -1020,7 +1039,7 @@ function isMainButton(question: ButtonsQuestion, button: ForgeButton): boolean {
 }
 
 /** Forge's two buttons with Forge's words; one Forge switched off stays visible, off, with the reason (above them: the buttons alone stick to the bottom). */
-function ForgeButtons({ question }: { question: ButtonsQuestion }) {
+function ForgeButtons({ question, choices = null }: { question: ButtonsQuestion; choices?: ReactNode }) {
   const { answer } = useDecision()
   const offId = useId()
   const off = question.buttons.filter((button) => !button.enabled)
@@ -1029,7 +1048,7 @@ function ForgeButtons({ question }: { question: ButtonsQuestion }) {
       {off.length > 0 ? (
         <GameDecisionNote id={offId}>{off.length === 1 ? `„${buttonText(off[0]!)}“ hat Forge gerade abgeschaltet.` : "Forge hat beide Knöpfe gerade abgeschaltet."}</GameDecisionNote>
       ) : null}
-      <AnswerActions role="group" aria-label="Antworten, die Forge anbietet">
+      <AnswerActions role="group" aria-label="Antworten, die Forge anbietet" choices={choices}>
         {question.buttons.map((button) => (
           <SendButton
             key={button.nr}
@@ -1051,8 +1070,9 @@ function ForgeButtons({ question }: { question: ButtonsQuestion }) {
 /**
  * The cards and players Forge names to select: how many in Forge's own
  * numbers (cards and players together), how many are chosen, which cards lie
- * on the table, a row of those the table does not show, and the players
- * Forge would take (prompt 17) - buttons like their seats on the table.
+ * on the table, a row of those the table does not show. The players Forge
+ * would take (prompt 17, buttons like their seats on the table) ride on top
+ * of the answers' bar (StepDecision's choices, 2026-10-15).
  */
 function SelectPart({ question, view }: { question: SelectQuestion; view: SelectView }) {
   const { answer, state } = useDecision()
@@ -1076,7 +1096,6 @@ function SelectPart({ question, view }: { question: SelectQuestion; view: Select
           onPrimary={(nr) => answer(question.id, selectAnswer(nr))}
         />
       ) : null}
-      {view.players.length > 0 ? <PlayerChoices players={view.players} label="Spieler, die Forge hier nimmt" /> : null}
     </>
   )
 }
@@ -1120,14 +1139,13 @@ function PlayerChoices({ players, label }: { players: readonly GameState["player
  * Forge's payment in progress (prompt 17): what is still to pay in Forge's
  * mana symbols (spoken as words), the floating mana Forge would take from the
  * pool - a button per colour, it pays at once (mana.use) - and, for
- * Phyrexian mana, the player's life (their seat, Forge's player.tap). Mana
- * sources on the table are tapped there (gold frames). Forge's Cancel takes
- * the whole payment back.
+ * Phyrexian mana, the player's life (their seat, Forge's player.tap) - those
+ * two ride on top of the answers' bar (StepDecision's choices, 2026-10-15).
+ * Mana sources on the table are tapped there (gold frames). Forge's Cancel
+ * takes the whole payment back.
  */
-function PaymentPart() {
+function PaymentPart({ view }: { view: PaymentView }) {
   const { state } = useDecision()
-  const view = paymentView(state)
-  if (view === null) return null
   // Only where Forge marks mana sources of the player's (its payment's highlight).
   const sources = state.players.some((player) => player.me && player.zones.battlefield.some((card) => !("hidden" in card) && card.playable === true))
   return (
@@ -1136,8 +1154,6 @@ function PaymentPart() {
         Noch zu zahlen: <span className="font-medium text-foreground tabular-nums" aria-hidden><ManaText text={view.cost} decorative /></span>
         <span className="sr-only">{manaSymbolsText(view.cost)}</span>.{sources ? " Manaquellen auf dem Tisch (gold umrandet) bezahlen beim Antippen." : null}
       </GameDecisionNote>
-      {view.pool.length > 0 ? <PoolChoices view={view} /> : null}
-      {view.life !== null ? <PlayerChoices players={[view.life]} label="Mit Leben statt Mana bezahlen" /> : null}
     </>
   )
 }

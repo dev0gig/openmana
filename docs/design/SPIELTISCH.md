@@ -256,6 +256,13 @@ do not fit, by `GameTable` once per set of open questions):
   action bar, so the measurement makes the region `tall` (`expanded` while the
   centre is quiet) - the limits above are unchanged. An ability's source the
   table shows keeps its "Quelle" chip there and the thumbnail.
+- **The step's choices ride on the answers' bar (2026-10-15):** the players
+  Forge would take, the pool's colours and life instead of mana are a row on
+  top of Forge's sticky bar (`GameDecisionBarChoices`), not part of the
+  scrolling content. Beside the large card Forge's long words (the spell's
+  text) had pushed them out of the window (end-to-end `target-both` on
+  360×740, 690×829, 829×690 since `267174a`); now they stay in reach with
+  OK/Abbrechen in every form.
 - Two rows per battlefield stay a measured threshold (`TWO_ROWS_MIN_HEIGHT`,
   176 px; checked in prompt 38 for the new grid and kept). Creatures lie next to
   the middle.
