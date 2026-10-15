@@ -498,6 +498,31 @@ stay the app's): Dropzone `workflow/OPENMANA-MENUESTIL-VORLAGE.html` with its
 plan `workflow/OPENMANA-MENUESTIL-MASTERPLAN.md`; pictures in Seafile
 `/repo/openmana/design/menue-stil/`. The game table itself does not change.
 
+**In short (accepted in prompt 60) - the one place that says what is allowed:**
+
+- **Where the look comes from:** tokens derived in `src/index.css` (no new
+  hue), building blocks in `src/components/ui/` (`Emblem`, `Wordmark`,
+  `AppHeader`, `AppSurface`, `OrnamentCorner`, `OrnamentDivider`) and the
+  deliberate central changes of the shadcn components listed in the tables
+  below (each commented in place). Page code composes them with layout
+  utilities only - no colours, gradients, shadows or arbitrary values
+  (rule 1, rule 3).
+- **The exceptions, all of them:** (1) the game table's own CSS and SVG
+  (`table.css`, `src/game/table/`; §9), unchanged by this series; (2) the one
+  page-level effect `AppSurface`, placed once by the app shell, still,
+  `aria-hidden`, no pointer events, absent while a game or a replay takes the
+  screen. Nothing else.
+- **The boundary:** inline components carry the look under the variant
+  `menu:` (outside `[data-slot="game-board"]`), so inside the board they keep
+  the registry's look `table.css` builds on; overlays are portalled and take
+  the look in a game too (dialogs, sheets, menus, toasts, tooltips, the card
+  view's button and keyword boxes - not its darkening and large card).
+  `src/components/ui/ornament.test.tsx` guards that inline components name
+  the style's tokens only under `menu:`.
+- **Unchanged:** the app icon, texts, flows, roles, names, touch sizes, focus
+  rings, the table's look (prompt 60 compared every recorded scene of the
+  end-to-end test at eleven sizes with the state before the series).
+
 **Tokens** (`:root` in `src/index.css`, only derived from the existing ones -
 no new hue; mapped as `--color-*` where Tailwind needs them):
 `--gold-light`, `--gold-dark`, `--gold-line`, `--panel` (aliases of the
@@ -616,4 +641,9 @@ missed became a variant of a component, never page styling):
 - **Loading:** `PageLoading` keeps a page's shape - the title's place with the
   ornament line, then a panel's place.
 
-Prompt 60: the acceptance of the whole.
+**Accepted in prompt 60** (`docs/implementation/60-menuestil-gesamtabnahme.md`):
+the complete `npm run check`, every recorded table scene of the end-to-end test
+at the eight sizes and the foldable's three against the state before the series
+(`4c64434`: place, size and computed look of every element of the board equal),
+all pages at four sizes against the template, a keyboard tour and axe. Pictures:
+Seafile `/repo/openmana/design/menue-stil/60/`.

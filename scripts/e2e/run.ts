@@ -918,7 +918,7 @@ async function localData(browser: Browser, base: string): Promise<void> {
     await page.goto(new URL("/decks", base).href, { waitUntil: "networkidle" })
     const list = page.getByRole("list", { name: "Gespeicherte Decks" })
     await list.waitFor()
-    const titles = await list.locator("[data-slot=item-title]").allTextContents()
+    const titles = await list.locator("[data-slot=card-title]").allTextContents()
     check(JSON.stringify(titles) === JSON.stringify(sample.deckNames), `local data: decks page lists ${JSON.stringify(titles)}`)
     await screenshots(page, "desktop-decks-with-data")
     await page.goto(new URL("/matches", base).href, { waitUntil: "networkidle" })
@@ -1606,7 +1606,7 @@ async function deckImport(browser: Browser, base: string, id: string): Promise<v
 
     // Found again after a reload, and in IndexedDB as saved.
     await page.reload({ waitUntil: "networkidle" })
-    const listed = await page.getByRole("list", { name: "Gespeicherte Decks" }).locator('[data-slot="item-title"]').allTextContents()
+    const listed = await page.getByRole("list", { name: "Gespeicherte Decks" }).locator('[data-slot="card-title"]').allTextContents()
     await screenshots(page, "desktop-decks-after-import")
     results["checkMs"] = checkTimes
     check(["E2E Brawl", "E2E Deutsch", "E2E Izzet"].every((name) => listed.includes(name)), `deck import: decks listed ${JSON.stringify(listed)}`)
@@ -1674,7 +1674,7 @@ interface LibraryDeck extends SavedDeck {
 
 /** The decks the library lists, in order (titles). */
 async function libraryTitles(page: Page): Promise<string[]> {
-  return page.getByRole("list", { name: "Gespeicherte Decks" }).getByRole("link").locator('[data-slot="item-title"]').allTextContents()
+  return page.getByRole("list", { name: "Gespeicherte Decks" }).getByRole("link").locator('[data-slot="card-title"]').allTextContents()
 }
 
 /** Waits until the library lists exactly these decks (the list follows the address and the database). */
