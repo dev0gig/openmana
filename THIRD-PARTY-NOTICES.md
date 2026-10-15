@@ -108,7 +108,7 @@ WASM-Typen: 8267
 ## Credits und Herkunft
 
 Forge/Card-Forge: Regeln, Kartenskripte, KI (GPL-3.0-or-later). ManaBrew: technische Referenz; drei GPL-Patches aus seinem Forge-Fork (khaliostr, JacopoMadaluni). Kein ManaBrew-Hauptrepo-/AGPL-Code übernommen.
-Scryfall: Kartendaten und -bilder. Wizards of the Coast: Kartenrechte/Marken, inoffizieller Fan-Inhalt. Entwickelt mit umfassender generativer KI (OpenAI ChatGPT/Codex, Anthropic Claude), siehe TRANSPARENCY.md. ORYX-SDK: Quelle des Projektbesitzers. App-Icon: vom Projektbesitzer mit ChatGPT erzeugt.
+Scryfall: Kartendaten und -bilder. Wizards of the Coast: Kartenrechte/Marken. OpenMana is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC. (Deutsch: OpenMana ist inoffizieller Fan-Inhalt, gestattet im Rahmen der Fan Content Policy. Nicht von Wizards genehmigt/befürwortet. Teile der verwendeten Materialien sind Eigentum von Wizards of the Coast. ©Wizards of the Coast LLC.) Manasymbole und Kartenrückseite: eigene Zeichnungen von OpenMana. Entwickelt mit umfassender generativer KI (OpenAI ChatGPT/Codex, Anthropic Claude), siehe TRANSPARENCY.md. ORYX-SDK: Quelle des Projektbesitzers. App-Icon: vom Projektbesitzer mit ChatGPT erzeugt.
 
 ## Quellen und Freigabegate
 
@@ -19849,7 +19849,7 @@ SHA-256: 0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594
 ### TRANSPARENCY.md
 
 Quelle: TRANSPARENCY.md
-SHA-256: 36c53a6cdb6336af33acdaa4ea8caebc14afa652075198eacca3c057995fa2ad
+SHA-256: 7cce759a5a548fd6f14dba06734aa9f3a61771ccfe978246464b55278cd3baae
 
 ````
 # Herkunft und KI-Transparenz
@@ -19890,8 +19890,18 @@ Modells.
   „KI“-Gegner in Partien sind Forges eigene, regelbasierte Spieler – keine
   generative KI.
 - **Kartentexte, Kartenbilder, Set-Angaben:** Scryfall (https://scryfall.com),
-  Rechte bei Wizards of the Coast; OpenMana ist inoffizieller Fan-Inhalt unter
-  deren Fan Content Policy. Kartenbilder werden nie verändert oder erzeugt.
+  Rechte bei Wizards of the Coast. Kartenbilder werden nie verändert oder erzeugt.
+  Hinweis nach der Fan Content Policy, deutsch übersetzt: „OpenMana ist
+  inoffizieller Fan-Inhalt, gestattet im Rahmen der Fan Content Policy. Nicht
+  von Wizards genehmigt/befürwortet. Teile der verwendeten Materialien sind
+  Eigentum von Wizards of the Coast. ©Wizards of the Coast LLC.“
+  Im Wortlaut: “OpenMana is unofficial Fan Content permitted under the Fan
+  Content Policy. Not approved/endorsed by Wizards. Portions of the materials
+  used are property of Wizards of the Coast. ©Wizards of the Coast LLC.”
+- **Manasymbole und Kartenrückseite:** eigene Zeichnungen von OpenMana
+  (`src/components/ui/mana-symbol.tsx`, `src/game/table/table-art.tsx`), nicht
+  die von Wizards of the Coast: Deren Fan Content Policy nimmt Logos und Marken,
+  darunter die Manasymbole, ausdrücklich aus.
 - **Bibliotheken und Schriften:** siehe `THIRD-PARTY-NOTICES.md`.
 - **WebAssembly-Übersetzung:** GraalVM Community Edition mit Web Image, aus
   offenem Quelltext gebaut (Werkzeug, seit Prompt 35; vorher Oracle GraalVM);

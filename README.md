@@ -77,6 +77,8 @@ npm run generate                     # after changing a schema (src/storage/sche
 
 OpenMana visibly credits Forge/Card-Forge, ManaBrew, Scryfall, OpenAI ChatGPT and Anthropic Claude. ManaBrew supplied technical inspiration and three GPL Forge patches; its AGPL application code is not incorporated. Repository licensing is [GPL-3.0-or-later](LICENSE); foreign components retain their licenses and copyrights in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). Public distribution remains gated by [SOURCE.md](SOURCE.md), independently of these notices.
 
+OpenMana is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC. The mana symbols and the card back outside the card pictures are OpenMana's own drawings, not Wizards of the Coast's: the [Fan Content Policy](https://company.wizards.com/fancontentpolicy) excludes Wizards' logos and trademarks, the mana symbols among them.
+
 ## ORYX return navigation (2026-09-27)
 
 ORYX and its games switch through explicit UI navigation in the same tab/TWA. System/browser Back belongs to the platform or the game’s own internal navigation. **Zurück zu ORYX** sits beside Spielen and Decks on Start, using `location.assign("https://oryx.quest/")` even after a direct start. It is not on the immersive game table. The existing provider-level beforeunload guard still asks before leaving a starting/running Forge match, including after navigating internally to Start. Cloud sessions and IndexedDB are retained.

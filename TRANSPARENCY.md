@@ -36,8 +36,18 @@ Modells.
   „KI“-Gegner in Partien sind Forges eigene, regelbasierte Spieler – keine
   generative KI.
 - **Kartentexte, Kartenbilder, Set-Angaben:** Scryfall (https://scryfall.com),
-  Rechte bei Wizards of the Coast; OpenMana ist inoffizieller Fan-Inhalt unter
-  deren Fan Content Policy. Kartenbilder werden nie verändert oder erzeugt.
+  Rechte bei Wizards of the Coast. Kartenbilder werden nie verändert oder erzeugt.
+  Hinweis nach der Fan Content Policy, deutsch übersetzt: „OpenMana ist
+  inoffizieller Fan-Inhalt, gestattet im Rahmen der Fan Content Policy. Nicht
+  von Wizards genehmigt/befürwortet. Teile der verwendeten Materialien sind
+  Eigentum von Wizards of the Coast. ©Wizards of the Coast LLC.“
+  Im Wortlaut: “OpenMana is unofficial Fan Content permitted under the Fan
+  Content Policy. Not approved/endorsed by Wizards. Portions of the materials
+  used are property of Wizards of the Coast. ©Wizards of the Coast LLC.”
+- **Manasymbole und Kartenrückseite:** eigene Zeichnungen von OpenMana
+  (`src/components/ui/mana-symbol.tsx`, `src/game/table/table-art.tsx`), nicht
+  die von Wizards of the Coast: Deren Fan Content Policy nimmt Logos und Marken,
+  darunter die Manasymbole, ausdrücklich aus.
 - **Bibliotheken und Schriften:** siehe `THIRD-PARTY-NOTICES.md`.
 - **WebAssembly-Übersetzung:** GraalVM Community Edition mit Web Image, aus
   offenem Quelltext gebaut (Werkzeug, seit Prompt 35; vorher Oracle GraalVM);

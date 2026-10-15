@@ -22,10 +22,21 @@ import { formatDate } from "@/cards/card-labels"
 import { engineAssets } from "@/engine/engine-assets"
 import { shortCommit } from "@/engine/engine-labels"
 import { Button } from "@/components/ui/button"
+import { MANA_LEGEND_INTRO, ManaLegend } from "@/components/mana-legend"
 import { buildInfo } from "@/app/build-info"
 
 /** The public repository; a build names its exact commit there (SOURCE.md). */
 export const SOURCE_REPOSITORY = "https://github.com/dev0gig/openmana"
+
+/**
+ * The note Wizards of the Coast's Fan Content Policy asks fan content to carry -
+ * in English word for word, and the same words translated into German
+ * (project owner, 2026-10-15).
+ */
+export const FAN_CONTENT_NOTICE_EN =
+  "OpenMana is unofficial Fan Content permitted under the Fan Content Policy. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC."
+export const FAN_CONTENT_NOTICE_DE =
+  "OpenMana ist inoffizieller Fan-Inhalt, gestattet im Rahmen der Fan Content Policy. Nicht von Wizards genehmigt/befürwortet. Teile der verwendeten Materialien sind Eigentum von Wizards of the Coast. ©Wizards of the Coast LLC."
 const sourceHref = buildInfo.commit ? `${SOURCE_REPOSITORY}/tree/${buildInfo.commit}` : SOURCE_REPOSITORY
 
 function CreditEntry({ name, href, license, children }: { name: string; href?: string; license?: string; children: ReactNode }) {
@@ -150,10 +161,21 @@ export function CreditsPage() {
             OpenMana weder geprüft noch empfohlen.
           </CreditEntry>
           <CreditEntry name="Wizards of the Coast – Fan Content Policy" href="https://company.wizards.com/fancontentpolicy">
-            Die Karteninformationen und Kartenbilder, einschließlich der Manasymbole, sind urheberrechtlich geschützt von Wizards of the Coast LLC.
-            OpenMana nutzt sie als inoffizieller Fan-Inhalt im Rahmen der Fan Content Policy. Jedes Kartenbild nennt seine Künstlerin oder seinen
-            Künstler; OpenMana zeigt die Bilder immer vollständig und unverändert.
+            Die Karteninformationen und Kartenbilder sind urheberrechtlich geschützt von Wizards of the Coast LLC. OpenMana nutzt sie als
+            inoffizieller Fan-Inhalt im Rahmen der Fan Content Policy. Jedes Kartenbild nennt seine Künstlerin oder seinen Künstler; OpenMana
+            zeigt die Bilder immer vollständig und unverändert. Die Manasymbole und die Kartenrückseite außerhalb der Kartenbilder sind eigene
+            Zeichnungen von OpenMana, denn die Fan Content Policy nimmt Wizards&apos; Logos und Marken, darunter die Manasymbole, ausdrücklich aus.
           </CreditEntry>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Manasymbole</CardTitle>
+          <CardDescription>{MANA_LEGEND_INTRO}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ManaLegend />
         </CardContent>
       </Card>
 
@@ -200,10 +222,11 @@ export function CreditsPage() {
         </CardContent>
       </Card>
 
-      <p className="text-sm text-muted-foreground">
-        OpenMana ist ein inoffizielles Fanprojekt und steht in keiner Verbindung zu Wizards of the Coast. Magic: The Gathering
-        ist eine Marke von Wizards of the Coast LLC.
-      </p>
+      <div data-slot="fan-content-notice" className="flex flex-col gap-2 text-sm text-muted-foreground">
+        <p>{FAN_CONTENT_NOTICE_DE}</p>
+        <p lang="en">{FAN_CONTENT_NOTICE_EN}</p>
+        <p>Magic: The Gathering ist eine Marke von Wizards of the Coast LLC.</p>
+      </div>
     </Page>
   )
 }
