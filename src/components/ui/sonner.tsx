@@ -34,6 +34,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--border-radius": "var(--radius)",
         } as React.CSSProperties
       }
+      // Edge to edge (viewport-fit=cover): toasts keep clear of a front camera (sonner's own distances plus the insets).
+      offset={{ top: "calc(24px + env(safe-area-inset-top))", right: "calc(24px + env(safe-area-inset-right))", bottom: "calc(24px + env(safe-area-inset-bottom))", left: "calc(24px + env(safe-area-inset-left))" }}
+      mobileOffset={{ top: "calc(16px + env(safe-area-inset-top))", right: "calc(16px + env(safe-area-inset-right))", bottom: "calc(16px + env(safe-area-inset-bottom))", left: "calc(16px + env(safe-area-inset-left))" }}
       toastOptions={{
         classNames: {
           toast: "cn-toast",

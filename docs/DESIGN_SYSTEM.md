@@ -192,6 +192,18 @@ game's result is one large word in the heading font – gold for a win, the
 destructive colour for a loss (Anvil: "verloren oder gewonnen in großen
 Buchstaben").
 
+**Edge to edge (2026-10-15).** `index.html` asks for the whole screen
+(`viewport-fit=cover`), like the ORYX start page and every other ORYX game.
+Without it Chrome in the ORYX app (a Trusted Web Activity in immersive mode,
+cutout `ALWAYS`) decided per page and load: it moved the page below the front
+camera, a black band on top and the bottom cut off, and a tap near the camera
+or the bottom edge shifted it back and forth (Samsung Fold 7). The bars' and
+panels' tones reach under the camera; their content keeps the safe-area
+insets (`env(safe-area-inset-*)`, 0 without a cutout): `AppHeader`,
+`BottomNav`, the sidebar's rail, `SheetContent` and its close button, the
+toasts' distances, the content's sides and the full-screen page (game,
+replay). New bars or panels at a screen edge do the same in their component.
+
 **The game table** (prompt 13, `/play/game` while a game runs) takes the whole
 screen: the page asks for it (`useImmersive`, `src/app/immersive.tsx`) and the
 app shell hides sidebar, top bar and tab bar until the game ends or the player

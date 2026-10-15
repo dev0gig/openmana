@@ -10,6 +10,10 @@
  * rule 5) and the focus ring stay the Button's. Since prompt 58 the ghost
  * Button turns gold under menu: on hover; the bar's button keeps its lighter
  * panel tone there (menu:hover:bg-panel wins over the ghost's).
+ *
+ * The page asks for the whole screen (index.html, viewport-fit=cover, so
+ * Chrome in the ORYX app never moves it below the front camera): the bar's
+ * tone reaches under the camera, its content keeps the safe-area insets.
  */
 import * as React from "react"
 import { cn } from "cn"
@@ -20,6 +24,9 @@ function AppHeader({ className, ...props }: React.ComponentProps<"header">) {
       data-slot="app-header"
       className={cn(
         "sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-gold-line bg-linear-to-b from-bar-top to-bar-bottom px-4 md:h-12",
+        // Edge to edge (viewport-fit=cover, 2026-10-15): the bar reaches under the front camera, its content keeps clear of it
+        // (from md on the sidebar lies at the left edge and keeps clear of a camera there itself).
+        "h-[calc(3.5rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] pr-[max(1rem,env(safe-area-inset-right))] pl-[max(1rem,env(safe-area-inset-left))] md:h-[calc(3rem+env(safe-area-inset-top))] md:pl-4",
         className
       )}
       {...props}

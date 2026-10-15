@@ -251,7 +251,8 @@ function Sidebar({
         <div
           data-sidebar="sidebar"
           data-slot="sidebar-inner"
-          className="flex size-full flex-col bg-linear-to-b from-rail-top to-rail-bottom group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:shadow-sm group-data-[variant=floating]:ring-1 group-data-[variant=floating]:ring-sidebar-border"
+          // OpenMana: edge to edge (viewport-fit=cover) - the rail's tone reaches under a camera at its edge, its content keeps clear.
+          className="flex size-full flex-col bg-linear-to-b from-rail-top to-rail-bottom pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] group-data-[side=left]:pl-[env(safe-area-inset-left)] group-data-[side=right]:pr-[env(safe-area-inset-right)] group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:shadow-sm group-data-[variant=floating]:ring-1 group-data-[variant=floating]:ring-sidebar-border"
         >
           {children}
         </div>

@@ -24,6 +24,8 @@ function BottomNav({ className, ...props }: React.ComponentProps<"nav">) {
       data-slot="bottom-nav"
       className={cn(
         "sticky bottom-0 z-20 flex h-16 w-full shrink-0 items-stretch border-t border-gold-line bg-linear-to-b from-dock-top to-dock-bottom md:hidden",
+        // Edge to edge (viewport-fit=cover): the bar's tone reaches the screen's edges, its destinations keep clear of a cutout.
+        "h-[calc(4rem+env(safe-area-inset-bottom))] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)]",
         className
       )}
       {...props}

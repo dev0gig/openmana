@@ -74,7 +74,15 @@ function Frame() {
           </AppHeader>
         )}
         {/* relative: the content lies above the background shimmer (both positioned, the content later). */}
-        <div className={immersive ? "flex h-dvh flex-col overflow-hidden" : "relative flex flex-1 flex-col"}>
+        {/* Edge to edge (index.html, viewport-fit=cover): the content keeps clear of a front camera at the side (landscape) -
+            the sidebar takes the left one from md on; the running game also of one at the top and bottom. */}
+        <div
+          className={
+            immersive
+              ? "flex h-dvh flex-col overflow-hidden pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)]"
+              : "relative flex flex-1 flex-col pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] md:pl-0"
+          }
+        >
           <Outlet />
         </div>
         {immersive ? null : (
