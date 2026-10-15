@@ -1199,7 +1199,10 @@ engine's observations (prompt 48, protocol 10;
   always; `hoch`: in the stack bar's row in place of the empty bar's gold
   line, stepping aside (`data-rests`) while the bar shows a spell or combat;
   `breit` + `short` (no centre line): at the foot of the side column's stack
-  panel, aside likewise. Hidden while the stage holds. Not a second history:
+  panel, aside likewise, and hidden while the decision is expanded (the
+  stack's area is gone then; placed there the line opened implicit grid
+  tracks and shrank the table - fixed 2026-10-15,
+  `table-grid-areas.test.ts`). Hidden while the stage holds. Not a second history:
   never recorded or stored; the details stay Forge's log.
 - **Tempo** Langsam / Normal / Schnell (3.2 / 1.7 / 0.8 s per step, a bit more
   for several result lines), **stepwise** "Nach jeder Gegneraktion warten":

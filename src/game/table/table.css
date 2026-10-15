@@ -2355,6 +2355,16 @@
   [data-slot="game-board"] > .table-last-move[data-rests] {
     display: none;
   }
+
+  /*
+   * An expanded decision takes the stack's place in a low window: the area
+   * `center` is gone from the grid, and a line placed there would open an
+   * implicit column and row beside the board (2026-10-15: the line at the
+   * bottom right, the whole table shrunk). It steps aside like the stack.
+   */
+  [data-slot="game-board"][data-decision="expanded"] > .table-last-move {
+    display: none;
+  }
 }
 
 /* How long the step stays by itself: a thin gold line running down (scaled, never resized); still under less motion. */
