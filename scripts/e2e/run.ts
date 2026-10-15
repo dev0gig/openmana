@@ -3774,8 +3774,15 @@ async function gameFailures(browser: Browser, base: string, id: string, decks: r
     await concedeGame(page)
     results["workers"] = { created: workers.created(), maxAtOnce: workers.max(), trace: workers.trace() }
     check(workers.max() <= 1, `game failures: ${workers.max()} engines at the same time`)
+    // After each engine abort the app asks the server once whether its engine is still there (a HEAD for the manifest,
+    // engine-release.ts). Chromium reports every HEAD as net::ERR_ABORTED although it is answered (measured 2026-10-15:
+    // fetch resolves with 200, the page still sees requestfailed) - expected here, and it must have been asked.
+    const manifest = `/engine/${id}/engine-manifest.json net::ERR_ABORTED`
+    const releaseChecks = pageLog.errors.filter((e) => e.startsWith("[requestfailed] ") && e.endsWith(manifest)).length
+    results["engineReleaseChecks"] = releaseChecks
+    check(releaseChecks >= 1, "game failures: after the engine abort the app did not ask whether its engine is still on the server")
     // The server error of 7 was the test's; anything else is a failure.
-    for (const error of pageLog.errors.filter((e) => !(e.includes(wasm) && /\[http 500\]|Failed to load resource/.test(e)))) check(false, `game failures: ${error}`)
+    for (const error of pageLog.errors.filter((e) => !(e.includes(wasm) && /\[http 500\]|Failed to load resource/.test(e)) && !(e.startsWith("[requestfailed] ") && e.endsWith(manifest)))) check(false, `game failures: ${error}`)
     results["engineLog"] = pageLog.engineLog.filter((line) => !line.includes("was not assigned to any set")).slice(0, 20)
   } finally {
     await context.close()
@@ -7019,7 +7026,8 @@ async function zoneInteractions(parent: Page, base: string, viewport: Viewport):
   }
   // Isolate each dev-module navigation just like decision/layout scenes.
   // Parent stays open; each owned page keeps its request/error assertions.
-  const sceneErrors = () => { for (const error of sceneLog?.errors ?? []) check(false, `${label}: ${error}`) }
+  // Switching zones and paging through cards drops pictures still loading (droppedPicture): Chrome's, not the page's.
+  const sceneErrors = () => { for (const error of sceneLog?.errors ?? []) if (!droppedPicture(error)) check(false, `${label}: ${error}`) }
   const scene = async (name: string, query = "") => {
     sceneErrors()
     await page.close()
