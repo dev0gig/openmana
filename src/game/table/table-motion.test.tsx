@@ -229,13 +229,14 @@ describe("never in the way", () => {
     expect(travels()).toHaveLength(2)
   })
 
-  it("a state that comes before the motion started skips it", async () => {
+  it("a state that comes before the motion started joins it: one motion from the places before the first (nothing queued)", async () => {
     const view = render(table(0))
     view.rerender(table(1))
     view.rerender(table(2))
     await nextFrame()
-    // Only step 2's travel (Gebirge 33): the drawn card of step 1 was already at its place when step 2 was read.
-    expect(travels()).toHaveLength(1)
+    // Step 1's drawn card and step 2's Gebirge (33) travel together, both from where they were before step 1 (2026-10-15:
+    // read from step 1's unpainted layout, the drawn card would have stood at its place already and jumped there).
+    expect(travels()).toHaveLength(2)
     expect(layer().dataset["states"]).toBe("1")
   })
 
@@ -316,12 +317,12 @@ describe("effects follow Forge", () => {
 })
 
 describe("a hand card dragged onto the battlefield (prompt 46)", () => {
-  /** The live table of a sequence step: the page sends taps (recorded), Forge waits. */
-  function live(step: number, onTapCard: (id: number) => void) {
+  /** The live table of a sequence step: the page sends taps (recorded), Forge waits. `again`: the same step as a further state (Forge's next send). */
+  function live(step: number, onTapCard: (id: number) => void, again = false) {
     const moment = sequenceMoment(step)
     return (
       <GameTable
-        state={moment.state}
+        state={again ? { ...moment.state } : moment.state}
         history={moment.history}
         questions={moment.questions}
         prompt={moment.prompt}
@@ -400,6 +401,30 @@ describe("a hand card dragged onto the battlefield (prompt 46)", () => {
       expect(height).toBeGreaterThan(0)
       expect(Number.parseFloat(ghost.style.top) + height / 2).toBeCloseTo(to.y - 0.2 * height, 0)
       // The waiting picture handed over: gone.
+      expect(waiting!.isConnected).toBe(false)
+      expect(dragGhost()).toBeNull()
+    } finally {
+      restore()
+    }
+  })
+
+  it("two states before the next frame (Forge sends the land, then the rest at once): the travel still starts at the drop", async () => {
+    const restore = restingPlaces()
+    try {
+      const onTapCard = vi.fn()
+      const view = render(live(1, onTapCard))
+      const to = field()
+      drop(33, 1, to)
+      const waiting = dragGhost()
+      expect(waiting).not.toBeNull()
+      // The land's state and a further one arrive within one frame: the motion reads the layout once, from before the first.
+      view.rerender(live(2, onTapCard))
+      view.rerender(live(2, onTapCard, true))
+      await nextFrame()
+      expect(travels()).toHaveLength(1)
+      const ghost = travels()[0]!.target as HTMLElement
+      expect(Number.parseFloat(ghost.style.left) + Number.parseFloat(ghost.style.width) / 2).toBeCloseTo(to.x, 0)
+      // The waiting picture handed over at once - it does not hover over the landed card until DROP_WAIT_MS.
       expect(waiting!.isConnected).toBe(false)
       expect(dragGhost()).toBeNull()
     } finally {

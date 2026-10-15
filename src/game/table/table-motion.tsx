@@ -491,6 +491,15 @@ export class TableMotion extends Component<TableMotionProps> {
   private unwatch: (() => void) | null = null
   /** The frame the new layout is read in (after React's own follow-up renders of the same moment, before the first paint). */
   private frame: number | null = null
+  /**
+   * The motion that frame plays: from the layout and state before the first of the states that came since the last frame
+   * (2026-10-15). Forge often sends a played card's state and, a moment later, the rest of the same step; arriving
+   * before the next frame, the second must not read its "before" from the first's unpainted layout - the card would
+   * already lie at its new place, nothing would travel, and a card dropped from the hand would hover until it faded.
+   */
+  private pending: { readonly previousState: GameState; readonly events: readonly GameEvent[]; readonly before: Before; readonly shimmer: boolean } | null = null
+  /** What getSnapshotBeforeUpdate carried over from a pending frame to componentDidUpdate. */
+  private carried: { readonly previousState: GameState; readonly events: readonly GameEvent[]; readonly shimmer: boolean } | null = null
 
   constructor(props: TableMotionProps) {
     super(props)
@@ -520,6 +529,7 @@ export class TableMotion extends Component<TableMotionProps> {
   stop(): void {
     if (this.frame !== null) cancelFrame(this.frame)
     this.frame = null
+    this.pending = null
     this.generation++
     const had = this.running.length > 0 || this.ghosts.length > 0
     for (const animation of this.running) animation.cancel()
@@ -538,10 +548,16 @@ export class TableMotion extends Component<TableMotionProps> {
 
   override getSnapshotBeforeUpdate(previous: Readonly<TableMotionProps>): Before | null {
     if (previous.state === this.props.state) return null
+    // A state whose layout was not read yet (its frame is still to come): this one joins its motion, from its "before".
+    const waiting = this.frame !== null ? this.pending : null
     // A further state: what still moves jumps to its end before anything is read.
     this.stop()
     const board = this.board()
     if (board === null || !this.props.animate || !this.allowed()) return null
+    if (waiting !== null) {
+      this.carried = { previousState: waiting.previousState, events: waiting.events, shimmer: waiting.shimmer }
+      return waiting.before
+    }
     const origin = board.getBoundingClientRect()
     const start = performance.now()
     const cards = measureCards(board, origin)
@@ -557,14 +573,24 @@ export class TableMotion extends Component<TableMotionProps> {
     const events = stateChanged ? newEvents(this.props.history, this.seen) : []
     if (stateChanged) this.seen = this.props.history.length
     const shimmer = previous.priority !== this.props.priority && this.props.priority !== null
+    const carried = this.carried
+    this.carried = null
     if (before !== null) {
       // The new layout is read at the next frame, before it is painted: the table settles first (a decision that grows
       // takes room in a render right after this one), and nothing is painted at its new place before the motion starts.
-      const previousState = previous.state
+      // States that came before that frame play as one motion (see `pending`).
+      this.pending = {
+        previousState: carried?.previousState ?? previous.state,
+        events: carried === null ? events : [...carried.events, ...events],
+        before,
+        shimmer: shimmer || (carried?.shimmer ?? false),
+      }
       if (this.frame !== null) cancelFrame(this.frame)
       this.frame = requestFrame(() => {
         this.frame = null
-        this.animateState(previousState, events, before, shimmer)
+        const motion = this.pending
+        this.pending = null
+        if (motion !== null) this.animateState(motion.previousState, motion.events, motion.before, motion.shimmer)
       })
     } else if (shimmer && this.allowed() && this.props.animate) this.shimmer()
   }

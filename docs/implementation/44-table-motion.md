@@ -31,9 +31,12 @@ no model there.
      follow-up render of the same moment - a decision that grows takes room
      right after the state): the new places are read in one go, then the
      ghosts are added and the animations start.
-  3. A state that comes before that frame skips the motion of the one
-     before; a further state during the motion stops it (step 1). Nothing is
-     queued, nothing waits, nothing is sent.
+  3. A state that comes before that frame joins the motion of the one
+     before: one motion from the places before the first (2026-10-15 - it
+     used to skip it, so a card of the first state jumped, and a card dropped
+     from the hand hovered until it faded, see 46); a further state during
+     the motion stops it (step 1). Nothing is queued, nothing waits, nothing
+     is sent.
 - **Identity** only by the `data-card` id (a Zauberchronik card's
   `data-stack-card`; a battlefield pile carries all its ids in the new
   attribute `data-pile-cards`, so a card joining or leaving a pile travels
@@ -117,7 +120,7 @@ no model there.
   (its card view opens); **no motion under less motion** (the setting and the
   device), switching it on stops what runs; a replay jump changes at once;
   **a further state cancels** every animation and ghost and tells the arrows;
-  a state before the frame skips the motion; at the end the ghosts go; spell
+  a state before the frame joins the motion (2026-10-15; it skipped it before); at the end the ghosts go; spell
   cast (entry glides, source flashes, damaged card shakes with `composite:
   "add"`), resolution (dissolve, two cards to the graveyard), life loss
   (red), tapping and untapping.

@@ -1501,11 +1501,13 @@ only (`MOTION_PROPERTIES`, checked by `motion-plan.test.ts` and
   (`getSnapshotBeforeUpdate`) the old places are read - first everything that
   still moves is cancelled (the pictures jump to their places); at the next
   frame, before it is painted, the new places are read in one go and the
-  animations start. A state that comes before that frame skips the motion of
-  the one before. Nothing is queued, nothing waits, nothing is sent. Under
-  less motion (`motionReducedNow()`: the device or the player's setting)
-  nothing is read and nothing moves; switching it on stops what runs
-  (`watchReducedMotion()`). The replay passes `animate={false}` when it jumps
+  animations start. A state that comes before that frame joins the motion of
+  the one before - one motion from the places before the first (2026-10-15:
+  Forge often sends a played card and the rest of its step a moment apart; a
+  dropped hand card no longer hovers until it fades). Nothing is queued,
+  nothing waits, nothing is sent. Under less motion (`motionReducedNow()`: the
+  device or the player's setting) nothing is read and nothing moves;
+  switching it on stops what runs (`watchReducedMotion()`). The replay passes `animate={false}` when it jumps
   over several steps.
 - **Which card is which:** only the `data-card` id (a Zauberchronik card's
   `data-stack-card`; a pile's cards all stand at its front card's place,
