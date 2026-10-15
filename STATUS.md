@@ -1,6 +1,6 @@
 # OpenMana — Current Status
 
-Last repository review: 2026-10-08 (after Prompt 32); last update 2026-10-15 (prompt 57)
+Last repository review: 2026-10-08 (after Prompt 32); last update 2026-10-15 (prompt 58)
 
 Compact implementation map. This file deliberately does **not** replace the active queue ledger in `dev0gig/dropzone/workflow/tasks/INDEX.md`.
 
@@ -374,6 +374,10 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 ### Menu style: foundation and app frame (Prompt 57, series openmana-menuestil 1/4)
 - The project owner's menu style **"Reich"** (2026-10-15): everything outside a game takes the table's look (`docs/DESIGN_SYSTEM.md` §10). Built: derived tokens (`--gold-*`, `--panel*`, `--bar-*`, `--rail-*`, `--dock-*`, `--gold-glow`, `--surface-cool`; no new hue), the shared emblem and gold wordmark (`src/components/ui/emblem.tsx`; the table's header and card back use it, the table pixel-identical), `AppHeader`, tab bar and sidebar in the panel tone with gold lines and a glowing gold mark keyed to `aria-current`, and the one background shimmer `AppSurface` (Design System rule 1's exception; not during a game or replay). App icon unchanged.
 - Evidence: `docs/implementation/57-menuestil-grundlage.md`; targeted checks (tsc, oxlint, 232 unit tests incl. new contrast cases on every bar), browser checks at four sizes against `4c64434`; pictures in Seafile `/repo/openmana/design/menue-stil/57/`. Complete check in prompt 60. Assumptions (changeable): sidebar head continues the top bar instead of a full-width header; no "Menü" label; wordmark `text-xl`.
+
+### Menu style: building blocks as panels (Prompt 58, series openmana-menuestil 2/4)
+- The shadcn components take the table's look centrally (`docs/DESIGN_SYSTEM.md` §10 with the table of variants): `Card` a panel with two gold corner ornaments (variant `plain` without, for dense/nested use), `Button` `default` the golden main button and `outline`/`secondary` gold-lined pills, gold-lined fields (`--gold-edge`, 3:1) on a darker well, gold choices and toggles, rows on a well with icons in gold rings, gold empty states, overlays (dialogs, sheets, menus, tooltips, toasts) on the panel tone with the gold hairline and gold titles, `PageHeader` with the ornament line (`OrnamentCorner`, `OrnamentDivider`). Inline components carry it under the variant `menu:` (outside the game table's board): the table is unchanged (28 recorded scene shots within run noise).
+- Evidence: `docs/implementation/58-menuestil-bausteine.md`; tsc, oxlint, targeted unit tests (new contrast cases, ornament/scope guard, motion); browser checks at four sizes (no overflow, axe serious/critical 0, focus visible); pictures in Seafile `/repo/openmana/design/menue-stil/58/`. Complete check in prompt 60. Assumptions (changeable): form controls use the stronger `--gold-edge` instead of the template's hairline (3:1); dialogs without corner ornaments; tooltips no longer inverted.
 
 ### ORYX Cloud Sync (outside the queue, 2026-09-25)
 - The project owner's direct assignment, not a queue prompt (outside the numbered program): the player's collection syncs through their ORYX account (the launcher's Supabase cloud) with the vendored ORYX SDK 1.0.0 (`src/cloud/oryx-sdk.js` and `.d.ts`, byte-identical copies of `oryx-games/shared`, checksum-tested, excluded from lint only themselves). Active only on `https://openmana.vercel.app/`; locally, in tests and previews inactive (no request, nothing stored). Local stays the source of truth.

@@ -1,12 +1,16 @@
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 
+// OpenMana (menu style "Reich", prompt 58; Design System §10): outside the game
+// table's board (menu:) an empty state takes the panels' gold - a dashed gold
+// hairline where a page draws its border, the title in Cinzel gold and the
+// icon in a gold ring.
 function Empty({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="empty"
       className={cn(
-        "flex w-full min-w-0 flex-1 flex-col items-center justify-center gap-4 rounded-lg border-dashed p-12 text-center text-balance",
+        "flex w-full min-w-0 flex-1 flex-col items-center justify-center gap-4 rounded-lg border-dashed p-12 text-center text-balance menu:border-gold-line",
         className
       )}
       {...props}
@@ -30,7 +34,7 @@ const emptyMediaVariants = cva(
     variants: {
       variant: {
         default: "bg-transparent",
-        icon: "flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground [&_svg:not([class*='size-'])]:size-6",
+        icon: "flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground [&_svg:not([class*='size-'])]:size-6 menu:size-12 menu:rounded-full menu:border menu:border-gold-line menu:bg-panel-shade menu:text-gold-light",
       },
     },
     defaultVariants: {
@@ -59,7 +63,7 @@ function EmptyTitle({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="empty-title"
       className={cn(
-        "font-heading text-lg font-medium tracking-tight",
+        "font-heading text-lg font-medium tracking-tight menu:text-gold-light",
         className
       )}
       {...props}

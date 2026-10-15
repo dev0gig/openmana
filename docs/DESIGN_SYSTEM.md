@@ -18,7 +18,10 @@
   with gold lines, the table's emblem and a gold wordmark, a glowing gold mark
   for the current page, a still background shimmer. It comes only through
   tokens, building blocks in `src/components/ui/` and deliberate central
-  changes of the shadcn components (rule 3); pages stay shadcn-only.
+  changes of the shadcn components (rule 3); pages stay shadcn-only. Inline
+  components carry it under the variant `menu:` (outside the game table's
+  board, since prompt 58), so inside a running game they keep the look the
+  table's own stylesheet builds on.
 - **Tokens: `src/index.css`.** Every colour, radius and font of the app is a
   shadcn token (`--background`, `--card`, `--primary`, `--muted-foreground`,
   `--sidebar-*` …) mapped into Tailwind by `@theme inline`. Pages use the
@@ -44,7 +47,7 @@ copying one (Bible §13): no Arena assets, layouts or typefaces.
 | Radius | `--radius` 0.625rem; Maia scales it (cards `rounded-2xl`, buttons pill-shaped) | soft, familiar from Material 3 on Android |
 | App icon | the Anvil icon, unchanged and temporary ([provenance](../assets/app-icon/PROVENANCE.md)) - only the icon of the installed app (`public/icons/`, manifest, PWA, ORYX) | prompt 06: no redesign yet; a later decision of its own |
 | Mark in the app | the game table's **emblem** (a compass: eight-pointed star in a ring, the table's gold gradient) and the wordmark "OpenMana" in Cinzel with a gold gradient - top bar, sidebar, start page (`Emblem`, `Wordmark`, `Brand`; prompt 57) | one mark with the table, "wie aus einem Guss" (2026-10-15) |
-| Menu style | **"Reich"** (2026-10-15): bars in the panel tone falling darker with a gold hairline (`--bar-*`, `--rail-*`, `--dock-*`), the current page in `--gold-light` with a glowing gold line (`--primary`, `shadow-gold-glow`), behind the pages a still shimmer - warm gold light above, cool blue below, two pairs of golden swings (`AppSurface`); from prompt 58 panels with corner ornaments, golden main buttons, gold-lined inputs, ornament under page titles (§10) | the project owner's choice from the preview "Heute / Dezent / Reich" (Dropzone `workflow/OPENMANA-MENUESTIL-VORLAGE.html`) |
+| Menu style | **"Reich"** (2026-10-15): bars in the panel tone falling darker with a gold hairline (`--bar-*`, `--rail-*`, `--dock-*`), the current page in `--gold-light` with a glowing gold line (`--primary`, `shadow-gold-glow`), behind the pages a still shimmer - warm gold light above, cool blue below, two pairs of golden swings (`AppSurface`); since prompt 58 panels with corner ornaments (`Card`), golden main buttons, gold-lined pills and fields, gold choices, panel-toned overlays, the ornament line under page titles (§10) | the project owner's choice from the preview "Heute / Dezent / Reich" (Dropzone `workflow/OPENMANA-MENUESTIL-VORLAGE.html`) |
 | Game table | the arena - a quiet stone surface laid under the board as a subgrid of its grid, warm light above, cool blue below, golden swings, runes, tendrils, light dust (series *stoneboard* 53-56, after the binding template; until prompt 56 a drawn wooden desk) -, gold medallions and panels (`--table-*` tokens, §9) | the project owner's concept (2026-10-10), [design/SPIELTISCH.md](design/SPIELTISCH.md) |
 
 Fonts are bundled (Fontsource), never loaded from a font CDN: same-origin
@@ -87,7 +90,17 @@ files work under COEP and nothing leaks to third parties (Bible §15).
    `SidebarMenuButton` and `BottomNavItem` marking the current page by
    `aria-current="page"` (gold words, a gold shimmer or halo, a glowing gold
    line - set from `isActive` unless a `NavLink` sets it itself), no longer
-   by `data-active`.
+   by `data-active`. Since prompt 58 (menu style, §10; each commented in
+   place): `Card` a panel with two corner ornaments and its variant `plain`,
+   `Button` (`default` the golden main button, `outline`/`secondary` pills with
+   the gold hairline, `ghost` gold on hover), `Badge` (`secondary`, `outline`),
+   `Input`, `Textarea`, `SelectTrigger`, `Checkbox`, `RadioGroupItem`, `Switch`,
+   `FieldLabel` choice cards, `Toggle`/`ToggleGroupItem`, `Item` rows and
+   `ItemMedia` icons, `Empty` - all under the variant `menu:` (not inside the
+   game table's board) -, and the overlays (`DialogContent`,
+   `AlertDialogContent`, `SheetContent`, `DropdownMenuContent`, `SelectContent`,
+   `TooltipContent`, the toaster's tokens) on the panel tone with the gold
+   hairline and gold titles.
 4. **Honest states.** No sample data, no simulated engine, no pretend
    features. Empty states use `Empty`; an action that is not possible yet
    stays visible but disabled and says why (`aria-describedby`); failures
@@ -305,8 +318,9 @@ with a visible focus ring and a name (prompt 45, end-to-end
 | `Emblem`, `Wordmark` (+ `EmblemShapes`, `EmblemGold`) | `src/components/ui/emblem.tsx`, built the shadcn way (prompt 57, §10) | the OpenMana emblem (the table's compass, one drawing for the app and the table - `TableEmblem` and the card back use it) and the gold Cinzel wordmark; decoration (`aria-hidden`) |
 | `AppHeader`, `appHeaderButtonVariants()` | `src/components/ui/app-header.tsx`, built the shadcn way (prompt 57, §10) | the app's top bar (sticky, bar tone, gold hairline); a shadcn `Button` (ghost, icon size) as its round, gold-lined symbol button |
 | `AppSurface` | `src/components/ui/app-surface.tsx`, built the shadcn way (prompt 57, rule 1, §10) | the one background shimmer behind every page outside the table, placed once by the app shell |
+| `OrnamentCorner`, `OrnamentDivider` | `src/components/ui/ornament.tsx`, built the shadcn way (prompt 58, §10) | the table's corner ornament (`Card`'s two corners; absolutely placed, no room) and the gold line with a glowing diamond under a page title (`PageHeader`); decoration (`aria-hidden`, no pointer) |
 | `Brand` | `src/components/brand.tsx` | emblem + gold Cinzel wordmark (since prompt 57; the app icon before) |
-| `Page`, `PageHeader` | `src/components/page-header.tsx` | every surface: `<title>`, `h1`, description, content column |
+| `Page`, `PageHeader` | `src/components/page-header.tsx` | every surface: `<title>`, `h1` (since prompt 58 Cinzel in `--gold-light` with the `OrnamentDivider` under it), description, content column |
 | `PageLoading` | `src/routes/page-loading.tsx` | a page that loads on demand (React Router `lazy`, e.g. the deck import) while its code arrives: `Skeleton`s in the content column, the frame stays usable |
 | `FactList` | `src/components/fact-list.tsx` | label/value facts (versions, sizes, timings) |
 | `TextLink` | `src/components/text-link.tsx` | links inside running text |
@@ -518,7 +532,56 @@ marks and focus ring (3:1).
   still; behind the content (the content column is positioned above it), not
   while a game or a replay takes the screen.
 
-**From prompt 58:** the shadcn components as the table's panels and buttons
-(`Card` with corner ornaments, golden main `Button`, gold-lined inputs and
-second buttons, `PageHeader` with the ornament), prompt 59 the pages, prompt
-60 the acceptance of the whole.
+**Built in prompt 58 - the building blocks** (centrally in the components,
+never per page; the pages take the look without a change):
+
+- **Scope: the variant `menu:`** (`src/index.css`:
+  `&:not([data-slot="game-board"] *)`). Inline components carry their new look
+  under it, so the same components inside the game table's board (the
+  decision's buttons and choice cards, the header's badges, the main button)
+  keep the registry's look the table's stylesheet builds on - the table's
+  recorded scenes are unchanged (checked pixel by pixel). It outweighs the
+  components' `dark:` classes; a component that changes a border under it
+  restates its focus and invalid borders under it too. A caller that needs
+  another colour outside the board writes it under `menu:` as well (the bar's
+  `appHeaderButtonVariants()`). Overlays are portalled out of the board and
+  take the look directly - also in a game (Sheets, menus, confirmations,
+  toasts, tooltips); the card view in full screen keeps its darkening and its
+  large card (its buttons and keyword boxes take the look).
+- **Tokens:** `--gold-edge` (`--primary` at 55 %: the boundary of a form
+  control, 3:1 - the hairline `--gold-line` at 38 % is decoration beside
+  words), `--gold-deep` (`--primary` 55 % with `--gold-dark`: the foot of the
+  golden button, the same mix as the table's main button), `--panel-well`
+  (black at 24 %: the darker ground of fields and rows on a panel);
+  `shadow-panel`, `shadow-panel-flat`, `shadow-gold-button` in `@theme`.
+  `design-tokens.test.ts` checks text 4.5:1 on the panel's both ends, the
+  overlays, the wells, the button's gold and the toggles' and choice cards'
+  shimmer, and boundaries, chosen gold and focus 3:1.
+- **Ornaments** (`src/components/ui/ornament.tsx`): `OrnamentCorner` (the
+  table's corner, `corner="start"` top left, `"end"` bottom right) and
+  `OrnamentDivider` (the template's `.divider`).
+
+| Component | Variant | Look (outside the board) | Where it applies |
+|---|---|---|---|
+| `Card` | `default` | panel: `--panel` falling to `--panel-shade` (94 %), gold hairline as a ring (no room), `shadow-panel`, two corner ornaments; `CardTitle` Cinzel `--gold-light` | every page's own cards |
+| `Card` | `plain` | the same panel without corners and drop shadow (`shadow-panel-flat`) | dense or nested use - a card inside a card (prompt 59), the card view's keyword boxes |
+| `Button` | `default` | the golden main button: `--gold-light` over `--primary` to `--gold-deep`, `--gold-light` rim, `shadow-gold-button`, Cinzel bold capitals, text `--primary-foreground` | a page's primary action, a dialog's "Fertig", the card view's offer |
+| `Button` | `outline` | pill on `--panel-shade` with the gold hairline, lighter on hover | second actions |
+| `Button` | `secondary` | pill on `--panel` with the gold hairline | second actions on a panel |
+| `Button` | `ghost` | gold shimmer and `--gold-light` on hover | symbol buttons, dialog close (X) |
+| `Button` | `destructive`, `link` | unchanged (the destructive tint and the gold link already fit) | confirmations, links |
+| `Badge` | `secondary` / `outline` | gold hairline (`secondary` on `--panel-shade`); `default` stays gold | counts, states |
+| `Input`, `Textarea`, `SelectTrigger` | - | `--panel-well` inside `--gold-edge`; focus ring and invalid border unchanged | every field |
+| `Checkbox`, `RadioGroupItem`, `Switch` | - | `--panel-well` inside `--gold-edge`, full gold when chosen | choices, preferences |
+| `FieldLabel` (choice card) | - | `--panel-well` inside the gold hairline; chosen: `--primary` line on the gold shimmer | backup import, AI profile, card language |
+| `Toggle`, `ToggleGroupItem` | `default`, `outline` | on: `--gold-light` on the gold shimmer (`outline`: full gold line) | deck filter, zone view |
+| `Item` | `outline`, `muted` | rows on `--panel-well` with the fine line (the template's `.step`) | lists, steps |
+| `ItemMedia` | `icon` | the icon in a small gold ring (`--panel-shade`, gold hairline, `--gold-light`) | steps, lists |
+| `Empty` | - | dashed gold hairline (where a page draws the border), title Cinzel `--gold-light`, icon in a gold ring | empty states |
+| `DialogContent`, `AlertDialogContent` | - | panel falling darker, gold hairline, `shadow-panel`, gold title; no corners (they would scroll) | every dialog, also in a game |
+| `SheetContent` | - | flat `--panel`, gold hairline on the open edge, gold title | menus and sheets, also in a game |
+| `DropdownMenuContent`, `SelectContent`, `TooltipContent`, toasts | - | `--panel` with the gold hairline (the tooltip no longer inverted) | menus, lists, tooltips, notices |
+| `PageHeader` | - | title Cinzel `--gold-light`, `OrnamentDivider` under it | every page's title |
+
+**From prompt 59:** the pages (start page hero, decks as tiles, nested cards
+as `plain`, dense lists, long names), prompt 60 the acceptance of the whole.

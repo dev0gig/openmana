@@ -51,6 +51,20 @@
 @custom-variant quadrat (@media (3/4 <= aspect-ratio <= 13/10));
 @custom-variant breit (@media (aspect-ratio > 13/10));
 
+/*
+ * The menu style "Reich" (series openmana-menuestil, prompt 58;
+ * docs/DESIGN_SYSTEM.md §10): menu: applies everywhere outside the game
+ * table's board ([data-slot="game-board"]). The shadcn components carry their
+ * panel-and-gold look under menu:, so the same components inside a running
+ * game or a replay keep the look the table's own stylesheet builds on
+ * (table.css: the main button, the decision's buttons, the header's badges).
+ * Overlays are portalled out of the board and so take the look in the game too.
+ * Not :where(): the variant outweighs the components' dark: classes (the app
+ * is always dark); a component restates its focus and invalid borders under
+ * menu: where it changes the border.
+ */
+@custom-variant menu (&:not([data-slot="game-board"] *));
+
 @theme inline {
   --font-heading: "Cinzel Variable", ui-serif, Georgia, serif;
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
@@ -107,6 +121,16 @@
   /* The navigation's active mark: a gold line that glows (shadow-gold-glow), its symbol a soft gold halo (drop-shadow-gold-glow). */
   --shadow-gold-glow: 0 0 10px var(--primary);
   --drop-shadow-gold-glow: 0 0 6px color-mix(in oklch, var(--primary) 60%, transparent);
+  /* Prompt 58 (the shadcn components as the table's panels and buttons): see the :root block below. */
+  --color-gold-edge: var(--gold-edge);
+  --color-gold-deep: var(--gold-deep);
+  --color-panel-well: var(--panel-well);
+  /* A panel (Card, Dialog): a soft drop shadow and a light inner edge at the top (the table's .table-panel, the template's .tafel). */
+  --shadow-panel: 0 0.6rem 1.8rem oklch(0 0 0 / 0.45), inset 0 1px 0 oklch(1 0 0 / 0.06);
+  /* A panel inside a panel (Card variant "plain"): only the inner edge. */
+  --shadow-panel-flat: inset 0 1px 0 oklch(1 0 0 / 0.06);
+  /* The golden main button: a faint gold ring, a gold glow below, a gloss at its top edge (the template's .btn.main). */
+  --shadow-gold-button: 0 0 0 3px color-mix(in oklch, var(--primary) 18%, transparent), 0 0.4rem 1.2rem color-mix(in oklch, var(--primary) 25%, transparent), inset 0 1px 0 oklch(1 0 0 / 0.5);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -206,6 +230,17 @@
   --gold-glow: color-mix(in oklch, var(--primary) 16%, transparent);
   /* The background's cool light from below (AppSurface): the table's mana blue sunk into the night blue. */
   --surface-cool: color-mix(in oklch, var(--table-mana), var(--background));
+  /*
+   * Prompt 58: the shadcn components. --gold-edge is the boundary of a form
+   * control (input, select, checkbox, radio, switch): the gold line made
+   * strong enough for WCAG 1.4.11 (3:1; the hairline --gold-line is
+   * decoration). --gold-deep is the foot of the golden main button - the same
+   * mix as the table's main button (table.css). --panel-well is the darker
+   * ground of fields and list rows on a panel (black with transparency).
+   */
+  --gold-edge: color-mix(in oklch, var(--primary) 55%, transparent);
+  --gold-deep: color-mix(in oklch, var(--primary) 55%, var(--gold-dark));
+  --panel-well: oklch(0 0 0 / 24%);
 }
 
 @layer base {

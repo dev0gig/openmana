@@ -253,6 +253,19 @@ describe("less motion", () => {
     expect(checked).toBeGreaterThan(25)
   })
 
+  // The menu style (prompt 58) brings no motion: its ornaments move nothing, and no class under menu: animates or
+  // adds a transition (the golden button's hover brightness runs on the registry's transition-all, which stops).
+  it("the menu style adds no motion: ornaments still, nothing under menu: animates", () => {
+    const ornament = fs.readFileSync(path.join(UI, "ornament.tsx"), "utf8")
+    expect(ornament).not.toMatch(/\b(?:animate-|transition)/)
+    const moving: string[] = []
+    for (const file of fs.readdirSync(UI).filter((name) => name.endsWith(".tsx") && !name.endsWith(".test.tsx"))) {
+      const source = fs.readFileSync(path.join(UI, file), "utf8")
+      for (const match of source.matchAll(/menu:[^\s"'`]*(?:animate-|transition|duration-)[^\s"'`]*/g)) moving.push(`${file}: ${match[0]}`)
+    }
+    expect(moving).toEqual([])
+  })
+
   it("motion-reduce means: the device asks for it, or <html data-reduced-motion>", () => {
     const css = fs.readFileSync(path.join(root, "src", "index.css"), "utf8")
     const variant = /@custom-variant motion-reduce \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? ""

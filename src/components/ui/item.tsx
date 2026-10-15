@@ -36,14 +36,19 @@ function ItemSeparator({
   )
 }
 
+// OpenMana (menu style "Reich", prompt 58; Design System §10): outside the game
+// table's board (menu:) rows ("outline", "muted") lie on a panel's darker well
+// (--panel-well) with a fine line (the template's .step), and an icon in front
+// of a row sits in a small gold ring (the template's numbered .num, the table's
+// .table-panel-count).
 const itemVariants = cva(
   "group/item flex w-full flex-wrap items-center rounded-2xl border text-sm transition-colors duration-100 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 [a]:transition-colors [a]:hover:bg-muted motion-reduce:transition-none!",
   {
     variants: {
       variant: {
         default: "border-transparent",
-        outline: "border-border",
-        muted: "border-transparent bg-muted/50",
+        outline: "border-border menu:bg-panel-well",
+        muted: "border-transparent bg-muted/50 menu:border-border menu:bg-panel-well",
       },
       size: {
         default: "gap-3.5 px-4 py-3.5",
@@ -84,7 +89,7 @@ const itemMediaVariants = cva(
     variants: {
       variant: {
         default: "bg-transparent",
-        icon: "[&_svg:not([class*='size-'])]:size-4",
+        icon: "[&_svg:not([class*='size-'])]:size-4 menu:size-8 menu:rounded-full menu:border menu:border-gold-line menu:bg-panel-shade menu:text-gold-light",
         image:
           "size-10 overflow-hidden rounded-lg group-data-[size=sm]/item:size-8 group-data-[size=xs]/item:size-6 group-data-[size=xs]/item:rounded-md [&_img]:size-full [&_img]:object-cover",
       },

@@ -255,6 +255,102 @@ describe("design tokens", () => {
     })
   })
 
+  // The menu style's components (prompt 58): Card and Dialog as the table's panel (--panel at 94 % over the night blue
+  // at the top, --panel-shade at 94 % at the bottom), the golden main button (--gold-light over --primary to
+  // --gold-deep), fields and list rows on a panel's darker well (--panel-well), the overlays on --panel. Text 4.5:1 on
+  // every tone; the boundary of a form control (--gold-edge), the chosen gold and the focus ring 3:1. The gold
+  // hairline --gold-line (cards, outline buttons, badges, overlays) is decoration beside words and not checked here.
+  describe("the menu style's components", () => {
+    const alpha = (name: string, pattern: RegExp) => {
+      const match = pattern.exec(rootBlock)
+      if (!match) throw new Error(`--${name} is not what the test expects`)
+      return Number(match[1]) / 100
+    }
+    const edge = alpha("gold-edge", /--gold-edge:\s*color-mix\(in oklch, var\(--primary\) (\d+)%, transparent\);/)
+    const deepShare = alpha("gold-deep", /--gold-deep:\s*color-mix\(in oklch, var\(--primary\) (\d+)%, var\(--gold-dark\)\);/)
+    const well = alpha("panel-well", /--panel-well:\s*oklch\(0 0 0 \/ (\d+)%\);/)
+    const black: [number, number, number] = [0, 0, 0]
+    const background = shell("background")
+    type Rgb = [number, number, number]
+    const PANEL: Record<string, Rgb> = {
+      "panel top": blend(shell("panel"), 0.94, background),
+      "panel bottom": blend(shell("panel-shade"), 0.94, background),
+      "overlay": shell("panel"),
+      "overlay bottom": shell("panel-shade"),
+    }
+    const WELLS: Record<string, Rgb> = {
+      "well on the panel top": blend(black, well, PANEL["panel top"]!),
+      "well on the panel bottom": blend(black, well, PANEL["panel bottom"]!),
+      "well on the page": blend(black, well, background),
+    }
+    const gold = () => {
+      const [l1, c1, h1] = shade("primary")[0]
+      const [l2, c2, h2] = shade("gold-dark")[0]
+      return srgb([l1 * deepShare + l2 * (1 - deepShare), c1 * deepShare + c2 * (1 - deepShare), h1 * deepShare + h2 * (1 - deepShare)])
+    }
+
+    it("its tokens are derived (no new hue) and mapped for Tailwind", () => {
+      for (const name of ["gold-edge", "gold-deep", "panel-well"]) {
+        expect(tokens.has(name)).toBe(false)
+        expect(css).toContain(`--color-${name}: var(--${name});`)
+      }
+      expect(edge).toBeGreaterThan(0.38)
+      expect(css).toMatch(/--shadow-panel:/)
+      expect(css).toMatch(/--shadow-gold-button:/)
+    })
+
+    it.each([
+      ["--gold-light", () => shell("gold-light")],
+      ["--primary", () => shell("primary")],
+      ["--gold-deep", gold],
+    ])("the main button's words (--primary-foreground) on its gold %s reach 4.5:1", (_, tone) => {
+      expect(ratio(shell("primary-foreground"), tone())).toBeGreaterThanOrEqual(4.5)
+    })
+
+    it.each(
+      ["foreground", "muted-foreground", "gold-light", "primary", "destructive"].flatMap((text) => Object.keys(PANEL).map((surface) => [text, surface] as const)),
+    )("text %s on the %s reaches 4.5:1", (text, surface) => {
+      expect(ratio(shell(text), PANEL[surface]!)).toBeGreaterThanOrEqual(4.5)
+    })
+
+    it.each(["foreground", "muted-foreground"].flatMap((text) => Object.keys(WELLS).map((surface) => [text, surface] as const)))(
+      "a field's text or placeholder (%s) on the %s reaches 4.5:1",
+      (text, surface) => {
+        expect(ratio(shell(text), WELLS[surface]!)).toBeGreaterThanOrEqual(4.5)
+      },
+    )
+
+    it.each(Object.keys(WELLS).flatMap((surface) => [[surface, "the well"], [surface, "the ground around it"]] as const))(
+      "a form control's gold boundary (--gold-edge) on the %s reaches 3:1 against %s",
+      (surface, against) => {
+        const inside = WELLS[surface]!
+        const outside = surface.endsWith("page") ? background : PANEL[surface.endsWith("top") ? "panel top" : "panel bottom"]!
+        const line = blend(shell("primary"), edge, inside)
+        expect(ratio(line, against === "the well" ? inside : outside)).toBeGreaterThanOrEqual(3)
+      },
+    )
+
+    it.each(Object.keys(PANEL).flatMap((surface) => ["primary", "ring", "gold-light"].map((mark) => [mark, surface] as const)))(
+      "the mark %s (chosen, focus) on the %s reaches 3:1",
+      (mark, surface) => {
+        expect(ratio(shell(mark), PANEL[surface]!)).toBeGreaterThanOrEqual(3)
+      },
+    )
+
+    it.each(["panel-shade", "panel"])("words on a pill or badge: --foreground on %s reaches 4.5:1", (surface) => {
+      expect(ratio(shell("foreground"), shell(surface))).toBeGreaterThanOrEqual(4.5)
+    })
+
+    it.each(["panel-shade", "panel"])("a toggle that is on (--gold-light on the gold shimmer over %s) reaches 4.5:1", (surface) => {
+      expect(ratio(shell("gold-light"), blend(shell("primary"), glowShare(), shell(surface)))).toBeGreaterThanOrEqual(4.5)
+    })
+
+    it.each([...Object.keys(WELLS), ...Object.keys(PANEL)])("a chosen choice card's words (--foreground, --muted-foreground on the gold shimmer over the %s) reach 4.5:1", (surface) => {
+      const under = { ...WELLS, ...PANEL }[surface]!
+      for (const text of ["foreground", "muted-foreground"]) expect(ratio(shell(text), blend(shell("primary"), glowShare(), under))).toBeGreaterThanOrEqual(4.5)
+    })
+  })
+
   it("the manifest's theme colour is the background token", () => {
     expect(hex(srgb(tokens.get("background")!))).toBe("#0d121b")
   })

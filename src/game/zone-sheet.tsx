@@ -136,7 +136,7 @@ export function ZoneSheet({ source, state, moment, pictures, onClose, onLook, on
           {contents !== null && contents.hidden > 0 ? <p className="text-sm text-muted-foreground">{contents.hidden === 1 ? "1 verdeckte Karte" : `${contents.hidden} verdeckte Karten`} – Forge gibt ihre Identität nicht frei.</p> : null}
           {source?.kind === "stack" && contents !== null && contents.entries.length > 0 ? <p className="text-sm text-muted-foreground">Oben zuerst, in Forges Reihenfolge; jede Karte einmal.</p> : null}
         </div>
-        <SheetFooter className="sticky bottom-0 bg-popover"><SheetClose asChild><Button size="lg" variant="outline">Schließen</Button></SheetClose></SheetFooter>
+        <SheetFooter className="sticky bottom-0 bg-panel"><SheetClose asChild><Button size="lg" variant="outline">Schließen</Button></SheetClose></SheetFooter>
       </SheetContent>
     </Sheet>
   )

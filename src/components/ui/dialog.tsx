@@ -48,6 +48,12 @@ function DialogOverlay({
   )
 }
 
+// OpenMana (menu style "Reich", prompt 58; Design System §10): a dialog is one
+// of the table's panels - the panel tone falling darker, the gold hairline, a
+// soft shadow, the title in Cinzel gold (no corner ornaments: a long dialog
+// scrolls, and they would scroll with it). Portalled, so the same in a game.
+// The card view in full screen (card-lightbox.tsx) uses only this file's
+// overlay and keeps its look.
 function DialogContent({
   className,
   children,
@@ -64,7 +70,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100%-2rem)] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 overflow-y-auto wrap-anywhere rounded-4xl bg-popover p-6 text-sm text-popover-foreground ring-1 ring-foreground/5 duration-100 outline-none sm:max-w-md data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 motion-reduce:animate-none!",
+          "fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100%-2rem)] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 overflow-y-auto wrap-anywhere rounded-4xl bg-linear-to-b from-panel to-panel-shade p-6 text-sm text-popover-foreground shadow-panel ring-1 ring-gold-line duration-100 outline-none sm:max-w-md data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 motion-reduce:animate-none!",
           className
         )}
         {...props}
@@ -133,7 +139,7 @@ function DialogTitle({
     <DialogPrimitive.Title
       data-slot="dialog-title"
       className={cn(
-        "font-heading text-base leading-none font-medium",
+        "font-heading text-base leading-none font-medium text-gold-light",
         className
       )}
       {...props}

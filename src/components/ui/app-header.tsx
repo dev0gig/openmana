@@ -7,7 +7,9 @@
  * appHeaderButtonVariants() turns a shadcn Button (ghost, an icon size) into
  * the bar's symbol button: round, a gold hairline, gold symbol on a darker
  * panel tone (the template's .icon-btn). Size, touch size (Design System
- * rule 5) and the focus ring stay the Button's.
+ * rule 5) and the focus ring stay the Button's. Since prompt 58 the ghost
+ * Button turns gold under menu: on hover; the bar's button keeps its lighter
+ * panel tone there (menu:hover:bg-panel wins over the ghost's).
  */
 import * as React from "react"
 import { cn } from "cn"
@@ -27,7 +29,7 @@ function AppHeader({ className, ...props }: React.ComponentProps<"header">) {
 
 function appHeaderButtonVariants({ className }: { className?: string } = {}) {
   return cn(
-    "rounded-full border-gold-line bg-panel-shade text-gold-light hover:bg-panel hover:text-gold-light aria-expanded:bg-panel aria-expanded:text-gold-light dark:hover:bg-panel",
+    "rounded-full border-gold-line bg-panel-shade text-gold-light hover:bg-panel hover:text-gold-light aria-expanded:bg-panel aria-expanded:text-gold-light dark:hover:bg-panel menu:hover:bg-panel menu:aria-expanded:bg-panel",
     className
   )
 }

@@ -1,11 +1,18 @@
-/* Title block of every surface: the page's h1, a short description, optional actions. */
+/*
+ * Title block of every surface: the page's h1, a short description, optional actions.
+ * Since prompt 58 (menu style "Reich", Design System §10) the title is the
+ * table's: Cinzel in --gold-light, and under it the gold ornament line with
+ * its diamond (OrnamentDivider - decoration, hidden from screen readers).
+ */
 import type { ReactNode } from "react"
+import { OrnamentDivider } from "@/components/ui/ornament"
 
 export function PageHeader({ title, description, actions }: { title: string; description?: ReactNode; actions?: ReactNode }) {
   return (
     <header className="flex flex-wrap items-end justify-between gap-4">
       <div className="flex min-w-0 max-w-full flex-col gap-1 wrap-anywhere">
-        <h1 className="font-heading text-2xl font-semibold tracking-wide md:text-3xl">{title}</h1>
+        <h1 className="font-heading text-2xl font-semibold tracking-wide text-gold-light md:text-3xl">{title}</h1>
+        <OrnamentDivider className="my-1.5" />
         {description ? <p className="max-w-prose text-muted-foreground">{description}</p> : null}
       </div>
       {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}

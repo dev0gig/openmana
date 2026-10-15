@@ -9,13 +9,18 @@ import { Toggle as TogglePrimitive } from "radix-ui"
 // OpenMana: on coarse pointers toggles grow like buttons (default and sm to
 // 44/40 px, lg to 48 px; docs/DESIGN_SYSTEM.md rule 5).
 
+// OpenMana (menu style "Reich", prompt 58; Design System §10): outside the game
+// table's board (menu:) a toggle that is on is gold - gold words on the gold
+// shimmer (--gold-glow), the outline's line turning from the gold hairline to
+// full gold; ToggleGroup's items share these variants.
+
 const toggleVariants = cva(
-  "group/toggle inline-flex items-center justify-center gap-1 rounded-4xl text-sm font-medium whitespace-nowrap transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 aria-pressed:bg-muted dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 motion-reduce:transition-none!",
+  "group/toggle inline-flex items-center justify-center gap-1 rounded-4xl text-sm font-medium whitespace-nowrap transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 aria-pressed:bg-muted dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 motion-reduce:transition-none! menu:data-[state=on]:bg-gold-glow menu:data-[state=on]:text-gold-light",
   {
     variants: {
       variant: {
         default: "bg-transparent",
-        outline: "border border-input bg-transparent hover:bg-muted",
+        outline: "border border-input bg-transparent hover:bg-muted menu:border-gold-line menu:data-[state=on]:border-primary menu:focus-visible:border-ring",
       },
       size: {
         default:

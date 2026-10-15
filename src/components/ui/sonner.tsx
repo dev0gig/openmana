@@ -27,9 +27,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       style={
         {
-          "--normal-bg": "var(--popover)",
+          // OpenMana (menu style "Reich", prompt 58): a toast is a small panel - the table's panel tone, the gold hairline.
+          "--normal-bg": "var(--panel)",
           "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
+          "--normal-border": "var(--gold-line)",
           "--border-radius": "var(--radius)",
         } as React.CSSProperties
       }

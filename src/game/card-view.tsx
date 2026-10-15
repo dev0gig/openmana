@@ -348,7 +348,7 @@ function CardSpread({ card, pictures, arrangement, browse, onSwipe, offer, child
 /** One keyword of the card, explained: the name in bold, below it what it does. */
 function KeywordCard({ box }: { box: KeywordBox }) {
   return (
-    <Card size="sm" role="listitem" data-slot="keyword-box" data-keyword={box.key} lang={box.lang} className="shrink-0">
+    <Card size="sm" variant="plain" role="listitem" data-slot="keyword-box" data-keyword={box.key} lang={box.lang} className="shrink-0">
       <CardHeader>
         <CardTitle className="flex flex-wrap items-center gap-2 font-semibold">
           {box.name}
