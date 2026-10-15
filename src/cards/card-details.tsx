@@ -5,6 +5,7 @@
  * and the source (Scryfall) are named; German printed text is marked as the
  * text of its printing (no errata: in a game, Forge's live text counts).
  */
+import { ManaText } from "@/components/ui/mana-symbol"
 import { RefreshCw } from "lucide-react"
 import { useState } from "react"
 import { usePreferences } from "@/app/preferences"
@@ -23,7 +24,7 @@ export function CardTextFallback({ display, reason }: { display: CardDisplay; re
     <>
       <p className="font-heading text-sm font-semibold">{face.name.text}</p>
       {face.typeLine ? <p className="text-xs">{face.typeLine.text}</p> : null}
-      {face.text ? <p className="line-clamp-6 text-xs whitespace-pre-line text-muted-foreground">{face.text.text}</p> : null}
+      {face.text ? <p className="line-clamp-6 text-xs whitespace-pre-line text-muted-foreground"><ManaText text={face.text.text} /></p> : null}
       <p className="mt-auto text-xs font-medium text-muted-foreground">{reason}</p>
     </>
   )
@@ -41,9 +42,9 @@ function FaceText({ face, showName }: { face: DisplayFace; showName: boolean }) 
       ) : null}
       <p className="text-sm">
         {face.typeLine?.text ?? ""}
-        {face.manaCost ? <span className="ml-2 text-muted-foreground tabular-nums">{face.manaCost}</span> : null}
+        {face.manaCost ? <span className="ml-2 text-muted-foreground tabular-nums"><ManaText text={face.manaCost} /></span> : null}
       </p>
-      {face.text ? <p className="text-sm whitespace-pre-line text-muted-foreground">{face.text.text}</p> : null}
+      {face.text ? <p className="text-sm whitespace-pre-line text-muted-foreground"><ManaText text={face.text.text} /></p> : null}
       {stats ? <p className="text-sm font-medium tabular-nums">{stats}</p> : null}
     </div>
   )

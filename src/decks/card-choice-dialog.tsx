@@ -5,6 +5,7 @@
  * candidate shows its picture, German and English name, type line and the
  * Forge card it would be, so cards of the same name can be told apart.
  */
+import { ManaText } from "@/components/ui/mana-symbol"
 import { Check } from "lucide-react"
 import { useId, useState } from "react"
 import { usePreferences } from "@/app/preferences"
@@ -44,7 +45,7 @@ function Candidate({ match, current, onSelect }: { match: CardMatch; current: bo
             ) : null}
           </ItemTitle>
           <ItemDescription id={`${id}-description`}>
-            {[display.name.lang === "de" ? match.card.name : null, face.typeLine?.text, face.manaCost].filter(Boolean).join(" · ")}
+            <ManaText text={[display.name.lang === "de" ? match.card.name : null, face.typeLine?.text, face.manaCost].filter(Boolean).join(" · ")} />
             <br />
             {[forge ? `Forge: ${forge}` : "Forge kennt sie nicht", set ? `Set ${set.toUpperCase()}` : null].filter(Boolean).join(" · ")}
           </ItemDescription>

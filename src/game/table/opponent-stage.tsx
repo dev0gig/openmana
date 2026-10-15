@@ -29,6 +29,7 @@
  * observation, which passes no priority) - in a replay not even that: there
  * "Weiter" and "Zurück" only step through the recorded observation.
  */
+import { ManaText } from "@/components/ui/mana-symbol"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { useId, type CSSProperties, type KeyboardEvent } from "react"
 import type { Card } from "@openmana/engine-protocol"
@@ -134,7 +135,7 @@ export function OpponentStage({ step, index, count, pictures, summary, mode = "s
         {step.lines.length > 0 ? (
           <ul className="flex flex-col text-xs leading-snug text-foreground/90">
             {step.lines.map((line, at) => (
-              <li key={at}>{line}</li>
+              <li key={at}><ManaText text={line} /></li>
             ))}
           </ul>
         ) : null}
@@ -176,7 +177,7 @@ export function OpponentStage({ step, index, count, pictures, summary, mode = "s
 export function LastMoveLine({ text, rests }: { text: string; rests: boolean }) {
   return (
     <p data-slot="last-move" {...(rests ? { "data-rests": "" } : {})} className="table-last-move text-xs leading-tight text-muted-foreground">
-      <span className="truncate">Zuletzt: {text}</span>
+      <span className="truncate">Zuletzt: <ManaText text={text} /></span>
     </p>
   )
 }

@@ -23,6 +23,7 @@
  * `data-stack-item`, `data-stack-card`, `data-stack-target`,
  * `data-combat-attacker`.
  */
+import { ManaText } from "@/components/ui/mana-symbol"
 import type { VisibleCard } from "@openmana/engine-protocol"
 import { GameCardButton } from "@/components/ui/game-card"
 import { useCardPress } from "@/hooks/use-card-press"
@@ -124,7 +125,7 @@ function ChronicleEntry({ entry, top, number, pictures, onLook, targets }: { ent
           {top ? <span className="sr-only"> · oben, wird als Nächstes verrechnet</span> : null}
         </span>
         <span data-slot="chronicle-facts" className="table-chronicle-facts">{facts}</span>
-        {text !== null ? <span data-slot="chronicle-text" className="table-chronicle-text">{text}</span> : null}
+        {text !== null ? <span data-slot="chronicle-text" className="table-chronicle-text"><ManaText text={text} /></span> : null}
       </span>
       <span aria-hidden className="table-chronicle-number">
         {number}

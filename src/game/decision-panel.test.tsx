@@ -321,7 +321,9 @@ describe("paying a cost (prompt 17)", () => {
   it("by hand (recorded): what is still to pay in Forge's symbols (words for screen readers), the source, the mana sources on the table tap at once", async () => {
     const user = userEvent.setup()
     const { scene, onTapCard } = table("payment")
-    expect(within(decision()).getByText(/^Noch zu zahlen:/)).toHaveTextContent("Noch zu zahlen: {R}Rot. Manaquellen auf dem Tisch (gold umrandet) bezahlen beim Antippen.")
+    // Forge's symbols drawn as OpenMana's own (2026-10-15, hidden from screen readers), the words beside them.
+    expect(within(decision()).getByText(/^Noch zu zahlen:/)).toHaveTextContent("Noch zu zahlen: Rot. Manaquellen auf dem Tisch (gold umrandet) bezahlen beim Antippen.")
+    expect([...within(decision()).getByText(/^Noch zu zahlen:/).querySelectorAll('[data-slot="mana-symbol"]')].map((symbol) => symbol.getAttribute("data-symbol"))).toEqual(["R"])
     expect(within(decision()).getByText("Kosten bezahlen · Schock")).toBeInTheDocument()
     expect(within(decision()).queryByRole("group", { name: "Aus deinem Manavorrat bezahlen" })).not.toBeInTheDocument()
     expect(within(decision()).queryByRole("group", { name: "Mit Leben statt Mana bezahlen" })).not.toBeInTheDocument()
@@ -337,7 +339,10 @@ describe("paying a cost (prompt 17)", () => {
     const user = userEvent.setup()
     const { onUseMana, onAnswer } = table("payment-pool")
     // Forge marks no mana source here (the pool pays): no word about sources on the table.
-    expect(within(decision()).getByText(/^Noch zu zahlen:/)).toHaveTextContent(/^Noch zu zahlen: \{1\}\{R\}1 beliebig, Rot\.$/)
+    // The words without the symbols' pictures (a drawn number is the picture's, hidden from screen readers).
+    const words = within(decision()).getByText(/^Noch zu zahlen:/).cloneNode(true) as HTMLElement
+    for (const symbol of words.querySelectorAll("svg")) symbol.remove()
+    expect(words.textContent).toMatch(/^Noch zu zahlen: 1 beliebig, Rot\.$/)
     const pool = within(decision()).getByRole("group", { name: "Aus deinem Manavorrat bezahlen" })
     expect(within(pool).getAllByRole("button").map((button) => button.textContent)).toEqual(["Schwarz aus dem Vorrat (3)", "Rot aus dem Vorrat (1)"])
     await user.dblClick(within(pool).getByRole("button", { name: "Rot aus dem Vorrat (1)" }))
@@ -351,7 +356,7 @@ describe("paying a cost (prompt 17)", () => {
     const me = scene.state.players.find((player) => player.me)!
     const life = within(within(decision()).getByRole("group", { name: "Mit Leben statt Mana bezahlen" })).getByRole("button")
     expect(life).toHaveAccessibleName(`Du, ${me.life} Lebenspunkte, kann mit Leben bezahlen – Antippen: Mit Leben bezahlen`)
-    expect(within(decision()).getByText(/^Noch zu zahlen:/)).toHaveTextContent("{1}{B/P}{B/P}1 beliebig, Schwarz oder Leben, Schwarz oder Leben")
+    expect(within(decision()).getByText(/^Noch zu zahlen:/)).toHaveTextContent("1 beliebig, Schwarz oder Leben, Schwarz oder Leben")
     await user.click(life)
     expect(onTapPlayer.mock.calls).toEqual([[me.id]])
     // Only the paying player: the opponent's seat is no control.

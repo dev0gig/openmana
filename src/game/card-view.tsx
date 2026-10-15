@@ -38,6 +38,7 @@
  * the tap's words) are shown as Forge sends them; the picture comes from the
  * card catalog, never covered; without one, Forge's text stands in card form.
  */
+import { ManaText } from "@/components/ui/mana-symbol"
 import { useEffect, useId, useRef, useState, type ReactNode } from "react"
 import type { GameState, VisibleCard } from "@openmana/engine-protocol"
 import { Badge } from "@/components/ui/badge"
@@ -353,12 +354,12 @@ function KeywordCard({ box }: { box: KeywordBox }) {
           {box.name}
           {box.lang === "en" ? <Badge variant="outline">englisch</Badge> : null}
         </CardTitle>
-        <CardDescription className="text-card-foreground">{box.text}</CardDescription>
+        <CardDescription className="text-card-foreground"><ManaText text={box.text} /></CardDescription>
       </CardHeader>
       {box.forgeForm !== undefined ? (
         <CardContent className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span>Bei dieser Karte, in Forges Worten:</span>
-          <span lang="en">{box.forgeForm}</span>
+          <span lang="en"><ManaText text={box.forgeForm} /></span>
           <Badge variant="outline">englisch</Badge>
         </CardContent>
       ) : null}
@@ -391,9 +392,9 @@ function LargePicture({ card, picture, name: shownName, fallbackFace }: { card: 
       fallback={
         <>
           <span className="font-heading text-base font-semibold">{name}</span>
-          {cost ? <span className="text-sm text-muted-foreground tabular-nums">{cost}</span> : null}
+          {cost ? <span className="text-sm text-muted-foreground tabular-nums"><ManaText text={cost} /></span> : null}
           {type ? <span className="text-sm">{type}</span> : null}
-          {text ? <span lang={lang} className="min-h-0 flex-1 overflow-y-auto text-sm whitespace-pre-line">{text}</span> : null}
+          {text ? <span lang={lang} className="min-h-0 flex-1 overflow-y-auto text-sm whitespace-pre-line"><ManaText text={text} /></span> : null}
           <span className="text-xs font-medium text-muted-foreground">
             {picture === "none" || picture === null ? "Kein Kartenbild – Forges Angaben." : "Das Bild konnte nicht geladen werden."}
             {lang === "en" ? " Katalogtext englisch." : null}
@@ -457,7 +458,7 @@ function StackFacts({ entries, view }: { entries: readonly StackEntryView[]; vie
               {owner !== null ? ` ${owner}` : null}
               {above === 0 ? " – wird als Nächstes verrechnet." : above === 1 ? " – 1 Eintrag liegt darüber." : ` – ${above} Einträge liegen darüber.`}
             </p>
-            {entry.text !== null && entry.text.trim() !== "" ? <p>{entry.text}</p> : null}
+            {entry.text !== null && entry.text.trim() !== "" ? <p><ManaText text={entry.text} /></p> : null}
             {targets !== null ? <p>{targets}</p> : null}
           </div>
         )

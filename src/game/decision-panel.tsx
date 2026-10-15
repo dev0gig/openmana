@@ -80,6 +80,7 @@
  * confirmations of attack, block and the mulligan's choice; the others in the
  * panel's style, clearly second. Words, arming and meanings are unchanged.
  */
+import { ManaText } from "@/components/ui/mana-symbol"
 import { ArrowDown, ArrowUp, Maximize2, Minus, Plus, Search, X } from "lucide-react"
 import { cn } from "cn"
 import { createContext, use, useEffect, useId, useMemo, useRef, useState, type ComponentProps, type ReactNode } from "react"
@@ -437,7 +438,7 @@ function DecisionHeading({ label, text, source, action = null, sourceApart = fal
           {label}{clarity !== null ? ` · ${clarity}` : ""}
           {source !== null ? ` · ${cardName(source.card)}` : null}
         </p>
-        {text ? <p className="text-sm font-medium break-words">{text}</p> : null}
+        {text ? <p className="text-sm font-medium break-words"><ManaText text={text} /></p> : null}
       </div>
       {action}
     </GameDecisionHeader>
@@ -1132,7 +1133,7 @@ function PaymentPart() {
   return (
     <>
       <GameDecisionNote>
-        Noch zu zahlen: <span className="font-medium text-foreground tabular-nums" aria-hidden>{view.cost}</span>
+        Noch zu zahlen: <span className="font-medium text-foreground tabular-nums" aria-hidden><ManaText text={view.cost} decorative /></span>
         <span className="sr-only">{manaSymbolsText(view.cost)}</span>.{sources ? " Manaquellen auf dem Tisch (gold umrandet) bezahlen beim Antippen." : null}
       </GameDecisionNote>
       {view.pool.length > 0 ? <PoolChoices view={view} /> : null}
@@ -1313,7 +1314,7 @@ function ChoiceOption({ item, children }: { item: Item; children: (id: string, t
         <Field orientation="horizontal">
           <FieldContent>
             <FieldTitle id={titleId} className="w-auto break-words">
-              {itemLabel(item, state)}
+              <ManaText text={itemLabel(item, state)} />
             </FieldTitle>
           </FieldContent>
           {children(id, titleId)}
@@ -1357,7 +1358,7 @@ function OptionsBody({ question }: { question: OptionsQuestion }) {
         ) : (
           <ul className="flex flex-col gap-1 text-sm">
             {revealed.map((item) => (
-              <li key={item.nr}>{itemLabel(item, state)}</li>
+              <li key={item.nr}><ManaText text={itemLabel(item, state)} /></li>
             ))}
           </ul>
         )}
@@ -1365,7 +1366,7 @@ function OptionsBody({ question }: { question: OptionsQuestion }) {
         <AnswerActions>
           {question.items.map((item) => (
             <SendButton key={item.nr} armKey={question.id} onSend={() => answer(question.id, optionsAnswer(item.nr))}>
-              {itemLabel(item, state)}
+              <ManaText text={itemLabel(item, state)} />
             </SendButton>
           ))}
         </AnswerActions>
@@ -1447,7 +1448,7 @@ function InputBody({ question }: { question: InputQuestion }) {
             const text = itemLabel(item, state)
             return (
               <Button key={item.nr} type="button" variant="outline" aria-pressed={value === text} onClick={() => setValue(text)}>
-                {text}
+                <ManaText text={text} />
               </Button>
             )
           })}
@@ -1495,7 +1496,7 @@ function ListRow({ item, position, children }: { item: Item; position?: number; 
         <ItemContent className="min-w-32">
           <ItemTitle className="break-words">
             {position !== undefined ? <span className="sr-only">{position}. </span> : null}
-            {itemLabel(item, state)}
+            <ManaText text={itemLabel(item, state)} />
           </ItemTitle>
         </ItemContent>
         <ItemActions>{children}</ItemActions>

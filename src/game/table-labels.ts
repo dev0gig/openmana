@@ -6,18 +6,12 @@
  * are shown as Forge sends them.
  */
 import type { VisibleCard } from "@openmana/engine-protocol"
+import { MANA_COLOR_WORDS, manaSymbolWord } from "@/cards/mana-symbols"
 import { SICK_LABEL } from "./attack-labels"
 import type { CardUse, PlayerUse } from "./card-use"
 import type { CardRef, CardZone, CombatView, ManaColor, PlayerRef, Seat, StackEntryView } from "./table-model"
 
-export const MANA_LABELS: Readonly<Record<ManaColor, string>> = {
-  W: "Weiß",
-  U: "Blau",
-  B: "Schwarz",
-  R: "Rot",
-  G: "Grün",
-  C: "Farblos",
-}
+export const MANA_LABELS: Readonly<Record<ManaColor, string>> = MANA_COLOR_WORDS
 
 /**
  * Forge's counter types (CounterEnumType.getName(): "+1/+1", "Poison" …; the
@@ -243,20 +237,6 @@ export function manaSymbolsText(cost: string): string {
   const symbols = cost.match(/\{[^{}]+\}/g)
   if (symbols === null) return cost === "0" ? "nichts" : cost
   return symbols.map((symbol) => manaSymbolWord(symbol.slice(1, -1))).join(", ")
-}
-
-function manaSymbolWord(symbol: string): string {
-  if (/^\d+$/.test(symbol)) return `${symbol} beliebig`
-  if (symbol in MANA_LABELS) return MANA_LABELS[symbol as ManaColor]
-  if (symbol === "X") return "X"
-  if (symbol === "S") return "Schnee"
-  const parts = symbol.split("/")
-  if (parts.length === 2) {
-    const [a, b] = parts as [string, string]
-    const side = (part: string) => (part === "P" ? "Leben" : /^\d+$/.test(part) ? `${part} beliebig` : part in MANA_LABELS ? MANA_LABELS[part as ManaColor] : part)
-    return `${side(a)} oder ${side(b)}`
-  }
-  return `{${symbol}}`
 }
 
 /** Below a card the running step is about: the spell being cast, an ability's source (prompt 17). */

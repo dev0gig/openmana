@@ -1,5 +1,6 @@
 import { useRef } from "react"
 import type { GameState, Question } from "@openmana/engine-protocol"
+import { MANA_LEGEND_INTRO, ManaLegend } from "@/components/mana-legend"
 import { Button } from "@/components/ui/button"
 import { Item, ItemContent, ItemDescription, ItemTitle } from "@/components/ui/item"
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
@@ -36,6 +37,11 @@ export function HelpSheet({ open, onOpenChange, state, questions, replay, waitin
               <ItemTitle>Markierungen und sichere Bedienung</ItemTitle>
               <ItemDescription className="line-clamp-none">Gestrichelter goldener Rahmen: Forge bietet eine Auswahl oder Aktion an. Heller durchgezogener Rahmen: von Forge als gewählt markiert. Doppelter goldener Rahmen und „Ziel“: eine Aktion auf dem Stapel nennt diese Karte oder diesen Spieler als Ziel; das erlaubt keine zusätzliche Aktion. Eine wählbare oder gewählte Karte behält ihren Auswahlrahmen.</ItemDescription>
               <ItemDescription className="line-clamp-none">Bei Priorität öffnet Antippen zuerst die Kartenansicht. Dort führt der Aktionsbutton Forges Angebot aus. Beim Wählen, Bezahlen und beim Angreifen oder Blocken kann ein Tap direkt auswählen. Langes Drücken oder Rechtsklick öffnet immer nur die Ansicht. Antworten und Aktionen werden niemals durch diese Hilfe gesendet.</ItemDescription>
+            </ItemContent></Item>
+            <Item variant="outline" data-slot="help-mana-legend"><ItemContent>
+              <ItemTitle>Manasymbole</ItemTitle>
+              <ItemDescription className="line-clamp-none">{MANA_LEGEND_INTRO}</ItemDescription>
+              <ManaLegend />
             </ItemContent></Item>
             {TERMS.map((term) => <Item variant="outline" key={term.title}><ItemContent><ItemTitle>{term.title}</ItemTitle><ItemDescription className="line-clamp-none">{term.text}</ItemDescription></ItemContent></Item>)}
           </div>

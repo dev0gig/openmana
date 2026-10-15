@@ -157,7 +157,8 @@ describe("DFC catalog presentation separate from Forge", () => {
     const fallback = () => dialog().querySelector('[data-slot="card-picture-fallback"]')!
     expect(fallback()).toHaveTextContent("Aktuelle Forge-Karte")
     expect(fallback()).toHaveTextContent("Kreatur — Probe")
-    expect(fallback()).toHaveTextContent("{2}")
+    // Forge's cost as OpenMana's own symbol (2026-10-15), named in words.
+    expect(within(fallback() as HTMLElement).getByRole("img", { name: "2 beliebig" })).toHaveAttribute("data-symbol", "2")
     expect(fallback()).toHaveTextContent(forgeText)
     expect(fallback()).not.toHaveTextContent("Vorderseitentext")
     const next = structuredClone(state)
