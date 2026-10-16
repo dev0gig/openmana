@@ -49,6 +49,8 @@ import {
 } from "@/storage/storage-labels"
 import { downloadFile } from "@/storage/download"
 import { RecordingAlert } from "@/matches/recording-status"
+import { readableProtocol, UNREADABLE_PROTOCOL } from "@/matches/protocols"
+import { REPORT_FAILED } from "@/matches/report-words"
 
 function describeMatch(match: MatchRecord): string {
   const parts = [formatDateTime(match.startedAt)]
@@ -93,6 +95,23 @@ export function MatchesPage() {
       const result = await importReplay(database, parsed)
       toast.success(result === "existing" ? "Diese Partie ist schon gespeichert" : "Wiedergabe geladen")
     })
+  }
+  /** Prompt 62: the report of one recording, loaded only when asked for (like the replay). */
+  async function saveReport(id: string) {
+    if (!database) return
+    setBusy(true)
+    setError(null)
+    try {
+      const stored = await readMatch(database, id)
+      if (!stored) throw new Error("Die Partie wurde inzwischen entfernt.")
+      const { exportMatchReport } = await import("@/matches/report")
+      const file = exportMatchReport(stored)
+      downloadFile(file.blob, file.name)
+    } catch {
+      setError(REPORT_FAILED)
+    } finally {
+      setBusy(false)
+    }
   }
   const hasRecords = matches.status === "ready" && (matches.data.records.length > 0 || matches.data.invalid.length > 0)
   return (
@@ -204,6 +223,7 @@ export function MatchesPage() {
                       {match.human.deck.name} gegen {match.ai.name}
                     </ItemTitle>
                     <ItemDescription>{describeMatch(match)}</ItemDescription>
+                    {!readableProtocol(match.engine.protocol) && <ItemDescription id={`report-note-${match.id}`}>{UNREADABLE_PROTOCOL}</ItemDescription>}
                   </ItemContent>
                   <ItemActions className="w-full flex-wrap">
                     <Button asChild variant="outline">
@@ -223,6 +243,14 @@ export function MatchesPage() {
                       }}
                     >
                       JSON speichern
+                    </Button>
+                    <Button
+                      variant="outline"
+                      disabled={busy || !readableProtocol(match.engine.protocol)}
+                      aria-describedby={readableProtocol(match.engine.protocol) ? undefined : `report-note-${match.id}`}
+                      onClick={() => void saveReport(match.id)}
+                    >
+                      Bericht speichern
                     </Button>
                     <Button variant="outline" disabled={busy} onClick={() => setConfirm({ id: match.id, limit: null })}>
                       Löschen

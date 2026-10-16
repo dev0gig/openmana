@@ -9,6 +9,7 @@ import {
   type Question,
 } from "@openmana/engine-protocol"
 import { PROTOCOL_VERSION } from "@openmana/engine-protocol/generated/constants"
+import { readableProtocol } from "./protocols"
 import { SCHEMA_VERSION } from "@/storage/generated/constants"
 import type { ReplayDocument } from "@/storage/generated/records"
 import { validateReplayDocument } from "@/storage/generated/validators.js"
@@ -20,23 +21,10 @@ import { logRange, pruneMatchTransaction, type StoredMatch } from "@/storage/mat
 
 export const MAX_REPLAY_BYTES = 100 * 1024 * 1024
 
-/**
- * Engine protocols whose recordings today's replay reads (prompt 48). Protocol
- * 10 only added messages (observations, their release, the settings), inputs
- * (observation.release, settings.change) and optional fields (landsUnlimited,
- * landRefusal); every message of a protocol-9 recording is a protocol-10
- * message but for the version number its game.started and engine.ready carry.
- * Such a recording is checked with that number read as today's and replayed
- * unchanged; nothing in it is rewritten. Older protocols stay exportable only.
- */
-export const READABLE_PROTOCOLS: readonly number[] = [PROTOCOL_VERSION, 9]
-
-export function readableProtocol(protocol: number): boolean {
-  return READABLE_PROTOCOLS.includes(protocol)
-}
+export { READABLE_PROTOCOLS, readableProtocol } from "./protocols"
 
 /** A recorded engine message of a readable protocol, checked against today's schema (see READABLE_PROTOCOLS). */
-function checkRecordedMessage(message: Record<string, unknown>, protocol: number): ReturnType<typeof checkEngineMessage> {
+export function checkRecordedMessage(message: Record<string, unknown>, protocol: number): ReturnType<typeof checkEngineMessage> {
   if (protocol !== PROTOCOL_VERSION && (message["type"] === "game.started" || message["type"] === "engine.ready") && message["protocol"] === protocol) {
     checkEngineMessage({ ...message, protocol: PROTOCOL_VERSION })
     return message as unknown as ReturnType<typeof checkEngineMessage>

@@ -22,7 +22,9 @@ import type { LocalDatabase } from "@/storage/database"
 import { downloadFile } from "@/storage/download"
 import { StorageErrorAlert } from "@/storage/storage-alert"
 import { useStorageQuery } from "@/storage/storage-context"
+import { readableProtocol } from "./protocols"
 import { exportReplay, replayFrames, type ReplayFrame } from "./replay"
+import { REPORT_FAILED } from "./report-words"
 
 export function ReplayPage() {
   const { matchId = "" } = useParams()
@@ -69,6 +71,19 @@ function ReplayView({ matchId }: { matchId: string }) {
       setFileError("Die JSON-Datei konnte nicht gespeichert werden.")
     }
   }
+  // Prompt 62: the report, loaded like the replay only when asked for; a recording of another protocol has none.
+  const reportable = stored.status === "ready" && stored.data !== null && readableProtocol(stored.data.match.engine.protocol)
+  const saveReport = () => {
+    if (stored.status !== "ready" || stored.data === null) return
+    const data = stored.data
+    setFileError(null)
+    import("./report")
+      .then(({ exportMatchReport }) => {
+        const file = exportMatchReport(data)
+        downloadFile(file.blob, file.name)
+      })
+      .catch(() => setFileError(REPORT_FAILED))
+  }
   if (!frame || stored.status !== "ready" || stored.data === null)
     return (
       <Page title="Wiedergabe" description="Gespeicherte Forge-Zustände ansehen.">
@@ -84,13 +99,18 @@ function ReplayView({ matchId }: { matchId: string }) {
             <AlertTitle>
               {stored.data === null ? "Die Partie ist nicht mehr da" : "Keine Wiedergabe verfügbar"}
             </AlertTitle>
-            <AlertDescription>
+            <AlertDescription id="replay-unavailable">
               {parsed?.error ??
                 "Diese Aufzeichnung enthält noch keinen gespeicherten Zustand. Das Spiel kann daraus nicht fortgesetzt werden."}
             </AlertDescription>
           </Alert>
         )}
         {stored.status === "ready" && stored.data !== null && <Button onClick={save}>JSON speichern</Button>}
+        {stored.status === "ready" && stored.data !== null && (
+          <Button variant="outline" disabled={!reportable} aria-describedby={reportable ? undefined : "replay-unavailable"} onClick={saveReport}>
+            Bericht speichern
+          </Button>
+        )}
         {fileError && <p role="alert">{fileError}</p>}
       </Page>
     )
@@ -169,6 +189,9 @@ function ReplayView({ matchId }: { matchId: string }) {
           </Button>
           <Button variant="outline" onClick={save}>
             JSON speichern
+          </Button>
+          <Button variant="outline" onClick={saveReport}>
+            Bericht speichern
           </Button>
           <FactList
             facts={[

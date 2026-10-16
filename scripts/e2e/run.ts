@@ -12,6 +12,7 @@
  *   npm run test:e2e -- --no-build --opponent-only following the AI's turn in two real games (tempo, "Weiter", layouts; prompt 49)
  *   npm run test:e2e -- --no-build --starthand-only the start hand and browsing the hand: recorded scene at eleven sizes, two real games (prompt 50)
  *   npm run test:e2e -- --no-build --lands-only   land plays and refusal hints: recorded scenes at eleven sizes, two real games (prompt 51)
+ *   npm run test:e2e -- --no-build --report-only  the match report: recorded game at five sizes, one real game on a phone (prompt 62)
  *   npm run test:e2e -- --no-build --jumpstart-only the mode from the deck: Jumpstart halves on the play page at phone, foldable and desktop sizes, one real Jumpstart game (prompt 61)
  *   npm run test:e2e -- --no-build --help-only    contextual help on recorded/built scenes, no engine boot
  *   npm run test:e2e -- --no-build --history-only recorded Forge history and current sources only
@@ -141,7 +142,7 @@ import { SCHEMA_VERSION } from "../../src/storage/generated/constants.ts"
 import { TABLE_LAYOUT_QUERIES, TABLE_LAYOUTS, tableLayoutOf, type TableLayout } from "../../src/game/table/table-layout.ts"
 import { ISOLATION_HEADERS } from "../../vite/isolation-headers.ts"
 import { playDeck, type StoredDeck } from "./engine-decks.ts"
-import { battlefieldPoint, cardPoint, dragCard, readTable } from "../readiness/player.ts"
+import { battlefieldPoint, cardPoint, dragCard, playGame, readTable } from "../readiness/player.ts"
 
 const root = path.resolve(import.meta.dirname, "../..")
 const dist = path.join(root, "dist")
@@ -158,8 +159,9 @@ const opponentOnly = process.argv.includes("--opponent-only")
 const startHandOnly = process.argv.includes("--starthand-only")
 const landsOnly = process.argv.includes("--lands-only")
 const jumpstartOnly = process.argv.includes("--jumpstart-only")
+const reportOnly = process.argv.includes("--report-only")
 const focusedTable = combatOnly || zonesOnly || historyOnly || helpOnly
-const reportDir = path.join(root, "reports", oryxOnly ? "oryx-e2e" : responsiveOnly ? "responsive-e2e" : replayOnly ? "replay-e2e" : tableOnly ? "table-e2e" : dragOnly ? "drag-e2e" : opponentOnly ? "opponent-e2e" : startHandOnly ? "starthand-e2e" : landsOnly ? "lands-e2e" : jumpstartOnly ? "jumpstart-e2e" : helpOnly ? "help-e2e" : combatOnly ? "combat-e2e" : zonesOnly ? "zones-e2e" : historyOnly ? "history-e2e" : "e2e")
+const reportDir = path.join(root, "reports", oryxOnly ? "oryx-e2e" : responsiveOnly ? "responsive-e2e" : replayOnly ? "replay-e2e" : tableOnly ? "table-e2e" : dragOnly ? "drag-e2e" : opponentOnly ? "opponent-e2e" : startHandOnly ? "starthand-e2e" : landsOnly ? "lands-e2e" : jumpstartOnly ? "jumpstart-e2e" : reportOnly ? "report-e2e" : helpOnly ? "help-e2e" : combatOnly ? "combat-e2e" : zonesOnly ? "zones-e2e" : historyOnly ? "history-e2e" : "e2e")
 const require = createRequire(import.meta.url)
 
 interface Viewport {
@@ -8788,6 +8790,317 @@ async function jumpstartPlayPage(browser: Browser, base: string, viewport: Viewp
   }
 }
 
+// ── Prompt 62: the match report ───────────────────────────────────────────
+
+/** The report's outline (src/matches/report-words.ts HEADINGS), in its binding order. */
+const REPORT_OUTLINE = [
+  "# OpenMana-Partiebericht",
+  "## 1. Vorwort für die lesende KI",
+  "## 2. Kopf",
+  "## 3. Deckliste des Spielers",
+  "## 4. Starthand und Mulligan",
+  "## 5. Zugprotokoll",
+  "## 6. Spielende",
+  "## Anhang A – Kennung → Name",
+  "## Anhang B – Deckliste der Forge-KI (während der Partie nicht bekannt)",
+  "## Anhang C – Herkunft",
+] as const
+
+/** What a saved report must hold: the outline in order, every turn with its parts, Forge's number of turns. */
+function checkReportText(text: string, label: string): Record<string, unknown> {
+  const lines = text.split("\n")
+  const at = REPORT_OUTLINE.map((heading) => lines.indexOf(heading))
+  check(at.every((index) => index >= 0) && at.every((index, i) => i === 0 || index > at[i - 1]!), `${label}: the report's outline ${JSON.stringify(at)}`)
+  const turns = [...text.matchAll(/^### Zug (\d+) \((\d+)\. Zug (des Spielers|der Forge-KI)\)$/gm)].map(([, turn, , side]) => ({ turn: Number(turn), side }))
+  check(turns.length > 0, `${label}: the report has no turn`)
+  const sections = text.split("\n### Zug ").slice(1).map((part) => part.split("\n## ")[0]!)
+  for (const section of sections) {
+    const player = /Zug des Spielers\)/.test(section.split("\n")[0]!)
+    const parts = ["#### Lage zu Beginn", "#### Ablauf", ...(player ? ["#### Ungenutzte Möglichkeiten"] : []), "#### Stand am Zugende"]
+    check(parts.every((part) => section.includes(`\n${part}\n`)), `${label}: Zug ${section.slice(0, 30)} lacks a part`)
+  }
+  const forge = /Zugzahl laut Forge: (\d+)\./.exec(text)
+  if (forge !== null) check(Number(forge[1]) === turns.at(-1)?.turn, `${label}: the last turn ${turns.at(-1)?.turn} is not Forge's ${forge[1]}`)
+  check(text.includes("Diese Liste war dem Spieler während der Partie **nicht bekannt**."), `${label}: appendix B is not marked as unknown`)
+  return { bytes: Buffer.byteLength(text), turns: turns.length, decisions: (text.match(/\*\*E\d+\*\* · /g) ?? []).length, forgeTurns: forge?.[1] ?? null }
+}
+
+/**
+ * "Bericht speichern" on the recorded fixture game (protocol 9; src/test/fixtures/replay.json) in the match list and
+ * the replay's menu at a small phone, the foldable's three sizes and a desktop: the same Markdown file from both,
+ * touch targets, no overflow, axe; a recording of an older protocol imported beside it has the button disabled with
+ * the replay's words.
+ */
+async function reportFromRecording(browser: Browser, base: string): Promise<Record<string, unknown>> {
+  log("Match report (recorded fixture game: match list and replay menu, an older protocol disabled with the replay's words)")
+  const fixture = JSON.parse(fs.readFileSync(path.join(root, "src/test/fixtures/replay.json"), "utf8"))
+  const older = structuredClone(fixture.replay)
+  older.match.id = "00000000-0000-4000-8000-000000000062"
+  older.match.startedAt = new Date(Date.parse(fixture.replay.match.startedAt) - 3_600_000).toISOString()
+  older.match.endedAt = new Date(Date.parse(fixture.replay.match.endedAt) - 3_600_000).toISOString()
+  older.match.engine.protocol = 8
+  for (const entry of older.log as { matchId: string; from: string; message: Record<string, unknown> }[]) {
+    entry.matchId = older.match.id
+    if (entry.from === "engine" && (entry.message["type"] === "game.started" || entry.message["type"] === "engine.ready")) entry.message["protocol"] = 8
+  }
+  const unreadable = "Diese Aufzeichnung verwendet ein anderes Engine-Protokoll. JSON speichern bleibt verfügbar."
+  const result: Record<string, unknown> = {}
+  for (const viewport of [RESPONSIVE_VIEWPORTS[0]!, ...FOLD_VIEWPORTS, VIEWPORTS[2]!]) {
+    const label = `report ${viewport.name}`
+    const context = await newContext(browser, viewport)
+    const page = await context.newPage()
+    const pageLog = watch(page)
+    const workers = countWorkers(page)
+    try {
+      await page.goto(new URL("/matches", base).href, { waitUntil: "networkidle" })
+      await page.getByText("Noch keine Partien", { exact: true }).waitFor()
+      const file = page.getByLabel("Wiedergabedatei")
+      await file.setInputFiles({ name: "recorded-forge.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(fixture.replay)) })
+      await page.getByText("Wiedergabe geladen", { exact: true }).waitFor()
+      await file.setInputFiles({ name: "older-protocol.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(older)) })
+      const list = page.getByRole("list", { name: "Gespeicherte Partien" })
+      await list.getByRole("listitem").nth(1).waitFor()
+      const readable = list.getByRole("listitem").nth(0)
+      const old = list.getByRole("listitem").nth(1)
+      // The older protocol: disabled, described by the replay's words.
+      const oldButton = old.getByRole("button", { name: "Bericht speichern" })
+      const described = await oldButton.evaluate((button) => document.getElementById(button.getAttribute("aria-describedby") ?? "")?.textContent ?? null)
+      check((await oldButton.isDisabled()) && described === unreadable, `${label}: the older protocol's button ${JSON.stringify({ disabled: await oldButton.isDisabled(), described })}`)
+      check(await old.getByRole("button", { name: "JSON speichern" }).isEnabled(), `${label}: JSON speichern of the older protocol is disabled`)
+      await page.waitForFunction(() => document.querySelector("[data-sonner-toast]") === null, undefined, { timeout: 10_000 })
+      const button = readable.getByRole("button", { name: "Bericht speichern" })
+      await button.scrollIntoViewIfNeeded()
+      const box = await button.boundingBox()
+      if (viewport.touch) check(box !== null && box.height >= 44, `${label}: "Bericht speichern" under 44 px ${JSON.stringify(box)}`)
+      const fromList = await downloaded(page, () => button.click())
+      check(fromList.name === `openmana-partiebericht-${fixture.replay.match.id}.md`, `${label}: file name ${fromList.name}`)
+      const facts = checkReportText(fromList.text, `${label} (list)`)
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)
+      check(overflow <= 0, `${label}: the match list overflows by ${overflow} px`)
+      const listAxe = await accessibility(page, `${label}: match list`)
+      // Only the viewport: a full-page screenshot ends Chrome's touch emulation for the rest of the page (pointer: coarse goes).
+      await page.screenshot({ path: path.join(reportDir, "screens", `report-list-${viewport.name}.png`) })
+      // The replay's menu: the same file.
+      await readable.getByRole("link", { name: "Ansehen", exact: true }).click()
+      await page.getByRole("button", { name: "Wiedergabemenü" }).click()
+      const menu = page.getByRole("dialog", { name: "Wiedergabe", exact: true })
+      await menu.waitFor()
+      await animationsDone(menu)
+      const menuButton = menu.getByRole("button", { name: "Bericht speichern" })
+      await menuButton.scrollIntoViewIfNeeded()
+      const menuBox = await menuButton.boundingBox()
+      if (viewport.touch) check(menuBox !== null && menuBox.height >= 44, `${label}: the menu's "Bericht speichern" under 44 px ${JSON.stringify(menuBox)}`)
+      const menuAxe = await accessibility(page, `${label}: replay menu`)
+      const fromMenu = await downloaded(page, () => menuButton.click())
+      check(fromMenu.name === fromList.name && fromMenu.text === fromList.text, `${label}: the replay's report differs from the list's`)
+      await page.screenshot({ path: path.join(reportDir, "screens", `report-menu-${viewport.name}.png`) })
+      // The older protocol's replay page: the same words, the report disabled.
+      await page.goto(new URL(`/matches/${older.match.id}`, base).href, { waitUntil: "networkidle" })
+      const pageButton = page.getByRole("button", { name: "Bericht speichern" })
+      await pageButton.waitFor()
+      const pageDescribed = await pageButton.evaluate((element) => document.getElementById(element.getAttribute("aria-describedby") ?? "")?.textContent ?? null)
+      check((await pageButton.isDisabled()) && pageDescribed === unreadable, `${label}: the older protocol's replay page ${JSON.stringify({ disabled: await pageButton.isDisabled(), pageDescribed })}`)
+      const olderAxe = await accessibility(page, `${label}: older protocol`)
+      check(workers.created() === 0, `${label}: an engine started`)
+      result[viewport.name] = { ...facts, listAxe, menuAxe, olderAxe, overflow, button: box, menuButton: menuBox }
+      for (const error of pageLog.errors) check(false, `${label}: ${error}`)
+    } finally {
+      await context.close()
+    }
+  }
+  return result
+}
+
+/** The decks of the report's real game: creatures, burn and lands for the player, creatures for the AI. */
+function reportDecks(): readonly unknown[] {
+  const now = new Date().toISOString()
+  const deck = (name: string, main: readonly { readonly count: number; readonly name: string }[]) => ({
+    id: randomUUID(),
+    name,
+    format: "constructed",
+    main,
+    sideboard: [],
+    commander: [],
+    source: { kind: "arena", text: `Deck\n${main.map((entry) => `${entry.count} ${entry.name}`).join("\n")}`, importedAt: now },
+    createdAt: now,
+    updatedAt: now,
+  })
+  return [
+    deck("E2E Bericht", [
+      { count: 24, name: "Mountain" },
+      { count: 12, name: "Goblin Piker" },
+      { count: 12, name: "Hill Giant" },
+      { count: 12, name: "Shock" },
+    ]),
+    deck("E2E Bericht KI", [
+      { count: 24, name: "Forest" },
+      { count: 18, name: "Llanowar Elves" },
+      { count: 18, name: "Grizzly Bears" },
+    ]),
+  ]
+}
+
+/** What the player did in a recorded game (from the recording only): the prompt's five things to have in the report. */
+function playedFacts(log: readonly { from: string; message: Record<string, unknown> }[]): Record<"land" | "cast" | "attack" | "block" | "passWithPlayable", boolean> {
+  const facts = { land: false, cast: false, attack: false, block: false, passWithPlayable: false }
+  let me: number | null = null
+  type RecordedState = { players: { id: number; me: boolean; zones: { hand: { playable?: boolean }[] } }[] }
+  let state = null as RecordedState | null
+  const questions = new Map<number, { kind: string; purpose?: string; buttons?: { nr: number; meaning?: string }[] }>()
+  for (const entry of log) {
+    const message = entry.message
+    if (entry.from === "engine") {
+      if (message["type"] === "state") {
+        const recorded = message as unknown as RecordedState
+        state = recorded
+        me ??= recorded.players.find((player) => player.me)?.id ?? null
+      } else if (message["type"] === "question") questions.set(message["id"] as number, message as never)
+      else if (message["type"] === "observation") {
+        for (const action of message["actions"] as { kind: string; player: number | null; blocks?: { blockers: unknown[] }[] }[]) {
+          if (action.player !== me) continue
+          if (action.kind === "land") facts.land = true
+          if (action.kind === "cast") facts.cast = true
+          if (action.kind === "attack") facts.attack = true
+          if (action.kind === "block" && (action.blocks ?? []).some((each) => each.blockers.length > 0)) facts.block = true
+        }
+      }
+    } else if (message["type"] === "answer" && message["kind"] === "buttons") {
+      const question = questions.get(message["question"] as number)
+      const meaning = question?.buttons?.find((button) => button.nr === message["button"])?.meaning
+      const hand = state?.players.find((player) => player.me)?.zones.hand ?? []
+      if (question?.purpose === "priority" && meaning === "pass" && hand.some((card) => card.playable === true)) facts.passWithPlayable = true
+    }
+  }
+  return facts
+}
+
+/**
+ * Prompt 62 with the real engine: a whole game on a phone through the readiness player (lands, spells, attacks,
+ * blocks, passes), played again with the next seed until the recording holds a land play, a spell, an attack and a
+ * block of the player and a pass with a playable card in the hand (at most three games); then "Bericht speichern" in
+ * the match list and the replay's menu, the same file, its outline, the player's actions in its words; the match list
+ * at the foldable's three sizes with axe. Report and JSON are kept in the report directory (the example for Seafile).
+ */
+async function matchReportInRealGame(browser: Browser, base: string): Promise<Record<string, unknown>> {
+  const viewport = VIEWPORTS[0]!
+  const label = `report game (${viewport.name})`
+  log(`Match report of a real game (${viewport.name}, real engine)`)
+  const context = await newContext(browser, viewport)
+  const page = await context.newPage()
+  const pageLog = watch(page)
+  const workers = countWorkers(page)
+  const results: Record<string, unknown> = {}
+  try {
+    await loadDecks(page, base, reportDecks())
+    const games: Record<string, unknown>[] = []
+    let facts: Record<string, boolean> = {}
+    let matchId = ""
+    for (let attempt = 0; attempt < 4; attempt++) {
+      await page.goto(new URL("/play", base).href, { waitUntil: "domcontentloaded" })
+      await chooseDeck(page, "Dein Deck wählen", "E2E Bericht")
+      await chooseDeck(page, "Deck der KI wählen", "E2E Bericht KI")
+      await enginePanel(page).getByText("Bereit", { exact: true }).waitFor({ timeout: 180_000 })
+      const startMs = await startAndWait(page)
+      // A game the readiness player itself gives up on (its own gesture checks) is conceded and the next seed played:
+      // what is under test here is the report of a whole game, not the player.
+      let played: Awaited<ReturnType<typeof playGame>>
+      try {
+        played = await playGame(page, {
+          id: `report-${attempt}`,
+          seed: 6200 + attempt,
+          touch: viewport.touch,
+          mulligan: attempt === 0,
+          maxMinutes: 20,
+          check: (condition, message) => {
+            check(condition, message)
+            return Boolean(condition)
+          },
+          shot: async (name) => {
+            await page.screenshot({ path: path.join(reportDir, "screens", `report-game-${name}.png`) })
+          },
+          notices: [],
+        })
+      } catch (error) {
+        const reason = (error as Error).message.split("\n")[0] ?? ""
+        log(`  ${label}: game ${attempt + 1}: the readiness player stopped (${reason.slice(0, 200)}); conceded, next seed`)
+        games.push({ seed: 6200 + attempt, startMs, playerStopped: reason })
+        await concedeGame(page)
+        continue
+      }
+      check(played.result !== null, `${label}: game ${attempt + 1} did not reach Forge's result`)
+      await page.waitForTimeout(500)
+      const db = await dumpDatabase(page, ["matches", "matchLog"])
+      const match = ((db["matches"] ?? []) as { id: string; startedAt: string }[]).sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0]!
+      matchId = match.id
+      const log2 = ((db["matchLog"] ?? []) as { matchId: string; seq: number; from: string; message: Record<string, unknown> }[]).filter((entry) => entry.matchId === match.id).sort((a, b) => a.seq - b.seq)
+      facts = playedFacts(log2)
+      games.push({ seed: 6200 + attempt, startMs, result: played.result, turns: played.turns, ms: played.ms, entries: log2.length, facts })
+      log(`  ${label}: game ${attempt + 1}: ${played.result}, ${played.turns} turns, ${JSON.stringify(facts)}`)
+      if (Object.values(facts).every(Boolean)) break
+    }
+    results["games"] = games
+    check(Object.values(facts).every(Boolean), `${label}: no game had a land play, a spell, an attack, a block and a pass with a playable card ${JSON.stringify(facts)}`)
+
+    // The match list: the report and the JSON.
+    await page.goto(new URL("/matches", base).href, { waitUntil: "domcontentloaded" })
+    const list = page.getByRole("list", { name: "Gespeicherte Partien" })
+    const item = list.getByRole("listitem").nth(0)
+    await item.waitFor()
+    const fromList = await downloaded(page, () => item.getByRole("button", { name: "Bericht speichern" }).click())
+    const json = await downloaded(page, () => item.getByRole("button", { name: "JSON speichern" }).click())
+    check(fromList.name === `openmana-partiebericht-${matchId}.md` && json.name === `openmana-wiedergabe-${matchId}.json`, `${label}: file names ${fromList.name}, ${json.name}`)
+    results["report"] = checkReportText(fromList.text, label)
+    const text = fromList.text
+    const said = {
+      land: /\] Der Spieler spielt ein Land: /.test(text),
+      cast: /\] Der Spieler wirkt /.test(text),
+      attack: /\] Der Spieler greift an \(nach E\d+\):/.test(text),
+      block: /\] Der Spieler legt Blocker fest \(nach E\d+\):\n {2}- .+ blockt /.test(text),
+      passWithPlayable: /Angebot: [^\n]*spielbar markiert: [^\n]*Hand[^\n]*\n {2}- Antwort: passt/.test(text),
+      unusedRead: /Gelesen beim letzten Passen in einer eigenen Hauptphase/.test(text),
+      damageWithSource: /fügt (dem Spieler|der Forge-KI) \d+ Schadenspunkte? zu \(nach E\d+\)/.test(text),
+    }
+    results["said"] = said
+    check(said.land && said.cast && said.attack && said.block && said.passWithPlayable && said.damageWithSource, `${label}: the report does not tell what the player did ${JSON.stringify(said)}`)
+    check(text.includes(`Zugzahl laut Forge: `) && text.includes("- Status: beendet"), `${label}: the report's end`)
+    const forgeEnd = ((await dumpDatabase(page, ["matches"]))["matches"] as { id: string; end: { turns: number } | null }[]).find((each) => each.id === matchId)?.end
+    check(forgeEnd !== null && forgeEnd !== undefined && text.includes(`Zugzahl laut Forge: ${forgeEnd.turns}.`), `${label}: Forge's ${forgeEnd?.turns} turns are not the report's`)
+    // The replay's menu: the same file.
+    await item.getByRole("link", { name: "Ansehen", exact: true }).click()
+    await page.getByRole("button", { name: "Wiedergabemenü" }).click()
+    const menu = page.getByRole("dialog", { name: "Wiedergabe", exact: true })
+    await menu.waitFor()
+    await animationsDone(menu)
+    results["menuAxe"] = await accessibility(page, `${label}: replay menu`)
+    const fromMenu = await downloaded(page, () => menu.getByRole("button", { name: "Bericht speichern" }).click())
+    check(fromMenu.text === fromList.text, `${label}: the replay's report differs from the list's`)
+    await page.keyboard.press("Escape")
+    // The match list at the foldable's sizes.
+    const sizes: Record<string, unknown> = {}
+    for (const size of FOLD_VIEWPORTS) {
+      await page.setViewportSize({ width: size.width, height: size.height })
+      await page.goto(new URL("/matches", base).href, { waitUntil: "domcontentloaded" })
+      const button = list.getByRole("listitem").nth(0).getByRole("button", { name: "Bericht speichern" })
+      await button.scrollIntoViewIfNeeded()
+      const box = await button.boundingBox()
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)
+      check(box !== null && box.height >= 44 && overflow <= 0, `${label} ${size.name}: the button ${JSON.stringify(box)}, overflow ${overflow}`)
+      const axe = await accessibility(page, `${label} ${size.name}: match list`)
+      await page.screenshot({ path: path.join(reportDir, "screens", `report-game-list-${size.name}.png`) })
+      sizes[size.name] = { box, overflow, axe }
+    }
+    results["sizes"] = sizes
+    const again = await downloaded(page, () => list.getByRole("listitem").nth(0).getByRole("button", { name: "Bericht speichern" }).click())
+    check(again.text === fromList.text, `${label}: a second report of the same recording differs`)
+    results["files"] = { report: fromList.name, json: json.name }
+    check(workers.max() <= 1, `${label}: ${workers.max()} engine workers at once`)
+    for (const error of pageLog.errors.filter((each) => !droppedPicture(each))) check(false, `${label}: ${error}`)
+    return results
+  } finally {
+    await context.close()
+  }
+}
+
 // ── Run ──────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -8850,6 +9163,10 @@ async function main(): Promise<void> {
       const jumpstart: Record<string, unknown> = { phone: await jumpstartPlayPage(browser, base, VIEWPORTS[0]!, true) }
       for (const viewport of [...FOLD_VIEWPORTS, VIEWPORTS[2]!]) jumpstart[viewport.name] = await jumpstartPlayPage(browser, base, viewport, false)
       report["jumpstart"] = jumpstart
+    } else if (reportOnly) {
+      report["scope"] = "The match report (prompt 62): the recorded fixture game's report from the match list and the replay's menu at a small phone, the foldable's three sizes and a desktop (an older protocol disabled with the replay's words), and one real game with the real engine on a phone (a land play, a spell, an attack, a block and a pass with a playable card in the hand), its report from both pages at the foldable's sizes; no complete application suite."
+      report["reportRecording"] = await reportFromRecording(browser, base)
+      report["reportGame"] = await matchReportInRealGame(browser, base)
     } else if (focusedTable || tableOnly) {
       report["scope"] = tableOnly ? `All ${(TABLE_SCENES.length + BUILT_SCENES.length) * TABLE_VIEWPORTS.length} recorded/built scene/viewport checks and every original table/history/decision/combat/zone interaction; no fresh engine boot or complete application suite.` : helpOnly ? "Recorded Forge scenes and explicitly built question families; help, target markings, three viewports; no engine boot or full application suite." : historyOnly ? "Recorded real Forge log entries and current card inspection, three viewports; no engine boot or full application suite." : zonesOnly ? "Recorded Forge zones and explicitly built DFC presentation, three viewports, one page at a time; no engine boot or complete application regression suite." : "Recorded Forge combat scenes and one built order request, three viewports, one page at a time; no engine boot or complete application regression suite."
       await browser.close()
@@ -8861,6 +9178,7 @@ async function main(): Promise<void> {
       report["responsive"] = await responsiveSurfaces(executablePath, base)
       report["engine"] = [await engine(browser, base, id, VIEWPORTS[2]!), await engine(browser, base, id, VIEWPORTS[0]!)]
       report["replay"] = await replayLibrary(browser, base)
+      report["reportRecording"] = await reportFromRecording(browser, base)
       await localData(browser, base)
       await localDataQuota(executablePath, base)
       await cardData(browser, base)

@@ -1,6 +1,6 @@
 # OpenMana — Current Status
 
-Last repository review: 2026-10-08 (after Prompt 32); last update 2026-10-16 (prompt 61)
+Last repository review: 2026-10-08 (after Prompt 32); last update 2026-10-16 (prompt 62)
 
 Compact implementation map. This file deliberately does **not** replace the active queue ledger in `dev0gig/dropzone/workflow/tasks/INDEX.md`.
 
@@ -392,6 +392,11 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - The mode is derived from the deck, never chosen or stored (`src/decks/deck-mode.ts`): a Commander section = Commander, exactly 20 main deck cards = a Jumpstart half, everything else = Normal (the label "Constructed" is gone). No schema change: decks of 20 saved earlier are halves at once.
 - Play page: a half brings "Zweite Hälfte" at once (setting `play.humanHalf`); the AI plays two halves - drawn at random for every game from the other halves, or chosen (`play.aiDeck` + `play.aiHalf`); never the same half twice on one side; once the mode is set the pickers leave out other modes with a counting line. Forge gets one joined deck of 40 ("Jumpstart: A + B") as `constructed`; game page, match list and replay name both halves. Library, import and deck page show the mode, the filter knows Jumpstart.
 - Evidence: `docs/implementation/61-jumpstart.md` (the engine proof `scripts/readiness/jumpstart-engine.ts`, unit tests, `--jumpstart-only` end to end at phone, foldable and desktop sizes with axe, readiness games). Local commits, not pushed.
+
+### Match report for a foreign AI (Prompt 62)
+- "Bericht speichern" beside "JSON speichern" (replay page and match list) saves `openmana-partiebericht-<matchId>.md`: a Markdown report of a recorded game for a foreign AI to judge the human's play - foreword, head, deck list, start hand and mulligan, one section per turn (situation, course with every decision as question - offer - answer, unused possibilities in the player's turns, end of turn), the end, appendices (id → name, the AI's deck list marked as unknown, origin).
+- A pure derivation of the recording (`src/matches/report.ts`): replay JSON, schema, protocol and engine unchanged; nothing inferred from state differences except two marked readings; hidden stays hidden; English card names, German prose. Recordings of other protocols: button disabled with the replay's words.
+- Evidence: `docs/implementation/62-partiebericht.md` (23 unit tests on the protocol-9 fixture and five whole recorded games, the checked-in fixture report, `--report-only` end to end with the real engine). Local commit, not pushed.
 
 ### ORYX Cloud Sync (outside the queue, 2026-09-25)
 - The project owner's direct assignment, not a queue prompt (outside the numbered program): the player's collection syncs through their ORYX account (the launcher's Supabase cloud) with the vendored ORYX SDK 1.0.0 (`src/cloud/oryx-sdk.js` and `.d.ts`, byte-identical copies of `oryx-games/shared`, checksum-tested, excluded from lint only themselves). Active only on `https://openmana.vercel.app/`; locally, in tests and previews inactive (no request, nothing stored). Local stays the source of truth.
