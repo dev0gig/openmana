@@ -17,7 +17,7 @@ import { PreferencesProvider } from "@/app/preferences"
 import { CardCatalogProvider } from "@/cards/card-catalog-context"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { AI_DECK, HUMAN_DECK } from "@/decks/deck-selection"
+import { AI_DECK, HUMAN_DECK, HUMAN_HALF } from "@/decks/deck-selection"
 import type { VisibleCard } from "@openmana/engine-protocol"
 import { AI_PROFILE, type AiProfileChoice } from "./ai-profiles"
 import { AUTO_PASS, OPPONENT_STEPWISE } from "./opponent-tempo"
@@ -89,6 +89,30 @@ afterEach(() => {
 })
 
 describe("the play page", () => {
+  it("Jumpstart (prompt 61): two halves go to Forge as one deck of 40, the AI's two random halves too, and the page names the mode and both", async () => {
+    const user = userEvent.setup()
+    const half = (n: number, name: string, land: string) => deck({ id: `10000000-0000-4000-8000-00000000006${n}`, name, main: [{ count: 8, name: land }, { count: 12, name: "Shock" }], sideboard: [] })
+    const halves = [half(1, "Goblins", "Mountain"), half(2, "Elfen", "Forest"), half(3, "Feuer", "Mountain"), half(4, "Wildnis", "Forest")]
+    await store([RED, ...halves], halves[0]!.id)
+    const db = await openTestDatabase()
+    await writeSetting(db, HUMAN_HALF, halves[1]!.id)
+    db.close()
+    const engine = testEngine()
+    renderAt("/play", engine)
+    await screen.findByText(/^Elfen – Jumpstart-Hälfte/)
+    await user.click(startButton())
+    const preparing = await screen.findByRole("region", { name: "Partie wird vorbereitet" })
+    expect(within(preparing).getByText("Jumpstart: Goblins + Elfen")).toBeInTheDocument()
+    expect(within(preparing).getByText(/^Jumpstart: (Feuer \+ Wildnis|Wildnis \+ Feuer) \(zufällig gezogen\)$/)).toBeInTheDocument()
+    expect(within(preparing).getByText("Modus")).toBeInTheDocument()
+    expect(within(preparing).getByText("Jumpstart")).toBeInTheDocument()
+    act(() => engine.worker().boot())
+    const [start] = engine.worker().matchStarts()
+    expect(start?.match.format).toBe("constructed")
+    expect(start?.match.human.deck).toEqual({ name: "Jumpstart: Goblins + Elfen", main: [{ card: "Mountain", count: 8 }, { card: "Shock", count: 24 }, { card: "Forest", count: 8 }] })
+    expect(start?.match.ai.deck.main.reduce((sum, entry) => sum + entry.count, 0)).toBe(40)
+  })
+
   it("prewarms the engine when a deck is there, and starts a game with the chosen decks", async () => {
     const user = userEvent.setup()
     await store([RED, GREEN])

@@ -210,6 +210,11 @@ const DECKS: Readonly<Record<string, DeckSpec>> = {
       "69 Mountain",
     ),
   },
+  // Prompt 61: four Jumpstart halves of 20 (exactly 20 cards, no commander - the mode comes from the deck); two play together.
+  halfGoblins: { name: "Prüfung Hälfte Goblins", format: "constructed", cards: 20, list: lines("Deck", "8 Mountain", "2 Raging Goblin", "2 Goblin Piker", "2 Gray Ogre", "2 Hill Giant", "2 Shock", "2 Lightning Bolt") },
+  halfElves: { name: "Prüfung Hälfte Elfen", format: "constructed", cards: 20, list: lines("Deck", "8 Forest", "2 Llanowar Elves", "2 Grizzly Bears", "2 Centaur Courser", "2 Giant Spider", "2 Giant Growth", "2 Trained Armodon") },
+  halfFire: { name: "Prüfung Hälfte Feuer", format: "constructed", cards: 20, list: lines("Deck", "8 Mountain", "2 Goblin Raider", "2 Canyon Minotaur", "2 Volcanic Hammer", "2 Fire Elemental", "2 Raging Goblin", "2 Shock") },
+  halfWilds: { name: "Prüfung Hälfte Wildnis", format: "constructed", cards: 20, list: lines("Deck", "8 Forest", "2 Runeclaw Bear", "2 Kalonian Tusker", "2 Rampant Growth", "2 Craw Wurm", "2 Grizzly Bears", "2 Llanowar Elves") },
   fynn: {
     name: "Prüfung Commander Fynn",
     format: "commander",
@@ -234,7 +239,14 @@ interface GameSpec {
   readonly id: string
   readonly title: string
   readonly human: keyof typeof DECKS
-  readonly ai: keyof typeof DECKS
+  /** Prompt 61: the player's second Jumpstart half (the human deck is then the first). */
+  readonly humanHalf?: keyof typeof DECKS
+  /** The AI's deck - its first half in a Jumpstart game - or "random" (drawn by the app for the game). */
+  readonly ai: keyof typeof DECKS | "random"
+  /** The AI's second Jumpstart half (with a chosen first one). */
+  readonly aiHalf?: keyof typeof DECKS
+  /** Further decks the game needs in the library (a random draw's pool). */
+  readonly extraDecks?: readonly (keyof typeof DECKS)[]
   /** The AI profile's German name as the play page lists it, or "Zufällig". */
   readonly profile: string
   readonly cardLanguage: "Deutsch" | "Englisch"
@@ -263,6 +275,9 @@ const GAMES: readonly GameSpec[] = [
   { id: "walkers", title: "Grüne Angreifer gegen Planeswalker (Standard)", human: "greenAttackers", ai: "greenWalkers", profile: "Standard", cardLanguage: "Deutsch", viewport: DESKTOP, seed: 6, mulligan: false, maxMinutes: 45 },
   { id: "grixis", title: "Grixis gegen Grün-Weiß (Standard): Vorschau, X-Zauber, Kann-Fähigkeiten, Starthand am Tisch beantwortet", human: "grixis", ai: "gw", profile: "Standard", cardLanguage: "Deutsch", viewport: DESKTOP, seed: 8, mulligan: false, maxMinutes: 45, startHandInPanel: true },
   { id: "fold", title: "Planeswalker gegen Rakdos-Ziele (Zufällig), Foldable quer mit Touch, Gegnerzug schnell", human: "greenWalkers", ai: "rakdos", profile: "Zufällig", cardLanguage: "Deutsch", viewport: FOLD_LANDSCAPE, seed: 7, mulligan: true, maxMinutes: 45, tempo: "Schnell" },
+  // Prompt 61: Jumpstart, two halves against two halves the app draws at random from the other halves.
+  { id: "jumpstart", title: "Jumpstart Goblins + Elfen gegen zwei zufällige Hälften (Standard), Handy mit Touch", human: "halfGoblins", humanHalf: "halfElves", ai: "random", extraDecks: ["halfFire", "halfWilds"], profile: "Standard", cardLanguage: "Deutsch", viewport: PHONE, seed: 61, mulligan: false, maxMinutes: 45 },
+  { id: "jumpstart-fold", title: "Jumpstart Feuer + Wildnis gegen zwei zufällige Hälften (Zufällig), Foldable quer mit Touch", human: "halfFire", humanHalf: "halfWilds", ai: "random", extraDecks: ["halfGoblins", "halfElves"], profile: "Zufällig", cardLanguage: "Deutsch", viewport: FOLD_LANDSCAPE, seed: 62, mulligan: false, maxMinutes: 45 },
   { id: "live", title: "Live: Rakdos-Ziele gegen Rot (Zufällig)", human: "rakdos", ai: "red", profile: "Zufällig", cardLanguage: "Deutsch", viewport: DESKTOP, seed: 5, mulligan: false, maxMinutes: 45 },
 ]
 
@@ -443,7 +458,13 @@ async function chooseForGame(page: Page, base: string, game: GameSpec): Promise<
   check((await stepwise.getAttribute("aria-checked")) === String(game.stepwise === true), `${game.id}: waiting after every action not ${game.stepwise === true ? "on" : "off"}`)
 
   await page.goto(new URL("/play", base).href, { waitUntil: "networkidle" })
-  for (const [which, deck] of [["Dein Deck wählen", DECKS[game.human]!.name], ["Deck der KI wählen", DECKS[game.ai]!.name]] as const) {
+  // Prompt 61: a Jumpstart half brings "Zweite Hälfte" at once, and the AI's picker is then the one for its halves.
+  const jumpstart = game.humanHalf !== undefined
+  const choices: [string, string][] = [["Dein Deck wählen", DECKS[game.human]!.name]]
+  if (game.humanHalf !== undefined) choices.push(["Zweite Hälfte wählen", DECKS[game.humanHalf]!.name])
+  choices.push([jumpstart ? "Hälften der KI wählen" : "Deck der KI wählen", game.ai === "random" ? "Zufällig" : DECKS[game.ai]!.name])
+  if (game.aiHalf !== undefined) choices.push(["Zweite Hälfte der KI wählen", DECKS[game.aiHalf]!.name])
+  for (const [which, deck] of choices) {
     await page.getByRole("button", { name: which }).click()
     await page.getByRole("dialog", { name: which }).getByRole("button", { name: new RegExp(`^${deck}( gewählt)?$`) }).click()
     await overlaysGone(page)
@@ -468,8 +489,14 @@ interface MatchHeader {
   readonly endedAt: string | null
   readonly seed: number
   readonly engine: { readonly manifestSha256?: string }
-  readonly human: { readonly deck: { readonly name: string } }
-  readonly ai: { readonly profile?: string; readonly name: string }
+  readonly format?: string
+  readonly human: { readonly deck: { readonly name: string; readonly main?: readonly { readonly count: number }[] } }
+  readonly ai: { readonly profile?: string; readonly name: string; readonly deck?: { readonly name: string; readonly main?: readonly { readonly count: number }[] } }
+}
+
+/** The player's deck as Forge got it: two Jumpstart halves are one deck "Jumpstart: A + B" (prompt 61). */
+function humanDeckName(game: GameSpec): string {
+  return game.humanHalf === undefined ? DECKS[game.human]!.name : `Jumpstart: ${DECKS[game.human]!.name} + ${DECKS[game.humanHalf]!.name}`
 }
 
 async function afterGame(page: Page, base: string, game: GameSpec, played: PlayResult): Promise<Record<string, unknown>> {
@@ -503,7 +530,7 @@ async function afterGame(page: Page, base: string, game: GameSpec, played: PlayR
   await page.waitForTimeout(500)
   const data = await dumpDatabase(page, ["matches", "matchLog"])
   const headers = (data["matches"] ?? []) as MatchHeader[]
-  const header = headers.filter((candidate) => candidate.human.deck.name === DECKS[game.human]!.name).sort((a, b) => (a.endedAt ?? "").localeCompare(b.endedAt ?? "")).at(-1)
+  const header = headers.filter((candidate) => candidate.human.deck.name === humanDeckName(game)).sort((a, b) => (a.endedAt ?? "").localeCompare(b.endedAt ?? "")).at(-1)
   if (!check(header !== undefined, `${game.id}: no recording`)) return results
   const log = ((data["matchLog"] ?? []) as { matchId: string; seq: number; from: string; message: { type: string } }[]).filter((entry) => entry.matchId === header!.id).sort((a, b) => a.seq - b.seq)
   check(header!.status === "finished", `${game.id}: recording status ${header!.status}`)
@@ -514,6 +541,17 @@ async function afterGame(page: Page, base: string, game: GameSpec, played: PlayR
   const rejected = log.filter((entry) => entry.message.type === "input.rejected").length
   check(rejected === 0, `${game.id}: Forge refused ${rejected} of the player's inputs (input.rejected in the recording)`)
   check(/^[0-9a-f]{64}$/.test(header!.engine.manifestSha256 ?? ""), `${game.id}: the engine manifest's SHA-256 is not recorded`)
+  if (game.humanHalf !== undefined) {
+    // Jumpstart (prompt 61): a constructed game of 40 against 40, the AI's two halves different and never the player's.
+    const cards = (deck: { readonly main?: readonly { readonly count: number }[] } | undefined) => (deck?.main ?? []).reduce((sum, entry) => sum + entry.count, 0)
+    const aiName = header!.ai.deck?.name ?? ""
+    const aiHalves = aiName.replace(/^Jumpstart: /, "").split(" + ")
+    const own = [DECKS[game.human]!.name, DECKS[game.humanHalf]!.name]
+    const pool = (game.extraDecks ?? []).map((key) => DECKS[key]!.name)
+    check(header!.format === "constructed" && cards(header!.human.deck) === 40 && cards(header!.ai.deck) === 40, `${game.id}: the recording is not a constructed game of 40 against 40 (${header!.format}, ${cards(header!.human.deck)}, ${cards(header!.ai.deck)})`)
+    check(aiName.startsWith("Jumpstart: ") && aiHalves.length === 2 && aiHalves[0] !== aiHalves[1] && aiHalves.every((half) => pool.includes(half) && !own.includes(half)), `${game.id}: the AI's halves "${aiName}"`)
+    results["jumpstart"] = { human: header!.human.deck.name, ai: aiName }
+  }
   const shown = { Gewonnen: "win", Verloren: "loss", Unentschieden: "draw" }[String(played["result"])] ?? null
   check(shown !== null && header!.end?.result === shown, `${game.id}: the table said ${String(played["result"])}, the recording says ${String(header!.end?.result)}`)
   results["recording"] = { id: header!.id, status: header!.status, end: header!.end, seed: header!.seed, manifestSha256: header!.engine.manifestSha256, entries: log.length, inputs: log.filter((entry) => entry.from === "player").length, types }
@@ -808,7 +846,7 @@ let exitCode = 0
 try {
   log(`app at ${base}, Chrome at ${executablePath}`)
   // 1. Card data and decks.
-  const needed = [...new Set(selected.flatMap((game) => [game.human, game.ai]))]
+  const needed = [...new Set(selected.flatMap((game) => [game.human, game.humanHalf, game.ai, game.aiHalf, ...(game.extraDecks ?? [])]).filter((key): key is keyof typeof DECKS => key !== undefined && key !== "random"))]
   let context = await openProfile(DESKTOP)
   let page = context.pages()[0] ?? (await context.newPage())
   const firstWatch = newWatch()
