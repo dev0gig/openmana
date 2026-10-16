@@ -195,5 +195,27 @@ card and actor - in a protocol-9 recording (no observations) all of them.
   from a real recording); mulligan, concession, a running and an aborted
   recording (built), the commander game; another protocol refused with the
   replay's words.
-- End to end in Chrome with the locked engine
-  (`npm run test:e2e -- --no-build --report-only`, results below).
+- End to end in Chrome with the locked engine (`OPENMANA_ENGINE_DIR=engine/build/publish-52h/dist`,
+  `npm run test:e2e -- --no-build --report-only`, 2026-10-16): **0 failures**.
+  - The recorded fixture at small phone, the foldable's three sizes and desktop:
+    the list's and the replay menu's report are the same file with the binding
+    outline; an imported protocol-8 recording has the button disabled, described
+    by the replay's words, in the list and on its replay page; buttons 44 px on
+    touch, no overflow, axe 0 violations in list, menu and the older protocol's
+    page. (The full suite runs this part too.)
+  - A real game on a phone (seed 6200, the readiness player, decks "E2E Bericht"
+    red against "E2E Bericht KI" green): 34 turns, won; the recording holds the
+    player's land plays, spells, attacks, blocks and a pass with a playable card
+    in the hand, and the report says each of them (152 KB, 97 decisions, Forge's
+    34 turns = the last heading); list and replay menu give the same file; the
+    list at the foldable's three sizes with 44 px buttons, no overflow, axe 0.
+  - In this game the player passed in an own main phase only with his own spell
+    on the stack (the readiness player plays what Forge marks); every
+    "Ungenutzte Möglichkeiten" therefore shows the marked fallback reading.
+  - The section concedes and replays with the next seed when the readiness
+    player itself gives up (a first run lost game 2 to its "card view did not
+    open" check); the run above needed no second game.
+  - Test lesson: a full-page screenshot in Chrome ends the touch emulation for
+    the page (`pointer: coarse` turns false); the section takes viewport
+    screenshots only.
+  - Example report, its JSON and screenshots: Seafile `/repo/openmana/partiebericht/62/`.
