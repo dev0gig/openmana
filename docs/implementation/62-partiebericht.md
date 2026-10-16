@@ -219,3 +219,7 @@ card and actor - in a protocol-9 recording (no observations) all of them.
     the page (`pointer: coarse` turns false); the section takes viewport
     screenshots only.
   - Example report, its JSON and screenshots: Seafile `/repo/openmana/partiebericht/62/`.
+- **`npm run check`** with the locked engine (`OPENMANA_ENGINE_DIR=engine/build/publish-52h/dist`,
+  2026-10-16): **green** - schema check, `tsc -b`, oxlint, Vitest 115 files /
+  1 625 tests, the complete end-to-end suite in Chrome with the real engine
+  (0 failures, including the recorded report part at five sizes) and the PWA suite.
