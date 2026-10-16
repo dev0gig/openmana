@@ -1,6 +1,6 @@
 # OpenMana — Current Status
 
-Last repository review: 2026-10-08 (after Prompt 32); last update 2026-10-15 (prompt 59)
+Last repository review: 2026-10-08 (after Prompt 32); last update 2026-10-16 (prompt 61)
 
 Compact implementation map. This file deliberately does **not** replace the active queue ledger in `dev0gig/dropzone/workflow/tasks/INDEX.md`.
 
@@ -387,6 +387,11 @@ OpenMana is a modern browser-first Magic: The Gathering client using Forge as th
 - The series is complete: the whole app outside a game in the style "Reich", the game table unchanged - every recorded table scene of the end-to-end test at the eight sizes and the foldable's three against `4c64434` (place, size and computed look of every element of the board equal; pixels within run noise). `docs/DESIGN_SYSTEM.md` §10 "In short" is the one summary of what the style may use and its two exceptions (the table, `AppSurface`).
 - Fixed: the end-to-end test read the deck library's names as rows (`item-title`); since prompt 59 the tiles' names are `card-title`.
 - Evidence: `docs/implementation/60-menuestil-gesamtabnahme.md` (`npm run check`, the foreign red checks named: `target-both` since `267174a`, the manifest abort since `d980ca3`, an aborted card picture; the PWA suite; pages at four sizes with axe and a keyboard tour); pictures in Seafile `/repo/openmana/design/menue-stil/60/`. Found, not changed (predates the series): a focused control can lie under the sticky top bar or the phone's bars (WCAG 2.4.11). Not pushed - the project owner releases the push.
+
+### Jumpstart: two halves of 20, the mode from the deck (Prompt 61)
+- The mode is derived from the deck, never chosen or stored (`src/decks/deck-mode.ts`): a Commander section = Commander, exactly 20 main deck cards = a Jumpstart half, everything else = Normal (the label "Constructed" is gone). No schema change: decks of 20 saved earlier are halves at once.
+- Play page: a half brings "Zweite Hälfte" at once (setting `play.humanHalf`); the AI plays two halves - drawn at random for every game from the other halves, or chosen (`play.aiDeck` + `play.aiHalf`); never the same half twice on one side; once the mode is set the pickers leave out other modes with a counting line. Forge gets one joined deck of 40 ("Jumpstart: A + B") as `constructed`; game page, match list and replay name both halves. Library, import and deck page show the mode, the filter knows Jumpstart.
+- Evidence: `docs/implementation/61-jumpstart.md` (the engine proof `scripts/readiness/jumpstart-engine.ts`, unit tests, `--jumpstart-only` end to end at phone, foldable and desktop sizes with axe, readiness games). Local commits, not pushed.
 
 ### ORYX Cloud Sync (outside the queue, 2026-09-25)
 - The project owner's direct assignment, not a queue prompt (outside the numbered program): the player's collection syncs through their ORYX account (the launcher's Supabase cloud) with the vendored ORYX SDK 1.0.0 (`src/cloud/oryx-sdk.js` and `.d.ts`, byte-identical copies of `oryx-games/shared`, checksum-tested, excluded from lint only themselves). Active only on `https://openmana.vercel.app/`; locally, in tests and previews inactive (no request, nothing stored). Local stays the source of truth.

@@ -244,6 +244,8 @@ Do not hard-code Standard-only assumptions.
 
 Anvil already dealt with standard/60-card play, Jumpstart-style paired half-decks and Commander. Initial OpenMana scope may be narrower, but the model/bridge must not block later Forge-supported formats.
 
+Since prompt 61 (2026-10-16) OpenMana plays all three, and the player never chooses one: the mode comes from the deck (`src/decks/deck-mode.ts`) - a Commander section makes a Commander game, a deck of exactly 20 cards is a Jumpstart half that plays together with a second half as one deck of 40 (a constructed game for Forge), everything else is a normal game.
+
 ## 9. Protocol lessons from Anvil
 
 Carry forward:
