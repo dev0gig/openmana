@@ -111,7 +111,7 @@ recorded as the one deck Forge played, with the name "Jumpstart: A + B" and
 ## Verification
 
 - `tsc -b`, oxlint, schema check: clean.
-- Vitest: 116 files, 1 610 tests green, among them new: `deck-mode.test.ts`,
+- Vitest: 114 files, 1 602 tests green, among them new: `deck-mode.test.ts`,
   the Jumpstart cases of `deck-selection.test.ts` (second half at once, never
   the same half, random without the player's halves, too few halves, deleted
   or damaged halves, switching modes, the new settings), `match-setup.test.ts`
@@ -131,7 +131,27 @@ recorded as the one deck Forge played, with the name "Jumpstart: A + B" and
 
 ## Readiness
 
-RESULTS_PLACEHOLDER
+`node scripts/readiness/matches.ts --serve dist --games jumpstart,jumpstart-fold,phone,commander --keep-going`
+(build and preview with `OPENMANA_ENGINE_DIR=engine/build/publish-52h/dist`): Arena
+lists pasted and saved on the import page (the four halves read back from
+IndexedDB with 20 cards each), the browser reopened, then every game chosen on
+the play page and played through the real table to Forge's own result, with
+history, recording and replay checked afterwards. **All checks passed**, no
+input Forge refused, no action that left the table unchanged, no page error.
+
+| Game | Size | Decks | Result |
+|---|---|---|---|
+| `jumpstart` | phone 412 × 915, touch | Goblins + Elfen against two random halves (drawn: Wildnis + Feuer), profile Standard | Forge won, 17 turns; the player played 6 lands and 9 spells (10 of these plays by dragging), attacked, blocked and divided damage |
+| `jumpstart-fold` | foldable turned 829 × 690, touch | Feuer + Wildnis against two random halves (drawn: Goblins + Elfen), profile drawn at random (Vorsichtig) | Forge won, 16 turns; 6 lands, 8 spells, attacks and blocks |
+| `phone` (normal, counter-check) | phone, touch | Grün Deutsch/Englisch (60) against Rot (60) | Forge won, 19 turns |
+| `commander` (counter-check) | desktop | Krenko against Fynn (100 each) | the player won, 30 turns |
+
+In both Jumpstart games the recording is a `constructed` game of 40 against
+40, the AI's two halves are different and none of the player's, and Forge's log
+shows the AI's lands, spells and damage. Pictures: Seafile
+`/repo/openmana/jumpstart/61/` (the play page at five sizes, the result, the
+match list) and `/repo/openmana/jumpstart/61/readiness/` (the games' start
+hands, turns, results and replays).
 
 ## Assumptions (changeable)
 

@@ -1767,9 +1767,9 @@ async function deckLibrary(browser: Browser, context: BrowserContext, page: Page
   const list = page.getByRole("list", { name: "Gespeicherte Decks" })
   const row = async (name: string) => (await list.getByRole("link").filter({ has: page.getByText(name, { exact: true }) }).textContent()) ?? ""
   const rows = { izzet: await row("E2E Izzet"), brawl: await row("E2E Brawl"), german: await row("E2E Deutsch") }
-  check(rows.izzet.includes("Constructed · 60 Karten · Sideboard 3") && rows.izzet.includes("Gefährte: Lurrus aus der Traumhöhle"), `deck library: Izzet row ${rows.izzet}`)
+  check(rows.izzet.includes("Normal · 60 Karten · Sideboard 3") && rows.izzet.includes("Gefährte: Lurrus aus der Traumhöhle"), `deck library: Izzet row ${rows.izzet}`)
   check(rows.brawl.includes("Commander · 59 Karten · Kommandeur 1") && rows.brawl.includes("Kommandeur: Valki, Gott der Lügen"), `deck library: Brawl row ${rows.brawl}`)
-  check(rows.german.includes("Constructed · 60 Karten · Sideboard 2"), `deck library: German row ${rows.german}`)
+  check(rows.german.includes("Normal · 60 Karten · Sideboard 2"), `deck library: German row ${rows.german}`)
   results["rows"] = rows
 
   // Search by a card's German name; the query is in the address and survives a reload.
@@ -1930,8 +1930,8 @@ async function deckLibrary(browser: Browser, context: BrowserContext, page: Page
   await page.getByText("Noch kein Deck gewählt.").waitFor()
   await page.getByRole("button", { name: "Dein Deck wählen" }).click()
   await page.getByRole("dialog", { name: "Dein Deck wählen" }).getByRole("button", { name: "E2E Izzet Tempo" }).click()
-  await page.getByText("E2E Izzet Tempo – Constructed · 60 Karten · Sideboard 3").waitFor()
-  await page.getByText("Zufällig aus 2 Constructed-Decks, jede Partie neu.").waitFor()
+  await page.getByText("E2E Izzet Tempo – Normal · 60 Karten · Sideboard 3").waitFor()
+  await page.getByText("Zufällig aus 2 Normal-Decks, jede Partie neu.").waitFor()
   const startGame = page.getByRole("button", { name: "Partie starten" }).first()
   check(await startGame.isEnabled(), "deck library: both decks are set, but a game cannot start")
   check(ENGINE_NOTES.includes(await startNote(page)), `deck library: start note "${await startNote(page)}"`)
@@ -1939,18 +1939,20 @@ async function deckLibrary(browser: Browser, context: BrowserContext, page: Page
   await enginePanel(page).getByText("Bereit", { exact: true }).waitFor({ timeout: 180_000 })
   await page.getByRole("button", { name: "Deck der KI wählen" }).click()
   const aiDialog = page.getByRole("dialog", { name: "Deck der KI wählen" })
-  check(await aiDialog.getByRole("button", { name: "E2E Brawl" }).isDisabled(), "deck library: a Commander deck can be chosen against a Constructed deck")
+  // Prompt 61: the mode is set, so a Commander deck is left out and one line says so.
+  check((await aiDialog.getByRole("button", { name: "E2E Brawl" }).count()) === 0, "deck library: a Commander deck is offered against a normal deck")
+  check((await aiDialog.getByText("1 Deck passt nicht zu Normal.").count()) === 1, "deck library: the AI's picker does not say how many decks it leaves out")
   results["aiDialogAxe"] = await accessibility(page, "deck library: the AI's deck")
   await page.screenshot({ path: path.join(reportDir, "screens", "desktop-play-ai-deck.png") })
   await aiDialog.getByRole("button", { name: "E2E Deutsch", exact: true }).click()
-  await page.getByText("E2E Deutsch – Constructed · 60 Karten · Sideboard 2").waitFor()
+  await page.getByText("E2E Deutsch – Normal · 60 Karten · Sideboard 2").waitFor()
   await page.reload({ waitUntil: "networkidle" })
-  await page.getByText("E2E Izzet Tempo – Constructed · 60 Karten · Sideboard 3").waitFor()
-  await page.getByText("E2E Deutsch – Constructed · 60 Karten · Sideboard 2").waitFor()
-  // A Commander deck: the AI's Constructed deck no longer fits; random has nothing to draw; a mirror match does.
+  await page.getByText("E2E Izzet Tempo – Normal · 60 Karten · Sideboard 3").waitFor()
+  await page.getByText("E2E Deutsch – Normal · 60 Karten · Sideboard 2").waitFor()
+  // A Commander deck: the AI's normal deck no longer fits; random has nothing to draw; a mirror match does.
   await page.getByRole("button", { name: "Dein Deck wählen" }).click()
   await page.getByRole("dialog", { name: "Dein Deck wählen" }).getByRole("button", { name: "E2E Brawl" }).click()
-  await page.getByText("Das Deck der KI hat ein anderes Format als deins – wähle ein passendes.").waitFor()
+  await page.getByText("Das Deck der KI passt nicht zum Modus deines Decks – wähle ein passendes.").waitFor()
   await page.getByRole("button", { name: "Deck der KI wählen" }).click()
   check(await aiDialog.getByRole("button", { name: "Zufällig" }).isDisabled(), "deck library: random offered without a second Commander deck")
     await aiDialog.getByRole("button", { name: "E2E Brawl" }).click()
@@ -2009,7 +2011,7 @@ async function deckLibrary(browser: Browser, context: BrowserContext, page: Page
     // Play from the details: the deck is chosen on the play page, whose start stays at the bottom too.
     await bar.getByRole("button", { name: "Mit diesem Deck spielen" }).click()
     await phonePage.getByRole("heading", { level: 1, name: "Spielen" }).waitFor()
-    await phonePage.getByText(/^E2E Izzet Tempo – Constructed · 60 Karten/).waitFor()
+    await phonePage.getByText(/^E2E Izzet Tempo – Normal · 60 Karten/).waitFor()
     const startBar = phonePage.getByRole("region", { name: "Partie starten" })
     const [startBox, tabBox] = [await startBar.boundingBox(), await tabBar.boundingBox()]
     check(startBox !== null && tabBox !== null && Math.abs(startBox.y + startBox.height - tabBox.y) <= 1, `deck library (phone): start bar ${JSON.stringify(startBox)} tab bar ${JSON.stringify(tabBox)}`)
@@ -2818,7 +2820,7 @@ async function gameSession(browser: Browser, page: Page, pageLog: PageLog, base:
   await page.getByRole("heading", { level: 1, name: "Spielen" }).waitFor()
   await chooseDeck(page, "Dein Deck wählen", "E2E Izzet Tempo")
   await chooseDeck(page, "Deck der KI wählen", "Zufällig")
-  await page.getByText("Zufällig aus 2 Constructed-Decks, jede Partie neu.").waitFor()
+  await page.getByText("Zufällig aus 2 Normal-Decks, jede Partie neu.").waitFor()
   await enginePanel(page).getByText("Bereit", { exact: true }).waitFor({ timeout: 180_000 })
   results["startConstructedMs"] = await startAndWait(page)
   results["constructed"] = await checkFirstDecision(page, "game (Constructed)", { life: 20, cards: 60, command: 0 })
