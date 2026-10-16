@@ -12,6 +12,7 @@
  *   npm run test:e2e -- --no-build --opponent-only following the AI's turn in two real games (tempo, "Weiter", layouts; prompt 49)
  *   npm run test:e2e -- --no-build --starthand-only the start hand and browsing the hand: recorded scene at eleven sizes, two real games (prompt 50)
  *   npm run test:e2e -- --no-build --lands-only   land plays and refusal hints: recorded scenes at eleven sizes, two real games (prompt 51)
+ *   npm run test:e2e -- --no-build --jumpstart-only the mode from the deck: Jumpstart halves on the play page at phone, foldable and desktop sizes, one real Jumpstart game (prompt 61)
  *   npm run test:e2e -- --no-build --help-only    contextual help on recorded/built scenes, no engine boot
  *   npm run test:e2e -- --no-build --history-only recorded Forge history and current sources only
  *   npm run test:e2e -- --no-build --zones-only   visible zones, piles and DFC inspection only
@@ -156,8 +157,9 @@ const dragOnly = process.argv.includes("--drag-only")
 const opponentOnly = process.argv.includes("--opponent-only")
 const startHandOnly = process.argv.includes("--starthand-only")
 const landsOnly = process.argv.includes("--lands-only")
+const jumpstartOnly = process.argv.includes("--jumpstart-only")
 const focusedTable = combatOnly || zonesOnly || historyOnly || helpOnly
-const reportDir = path.join(root, "reports", oryxOnly ? "oryx-e2e" : responsiveOnly ? "responsive-e2e" : replayOnly ? "replay-e2e" : tableOnly ? "table-e2e" : dragOnly ? "drag-e2e" : opponentOnly ? "opponent-e2e" : startHandOnly ? "starthand-e2e" : landsOnly ? "lands-e2e" : helpOnly ? "help-e2e" : combatOnly ? "combat-e2e" : zonesOnly ? "zones-e2e" : historyOnly ? "history-e2e" : "e2e")
+const reportDir = path.join(root, "reports", oryxOnly ? "oryx-e2e" : responsiveOnly ? "responsive-e2e" : replayOnly ? "replay-e2e" : tableOnly ? "table-e2e" : dragOnly ? "drag-e2e" : opponentOnly ? "opponent-e2e" : startHandOnly ? "starthand-e2e" : landsOnly ? "lands-e2e" : jumpstartOnly ? "jumpstart-e2e" : helpOnly ? "help-e2e" : combatOnly ? "combat-e2e" : zonesOnly ? "zones-e2e" : historyOnly ? "history-e2e" : "e2e")
 const require = createRequire(import.meta.url)
 
 interface Viewport {
@@ -8643,6 +8645,147 @@ async function landsInRealGame(browser: Browser, base: string, viewport: Viewpor
   }
 }
 
+
+// ── Jumpstart (prompt 61) ─────────────────────────────────────────────────
+
+/** Four Jumpstart halves of 20, a normal deck and a Commander deck - cards the engine knows (engine/fixtures/decks). */
+function jumpstartDecks(): readonly unknown[] {
+  const now = new Date().toISOString()
+  const deck = (name: string, main: Record<string, number>, commander: Record<string, number> = {}) => {
+    const entries = (cards: Record<string, number>) => Object.entries(cards).map(([card, count]) => ({ count, name: card }))
+    const text = (title: string, cards: Record<string, number>) => `${title}\n${entries(cards).map((entry) => `${entry.count} ${entry.name}`).join("\n")}`
+    return {
+      id: randomUUID(),
+      name,
+      format: Object.keys(commander).length > 0 ? "commander" : "constructed",
+      main: entries(main),
+      sideboard: [],
+      commander: entries(commander),
+      source: { kind: "arena", text: Object.keys(commander).length > 0 ? `${text("Commander", commander)}\n\n${text("Deck", main)}` : text("Deck", main), importedAt: now },
+      createdAt: now,
+      updatedAt: now,
+    }
+  }
+  return [
+    deck("E2E Hälfte Goblins", { Mountain: 8, "Raging Goblin": 2, "Goblin Piker": 2, "Gray Ogre": 2, "Hill Giant": 2, Shock: 2, "Lightning Bolt": 2 }),
+    deck("E2E Hälfte Elfen", { Forest: 8, "Llanowar Elves": 2, "Grizzly Bears": 2, "Centaur Courser": 2, "Giant Spider": 2, "Giant Growth": 2, "Trained Armodon": 2 }),
+    deck("E2E Hälfte Feuer", { Mountain: 8, "Goblin Raider": 2, "Canyon Minotaur": 2, "Volcanic Hammer": 2, "Fire Elemental": 2, "Raging Goblin": 2, Shock: 2 }),
+    deck("E2E Hälfte Wildnis", { Forest: 8, "Runeclaw Bear": 2, "Kalonian Tusker": 2, "Rampant Growth": 2, "Craw Wurm": 2, "Grizzly Bears": 2, "Llanowar Elves": 2 }),
+    deck("E2E Normal", { Mountain: 24, "Raging Goblin": 12, Shock: 12, "Hill Giant": 12 }),
+    deck("E2E Commander", { Mountain: 99 }, { "Krenko, Mob Boss": 1 }),
+  ]
+}
+
+/**
+ * The mode comes from the deck (prompt 61) on the play page, at `viewport`: the first choice lists every deck with its
+ * mode, a half brings "Zweite Hälfte" at once, the second half's and the AI's pickers offer only halves and say how many
+ * decks they leave out, the first half cannot be chosen twice, nothing asks for a mode; axe in every state, touch
+ * targets of 44 px. With `play`, a real Jumpstart game against two random halves of the AI follows: Forge gets one deck
+ * of 40, the game page names the mode and both halves, the game is conceded, the match list and the replay name them.
+ */
+async function jumpstartPlayPage(browser: Browser, base: string, viewport: Viewport, play: boolean): Promise<Record<string, unknown>> {
+  const label = `jumpstart (${viewport.name})`
+  const context = await newContext(browser, viewport)
+  const page = await context.newPage()
+  const pageLog = watch(page)
+  const started = Date.now()
+  const results: Record<string, unknown> = {}
+  const axe: Record<string, number> = {}
+  const shot = (name: string) => page.screenshot({ path: path.join(reportDir, "screens", `jumpstart-${viewport.name}-${name}.png`) })
+  const looked = async (name: string) => {
+    axe[name] = await accessibility(page, `${label}: ${name}`)
+    await shot(name)
+  }
+  const picker = async (trigger: string) => {
+    await page.getByRole("button", { name: trigger }).click()
+    const dialog = page.getByRole("dialog", { name: trigger })
+    await dialog.waitFor()
+    await animationsDone(dialog)
+    return dialog
+  }
+  const option = (dialog: Locator, deck: string) => dialog.getByRole("button", { name: new RegExp(`^${deck}( gewählt)?$`) })
+  const hiddenNote = (dialog: Locator) => dialog.locator('[data-slot="deck-picker-hidden"]').textContent().then((text) => text?.trim() ?? null, () => null)
+  try {
+    await loadDecks(page, base, jumpstartDecks())
+    await page.goto(new URL("/play", base).href, { waitUntil: "domcontentloaded" })
+    await page.getByText("Noch kein Deck gewählt.").waitFor()
+    check((await page.getByRole("radio").count()) === 0 && (await page.getByText(/Modus wählen|Format wählen/).count()) === 0, `${label}: the play page asks for a mode`)
+
+    // 1. The first choice: every deck, each with its mode.
+    let dialog = await picker("Dein Deck wählen")
+    const descriptions: Record<string, string> = {}
+    for (const deck of ["E2E Hälfte Goblins", "E2E Normal", "E2E Commander"]) {
+      descriptions[deck] = ((await option(dialog, deck).getAttribute("aria-describedby").then(async (ids) => page.evaluate((list) => (list ?? "").split(" ").map((id) => document.getElementById(id)?.textContent ?? "").join(" "), ids))) ?? "").replace(/\s+/g, " ").trim()
+    }
+    check(descriptions["E2E Hälfte Goblins"]?.startsWith("Jumpstart-Hälfte 20 Karten") && descriptions["E2E Normal"]?.startsWith("Normal 60 Karten") && descriptions["E2E Commander"]?.startsWith("Commander 99 Karten"), `${label}: the first choice's modes ${JSON.stringify(descriptions)}`)
+    check((await dialog.getByRole("button").filter({ hasText: /^E2E / }).count()) === 6 && (await hiddenNote(dialog)) === null, `${label}: the first choice does not list all six decks`)
+    results["firstChoice"] = descriptions
+    await looked("first-choice")
+    await option(dialog, "E2E Hälfte Goblins").click()
+    await overlaysGone(page)
+
+    // 2. At once: the second half, the start says what is missing.
+    await page.getByText("Noch keine zweite Hälfte gewählt.").waitFor()
+    const note = ((await page.locator("#play-start-note").first().textContent()) ?? "").trim()
+    check(note === "Wähle die zweite Hälfte deines Jumpstart-Decks.", `${label}: the start note says "${note}"`)
+    check(await page.getByRole("button", { name: "Partie starten" }).first().isDisabled(), `${label}: a game can start with one half`)
+    await looked("second-half-missing")
+
+    // 3. The second half: only halves, the first one disabled, a line for the others.
+    dialog = await picker("Zweite Hälfte wählen")
+    const secondNote = await hiddenNote(dialog)
+    check(secondNote === "2 Decks passen nicht zu Jumpstart.", `${label}: the second half's picker says "${secondNote}"`)
+    check((await option(dialog, "E2E Normal").count()) === 0 && (await option(dialog, "E2E Commander").count()) === 0, `${label}: the second half's picker offers decks of another mode`)
+    check(await option(dialog, "E2E Hälfte Goblins").isDisabled(), `${label}: the first half can be chosen twice`)
+    if (viewport.touch) {
+      const heights = await dialog.getByRole("button").evaluateAll((buttons) => buttons.map((button) => button.getBoundingClientRect().height))
+      check(heights.every((height) => height >= 44), `${label}: a choice in the second half's picker under 44 px ${JSON.stringify(heights)}`)
+    }
+    await looked("second-half-picker")
+    await option(dialog, "E2E Hälfte Elfen").click()
+    await overlaysGone(page)
+    await page.getByText("Zufällig – deine beiden anderen Jumpstart-Hälften.").waitFor()
+
+    // 4. The AI's halves: random from the other two halves, the others left out with a line.
+    dialog = await picker("Hälften der KI wählen")
+    const aiNote = await hiddenNote(dialog)
+    check(aiNote === "2 Decks passen nicht zu Jumpstart.", `${label}: the AI's picker says "${aiNote}"`)
+    check(!(await dialog.getByRole("button", { name: /^Zufällig/ }).isDisabled()), `${label}: random halves for the AI are not possible`)
+    await looked("ai-picker")
+    await page.keyboard.press("Escape")
+    await overlaysGone(page)
+    const touchRows = viewport.touch ? await page.getByRole("group", { name: "Decks der Partie" }).getByRole("button").evaluateAll((buttons) => buttons.map((button) => button.getBoundingClientRect().height)) : []
+    check(touchRows.every((height) => height >= 44), `${label}: a button of the play page under 44 px ${JSON.stringify(touchRows)}`)
+    await looked("ready")
+
+    if (play) {
+      // 5. A real Jumpstart game: two random halves of the AI, one deck of 40 each.
+      await enginePanel(page).getByText("Bereit", { exact: true }).waitFor({ timeout: 180_000 })
+      results["startMs"] = await startAndWait(page)
+      const header = ((await dumpDatabase(page, ["matches"]))["matches"] ?? []) as { human: { deck: { name: string; main: { count: number }[] } }; ai: { deck: { name: string; main: { count: number }[] } }; format: string }[]
+      const match = header.at(-1)
+      const total = (deck: { main: { count: number }[] } | undefined) => (deck?.main ?? []).reduce((sum, entry) => sum + entry.count, 0)
+      check(match?.format === "constructed" && match.human.deck.name === "Jumpstart: E2E Hälfte Goblins + E2E Hälfte Elfen" && total(match.human.deck) === 40, `${label}: the recorded player's deck ${JSON.stringify({ format: match?.format, name: match?.human.deck.name, cards: total(match?.human.deck) })}`)
+      const aiName = match?.ai.deck.name ?? ""
+      check(/^Jumpstart: E2E Hälfte (Feuer|Wildnis) \+ E2E Hälfte (Feuer|Wildnis)$/.test(aiName) && aiName.split(" + ").length === 2 && new Set(aiName.replace("Jumpstart: ", "").split(" + ")).size === 2 && total(match?.ai.deck) === 40, `${label}: the AI's random halves ${JSON.stringify({ aiName, cards: total(match?.ai.deck) })}`)
+      results["decks"] = { human: match?.human.deck.name, ai: aiName }
+      const { result } = await concedeGame(page)
+      const facts = ((await result.textContent()) ?? "").replace(/\s+/g, " ")
+      check(facts.includes("ModusJumpstart") && facts.includes("Du (Jumpstart: E2E Hälfte Goblins + E2E Hälfte Elfen)") && facts.includes(`Forge-KI (${aiName})`), `${label}: the game's result names ${facts.slice(0, 400)}`)
+      await looked("game-result")
+      await page.goto(new URL("/matches", base).href, { waitUntil: "domcontentloaded" })
+      await page.getByText("Jumpstart: E2E Hälfte Goblins + E2E Hälfte Elfen gegen Forge-KI").waitFor()
+      await looked("matches")
+    }
+    for (const error of pageLog.errors.filter((each) => !droppedPicture(each))) check(false, `${label}: ${error}`)
+    results["axe"] = axe
+    results["ms"] = Date.now() - started
+    return results
+  } finally {
+    await context.close()
+  }
+}
+
 // ── Run ──────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -8700,6 +8843,11 @@ async function main(): Promise<void> {
         ...(which === undefined || which === "desktop" ? { desktop: await landsInRealGame(browser, base, VIEWPORTS[2]!) } : {}),
         ...(which === undefined || which === "harness" ? { harness: await landsHarness(executablePath) } : {}),
       }
+    } else if (jumpstartOnly) {
+      report["scope"] = "The mode from the deck (prompt 61): Jumpstart halves on the play page at the phone, the foldable's three sizes and a desktop (badges, the second half at once, pickers that leave out other modes and say how many, no half twice, axe, touch targets), and one real Jumpstart game with the real engine on the phone (two random halves of the AI, one deck of 40 each, the result and the match list naming both halves); the complete games to Forge's result are the readiness games jumpstart and jumpstart-fold; no complete application suite."
+      const jumpstart: Record<string, unknown> = { phone: await jumpstartPlayPage(browser, base, VIEWPORTS[0]!, true) }
+      for (const viewport of [...FOLD_VIEWPORTS, VIEWPORTS[2]!]) jumpstart[viewport.name] = await jumpstartPlayPage(browser, base, viewport, false)
+      report["jumpstart"] = jumpstart
     } else if (focusedTable || tableOnly) {
       report["scope"] = tableOnly ? `All ${(TABLE_SCENES.length + BUILT_SCENES.length) * TABLE_VIEWPORTS.length} recorded/built scene/viewport checks and every original table/history/decision/combat/zone interaction; no fresh engine boot or complete application suite.` : helpOnly ? "Recorded Forge scenes and explicitly built question families; help, target markings, three viewports; no engine boot or full application suite." : historyOnly ? "Recorded real Forge log entries and current card inspection, three viewports; no engine boot or full application suite." : zonesOnly ? "Recorded Forge zones and explicitly built DFC presentation, three viewports, one page at a time; no engine boot or complete application regression suite." : "Recorded Forge combat scenes and one built order request, three viewports, one page at a time; no engine boot or complete application regression suite."
       await browser.close()
