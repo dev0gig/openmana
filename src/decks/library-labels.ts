@@ -2,7 +2,7 @@
  * German wording of the deck library and the deck choice for a game. Codes
  * stay English (system EN); the player reads German (user DE).
  */
-import type { DeckFormat } from "@/storage/generated/records"
+import { deckMode, type DeckMode } from "./deck-mode"
 import type { SelectionBlocker } from "./deck-selection"
 import type { CardLanguage, DeckPart, DeckView } from "./deck-view"
 import type { DeckSort, FormatFilter } from "./library"
@@ -25,9 +25,37 @@ export const SORT_LABELS: Readonly<Record<DeckSort, string>> = {
   created: "Zuletzt angelegt",
 }
 
+/** A deck's mode (deck-mode.ts) - a Jumpstart deck is one half. */
+export const DECK_MODE_LABELS: Readonly<Record<DeckMode, string>> = {
+  normal: "Normal",
+  jumpstart: "Jumpstart-Hälfte",
+  commander: "Commander",
+}
+
+/** What the mode means for a game, after the mode's name (import page). */
+export const MODE_NOTES: Readonly<Record<DeckMode, string>> = {
+  normal: "",
+  jumpstart: " – auf „Spielen“ kommt eine zweite Hälfte dazu, zusammen 40 Karten",
+  commander: " – Forge spielt das Deck als Commander-Partie",
+}
+
+/** A game's mode: its player's deck's, a Jumpstart game of two halves. */
+export const GAME_MODE_LABELS: Readonly<Record<DeckMode, string>> = {
+  normal: "Normal",
+  jumpstart: "Jumpstart",
+  commander: "Commander",
+}
+
+/** "5 Decks passen nicht zu Jumpstart." - the decks a picker leaves out once the game's mode is set (null: none). */
+export function hiddenDecksNote(count: number, mode: DeckMode): string | null {
+  if (count === 0) return null
+  return `${count === 1 ? "1 Deck passt" : `${count} Decks passen`} nicht zu ${GAME_MODE_LABELS[mode]}.`
+}
+
 export const FORMAT_FILTER_LABELS: Readonly<Record<FormatFilter, string>> = {
   all: "Alle",
-  constructed: "Constructed",
+  normal: "Normal",
+  jumpstart: "Jumpstart",
   commander: "Commander",
 }
 
@@ -56,9 +84,9 @@ export function languageSummary(view: DeckView): string {
   return `${notGerman.length} von ${total} Karten nicht ganz deutsch`
 }
 
-/** "Constructed · 60 Karten · Sideboard 15" */
-export function describeDeck(view: DeckView, formats: Readonly<Record<DeckFormat, string>>): string {
-  const parts = [formats[view.deck.format], cardsLabel(view.counts.main)]
+/** "Normal · 60 Karten · Sideboard 15", "Jumpstart-Hälfte · 20 Karten"; without the mode where a badge shows it. */
+export function describeDeck(view: DeckView, withMode = true): string {
+  const parts = [...(withMode ? [DECK_MODE_LABELS[deckMode(view.deck)]] : []), cardsLabel(view.counts.main)]
   if (view.counts.commander > 0) parts.push(`Kommandeur ${view.counts.commander}`)
   if (view.counts.sideboard > 0) parts.push(`Sideboard ${view.counts.sideboard}`)
   return parts.join(" · ")
@@ -69,10 +97,21 @@ export const SELECTION_BLOCKERS: Readonly<Record<SelectionBlocker, string>> = {
   "no-human": "Wähle zuerst dein Deck.",
   "human-missing": "Dein gewähltes Deck gibt es nicht mehr – wähle ein anderes.",
   "human-damaged": "Dein gewähltes Deck ist beschädigt – wähle ein anderes.",
-  "random-empty": "Für ein zufälliges Deck der KI fehlt ein zweites Deck im selben Format – wähle das Deck der KI selbst.",
-  "ai-mismatch": "Das Deck der KI hat ein anderes Format als deins – wähle ein passendes.",
+  "no-human-half": "Wähle die zweite Hälfte deines Jumpstart-Decks.",
+  "human-half-missing": "Deine gewählte zweite Hälfte gibt es nicht mehr – wähle eine andere.",
+  "human-half-damaged": "Deine gewählte zweite Hälfte ist beschädigt – wähle eine andere.",
+  "human-half-mismatch": "Deine gewählte zweite Hälfte ist keine Jumpstart-Hälfte (20 Karten) mehr – wähle eine andere.",
+  "human-half-same": "Deine zweite Hälfte ist dieselbe wie die erste – wähle eine andere.",
+  "random-empty": "Für ein zufälliges Deck der KI fehlt ein zweites Deck im selben Modus – wähle das Deck der KI selbst.",
+  "random-halves": "Für zufällige Hälften der KI fehlen zwei weitere Jumpstart-Hälften – wähle die Hälften der KI selbst.",
+  "ai-mismatch": "Das Deck der KI passt nicht zum Modus deines Decks – wähle ein passendes.",
   "ai-missing": "Das gewählte Deck der KI gibt es nicht mehr – wähle ein anderes.",
   "ai-damaged": "Das gewählte Deck der KI ist beschädigt – wähle ein anderes.",
+  "no-ai-half": "Wähle die zweite Hälfte der KI.",
+  "ai-half-missing": "Die gewählte zweite Hälfte der KI gibt es nicht mehr – wähle eine andere.",
+  "ai-half-damaged": "Die gewählte zweite Hälfte der KI ist beschädigt – wähle eine andere.",
+  "ai-half-mismatch": "Die gewählte zweite Hälfte der KI ist keine Jumpstart-Hälfte (20 Karten) mehr – wähle eine andere.",
+  "ai-half-same": "Die zweite Hälfte der KI ist dieselbe wie ihre erste – wähle eine andere.",
 }
 
 const COPY = / \(Kopie(?: (\d+))?\)$/

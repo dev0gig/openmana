@@ -37,11 +37,12 @@ import { getDeck, listDecks, type DeckLookup } from "@/storage/decks"
 import type { PrintRecord } from "@/storage/generated/records"
 import { StorageErrorAlert } from "@/storage/storage-alert"
 import { useStorage, useStorageQuery } from "@/storage/storage-context"
-import { DECK_FORMAT_LABELS, formatDateTime } from "@/storage/storage-labels"
+import { formatDateTime } from "@/storage/storage-labels"
 import { CatalogHint } from "./catalog-hint"
 import { DeckActions } from "./deck-actions"
 import { DECK_PARTS, EMPTY_INDEX, LIBRARY_STORES, pictureOf, readDeckCards, viewDeck, type DeckCardIndex, type DeckPart, type DeckView, type EntryView } from "./deck-view"
-import { cardsLabel, describeDeck, LANGUAGE_BADGES, LANGUAGE_REASONS, languageSummary, PART_LABELS } from "./library-labels"
+import { deckMode } from "./deck-mode"
+import { cardsLabel, DECK_MODE_LABELS, describeDeck, LANGUAGE_BADGES, LANGUAGE_REASONS, languageSummary, PART_LABELS } from "./library-labels"
 import { useNamedPrints, type NamedPrints } from "./named-prints"
 
 interface DeckDetails {
@@ -152,7 +153,7 @@ function overviewFacts(view: DeckView): Fact[] {
   const { deck, counts } = view
   const lines = deck.source.text.split(/\r\n|\r|\n/).filter((line) => line.trim() !== "").length
   return [
-    { label: "Format", value: DECK_FORMAT_LABELS[deck.format] },
+    { label: "Modus", value: DECK_MODE_LABELS[deckMode(deck)] },
     ...(counts.commander > 0 ? [{ label: PART_LABELS.commander, value: view.parts.commander.map((entry) => entry.name.text).join(", ") }] : []),
     ...(counts.companion > 0 ? [{ label: PART_LABELS.companion, value: view.parts.companion.map((entry) => entry.name.text).join(", ") }] : []),
     { label: PART_LABELS.main, value: cardsLabel(counts.main) },
@@ -316,7 +317,7 @@ export function DeckDetailsPage() {
     </>
   )
   return (
-    <Page title={view.deck.name} description={describeDeck(view, DECK_FORMAT_LABELS)} actions={header}>
+    <Page title={view.deck.name} description={describeDeck(view)} actions={header}>
       <CatalogHint />
       {prints.status === "loading" ? (
         <p className="flex items-center gap-2 text-sm text-muted-foreground" aria-live="polite">

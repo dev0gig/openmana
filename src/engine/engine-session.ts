@@ -130,6 +130,16 @@ export type EngineSnapshot =
 
 /** One side of a game as the player chose it. */
 export interface MatchSideSetup {
+  /** The library deck it came from; null for two Jumpstart halves (they are in `halves`). */
+  readonly deckId: string | null
+  /** The deck's name as Forge gets it ("Jumpstart: A + B" for two halves). */
+  readonly deckName: string
+  /** Prompt 61: the two Jumpstart halves Forge plays as this side's one deck, in the order chosen. */
+  readonly halves?: readonly [MatchHalfSetup, MatchHalfSetup]
+}
+
+/** One Jumpstart half of a side. */
+export interface MatchHalfSetup {
   readonly deckId: string
   readonly deckName: string
 }

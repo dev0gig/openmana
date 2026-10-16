@@ -52,7 +52,8 @@ import { GameBoard, GameBoardArea } from "@/components/ui/game-board"
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
-import { readSelection, resolveSelection } from "@/decks/deck-selection"
+import { readSelection, resolveStored } from "@/decks/deck-selection"
+import { GAME_MODE_LABELS } from "@/decks/library-labels"
 import { BootSteps } from "@/engine/engine-panel"
 import { abortAdvice, abortTitle, formatSeconds } from "@/engine/engine-labels"
 import { useEngineRelease } from "@/engine/engine-release"
@@ -62,7 +63,6 @@ import { useIsMobile } from "@/hooks/use-mobile"
 import { useNow } from "@/hooks/use-now"
 import type { StoreName } from "@/storage/schema"
 import { useStorageQuery } from "@/storage/storage-context"
-import { DECK_FORMAT_LABELS } from "@/storage/storage-labels"
 import {
   aiProfileLabel,
   endReason,
@@ -98,7 +98,7 @@ export function GamePage() {
   const { snapshot, prewarm } = useEngineSession()
   const { engine, match } = snapshot
   const data = useStorageQuery(SELECTION_STORES, readSelection)
-  const selection = data.status === "ready" ? resolveSelection(data.data.human, data.data.ai, data.data.decks) : null
+  const selection = data.status === "ready" ? resolveStored(data.data) : null
   const noDecks = data.status === "ready" && data.data.decks.records.length === 0
   const { state: startState, start } = useGameStart({ data: data.status, noDecks, selection })
   const phone = useIsMobile()
@@ -213,15 +213,25 @@ function NoGame() {
   )
 }
 
-/** Which decks play, in which format, against which AI profile (the one Forge confirmed, once the game runs). */
+/** The game's mode (prompt 61): Jumpstart when the player plays two halves, else by Forge's format. */
+function modeLabel(setup: MatchSetup): string {
+  return GAME_MODE_LABELS[setup.human.halves !== undefined ? "jumpstart" : setup.request.format === "commander" ? "commander" : "normal"]
+}
+
+/** A side's deck: its name - for two Jumpstart halves "Jumpstart: A + B", which names both. */
+function deckLabel(side: MatchSetup["human"], drawn = false): string {
+  return drawn ? `${side.deckName} (zufällig gezogen)` : side.deckName
+}
+
+/** Which decks play, in which mode, against which AI profile (the one Forge confirmed, once the game runs). */
 function Matchup({ setup, confirmedProfile }: { setup: MatchSetup; confirmedProfile?: string }) {
   const profile = confirmedProfile ?? setup.request.ai.profile
   return (
     <FactList
       facts={[
-        { label: "Dein Deck", value: setup.human.deckName },
-        { label: "Deck der Forge-KI", value: setup.ai.drawn ? `${setup.ai.deckName} (zufällig gezogen)` : setup.ai.deckName },
-        { label: "Format", value: DECK_FORMAT_LABELS[setup.request.format] },
+        { label: "Dein Deck", value: deckLabel(setup.human) },
+        { label: "Deck der Forge-KI", value: deckLabel(setup.ai, setup.ai.drawn) },
+        { label: "Modus", value: modeLabel(setup) },
         { label: "KI-Profil", value: setup.ai.profileDrawn ? `${aiProfileLabel(profile)} (zufällig gezogen)` : aiProfileLabel(profile) },
       ]}
     />
@@ -688,7 +698,7 @@ function Over({ match, again, note }: { match: Of<"over">; again: ReactNode; not
               value: `${player.life} Lebenspunkte`,
             })),
             ...(end.turns !== null ? [{ label: "Dauer", value: `${turnsLabel(end.turns)} · ${formatDuration(match.endedAt - match.startedAt)}` }] : []),
-            { label: "Format", value: DECK_FORMAT_LABELS[setup.request.format] },
+            { label: "Modus", value: modeLabel(setup) },
           ]}
         />
       </CardContent>

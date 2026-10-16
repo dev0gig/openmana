@@ -166,3 +166,55 @@ describe("planGame", () => {
     expect(planGame(resolveSelection(value(izzet.id), value<AiDeckChoice>({ kind: "deck", deckId: valki.id }), all))).toBeNull()
   })
 })
+
+describe("Jumpstart (prompt 61)", () => {
+  const half = (name: string, land: string) => deck({ name, main: [{ count: 8, name: land }, { count: 12, name: `${name} Card` }], sideboard: [{ count: 1, name: "Negate" }] })
+  const goblins = half("Goblins", "Mountain")
+  const elves = half("Elfen", "Forest")
+  const fire = half("Feuer", "Mountain")
+  const wilds = half("Wildnis", "Forest")
+  const all = decks([izzet, goblins, elves, fire, wilds])
+  const RANDOM: AiDeckChoice = { kind: "random" }
+
+  it("two halves go to Forge as one deck of 40 in a constructed game, both halves named", () => {
+    const setup = matchSetup([goblins, elves], [fire, wilds], { seed: 61, drawn: false })
+    expect(() => checkMatchRequest(setup.request)).not.toThrow()
+    expect(setup.request.format).toBe("constructed")
+    expect(setup.request.human.deck.name).toBe("Jumpstart: Goblins + Elfen")
+    expect(setup.request.human.deck.main.reduce((sum, entry) => sum + entry.count, 0)).toBe(40)
+    expect(setup.request.human.deck).not.toHaveProperty("sideboard")
+    expect(setup.human).toEqual({
+      deckId: null,
+      deckName: "Jumpstart: Goblins + Elfen",
+      halves: [
+        { deckId: goblins.id, deckName: "Goblins" },
+        { deckId: elves.id, deckName: "Elfen" },
+      ],
+    })
+    expect(setup.ai).toMatchObject({ deckId: null, deckName: "Jumpstart: Feuer + Wildnis", drawn: false })
+  })
+
+  it("chosen halves of the AI; random: two different halves, never the player's, drawn anew", () => {
+    const halves = { human: value(elves.id), ai: value(wilds.id) }
+    const chosen = planGame(resolveSelection(value(goblins.id), value<AiDeckChoice>({ kind: "deck", deckId: fire.id }), all, halves), { seed: 3 })
+    expect(chosen?.ai.halves?.map((h) => h.deckName)).toEqual(["Feuer", "Wildnis"])
+    expect(chosen?.ai.drawn).toBe(false)
+    const random = resolveSelection(value(goblins.id), value(RANDOM), all, { human: value(elves.id) })
+    const pairs = new Set<string>()
+    for (let i = 0; i < 40; i++) {
+      const setup = planGame(random)
+      const names = setup?.ai.halves?.map((h) => h.deckName) ?? []
+      expect(names).toHaveLength(2)
+      expect(names[0]).not.toBe(names[1])
+      expect(names.some((name) => name === "Goblins" || name === "Elfen")).toBe(false)
+      expect(setup?.ai.drawn).toBe(true)
+      pairs.add(names.join("+"))
+    }
+    expect([...pairs].sort()).toEqual(["Feuer+Wildnis", "Wildnis+Feuer"])
+  })
+
+  it("no game while a half is missing or too few halves are there to draw", () => {
+    expect(planGame(resolveSelection(value(goblins.id), value(RANDOM), all))).toBeNull()
+    expect(planGame(resolveSelection(value(goblins.id), value(RANDOM), decks([goblins, elves, fire]), { human: value(elves.id) }))).toBeNull()
+  })
+})

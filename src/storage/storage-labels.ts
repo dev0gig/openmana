@@ -4,7 +4,7 @@
  * are shown verbatim below the German text.
  */
 import type { StorageError, StorageErrorCode } from "./errors"
-import type { DeckFormat, GameResult, ImportMode, MatchStatus } from "./generated/records"
+import type { GameResult, ImportMode, MatchStatus } from "./generated/records"
 import type { StoreName } from "./schema"
 import type { ConnectionLoss } from "./storage-session"
 
@@ -69,11 +69,6 @@ export const STORE_LABELS: Readonly<Record<StoreName, string>> = {
   scryfallSets: "Sets",
   forgeOnlyCards: "Forge-Karten ohne Scryfall-Daten",
   cacheIndex: "Zwischenspeicher",
-}
-
-export const DECK_FORMAT_LABELS: Readonly<Record<DeckFormat, string>> = {
-  constructed: "Constructed",
-  commander: "Commander",
 }
 
 export const IMPORT_MODE_LABELS: Readonly<Record<ImportMode, string>> = {

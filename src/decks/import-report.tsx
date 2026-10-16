@@ -17,11 +17,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { CardPicture } from "@/components/ui/card-picture"
 import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@/components/ui/item"
-import { DECK_FORMAT_LABELS } from "@/storage/storage-labels"
 import { CardChoiceDialog } from "./card-choice-dialog"
+import { deckMode } from "./deck-mode"
 import { plannedCount, type DeckPlan, type ImportBlocker, type PlannedCard } from "./deck-plan"
 import type { DeckImportReport, EntryReport } from "./deck-resolve"
 import { blockerText, cardsLabel, isInformative, lineLabel, noteText, SECTION_LABELS } from "./deck-import-labels"
+import { DECK_MODE_LABELS } from "./library-labels"
 
 export type ChooseCard = (key: string, oracleId: string) => void
 export type LeaveOut = (line: number, leaveOut: boolean) => void
@@ -95,7 +96,7 @@ function deckNotes(report: DeckImportReport, plan: DeckPlan, language: TextLangu
 
 export function ReportSummary({ report, plan, onEdit, onRecheck }: { report: DeckImportReport; plan: DeckPlan; onEdit: () => void; onRecheck: () => void }) {
   const facts: Fact[] = [
-    { label: "Format", value: DECK_FORMAT_LABELS[plan.format] },
+    { label: "Modus", value: DECK_MODE_LABELS[deckMode(plan)] },
     ...(plan.commander.length > 0 ? [{ label: SECTION_LABELS.commander, value: cardsLabel(plannedCount(plan.commander)) }] : []),
     { label: SECTION_LABELS.main, value: cardsLabel(plannedCount(plan.main)) },
     { label: SECTION_LABELS.sideboard, value: cardsLabel(plannedCount(plan.sideboard)) },

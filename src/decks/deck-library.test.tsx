@@ -20,7 +20,7 @@ import { fixtureCards, installFixtureCatalog } from "@/test/catalog-fixtures"
 import { deckList, importedDeck } from "@/test/deck-fixtures"
 import { openTestDatabase, putRaw } from "@/test/storage-fixtures"
 import { arenaList } from "./arena-export"
-import { AI_DECK, HUMAN_DECK } from "./deck-selection"
+import { AI_DECK, AI_HALF, HUMAN_DECK, HUMAN_HALF } from "./deck-selection"
 import { resolveDeckList } from "./deck-resolve"
 import { parseArenaDeckList } from "./arena-list"
 
@@ -30,6 +30,7 @@ const ENGINE_NOTE = "Dieser Browser kann die Forge-Engine nicht ausführen."
 const IZZET_ID = "10000000-0000-4000-8000-000000000001"
 const BRAWL_ID = "10000000-0000-4000-8000-000000000002"
 const MONO_ID = "10000000-0000-4000-8000-000000000003"
+const HALF_IDS = ["10000000-0000-4000-8000-000000000011", "10000000-0000-4000-8000-000000000012", "10000000-0000-4000-8000-000000000013", "10000000-0000-4000-8000-000000000014"] as const
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } })
 
@@ -123,7 +124,7 @@ describe("the list", () => {
     // Prompt 59: every deck is a tile - a panel (Card) that is the link, its name as the card's title.
     expect(first).toHaveAttribute("data-slot", "card")
     expect(within(first!).getByText("Izzet Delver")).toHaveAttribute("data-slot", "card-title")
-    expect(within(first!).getByText("Constructed · 38 Karten · Sideboard 3")).toBeInTheDocument()
+    expect(within(first!).getByText("Normal · 38 Karten · Sideboard 3")).toBeInTheDocument()
     expect(within(first!).getByText("5 Karten nicht ganz deutsch")).toBeInTheDocument()
     expect(within(second!).getByText("Commander · 30 Karten · Kommandeur 1")).toBeInTheDocument()
     expect(within(second!).getByText("Kommandeur: Valki, Gott der Lügen")).toBeInTheDocument()
@@ -344,8 +345,8 @@ describe("what can be done with a deck", () => {
     await user.click(await screen.findByRole("link", { name: /Izzet Delver/ }))
     await user.click(await screen.findByRole("button", { name: "Mit diesem Deck spielen" }))
     await waitFor(() => expect(router.state.location.pathname).toBe("/play"))
-    expect(await screen.findByText("Izzet Delver – Constructed · 38 Karten · Sideboard 3")).toBeInTheDocument()
-    expect(screen.getByText("Mono-Grün – Constructed · 28 Karten")).toBeInTheDocument()
+    expect(await screen.findByText("Izzet Delver – Normal · 38 Karten · Sideboard 3")).toBeInTheDocument()
+    expect(screen.getByText("Mono-Grün – Normal · 28 Karten")).toBeInTheDocument()
     // Both decks are set: only the engine is left, which jsdom cannot run (the start itself: src/game/game-page.test.tsx).
     expect(screen.getByRole("button", { name: /Partie starten/ })).toHaveAccessibleDescription(ENGINE_NOTE)
     const db = await openTestDatabase()
@@ -420,25 +421,27 @@ describe("choosing the decks for a game", () => {
     await user.click(screen.getByRole("button", { name: "Dein Deck wählen" }))
     let dialog = await screen.findByRole("dialog", { name: "Dein Deck wählen" })
     await user.click(within(dialog).getByRole("button", { name: "Izzet Delver" }))
-    expect(await screen.findByText("Izzet Delver – Constructed · 38 Karten · Sideboard 3")).toBeInTheDocument()
-    expect(screen.getByText("Zufällig – dein einziges anderes Constructed-Deck.")).toBeInTheDocument()
+    expect(await screen.findByText("Izzet Delver – Normal · 38 Karten · Sideboard 3")).toBeInTheDocument()
+    expect(screen.getByText("Zufällig – dein einziges anderes Normal-Deck.")).toBeInTheDocument()
     // Both decks are set: only the engine is left, which jsdom cannot run (the start itself: src/game/game-page.test.tsx).
     expect(screen.getByRole("button", { name: /Partie starten/ })).toHaveAccessibleDescription(ENGINE_NOTE)
     expect(screen.getByRole("button", { name: /Partie starten/ })).toBeDisabled()
 
-    // The AI's choice: decks of another format are disabled and say why.
+    // The AI's choice: decks of another mode are left out, and one line says how many (prompt 61).
     await user.click(screen.getByRole("button", { name: "Deck der KI wählen" }))
     dialog = await screen.findByRole("dialog", { name: "Deck der KI wählen" })
-    expect(within(dialog).getByRole("button", { name: "Valki Brawl" })).toBeDisabled()
-    expect(within(dialog).getByText(/anderes Format als dein Deck \(Constructed\)/)).toBeInTheDocument()
+    expect(within(dialog).queryByRole("button", { name: "Valki Brawl" })).toBeNull()
+    expect(within(dialog).getByText("1 Deck passt nicht zu Normal.")).toBeInTheDocument()
+    expect(within(dialog).getByRole("button", { name: "Mono-Grün" })).toHaveAccessibleDescription("Normal 28 Karten")
     await user.click(within(dialog).getByRole("button", { name: "Mono-Grün" }))
-    expect(await screen.findByText("Mono-Grün – Constructed · 28 Karten")).toBeInTheDocument()
+    expect(await screen.findByText("Mono-Grün – Normal · 28 Karten")).toBeInTheDocument()
 
-    // A Commander deck for the player: the AI's Constructed deck no longer fits, and random has nothing to draw.
+    // A Commander deck for the player: the AI's normal deck no longer fits, and random has nothing to draw.
     await user.click(screen.getByRole("button", { name: "Dein Deck wählen" }))
     dialog = await screen.findByRole("dialog", { name: "Dein Deck wählen" })
     await user.click(within(dialog).getByRole("button", { name: "Valki Brawl" }))
-    expect(await screen.findByText("Das Deck der KI hat ein anderes Format als deins – wähle ein passendes.")).toBeInTheDocument()
+    expect(await screen.findByText("Das Deck der KI passt nicht zum Modus deines Decks – wähle ein passendes.")).toBeInTheDocument()
+    expect(screen.getByText("Mono-Grün – Normal passt nicht zu deinem Deck (Commander).")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Deck der KI wählen" }))
     dialog = await screen.findByRole("dialog", { name: "Deck der KI wählen" })
     expect(within(dialog).getByRole("button", { name: "Zufällig" })).toBeDisabled()
@@ -446,6 +449,65 @@ describe("choosing the decks for a game", () => {
     // The player's own deck for the AI: a mirror match.
     await user.click(within(dialog).getByRole("button", { name: "Valki Brawl" }))
     await waitFor(() => expect(screen.getByRole("button", { name: /Partie starten/ })).toHaveAccessibleDescription(ENGINE_NOTE))
+  })
+
+  it("Jumpstart (prompt 61): a half asks for a second half at once, only halves are offered, the AI plays two halves", async () => {
+    const user = userEvent.setup()
+    const half = (id: string, name: string) => (db: Awaited<ReturnType<typeof openTestDatabase>>) =>
+      importedDeck(db, `About\nName ${name}\n\nDeck\n16 Forest (NEO) 292\n4 Lightning Bolt`, { id, now: "2026-09-23T10:00:00.000Z" })
+    await setUp({
+      decks: [izzet, brawl, half(HALF_IDS[0], "Goblins"), half(HALF_IDS[1], "Elfen"), half(HALF_IDS[2], "Feuer"), half(HALF_IDS[3], "Wildnis")],
+    })
+    renderAt("/play")
+    await screen.findByText("Noch kein Deck gewählt.")
+
+    // The first choice shows every deck with its mode.
+    await user.click(screen.getByRole("button", { name: "Dein Deck wählen" }))
+    let dialog = await screen.findByRole("dialog", { name: "Dein Deck wählen" })
+    expect(within(dialog).getByRole("button", { name: "Izzet Delver" })).toHaveAccessibleDescription("Normal 38 Karten · Sideboard 3")
+    expect(within(dialog).getByRole("button", { name: "Valki Brawl" })).toHaveAccessibleDescription(/^Commander /)
+    expect(within(dialog).getByRole("button", { name: "Goblins" })).toHaveAccessibleDescription("Jumpstart-Hälfte 20 Karten")
+    expect(within(dialog).queryByText(/passen? nicht zu/)).toBeNull()
+    await user.click(within(dialog).getByRole("button", { name: "Goblins" }))
+
+    // At once: the second half, no mode to choose anywhere.
+    expect(await screen.findByText("Noch keine zweite Hälfte gewählt.")).toBeInTheDocument()
+    expect(screen.getByText("Wähle die zweite Hälfte deines Jumpstart-Decks.")).toBeInTheDocument()
+    expect(screen.getByText("Zufällig: zwei von 3 Jumpstart-Hälften, jede Partie neu.")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Zweite Hälfte wählen" }))
+    dialog = await screen.findByRole("dialog", { name: "Zweite Hälfte wählen" })
+    expect(within(dialog).queryByRole("button", { name: "Izzet Delver" })).toBeNull()
+    expect(within(dialog).getByText("2 Decks passen nicht zu Jumpstart.")).toBeInTheDocument()
+    expect(within(dialog).getByRole("button", { name: "Goblins" })).toBeDisabled()
+    expect(within(dialog).getByText(/schon deine erste Hälfte/)).toBeInTheDocument()
+    await user.click(within(dialog).getByRole("button", { name: "Elfen" }))
+    expect(await screen.findByText("Zufällig – deine beiden anderen Jumpstart-Hälften.")).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole("button", { name: /Partie starten/ })).toHaveAccessibleDescription(ENGINE_NOTE))
+
+    // The AI's halves chosen: the first, then the second (never the same).
+    await user.click(screen.getByRole("button", { name: "Hälften der KI wählen" }))
+    dialog = await screen.findByRole("dialog", { name: "Hälften der KI wählen" })
+    expect(within(dialog).getByText("2 Decks passen nicht zu Jumpstart.")).toBeInTheDocument()
+    await user.click(within(dialog).getByRole("button", { name: "Feuer" }))
+    expect(await screen.findByText("Wähle die zweite Hälfte der KI.")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Zweite Hälfte der KI wählen" }))
+    dialog = await screen.findByRole("dialog", { name: "Zweite Hälfte der KI wählen" })
+    expect(within(dialog).getByRole("button", { name: "Feuer" })).toBeDisabled()
+    await user.click(within(dialog).getByRole("button", { name: "Wildnis" }))
+    await waitFor(() => expect(screen.getByRole("button", { name: /Partie starten/ })).toHaveAccessibleDescription(ENGINE_NOTE))
+    const db = await openTestDatabase()
+    expect((await readSetting(db, HUMAN_HALF)).value).toBe(HALF_IDS[1])
+    expect((await readSetting(db, AI_DECK)).value).toEqual({ kind: "deck", deckId: HALF_IDS[2] })
+    expect((await readSetting(db, AI_HALF)).value).toBe(HALF_IDS[3])
+    db.close()
+
+    // Back to a normal deck: the second half goes away, the AI's halves no longer fit (said, not replaced).
+    await user.click(screen.getByRole("button", { name: "Dein Deck wählen" }))
+    dialog = await screen.findByRole("dialog", { name: "Dein Deck wählen" })
+    await user.click(within(dialog).getByRole("button", { name: "Izzet Delver" }))
+    expect(await screen.findByText("Das Deck der KI passt nicht zum Modus deines Decks – wähle ein passendes.")).toBeInTheDocument()
+    expect(screen.queryByText("Zweite Hälfte")).toBeNull()
+    expect(screen.queryByRole("button", { name: "Zweite Hälfte der KI wählen" })).toBeNull()
   })
 
   it("a chosen deck that was deleted is said so, not replaced", async () => {

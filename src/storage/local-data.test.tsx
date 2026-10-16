@@ -119,7 +119,7 @@ describe("settings: data on this device", () => {
       "Aus der Sicherung",
       "Noch eins",
     ])
-    expect(within(list).getAllByText("Constructed · 24 Karten · Sideboard 2")).toHaveLength(2)
+    expect(within(list).getAllByText("Normal · 24 Karten · Sideboard 2")).toHaveLength(2)
   })
 
   it("replacing says what it deletes, on its button too", async () => {

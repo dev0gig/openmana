@@ -54,13 +54,15 @@ import { toStorageError, type StorageError } from "@/storage/errors"
 import type { DeckRecord } from "@/storage/generated/records"
 import { StorageErrorAlert } from "@/storage/storage-alert"
 import { useStorage } from "@/storage/storage-context"
-import { DECK_FORMAT_LABELS, formatBytes } from "@/storage/storage-labels"
+import { formatBytes } from "@/storage/storage-labels"
 import { MAX_LIST_CHARACTERS, parseArenaDeckList } from "./arena-list"
 import { cardsLabel } from "./deck-import-labels"
+import { deckMode } from "./deck-mode"
 import { deckRecordFrom, planDeck, plannedCount } from "./deck-plan"
 import { resolveDeckList, type DeckImportReport } from "./deck-resolve"
 import { deckOracleIds } from "./deck-view"
 import { DeckPreview, OpenLines, ReportSummary } from "./import-report"
+import { DECK_MODE_LABELS, MODE_NOTES } from "./library-labels"
 
 interface Checked {
   readonly status: "done"
@@ -372,8 +374,8 @@ export function DeckImportPage({ update }: { update?: DeckRecord }) {
             <CardHeader>
               <CardTitle id="import-save-title">{update ? "Deck ersetzen" : "Deck speichern"}</CardTitle>
               <CardDescription>
-                Format {DECK_FORMAT_LABELS[plan.format]}
-                {plan.format === "commander" ? " – Forge spielt das Deck als Commander-Partie" : ""}.{" "}
+                Modus {DECK_MODE_LABELS[deckMode(plan)]}
+                {MODE_NOTES[deckMode(plan)]}.{" "}
                 {update
                   ? "Das Deck bekommt diese Karten und diese Liste; seine bisherigen Karten und seine bisherige Liste werden ersetzt."
                   : "Gespeichert wird nur auf diesem Gerät; die Liste bleibt unverändert beim Deck."}

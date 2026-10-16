@@ -36,7 +36,7 @@ import { arrangeDecks, DECK_SORTS, formatsPresent, FORMAT_FILTERS, paramsFromQue
 import { describeDeck, FORMAT_FILTER_LABELS, SORT_LABELS } from "@/decks/library-labels"
 import { StorageErrorAlert } from "@/storage/storage-alert"
 import { useStorageQuery } from "@/storage/storage-context"
-import { DECK_FORMAT_LABELS, formatDateTime } from "@/storage/storage-labels"
+import { formatDateTime } from "@/storage/storage-labels"
 
 function ImportButton() {
   return (
@@ -83,7 +83,7 @@ function DeckTile({ view, catalogUsable }: { view: DeckView; catalogUsable: bool
           </CardContent>
           <CardHeader className="gap-1.5">
             <CardTitle className="wrap-anywhere">{view.deck.name}</CardTitle>
-            <CardDescription>{describeDeck(view, DECK_FORMAT_LABELS)}</CardDescription>
+            <CardDescription>{describeDeck(view)}</CardDescription>
             <div className="flex flex-wrap gap-1.5">
               {view.parts.commander.map((commander) => (
                 <Badge key={commander.entry.name} variant="secondary">

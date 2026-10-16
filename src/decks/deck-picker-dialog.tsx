@@ -1,9 +1,12 @@
 /*
- * Choosing a deck for a game: the player's own, or the AI's - for the AI
- * also "Zufällig" (a new draw from the fitting decks for every game,
- * deck-selection.ts). Decks that cannot be chosen (another format than the
- * player's deck) stay visible, disabled, and say why; so does "Zufällig"
- * when no deck could be drawn. With many decks a search narrows the list.
+ * Choosing a deck for a game: the player's own, a second Jumpstart half, or
+ * the AI's - for the AI also "Zufällig" (a new draw from the fitting decks
+ * for every game, deck-selection.ts). Every deck shows its mode as a badge
+ * (deck-mode.ts). Once the game's mode is set, decks of another mode are left
+ * out by the caller and one line says how many (prompt 61: nothing seems to
+ * have vanished); a deck that fits but cannot be chosen (the side's first
+ * half) stays visible, disabled, and says why - so does "Zufällig" when no
+ * deck could be drawn. With many decks a search narrows the list.
  */
 import { Check, Dices, Layers } from "lucide-react"
 import { useId, useMemo, useState } from "react"
@@ -17,10 +20,10 @@ import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@/components/ui/item"
 import type { DeckRecord } from "@/storage/generated/records"
-import { DECK_FORMAT_LABELS } from "@/storage/storage-labels"
+import { deckMode } from "./deck-mode"
 import type { DeckView } from "./deck-view"
 import { arrangeDecks, DEFAULT_QUERY } from "./library"
-import { describeDeck } from "./library-labels"
+import { DECK_MODE_LABELS, describeDeck } from "./library-labels"
 
 /** With more decks than this, a search field narrows the list. */
 const SEARCH_FROM = 6
@@ -48,7 +51,7 @@ function DeckOption({ view, selected, disabled, onSelect }: { view: DeckView; se
         disabled={disabled !== null}
         aria-current={selected || undefined}
         aria-labelledby={`${id}-title`}
-        aria-describedby={`${id}-description`}
+        aria-describedby={`${id}-mode ${id}-description`}
         onClick={onSelect}
       >
         {url !== null ? (
@@ -65,6 +68,10 @@ function DeckOption({ view, selected, disabled, onSelect }: { view: DeckView; se
         <ItemContent>
           <ItemTitle id={`${id}-title`}>
             {view.deck.name}
+            {/* Read with the description (aria-describedby), so the deck's name stays its name. */}
+            <Badge id={`${id}-mode`} variant="outline" aria-hidden>
+              {DECK_MODE_LABELS[deckMode(view.deck)]}
+            </Badge>
             {selected ? (
               <Badge variant="secondary">
                 <Check data-icon="inline-start" aria-hidden />
@@ -73,7 +80,7 @@ function DeckOption({ view, selected, disabled, onSelect }: { view: DeckView; se
             ) : null}
           </ItemTitle>
           <ItemDescription id={`${id}-description`}>
-            {describeDeck(view, DECK_FORMAT_LABELS)}
+            {describeDeck(view, false)}
             {disabled !== null ? ` – ${disabled}` : ""}
           </ItemDescription>
         </ItemContent>
@@ -90,6 +97,7 @@ export function DeckPickerDialog({
   decks,
   selectedId,
   disabledReason = () => null,
+  hiddenNote = null,
   random,
   onPick,
 }: {
@@ -102,6 +110,8 @@ export function DeckPickerDialog({
   decks: readonly DeckView[]
   selectedId: string | null
   disabledReason?: (deck: DeckRecord) => string | null
+  /** How many decks of another mode the caller left out, in words ("5 Decks passen nicht zu Jumpstart."); null: none. */
+  hiddenNote?: string | null
   /** Only for the AI's deck. */
   random?: RandomOption
   onPick: (picked: PickedDeck) => void
@@ -179,6 +189,11 @@ export function DeckPickerDialog({
             />
           ))}
           {shown.length === 0 && text.trim() !== "" ? <p className="text-sm text-muted-foreground">Kein Deck passt zu „{text.trim()}“.</p> : null}
+          {hiddenNote !== null ? (
+            <p className="text-sm text-muted-foreground" data-slot="deck-picker-hidden">
+              {hiddenNote}
+            </p>
+          ) : null}
         </ItemGroup>
       </DialogContent>
     </Dialog>

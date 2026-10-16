@@ -172,6 +172,9 @@ function ReplayView({ matchId }: { matchId: string }) {
           </Button>
           <FactList
             facts={[
+              // The decks as Forge got them: two Jumpstart halves are one deck named "Jumpstart: A + B" (prompt 61).
+              { label: "Dein Deck", value: match.human.deck.name },
+              { label: "Deck der Forge-KI", value: match.ai.deck.name },
               { label: "App-Version", value: match.app.version },
               { label: "Forge-Version", value: match.engine.forgeVersion },
               { label: "Protokoll", value: String(match.engine.protocol) },

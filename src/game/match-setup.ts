@@ -2,7 +2,10 @@
  * A game from the player's deck choice (src/decks/deck-selection.ts) and AI
  * profile (src/game/ai-profiles.ts): which decks play and which profile - the
  * AI's deck and profile drawn now if "random" is chosen, anew for every game
- * - and exactly what Forge receives (match.start).
+ * - and exactly what Forge receives (match.start). A Jumpstart side (prompt
+ * 61) is two halves, put together into the one deck Forge plays
+ * (deck-mode.ts jumpstartDeck); the AI's two random halves are drawn anew for
+ * every game as well, never the same half twice.
  *
  * The seed: the app draws it (48 random bits from the browser's
  * cryptographic generator) instead of leaving it to Forge, so the game's
@@ -11,12 +14,13 @@
  * gets its own random seed.
  */
 import type { MatchRequest, MatchSettings } from "@openmana/engine-protocol"
-import { drawAiDeck, type PlaySelection } from "@/decks/deck-selection"
-import type { MatchSetup } from "@/engine/engine-session"
+import { jumpstartDeck } from "@/decks/deck-mode"
+import { drawAiDeck, drawHalves, type PlaySelection } from "@/decks/deck-selection"
+import type { MatchSetup, MatchSideSetup } from "@/engine/engine-session"
 import type { DeckRecord } from "@/storage/generated/records"
 import { DEFAULT_AI_PROFILE } from "./ai-profile-table"
 import { drawAiProfile, type ResolvedAiProfile } from "./ai-profiles"
-import { engineDeck } from "./engine-deck"
+import { engineDeck, type DeckParts } from "./engine-deck"
 
 /** How Forge calls the players (its game log uses the names; the app says "Du" and "Forge-KI"). */
 export const HUMAN_NAME = "Spieler"
@@ -47,19 +51,41 @@ export interface MatchSetupOptions {
   readonly settings?: MatchSettings
 }
 
-/** Both decks as Forge gets them, in the player's deck's format (Forge plays both in one). */
-export function matchSetup(human: DeckRecord, ai: DeckRecord, options: MatchSetupOptions): MatchSetup {
+/** One side's decks: one deck, or two Jumpstart halves (prompt 61), which Forge gets put together as one deck. */
+export type SideDecks = DeckRecord | readonly [DeckRecord, DeckRecord]
+
+function isPair(decks: SideDecks): decks is readonly [DeckRecord, DeckRecord] {
+  return Array.isArray(decks)
+}
+
+function side(decks: SideDecks): { readonly deck: DeckParts; readonly setup: MatchSideSetup } {
+  if (!isPair(decks)) return { deck: decks, setup: { deckId: decks.id, deckName: decks.name } }
+  const [first, second] = decks
+  const deck = jumpstartDeck(first, second)
+  return {
+    deck,
+    setup: { deckId: null, deckName: deck.name, halves: [{ deckId: first.id, deckName: first.name }, { deckId: second.id, deckName: second.name }] },
+  }
+}
+
+/**
+ * Both sides as Forge gets them, in the player's deck's format (Forge plays
+ * both in one); two halves are a constructed game of their joined decks.
+ */
+export function matchSetup(human: SideDecks, ai: SideDecks, options: MatchSetupOptions): MatchSetup {
+  const humanSide = side(human)
+  const aiSide = side(ai)
   const request: MatchRequest = {
     seed: options.seed,
-    format: human.format,
-    human: { name: HUMAN_NAME, deck: engineDeck(human) },
-    ai: { name: AI_NAME, profile: options.profile ?? DEFAULT_AI_PROFILE, deck: engineDeck(ai) },
+    format: isPair(human) ? "constructed" : human.format,
+    human: { name: HUMAN_NAME, deck: engineDeck(humanSide.deck) },
+    ai: { name: AI_NAME, profile: options.profile ?? DEFAULT_AI_PROFILE, deck: engineDeck(aiSide.deck) },
     ...(options.settings !== undefined ? { settings: options.settings } : {}),
   }
   return {
     request,
-    human: { deckId: human.id, deckName: human.name },
-    ai: { deckId: ai.id, deckName: ai.name, drawn: options.drawn, profileDrawn: options.profileDrawn ?? false },
+    human: humanSide.setup,
+    ai: { ...aiSide.setup, drawn: options.drawn, profileDrawn: options.profileDrawn ?? false },
   }
 }
 
@@ -81,11 +107,27 @@ export function planGame(selection: PlaySelection, options: PlanOptions = {}): M
   if (selection.blocker !== null || selection.human.status !== "ok") return null
   const chosen = options.profile ?? { status: "ok" as const, profile: { name: DEFAULT_AI_PROFILE } }
   if (chosen.status === "missing") return null
-  const seed = options.seed ?? randomSeed()
-  const human = selection.human.deck
+  const jumpstart = selection.mode === "jumpstart"
+  const pair = (first: DeckRecord, half: PlaySelection["humanHalf"]): SideDecks | null => (half?.status === "ok" ? [first, half.deck] : null)
+  const human = jumpstart ? pair(selection.human.deck, selection.humanHalf) : selection.human.deck
   const ai = selection.ai
-  const deck = ai.status === "ok" ? ai.deck : ai.status === "random" && ai.pool !== null && ai.pool.length > 0 ? drawAiDeck(ai.pool, options.random) : null
-  if (deck === null) return null
+  const pool = ai.status === "random" ? ai.pool : null
+  const deck: SideDecks | null =
+    ai.status === "ok"
+      ? jumpstart
+        ? pair(ai.deck, selection.aiHalf)
+        : ai.deck
+      : pool === null
+        ? null
+        : jumpstart
+          ? pool.length >= 2
+            ? drawHalves(pool, options.random)
+            : null
+          : pool.length > 0
+            ? drawAiDeck(pool, options.random)
+            : null
+  if (human === null || deck === null) return null
+  const seed = options.seed ?? randomSeed()
   const profile = chosen.status === "random" ? drawAiProfile(chosen.pool, options.random).name : chosen.profile.name
   return matchSetup(human, deck, { seed, drawn: ai.status === "random", profile, profileDrawn: chosen.status === "random", ...(options.settings !== undefined ? { settings: options.settings } : {}) })
 }

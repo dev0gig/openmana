@@ -1,22 +1,24 @@
 /*
- * The deck library's list: searching, filtering by format and sorting - pure
+ * The deck library's list: searching, filtering by mode and sorting - pure
  * functions over the decks as deck-view.ts shows them. The query lives in the
  * page's address (?q=…&format=…&sort=…), so it survives a reload and the
- * back button and needs no storage.
+ * back button and needs no storage. The filter is the deck's mode
+ * (deck-mode.ts, prompt 61); an address from before it with
+ * format=constructed means the normal decks.
  *
  * Search finds a deck by its name or by any name of any of its cards -
  * English, German, a face, the name Forge knows - ignoring case, accents and
  * the other differences card names have between sources (cards/names.ts).
  */
 import { nameKey } from "@/cards/names"
-import type { DeckFormat } from "@/storage/generated/records"
+import { DECK_MODES, deckMode, type DeckMode } from "./deck-mode"
 import { DECK_PARTS, entryNameKeys, type DeckView } from "./deck-view"
 
 export type DeckSort = "name" | "updated" | "created"
 export const DECK_SORTS: readonly DeckSort[] = ["name", "updated", "created"]
 
-export type FormatFilter = "all" | DeckFormat
-export const FORMAT_FILTERS: readonly FormatFilter[] = ["all", "constructed", "commander"]
+export type FormatFilter = "all" | DeckMode
+export const FORMAT_FILTERS: readonly FormatFilter[] = ["all", ...DECK_MODES]
 
 export interface LibraryQuery {
   readonly text: string
@@ -34,7 +36,7 @@ function oneOf<T extends string>(value: string | null, allowed: readonly T[], fa
 export function queryFromParams(params: URLSearchParams): LibraryQuery {
   return {
     text: params.get("q") ?? "",
-    format: oneOf(params.get("format"), FORMAT_FILTERS, DEFAULT_QUERY.format),
+    format: oneOf(params.get("format") === "constructed" ? "normal" : params.get("format"), FORMAT_FILTERS, DEFAULT_QUERY.format),
     sort: oneOf(params.get("sort"), DECK_SORTS, DEFAULT_QUERY.sort),
   }
 }
@@ -75,10 +77,10 @@ function compare(sort: DeckSort): (a: DeckView, b: DeckView) => number {
 
 /** The decks the query shows, in its order. */
 export function arrangeDecks(views: readonly DeckView[], query: LibraryQuery): DeckView[] {
-  return views.filter((view) => (query.format === "all" || view.deck.format === query.format) && deckMatches(view, query.text)).sort(compare(query.sort))
+  return views.filter((view) => (query.format === "all" || deckMode(view.deck) === query.format) && deckMatches(view, query.text)).sort(compare(query.sort))
 }
 
-/** The formats present among the decks (the format filter is only worth showing for more than one). */
-export function formatsPresent(views: readonly DeckView[]): DeckFormat[] {
-  return [...new Set(views.map((view) => view.deck.format))]
+/** The modes present among the decks (the mode filter is only worth showing for more than one). */
+export function formatsPresent(views: readonly DeckView[]): DeckMode[] {
+  return [...new Set(views.map((view) => deckMode(view.deck)))]
 }

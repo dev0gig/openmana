@@ -64,11 +64,17 @@ describe("search", () => {
 })
 
 describe("filter and order", () => {
-  it("by format", async () => {
+  it("by mode (prompt 61: a deck of 20 without a commander is a Jumpstart half)", async () => {
     const all = await views("arena-constructed.txt", "arena-brawl.txt", "arena-companion.txt")
-    expect(formatsPresent(all).sort()).toEqual(["commander", "constructed"])
+    const half = viewDeck(sampleDeck({ name: "Goblins", main: [{ count: 8, name: "Mountain" }, { count: 12, name: "Raging Goblin" }], sideboard: [] }), EMPTY_INDEX)
+    expect(formatsPresent(all).sort()).toEqual(["commander", "normal"])
+    expect(formatsPresent([...all, half]).sort()).toEqual(["commander", "jumpstart", "normal"])
     expect(names(arrangeDecks(all, { ...DEFAULT_QUERY, format: "commander" }))).toEqual(["Valki Brawl"])
-    expect(names(arrangeDecks(all, { ...DEFAULT_QUERY, format: "constructed" }))).toEqual(["Izzet Delver", "Test-Deck"])
+    expect(names(arrangeDecks([...all, half], { ...DEFAULT_QUERY, format: "normal" }))).toEqual(["Izzet Delver", "Test-Deck"])
+    expect(names(arrangeDecks([...all, half], { ...DEFAULT_QUERY, format: "jumpstart" }))).toEqual(["Goblins"])
+    // An address from before prompt 61 still filters the normal decks.
+    expect(queryFromParams(new URLSearchParams("format=constructed")).format).toBe("normal")
+    expect(queryFromParams(new URLSearchParams("format=jumpstart")).format).toBe("jumpstart")
   })
 
   it("by name (German order, numbers as numbers), last changed or last created", () => {
