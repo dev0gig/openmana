@@ -104,15 +104,18 @@ describe("vercel.json", () => {
   it("serves ORYX trust metadata as revalidated JSON with isolation", () => {
     expect(headersFor("/.well-known/assetlinks.json")).toMatchObject({ ...ISOLATION_HEADERS, "Content-Type": "application/json", "Cache-Control": "no-cache" })
     const links = JSON.parse(readFileSync(path.join(root, "public/.well-known/assetlinks.json"), "utf8"))
-    expect(links).toEqual([{
+    // Confirmed against ORYX ab3b8c7 and the existing signed 0.2.4 APK. The same
+    // ORYX key signs the old package and the new one (paket-migration step 13);
+    // the old entry stays until the old ORYX app is uninstalled.
+    const oryxFingerprint = "EB:25:B0:E8:DD:00:04:BD:6A:BB:7F:C0:FF:52:DF:FE:B2:B4:8D:76:D2:27:F2:5F:D8:16:C1:94:91:46:3F:AA"
+    expect(links).toEqual(["net.tsnet.oryx", "com.dev0gig.oryx"].map((package_name) => ({
       relation: ["delegate_permission/common.handle_all_urls"],
       target: {
         namespace: "android_app",
-        package_name: "net.tsnet.oryx",
-        // Confirmed against ORYX ab3b8c7 and the existing signed 0.2.4 APK.
-        sha256_cert_fingerprints: ["EB:25:B0:E8:DD:00:04:BD:6A:BB:7F:C0:FF:52:DF:FE:B2:B4:8D:76:D2:27:F2:5F:D8:16:C1:94:91:46:3F:AA"],
+        package_name,
+        sha256_cert_fingerprints: [oryxFingerprint],
       },
-    }])
+    })))
   })
   it("serves legal document navigation as UTF-8 text with isolation", () => {
     for (const pathname of ["/legal/LICENSE.txt", "/legal/SOURCE.txt", "/legal/THIRD-PARTY-NOTICES.txt"]) {
