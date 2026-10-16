@@ -128,6 +128,13 @@ recorded as the one deck Forge played, with the name "Jumpstart: A + B" and
   halves).
 - Readiness games (`node scripts/readiness/matches.ts`, the real UI to Forge's
   result): see "Readiness" below.
+- **`npm run check`** with the locked engine (`OPENMANA_ENGINE_DIR=engine/build/publish-52h/dist`):
+  **green** - schema check, `tsc -b`, oxlint, Vitest 114 files / 1 602 tests,
+  the complete end-to-end suite in Chrome with the real engine (0 failures; the
+  foreign failures prompt 60 still named did not occur in this run) and the PWA
+  suite. A first run stopped in the end-to-end test's deck library: it still
+  expected "Constructed" and a disabled Commander deck in the AI's picker -
+  updated to "Normal" and to the deck being left out with its line.
 
 ## Readiness
 
